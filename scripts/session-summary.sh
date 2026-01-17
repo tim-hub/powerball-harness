@@ -9,6 +9,7 @@ set +e
 STATE_FILE=".claude/state/session.json"
 MEMORY_DIR=".claude/memory"
 SESSION_LOG_FILE="${MEMORY_DIR}/session-log.md"
+EVENT_LOG_FILE=".claude/state/session.events.jsonl"
 CURRENT_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 # 状態ファイルがなければスキップ
@@ -164,9 +165,40 @@ EOF
 fi
 
 # 状態ファイルにセッション終了時刻・記録済みフラグを記録
-jq --arg ended_at "$CURRENT_TIME" \
-   --arg duration "$DURATION_MINUTES" \
-   '. + {ended_at: $ended_at, duration_minutes: ($duration | tonumber), memory_logged: true}' \
-   "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+append_event() {
+  local event_type="$1"
+  local event_state="$2"
+  local event_time="$3"
+
+  # イベントログ初期化
+  mkdir -p ".claude/state" 2>/dev/null || true
+  touch "$EVENT_LOG_FILE" 2>/dev/null || true
+
+  if command -v jq >/dev/null 2>&1; then
+    local seq
+    local event_id
+    seq=$(jq -r '.event_seq // 0' "$STATE_FILE" 2>/dev/null)
+    seq=$((seq + 1))
+    event_id=$(printf "event-%06d" "$seq")
+
+    jq --arg state "$event_state" \
+       --arg updated_at "$event_time" \
+       --arg event_id "$event_id" \
+       --argjson event_seq "$seq" \
+       '.state = $state | .updated_at = $updated_at | .last_event_id = $event_id | .event_seq = $event_seq' \
+       "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+
+    echo "{\"id\":\"$event_id\",\"type\":\"$event_type\",\"ts\":\"$event_time\",\"state\":\"$event_state\"}" >> "$EVENT_LOG_FILE"
+  fi
+}
+
+append_event "session.stop" "stopped" "$CURRENT_TIME"
+
+if command -v jq >/dev/null 2>&1; then
+  jq --arg ended_at "$CURRENT_TIME" \
+     --arg duration "$DURATION_MINUTES" \
+     '. + {ended_at: $ended_at, duration_minutes: ($duration | tonumber), memory_logged: true}' \
+     "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+fi
 
 exit 0

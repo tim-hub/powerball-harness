@@ -28,8 +28,11 @@ docs/design/
 !harness-ui/CLAUDE.md
 
 # harness-ui local state (generated)
-harness-ui/.claude/state/
+harness-ui/.claude/
+harness-ui/dist/
+harness-ui/node_modules/
 harness-ui/.env.example
+harness-ui/CLAUDE.md
 
 # 2-Agent setup files (auto-generated)
 /AGENTS.md
@@ -56,12 +59,16 @@ harness-ui/.env.example
 *.tmp
 *.temp
 
+# Secrets
+.credentials.json
+
 # Test sandbox (for plugin development)
 /test-sandbox/
 
 
 # Benchmarks - generated outputs only (scripts/tasks/docs are tracked)
 /benchmarks/results/
+/benchmarks/**/results/
 /benchmarks/test-project/
 /benchmarks/versions/
 /benchmarks/**/*.trace.jsonl
@@ -91,6 +98,9 @@ skills/x-promo/
 
 # Harness UI - ベータゲート（Polarライセンス検証）で保護済み
 # /harness-ui/  ← 2.6.22+ で配布対象に変更
+
+# Harness UI Archive (deprecated old implementation)
+/harness-ui-archive/
 
 # スライド中間ファイル
 docs/slides/
@@ -122,3 +132,5 @@ scripts/migrate-usage-history.js
 
 # リリース告知資料（ローカルのみ）
 docs/releases/
+docs/notebooklm/work-full-slides-compact.yaml
+docs/notebooklm/work-full-slides-minimal.yaml

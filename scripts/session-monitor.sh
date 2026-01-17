@@ -14,6 +14,7 @@ set +e
 STATE_DIR=".claude/state"
 STATE_FILE="$STATE_DIR/session.json"
 TOOLING_POLICY_FILE="$STATE_DIR/tooling-policy.json"
+EVENT_LOG_FILE="$STATE_DIR/session.events.jsonl"
 PLANS_FILE="Plans.md"
 
 # ================================
@@ -97,10 +98,165 @@ fi
 # ================================
 mkdir -p "$STATE_DIR"
 
-cat > "$STATE_FILE" << EOF
+# 既存セッションが未終了なら resume を試みる
+EXISTING_SESSION_ID=""
+EXISTING_ENDED_AT=""
+EXISTING_RESUME_TOKEN=""
+EXISTING_EVENT_SEQ="0"
+RESUME_MODE="false"
+FORK_MODE="${HARNESS_SESSION_FORK:-false}"
+
+if [ -f "$STATE_FILE" ]; then
+  if command -v jq >/dev/null 2>&1; then
+    EXISTING_SESSION_ID=$(jq -r '.session_id // empty' "$STATE_FILE" 2>/dev/null)
+    EXISTING_ENDED_AT=$(jq -r '.ended_at // empty' "$STATE_FILE" 2>/dev/null)
+    EXISTING_RESUME_TOKEN=$(jq -r '.resume_token // empty' "$STATE_FILE" 2>/dev/null)
+    EXISTING_EVENT_SEQ=$(jq -r '.event_seq // 0' "$STATE_FILE" 2>/dev/null)
+  elif command -v python3 >/dev/null 2>&1; then
+    eval "$(python3 - <<'PY' 2>/dev/null
+import json, shlex
+try:
+    data = json.load(open(".claude/state/session.json"))
+except Exception:
+    data = {}
+print(f"EXISTING_SESSION_ID={shlex.quote(data.get('session_id',''))}")
+print(f"EXISTING_ENDED_AT={shlex.quote(data.get('ended_at','') or '')}")
+print(f"EXISTING_RESUME_TOKEN={shlex.quote(data.get('resume_token','') or '')}")
+print(f"EXISTING_EVENT_SEQ={shlex.quote(str(data.get('event_seq',0)))}")
+PY
+)"
+  fi
+fi
+
+if [ -n "$EXISTING_SESSION_ID" ] && [ -z "$EXISTING_ENDED_AT" ]; then
+  RESUME_MODE="true"
+fi
+
+if [ "$FORK_MODE" = "true" ] && [ -n "$EXISTING_SESSION_ID" ]; then
+  RESUME_MODE="false"
+fi
+
+# イベントログ初期化
+touch "$EVENT_LOG_FILE" 2>/dev/null || true
+
+gen_session_id() {
+  uuidgen 2>/dev/null || echo "session-$(date +%s)"
+}
+
+gen_resume_token() {
+  uuidgen 2>/dev/null || echo "resume-$(date +%s)"
+}
+
+append_event() {
+  local event_type="$1"
+  local event_state="$2"
+  local event_time="$3"
+  local event_data="$4"
+
+  local seq
+  local event_id
+
+  if command -v jq >/dev/null 2>&1; then
+    seq=$(jq -r '.event_seq // 0' "$STATE_FILE" 2>/dev/null)
+    seq=$((seq + 1))
+    event_id=$(printf "event-%06d" "$seq")
+    tmp_file=$(mktemp 2>/dev/null || echo "")
+    if [ -n "$tmp_file" ]; then
+      jq --arg state "$event_state" \
+         --arg updated_at "$event_time" \
+         --arg event_id "$event_id" \
+         --argjson event_seq "$seq" \
+         '.state = $state | .updated_at = $updated_at | .last_event_id = $event_id | .event_seq = $event_seq' \
+         "$STATE_FILE" > "$tmp_file" 2>/dev/null && mv "$tmp_file" "$STATE_FILE"
+    fi
+  elif command -v python3 >/dev/null 2>&1; then
+    event_id=$(python3 - <<PY 2>/dev/null
+import json
+import sys
+try:
+    data = json.load(open("$STATE_FILE"))
+except Exception:
+    data = {}
+seq = int(data.get("event_seq", 0)) + 1
+data["event_seq"] = seq
+data["state"] = "$event_state"
+data["updated_at"] = "$event_time"
+data["last_event_id"] = f"event-{seq:06d}"
+with open("$STATE_FILE", "w") as f:
+    json.dump(data, f, indent=2)
+print(f"event-{seq:06d}")
+PY
+)
+  else
+    event_id="event-000001"
+  fi
+
+  if [ -n "$event_id" ]; then
+    if [ -n "$event_data" ]; then
+      echo "{\"id\":\"$event_id\",\"type\":\"$event_type\",\"ts\":\"$event_time\",\"state\":\"$event_state\",\"data\":$event_data}" >> "$EVENT_LOG_FILE"
+    else
+      echo "{\"id\":\"$event_id\",\"type\":\"$event_type\",\"ts\":\"$event_time\",\"state\":\"$event_state\"}" >> "$EVENT_LOG_FILE"
+    fi
+  fi
+}
+
+if [ "$RESUME_MODE" = "true" ] && [ -f "$STATE_FILE" ]; then
+  # 既存セッションを更新（resume）
+  if command -v jq >/dev/null 2>&1; then
+    tmp_file=$(mktemp)
+    jq --arg cwd "$(pwd)" \
+       --arg project "$PROJECT_NAME" \
+       --arg updated_at "$CURRENT_TIME" \
+       --arg resumed_at "$CURRENT_TIME" \
+       --argjson uncommitted "$GIT_UNCOMMITTED" \
+       --arg branch "$GIT_BRANCH" \
+       --arg last_commit "$GIT_LAST_COMMIT" \
+       --argjson plans_exists "$PLANS_EXISTS" \
+       --argjson plans_modified "$PLANS_MODIFIED" \
+       --argjson wip "$WIP_COUNT" \
+       --argjson todo "$TODO_COUNT" \
+       --argjson pending "$PENDING_COUNT" \
+       --argjson completed "$COMPLETED_COUNT" \
+       '.state_version = 1 |
+        .cwd = $cwd |
+        .project_name = $project |
+        .updated_at = $updated_at |
+        .resumed_at = $resumed_at |
+        .git.branch = $branch |
+        .git.uncommitted_changes = $uncommitted |
+        .git.last_commit = $last_commit |
+        .plans.exists = $plans_exists |
+        .plans.last_modified = $plans_modified |
+        .plans.wip_tasks = $wip |
+        .plans.todo_tasks = $todo |
+        .plans.pending_tasks = $pending |
+        .plans.completed_tasks = $completed' \
+       "$STATE_FILE" > "$tmp_file" && mv "$tmp_file" "$STATE_FILE"
+  fi
+
+  append_event "session.resume" "initialized" "$CURRENT_TIME" ""
+else
+  # 新規セッション or fork
+  NEW_SESSION_ID="$(gen_session_id)"
+  RESUME_TOKEN="$(gen_resume_token)"
+  PARENT_SESSION_ID="null"
+
+  if [ "$FORK_MODE" = "true" ] && [ -n "$EXISTING_SESSION_ID" ]; then
+    PARENT_SESSION_ID="\"$EXISTING_SESSION_ID\""
+  fi
+
+  cat > "$STATE_FILE" << EOF
 {
-  "session_id": "$(uuidgen 2>/dev/null || echo "session-$(date +%s)")",
+  "session_id": "$NEW_SESSION_ID",
+  "parent_session_id": $PARENT_SESSION_ID,
+  "state": "initialized",
+  "state_version": 1,
   "started_at": "$CURRENT_TIME",
+  "updated_at": "$CURRENT_TIME",
+  "resume_token": "$RESUME_TOKEN",
+  "event_seq": 0,
+  "last_event_id": "",
+  "fork_count": 0,
   "cwd": "$(pwd)",
   "project_name": "$PROJECT_NAME",
   "prompt_seq": 0,
@@ -120,6 +276,13 @@ cat > "$STATE_FILE" << EOF
   "changes_this_session": []
 }
 EOF
+
+  if [ "$FORK_MODE" = "true" ] && [ -n "$EXISTING_SESSION_ID" ]; then
+    append_event "session.fork" "initialized" "$CURRENT_TIME" "{\"parent_session_id\":\"$EXISTING_SESSION_ID\"}"
+  else
+    append_event "session.start" "initialized" "$CURRENT_TIME" ""
+  fi
+fi
 
 # ================================
 # Tooling Policy ファイル生成

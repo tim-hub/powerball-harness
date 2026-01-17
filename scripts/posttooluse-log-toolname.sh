@@ -20,6 +20,8 @@ STATE_DIR=".claude/state"
 LOG_FILE="${STATE_DIR}/tool-events.jsonl"
 LOCK_FILE="${STATE_DIR}/tool-events.lock"
 SESSION_FILE="${STATE_DIR}/session.json"
+EVENT_LOG_FILE="${STATE_DIR}/session.events.jsonl"
+EVENT_LOCK_FILE="${STATE_DIR}/session-events.lock"
 MAX_SIZE_BYTES=262144  # 256KB
 MAX_LINES=2000
 MAX_GENERATIONS=5
@@ -127,10 +129,14 @@ fi
 # JSON から必要なフィールドを抽出（jq優先、なければpython3）
 TOOL_NAME=""
 SESSION_ID=""
+FILE_PATH=""
+COMMAND=""
 
 if command -v jq >/dev/null 2>&1; then
   TOOL_NAME="$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null)"
   SESSION_ID="$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)"
+  FILE_PATH="$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)"
+  COMMAND="$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)"
 elif command -v python3 >/dev/null 2>&1; then
   eval "$(echo "$INPUT" | python3 - <<'PY' 2>/dev/null
 import json, shlex, sys
@@ -140,8 +146,13 @@ except Exception:
     data = {}
 tool_name = data.get("tool_name") or ""
 session_id = data.get("session_id") or ""
+tool_input = data.get("tool_input") or {}
+file_path = tool_input.get("file_path") or ""
+command = tool_input.get("command") or ""
 print(f"TOOL_NAME={shlex.quote(tool_name)}")
 print(f"SESSION_ID={shlex.quote(session_id)}")
+print(f"FILE_PATH={shlex.quote(file_path)}")
+print(f"COMMAND={shlex.quote(command)}")
 PY
 )"
 fi
@@ -214,6 +225,80 @@ EOF
 
   # ロック解放
   release_lock "$LOCK_FILE"
+fi
+
+# ===== セッションイベントログ（重要ツールのみ） =====
+is_important_tool() {
+  case "$1" in
+    Write|Edit|Bash|Task|Skill|SlashCommand) return 0 ;;
+  esac
+  return 1
+}
+
+trim_text() {
+  local text="$1"
+  local max_len="${2:-120}"
+  if [ "${#text}" -gt "$max_len" ]; then
+    echo "${text:0:$max_len}"
+  else
+    echo "$text"
+  fi
+}
+
+append_session_event() {
+  local tool="$1"
+  local timestamp="$2"
+  local data_json="$3"
+
+  [ ! -f "$SESSION_FILE" ] && return 0
+
+  # ロック取得
+  if ! acquire_lock "$EVENT_LOCK_FILE"; then
+    return 0
+  fi
+
+  # イベントログ初期化
+  touch "$EVENT_LOG_FILE" 2>/dev/null || true
+
+  if command -v jq >/dev/null 2>&1; then
+    local seq
+    local event_id
+    seq=$(jq -r '.event_seq // 0' "$SESSION_FILE" 2>/dev/null)
+    seq=$((seq + 1))
+    event_id=$(printf "event-%06d" "$seq")
+
+    # session.json を更新
+    tmp_file=$(mktemp)
+    jq --arg updated_at "$timestamp" \
+       --arg event_id "$event_id" \
+       --argjson event_seq "$seq" \
+       '.updated_at = $updated_at | .last_event_id = $event_id | .event_seq = $event_seq' \
+       "$SESSION_FILE" > "$tmp_file" && mv "$tmp_file" "$SESSION_FILE"
+
+    # event log 追記
+    if [ -n "$data_json" ]; then
+      echo "{\"id\":\"$event_id\",\"type\":\"tool.$tool\",\"ts\":\"$timestamp\",\"data\":$data_json}" >> "$EVENT_LOG_FILE"
+    else
+      echo "{\"id\":\"$event_id\",\"type\":\"tool.$tool\",\"ts\":\"$timestamp\"}" >> "$EVENT_LOG_FILE"
+    fi
+  fi
+
+  release_lock "$EVENT_LOCK_FILE"
+}
+
+if is_important_tool "$TOOL_NAME"; then
+  TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "")
+  DATA_JSON=""
+
+  if [ -n "$FILE_PATH" ]; then
+    FILE_PATH_SAFE=$(trim_text "$FILE_PATH" 200)
+    DATA_JSON="{\"file_path\":\"$FILE_PATH_SAFE\"}"
+  elif [ -n "$COMMAND" ]; then
+    COMMAND_SAFE=$(trim_text "$COMMAND" 200)
+    DATA_JSON="{\"command\":\"$COMMAND_SAFE\"}"
+  fi
+
+  append_session_event "$(echo "$TOOL_NAME" | tr '[:upper:]' '[:lower:]')" "$TIMESTAMP" "$DATA_JSON"
 fi
 
 
