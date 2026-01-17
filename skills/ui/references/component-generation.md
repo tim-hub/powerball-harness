@@ -7,6 +7,7 @@ allowed-tools: ["Read", "Write", "Edit", "Bash"]
 # Component Skill
 
 shadcn/uiベースのUIコンポーネントを生成するスキル。
+最初に `../ui-skills.md` と `../frontend-design.md` の適用条件を確認する。
 
 ---
 
