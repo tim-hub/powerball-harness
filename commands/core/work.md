@@ -450,7 +450,7 @@ Check Plans.md markers and operate in appropriate mode:
 pm:requested / cursor:requested / cc:TODO → cc:WIP (auto-update on start)
 ```
 
-This integrates the "start task → update marker" equivalent of `/start-task` into `/work`.
+This integrates the "start task → update marker" functionality directly into `/work`.
 
 ---
 
