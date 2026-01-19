@@ -1,6 +1,7 @@
 ---
 description: Validate brainstormed ideas with Cursor, update Plans.md, then handoff back to Claude Code
 description-en: Validate brainstormed ideas with Cursor, update Plans.md, then handoff back to Claude Code
+user-invocable: false
 ---
 
 # /cc-cursor-cc - Plan Validation Round Trip

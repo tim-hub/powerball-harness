@@ -24,7 +24,7 @@ Codex MCP に送信するセキュリティレビュー用プロンプト。
 
 ### CONSTRAINTS
 
-- **English only, max 500 chars** (Claude integrates in Japanese)
+- **English only, max 1500 chars** (Claude integrates in Japanese)
 - Critical/High: report all, Medium/Low: max 3 each
 - No issues → `Score: A / No issues.`
 - Reduce false positives by considering context

@@ -13,6 +13,45 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.9.19] - 2026-01-19
+
+### 🎯 What's Changed for You
+
+**Codex experts can now provide 3x more detailed analysis. Command menu is cleaner with internal commands hidden.**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| Codex experts limited to 500 chars output | Codex experts can output up to 1500 chars for detailed analysis |
+| `/cc-cursor-cc` visible in menu (rarely used) | Hidden from menu (still available for 2-Agent workflows) |
+| `/harness-ui` and `/harness-ui-setup` as separate commands | `/harness-ui` automatically enters setup mode if needed |
+
+### Changed
+
+- **Codex expert output limit relaxed** (500 → 1500 chars)
+  - All 8 expert prompts updated: security, quality, accessibility, performance, SEO, architect, plan-reviewer, scope-analyst
+  - Enables more detailed analysis and specific fix suggestions
+  - Total context impact: ~4,000 tokens (8 experts × 1500 chars) - manageable
+- **`/harness-ui` unified** - Now includes auto-setup mode
+  - Automatically detects if license key is configured
+  - Enters setup mode when `$HARNESS_BETA_CODE` is not set
+  - Single command for both setup and dashboard access
+
+### Deprecated
+
+- **`/harness-ui-setup`** - Merged into `/harness-ui`
+  - Still works internally but hidden from menu
+  - Use `/harness-ui` for both setup and dashboard
+
+### Removed (from menu)
+
+- **`/cc-cursor-cc`** - Hidden from command menu (`user-invocable: false`)
+  - Still functional for 2-Agent workflows
+  - Low usage frequency justified hiding
+
+---
+
 ## [2.9.18] - 2026-01-19
 
 ### 🎯 What's Changed for You
