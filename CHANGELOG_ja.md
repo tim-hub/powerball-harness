@@ -1900,7 +1900,8 @@ Observation recorded: 10946-10951 ✅
 - **v0.4.0**: Claude Rules、Plugin Hooks、Named Sessions 対応
 - **v0.3.0**: 初期リリース（Plan → Work → Review サイクル）
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.21...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.22...HEAD
+[2.9.22]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.21...v2.9.22
 [2.9.21]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.20...v2.9.21
 [2.9.11]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.10...v2.9.11
 [2.9.10]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.9...v2.9.10
