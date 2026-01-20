@@ -13,6 +13,30 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.9.21] - 2026-01-19
+
+### 🎯 What's Changed for You
+
+**You now get a quick context-budget snapshot at session start, plus an optional quality automation pack.**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| No context budget signal at session start | MCP/plugin estimates are shown at session start |
+| No optional quality automation pack | Opt-in PostToolUse pack (Prettier/tsc/console.log scan) |
+
+### Added
+
+- **Context budget snapshot** (estimated MCP/plugin counts) shown at session start and stored in tooling-policy.json
+- **Optional quality automation pack** (PostToolUse) with Prettier, tsc, console.log scan (disabled by default)
+
+### Changed
+
+- **session-monitor** now records MCP/plugin estimates for tooling policy
+
+---
+
 ## [2.9.19] - 2026-01-19
 
 ### 🎯 What's Changed for You
@@ -987,7 +1011,8 @@ Key milestones:
 - **v0.4.0**: Claude Rules, Plugin Hooks, Named Sessions support
 - **v0.3.0**: Initial release (Plan → Work → Review cycle)
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.11...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.21...HEAD
+[2.9.21]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.20...v2.9.21
 [2.9.11]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.10...v2.9.11
 [2.9.10]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.9...v2.9.10
 [2.9.9]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.8...v2.9.9

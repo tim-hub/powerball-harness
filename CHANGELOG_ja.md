@@ -9,6 +9,30 @@
 
 ---
 
+## [2.9.21] - 2026-01-19
+
+### 🎯 あなたにとって何が変わるか
+
+**セッション開始時にコンテキスト予算の目安が見え、品質自動化パックを任意で有効化できます。**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| セッション開始時に予算シグナルがない | MCP/プラグインの推定値を表示 |
+| 品質自動化パックがない | PostToolUse パックを任意で有効化（Prettier/tsc/console.log検出） |
+
+### Added
+
+- **コンテキスト予算の目安**（MCP/プラグイン推定値）をセッション開始時に表示し、tooling-policy.json に記録
+- **品質自動化パック**（PostToolUse）を追加（Prettier/tsc/console.log検出、デフォルトは無効）
+
+### Changed
+
+- **session-monitor** が MCP/プラグイン推定値をツールポリシーに記録
+
+---
+
 ## [2.9.19] - 2026-01-19
 
 ### 🎯 あなたにとって何が変わるか
@@ -1867,7 +1891,8 @@ Observation recorded: 10946-10951 ✅
 - **v0.4.0**: Claude Rules、Plugin Hooks、Named Sessions 対応
 - **v0.3.0**: 初期リリース（Plan → Work → Review サイクル）
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.11...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.21...HEAD
+[2.9.21]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.20...v2.9.21
 [2.9.11]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.10...v2.9.11
 [2.9.10]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.9...v2.9.10
 [2.9.9]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.8...v2.9.9

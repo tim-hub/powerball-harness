@@ -34,6 +34,20 @@ cost_control:
     bash_calls: 200             # Bash 呼び出し上限
   warn_threshold_percent: 80    # 警告を出す閾値（%）
 
+# Context budget (estimated tooling overhead)
+context_budget:
+  enabled: true
+  max_enabled_mcps: 10
+  max_installed_plugins: 10
+
+# Optional quality automation pack (PostToolUse)
+quality_pack:
+  enabled: false
+  mode: warn         # warn | run
+  prettier: true
+  tsc: true
+  console_log: true
+
 # Commit guard: require /harness-review before git commit
 commit_guard: true
 

@@ -324,6 +324,10 @@ fi
 # LSP 可用性の判定（公式LSPプラグイン導入状況）
 LSP_AVAILABLE="false"
 LSP_PLUGINS=""
+PLUGIN_LIST=""
+PLUGIN_COUNT="unknown"
+PLUGIN_ENABLED_ESTIMATE="unknown"
+PLUGIN_SOURCE=""
 
 # 既知の公式LSPプラグイン名（マーケットプレイス）
 # 全10種の公式プラグインをサポート
@@ -331,7 +335,8 @@ OFFICIAL_LSP_PLUGINS="typescript-lsp pyright-lsp rust-analyzer-lsp gopls-lsp cla
 
 if command -v claude >/dev/null 2>&1; then
   # claude plugin list でインストール済みプラグインを確認
-  INSTALLED_PLUGINS=$(claude plugin list 2>/dev/null | grep -o '[a-z-]*lsp' || true)
+  PLUGIN_LIST=$(claude plugin list 2>/dev/null || true)
+  INSTALLED_PLUGINS=$(echo "$PLUGIN_LIST" | grep -o '[a-z-]*lsp' || true)
 
   # 公式LSPプラグインが1つでも導入されているかチェック
   for plugin in $OFFICIAL_LSP_PLUGINS; do
@@ -340,7 +345,163 @@ if command -v claude >/dev/null 2>&1; then
       LSP_PLUGINS="$LSP_PLUGINS $plugin"
     fi
   done
+
+  # プラグイン数の推定
+  if [ -n "$PLUGIN_LIST" ]; then
+    PLUGIN_COUNT=$(echo "$PLUGIN_LIST" | grep -E '^[[:space:]]*[a-z0-9][a-z0-9-]*@' | wc -l | tr -d ' ')
+    PLUGIN_DISABLED=$(echo "$PLUGIN_LIST" | grep -Ei 'disabled|inactive' | grep -E '^[[:space:]]*[a-z0-9]' | wc -l | tr -d ' ')
+    if [ -n "$PLUGIN_COUNT" ] && [ "$PLUGIN_COUNT" -gt 0 ]; then
+      if [ -n "$PLUGIN_DISABLED" ] && [ "$PLUGIN_DISABLED" -gt 0 ] 2>/dev/null; then
+        PLUGIN_ENABLED_ESTIMATE=$((PLUGIN_COUNT - PLUGIN_DISABLED))
+      else
+        PLUGIN_ENABLED_ESTIMATE="$PLUGIN_COUNT"
+      fi
+      PLUGIN_SOURCE="claude plugin list"
+    fi
+  fi
 fi
+
+# ================================
+# Context Budget (estimate)
+# ================================
+CONTEXT_BUDGET_ENABLED="true"
+CONTEXT_MAX_ENABLED_MCPS="10"
+CONTEXT_MAX_INSTALLED_PLUGINS="10"
+
+read_context_value() {
+  local key="$1"
+  local default="$2"
+  local value=""
+  if [ -f "$CONFIG_FILE" ]; then
+    value=$(awk -v k="$key" '
+      $0 ~ /^context_budget:/ {in=1; next}
+      in && $0 ~ /^[^[:space:]]/ {in=0}
+      in && $1 == k":" {print $2; exit}
+    ' "$CONFIG_FILE" 2>/dev/null)
+  fi
+  value="${value%\"}"
+  value="${value#\"}"
+  [ -z "$value" ] && value="$default"
+  echo "$value"
+}
+
+normalize_bool() {
+  case "$1" in
+    true|false) echo "$1" ;;
+    *) echo "$2" ;;
+  esac
+}
+
+CONTEXT_BUDGET_ENABLED="$(normalize_bool "$(read_context_value enabled true)" true)"
+CONTEXT_MAX_ENABLED_MCPS="$(read_context_value max_enabled_mcps 10)"
+CONTEXT_MAX_INSTALLED_PLUGINS="$(read_context_value max_installed_plugins 10)"
+if ! echo "$CONTEXT_MAX_ENABLED_MCPS" | grep -Eq '^[0-9]+$'; then
+  CONTEXT_MAX_ENABLED_MCPS=10
+fi
+if ! echo "$CONTEXT_MAX_INSTALLED_PLUGINS" | grep -Eq '^[0-9]+$'; then
+  CONTEXT_MAX_INSTALLED_PLUGINS=10
+fi
+
+MCP_SERVER_NAMES=""
+MCP_DISABLED_NAMES=""
+MCP_SOURCES=""
+MCP_CONFIGURED="unknown"
+MCP_DISABLED="unknown"
+MCP_ENABLED_ESTIMATE="unknown"
+
+collect_mcp_servers() {
+  local file="$1"
+  local names=""
+  [ -f "$file" ] || return 0
+  MCP_SOURCES="$MCP_SOURCES $file"
+  if command -v jq >/dev/null 2>&1; then
+    names=$(jq -r '.mcpServers | keys[]?' "$file" 2>/dev/null)
+  elif command -v python3 >/dev/null 2>&1; then
+    names=$(python3 - "$file" <<'PY' 2>/dev/null
+import json
+import sys
+try:
+    data = json.load(open(sys.argv[1]))
+except Exception:
+    data = {}
+servers = data.get("mcpServers") or {}
+if isinstance(servers, dict):
+    for k in servers.keys():
+        print(k)
+PY
+)
+  fi
+  if [ -n "$names" ]; then
+    MCP_SERVER_NAMES="$MCP_SERVER_NAMES $names"
+  fi
+  return 0
+}
+
+collect_disabled_mcps() {
+  local file="$1"
+  [ -f "$file" ] || return 0
+  if ! command -v jq >/dev/null 2>&1; then
+    return 0
+  fi
+  local cwd
+  cwd="$(pwd)"
+  local names
+  names=$(jq -r --arg cwd "$cwd" '
+    def arr(x): if x == null then [] elif (x|type)=="array" then x else [] end;
+    def proj_disabled:
+      if (.projects | type) == "object" then
+        arr(.projects[$cwd].disabledMcpServers)
+      elif (.projects | type) == "array" then
+        arr((.projects[]? | select(.path==$cwd) | .disabledMcpServers))
+      else [] end;
+    (arr(.disabledMcpServers) + proj_disabled) | .[]?
+  ' "$file" 2>/dev/null)
+  if [ -n "$names" ]; then
+    MCP_DISABLED_NAMES="$MCP_DISABLED_NAMES $names"
+  fi
+  return 0
+}
+
+collect_mcp_servers ".mcp.json"
+collect_mcp_servers ".claude/mcp.json"
+collect_mcp_servers "$HOME/.claude/mcp.json"
+collect_disabled_mcps "$HOME/.claude.json"
+
+if [ -n "$MCP_SERVER_NAMES" ]; then
+  MCP_CONFIGURED=$(printf "%s\n" $MCP_SERVER_NAMES | sort -u | wc -l | tr -d ' ')
+fi
+if [ -n "$MCP_DISABLED_NAMES" ]; then
+  MCP_DISABLED=$(printf "%s\n" $MCP_DISABLED_NAMES | sort -u | wc -l | tr -d ' ')
+fi
+if [ "$MCP_CONFIGURED" != "unknown" ] && [ "$MCP_DISABLED" != "unknown" ]; then
+  if [ "$MCP_DISABLED" -le "$MCP_CONFIGURED" ] 2>/dev/null; then
+    MCP_ENABLED_ESTIMATE=$((MCP_CONFIGURED - MCP_DISABLED))
+  fi
+fi
+
+MCP_SOURCES_JSON="[]"
+if command -v jq >/dev/null 2>&1 && [ -n "$MCP_SOURCES" ]; then
+  MCP_SOURCES_JSON=$(printf "%s\n" $MCP_SOURCES | jq -R . | jq -s '.' 2>/dev/null || echo "[]")
+fi
+
+# JSON用の数値/NULL整形
+json_number_or_null() {
+  local value="$1"
+  if [ -z "$value" ] || [ "$value" = "unknown" ]; then
+    echo "null"
+  else
+    echo "$value"
+  fi
+}
+
+format_count() {
+  local value="$1"
+  if [ -z "$value" ] || [ "$value" = "unknown" ]; then
+    echo "?"
+  else
+    echo "$value"
+  fi
+}
 
 # Skillsインデックスの生成（name + description）
 SKILLS_INDEX="[]"
@@ -426,6 +587,22 @@ cat > "$TOOLING_POLICY_FILE" << EOF
     "last_used_tool_name": "",
     "used_since_last_prompt": false
   },
+  "plugins": {
+    "installed": $(json_number_or_null "$PLUGIN_COUNT"),
+    "enabled_estimate": $(json_number_or_null "$PLUGIN_ENABLED_ESTIMATE"),
+    "source": "$PLUGIN_SOURCE"
+  },
+  "mcp": {
+    "configured": $(json_number_or_null "$MCP_CONFIGURED"),
+    "disabled": $(json_number_or_null "$MCP_DISABLED"),
+    "enabled_estimate": $(json_number_or_null "$MCP_ENABLED_ESTIMATE"),
+    "sources": $MCP_SOURCES_JSON
+  },
+  "context_budget": {
+    "enabled": $CONTEXT_BUDGET_ENABLED,
+    "max_enabled_mcps": $CONTEXT_MAX_ENABLED_MCPS,
+    "max_installed_plugins": $CONTEXT_MAX_INSTALLED_PLUGINS
+  },
   "skills": {
     "index": $SKILLS_INDEX,
     "decision_required": false
@@ -450,6 +627,21 @@ if [ "$PLANS_EXISTS" = "true" ]; then
   TOTAL_ACTIVE=$((WIP_COUNT + TODO_COUNT + PENDING_COUNT))
   if [ "$TOTAL_ACTIVE" -gt 0 ]; then
     echo "📋 Plans.md: WIP ${WIP_COUNT}件 / TODO $((TODO_COUNT + PENDING_COUNT))件"
+  fi
+fi
+
+if [ "$CONTEXT_BUDGET_ENABLED" = "true" ]; then
+  MCP_CONFIG_LABEL="$(format_count "$MCP_CONFIGURED")"
+  MCP_ENABLED_LABEL="$(format_count "$MCP_ENABLED_ESTIMATE")"
+  PLUGIN_LABEL="$(format_count "$PLUGIN_ENABLED_ESTIMATE")"
+  echo "🧠 コンテキスト予算（推定）: MCP ${MCP_ENABLED_LABEL}/${MCP_CONFIG_LABEL}, Plugins ${PLUGIN_LABEL}"
+
+  if [ "$MCP_ENABLED_ESTIMATE" != "unknown" ] && [ "$MCP_ENABLED_ESTIMATE" -gt "$CONTEXT_MAX_ENABLED_MCPS" ] 2>/dev/null; then
+    echo "⚠️ MCP 有効数の推定値が上限を超えています (${MCP_ENABLED_ESTIMATE}/${CONTEXT_MAX_ENABLED_MCPS})"
+  fi
+
+  if [ "$PLUGIN_ENABLED_ESTIMATE" != "unknown" ] && [ "$PLUGIN_ENABLED_ESTIMATE" -gt "$CONTEXT_MAX_INSTALLED_PLUGINS" ] 2>/dev/null; then
+    echo "⚠️ プラグイン数の推定値が上限を超えています (${PLUGIN_ENABLED_ESTIMATE}/${CONTEXT_MAX_INSTALLED_PLUGINS})"
   fi
 fi
 

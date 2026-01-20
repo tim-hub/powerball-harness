@@ -33,6 +33,20 @@ cleanup:
 # When enabled, git commit will be blocked until review is completed
 commit_guard: true
 
+# Context budget (estimated tooling overhead)
+context_budget:
+  enabled: true
+  max_enabled_mcps: 10
+  max_installed_plugins: 10
+
+# Optional quality automation pack (PostToolUse)
+quality_pack:
+  enabled: false
+  mode: warn         # warn | run
+  prettier: true
+  tsc: true
+  console_log: true
+
 # Review settings (commit judgment + Codex mode)
 review:
   # Review mode: default (Claude only) or codex (GPT experts delegation)
