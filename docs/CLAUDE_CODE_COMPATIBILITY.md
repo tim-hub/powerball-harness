@@ -7,17 +7,30 @@
 | Harness バージョン | Claude Code 最小バージョン | 推奨バージョン | 備考 |
 |-------------------|-------------------------|--------------|------|
 | v2.9.0 | v2.1.1+ | v2.1.6+ | hooks, skills 基本機能 |
-| v2.9.1 (予定) | v2.1.6+ | v2.1.9+ | additionalContext, LSP 活用 |
+| v2.10.0 (予定) | v2.1.6+ | v2.1.17+ | Setup hook, plansDirectory, context_window |
 
 ## バージョン別機能対応
+
+### v2.1.17 (2026-01-22)
+
+| 機能 | Harness 対応 | 備考 |
+|------|-------------|------|
+| Task management system | 対応済み | TodoWrite ↔ Plans.md 同期 |
+
+### v2.1.10 (2026-01-17)
+
+| 機能 | Harness 対応 | 備考 |
+|------|-------------|------|
+| Setup hook event | 対応済み | `--init` / `--maintenance` フック |
 
 ### v2.1.9 (2026-01-16)
 
 | 機能 | Harness 対応 | 備考 |
 |------|-------------|------|
 | PreToolUse additionalContext | 対応済み | 品質ガイドライン自動注入 |
-| plansDirectory 設定 | 対応予定 | Plans.md 配置カスタマイズ |
-| ${CLAUDE_SESSION_ID} | 対応予定 | セッション追跡強化 |
+| plansDirectory 設定 | 対応済み | Plans.md 配置カスタマイズ |
+| ${CLAUDE_SESSION_ID} | 部分対応 | session-init.sh でマッピング |
+| MCP auto:N syntax | 対応済み | [MCP_CONFIGURATION.md](./MCP_CONFIGURATION.md) 参照 |
 
 ### v2.1.7 (2026-01-14)
 
@@ -31,7 +44,7 @@
 | 機能 | Harness 対応 | 備考 |
 |------|-------------|------|
 | Nested skills directory | 互換 | 将来的な構造変更で活用予定 |
-| context_window percentage | 対応予定 | harness-ui で表示予定 |
+| context_window percentage | 対応済み | harness-ui ダッシュボードで表示 |
 
 ### v2.1.3 (2026-01-09)
 

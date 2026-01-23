@@ -11,6 +11,44 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### 🎯 What's Changed for You
+
+**Full Claude Code v2.1.10-v2.1.17 compatibility with Setup hooks, plansDirectory, context monitoring, and TodoWrite sync.**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| No `claude --init` / `--maintenance` integration | Setup hooks auto-run on `--init` and `--maintenance` |
+| Plans.md fixed at project root | Customizable via `plansDirectory` setting |
+| No context usage visibility | Visual indicator with color-coded thresholds in harness-ui |
+| TodoWrite and Plans.md disconnected | TodoWrite changes logged and tracked |
+| No MCP auto:N documentation | Comprehensive MCP configuration guide |
+
+### Added
+
+- **Setup hook event** (v2.1.10): Auto-runs during `claude --init` and `claude --maintenance`
+  - `init` mode: Creates default config, CLAUDE.md, Plans.md
+  - `maintenance` mode: Cleans old sessions, syncs cache, validates config
+- **plansDirectory setting**: Full implementation across all scripts and harness-ui
+  - New `scripts/config-utils.sh` for centralized config reading
+  - session-init, session-monitor, plans-watcher respect the setting
+  - harness-ui server and project-discovery support custom paths
+- **context_window percentage display** (v2.1.6): Real-time indicator in harness-ui dashboard
+  - Green (0-50%), Yellow (50-70%), Red (70%+) color coding
+  - Warning messages at high usage levels
+- **TodoWrite sync** (v2.1.17): PostToolUse hook tracks TodoWrite state changes
+  - Logs todo counts (pending/in_progress/completed) to session events
+  - State saved to `.claude/state/todo-sync-state.json`
+- **MCP Configuration Guide**: New `docs/MCP_CONFIGURATION.md`
+  - Documents `auto:N` syntax for threshold-based auto-approval
+  - Examples for different server trust levels
+
+### Changed
+
+- **CLAUDE_CODE_COMPATIBILITY.md**: Updated matrix for v2.1.10-v2.1.17
+- **hooks.json**: Added Setup event and TodoWrite PostToolUse matcher
+
 ---
 
 ## [2.9.22] - 2026-01-20

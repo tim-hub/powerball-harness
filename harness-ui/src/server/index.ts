@@ -1,6 +1,7 @@
-import { readFile, readdir } from 'fs/promises';
+import { readFile, readdir, realpath } from 'fs/promises';
+import { readFileSync, realpathSync } from 'fs';
 import { homedir } from 'os';
-import { join } from 'path';
+import { join, resolve, isAbsolute } from 'path';
 import { ptyManager } from './services/pty-manager';
 import { PlansParser } from './services/plans-parser';
 import { commandCatalog } from './services/command-catalog';
@@ -22,9 +23,58 @@ import type {
 } from '@shared/types';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
-const DEFAULT_PLANS_PATH = process.env.PLANS_PATH || join(process.cwd(), '..', 'Plans.md');
 const DEFAULT_COMMANDS_PATH = join(process.cwd(), '..', 'commands', 'core');
 const DEFAULT_DISCOVERY_ROOT = join(homedir(), 'Desktop', 'Code');
+
+// plansDirectory 設定を読み取り、Plans.md のパスを解決（パストラバーサル対策付き）
+function resolvePlansPath(projectPath: string): string {
+  const configPath = join(projectPath, '.claude-code-harness.config.yaml');
+  try {
+    const content = readFileSync(configPath, 'utf-8');
+    const match = content.match(/^plansDirectory:\s*["']?([^"'\n]+)["']?/m);
+    const plansDir = match?.[1]?.trim() || '.';
+
+    // Security: Reject absolute paths and parent directory traversal
+    if (isAbsolute(plansDir) || plansDir.includes('..')) {
+      console.warn(`Invalid plansDirectory: ${plansDir} - using default`);
+      return join(projectPath, 'Plans.md');
+    }
+
+    const basePath = plansDir === '.' ? projectPath : join(projectPath, plansDir);
+
+    // Security: Ensure resolved path is within project root (including symlink protection)
+    // Helper to check if child path is within parent (handles /project vs /project-evil edge case)
+    const isWithinDirectory = (parent: string, child: string): boolean => {
+      const normalizedParent = parent.endsWith('/') ? parent : parent + '/';
+      return child === parent || child.startsWith(normalizedParent);
+    };
+
+    try {
+      const resolvedBase = realpathSync(projectPath);
+      // Resolve the full plansDir path to catch symlinks pointing outside
+      const resolvedPlansDir = plansDir === '.' ? resolvedBase : realpathSync(join(projectPath, plansDir));
+      if (!isWithinDirectory(resolvedBase, resolvedPlansDir)) {
+        console.warn(`plansDirectory escapes project root via symlink: ${plansDir} - using default`);
+        return join(projectPath, 'Plans.md');
+      }
+    } catch {
+      // If realpath fails (e.g., path doesn't exist yet), use logical check only
+      const resolvedPlansDir = resolve(projectPath, plansDir);
+      const resolvedBase = resolve(projectPath);
+      if (!isWithinDirectory(resolvedBase, resolvedPlansDir)) {
+        console.warn(`plansDirectory escapes project root: ${plansDir} - using default`);
+        return join(projectPath, 'Plans.md');
+      }
+    }
+
+    return join(basePath, 'Plans.md');
+  } catch {
+    return join(projectPath, 'Plans.md');
+  }
+}
+
+const DEFAULT_PROJECT_PATH = join(process.cwd(), '..');
+const DEFAULT_PLANS_PATH = process.env.PLANS_PATH || resolvePlansPath(DEFAULT_PROJECT_PATH);
 
 // Initialize command catalog
 commandCatalog.setCommandsPath(DEFAULT_COMMANDS_PATH);
@@ -279,6 +329,19 @@ const server = Bun.serve({
     if (url.pathname === '/api/commands/reload' && req.method === 'POST') {
       const commands = await commandCatalog.reload();
       return Response.json({ success: true, count: commands.length });
+    }
+
+    // Context window endpoint (reads from tooling-policy.json if available)
+    if (url.pathname === '/api/context') {
+      try {
+        const contextFile = join(DEFAULT_PROJECT_PATH, '.claude', 'state', 'context-usage.json');
+        const content = await readFile(contextFile, 'utf-8');
+        const data = JSON.parse(content);
+        return Response.json(data);
+      } catch {
+        // Return null/empty if no context data available
+        return Response.json({ used_percentage: null, remaining_percentage: null });
+      }
     }
 
     if (url.pathname === '/api/projects') {

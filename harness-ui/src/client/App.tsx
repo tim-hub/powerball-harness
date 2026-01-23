@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { Page, PlansData } from '@shared/types';
+import type { Page, PlansData, ContextWindow } from '@shared/types';
 import { useWebSocket } from './hooks/useWebSocket';
 import { usePlans } from './hooks/usePlans';
 import { useProjects } from './hooks/useProjects';
@@ -9,14 +9,77 @@ import { SettingsPage } from './components/SettingsPage';
 import { ProjectSelector } from './components/ProjectSelector';
 
 const COMMON_TERMINAL_PROJECT_ID = '__common__';
+const CONTEXT_POLL_INTERVAL = 10000; // 10 seconds
 
 export function App() {
   const [page, setPage] = useState<Page>('dashboard');
   const [focusedTerminal, setFocusedTerminal] = useState<string | null>(null);
   const [commonTerminalId, setCommonTerminalId] = useState<string | null>(null);
   const [commonTerminalOutput, setCommonTerminalOutput] = useState<string>('');
+  const [contextWindow, setContextWindow] = useState<ContextWindow | null>(null);
 
   const { projects, activeProject, activateProject, addProject, removeProject } = useProjects();
+
+  // Fetch context window data periodically (with Page Visibility API optimization)
+  useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    let isFetching = false;
+
+    const fetchContext = async () => {
+      // Prevent overlapping requests
+      if (isFetching) return;
+      isFetching = true;
+
+      try {
+        const res = await fetch('/api/context');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && typeof data.used_percentage === 'number') {
+            setContextWindow(data);
+          }
+        }
+      } catch {
+        // Silently ignore errors
+      } finally {
+        isFetching = false;
+      }
+    };
+
+    const startPolling = () => {
+      if (!intervalId) {
+        intervalId = setInterval(fetchContext, CONTEXT_POLL_INTERVAL);
+      }
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        fetchContext(); // Fetch immediately when becoming visible
+        startPolling();
+      }
+    };
+
+    // Initial fetch and start polling if visible
+    fetchContext();
+    if (!document.hidden) {
+      startPolling();
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
   const { plans, updatePlans } = usePlans({ projectId: activeProject?.id });
 
   const handlePlansUpdate = useCallback(
@@ -143,6 +206,7 @@ export function App() {
             plans={plans}
             sessions={projectSessions}
             worktreePaths={activeProject?.worktreePaths}
+            contextWindow={contextWindow}
             onTerminalFocus={handleTerminalFocus}
             onCreateSession={handleCreateSession}
             onSendInput={handleCommandSend}

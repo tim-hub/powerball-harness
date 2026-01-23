@@ -1,8 +1,9 @@
 import { useMemo, useRef, useCallback, useEffect } from 'react';
-import type { PlansData, PTYSession } from '@shared/types';
+import type { PlansData, PTYSession, ContextWindow } from '@shared/types';
 import { PlansBoard } from './PlansBoard';
 import { TerminalCards } from './TerminalCards';
 import { ProgressSummary } from './ProgressSummary';
+import { ContextIndicator } from './ContextIndicator';
 import { CommandBar } from './CommandBar';
 import { Terminal, TerminalHandle } from './Terminal';
 
@@ -12,6 +13,7 @@ interface DashboardProps {
   plans: PlansData;
   sessions: PTYSession[];
   worktreePaths?: string[];
+  contextWindow?: ContextWindow | null;
   onTerminalFocus: (sessionId: string) => void;
   onCreateSession: (worktreePath?: string) => void;
   onSendInput: (sessionId: string, data: string) => void;
@@ -33,6 +35,7 @@ export function Dashboard({
   plans,
   sessions,
   worktreePaths,
+  contextWindow,
   onTerminalFocus,
   onCreateSession,
   onSendInput,
@@ -121,6 +124,8 @@ export function Dashboard({
       </div>
 
       <ProgressSummary summary={plans.summary} />
+
+      <ContextIndicator context={contextWindow} />
 
       <CommandBar sessions={sessions} onSendCommand={onSendInput} />
 
