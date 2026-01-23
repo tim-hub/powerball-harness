@@ -15,8 +15,16 @@ STATE_DIR=".claude/state"
 STATE_FILE="$STATE_DIR/session.json"
 TOOLING_POLICY_FILE="$STATE_DIR/tooling-policy.json"
 EVENT_LOG_FILE="$STATE_DIR/session.events.jsonl"
-PLANS_FILE="Plans.md"
 CONFIG_FILE=".claude-code-harness.config.yaml"
+
+# plansDirectory 設定を考慮して Plans.md のパスを取得
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/config-utils.sh" ]; then
+  source "${SCRIPT_DIR}/config-utils.sh"
+  PLANS_FILE=$(get_plans_file_path)
+else
+  PLANS_FILE="Plans.md"
+fi
 
 # ================================
 # ヘルパー関数

@@ -149,10 +149,17 @@ if [ -f "$SKILLS_CONFIG_FILE" ]; then
 fi
 
 # ===== Step 3: Plans.md チェック =====
+# plansDirectory 設定を考慮
+PLANS_PATH="Plans.md"
+if [ -f "${SCRIPT_DIR}/config-utils.sh" ]; then
+  source "${SCRIPT_DIR}/config-utils.sh"
+  PLANS_PATH=$(get_plans_file_path)
+fi
+
 PLANS_INFO=""
-if [ -f "Plans.md" ]; then
-  wip_count=$(grep -c "cc:WIP\|pm:依頼中\|cursor:依頼中" Plans.md 2>/dev/null || echo "0")
-  todo_count=$(grep -c "cc:TODO" Plans.md 2>/dev/null || echo "0")
+if [ -f "$PLANS_PATH" ]; then
+  wip_count=$(grep -c "cc:WIP\|pm:依頼中\|cursor:依頼中" "$PLANS_PATH" 2>/dev/null || echo "0")
+  todo_count=$(grep -c "cc:TODO" "$PLANS_PATH" 2>/dev/null || echo "0")
 
   PLANS_INFO="📄 Plans.md: 進行中 ${wip_count} / 未着手 ${todo_count}"
 else

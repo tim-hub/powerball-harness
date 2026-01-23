@@ -48,18 +48,25 @@ if [ -n "$CWD" ] && [ -n "$CHANGED_FILE" ] && [[ "$CHANGED_FILE" == "$CWD/"* ]];
   CHANGED_FILE="${CHANGED_FILE#$CWD/}"
 fi
 
-# Plans.md のパス（大文字小文字を区別しない）
-find_plans_file() {
-    for f in Plans.md plans.md PLANS.md PLANS.MD; do
-        if [ -f "$f" ]; then
-            echo "$f"
-            return 0
-        fi
-    done
-    return 1
-}
-
-PLANS_FILE=$(find_plans_file)
+# Plans.md のパス（plansDirectory 設定を考慮）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/config-utils.sh" ]; then
+  source "${SCRIPT_DIR}/config-utils.sh"
+  PLANS_FILE=$(get_plans_file_path)
+  plans_file_exists || PLANS_FILE=""
+else
+  # フォールバック: 従来の検索ロジック
+  find_plans_file() {
+      for f in Plans.md plans.md PLANS.md PLANS.MD; do
+          if [ -f "$f" ]; then
+              echo "$f"
+              return 0
+          fi
+      done
+      return 1
+  }
+  PLANS_FILE=$(find_plans_file)
+fi
 
 # Plans.md 以外の変更はスキップ
 if [ -z "$PLANS_FILE" ]; then

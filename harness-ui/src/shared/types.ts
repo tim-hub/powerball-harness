@@ -175,5 +175,12 @@ export interface ProjectsData {
   activeProjectId: string | null;
 }
 
+// Context Window (Claude Code v2.1.6+)
+export interface ContextWindow {
+  used_percentage: number;
+  remaining_percentage: number;
+  updated_at?: string;
+}
+
 // UI State
 export type Page = 'dashboard' | 'work' | 'settings';

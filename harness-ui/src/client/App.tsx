@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { Page, PlansData } from '@shared/types';
+import type { Page, PlansData, ContextWindow } from '@shared/types';
 import { useWebSocket } from './hooks/useWebSocket';
 import { usePlans } from './hooks/usePlans';
 import { useProjects } from './hooks/useProjects';
@@ -9,14 +9,37 @@ import { SettingsPage } from './components/SettingsPage';
 import { ProjectSelector } from './components/ProjectSelector';
 
 const COMMON_TERMINAL_PROJECT_ID = '__common__';
+const CONTEXT_POLL_INTERVAL = 10000; // 10 seconds
 
 export function App() {
   const [page, setPage] = useState<Page>('dashboard');
   const [focusedTerminal, setFocusedTerminal] = useState<string | null>(null);
   const [commonTerminalId, setCommonTerminalId] = useState<string | null>(null);
   const [commonTerminalOutput, setCommonTerminalOutput] = useState<string>('');
+  const [contextWindow, setContextWindow] = useState<ContextWindow | null>(null);
 
   const { projects, activeProject, activateProject, addProject, removeProject } = useProjects();
+
+  // Fetch context window data periodically
+  useEffect(() => {
+    const fetchContext = async () => {
+      try {
+        const res = await fetch('/api/context');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && typeof data.used_percentage === 'number') {
+            setContextWindow(data);
+          }
+        }
+      } catch {
+        // Silently ignore errors
+      }
+    };
+
+    fetchContext();
+    const interval = setInterval(fetchContext, CONTEXT_POLL_INTERVAL);
+    return () => clearInterval(interval);
+  }, []);
   const { plans, updatePlans } = usePlans({ projectId: activeProject?.id });
 
   const handlePlansUpdate = useCallback(
@@ -143,6 +166,7 @@ export function App() {
             plans={plans}
             sessions={projectSessions}
             worktreePaths={activeProject?.worktreePaths}
+            contextWindow={contextWindow}
             onTerminalFocus={handleTerminalFocus}
             onCreateSession={handleCreateSession}
             onSendInput={handleCommandSend}

@@ -1,6 +1,26 @@
-import { readdir } from 'fs/promises';
+import { readdir, readFile } from 'fs/promises';
 import { join } from 'path';
 import type { Project } from '@shared/types';
+
+// plansDirectory 設定を読み取る
+async function getPlansDirectory(projectPath: string): Promise<string> {
+  const configPath = join(projectPath, '.claude-code-harness.config.yaml');
+  try {
+    const content = await readFile(configPath, 'utf-8');
+    // 簡易 YAML パース: plansDirectory: の値を取得
+    const match = content.match(/^plansDirectory:\s*["']?([^"'\n]+)["']?/m);
+    return match?.[1]?.trim() || '.';
+  } catch {
+    return '.';
+  }
+}
+
+// plansPath を解決
+async function resolvePlansPath(projectPath: string): Promise<string> {
+  const plansDir = await getPlansDirectory(projectPath);
+  const basePath = plansDir === '.' ? projectPath : join(projectPath, plansDir);
+  return join(basePath, 'Plans.md');
+}
 
 const DEFAULT_SKIP_DIRS = new Set([
   'node_modules',
@@ -47,13 +67,14 @@ function hashPath(input: string): string {
   return Math.abs(hash).toString(36);
 }
 
-function toProject(path: string): Project {
+async function toProject(path: string): Promise<Project> {
   const name = path.split('/').pop() || path;
+  const plansPath = await resolvePlansPath(path);
   return {
     id: `proj_${hashPath(path)}`,
     name,
     path,
-    plansPath: join(path, 'Plans.md'),
+    plansPath,
     worktreePaths: [],
     isActive: false,
   };
@@ -85,7 +106,7 @@ async function scanDirectory(
 
   const names = new Set(entries.map((entry) => entry.name));
   if (isCandidate(names)) {
-    results.push(toProject(dir));
+    results.push(await toProject(dir));
     return;
   }
 
