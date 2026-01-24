@@ -9,7 +9,7 @@ Change history for claude-code-harness.
 
 ---
 
-## [Unreleased]
+## [2.9.24] - 2026-01-24
 
 ### 🎯 What's Changed for You
 
@@ -1083,7 +1083,8 @@ Key milestones:
 - **v0.4.0**: Claude Rules, Plugin Hooks, Named Sessions support
 - **v0.3.0**: Initial release (Plan → Work → Review cycle)
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.22...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.24...HEAD
+[2.9.24]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.22...v2.9.24
 [2.9.22]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.21...v2.9.22
 [2.9.21]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.20...v2.9.21
 [2.9.11]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.10...v2.9.11
