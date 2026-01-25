@@ -9,6 +9,26 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.10.4] - 2026-01-25
+
+### 🎯 What's Changed for You
+
+**`/dev-tools-setup` now asks whether to configure MCP globally or per-project.**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| MCP config always created in project `.mcp.json` | User chooses: global (`~/.mcp.json`) or project (`.mcp.json`) |
+
+### Changed
+
+- **`/dev-tools-setup` adds user confirmation for MCP scope**
+  - Step 4.2: AskUserQuestion prompts for global vs project-specific
+  - Global config enables harness MCP tools across all projects
+
+---
+
 ## [2.10.3] - 2026-01-25
 
 ### 🎯 What's Changed for You

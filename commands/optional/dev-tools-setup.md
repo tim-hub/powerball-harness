@@ -96,9 +96,31 @@ npm install
 npm run build
 ```
 
-#### 4.2: プロジェクト設定に追加
+#### 4.2: 設定スコープの選択（ユーザー確認必須）
 
-`.mcp.json`（プロジェクトルート）に MCP サーバーを登録:
+> 🔴 **AskUserQuestion ツールで確認すること**
+
+ユーザーに以下を確認:
+
+```
+MCP サーバーの設定スコープを選択してください:
+
+1. グローバル設定（推奨）
+   - ~/.mcp.json に設定
+   - すべてのプロジェクトで harness MCP ツールが使用可能
+   - 一度設定すれば他のプロジェクトで再設定不要
+
+2. プロジェクト固有設定
+   - .mcp.json（プロジェクトルート）に設定
+   - このプロジェクトのみで使用可能
+   - リポジトリに含めてチームで共有可能
+```
+
+#### 4.3: 設定ファイル作成
+
+**グローバル設定の場合:**
+
+`~/.mcp.json` に追加:
 
 ```json
 {
@@ -111,7 +133,28 @@ npm run build
 }
 ```
 
-**実行するコマンド:**
+```bash
+# ~/.mcp.json が存在しない場合は作成
+if [ ! -f ~/.mcp.json ]; then
+  cat > ~/.mcp.json << 'EOF'
+{
+  "mcpServers": {
+    "harness": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.js"]
+    }
+  }
+}
+EOF
+  echo "Created ~/.mcp.json (global)"
+else
+  echo "~/.mcp.json already exists - please add harness MCP server manually"
+fi
+```
+
+**プロジェクト固有設定の場合:**
+
+`.mcp.json`（プロジェクトルート）に追加:
 
 ```bash
 # .mcp.json が存在しない場合は作成
@@ -126,13 +169,13 @@ if [ ! -f .mcp.json ]; then
   }
 }
 EOF
-  echo "Created .mcp.json"
+  echo "Created .mcp.json (project)"
 else
   echo ".mcp.json already exists - please add harness MCP server manually"
 fi
 ```
 
-#### 4.3: 動作確認
+#### 4.4: 動作確認
 
 ```bash
 # Claude Code を再起動後、MCP ツールが利用可能か確認
