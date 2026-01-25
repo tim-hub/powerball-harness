@@ -9,6 +9,35 @@
 
 ---
 
+## [2.10.8] - 2026-01-26
+
+### 🎯 あなたにとって何が変わるか
+
+**OpenCode 版の `/harness-review` から Codex モードを削除しました。レビューは Claude の多角的分析（Task tool 並列実行）に集中します。**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| harness-review に Codex モードが内蔵 | Codex は削除、`/codex-review` を明示的に使用 |
+| 初回実行時に `check-codex.sh` フックが動作 | フックなし、クリーンな起動 |
+| 5 観点（Codex 含む） | 4 観点（Security/Performance/Quality/Accessibility） |
+
+### Changed
+
+- **OpenCode 版 `harness-review.md` から Codex モードを削除**
+  - YAML frontmatter の hooks セクションを削除
+  - Step 0（Codex チェック）と Step 0.5（コンテキスト確認）を削除
+  - Step 2 の Codex Mode サブセクションを削除
+  - Step 2.5（Codex との結果統合）を削除
+  - Parallel Execution セクションを 4 観点に更新
+
+- **`/codex-review` への誘導を追加**
+  - 明確な役割分担: `/harness-review` = Claude 分析、`/codex-review` = Codex 意見
+  - Codex を使うタイミングをユーザーが明示的に選択可能
+
+---
+
 ## [2.10.7] - 2026-01-25
 
 ### 🎯 あなたにとって何が変わるか

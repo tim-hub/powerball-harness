@@ -9,6 +9,35 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.10.8] - 2026-01-26
+
+### 🎯 What's Changed for You
+
+**OpenCode version of `/harness-review` no longer includes Codex mode. Review focuses on Claude's multi-perspective analysis with Task tool parallel execution.**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| Codex mode built into harness-review | Codex removed, use `/codex-review` explicitly |
+| `check-codex.sh` hook ran on first execution | No hooks, cleaner startup |
+| 5 perspectives (including Codex) | 4 perspectives (Security/Performance/Quality/Accessibility) |
+
+### Changed
+
+- **Codex mode removed from OpenCode `harness-review.md`**
+  - YAML frontmatter hooks section removed
+  - Step 0 (Codex check) and Step 0.5 (context check) removed
+  - Step 2 Codex Mode subsection removed
+  - Step 2.5 (Result Integration with Codex) removed
+  - Parallel Execution section updated for 4 perspectives
+
+- **Added guidance to use `/codex-review` for second opinions**
+  - Clear separation: `/harness-review` = Claude analysis, `/codex-review` = Codex opinion
+  - Users can explicitly choose when to invoke Codex
+
+---
+
 ## [2.10.7] - 2026-01-25
 
 ### 🎯 What's Changed for You
