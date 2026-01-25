@@ -12,56 +12,49 @@ Executes the plan in Plans.md and generates actual code.
 
 - "**Progress tasks in Plans.md**" → this command
 - "**Build to where it works first**" → get to minimum working state first
-- "**Do everything at once**" → process all at once with parallel execution
+- "**Do everything at once**" → automatic parallel execution
 - "**Want to resume from where I left off**" → resume from in-progress (cc:WIP) or requested (pm:requested)
-- "**Full cycle**" → `--full` mode (implement → review → commit)
 - "**Resume session**" → `--resume <id|latest>` (restore history session)
 - "**Fork session**" → `--fork <id|current> --reason "<text>"`
 
 ## Deliverables
 
-- Implement Plans.md tasks **efficiently with parallel execution**
+- Implement Plans.md tasks **efficiently with smart parallel execution**
 - When stuck, isolate cause → fix → re-verify loop
 - **2-Agent mode**: Prioritize processing pm:requested tasks
-- **--full mode**: Full automation of implement → self-review → cross-review → commit
+- **Full automation**: implement → self-review → cross-review → commit (default)
 
 ---
 
-## 🚀 Magic Keywords (Presets)
+## 🚀 Default Behavior (Turbo Mode)
 
-One word to enable full automation:
+`/work` runs full automation by default:
 
-| Keyword | Effect | Use Case |
-|---------|--------|----------|
-| `turbo` | `--full --parallel 3 --isolation worktree --commit-strategy phase` | Maximum parallel efficiency |
-| `quick` | `--full --parallel 1 --commit-strategy task` | Fast single-task execution |
-| `ship` | `--full --parallel 2 --deploy --commit-strategy all` | Full cycle with deploy |
-
-**Examples**:
 ```bash
-/work turbo              # Full parallel automation
-/work quick              # Quick single execution
-/work ship               # With deployment
-/work turbo --parallel 5 # Override parallel count
+/work                    # Full automation with smart parallel
+/work --parallel 5       # Force 5 parallel workers
+/work --sequential       # Force sequential (no parallel)
 ```
 
-Magic keywords apply presets first, then explicit flags override them.
+### Smart Parallel Detection
+
+| Condition | Parallel Count |
+|-----------|:--------------:|
+| 1 task | 1 |
+| All tasks edit same file | 1 |
+| 2-3 independent tasks | 2-3 |
+| 4+ independent tasks | 3 (max) |
 
 ---
 
-## 🚀 --full Mode (Full Cycle Automation)
-
-`/work --full` automatically runs "implement → self-review → improve → commit".
-
-### Option List
+## Options
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--full` | Full cycle execution | false |
-| `--parallel N` | Parallel count | 1 |
-| `--isolation` | lock / worktree | lock |
-| `--commit-strategy` | task / phase / all | task |
-| `--deploy` | Deploy after commit | false |
+| `--parallel N` | Force parallel count | auto |
+| `--sequential` | Force no parallel | - |
+| `--isolation` | lock / worktree | worktree |
+| `--commit-strategy` | task / phase / all | phase |
 | `--max-iterations` | Improvement loop limit | 3 |
 | `--skip-cross-review` | Skip Phase 2 | false |
 | `--resume <id|latest>` | Resume session | - |

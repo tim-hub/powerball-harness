@@ -1,6 +1,6 @@
 ---
 name: parse-work-flags
-description: "Parse /work command flags from user_prompt. Extracts --full, --parallel, --isolation, --commit-strategy, --deploy, --max-iterations, --skip-cross-review, --resume, --fork options. Also supports magic keywords (turbo, quick, ship)."
+description: "Parse /work command flags from user_prompt. Extracts --parallel, --isolation, --commit-strategy, --max-iterations, --skip-cross-review, --resume, --fork options. /work defaults to full automation with smart parallel detection."
 allowed-tools: ["Read"]
 ---
 
@@ -13,9 +13,9 @@ allowed-tools: ["Read"]
 ## 入力
 
 - **user_prompt**: `/work`コマンドの入力文字列
-  - 例: `/work --full --parallel 3 --isolation worktree`
-  - 例: `/work turbo` (マジックキーワード)
-  - 例: `/work turbo --parallel 5` (マジックキーワード + 上書き)
+  - 例: `/work` (フル自動化、並列数は自動判定)
+  - 例: `/work --parallel 5` (並列数を明示指定)
+  - 例: `/work --sequential` (並列なしを強制)
 
 ---
 
@@ -25,11 +25,10 @@ allowed-tools: ["Read"]
 
 ```json
 {
-  "full_mode": false,
-  "parallel_count": 1,
-  "isolation_mode": "lock",
-  "commit_strategy": "task",
-  "deploy_after_commit": false,
+  "full_mode": true,
+  "parallel_count": "auto",
+  "isolation_mode": "worktree",
+  "commit_strategy": "phase",
   "max_iterations": 3,
   "skip_cross_review": false,
   "resume_session_id": "",
@@ -41,91 +40,58 @@ allowed-tools: ["Read"]
 
 ---
 
-## マジックキーワード
+## デフォルト動作 (Turbo Mode)
 
-マジックキーワードを使用すると、複数のフラグを一括で設定できます。
-明示的なフラグ指定で上書き可能です。
+`/work` はデフォルトでフル自動化モードで動作します：
 
-### キーワード定義
+- **full_mode**: `true` (常に有効)
+- **parallel_count**: `auto` (タスク依存関係から自動判定)
+- **isolation_mode**: `worktree` (並列ビルド対応)
+- **commit_strategy**: `phase` (フェーズ単位でコミット)
 
-| キーワード | 展開されるフラグ | 用途 |
-|-----------|-----------------|------|
-| `turbo` | `--full --parallel 3 --isolation worktree --commit-strategy phase --max-iterations 3` | 最大効率の並列実行 |
-| `quick` | `--full --parallel 1 --commit-strategy task` | 高速な単一タスク実行 |
-| `ship` | `--full --parallel 2 --deploy --commit-strategy all` | デプロイ込みの実行 |
-
-### マジックキーワード検出
+### 並列数の自動判定ロジック
 
 ```javascript
-// マジックキーワードプリセット
-const magicKeywords = {
-  "turbo": {
-    full_mode: true,
-    parallel_count: 3,
-    isolation_mode: "worktree",
-    commit_strategy: "phase",
-    max_iterations: 3
-  },
-  "quick": {
-    full_mode: true,
-    parallel_count: 1,
-    isolation_mode: "lock",
-    commit_strategy: "task",
-    max_iterations: 3
-  },
-  "ship": {
-    full_mode: true,
-    parallel_count: 2,
-    isolation_mode: "lock",
-    commit_strategy: "all",
-    deploy_after_commit: true,
-    max_iterations: 3
-  }
-};
+function determineParallelCount(tasks) {
+  // 1. タスク数が1つなら並列不要
+  if (tasks.length <= 1) return 1;
 
-// 検出パターン
-const keywordPattern = /\b(turbo|quick|ship)\b/i;
-const match = user_prompt.match(keywordPattern);
-if (match) {
-  const preset = magicKeywords[match[1].toLowerCase()];
-  // プリセットを適用後、明示的フラグで上書き
+  // 2. 依存関係グラフを構築
+  const dependencyGraph = buildDependencyGraph(tasks);
+
+  // 3. 同一ファイルを編集するタスクは並列不可
+  const fileConflicts = detectFileConflicts(tasks);
+
+  // 4. 独立したタスク数を算出
+  const independentTasks = tasks.filter(t => !hasConflict(t, fileConflicts));
+
+  // 5. 最大3並列に制限（リソース効率）
+  return Math.min(independentTasks.length, 3);
 }
 ```
 
-### 使用例
+### 判定基準
 
-```
-入力: "/work turbo"
-出力:
-  full_mode: true
-  parallel_count: 3
-  isolation_mode: "worktree"
-  commit_strategy: "phase"
-  max_iterations: 3
-
-入力: "/work turbo --parallel 5"
-出力:
-  full_mode: true
-  parallel_count: 5  ← 明示フラグで上書き
-  isolation_mode: "worktree"
-  commit_strategy: "phase"
-  max_iterations: 3
-```
+| 条件 | 並列数 |
+|------|:------:|
+| タスク1つ | 1 |
+| 全タスクが同一ファイル編集 | 1 |
+| 独立タスク2-3個 | 2-3 |
+| 独立タスク4個以上 | 3 (上限) |
 
 ---
 
 ## フラグ解析ルール
 
-### `--full`
-- 検出: `user_prompt`に`--full`が含まれる
-- デフォルト: `false`
-- 出力: `full_mode: true`
-
 ### `--parallel N`
 - 検出: `--parallel`の後に数値が続く
 - パターン: `--parallel\s+(\d+)` または `--parallel=(\d+)`
-- デフォルト: `1`
+- デフォルト: `auto` (自動判定)
 - 出力: `parallel_count: N`（1-10の範囲、超過時は10に制限）
+
+### `--sequential`
+- 検出: `user_prompt`に`--sequential`が含まれる
+- 出力: `parallel_count: 1` (並列なしを強制)
 
 ### `--isolation lock|worktree`
 - 検出: `--isolation`の後に`lock`または`worktree`が続く
@@ -138,11 +104,6 @@ if (match) {
 - パターン: `--commit-strategy\s+(task|phase|all)` または `--commit-strategy=(task|phase|all)`
 - デフォルト: `task`
 - 出力: `commit_strategy: "task"` / `"phase"` / `"all"`
-
-### `--deploy`
-- 検出: `user_prompt`に`--deploy`が含まれる
-- デフォルト: `false`
-- 出力: `deploy_after_commit: true`
 
 ### `--max-iterations N`
 - 検出: `--max-iterations`の後に数値が続く

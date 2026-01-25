@@ -89,8 +89,8 @@ claude --plugin-dir ~/claude-plugins/claude-code-harness
 ### Parallel Full-Cycle Automation
 
 ```bash
-/work turbo    # Magic keyword: --full --parallel 3 in one word
-/work --full --parallel 3  # Or explicit flags
+/work                  # Full automation with smart parallel (default)
+/work --parallel 5     # Force 5 parallel workers
 ```
 
 Runs **implement → self-review → fix → commit** in parallel for each task.
