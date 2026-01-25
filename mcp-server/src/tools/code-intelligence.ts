@@ -12,12 +12,28 @@
  */
 
 import { type Tool } from "@modelcontextprotocol/sdk/types.js";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import { promisify } from "util";
 import * as path from "path";
+import * as fs from "fs";
 import { getProjectRoot } from "../utils.js";
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+const realpathAsync = promisify(fs.realpath);
+
+// Allowed languages for AST-Grep (runtime validation)
+const ALLOWED_LANGUAGES = [
+  "typescript",
+  "javascript",
+  "python",
+  "go",
+  "rust",
+  "java",
+  "c",
+  "cpp",
+] as const;
+
+type AllowedLanguage = (typeof ALLOWED_LANGUAGES)[number];
 
 // Tool definitions
 export const codeIntelligenceTools: Tool[] = [
@@ -36,16 +52,7 @@ export const codeIntelligenceTools: Tool[] = [
         },
         language: {
           type: "string",
-          enum: [
-            "typescript",
-            "javascript",
-            "python",
-            "go",
-            "rust",
-            "java",
-            "c",
-            "cpp",
-          ],
+          enum: [...ALLOWED_LANGUAGES],
           description: "Target language",
         },
         path: {
@@ -144,14 +151,118 @@ export const codeIntelligenceTools: Tool[] = [
   },
 ];
 
+// Runtime type validators
+function isValidAstSearchArgs(
+  args: unknown
+): args is { pattern: string; language: string; path?: string } {
+  return (
+    typeof args === "object" &&
+    args !== null &&
+    "pattern" in args &&
+    typeof (args as Record<string, unknown>).pattern === "string" &&
+    "language" in args &&
+    typeof (args as Record<string, unknown>).language === "string"
+  );
+}
+
+function isValidLspPositionArgs(
+  args: unknown
+): args is { file: string; line: number; column: number } {
+  return (
+    typeof args === "object" &&
+    args !== null &&
+    "file" in args &&
+    typeof (args as Record<string, unknown>).file === "string" &&
+    "line" in args &&
+    typeof (args as Record<string, unknown>).line === "number" &&
+    "column" in args &&
+    typeof (args as Record<string, unknown>).column === "number"
+  );
+}
+
+function isValidLspFileArgs(args: unknown): args is { file: string } {
+  return (
+    typeof args === "object" &&
+    args !== null &&
+    "file" in args &&
+    typeof (args as Record<string, unknown>).file === "string"
+  );
+}
+
 // Helper: Check if a command is available
 async function checkCommand(cmd: string): Promise<boolean> {
   try {
-    await execAsync(`which ${cmd}`);
+    await execFileAsync("which", [cmd]);
     return true;
   } catch {
     return false;
   }
+}
+
+// Helper: Validate and resolve path within project root
+// Uses realpath to resolve symlinks and prevent symlink-based traversal
+async function validatePath(
+  searchPath: string,
+  projectRoot: string
+): Promise<{ valid: boolean; fullPath: string; error?: string }> {
+  // Resolve the path relative to project root
+  const fullPath = path.resolve(projectRoot, searchPath);
+
+  // Normalize projectRoot with trailing separator for strict comparison
+  // This prevents /opt/proj from matching /opt/proj-evil
+  const normalizedRoot = projectRoot.endsWith(path.sep)
+    ? projectRoot
+    : projectRoot + path.sep;
+
+  // Check if the resolved path is within project root (prevent path traversal)
+  // Must be either exactly projectRoot or start with projectRoot + separator
+  if (fullPath !== projectRoot && !fullPath.startsWith(normalizedRoot)) {
+    return {
+      valid: false,
+      fullPath: "",
+      error: `Path must be within project root. Got: ${searchPath}`,
+    };
+  }
+
+  // Additional check using path.relative to catch edge cases
+  const relativePath = path.relative(projectRoot, fullPath);
+  if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+    return {
+      valid: false,
+      fullPath: "",
+      error: `Path escapes project root. Got: ${searchPath}`,
+    };
+  }
+
+  // Check for symlink-based traversal by resolving real paths
+  // This ensures that even if a symlink inside the project points outside,
+  // we detect it and reject the path
+  try {
+    // Only check realpath if the path exists
+    if (fs.existsSync(fullPath)) {
+      const realFullPath = await realpathAsync(fullPath);
+      const realProjectRoot = await realpathAsync(projectRoot);
+      const normalizedRealRoot = realProjectRoot.endsWith(path.sep)
+        ? realProjectRoot
+        : realProjectRoot + path.sep;
+
+      if (
+        realFullPath !== realProjectRoot &&
+        !realFullPath.startsWith(normalizedRealRoot)
+      ) {
+        return {
+          valid: false,
+          fullPath: "",
+          error: `Path resolves outside project root (symlink detected). Got: ${searchPath}`,
+        };
+      }
+    }
+  } catch {
+    // If realpath fails (e.g., path doesn't exist yet), allow the original check to pass
+    // since we already validated the logical path above
+  }
+
+  return { valid: true, fullPath };
 }
 
 // AST-Grep handler
@@ -159,8 +270,24 @@ async function handleAstSearch(args: {
   pattern: string;
   language: string;
   path?: string;
-}): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
+}): Promise<{
+  content: Array<{ type: string; text: string }>;
+  isError?: boolean;
+}> {
   const { pattern, language, path: searchPath = "." } = args;
+
+  // Validate language (runtime check to prevent injection)
+  if (!ALLOWED_LANGUAGES.includes(language as AllowedLanguage)) {
+    return {
+      content: [
+        {
+          type: "text",
+          text: `❌ Invalid language: ${language}. Allowed: ${ALLOWED_LANGUAGES.join(", ")}`,
+        },
+      ],
+      isError: true,
+    };
+  }
 
   // Check if ast-grep (sg) is installed
   const installed = await checkCommand("sg");
@@ -187,13 +314,20 @@ Or run \`/dev-tools-setup\` to install all development tools.
 
   try {
     const projectRoot = getProjectRoot();
-    const fullPath = path.isAbsolute(searchPath)
-      ? searchPath
-      : path.join(projectRoot, searchPath);
 
-    // Execute ast-grep
-    const { stdout, stderr } = await execAsync(
-      `sg --pattern "${pattern.replace(/"/g, '\\"')}" --lang ${language} --json "${fullPath}"`,
+    // Validate and resolve path (prevent path traversal)
+    const pathValidation = await validatePath(searchPath, projectRoot);
+    if (!pathValidation.valid) {
+      return {
+        content: [{ type: "text", text: `❌ ${pathValidation.error}` }],
+        isError: true,
+      };
+    }
+
+    // Execute ast-grep using execFile (prevents command injection)
+    const { stdout, stderr } = await execFileAsync(
+      "sg",
+      ["--pattern", pattern, "--lang", language, "--json", pathValidation.fullPath],
       { maxBuffer: 10 * 1024 * 1024 } // 10MB buffer
     );
 
@@ -348,16 +482,32 @@ async function handleLspDiagnostics(args: {
 }): Promise<{ content: Array<{ type: string; text: string }> }> {
   const { file } = args;
 
+  // Validate file path
+  const projectRoot = getProjectRoot();
+  const pathValidation = await validatePath(file, projectRoot);
+  if (!pathValidation.valid) {
+    return {
+      content: [{ type: "text", text: `❌ ${pathValidation.error}` }],
+    };
+  }
+
   // Try to run tsc for TypeScript files
   if (file.endsWith(".ts") || file.endsWith(".tsx")) {
     try {
-      const projectRoot = getProjectRoot();
-      const { stdout, stderr } = await execAsync(
-        `cd "${projectRoot}" && npx tsc --noEmit --pretty false 2>&1 | grep -E "^${file.replace(projectRoot + "/", "")}" || true`,
-        { maxBuffer: 5 * 1024 * 1024 }
+      // Use execFile with proper args (no shell injection possible)
+      const { stdout } = await execFileAsync(
+        "npx",
+        ["tsc", "--noEmit", "--pretty", "false"],
+        { cwd: projectRoot, maxBuffer: 5 * 1024 * 1024 }
       );
 
-      const diagnostics = (stdout || stderr || "").trim();
+      // Filter results in JavaScript (not shell) to prevent injection
+      const relativePath = path.relative(projectRoot, pathValidation.fullPath);
+      const lines = stdout.split("\n");
+      const diagnostics = lines
+        .filter((line) => line.startsWith(relativePath))
+        .join("\n")
+        .trim();
 
       if (!diagnostics) {
         return {
@@ -378,7 +528,7 @@ async function handleLspDiagnostics(args: {
           },
         ],
       };
-    } catch (error) {
+    } catch {
       // Fall through to instructions
     }
   }
@@ -451,30 +601,80 @@ Look for \`.d.ts\` files or TypeScript declarations.
 export async function handleCodeIntelligenceTool(
   name: string,
   args: Record<string, unknown> | undefined
-): Promise<{ content: Array<{ type: string; text: string }>; isError?: boolean }> {
+): Promise<{
+  content: Array<{ type: string; text: string }>;
+  isError?: boolean;
+}> {
   switch (name) {
     case "harness_ast_search":
-      return handleAstSearch(
-        args as { pattern: string; language: string; path?: string }
-      );
+      if (!isValidAstSearchArgs(args)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "❌ Invalid arguments for ast_search. Required: pattern (string), language (string)",
+            },
+          ],
+          isError: true,
+        };
+      }
+      return handleAstSearch(args);
 
     case "harness_lsp_references":
-      return handleLspReferences(
-        args as { file: string; line: number; column: number }
-      );
+      if (!isValidLspPositionArgs(args)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "❌ Invalid arguments for lsp_references. Required: file (string), line (number), column (number)",
+            },
+          ],
+          isError: true,
+        };
+      }
+      return handleLspReferences(args);
 
     case "harness_lsp_definition":
-      return handleLspDefinition(
-        args as { file: string; line: number; column: number }
-      );
+      if (!isValidLspPositionArgs(args)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "❌ Invalid arguments for lsp_definition. Required: file (string), line (number), column (number)",
+            },
+          ],
+          isError: true,
+        };
+      }
+      return handleLspDefinition(args);
 
     case "harness_lsp_diagnostics":
-      return handleLspDiagnostics(args as { file: string });
+      if (!isValidLspFileArgs(args)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "❌ Invalid arguments for lsp_diagnostics. Required: file (string)",
+            },
+          ],
+          isError: true,
+        };
+      }
+      return handleLspDiagnostics(args);
 
     case "harness_lsp_hover":
-      return handleLspHover(
-        args as { file: string; line: number; column: number }
-      );
+      if (!isValidLspPositionArgs(args)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "❌ Invalid arguments for lsp_hover. Required: file (string), line (number), column (number)",
+            },
+          ],
+          isError: true,
+        };
+      }
+      return handleLspHover(args);
 
     default:
       return {
