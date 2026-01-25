@@ -197,9 +197,17 @@ function generateOpencodeJson() {
 }
 
 /**
- * README.md を生成
+ * README.md を生成（既存の場合はスキップ）
  */
 function generateReadme() {
+  const destPath = path.join(OPENCODE_DIR, 'README.md');
+
+  // 既存の README.md がある場合はスキップ
+  if (fs.existsSync(destPath)) {
+    console.log(`  ⏭ ${path.relative(ROOT_DIR, destPath)} (already exists, skipped)`);
+    return;
+  }
+
   const readme = `# Harness for OpenCode
 
 Claude Code Harness の opencode.ai 互換版です。
@@ -269,7 +277,6 @@ MCP サーバー経由で以下のツールが利用可能です：
 - [OpenCode Documentation](https://opencode.ai/docs/)
 `;
 
-  const destPath = path.join(OPENCODE_DIR, 'README.md');
   fs.writeFileSync(destPath, readme);
   console.log(`  ✓ ${path.relative(ROOT_DIR, destPath)}`);
 }

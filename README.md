@@ -123,12 +123,14 @@ Use Harness from **Codex**, **Cursor**, or any MCP-compatible client. Share sess
 
 ### OpenCode Compatibility
 
-Hit Claude's rate limit? Switch to [opencode.ai](https://opencode.ai/) + GPT and keep working:
+Harness works with [opencode.ai](https://opencode.ai/) too. Use the same workflow with GPT, Gemini, or any supported model:
 
 ```bash
-# Copy opencode-compatible commands to your project
-cp -r claude-code-harness/opencode/commands/ .opencode/commands/
-cp claude-code-harness/opencode/AGENTS.md AGENTS.md
+# Quick setup (no Claude Code required)
+curl -fsSL https://raw.githubusercontent.com/Chachamaru127/claude-code-harness/main/scripts/setup-opencode.sh | bash
+
+# Or from Claude Code
+/opencode-setup
 ```
 
 See [opencode/README.md](opencode/README.md) for full setup instructions.
