@@ -9,9 +9,30 @@
 Claude Code を「Plan → Work → Review」の自律サイクルで運用し、
 **迷い・雑さ・事故・忘却** を仕組みで防ぐ開発ハーネスです。
 
-[![Version: 2.9.22](https://img.shields.io/badge/version-2.9.22-blue.svg)](VERSION)
+[![Version: 2.10.0](https://img.shields.io/badge/version-2.10.0-blue.svg)](VERSION)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.md)
 [![Harness Score](https://img.shields.io/badge/harness_score-92%2F100-brightgreen.svg)](#採点基準)
+
+---
+
+## v2.10 の新機能 | What's New in v2.10
+
+### OpenCode.ai 互換レイヤー（v2.10.0）| OpenCode.ai Compatibility
+
+**ハーネスのワークフローを他の LLM（o3、Gemini、Grok、DeepSeek など）でも利用可能に**
+*Use the Harness workflow with any LLM: o3, Gemini, Grok, DeepSeek, and more*
+
+```bash
+/opencode-setup   # ワンコマンドで導入
+```
+
+OpenCode.ai で動作するコアコマンド:
+- `/harness-init` → プロジェクト初期化
+- `/plan-with-agent` → タスク計画
+- `/work` → 並列タスク実行
+- `/harness-review` → マルチ視点レビュー
+
+詳細: [OpenCode 互換ガイド](docs/OPENCODE_COMPATIBILITY.md)
 
 ---
 

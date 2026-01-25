@@ -9,6 +9,59 @@
 
 ---
 
+## [2.10.0] - 2026-01-25
+
+### 🎯 あなたにとって何が変わるか
+
+**OpenCode.ai 互換レイヤーでマルチ LLM 開発（o3、Gemini など）が可能に。さらに AST-Grep と LSP ベースのコードインテリジェンスツールを追加。**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| Claude Code 専用 | OpenCode.ai で o3、Gemini、Grok、DeepSeek も利用可能 |
+| `/work` は複雑なフラグ解析 | `/work` がデフォルトで turbo モード（シンプル・高速） |
+| grep/ripgrep でコード検索 | AST-Grep で言語を理解した意味的検索 |
+| MCP に LSP 連携なし | MCP 経由で定義ジャンプ、参照検索、ホバー情報 |
+| OpenCode は手動セットアップ | `/opencode-setup` でワンコマンド導入 |
+| 開発ツールの導入ガイドなし | `/dev-tools-setup` で AST-Grep、LSP などを案内 |
+
+### Added
+
+- **OpenCode.ai 互換レイヤー** - Claude 以外の LLM でもハーネスワークフローを実行
+  - 全コアコマンドを移植: `/harness-init`, `/plan-with-agent`, `/work`, `/harness-review`
+  - `/opencode-setup`: ワンコマンドで導入・設定
+  - `opencode/` ディレクトリに変換済みコマンド
+  - GitHub Actions で自動同期
+  - ドキュメント: `docs/OPENCODE_COMPATIBILITY.md`
+- **コードインテリジェンス MCP ツール** - AST ベースのコード解析
+  - `ast_search`: AST-Grep パターンで意味的検索
+  - `lsp_definitions`: シンボル定義へジャンプ
+  - `lsp_references`: シンボルの全参照を検索
+  - `lsp_hover`: 型情報とドキュメントを取得
+  - 対応言語: TypeScript, JavaScript, Python, Go, Rust, Java, C/C++
+- **`/dev-tools-setup` コマンド** - 開発ツール導入ガイド
+  - AST-Grep のインストールと使用例
+  - 各言語向け LSP サーバーのセットアップ
+  - MCP ツール設定手順
+
+### Changed
+
+- **`/work` を簡素化** - デフォルトで turbo モードに
+  - `--turbo` フラグ不要
+  - 標準で高速実行
+  - 元の動作は明示的フラグで利用可能
+
+### Security
+
+- **コマンドインジェクション対策** - MCP コードインテリジェンスツールを強化
+  - `exec` → `execFile` でシェルインジェクションを防止
+  - シンボリックリンク検出付きの厳格なパス検証
+  - AST-Grep クエリに言語ホワイトリスト
+  - 全入力にランタイム型検証
+
+---
+
 ## [2.9.24] - 2026-01-24
 
 ### 🎯 あなたにとって何が変わるか
@@ -1980,7 +2033,8 @@ Observation recorded: 10946-10951 ✅
 - **v0.4.0**: Claude Rules、Plugin Hooks、Named Sessions 対応
 - **v0.3.0**: 初期リリース（Plan → Work → Review サイクル）
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.24...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.10.0...HEAD
+[2.10.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.24...v2.10.0
 [2.9.24]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.22...v2.9.24
 [2.9.22]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.21...v2.9.22
 [2.9.21]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.20...v2.9.21

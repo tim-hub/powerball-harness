@@ -9,6 +9,59 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.10.0] - 2026-01-25
+
+### 🎯 What's Changed for You
+
+**OpenCode.ai compatibility layer enables multi-LLM development (o3, Gemini, etc.) with unified workflow, plus new AST-Grep and LSP code intelligence tools.**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| Claude Code only | OpenCode.ai support for o3, Gemini, Grok, DeepSeek |
+| `/work` with complex flag parsing | `/work` defaults to turbo mode (simpler, faster) |
+| Code search via grep/ripgrep | AST-Grep for language-aware semantic search |
+| No LSP integration in MCP | LSP tools via MCP for definitions, references, hover |
+| Manual OpenCode setup | `/opencode-setup` one-command installation |
+| No dev tool setup guidance | `/dev-tools-setup` for AST-Grep, LSP, and more |
+
+### Added
+
+- **OpenCode.ai compatibility layer** - Full harness workflow for non-Claude LLMs
+  - All core commands ported: `/harness-init`, `/plan-with-agent`, `/work`, `/harness-review`
+  - `/opencode-setup`: One-command installation and configuration
+  - `opencode/` directory with translated commands
+  - GitHub Actions workflow for automatic sync
+  - Comprehensive documentation in `docs/OPENCODE_COMPATIBILITY.md`
+- **Code intelligence MCP tools** - AST-aware code analysis
+  - `ast_search`: Semantic code search with AST-Grep patterns
+  - `lsp_definitions`: Jump to symbol definitions
+  - `lsp_references`: Find all references to a symbol
+  - `lsp_hover`: Get type info and documentation
+  - Language support: TypeScript, JavaScript, Python, Go, Rust, Java, C/C++
+- **`/dev-tools-setup` command** - Developer tooling installation guide
+  - AST-Grep installation and usage examples
+  - LSP server setup for multiple languages
+  - MCP tool configuration instructions
+
+### Changed
+
+- **`/work` simplified** - Now defaults to turbo mode
+  - No more `--turbo` flag needed
+  - Faster execution out of the box
+  - Original behavior available via explicit flags
+
+### Security
+
+- **Command injection prevention** - MCP code intelligence tools hardened
+  - `execFile` instead of `exec` to prevent shell injection
+  - Strict path validation with symlink detection
+  - Language whitelist for AST-Grep queries
+  - Runtime type validation for all inputs
+
+---
+
 ## [2.9.24] - 2026-01-24
 
 ### 🎯 What's Changed for You
@@ -1096,7 +1149,8 @@ Key milestones:
 - **v0.4.0**: Claude Rules, Plugin Hooks, Named Sessions support
 - **v0.3.0**: Initial release (Plan → Work → Review cycle)
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.24...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.10.0...HEAD
+[2.10.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.24...v2.10.0
 [2.9.24]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.22...v2.9.24
 [2.9.22]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.21...v2.9.22
 [2.9.21]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.20...v2.9.21
