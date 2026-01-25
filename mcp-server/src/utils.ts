@@ -26,8 +26,8 @@ export const SESSIONS_DIR = ".claude/sessions";
 /** Active sessions file path */
 export const ACTIVE_SESSIONS_FILE = `${SESSIONS_DIR}/active.json`;
 
-/** Broadcast messages file path */
-export const BROADCAST_FILE = `${SESSIONS_DIR}/broadcast.json`;
+/** Broadcast messages file path (Markdown format for CLI compatibility) */
+export const BROADCAST_FILE = `${SESSIONS_DIR}/broadcast.md`;
 
 // ===== File System Utilities =====
 

@@ -6,6 +6,7 @@
  */
 
 import { type Tool } from "@modelcontextprotocol/sdk/types.js";
+import * as fs from "fs";
 import {
   SESSIONS_DIR,
   ACTIVE_SESSIONS_FILE,
@@ -107,16 +108,64 @@ function saveSessions(sessions: Record<string, Session>): void {
   safeWriteJSON(ACTIVE_SESSIONS_FILE, sessions);
 }
 
+/**
+ * Load broadcasts from Markdown file (CLI-compatible format).
+ * Format: ## TIMESTAMP [SESSION_ID]\nMESSAGE
+ */
 function loadBroadcasts(): BroadcastMessage[] {
   ensureDir(SESSIONS_DIR);
-  return safeReadJSON<BroadcastMessage[]>(BROADCAST_FILE, []);
+
+  if (!fs.existsSync(BROADCAST_FILE)) {
+    return [];
+  }
+
+  try {
+    const content = fs.readFileSync(BROADCAST_FILE, "utf-8");
+    const messages: BroadcastMessage[] = [];
+
+    // Parse Markdown format: ## 2026-01-25T06:08:12Z [session-1769]\nMessage content
+    const regex = /^## (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z) \[([^\]]+)\]\n(.+?)(?=\n## |\n*$)/gms;
+    let match;
+
+    // Note: regex.exec is JavaScript's RegExp method, not child_process
+    while ((match = regex.exec(content)) !== null) {
+      messages.push({
+        timestamp: match[1],
+        sessionId: match[2],
+        client: "cli", // CLI messages don't have client info
+        message: match[3].trim(),
+      });
+    }
+
+    return messages;
+  } catch {
+    return [];
+  }
 }
 
-function saveBroadcasts(messages: BroadcastMessage[]): void {
+/**
+ * Append a broadcast message to Markdown file (CLI-compatible format).
+ */
+function appendBroadcast(msg: BroadcastMessage): void {
   ensureDir(SESSIONS_DIR);
-  // Keep only last N messages
-  const trimmed = messages.slice(-MAX_BROADCAST_MESSAGES);
-  safeWriteJSON(BROADCAST_FILE, trimmed);
+
+  const entry = `## ${msg.timestamp} [${msg.sessionId}]\n${msg.message}\n\n`;
+
+  try {
+    fs.appendFileSync(BROADCAST_FILE, entry);
+
+    // Trim old messages if needed (keep last N)
+    const messages = loadBroadcasts();
+    if (messages.length > MAX_BROADCAST_MESSAGES) {
+      const trimmed = messages.slice(-MAX_BROADCAST_MESSAGES);
+      const content = trimmed
+        .map((m) => `## ${m.timestamp} [${m.sessionId}]\n${m.message}\n`)
+        .join("\n");
+      fs.writeFileSync(BROADCAST_FILE, content);
+    }
+  } catch (error) {
+    console.error(`[harness-mcp] Failed to append broadcast: ${error}`);
+  }
 }
 
 // Tool handlers
@@ -178,16 +227,15 @@ function handleBroadcast(args: { message: string }): {
     } as { content: Array<{ type: string; text: string }>; isError: boolean };
   }
 
-  const broadcasts = loadBroadcasts();
   const newMessage: BroadcastMessage = {
-    timestamp: new Date().toISOString(),
-    sessionId: process.env.HARNESS_SESSION_ID || "unknown",
-    client: process.env.HARNESS_CLIENT || "unknown",
+    timestamp: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"), // Remove milliseconds for CLI compatibility
+    sessionId: process.env.HARNESS_SESSION_ID || "mcp-session",
+    client: process.env.HARNESS_CLIENT || "mcp",
     message,
   };
 
-  broadcasts.push(newMessage);
-  saveBroadcasts(broadcasts);
+  // Use appendBroadcast for Markdown format (CLI-compatible)
+  appendBroadcast(newMessage);
 
   return {
     content: [

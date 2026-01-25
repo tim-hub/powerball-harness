@@ -148,6 +148,12 @@ if [ -n "$CC_SESSION_ID" ] && [ -n "$RESTORED_SESSION_ID" ]; then
   fi
 fi
 
+# ===== セッション間通信用の登録 =====
+# active.json に自分を登録（他セッションから認識可能にする）
+if [ -f "$SCRIPT_DIR/session-register.sh" ]; then
+  bash "$SCRIPT_DIR/session-register.sh" "$RESTORED_SESSION_ID" 2>/dev/null || true
+fi
+
 # ===== Skills Gate 初期化（session-init.sh と同様） =====
 SESSION_SKILLS_USED_FILE="${STATE_DIR}/session-skills-used.json"
 echo '{"used": [], "session_start": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > "$SESSION_SKILLS_USED_FILE"

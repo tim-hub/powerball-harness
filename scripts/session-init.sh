@@ -135,6 +135,12 @@ if [ -n "$CC_SESSION_ID" ] && [ -n "$HARNESS_SESSION_ID" ]; then
   fi
 fi
 
+# ===== Step 2.6: セッション間通信用の登録 =====
+# active.json に自分を登録（他セッションから認識可能にする）
+if [ -f "$SCRIPT_DIR/session-register.sh" ]; then
+  bash "$SCRIPT_DIR/session-register.sh" "$HARNESS_SESSION_ID" 2>/dev/null || true
+fi
+
 # skills-config.json の読み込みと表示
 SKILLS_INFO=""
 if [ -f "$SKILLS_CONFIG_FILE" ]; then

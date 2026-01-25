@@ -9,6 +9,43 @@
 
 ---
 
+## [2.10.5] - 2026-01-25
+
+### 🎯 あなたにとって何が変わるか
+
+**セッション間通信が正しく機能するようになりました。セッション開始時に自動で他セッションから認識可能になり、CLI と MCP の通信形式も統一されました。**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| セッション開始時に `active.json` に登録されない | `session-init.sh` / `session-resume.sh` で自動登録 |
+| 他セッションを認識するには手動で `/session-list` が必要 | セッション開始時に自動で他セッションから認識可能 |
+| CLI は `broadcast.md`、MCP は `broadcast.json` を使用 | 両方とも `broadcast.md`（Markdown 形式）に統一 |
+| OpenCode.ai との連携が困難 | MCP 経由で OpenCode.ai とも通信可能 |
+
+### Added
+
+- **`scripts/session-register.sh`** - セッションを `active.json` に登録する専用スクリプト
+  - 出力抑制で hook JSON と混在しない設計
+  - 24 時間経過した古いセッションを自動クリーンアップ
+
+### Fixed
+
+- **セッション間通信のバグ修正**
+  - `session-init.sh` が `active.json` にセッション登録しない問題を修正
+  - `session-resume.sh` も同様に修正
+  - CLI と MCP の通信形式分断（`broadcast.md` vs `broadcast.json`）を解消
+
+### Changed
+
+- **MCP session.ts を Markdown 形式に対応**
+  - `loadBroadcasts()` が Markdown 形式をパース
+  - `appendBroadcast()` が Markdown 形式で追記
+  - CLI との完全な互換性を実現
+
+---
+
 ## [2.10.4] - 2026-01-25
 
 ### 🎯 あなたにとって何が変わるか

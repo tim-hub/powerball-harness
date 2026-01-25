@@ -9,6 +9,43 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.10.5] - 2026-01-25
+
+### 🎯 What's Changed for You
+
+**Inter-session communication now works correctly. Sessions are automatically registered at startup, and CLI/MCP communication formats are unified.**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| Sessions not registered to `active.json` at startup | Auto-registered via `session-init.sh` / `session-resume.sh` |
+| Manual `/session-list` required to discover other sessions | Sessions discoverable automatically at startup |
+| CLI used `broadcast.md`, MCP used `broadcast.json` | Both use `broadcast.md` (Markdown format) |
+| Difficult to integrate with OpenCode.ai | OpenCode.ai can communicate via MCP |
+
+### Added
+
+- **`scripts/session-register.sh`** - Dedicated script to register sessions to `active.json`
+  - Silent output design to avoid mixing with hook JSON
+  - Auto-cleanup of sessions older than 24 hours
+
+### Fixed
+
+- **Inter-session communication bug fixes**
+  - Fixed `session-init.sh` not registering to `active.json`
+  - Fixed `session-resume.sh` with same issue
+  - Resolved CLI/MCP format split (`broadcast.md` vs `broadcast.json`)
+
+### Changed
+
+- **MCP session.ts now uses Markdown format**
+  - `loadBroadcasts()` parses Markdown format
+  - `appendBroadcast()` writes in Markdown format
+  - Full compatibility with CLI achieved
+
+---
+
 ## [2.10.4] - 2026-01-25
 
 ### 🎯 What's Changed for You
