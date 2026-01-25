@@ -34,6 +34,45 @@ interface BroadcastMessage {
   message: string;
 }
 
+// Type guard functions for safe argument handling
+function isBroadcastArgs(args: unknown): args is { message: string } {
+  return (
+    typeof args === "object" &&
+    args !== null &&
+    "message" in args &&
+    typeof (args as { message: unknown }).message === "string"
+  );
+}
+
+function isInboxArgs(args: unknown): args is { since?: string } {
+  if (args === undefined || args === null) return true;
+  if (typeof args !== "object") return false;
+  const obj = args as { since?: unknown };
+  return obj.since === undefined || typeof obj.since === "string";
+}
+
+function isRegisterArgs(args: unknown): args is { client: string; sessionId: string } {
+  return (
+    typeof args === "object" &&
+    args !== null &&
+    "client" in args &&
+    "sessionId" in args &&
+    typeof (args as { client: unknown }).client === "string" &&
+    typeof (args as { sessionId: unknown }).sessionId === "string"
+  );
+}
+
+// Input validation patterns
+const SAFE_ID_PATTERN = /^[a-zA-Z0-9_-]{1,128}$/;
+
+function isValidSessionId(id: string): boolean {
+  return SAFE_ID_PATTERN.test(id);
+}
+
+function isValidClientName(name: string): boolean {
+  return SAFE_ID_PATTERN.test(name);
+}
+
 // Tool definitions
 export const sessionTools: Tool[] = [
   {
@@ -97,14 +136,24 @@ export const sessionTools: Tool[] = [
   },
 ];
 
+// Initialize sessions directory once at module load
+// This avoids repeated fs.existsSync/mkdirSync calls in every function
+let sessionsInitialized = false;
+function initSessionsDir(): void {
+  if (!sessionsInitialized) {
+    ensureDir(SESSIONS_DIR);
+    sessionsInitialized = true;
+  }
+}
+
 // Helper functions using shared utilities
 function loadSessions(): Record<string, Session> {
-  ensureDir(SESSIONS_DIR);
+  initSessionsDir();
   return safeReadJSON<Record<string, Session>>(ACTIVE_SESSIONS_FILE, {});
 }
 
 function saveSessions(sessions: Record<string, Session>): void {
-  ensureDir(SESSIONS_DIR);
+  initSessionsDir();
   safeWriteJSON(ACTIVE_SESSIONS_FILE, sessions);
 }
 
@@ -113,7 +162,7 @@ function saveSessions(sessions: Record<string, Session>): void {
  * Format: ## TIMESTAMP [SESSION_ID]\nMESSAGE
  */
 function loadBroadcasts(): BroadcastMessage[] {
-  ensureDir(SESSIONS_DIR);
+  initSessionsDir();
 
   if (!fs.existsSync(BROADCAST_FILE)) {
     return [];
@@ -145,24 +194,32 @@ function loadBroadcasts(): BroadcastMessage[] {
 
 /**
  * Append a broadcast message to Markdown file (CLI-compatible format).
+ * Uses deferred trimming to avoid blocking on large message counts.
  */
 function appendBroadcast(msg: BroadcastMessage): void {
-  ensureDir(SESSIONS_DIR);
+  initSessionsDir();
 
   const entry = `## ${msg.timestamp} [${msg.sessionId}]\n${msg.message}\n\n`;
 
   try {
     fs.appendFileSync(BROADCAST_FILE, entry);
 
-    // Trim old messages if needed (keep last N)
-    const messages = loadBroadcasts();
-    if (messages.length > MAX_BROADCAST_MESSAGES) {
-      const trimmed = messages.slice(-MAX_BROADCAST_MESSAGES);
-      const content = trimmed
-        .map((m) => `## ${m.timestamp} [${m.sessionId}]\n${m.message}\n`)
-        .join("\n");
-      fs.writeFileSync(BROADCAST_FILE, content);
-    }
+    // Defer trimming to avoid blocking the main operation
+    // This prevents slowdowns when message count exceeds MAX_BROADCAST_MESSAGES
+    setImmediate(() => {
+      try {
+        const messages = loadBroadcasts();
+        if (messages.length > MAX_BROADCAST_MESSAGES) {
+          const trimmed = messages.slice(-MAX_BROADCAST_MESSAGES);
+          const content = trimmed
+            .map((m) => `## ${m.timestamp} [${m.sessionId}]\n${m.message}\n`)
+            .join("\n");
+          fs.writeFileSync(BROADCAST_FILE, content);
+        }
+      } catch (trimError) {
+        console.error(`[harness-mcp] Failed to trim broadcasts: ${trimError}`);
+      }
+    });
   } catch (error) {
     console.error(`[harness-mcp] Failed to append broadcast: ${error}`);
   }
@@ -178,13 +235,31 @@ export async function handleSessionTool(
       return handleListSessions();
 
     case "harness_session_broadcast":
-      return handleBroadcast(args as { message: string });
+      if (!isBroadcastArgs(args)) {
+        return {
+          content: [{ type: "text", text: "Error: invalid arguments for broadcast" }],
+          isError: true,
+        };
+      }
+      return handleBroadcast(args);
 
     case "harness_session_inbox":
-      return handleInbox(args as { since?: string });
+      if (!isInboxArgs(args)) {
+        return {
+          content: [{ type: "text", text: "Error: invalid arguments for inbox" }],
+          isError: true,
+        };
+      }
+      return handleInbox(args ?? {});
 
     case "harness_session_register":
-      return handleRegister(args as { client: string; sessionId: string });
+      if (!isRegisterArgs(args)) {
+        return {
+          content: [{ type: "text", text: "Error: invalid arguments for register" }],
+          isError: true,
+        };
+      }
+      return handleRegister(args);
 
     default:
       return {
@@ -285,6 +360,7 @@ function handleInbox(args: { since?: string }): {
 
 function handleRegister(args: { client: string; sessionId: string }): {
   content: Array<{ type: string; text: string }>;
+  isError?: boolean;
 } {
   const { client, sessionId } = args;
 
@@ -294,7 +370,27 @@ function handleRegister(args: { client: string; sessionId: string }): {
         { type: "text", text: "Error: client and sessionId are required" },
       ],
       isError: true,
-    } as { content: Array<{ type: string; text: string }>; isError: boolean };
+    };
+  }
+
+  // Validate session ID format to prevent injection attacks
+  if (!isValidSessionId(sessionId)) {
+    return {
+      content: [
+        { type: "text", text: "Error: sessionId must be alphanumeric with dashes/underscores (1-128 chars)" },
+      ],
+      isError: true,
+    };
+  }
+
+  // Validate client name format
+  if (!isValidClientName(client)) {
+    return {
+      content: [
+        { type: "text", text: "Error: client must be alphanumeric with dashes/underscores (1-128 chars)" },
+      ],
+      isError: true,
+    };
   }
 
   const sessions = loadSessions();

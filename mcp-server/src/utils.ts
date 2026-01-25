@@ -34,6 +34,7 @@ export const BROADCAST_FILE = `${SESSIONS_DIR}/broadcast.md`;
 /**
  * Find the project root by looking for common markers.
  * Traverses up the directory tree until a marker is found.
+ * Compatible with both Unix and Windows file systems.
  *
  * @returns The project root path, or current working directory if not found
  */
@@ -41,7 +42,12 @@ export function getProjectRoot(): string {
   const markers = [".git", "package.json", "Plans.md", ".claude"];
   let current = process.cwd();
 
-  while (current !== "/") {
+  // Use path.parse for cross-platform root detection
+  // On Unix: root = "/"
+  // On Windows: root = "C:\\" etc.
+  const { root } = path.parse(current);
+
+  while (current !== root) {
     for (const marker of markers) {
       if (fs.existsSync(path.join(current, marker))) {
         return current;
@@ -108,13 +114,58 @@ export function safeWriteJSON<T>(filePath: string, data: T): boolean {
 // ===== Git Utilities =====
 
 /**
- * Get list of recently changed files using git diff (async).
+ * Validate that a path is safe for use in shell commands.
+ * Prevents command injection by rejecting paths with dangerous characters.
  *
- * @param basePath - The repository path
+ * @param inputPath - The path to validate
+ * @returns true if the path is safe, false otherwise
+ */
+export function isValidPath(inputPath: string): boolean {
+  // Reject empty paths
+  if (!inputPath || inputPath.trim() === "") {
+    return false;
+  }
+
+  // Reject paths with command injection characters
+  const dangerousChars = /[;&|`$(){}[\]<>'"\\!#*?~\n\r]/;
+  if (dangerousChars.test(inputPath)) {
+    return false;
+  }
+
+  // Reject paths with null bytes
+  if (inputPath.includes("\0")) {
+    return false;
+  }
+
+  // Normalize and check for path traversal beyond root
+  const normalized = path.normalize(inputPath);
+  if (normalized.startsWith("..")) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Get list of recently changed files using git diff (async).
+ * Validates the base path to prevent command injection.
+ *
+ * @param basePath - The repository path (validated for safety)
  * @returns Array of changed file paths
  */
 export async function getRecentChangesAsync(basePath?: string): Promise<string[]> {
+  // Validate basePath if provided to prevent command injection
+  if (basePath !== undefined && !isValidPath(basePath)) {
+    console.error(`[harness-mcp] Invalid path rejected: ${basePath}`);
+    return [];
+  }
+
   const cwd = basePath || getProjectRoot();
+
+  // Additional check: ensure the directory exists and is accessible
+  if (!fs.existsSync(cwd)) {
+    return [];
+  }
 
   try {
     const { stdout } = await execAsync("git diff --name-only HEAD~1", {

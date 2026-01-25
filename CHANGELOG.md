@@ -9,6 +9,53 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.10.6] - 2026-01-25
+
+### 🎯 What's Changed for You
+
+**MCP server security and performance improved. Command injection prevention, type safety enhancement, and Windows compatibility achieved.**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| Broadcast append slow with 100+ messages | `setImmediate()` async trimming, immediate response |
+| No path validation on input | Dangerous characters detected, command injection prevented |
+| `getProjectRoot()` infinite loop on Windows | `path.parse()` for cross-platform support |
+| Type casts (`as`) reduced type safety | Type guard functions for runtime validation |
+
+### Security
+
+- **Path validation added to `getRecentChangesAsync()`**
+  - Prevents command injection attacks
+  - Rejects dangerous characters (`; | & $ \`` etc.)
+
+- **Session ID/client name validation**
+  - Only alphanumeric, hyphens, underscores allowed (1-128 chars)
+  - Invalid input rejected
+
+### Fixed
+
+- **`appendBroadcast()` performance issue**
+  - Synchronous trimming caused delays when messages exceeded 100
+  - Async via `setImmediate()`, main processing no longer blocked
+
+- **Windows compatibility**
+  - `getProjectRoot()` was Unix-only (`current !== "/"`)
+  - `path.parse()` for root detection, works on both Windows and Unix
+
+### Changed
+
+- **Type guard functions added**
+  - Implemented `isBroadcastArgs()`, `isInboxArgs()`, `isRegisterArgs()`
+  - Eliminated `as` type casts, runtime type safety ensured
+
+- **`ensureDir()` call optimization**
+  - Changed from every function call to once at module initialization
+  - Reduced filesystem access
+
+---
+
 ## [2.10.5] - 2026-01-25
 
 ### 🎯 What's Changed for You
