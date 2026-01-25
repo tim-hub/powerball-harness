@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "harness": {
+      "type": "local",
+      "enabled": true,
+      "command": [
+        "node",
+        "./path/to/claude-code-harness/mcp-server/dist/index.js"
+      ]
+    }
+  }
+}

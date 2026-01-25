@@ -1,0 +1,41 @@
+name: OpenCode Compatibility Check
+
+on:
+  push:
+    paths:
+      - 'commands/**'
+      - 'scripts/build-opencode.js'
+      - 'scripts/validate-opencode.js'
+  pull_request:
+    paths:
+      - 'commands/**'
+      - 'scripts/build-opencode.js'
+      - 'scripts/validate-opencode.js'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build opencode version
+        run: node scripts/build-opencode.js
+
+      - name: Validate opencode format
+        run: node scripts/validate-opencode.js
+
+      - name: Check for uncommitted changes
+        run: |
+          if ! git diff --quiet opencode/; then
+            echo "::error::opencode/ is out of sync with commands/"
+            echo "Run 'node scripts/build-opencode.js' and commit the changes."
+            git diff --stat opencode/
+            exit 1
+          fi
+          echo "✅ opencode/ is in sync"

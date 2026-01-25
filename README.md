@@ -121,6 +121,20 @@ Real-time messaging between sessions. When you change an API in Session A, Sessi
 
 Use Harness from **Codex**, **Cursor**, or any MCP-compatible client. Share sessions across different AI tools working on the same project.
 
+### OpenCode Compatibility
+
+Harness works with [opencode.ai](https://opencode.ai/) too. Use the same workflow with GPT, Gemini, or any supported model:
+
+```bash
+# Quick setup (no Claude Code required)
+curl -fsSL https://raw.githubusercontent.com/Chachamaru127/claude-code-harness/main/scripts/setup-opencode.sh | bash
+
+# Or from Claude Code
+/opencode-setup
+```
+
+See [opencode/README.md](opencode/README.md) for full setup instructions.
+
 ---
 
 ## Who Is This For?
