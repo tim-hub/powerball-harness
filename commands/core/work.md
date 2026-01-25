@@ -51,6 +51,7 @@ Executes the plan in Plans.md and generates actual code.
 
 | Option | Description | Default |
 |--------|-------------|---------|
+| `--ci` | CI-only non-interactive mode | false |
 | `--parallel N` | Force parallel count | auto |
 | `--sequential` | Force no parallel | - |
 | `--isolation` | lock / worktree | worktree |
@@ -60,6 +61,14 @@ Executes the plan in Plans.md and generates actual code.
 | `--resume <id|latest>` | Resume session | - |
 | `--fork <id|current>` | Fork session | - |
 | `--reason "<text>"` | Fork reason (with --fork) | - |
+
+### --ci Mode
+
+CI-only non-interactive execution:
+- AskUserQuestion: do not use
+- WebSearch: do not use
+- Confirmation prompts: do not wait
+- Continue to completion automatically
 
 ### --isolation Option
 

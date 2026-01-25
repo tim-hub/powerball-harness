@@ -308,10 +308,10 @@ run_workflow() {
   local plan_prompt work_prompt review_prompt
 
   if [[ "$WITH_PLUGIN" == "true" ]]; then
-    # with-plugin: CI専用コマンドを使用（完全修飾名で指定）
-    plan_prompt="/claude-code-harness:core:plan-with-agent-ci $task_prompt"
-    work_prompt="/claude-code-harness:core:work-ci"
-    review_prompt="/claude-code-harness:core:harness-review-ci"
+    # with-plugin: CIモードを使用（完全修飾名で指定）
+    plan_prompt="/claude-code-harness:core:plan-with-agent --ci $task_prompt"
+    work_prompt="/claude-code-harness:core:work --ci"
+    review_prompt="/claude-code-harness:core:harness-review --ci"
   else
     # no-plugin: CI コマンドと同等の詳細プロンプト（公平な比較のため）
     # 違いは「プラグイン基盤（hooks/skills/agents）の有無」のみ

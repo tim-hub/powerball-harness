@@ -35,6 +35,7 @@ Executes the plan in Plans.md and generates actual code.
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--full` | Full cycle execution | false |
+| `--ci` | CI-only non-interactive mode | false |
 | `--parallel N` | Parallel count | 1 |
 | `--isolation` | lock / worktree | lock |
 | `--commit-strategy` | task / phase / all | task |
@@ -44,6 +45,14 @@ Executes the plan in Plans.md and generates actual code.
 | `--resume <id|latest>` | Resume session | - |
 | `--fork <id|current>` | Fork session | - |
 | `--reason "<text>"` | Fork reason (with --fork) | - |
+
+### --ci Mode
+
+CI-only non-interactive execution:
+- AskUserQuestion: do not use
+- WebSearch: do not use
+- Confirmation prompts: do not wait
+- Continue to completion automatically
 
 ### --isolation Option
 

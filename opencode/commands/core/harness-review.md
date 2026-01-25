@@ -28,6 +28,15 @@ Analyzes from multiple perspectives and suggests improvements.
 
 ---
 
+## --ci Mode (Non-interactive)
+
+CI/benchmark mode:
+- AskUserQuestion: do not use
+- WebSearch: do not use
+- Proceed without confirmations
+
+---
+
 ## 🔧 Auto-invoke Skills (Required)
 
 **This command must explicitly invoke the following skills with the Skill tool**:

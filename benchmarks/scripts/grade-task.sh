@@ -683,13 +683,13 @@ def grade_workflow_mode(project_dir: str, output_file: Optional[str], trace_file
     else:
         checks.append(Check(name="review_output_exists", status="fail", details="no review output"))
 
-    # 4. CI専用コマンドの使用チェック（transcript から）
+    # 4. CIモード使用チェック（transcript から）
     if trace_file and os.path.isfile(trace_file):
         trace_txt = read_text(trace_file)
-        used_ci_cmd = any(cmd in trace_txt for cmd in ["plan-with-agent-ci", "work-ci", "harness-review-ci"])
+        used_ci_cmd = any(cmd in trace_txt for cmd in ["plan-with-agent --ci", "work --ci", "harness-review --ci"])
         checks.append(
             Check(
-                name="used_ci_commands",
+                name="used_ci_mode",
                 status="pass" if used_ci_cmd else "fail",
                 required=False,
                 details=f"ci_commands_detected={used_ci_cmd}",

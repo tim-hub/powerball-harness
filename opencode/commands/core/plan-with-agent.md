@@ -15,11 +15,22 @@ After completion, you can immediately start work with `/work`.
 - "**List out features**" → feature list → priority → Plans.md
 - "**Plan with TDD**" → force TDD adoption, prioritize test case design
 - "**Start with test design**" → design test cases for each feature first
+- "**CI/benchmark**" → `/plan-with-agent --ci`
 
 ## Deliverables
 
 - **Plans.md** - Task list executable with `/work` (required)
 - **Feature priority matrix** - Classification into required/recommended/optional
+
+---
+
+## --ci Mode (Non-interactive)
+
+CI/benchmark mode:
+- AskUserQuestion: do not use
+- WebSearch: do not use
+- Fill missing info with explicit assumptions
+- Proceed end-to-end without confirmations
 
 ---
 
