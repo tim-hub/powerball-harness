@@ -19,6 +19,7 @@ allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task", "AskUse
 
 | 機能 | 詳細 |
 |------|------|
+| **ベストプラクティス** | See [references/best-practices.md](references/best-practices.md) |
 | **コードベース分析** | See [references/analyzer.md](references/analyzer.md) |
 | **シナリオプランニング** | See [references/planner.md](references/planner.md) |
 | **並列シーン生成** | See [references/generator.md](references/generator.md) |
@@ -59,16 +60,41 @@ allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task", "AskUse
 5. `generator.md` で並列生成
 6. 完了報告
 
-## 動画タイプ
+## 動画タイプ（ファネル別）
 
-| タイプ | 説明 | 自動判定条件 |
-|--------|------|-------------|
-| **プロダクトデモ** | UIフローを紹介 | 新規プロジェクト、UI変更 |
-| **アーキテクチャ解説** | システム構成を可視化 | 大きな構造変更 |
-| **リリースノート** | 変更点を動画化 | リリース直後、CHANGELOG更新 |
-| **複合** | 複数タイプを組み合わせ | 複数条件に該当 |
+| タイプ | ファネル | 長さ目安 | 自動判定条件 | 構成の芯 |
+|--------|----------|----------|--------------|----------|
+| **LP/広告ティザー** | 認知〜興味 | 30-90秒 | 新規プロジェクト | 痛み→結果→CTA |
+| **Introデモ** | 興味→検討 | 2-3分 | UI変更検出 | 1ユースケース完走 |
+| **リリースノート** | 検討→確信 | 1-3分 | CHANGELOG更新 | Before/After重視 |
+| **アーキテクチャ解説** | 確信→決裁 | 5-30分 | 大規模構造変更 | 実運用+証拠 |
+| **オンボーディング** | 継続・活用 | 30秒-数分 | 初回セットアップ | Aha体験への最短パス |
+
+> 詳細: [references/best-practices.md](references/best-practices.md)
 
 ## シーンテンプレート
+
+### 90秒ティザー（LP/広告向け）
+
+| 時間 | シーン | 内容 |
+|------|--------|------|
+| 0-5秒 | Hook | 痛み or 望む結果 |
+| 5-15秒 | Problem+Promise | 対象ユーザーと約束 |
+| 15-55秒 | Workflow | 象徴ワークフロー |
+| 55-70秒 | Differentiator | 差別化の根拠 |
+| 70-90秒 | CTA | 次の一手 |
+
+### 3分Introデモ（検討向け）
+
+| 時間 | シーン | 内容 |
+|------|--------|------|
+| 0-10秒 | Hook | 結論+痛み |
+| 10-30秒 | UseCase | ユースケース宣言 |
+| 30-140秒 | Demo | 実画面で完走 |
+| 140-170秒 | Objection | よくある不安1つ潰す |
+| 170-180秒 | CTA | 行動喚起 |
+
+### 共通シーン
 
 | シーン | 推奨時間 | 内容 |
 |--------|----------|------|
@@ -76,6 +102,8 @@ allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task", "AskUse
 | 機能デモ | 10-30秒 | Playwrightキャプチャ |
 | アーキテクチャ図 | 10-20秒 | Mermaid → アニメーション |
 | CTA | 3-5秒 | URL + 連絡先 |
+
+> 詳細テンプレート: [references/best-practices.md](references/best-practices.md#テンプレート)
 
 ## Notes
 

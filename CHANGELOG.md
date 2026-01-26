@@ -9,6 +9,41 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.13.1] - 2026-01-27
+
+### 🎯 What's Changed for You
+
+**`/generate-video` now follows SaaS video best practices. It automatically suggests optimal templates based on funnel stage (awareness → consideration → decision).**
+
+### Added
+
+- **SaaS Video Best Practices** (`skills/video/references/best-practices.md`)
+  - Funnel-specific guidelines (awareness, consideration, conviction, decision)
+  - 90-second teaser / 3-minute intro demo / 20-minute walkthrough templates
+  - Production checklist (pre-recording, recording, publishing)
+  - Common failure patterns and recommended 3-video set
+
+- **New Scene Templates** (`agents/video-scene-generator.md`)
+  - `hook` - 3-5 second pain point hook
+  - `problem-promise` - Problem statement + promise (5-15 seconds)
+  - `differentiator` - Before/After comparison for differentiation
+
+### Changed
+
+- **`/generate-video`** now funnel-aware
+  - LP/ad teaser, Intro demo, Sales demo, Walkthrough, Release notes (5 types)
+  - Automatically applies optimal structure for each type
+
+- **`skills/video/SKILL.md`** enhanced
+  - Funnel-specific video type table
+  - 90-second / 3-minute template quick reference
+
+- **`skills/video/references/planner.md`** enhanced
+  - Funnel-based template selection flow
+  - Frame-count detailed templates
+
+---
+
 ## [2.13.0] - 2026-01-27
 
 ### 🎯 What's Changed for You

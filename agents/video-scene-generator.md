@@ -12,6 +12,35 @@ color: magenta
 Remotion のシーンコンポジションを生成するエージェント。
 `/generate-video` の Step 4 で並列起動され、各シーンを独立して生成します。
 
+> **必読**: シーン生成時は [skills/video/references/best-practices.md](../skills/video/references/best-practices.md) のガイドラインに従うこと
+
+---
+
+## ベストプラクティス要約
+
+### シーン設計の原則
+
+1. **冒頭は本題優先** - ロゴや会社紹介を長く出さない
+2. **痛み→解決のストーリー** - 機能羅列ではなく視聴者の課題解決を示す
+3. **CTAは途中にも配置** - 最後だけでなく中間地点にも
+4. **音質 > 画面の可読性 > テンポ > 見た目** の優先順位
+
+### ファネル別テンプレート
+
+| ファネル | 長さ | 構成の芯 |
+|----------|------|----------|
+| 認知〜興味 | 30-90秒 | 痛み→結果→CTA |
+| 興味→検討 | 2-3分 | 1ユースケース完走 |
+| 検討→確信 | 2-5分 | 反論を先に潰す |
+| 確信→決裁 | 5-30分 | 実運用+証拠 |
+
+### 避けるべき失敗パターン
+
+- 誰向けか曖昧
+- 機能全部入り
+- ロゴ・会社紹介が長い
+- CTAが最後だけ
+
 ---
 
 ## 呼び出し方法
@@ -214,6 +243,76 @@ export const DURATION = {duration * 30}; // {duration}秒 @ 30fps
     "fixed": ["バグ修正"],
     "changed": []
   }
+}
+```
+
+### hook テンプレート（LP/広告向け）
+
+**用途**: 冒頭3-5秒の痛みフック
+
+**入力 content**:
+```json
+{
+  "painPoint": "また手動でコードレビュー？",
+  "subtext": "計画、実装、確認... 全部一人でやってませんか？"
+}
+```
+
+**出力**:
+```tsx
+export const HookScene: React.FC<{
+  painPoint: string;
+  subtext?: string;
+}> = ({ painPoint, subtext }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const shakeAmount = Math.sin(frame * 0.5) * 2;
+
+  return (
+    <AbsoluteFill style={{ background: gradients.dark }}>
+      <h1 style={{
+        transform: `translateX(${shakeAmount}px)`,
+        color: "#fff"
+      }}>
+        {painPoint}
+      </h1>
+      {subtext && <p style={{ color: "rgba(255,255,255,0.5)" }}>{subtext}</p>}
+    </AbsoluteFill>
+  );
+};
+```
+
+### problem-promise テンプレート（LP/広告向け）
+
+**用途**: 課題提示＋約束（5-15秒）
+
+**入力 content**:
+```json
+{
+  "problems": [
+    { "icon": "😩", "title": "計画が曖昧", "desc": "タスク分解に時間がかかる" },
+    { "icon": "🔄", "title": "手戻りが多い", "desc": "レビュー後に修正の嵐" }
+  ],
+  "promise": {
+    "icon": "🎯",
+    "text": "3コマンドで全て解決"
+  }
+}
+```
+
+### differentiator テンプレート（LP/広告向け）
+
+**用途**: 差別化の根拠（Before/After比較）
+
+**入力 content**:
+```json
+{
+  "title": "時間を取り戻す",
+  "comparisons": [
+    { "label": "コードレビュー", "before": "30分/回", "after": "3分", "savings": "90%削減" },
+    { "label": "タスク計画", "before": "15分", "after": "1分", "savings": "93%削減" }
+  ],
+  "tagline": "Harness を使えば、ソロでもチーム級の品質"
 }
 ```
 
