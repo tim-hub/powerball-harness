@@ -143,9 +143,8 @@ docs/releases/
 docs/notebooklm/work-full-slides-compact.yaml
 docs/notebooklm/work-full-slides-minimal.yaml
 
-# Remotion (動画生成) - 生成ファイル
-remotion/out/
-remotion/assets/
+# Remotion (動画生成) - ディレクトリ全体を除外
+/remotion/
 .remotion/
 out/
 *.mp4

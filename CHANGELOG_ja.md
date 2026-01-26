@@ -9,6 +9,59 @@
 
 ---
 
+## [2.12.0] - 2026-01-26
+
+### 🎯 あなたにとって何が変わるか
+
+**OpenCode が PM（プロジェクトマネージャー）として使えるようになりました。Cursor より安価な OpenCode サブスクリプションで計画管理し、Claude Code で実装できます。**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| PM役は Cursor が必要 | `/start-session`、`/plan-with-cc` が OpenCode で動作 |
+| Cursor へのハンドオフのみ | `/handoff-to-opencode` で OpenCode PM へ報告 |
+| `/opencode-setup` は Impl コマンドのみ | PM コマンドもデフォルトで `pm/` にインストール |
+
+### Added
+
+- **OpenCode 用 PM コマンド** (`opencode/commands/pm/`)
+  - `/start-session` - セッション開始（状況把握→計画）
+  - `/plan-with-cc` - 計画作成（Evals 含む）
+  - `/project-overview` - プロジェクト概要把握
+  - `/handoff-to-claude` - Claude Code への依頼生成
+  - `/review-cc-work` - 作業レビュー・承認
+
+- **`/handoff-to-opencode`** - OpenCode PM への完了報告
+  - `/handoff-to-cursor` の対となるコマンド
+  - Impl Claude Code から OpenCode PM へハンドオフ時に使用
+
+### Changed
+
+- **`/opencode-setup`** が PM コマンドをデフォルトでインストール
+  - PM コマンドは `.opencode/commands/pm/` に配置
+  - 完了メッセージに PM モードの使い方を追加
+
+- **`build-opencode.js`** が PM テンプレートを処理
+  - 新しいソース: `templates/opencode/commands/`
+  - 出力先: `opencode/commands/pm/`
+
+### PM ワークフロー
+
+```
+OpenCode (PM)                    Claude Code (Impl)
+    |                                   |
+    | /start-session                    |
+    | /plan-with-cc                     |
+    | /handoff-to-claude ─────────────> |
+    |                                   | /work
+    |                                   | /handoff-to-opencode
+    | <─────────────────────────────────|
+    | /review-cc-work                   |
+```
+
+---
+
 ## [2.11.1] - 2026-01-26
 
 ### 🎯 あなたにとって何が変わるか
