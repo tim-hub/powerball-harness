@@ -187,5 +187,5 @@ review:
 ## 関連ドキュメント
 
 - [codex-mcp-setup.md](./codex-mcp-setup.md) - セットアップ手順
-- [review/SKILL.md](../../review/SKILL.md) - レビュースキル
-- [review/references/codex-integration.md](../../review/references/codex-integration.md) - レビューへの統合
+- [harness-review/SKILL.md](../../harness-review/SKILL.md) - レビュースキル
+- [harness-review/references/codex-integration.md](../../harness-review/references/codex-integration.md) - レビューへの統合

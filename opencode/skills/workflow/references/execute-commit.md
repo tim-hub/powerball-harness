@@ -114,7 +114,7 @@ fi
 - REJECT: Critical: ≥1 → 手動対応必要（コミット不可）
 ```
 
-**参照**: [`commit-judgment-logic.md`](../../review/references/commit-judgment-logic.md)
+**参照**: [`commit-judgment-logic.md`](../../harness-review/references/commit-judgment-logic.md)
 
 ### Step 3: Conventional Commit メッセージの生成
 

@@ -23,7 +23,7 @@ _harness_condition: "skills_gate.enabled"
 | 作業 | スキル | 呼び出し方 |
 |------|--------|-----------|
 | 機能を実装する | `impl` | Skill ツールで「impl」を呼び出す |
-| コードをレビューする | `review` | Skill ツールで「review」を呼び出す |
+| コードをレビューする | `harness-review` | Skill ツールで「harness-review」を呼び出す |
 | UI を作成する | `ui` | Skill ツールで「ui」を呼び出す |
 | 認証・決済を実装する | `auth` | Skill ツールで「auth」を呼び出す |
 | デプロイ設定をする | `deploy` | Skill ツールで「deploy」を呼び出す |
@@ -132,7 +132,7 @@ Claude-mem が有効な場合、スキルは過去の記憶を活用して品質
 | スキル | 強化内容 |
 |--------|---------|
 | `impl` | 過去の実装パターン・gotcha を自動参照 |
-| `review` | 過去の類似レビュー指摘を参照 |
+| `harness-review` | 過去の類似レビュー指摘を参照 |
 | `verify` | 過去のビルドエラー解決策を参照 |
 | `session-init` | ガードレール発動履歴・作業サマリーを表示 |
 
