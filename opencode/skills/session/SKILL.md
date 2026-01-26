@@ -12,10 +12,10 @@ Consolidates all session-related functionality into one skill.
 
 | Feature | Description | Reference |
 |---------|-------------|-----------|
-| **Initialization** | Start new session, load context | See [references/session-init.md](references/session-init.md) |
-| **Memory** | Persist learnings across sessions | See [references/session-memory.md](references/session-memory.md) |
+| **Initialization** | Start new session, load context | See [../session-init/SKILL.md](../session-init/SKILL.md) |
+| **Memory** | Persist learnings across sessions | See [../session-memory/SKILL.md](../session-memory/SKILL.md) |
 | **State Control** | Resume/fork session based on flags | See [references/session-control.md](references/session-control.md) |
-| **Communication** | Cross-session messaging | See [references/session-state.md](references/session-state.md) |
+| **Communication** | Cross-session messaging | See [../session-state/SKILL.md](../session-state/SKILL.md) |
 
 ## When to Use
 
@@ -77,8 +77,8 @@ Session end
 
 | File | Purpose |
 |------|---------|
-| `.claude/session.json` | Current session state |
-| `.claude/session.events.jsonl` | Event log for cross-session communication |
+| `.claude/state/session.json` | Current session state |
+| `.claude/state/session.events.jsonl` | Event log for cross-session communication |
 | `.claude/memory/*.md` | Persistent memory files |
 
 ## Migration Note
