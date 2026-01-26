@@ -170,16 +170,19 @@ experts:
 #### 3.4 最終的な呼び出しリスト決定
 
 ```
-設定で有効 AND プロジェクトに関連 AND 変更内容に関連
-→ 呼び出すエキスパートリスト
+レビュータイプ判定 → 対応する4エキスパートを呼び出し
 
-例1: Webフロントエンドでコード変更あり
-→ Security, Accessibility, Performance, Quality, SEO, Architect
-→ 6エキスパート並列（Plan Reviewer, Scope Analyst は除外）
+例1: /work 後にコード変更あり → Code Review
+→ Security, Performance, Quality, Accessibility
+→ 4エキスパート並列
 
-例2: CLI プラグインでドキュメントのみ変更
-→ Quality, Architect, Plan Reviewer, Scope Analyst
-→ 4エキスパート並列（Security, Performance, Accessibility, SEO は除外）
+例2: /plan-with-agent 後 → Plan Review
+→ Clarity, Feasibility, Dependencies, Acceptance
+→ 4エキスパート並列
+
+例3: タスク追加後 → Scope Review
+→ Scope-creep, Priority, Feasibility, Impact
+→ 4エキスパート並列
 ```
 
 ### Step 4: エキスパートプロンプトの準備
@@ -226,7 +229,7 @@ const results = await Promise.all(
 | 件数制限 | Critical/High: 全件、Medium/Low: 各3件まで |
 | 問題なし | `Score: A / No issues.` のみ |
 
-> **理由**: 8エキスパート並列でも 1500文字×8 = 12,000文字 ≒ 4,000トークン程度で収まる
+> **理由**: 4エキスパート並列でも 1500文字×4 = 6,000文字 ≒ 2,000トークン程度で収まる
 
 ### Step 6: 結果統合
 

@@ -25,7 +25,7 @@ OpenAI Codex CLI を MCP サーバーとして Claude Code に統合し、コー
 |------|------|
 | **MCP セットアップ** | See [references/codex-mcp-setup.md](references/codex-mcp-setup.md) |
 | **レビュー統合** | See [references/codex-review-integration.md](references/codex-review-integration.md) |
-| **最大8並列レビュー** | See [references/codex-parallel-review.md](references/codex-parallel-review.md) |
+| **4並列レビュー** | See [references/codex-parallel-review.md](references/codex-parallel-review.md) |
 
 ## 実行手順
 
@@ -46,11 +46,11 @@ OpenAI Codex CLI を MCP サーバーとして Claude Code に統合し、コー
 4. 絶対に1回の呼び出しで複数観点をまとめない
 
 ```
-✅ 正しい（6エキスパート有効の場合）:
+✅ 正しい（Code Reviewの場合、4エキスパート）:
    mcp__codex__codex({prompt: security-expert.md})
    mcp__codex__codex({prompt: performance-expert.md})
    mcp__codex__codex({prompt: quality-expert.md})
-   ... (有効なもののみ並列)
+   mcp__codex__codex({prompt: accessibility-expert.md})
 
 ❌ 間違い:
    mcp__codex__codex({prompt: "セキュリティとパフォーマンスと品質をレビューして"})

@@ -239,7 +239,7 @@ mem-search: concepts:gotcha "{変更箇所に関連するキーワード}"
 設定確認: .claude-code-harness.config.yaml
     ↓
 ├── review.mode: default → Claude 単体レビュー
-└── review.mode: codex   → Codex 並列レビュー（8 エキスパート）
+└── review.mode: codex   → Codex 並列レビュー（レビュータイプごとに4エキスパート）
 ```
 
 ### Default モード（Claude 単体）
@@ -248,25 +248,20 @@ Claude が直接レビューを実行。小〜中規模の変更に最適。
 
 ### Codex モード（並列エキスパート）
 
-Codex MCP 経由で**最大 8 つの専門エキスパート**を **個別に並列呼び出し**（不要なエキスパートは除外）:
+Codex MCP 経由で**レビュータイプに応じた4つのエキスパート**を **個別に並列呼び出し**:
 
-| エキスパート | 観点 | プロンプトファイル |
-|-------------|------|-------------------|
-| Security | OWASP Top 10、認証、インジェクション | `experts/security-expert.md` |
-| Accessibility | WCAG 2.1 AA、セマンティック HTML | `experts/accessibility-expert.md` |
-| Performance | N+1 クエリ、レンダリング、アルゴリズム | `experts/performance-expert.md` |
-| Quality | 可読性、保守性、ベストプラクティス | `experts/quality-expert.md` |
-| SEO | メタタグ、OGP、サイトマップ | `experts/seo-expert.md` |
-| Architect | 設計、トレードオフ、スケーラビリティ | `experts/architect-expert.md` |
-| Plan Reviewer | 計画の完全性、明確性、検証可能性 | `experts/plan-reviewer-expert.md` |
-| Scope Analyst | 要件分析、曖昧さ検出、リスク | `experts/scope-analyst-expert.md` |
+| Review Type | エキスパート |
+|-------------|-------------|
+| **Code Review** | Security, Performance, Quality, Accessibility |
+| **Plan Review** | Clarity, Feasibility, Dependencies, Acceptance |
+| **Scope Review** | Scope-creep, Priority, Feasibility, Impact |
 
 #### ⚠️ Codex モード実行時の必須ルール
 
 **絶対に1回の MCP 呼び出しで複数エキスパートをまとめないこと。**
 
 ```
-✅ 正しい: 8回の MCP 呼び出しを1つのレスポンス内で並列実行
+✅ 正しい: 4回の MCP 呼び出しを1つのレスポンス内で並列実行
 ❌ 間違い: 1回の呼び出しで「全観点をレビューして」と依頼
 ```
 
