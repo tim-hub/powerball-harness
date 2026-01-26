@@ -9,7 +9,7 @@ English | [日本語](README_ja.md)
 Claude Harness runs Claude Code in an autonomous **Plan → Work → Review** cycle,
 catching mistakes before they ship.
 
-[![Version: 2.12.6](https://img.shields.io/badge/version-2.12.6-blue.svg)](VERSION)
+[![Version: 2.13.0](https://img.shields.io/badge/version-2.13.0-blue.svg)](VERSION)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.md)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.6+-purple.svg)](docs/CLAUDE_CODE_COMPATIBILITY.md)
 
@@ -84,6 +84,31 @@ claude --plugin-dir ~/claude-plugins/claude-code-harness
 
 ---
 
+## What's New in v2.13
+
+### Auto-Commit Workflow (v2.13.0)
+
+**`/work` now auto-commits when review passes—fully automated from idea to commit.**
+
+```bash
+/work                  # Implement → Review → Auto-commit (default)
+/work --no-commit      # Manual commit mode
+```
+
+| Before | After |
+|--------|-------|
+| Manual `git add && git commit` after `/work` | Auto-commit when review passes |
+| `--full` option for automation | Auto-commit is now default |
+
+**Project-level configuration**:
+```yaml
+# .claude-code-harness.config.yaml
+work:
+  auto_commit: false  # Disable for this project
+```
+
+---
+
 ## What's New in v2.11
 
 ### Video Generation (v2.11.0)
@@ -135,12 +160,13 @@ See [OpenCode Compatibility Guide](docs/OPENCODE_COMPATIBILITY.md) for details.
 ### Parallel Full-Cycle Automation
 
 ```bash
-/work                  # Full automation with smart parallel (default)
+/work                  # Implement → Review → Auto-commit (default)
+/work --no-commit      # Skip auto-commit for manual control
 /work --parallel 5     # Force 5 parallel workers
 ```
 
-Runs **implement → self-review → fix → commit** in parallel for each task.
-Each worker reviews its own code before marking done.
+Runs **implement → review → fix → auto-commit** in parallel for each task.
+Each worker reviews its own code, and commits automatically when review passes.
 
 ### Code Intelligence (AST-Grep + LSP)
 

@@ -9,6 +9,44 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.13.0] - 2026-01-27
+
+### 🎯 What's Changed for You
+
+**`/work` now auto-commits when review passes. No more manual `git add && git commit` after implementation—the workflow is fully automated.**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| `/work` = implement → review → done (manual commit) | `/work` = implement → review → auto-commit |
+| `--full` option for auto-commit | Auto-commit is now default |
+| No project-level config | `work.auto_commit` in config file |
+
+### Changed
+
+- **`/work` default behavior**
+  - Now runs: implement → review → fix loop → auto-commit
+  - `--full` option removed (now default behavior)
+  - `--commit-strategy` option removed
+
+### Added
+
+- **`--no-commit` option** - Skip auto-commit for manual control
+- **Project config `work.auto_commit`** - Set per-project default
+  ```yaml
+  # .claude-code-harness.config.yaml
+  work:
+    auto_commit: false  # Disable for this project
+  ```
+
+### Removed
+
+- `--full` option (now default behavior)
+- `--commit-strategy` option (no auto-commit means manual commit)
+
+---
+
 ## [2.12.0] - 2026-01-26
 
 ### 🎯 What's Changed for You
@@ -1486,6 +1524,8 @@ Key milestones:
 - **v0.3.0**: Initial release (Plan → Work → Review cycle)
 
 [Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.11.1...HEAD
+[2.13.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.12.0...v2.13.0
+[2.12.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.11.1...v2.12.0
 [2.11.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.11.0...v2.11.1
 [2.11.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.10.8...v2.11.0
 [2.10.8]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.10.7...v2.10.8

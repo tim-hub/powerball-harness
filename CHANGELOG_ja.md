@@ -9,6 +9,44 @@
 
 ---
 
+## [2.13.0] - 2026-01-27
+
+### 🎯 あなたにとって何が変わるか
+
+**`/work` がレビュー通過後に自動コミットするようになりました。実装完了後の手動 `git add && git commit` が不要になり、ワークフローが完全自動化されます。**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| `/work` = 実装 → レビュー → 完了（手動コミット） | `/work` = 実装 → レビュー → 自動コミット |
+| `--full` オプションで自動コミット | 自動コミットがデフォルトに |
+| プロジェクト設定なし | config ファイルで `work.auto_commit` 設定可能 |
+
+### Changed
+
+- **`/work` のデフォルト動作**
+  - 実装 → レビュー → 修正ループ → 自動コミット
+  - `--full` オプションを削除（デフォルト動作に統合）
+  - `--commit-strategy` オプションを削除
+
+### Added
+
+- **`--no-commit` オプション** - 自動コミットをスキップして手動コミット
+- **プロジェクト設定 `work.auto_commit`** - プロジェクト単位でデフォルトを設定
+  ```yaml
+  # .claude-code-harness.config.yaml
+  work:
+    auto_commit: false  # このプロジェクトでは無効化
+  ```
+
+### Removed
+
+- `--full` オプション（デフォルト動作に統合）
+- `--commit-strategy` オプション（自動コミットしない場合は手動コミット）
+
+---
+
 ## [2.12.0] - 2026-01-26
 
 ### 🎯 あなたにとって何が変わるか
@@ -2369,7 +2407,9 @@ Observation recorded: 10946-10951 ✅
 - **v0.4.0**: Claude Rules、Plugin Hooks、Named Sessions 対応
 - **v0.3.0**: 初期リリース（Plan → Work → Review サイクル）
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.11.1...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.0...HEAD
+[2.13.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.12.0...v2.13.0
+[2.12.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.11.1...v2.12.0
 [2.11.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.11.0...v2.11.1
 [2.11.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.10.8...v2.11.0
 [2.10.8]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.10.7...v2.10.8

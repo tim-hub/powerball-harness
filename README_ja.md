@@ -9,9 +9,35 @@
 Claude Code を「Plan → Work → Review」の自律サイクルで運用し、
 **迷い・雑さ・事故・忘却** を仕組みで防ぐ開発ハーネスです。
 
-[![Version: 2.12.0](https://img.shields.io/badge/version-2.12.0-blue.svg)](VERSION)
+[![Version: 2.13.0](https://img.shields.io/badge/version-2.13.0-blue.svg)](VERSION)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.md)
 [![Harness Score](https://img.shields.io/badge/harness_score-92%2F100-brightgreen.svg)](#採点基準)
+
+---
+
+## v2.13 の新機能 | What's New in v2.13
+
+### 自動コミットワークフロー（v2.13.0）| Auto-Commit Workflow
+
+**`/work` がレビュー通過後に自動コミット — アイデアからコミットまで完全自動化**
+*`/work` now auto-commits when review passes—fully automated from idea to commit*
+
+```bash
+/work                  # 実装 → レビュー → 自動コミット（デフォルト）
+/work --no-commit      # 手動コミットモード
+```
+
+| Before | After |
+|--------|-------|
+| `/work` 後に手動で `git add && git commit` | レビュー通過で自動コミット |
+| `--full` オプションで自動化 | 自動コミットがデフォルトに |
+
+**プロジェクト単位の設定**:
+```yaml
+# .claude-code-harness.config.yaml
+work:
+  auto_commit: false  # このプロジェクトでは無効化
+```
 
 ---
 
@@ -67,26 +93,27 @@ OpenCode.ai で動作するコアコマンド:
 
 ### フルサイクル並列自動化（v2.9.0）| Full-Cycle Parallel Automation
 
-**`/work --full` で「実装→セルフレビュー→改善→commit」を自動化**
-*Run `/work --full` for automated implement → self-review → improve → commit cycles*
+> ⚠️ **v2.13.0 で更新**: `--full` オプションは廃止され、デフォルト動作に統合されました。詳細は [v2.13 の新機能](#v213-の新機能--whats-new-in-v213) を参照。
+
+**`/work` で「実装→レビュー→修正→自動コミット」を自動化**
+*Run `/work` for automated implement → review → fix → auto-commit cycles*
 
 ```bash
-/work --full --parallel 3
+/work --parallel 3        # 並列実装 → レビュー → 自動コミット
+/work --no-commit         # 手動コミットモード
 ```
 
 | オプション | 説明 | デフォルト |
 |-----------|------|-----------|
-| `--full` | フルサイクル実行 | false |
-| `--parallel N` | 並列数指定 | 1 |
-| `--isolation` | `lock` / `worktree` | lock |
-| `--commit-strategy` | `task` / `phase` / `all` | task |
-| `--deploy` | commit 後にデプロイ | false |
+| `--parallel N` | 並列数指定 | auto |
+| `--no-commit` | 自動コミットをスキップ | false |
+| `--skip-review` | レビューをスキップ | false |
+| `--max-iterations` | レビュー修正ループ上限 | 3 |
 
-**4フェーズアーキテクチャ**:
-1. **Phase 1**: 依存グラフ構築 → task-worker 並列起動 → セルフレビュー
-2. **Phase 2**: Codex 8並列クロスレビュー
-3. **Phase 3**: コンフリクト解消 → 最終ビルド検証 → Conventional Commit
-4. **Phase 4**: Deploy（オプション、安全ゲート付き）
+**3フェーズアーキテクチャ**:
+1. **Phase 1**: 依存グラフ構築 → task-worker 並列起動
+2. **Phase 2**: harness-review → 修正ループ（OK まで）
+3. **Phase 3**: 自動コミット（`--no-commit` でスキップ可能）
 
 詳細: [docs/PARALLEL_FULL_CYCLE.md](docs/PARALLEL_FULL_CYCLE.md)
 
