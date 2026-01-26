@@ -50,8 +50,8 @@ Plan Review と Scope Review は Codex エキスパートを使用します：
 
 | レビュータイプ | エキスパート | 参照 |
 |--------------|-------------|------|
-| **Plan Review** | Clarity, Feasibility, Dependencies, Acceptance | `experts/clarity-expert.md` 等 |
-| **Scope Review** | Scope-creep, Priority, Feasibility, Impact | `experts/scope-creep-expert.md` 等 |
+| **Plan Review** | Clarity, Feasibility, Dependencies, Acceptance | `../codex-review/references/experts/clarity-expert.md` 等 |
+| **Scope Review** | Scope-creep, Priority, Feasibility, Impact | `../codex-review/references/experts/scope-creep-expert.md` 等 |
 
 詳細: [../codex-review/references/codex-parallel-review.md](../codex-review/references/codex-parallel-review.md)
 

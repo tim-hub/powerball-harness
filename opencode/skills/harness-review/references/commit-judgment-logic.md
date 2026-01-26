@@ -146,18 +146,29 @@ Claude が修正実行
 
 ## Codex モードとの統合
 
-Codex モード時は、各エキスパートからの指摘を集約して判定:
+Codex モード時は、レビュータイプに応じた4つのエキスパートからの指摘を集約して判定:
 
 ```
-Codex 並列レビュー
+Codex 並列レビュー（レビュータイプごとに4エキスパート）
+
+Code Review:
     ├── Security Expert → findings[]
-    ├── Accessibility Expert → findings[]
     ├── Performance Expert → findings[]
     ├── Quality Expert → findings[]
-    ├── SEO Expert → findings[]
-    ├── Architect Expert → findings[]
-    ├── Plan Reviewer Expert → findings[]
-    └── Scope Analyst Expert → findings[]
+    └── Accessibility Expert → findings[]
+
+Plan Review:
+    ├── Clarity Expert → findings[]
+    ├── Feasibility Expert → findings[]
+    ├── Dependencies Expert → findings[]
+    └── Acceptance Expert → findings[]
+
+Scope Review:
+    ├── Scope-creep Expert → findings[]
+    ├── Priority Expert → findings[]
+    ├── Feasibility Expert → findings[]
+    └── Impact Expert → findings[]
+
     ↓
 全 findings を Severity で集計
     ↓

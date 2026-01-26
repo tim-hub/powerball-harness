@@ -253,7 +253,7 @@ git commit -m "feat(components): add Header, Footer, Sidebar components
 - Add Footer with copyright and links
 - Add collapsible Sidebar for mobile
 
-Reviewed-by: Codex (8 experts)
+Reviewed-by: Codex (4 experts)
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 

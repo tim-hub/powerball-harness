@@ -220,14 +220,26 @@ const results = await Promise.all(
 
 ### Step 5.1: 出力制限ルール（Context 溢れ防止）
 
-各エキスパートの応答は以下の制約に従う（experts/*.md に埋め込み済み）:
+各エキスパートの応答は以下の制約に従う:
+
+**Code Review エキスパート**（security/performance/quality/accessibility-expert.md）:
 
 | 制約 | 内容 |
 |------|------|
 | 言語 | **English only**（トークン節約、Claude が統合時に日本語化） |
 | 最大文字数 | 1500 文字 |
+| スコア形式 | A-F |
 | 件数制限 | Critical/High: 全件、Medium/Low: 各3件まで |
 | 問題なし | `Score: A / No issues.` のみ |
+
+**Plan/Scope Review エキスパート**:
+
+| 制約 | 内容 |
+|------|------|
+| 言語 | **English only** |
+| 最大文字数 | 1500 文字 |
+| スコア形式 | X/10 |
+| 問題なし | `Score: 10/10 / No issues.` のみ |
 
 > **理由**: 4エキスパート並列でも 1500文字×4 = 6,000文字 ≒ 2,000トークン程度で収まる
 

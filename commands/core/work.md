@@ -131,8 +131,8 @@ tail -20 .claude/state/session.events.jsonl
 ┌─────────────────────────────────────────────────────────┐
 │ Phase 2: Cross-review                                   │
 ├─────────────────────────────────────────────────────────┤
-│  Codex available: Codex 8-parallel expert review       │
-│  Codex not set: Fall back to normal review (review skill) │
+│  Codex available: Codex 4-parallel expert review       │
+│  Codex not set: Fall back to normal review (harness-review) │
 │  ※Detects issues missed by self-review                 │
 │  ※Additional issues → Return that task to Phase 1      │
 └─────────────────────────────────────────────────────────┘
@@ -269,11 +269,11 @@ Determine review mode:
   - Otherwise → Fall back to normal review (default)
     ↓
 Codex mode:
-  - Codex 8-parallel expert review
-  - Simultaneous review from 8 expert perspectives
+  - Codex 4-parallel expert review (per review type)
+  - Simultaneous review from 4 expert perspectives
     ↓
 Normal review mode:
-  - Execute review skill
+  - Execute harness-review skill
   - Check security/performance/quality/accessibility
     ↓
 Extract additional issues:
@@ -283,18 +283,13 @@ Extract additional issues:
 No issues → Phase 3
 ```
 
-**Review perspectives in Codex mode (8 parallel)**:
+**Review perspectives in Codex mode (4 parallel per review type)**:
 
-| # | Expert | Perspective |
-|---|--------|-------------|
-| 1 | Security | Vulnerabilities, auth, input validation |
-| 2 | Performance | N+1, memory leaks, rendering |
-| 3 | Maintainability | Readability, naming, structure |
-| 4 | Compatibility | API compatibility, regression risk |
-| 5 | Accessibility | a11y, keyboard navigation |
-| 6 | Type Safety | Type definitions, any avoidance |
-| 7 | Error Handling | Error handling, fallbacks |
-| 8 | Best Practices | Framework conventions, patterns |
+| Review Type | Experts |
+|-------------|---------|
+| **Code Review** | Security, Performance, Quality, Accessibility |
+| **Plan Review** | Clarity, Feasibility, Dependencies, Acceptance |
+| **Scope Review** | Scope-creep, Priority, Feasibility, Impact |
 
 ### Phase 3: Integrated Commit
 
