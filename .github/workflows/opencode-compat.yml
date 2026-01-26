@@ -4,11 +4,13 @@ on:
   push:
     paths:
       - 'commands/**'
+      - 'skills/**'
       - 'scripts/build-opencode.js'
       - 'scripts/validate-opencode.js'
   pull_request:
     paths:
       - 'commands/**'
+      - 'skills/**'
       - 'scripts/build-opencode.js'
       - 'scripts/validate-opencode.js'
 
