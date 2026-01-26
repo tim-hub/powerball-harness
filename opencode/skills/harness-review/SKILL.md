@@ -1,15 +1,37 @@
 ---
 name: harness-review
-description: "Reviews code for quality, security, performance, and accessibility issues. Use when user mentions reviews, code review, security, performance, quality checks, PRs, diffs, or change review. Do NOT load for: implementation work, new feature development, bug fixes, or setup."
+description: "Multi-perspective review supporting code, plan, and scope analysis. Auto-detects review type from context. Use when user mentions reviews, code review, plan review, scope analysis, security, performance, quality checks, PRs, diffs, or change review. Do NOT load for: implementation work, new feature development, bug fixes, or setup."
 allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 context: fork
 ---
 
 # Review Skills
 
-コードレビューと品質チェックを担当するスキル群です。
+コードレビュー、計画レビュー、スコープ分析を担当するスキル群です。
+コンテキストからレビュータイプを自動判定します。
 
-## 機能詳細
+## レビュータイプ（Context-Aware）
+
+レビュータイプはコンテキストから自動判定されます：
+
+| Recent Activity | Review Type | 4 Experts |
+|-----------------|-------------|-----------|
+| `/plan-with-agent` 後 | **Plan Review** | Clarity, Feasibility, Dependencies, Acceptance |
+| `/work` 後 | **Code Review** | Security, Performance, Quality, Accessibility |
+| タスク追加後 | **Scope Review** | Scope-creep, Priority, Feasibility, Impact |
+
+### 手動指定
+
+```bash
+/harness-review           # 自動判定
+/harness-review code      # コードレビュー強制
+/harness-review plan      # 計画レビュー強制
+/harness-review scope     # スコープ分析強制
+```
+
+---
+
+## 機能詳細（Code Review）
 
 | 機能 | 詳細 |
 |------|------|
@@ -21,6 +43,17 @@ context: fork
 | **SEO/OGP** | See [references/seo-review.md](references/seo-review.md) |
 | **Codex 統合** | See [references/codex-integration.md](references/codex-integration.md) |
 | **コミット判定** | See [references/commit-judgment-logic.md](references/commit-judgment-logic.md) |
+
+## 機能詳細（Plan/Scope Review）
+
+Plan Review と Scope Review は Codex エキスパートを使用します：
+
+| レビュータイプ | エキスパート | 参照 |
+|--------------|-------------|------|
+| **Plan Review** | Clarity, Feasibility, Dependencies, Acceptance | `experts/clarity-expert.md` 等 |
+| **Scope Review** | Scope-creep, Priority, Feasibility, Impact | `experts/scope-creep-expert.md` 等 |
+
+詳細: [../codex-review/references/codex-parallel-review.md](../codex-review/references/codex-parallel-review.md)
 
 ## 実行手順
 

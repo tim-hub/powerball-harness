@@ -46,9 +46,9 @@ Claude (オーケストレーター)
 
 | 必須 | 方法 |
 |------|------|
-| ✅ 各エキスパートを **個別の MCP 呼び出し** で実行 | `mcp__codex__codex` を8回呼び出し |
-| ✅ experts/*.md から **個別にプロンプトを読み込む** | `security-expert.md` → Security 呼び出し → `accessibility-expert.md` → Accessibility 呼び出し... |
-| ✅ **1つのレスポンス内で8つの MCP 呼び出しを並列実行** | Claude の並列ツール呼び出し機能を使用 |
+| ✅ 各エキスパートを **個別の MCP 呼び出し** で実行 | `mcp__codex__codex` をレビュータイプに応じて4回呼び出し |
+| ✅ experts/*.md から **個別にプロンプトを読み込む** | `security-expert.md` → Security 呼び出し → `performance-expert.md` → Performance 呼び出し... |
+| ✅ **1つのレスポンス内で4つの MCP 呼び出しを並列実行** | Claude の並列ツール呼び出し機能を使用 |
 
 ### 正しい実行パターン
 
@@ -67,7 +67,7 @@ mcp__codex__codex({prompt: quality-expert.md の内容})
 
 ### なぜ分けるのか
 
-| 1回でまとめた場合 | 8回に分けた場合 |
+| 1回でまとめた場合 | 4回に分けた場合 |
 |------------------|-----------------|
 | 各観点が2-3行で浅い | 各観点が詳細に分析される |
 | 重要な問題を見落とす | 専門家視点で漏れなく検出 |
@@ -91,16 +91,27 @@ review:
   mode: codex
   codex:
     enabled: true
-    experts:
+    # Code Review experts (used when review type = code)
+    code_experts:
       security: true
       accessibility: true
       performance: true
       quality: true
-      seo: true
-      architect: true
-      plan_reviewer: true
-      scope_analyst: true
+    # Plan Review experts (used when review type = plan)
+    plan_experts:
+      clarity: true
+      feasibility: true
+      dependencies: true
+      acceptance: true
+    # Scope Review experts (used when review type = scope)
+    scope_experts:
+      scope_creep: true
+      priority: true
+      feasibility: true
+      impact: true
 ```
+
+> **Note**: Legacy 設定（`experts:` 直下）も後方互換性のためサポートしています。
 
 ### Step 2: 変更ファイルの収集
 
