@@ -22,18 +22,28 @@ Executes the plan in Plans.md and generates actual code.
 - Implement Plans.md tasks **efficiently with smart parallel execution**
 - When stuck, isolate cause → fix → re-verify loop
 - **2-Agent mode**: Prioritize processing pm:requested tasks
-- **Full automation**: implement → self-review → cross-review → commit (default)
+- **Review loop**: implement → harness-review → fix until OK → auto-commit
 
 ---
 
-## 🚀 Default Behavior (Turbo Mode)
+## 🚀 Default Behavior
 
-`/work` runs full automation by default:
+`/work` runs implement → review → fix → commit by default:
 
 ```bash
-/work                    # Full automation with smart parallel
+/work                    # Implement → Review → Fix → Commit (default)
+/work --no-commit        # Skip auto-commit (manual commit)
 /work --parallel 5       # Force 5 parallel workers
 /work --sequential       # Force sequential (no parallel)
+```
+
+### Project-level Configuration
+
+Override default via `.claude-code-harness.config.yaml`:
+
+```yaml
+work:
+  auto_commit: false  # Disable auto-commit for this project
 ```
 
 ### Smart Parallel Detection
@@ -55,9 +65,9 @@ Executes the plan in Plans.md and generates actual code.
 | `--parallel N` | Force parallel count | auto |
 | `--sequential` | Force no parallel | - |
 | `--isolation` | lock / worktree | worktree |
-| `--commit-strategy` | task / phase / all | phase |
-| `--max-iterations` | Improvement loop limit | 3 |
-| `--skip-cross-review` | Skip Phase 2 | false |
+| `--max-iterations` | Review fix loop limit | 3 |
+| `--skip-review` | Skip review phase | false |
+| `--no-commit` | Skip auto-commit (manual commit) | false |
 | `--resume <id|latest>` | Resume session | - |
 | `--fork <id|current>` | Fork session | - |
 | `--reason "<text>"` | Fork reason (with --fork) | - |
@@ -112,52 +122,42 @@ cat .claude/state/session.json | jq '.state, .session_id'
 tail -20 .claude/state/session.events.jsonl
 ```
 
-### --full Mode Flow
+### Default Flow
 
 ```
-/work --full --parallel 3
+/work --parallel 3
     ↓
 ┌─────────────────────────────────────────────────────────┐
-│ Phase 1: Parallel Implementation + Self-review          │
+│ Phase 1: Parallel Implementation                        │
 ├─────────────────────────────────────────────────────────┤
-│  [task-worker A] Implement→Related-check→Self-review→Fix│
-│  [task-worker B] Implement→Related-check→Self-review→Fix│
-│  [task-worker C] Implement→Related-check→Self-review→Fix│
+│  [task-worker A] Implement → Related-check              │
+│  [task-worker B] Implement → Related-check              │
+│  [task-worker C] Implement → Related-check              │
 │                                                         │
 │  ※Related-check: Verify no missed file updates         │
-│  Each worker loops autonomously until commit_ready      │
+│  Each worker completes implementation                   │
 └─────────────────────────────────────────────────────────┘
-    ↓ Wait for all "commit_ready"
+    ↓ Wait for all implementations complete
 ┌─────────────────────────────────────────────────────────┐
-│ Phase 2: Cross-review                                   │
+│ Phase 2: Review Loop (harness-review)                   │
 ├─────────────────────────────────────────────────────────┤
-│  Codex available: Codex 4-parallel expert review       │
-│  Codex not set: Fall back to normal review (harness-review) │
-│  ※Detects issues missed by self-review                 │
-│  ※Additional issues → Return that task to Phase 1      │
+│  Execute harness-review (context-aware)                 │
+│    ├── Codex available: 4-parallel expert review       │
+│    └── Otherwise: standard review                       │
+│                                                         │
+│  ※NG (Critical/High issues) → Fix → Re-review          │
+│  ※Loop continues until OK (max --max-iterations)       │
 └─────────────────────────────────────────────────────────┘
-    ↓
+    ↓ Review OK
 ┌─────────────────────────────────────────────────────────┐
-│ Phase 3: Integrated Commit                              │
+│ Phase 3: Auto-commit (default)                          │
 ├─────────────────────────────────────────────────────────┤
-│  ├── Conflict detection & resolution                    │
-│  ├── Final related files verification                   │
-│  ├── Final build verification                           │
-│  └── Conventional Commit                                │
-└─────────────────────────────────────────────────────────┘
-    ↓
-┌─────────────────────────────────────────────────────────┐
-│ Phase 4: Deploy (--deploy only)                         │
+│  ✅ All tasks implemented and reviewed                  │
+│  📝 Auto-commit with generated message                  │
+│                                                         │
+│  Skip with: --no-commit or config auto_commit: false    │
 └─────────────────────────────────────────────────────────┘
 ```
-
-### --commit-strategy Behavior
-
-| Value | Behavior |
-|-------|----------|
-| `task` | Individual commit on each task completion |
-| `phase` | Batch commit on phase completion |
-| `all` | 1 commit after all tasks + cross-review complete |
 
 ### Escalation
 
@@ -180,7 +180,7 @@ How to proceed?
 
 ---
 
-## 📐 --full Mode Detailed Implementation
+## 📐 Detailed Implementation
 
 ### Phase 1: Dependency Graph Construction and Parallel Launch
 
@@ -261,26 +261,26 @@ If needs_escalation, aggregate → bulk confirm with user
 **Execution flow**:
 
 ```
-Phase 1 completion judgment:
+Phase 1 completion:
     ↓
-Determine review mode:
+Execute harness-review (context-aware):
   - Check .claude-code-harness.config.yaml
   - review.mode=codex AND review.codex.enabled=true → Codex mode
-  - Otherwise → Fall back to normal review (default)
+  - Otherwise → standard harness-review
     ↓
 Codex mode:
   - Codex 4-parallel expert review (per review type)
   - Simultaneous review from 4 expert perspectives
     ↓
-Normal review mode:
+Standard review mode:
   - Execute harness-review skill
   - Check security/performance/quality/accessibility
     ↓
-Extract additional issues:
-  - Return tasks with Critical/Major issues to Phase 1
-  - Minor issues recorded only (can commit)
+Review judgment:
+  - Critical/High issues → Fix implementation → Re-review (loop)
+  - OK (no Critical/High) → Complete
     ↓
-No issues → Phase 3
+Loop until OK or max iterations reached
 ```
 
 **Review perspectives in Codex mode (4 parallel per review type)**:
@@ -291,119 +291,72 @@ No issues → Phase 3
 | **Plan Review** | Clarity, Feasibility, Dependencies, Acceptance |
 | **Scope Review** | Scope-creep, Priority, Feasibility, Impact |
 
-### Phase 3: Integrated Commit
+### Phase 3: Auto-commit
 
-**Conflict detection & resolution**:
-
-```
-For --isolation=lock:
-  - Check file changes with git diff
-  - If conflicts on same lines → warn → user confirmation
-
-For --isolation=worktree:
-  - Merge branches from each worktree
-  - Try auto-resolution with 3-way merge
-  - If unresolvable, request manual intervention
-```
-
-**Final build verification**:
+**Review OK判定**:
 
 ```
-pnpm build (or npm run build)
+harness-review result:
     ↓
-Success → proceed to commit
-Failure → Error analysis → Try auto-fix (max 3 times)
-```
-
-**Conventional Commit generation**:
-
-```
-Analyze change content:
+APPROVE (no Critical/High issues):
+  → Auto-commit (unless --no-commit or config auto_commit: false)
     ↓
-Select appropriate prefix:
-  - feat: new feature
-  - fix: bug fix
-  - refactor: refactoring
-  - docs: documentation
+REQUEST_CHANGES (has Critical/High issues):
+  → Fix issues → Re-run review (loop)
     ↓
-Generate commit message:
-  feat(components): add Header, Footer, Sidebar components
-
-  - Add responsive Header with navigation
-  - Add Footer with copyright and links
-  - Add collapsible Sidebar for mobile
-
-  Co-Authored-By: Claude <noreply@anthropic.com>
+Max iterations reached:
+  → Report remaining issues → Request manual intervention
 ```
 
-**Commit execution by strategy**:
-
-| Strategy | Behavior | Good for |
-|----------|----------|----------|
-| `task` | Individual commit per task | Want fine-grained history |
-| `phase` | Batch commit per phase | Want logical grouping |
-| `all` | 1 commit after all complete | Want 1 commit per feature |
-
-### Phase 4: Deploy (Optional)
-
-**Prerequisites**:
-- `--deploy` flag specified
-- Phase 3 commit succeeded
-
-**Safety gate**:
+**Auto-commit behavior**:
 
 ```
-Pre-deploy checks:
-    ↓
-1. Detect production environment
-   ├── Vercel: VERCEL_ENV=production
-   ├── Netlify: CONTEXT=production
-   └── Custom: DEPLOY_ENV=production
-    ↓
-2. Safety confirmation prompt
-   ⚠️ Execute deploy to production?
-   - Branch: main
-   - Changed files: 5
-   - Final test: ✅ Passed
-
-   [y/N]
-    ↓
-3. Execute deploy
-   └── Call deploy skill
+Check auto-commit setting:
+  1. --no-commit flag → Skip commit
+  2. .claude-code-harness.config.yaml work.auto_commit: false → Skip commit
+  3. Otherwise → Auto-commit with generated message
 ```
 
-**Deploy execution**:
+**Completion report (with auto-commit)**:
 
 ```
-Launch deploy skill with Skill tool:
-  - skill: "claude-code-harness:deploy"
-    ↓
-Execute deploy command:
-  ├── Vercel: vercel --prod
-  ├── Netlify: netlify deploy --prod
-  └── Custom: npm run deploy
-    ↓
-Verify result:
-  - Deploy URL
-  - Build time
-  - Status
+✅ /work Complete
+
+| Item | Status |
+|------|--------|
+| Tasks | 5/5 implemented |
+| Review | APPROVE |
+| Iterations | 2 |
+| Commit | abc1234 |
+
+Changed files:
+- src/components/Header.tsx (new)
+- src/components/Footer.tsx (new)
+- src/components/Sidebar.tsx (new)
+
+Committed: feat: add Header, Footer, Sidebar components
 ```
 
-**Result report**:
+**Completion report (with --no-commit)**:
 
 ```
-🚀 Deploy Complete
+✅ /work Complete
 
-| Item | Value |
-|------|-------|
-| Environment | production |
-| URL | https://my-app.vercel.app |
-| Build time | 45s |
-| Status | ✅ Success |
+| Item | Status |
+|------|--------|
+| Tasks | 5/5 implemented |
+| Review | APPROVE |
+| Iterations | 2 |
+| Commit | Skipped (--no-commit) |
 
-Changes:
-- feat(components): add Header, Footer, Sidebar
-- 5 files changed, 320 insertions(+)
+Changed files:
+- src/components/Header.tsx (new)
+- src/components/Footer.tsx (new)
+- src/components/Sidebar.tsx (new)
+
+Next steps:
+1. Review changes: git diff
+2. Commit when ready: git add . && git commit
 ```
 
 ---
@@ -671,11 +624,20 @@ Execute tasks with dependencies in order.
 - `src/components/Layout.tsx` (new)
 - `src/app/page.tsx` (modified)
 
-### Next Actions
+### Commit (auto-commit enabled)
+
+```
+Committed: feat: implement Header, Footer, Sidebar, Layout, Page components
+
+Hash: abc1234
+```
+
+### Next Actions (if --no-commit)
 
 - [ ] Verify operation (`npm run dev`)
 - [ ] Run tests (`npm test`)
-- [ ] Code review
+- [ ] Review changes (`git diff`)
+- [ ] Commit when ready (`git add . && git commit`)
 ```
 
 ---

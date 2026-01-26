@@ -1,6 +1,10 @@
 # .claude-code-harness.config.yaml
 # claude-code-harness settings file
 
+# /work command settings
+work:
+  auto_commit: false  # Disable auto-commit for this project (harness itself)
+
 cleanup:
   plans:
     archive_after_days: 7
