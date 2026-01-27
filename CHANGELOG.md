@@ -9,6 +9,22 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.14.2] - 2026-01-28
+
+### Changed
+
+- **Documented handoff phase in `/work` Default Flow**
+  - Added Phase 4: Handoff (2-Agent only) — clarifies review→fix loop → auto-commit → handoff sequence
+  - Review OK criteria (APPROVE: no Critical/High issues) explicitly marked as Solo/2-Agent common
+  - Solo mode skips handoff (no PM report needed)
+  - Updated both `commands/core/work.md` (`/handoff-to-cursor`) and `opencode/commands/core/work.md` (`/handoff-to-opencode`)
+
+- **Added `/harness-review` → fix loop to typical workflow examples**
+  - `skills/workflow-guide/examples/typical-workflow.md`: Added `/harness-review` step to Example 1 (new feature) and Example 2 (bug fix)
+  - Clarified that handoff is 2-Agent only; Solo mode completes at auto-commit
+
+---
+
 ## [2.14.1] - 2026-01-28
 
 ### 🎯 What's Changed for You
@@ -1648,7 +1664,8 @@ Key milestones:
 - **v0.4.0**: Claude Rules, Plugin Hooks, Named Sessions support
 - **v0.3.0**: Initial release (Plan → Work → Review cycle)
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.1...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.2...HEAD
+[2.14.2]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.1...v2.14.2
 [2.14.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.3...v2.14.1
 [2.13.3]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.2...v2.13.3
 [2.13.2]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.1...v2.13.2

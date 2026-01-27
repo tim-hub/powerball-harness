@@ -123,6 +123,8 @@ tail -20 .claude/state/session.events.jsonl
 
 ### Default Flow
 
+**Review→Fix ループは Solo/2-Agent 共通**。Handoff は 2-Agent モードのみ実行。
+
 ```
 /work --parallel 3
     ↓
@@ -138,7 +140,7 @@ tail -20 .claude/state/session.events.jsonl
 └─────────────────────────────────────────────────────────┘
     ↓ Wait for all implementations complete
 ┌─────────────────────────────────────────────────────────┐
-│ Phase 2: Review Loop (harness-review)                   │
+│ Phase 2: Review Loop (harness-review)  [Solo/2-Agent]   │
 ├─────────────────────────────────────────────────────────┤
 │  Execute harness-review (context-aware)                 │
 │    ├── Codex available: 4-parallel expert review       │
@@ -147,14 +149,24 @@ tail -20 .claude/state/session.events.jsonl
 │  ※NG (Critical/High issues) → Fix → Re-review          │
 │  ※Loop continues until OK (max --max-iterations)       │
 └─────────────────────────────────────────────────────────┘
-    ↓ Review OK
+    ↓ Review OK (APPROVE: no Critical/High issues)
 ┌─────────────────────────────────────────────────────────┐
-│ Phase 3: Auto-commit (default)                          │
+│ Phase 3: Auto-commit (default)         [Solo/2-Agent]   │
 ├─────────────────────────────────────────────────────────┤
 │  ✅ All tasks implemented and reviewed                  │
 │  📝 Auto-commit with generated message                  │
 │                                                         │
 │  Skip with: --no-commit or config auto_commit: false    │
+└─────────────────────────────────────────────────────────┘
+    ↓ Commit complete (or skipped)
+┌─────────────────────────────────────────────────────────┐
+│ Phase 4: Handoff (2-Agent only)                         │
+├─────────────────────────────────────────────────────────┤
+│  2-Agent mode (pm:requested detected):                  │
+│    → Execute `/handoff-to-opencode` to report to PM     │
+│                                                         │
+│  Solo mode:                                             │
+│    → Skip (no handoff needed)                           │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -357,6 +369,29 @@ Next steps:
 1. Review changes: git diff
 2. Commit when ready: git add . && git commit
 ```
+
+### Phase 4: Handoff (2-Agent only)
+
+**Review OK 判定条件** (Solo/2-Agent 共通):
+
+| 判定 | 条件 | アクション |
+|------|------|-----------|
+| APPROVE | Critical/High の指摘なし | → Phase 3 (commit) → Phase 4 (handoff) |
+| REQUEST_CHANGES | Critical/High の指摘あり | → Fix → Re-review (loop) |
+
+**Handoff 実行条件**:
+
+```
+Phase 3 (Auto-commit) 完了後:
+    ↓
+2-Agent mode (pm:requested / cursor:requested detected)?
+  YES → Execute `/handoff-to-opencode` (completion report to PM)
+  NO  → Solo mode: Skip handoff (workflow complete)
+```
+
+**順序**: Review OK → Auto-commit → Handoff
+
+> ⚠️ **重要**: Handoff は必ず auto-commit の後に実行する。commit 前に handoff すると、PM がレビューする変更が未コミットになり不整合が生じる。`--no-commit` の場合も、commit スキップ判定の後に handoff を実行する。
 
 ---
 

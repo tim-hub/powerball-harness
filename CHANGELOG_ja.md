@@ -9,6 +9,22 @@
 
 ---
 
+## [2.14.2] - 2026-01-28
+
+### Changed
+
+- **`/work` の Default Flow に handoff フェーズを明記**
+  - Phase 4: Handoff (2-Agent only) を追加し、review→fix ループ → auto-commit → handoff の順序を明確化
+  - Review OK 判定条件（APPROVE: Critical/High 指摘なし）を Solo/2-Agent 共通として記載
+  - Solo モードでは handoff をスキップすることを明記
+  - `commands/core/work.md`（Cursor 向け: `/handoff-to-cursor`）と `opencode/commands/core/work.md`（OpenCode 向け: `/handoff-to-opencode`）の両方を更新
+
+- **典型ワークフロー例に `/harness-review` → 修正ループを追記**
+  - `skills/workflow-guide/examples/typical-workflow.md` の例1（新機能追加）・例2（バグ修正）に `/harness-review` ステップを追加
+  - 2-Agent モードのみ handoff を実行し、Solo モードでは省略する旨を明記
+
+---
+
 ## [2.13.3] - 2026-01-28
 
 ### Removed
@@ -2492,7 +2508,8 @@ Observation recorded: 10946-10951 ✅
 - **v0.4.0**: Claude Rules、Plugin Hooks、Named Sessions 対応
 - **v0.3.0**: 初期リリース（Plan → Work → Review サイクル）
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.3...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.2...HEAD
+[2.14.2]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.1...v2.14.2
 [2.13.3]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.2...v2.13.3
 [2.13.2]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.1...v2.13.2
 [2.13.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.0...v2.13.1
