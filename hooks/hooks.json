@@ -58,6 +58,17 @@
         ]
       },
       {
+        "matcher": "init-only",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" setup-hook init",
+            "timeout": 60,
+            "once": true
+          }
+        ]
+      },
+      {
         "matcher": "maintenance",
         "hooks": [
           {

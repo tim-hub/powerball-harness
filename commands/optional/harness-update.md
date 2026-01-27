@@ -222,6 +222,9 @@ Detect the following issues:
 
 #### 🔴 Issue 1: Incorrect Permission Syntax
 
+> **Note (v2.1.20+)**: `Bash(*)` is now treated as equivalent to `Bash` (full wildcard).
+> This is NOT an error. Only prefix patterns without colons are incorrect.
+
 ```bash
 # Search for incorrect syntax patterns
 WRONG_PATTERNS=(
@@ -237,7 +240,10 @@ if echo "$SETTINGS_CONTENT" | grep -E 'Bash\([^:)]+\s\*\)'; then
   FOUND_ISSUES+=("incorrect_prefix_syntax_with_space")
 fi
 
-if echo "$SETTINGS_CONTENT" | grep -E 'Bash\([^:)]+\*\)' | grep -v ':'; then
+# Note: "Bash(*)" alone is valid since v2.1.20 (wildcard = Bash)
+# Extract only Bash(...) substrings first, then check for missing colon
+# e.g., "Bash(git diff*)" is wrong, "Bash(git diff:*)" is correct
+if echo "$SETTINGS_CONTENT" | grep -oE 'Bash\([^)]+\)' | grep -E 'Bash\([^:)]+\*\)'; then
   FOUND_ISSUES+=("incorrect_prefix_syntax_no_colon")
 fi
 

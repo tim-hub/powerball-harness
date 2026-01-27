@@ -7,9 +7,26 @@
 | Harness バージョン | Claude Code 最小バージョン | 推奨バージョン | 備考 |
 |-------------------|-------------------------|--------------|------|
 | v2.9.0 | v2.1.1+ | v2.1.6+ | hooks, skills 基本機能 |
-| v2.9.24 | v2.1.6+ | v2.1.19+ | Setup hook, plansDirectory, context_window, セッション間通信 |
+| v2.9.24 | v2.1.6+ | v2.1.20+ | Setup hook, plansDirectory, context_window, セッション間通信 |
 
 ## バージョン別機能対応
+
+### v2.1.20 (2026-01-27)
+
+| 機能 | Harness 対応 | 備考 |
+|------|-------------|------|
+| Background agent 起動前の権限プロンプト | 要注意 | `/work` 並列実行時に権限承認が必要。`permissions.allow` で事前承認推奨 |
+| Setup hook `--init-only` フラグ | 対応済み | hooks.json に `init-only` マッチャー追加 |
+| `Bash(*)` ワイルドカードが `Bash` と同等 | 互換 | harness-update の破壊的変更検知で除外対応 |
+| PR レビューステータスインジケーター | - | プロンプトフッターに PR 状態表示（Harness 影響なし） |
+| `CLAUDE.md` 追加ディレクトリ読み込み | 互換 | `--add-dir` + `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1` でモノレポ対応 |
+| Task 削除（TaskUpdate ツール） | - | Harness は TodoWrite を使用、影響なし |
+| Session compaction 修正 | 有利 | セッション resume の安定性向上 |
+| Agent がユーザーメッセージを無視する問題修正 | 有利 | 並列 task-worker 実行中のユーザー介入が可能に |
+| CJK/emoji レンダリング修正 | 有利 | 日本語表示の改善 |
+| MCP Unicode JSON パース修正 | 有利 | Codex MCP 呼び出しの安定性向上 |
+| Config バックアップのタイムスタンプ付きローテーション | 互換 | Claude Code 側で設定バックアップを5世代管理 |
+| `/commit-push-pr` Slack 自動投稿 | - | MCP 経由で PR URL を Slack 投稿（Harness の auto-commit と補完関係） |
 
 ### v2.1.19 (2026-01-24)
 
@@ -106,5 +123,6 @@ cat /path/to/harness/VERSION
 
 ## 更新履歴
 
+- 2026-01-27: v2.1.20 対応追加（init-only フック、権限プロンプト対応、Bash(*) ワイルドカード）
 - 2026-01-24: v2.1.18〜v2.1.19 対応追加
 - 2026-01-16: 初版作成（v2.1.2〜v2.1.9 対応）
