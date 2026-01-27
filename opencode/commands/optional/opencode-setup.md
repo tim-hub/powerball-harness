@@ -22,8 +22,6 @@ description: opencode.ai 用にプロジェクトをセットアップ
   - `handoff/` - ハンドオフコマンド
 - `.claude/skills/` - opencode 互換スキル（NotebookLM、レビュー等）
 - `AGENTS.md` - opencode 用ルールファイル（CLAUDE.md 全文）
-- `opencode.json` - MCP 設定（オプション）
-
 ---
 
 ## Usage
@@ -76,32 +74,7 @@ ls -la .claude/skills
 ls -la AGENTS.md
 ```
 
-### Step 5: MCP 設定（オプション）
-
-> 🔧 **MCP サーバーも設定しますか？**
->
-> MCP を設定すると、opencode から Harness のワークフローツールが使えます。
->
-> 設定しますか？ (y/n)
-
-**「y」の場合:**
-
-`opencode.json` を生成:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "harness": {
-      "type": "local",
-      "enabled": true,
-      "command": ["node", "<PLUGIN_DIR>/mcp-server/dist/index.js"]
-    }
-  }
-}
-```
-
-### Step 6: 完了メッセージ
+### Step 5: 完了メッセージ
 
 > ✅ **OpenCode セットアップ完了**
 >
@@ -113,7 +86,6 @@ ls -la AGENTS.md
 >   - `handoff/` - ハンドオフコマンド
 > - `.claude/skills/` - Harness スキル
 > - `AGENTS.md` - ルールファイル（CLAUDE.md 全文）
-> - `opencode.json` - MCP 設定（選択時）
 >
 > **利用可能なスキル:**
 > - `docs` - ドキュメント生成（NotebookLM YAML、スライド）
@@ -148,13 +120,11 @@ ls -la AGENTS.md
 - 既存の `.opencode/` ディレクトリがある場合は上書き確認
 - `AGENTS.md` が既存の場合はバックアップを作成
 - `.claude/skills/` が既存の場合はバックアップを作成
-- MCP サーバーを使う場合は事前にビルドが必要
 - **Windows ユーザー**: シンボリックリンクは管理者権限が必要なため、コピーを推奨
 
 ---
 
 ## Related Commands
 
-- `/mcp-setup` - MCP サーバーセットアップ
 - `/harness-init` - Harness プロジェクト初期化
 - `/harness-update` - Harness 更新
