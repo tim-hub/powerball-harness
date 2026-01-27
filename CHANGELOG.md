@@ -1599,7 +1599,9 @@ Key milestones:
 - **v0.4.0**: Claude Rules, Plugin Hooks, Named Sessions support
 - **v0.3.0**: Initial release (Plan → Work → Review cycle)
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.11.1...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.0...HEAD
+[2.14.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.1...v2.14.0
+[2.13.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.0...v2.13.1
 [2.13.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.12.0...v2.13.0
 [2.12.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.11.1...v2.12.0
 [2.11.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.11.0...v2.11.1

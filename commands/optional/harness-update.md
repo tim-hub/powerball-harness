@@ -241,8 +241,9 @@ if echo "$SETTINGS_CONTENT" | grep -E 'Bash\([^:)]+\s\*\)'; then
 fi
 
 # Note: "Bash(*)" alone is valid since v2.1.20 (wildcard = Bash)
-# Only flag patterns with content before the asterisk but no colon
-if echo "$SETTINGS_CONTENT" | grep -E 'Bash\([^:)]+\*\)' | grep -v ':'; then
+# Extract only Bash(...) substrings first, then check for missing colon
+# e.g., "Bash(git diff*)" is wrong, "Bash(git diff:*)" is correct
+if echo "$SETTINGS_CONTENT" | grep -oE 'Bash\([^)]+\)' | grep -E 'Bash\([^:)]+\*\)'; then
   FOUND_ISSUES+=("incorrect_prefix_syntax_no_colon")
 fi
 
