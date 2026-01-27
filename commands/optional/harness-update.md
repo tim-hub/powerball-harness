@@ -242,7 +242,7 @@ fi
 
 # Note: "Bash(*)" alone is valid since v2.1.20 (wildcard = Bash)
 # Only flag patterns with content before the asterisk but no colon
-if echo "$SETTINGS_CONTENT" | grep -E 'Bash\([^:)]+\*\)' | grep -v ':' | grep -v 'Bash(\*)'; then
+if echo "$SETTINGS_CONTENT" | grep -E 'Bash\([^:)]+\*\)' | grep -v ':'; then
   FOUND_ISSUES+=("incorrect_prefix_syntax_no_colon")
 fi
 
