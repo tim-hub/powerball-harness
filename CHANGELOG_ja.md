@@ -9,6 +9,18 @@
 
 ---
 
+## [2.13.3] - 2026-01-28
+
+### Removed
+
+- **`/opencode-setup` の MCP 設定ステップ** を削除
+  - `opencode.json` 生成ステップ（旧 Step 5）を削除（`mcp-server` はリポジトリに含まれず使用不可）
+  - 完了メッセージから `opencode.json` 参照を削除
+  - 注意事項から MCP ビルド前提条件を削除
+  - Related Commands から `/mcp-setup` 参照を削除
+
+---
+
 ## [2.13.2] - 2026-01-27
 
 ### 🎯 あなたにとって何が変わるか
@@ -2480,7 +2492,8 @@ Observation recorded: 10946-10951 ✅
 - **v0.4.0**: Claude Rules、Plugin Hooks、Named Sessions 対応
 - **v0.3.0**: 初期リリース（Plan → Work → Review サイクル）
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.2...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.3...HEAD
+[2.13.3]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.2...v2.13.3
 [2.13.2]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.1...v2.13.2
 [2.13.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.0...v2.13.1
 [2.13.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.12.0...v2.13.0
