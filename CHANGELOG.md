@@ -9,6 +9,47 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.14.0] - 2026-01-27
+
+### 🎯 What's Changed for You
+
+**Claude Code v2.1.20 対応。並列 task-worker の権限プロンプト回避ガイド追加、`--init-only` フック対応、`Bash(*)` ワイルドカード互換性を確保しました。**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| `--init-only` で Setup hook が発火しない | `--init-only` でもハーネス初期化が実行される |
+| `/work` 並列実行時に権限プロンプトで中断される可能性 | 権限事前承認ガイドで中断なく並列実行 |
+| `Bash(*)` が harness-update で誤検出される可能性 | `Bash(*)` を正常なワイルドカードとして認識 |
+| 並列エージェント実行中にユーザーメッセージが無視される | v2.1.20 修正により作業中のエージェントにメッセージ送信可能 |
+
+### Added
+
+- **Setup hook `init-only` マッチャー** (`hooks/hooks.json`, `.claude-plugin/hooks.json`)
+  - `claude --init-only` でセッション開始なしにハーネス初期化を実行可能
+  - CI/スクリプトでのセットアップに有用
+
+- **Background agent 権限事前承認ガイド** (`commands/core/work.md`)
+  - v2.1.20 の権限プロンプト変更に対応
+  - `permissions.allow` の推奨設定例を追加
+  - 並列 task-worker 起動時の UX 低下を回避
+
+### Changed
+
+- **互換性マトリクス更新** (`docs/CLAUDE_CODE_COMPATIBILITY.md`)
+  - v2.1.20 の全機能を分析・記載
+  - 推奨バージョンを v2.1.20+ に更新
+
+- **`/harness-update` の破壊的変更検知** (`commands/optional/harness-update.md`)
+  - `Bash(*)` ワイルドカードを正常パターンとして除外（v2.1.20 で `Bash` と同等に）
+
+- **非同期サブエージェントドキュメント** (`docs/ASYNC_SUBAGENTS.md`)
+  - v2.1.20 でのユーザーメッセージ応答修正を記載
+  - 権限事前確認の動作変更を記載
+
+---
+
 ## [2.13.1] - 2026-01-27
 
 ### 🎯 What's Changed for You

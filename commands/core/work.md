@@ -566,6 +566,35 @@ Use Claude Code's Task tool to **execute in background in parallel**.
 - Collect results with `TaskOutput`
 - Up to 10 tasks simultaneously
 
+### ⚠️ Background Agent Permission Pre-approval (v2.1.20+)
+
+Claude Code v2.1.20 以降、background agent は起動前にツール権限の承認を求めます。
+並列 task-worker が複数起動する際に毎回権限プロンプトが出ると UX が低下するため、
+`.claude/settings.json` の `permissions.allow` で事前承認することを推奨します。
+
+**推奨設定**（`/harness-init` で自動設定済み）:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash(npm run:*)",
+      "Bash(pnpm:*)",
+      "Bash(git diff:*)",
+      "Bash(git status:*)",
+      "Grep",
+      "Glob"
+    ]
+  }
+}
+```
+
+> 💡 task-worker は `Read`, `Write`, `Edit`, `Bash`, `Grep`, `Glob` を使用します。
+> これらを事前承認しておくことで、並列起動時の権限プロンプトを回避できます。
+
 ### Step 4: Collect Results and Integration Report
 
 ```
