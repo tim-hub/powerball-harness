@@ -1,7 +1,0 @@
-{
-  "timestamp": "2026-01-14T09:53:48Z",
-  "changed_file": "src/data.ts",
-  "test_command": "npm test",
-  "related_test": "",
-  "recommendation": "テストの実行を推奨します"
-}

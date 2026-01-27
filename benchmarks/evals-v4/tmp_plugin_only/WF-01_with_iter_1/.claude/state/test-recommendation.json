@@ -1,7 +1,0 @@
-{
-  "timestamp": "2026-01-17T15:39:34Z",
-  "changed_file": "src/utils/password.ts",
-  "test_command": "npm test",
-  "related_test": "",
-  "recommendation": "テストの実行を推奨します"
-}

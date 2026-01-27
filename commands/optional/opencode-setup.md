@@ -23,15 +23,12 @@ description-en: Setup project for opencode.ai compatibility
   - `handoff/` - ハンドオフコマンド
 - `.claude/skills/` - opencode 互換スキル（NotebookLM、レビュー等）
 - `AGENTS.md` - opencode 用ルールファイル（CLAUDE.md 全文）
-- `opencode.json` - MCP 設定（オプション）
-
 ---
 
 ## Usage
 
 ```bash
 /opencode-setup
-/opencode-setup --symlink  # スキルをシンボリックリンクで配置（開発者向け）
 ```
 
 ---
@@ -61,84 +58,24 @@ mkdir -p .opencode/commands/handoff
 mkdir -p .claude/skills
 ```
 
-### Step 3: コマンドファイルをコピー
+### Step 3: テンプレをコピー（必須）
 
-Harness プラグインの `opencode/commands/` からコピー:
-
-```bash
-# プラグインディレクトリを特定
-PLUGIN_DIR="${CLAUDE_PLUGIN_ROOT:-$(dirname $(dirname $0))}"
-
-# コマンドをコピー
-cp -r "$PLUGIN_DIR/opencode/commands/"* .opencode/commands/
-```
-
-### Step 4: スキルをコピー
-
-Harness プラグインの `opencode/skills/` からコピー:
+**必ず Bash で以下を実行**して、テンプレを直接コピーします。
+LLM が内容を自己生成してはいけません。
 
 ```bash
-# 既存の .claude/skills がある場合はバックアップ
-if [ -d ".claude/skills" ]; then
-  mv .claude/skills ".claude/skills.backup.$(date +%Y%m%d%H%M%S)"
-  echo "既存の .claude/skills をバックアップしました"
-fi
-
-# スキルをコピー（デフォルト）
-cp -r "$PLUGIN_DIR/opencode/skills/"* .claude/skills/
-
-# または --symlink オプション指定時（UNIX/macOS のみ）
-# ln -s "$PLUGIN_DIR/skills" .claude/skills
+bash ./scripts/opencode-setup-local.sh
 ```
 
-**コピー vs シンボリックリンク:**
-
-| 方式 | メリット | デメリット |
-|------|----------|------------|
-| **コピー**（デフォルト） | Windows 対応、独立動作 | プラグイン更新時に再コピー必要 |
-| **シンボリックリンク** | 常に最新、容量節約 | UNIX/macOS のみ、プラグイン削除で動作不能 |
-
-### Step 5: AGENTS.md 生成
-
-Harness プラグインの `opencode/AGENTS.md`（CLAUDE.md 全文コピー）をプロジェクトルートに配置:
+### Step 4: コピー内容の確認
 
 ```bash
-# 既存の AGENTS.md がある場合はバックアップ
-if [ -f "AGENTS.md" ]; then
-  mv AGENTS.md "AGENTS.md.backup.$(date +%Y%m%d%H%M%S)"
-  echo "既存の AGENTS.md をバックアップしました"
-fi
-
-# AGENTS.md をコピー
-cp "$PLUGIN_DIR/opencode/AGENTS.md" AGENTS.md
+ls -la .opencode/commands
+ls -la .claude/skills
+ls -la AGENTS.md
 ```
 
-### Step 6: MCP 設定（オプション）
-
-> 🔧 **MCP サーバーも設定しますか？**
->
-> MCP を設定すると、opencode から Harness のワークフローツールが使えます。
->
-> 設定しますか？ (y/n)
-
-**「y」の場合:**
-
-`opencode.json` を生成:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "harness": {
-      "type": "local",
-      "enabled": true,
-      "command": ["node", "<PLUGIN_DIR>/mcp-server/dist/index.js"]
-    }
-  }
-}
-```
-
-### Step 7: 完了メッセージ
+### Step 5: 完了メッセージ
 
 > ✅ **OpenCode セットアップ完了**
 >
@@ -150,7 +87,6 @@ cp "$PLUGIN_DIR/opencode/AGENTS.md" AGENTS.md
 >   - `handoff/` - ハンドオフコマンド
 > - `.claude/skills/` - Harness スキル
 > - `AGENTS.md` - ルールファイル（CLAUDE.md 全文）
-> - `opencode.json` - MCP 設定（選択時）
 >
 > **利用可能なスキル:**
 > - `docs` - ドキュメント生成（NotebookLM YAML、スライド）
@@ -185,13 +121,11 @@ cp "$PLUGIN_DIR/opencode/AGENTS.md" AGENTS.md
 - 既存の `.opencode/` ディレクトリがある場合は上書き確認
 - `AGENTS.md` が既存の場合はバックアップを作成
 - `.claude/skills/` が既存の場合はバックアップを作成
-- MCP サーバーを使う場合は事前にビルドが必要
 - **Windows ユーザー**: シンボリックリンクは管理者権限が必要なため、コピーを推奨
 
 ---
 
 ## Related Commands
 
-- `/mcp-setup` - MCP サーバーセットアップ
 - `/harness-init` - Harness プロジェクト初期化
 - `/harness-update` - Harness 更新

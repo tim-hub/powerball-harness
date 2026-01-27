@@ -1,8 +1,0 @@
-{
-  "run_id": "2026-01-14_18-52-07",
-  "iterations": 2,
-  "timeout_seconds": 120,
-  "tasks": ["VP-05"],
-  "dry_run": false,
-  "results_dir": "/Users/tachibanashuuta/Desktop/Code/CC-harness/claude-code-harness/benchmarks/evals-v3/results/statistical/2026-01-14_18-52-07"
-}

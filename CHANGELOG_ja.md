@@ -9,6 +9,56 @@
 
 ---
 
+## [2.13.3] - 2026-01-28
+
+### Removed
+
+- **`/opencode-setup` の MCP 設定ステップ** を削除
+  - `opencode.json` 生成ステップ（旧 Step 5）を削除（`mcp-server` はリポジトリに含まれず使用不可）
+  - 完了メッセージから `opencode.json` 参照を削除
+  - 注意事項から MCP ビルド前提条件を削除
+  - Related Commands から `/mcp-setup` 参照を削除
+
+---
+
+## [2.13.2] - 2026-01-27
+
+### 🎯 あなたにとって何が変わるか
+
+**非推奨のセッションコマンド（`/session-broadcast`、`/session-inbox`、`/session-list`）を削除しました。統合済みの `/session` コマンドをお使いください。また、`/opencode-setup` がシェルスクリプト1本で完全自動化されました。**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| `/session-broadcast`、`/session-inbox`、`/session-list`（3つの個別コマンド） | `/session`（統合コマンド） |
+| `/opencode-setup` で手動マルチステップコピー | `bash ./scripts/opencode-setup-local.sh`（1コマンド） |
+
+### Removed
+
+- **`/session-broadcast`** - `/session` に統合済み
+- **`/session-inbox`** - `/session` に統合済み
+- **`/session-list`** - `/session` に統合済み
+
+### Changed
+
+- **`/opencode-setup`** を簡素化
+  - 手動マルチステップコピーを `scripts/opencode-setup-local.sh` に置換
+  - プラグイン位置を自動検出（環境変数、リポジトリ内、マーケットプレイス、キャッシュ）
+  - `--symlink` オプションを削除
+
+- **`.gitignore`** を更新
+  - `benchmarks/`、`mcp-server/`、`.opencode/` を除外（ローカル専用ディレクトリ）
+  - benchmarks 332 ファイルのトラッキングを除外
+
+### Added
+
+- **`scripts/opencode-setup-local.sh`** - プラグイン自動検出付き OpenCode セットアップ自動化スクリプト
+- **`scripts/posttooluse-security-review.sh`** - PostToolUse セキュリティレビューフック
+- **`docs/HARNESS_COMPLETE_MAP.md`** - プロジェクト全体アーキテクチャドキュメント
+
+---
+
 ## [2.13.1] - 2026-01-27
 
 ### 🎯 あなたにとって何が変わるか
@@ -2442,7 +2492,10 @@ Observation recorded: 10946-10951 ✅
 - **v0.4.0**: Claude Rules、Plugin Hooks、Named Sessions 対応
 - **v0.3.0**: 初期リリース（Plan → Work → Review サイクル）
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.0...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.3...HEAD
+[2.13.3]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.2...v2.13.3
+[2.13.2]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.1...v2.13.2
+[2.13.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.13.0...v2.13.1
 [2.13.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.12.0...v2.13.0
 [2.12.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.11.1...v2.12.0
 [2.11.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.11.0...v2.11.1

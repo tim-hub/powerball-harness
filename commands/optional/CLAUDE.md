@@ -16,19 +16,6 @@ description: claude-mem context for optional commands
 | #309 | 12:30 PM | 🔵 | sync-ssot-from-serenaコマンドの目的と概要 | ~142 |
 | #308 | " | 🔵 | paymentsコマンドの目的と概要 | ~107 |
 | #307 | " | 🔵 | refactorコマンドの目的と概要 | ~107 |
-| #306 | " | 🔵 | auto-fixコマンドの目的と概要 | ~103 |
-| #305 | " | 🔵 | health-checkコマンドの目的と概要 | ~100 |
-| #304 | " | 🔵 | setup-cursorコマンドの目的と概要 | ~123 |
-| #303 | " | 🔵 | rememberコマンドの目的と概要 | ~110 |
-| #302 | 12:29 PM | 🔵 | feedbackコマンドの目的と概要 | ~107 |
-| #301 | " | 🔵 | crudコマンドの目的と概要 | ~118 |
-| #300 | " | 🔵 | localize-rulesコマンドの目的と概要 | ~107 |
-| #299 | " | 🔵 | parallel-tasksコマンドの目的と概要 | ~94 |
-| #298 | " | 🔵 | notebooklm-yamlコマンドの目的と概要 | ~107 |
-| #297 | " | 🔵 | componentコマンドの目的と概要 | ~103 |
-| #296 | " | 🔵 | authコマンドの目的と概要 | ~104 |
-| #295 | " | 🔵 | analyticsコマンドの目的と概要 | ~108 |
-| #294 | 12:28 PM | 🔵 | cleanupコマンドの目的と概要 | ~100 |
 
 ### Dec 23, 2025
 
@@ -107,4 +94,40 @@ description: claude-mem context for optional commands
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #15807 | 1:55 PM | 🔵 | 既存のCodexレビューコマンド仕様の確認 | ~167 |
+
+### Jan 19, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #16849 | 2:55 AM | ✅ | harness-update.mdの「Step 5: Update Cursor Commands」セクション詳細化 | ~225 |
+| #16845 | 2:54 AM | 🔵 | harness-update.mdにおけるhooks権限チェック機能の実装仕様確認 | ~242 |
+| #16841 | 2:52 AM | 🟣 | harness-updateコマンドにhooks実行権限自動修正機能を追加 | ~220 |
+| #16839 | 2:51 AM | 🔵 | harness-update.mdでのシェルスクリプト権限チェック機能の確認 | ~230 |
+| #16831 | 2:48 AM | 🔵 | codex-review.mdファイルでのexecコマンド仕様確認 | ~178 |
+
+### Jan 25, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #17457 | 3:41 PM | 🔵 | opencode-setup コマンドの実装詳細と VibeCoder Quick Reference | ~308 |
+| #17455 | 3:40 PM | 🔵 | opencode-setup コマンドの機能と統合方式の詳細 | ~303 |
+| #17387 | 2:01 PM | 🔵 | dev-tools-setup.mdの完全な実装仕様を確認 - テスト実行可能な詳細手順 | ~217 |
+| #17369 | 1:56 PM | 🔵 | dev-tools-setupコマンド実装を確認 - AST-Grep・LSP一括セットアップ仕様 | ~217 |
+| #17367 | 1:55 PM | 🔵 | opencode-setup.mdコマンド実装を確認 - 仕様は定義されている | ~192 |
+| #17365 | " | 🔵 | OpenCode・dev-toolsコマンドが実装されていた - Glob検索の誤り | ~178 |
+
+### Jan 26, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #17835 | 12:54 PM | 🔵 | session-inbox コマンド仕様の詳細発見 | ~200 |
+| #17817 | 3:16 AM | ✅ | opencode-setup.mdコマンド仕様を大幅改訂。OpenCodeスキーマ仕様を明記 | ~381 |
+| #17812 | 3:14 AM | 🔵 | opencode-setupコマンドの仕様と実装ギャップを確認 | ~360 |
+
+### Jan 27, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #18107 | 11:21 PM | ✅ | opencode-setupコマンドの--symlinkオプション参照削除 | ~136 |
+| #18105 | " | ✅ | opencode-setup.mdドキュメントの簡素化と自動化 | ~201 |
 </claude-mem-context>

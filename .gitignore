@@ -150,3 +150,12 @@ out/
 *.mp4
 *.webm
 *.gif
+
+# OpenCode (local-only)
+.opencode/
+
+# Benchmarks - entire directory (local development only)
+/benchmarks/
+
+# MCP Server (local development only)
+/mcp-server/
