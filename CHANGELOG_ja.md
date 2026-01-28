@@ -9,6 +9,16 @@
 
 ---
 
+## [2.14.7] - 2026-01-29
+
+### Changed
+
+- **README バージョンバッジの同期** (`README.md`, `README_ja.md`)
+  - バージョンバッジを 2.14.3 → 2.14.7 に更新
+  - リリースバージョンとの不整合を解消
+
+---
+
 ## [2.14.6] - 2026-01-29
 
 ### 🎯 あなたにとって何が変わるか
@@ -2599,7 +2609,8 @@ Observation recorded: 10946-10951 ✅
 - **v0.4.0**: Claude Rules、Plugin Hooks、Named Sessions 対応
 - **v0.3.0**: 初期リリース（Plan → Work → Review サイクル）
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.6...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.7...HEAD
+[2.14.7]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.6...v2.14.7
 [2.14.6]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.5...v2.14.6
 [2.14.5]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.4...v2.14.5
 [2.14.4]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.3...v2.14.4
