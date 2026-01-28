@@ -9,6 +9,34 @@
 
 ---
 
+## [2.14.5] - 2026-01-28
+
+### 🎯 あなたにとって何が変わるか
+
+**Claude Code v2.1.21 対応。Claude がファイル操作に Read/Edit/Write ツールを優先するようになり、PostToolUse 品質ガードのカバレッジが自動的に拡大しました。**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| Claude が `cat`/`sed`/`awk` で Bash 経由のファイル操作 | Read/Edit/Write ツールを優先使用（v2.1.21+） |
+| PostToolUse `Write\|Edit` フックが一部操作のみ発火 | ほぼ全てのファイル操作で品質ガードが発火 |
+| `Bash(cat:*)` 権限が頻繁に使用 | 使用頻度が低下（フォールバック用に維持） |
+| セッション中断後の再開で API エラーの可能性 | v2.1.21 で修正済み |
+| 日本語 IME の全角数字が選択肢入力で使えない | v2.1.21 で全角数字入力に対応 |
+
+### Changed
+
+- **互換性マトリクス更新** (`docs/CLAUDE_CODE_COMPATIBILITY.md`)
+  - v2.1.21〜v2.1.22 の全機能を分析・記載
+  - 推奨バージョンを v2.1.21+ に更新
+
+- **`Bash(cat:*)` 権限の注釈追加** (`skills/setup/references/claude-settings.md`)
+  - v2.1.21+ で Read ツール優先のため発火頻度が低下する旨を明記
+  - フォールバック用に権限設定自体は維持
+
+---
+
 ## [2.14.4] - 2026-01-28
 
 ### Changed
@@ -2545,7 +2573,8 @@ Observation recorded: 10946-10951 ✅
 - **v0.4.0**: Claude Rules、Plugin Hooks、Named Sessions 対応
 - **v0.3.0**: 初期リリース（Plan → Work → Review サイクル）
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.4...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.5...HEAD
+[2.14.5]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.4...v2.14.5
 [2.14.4]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.3...v2.14.4
 [2.14.3]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.2...v2.14.3
 [2.14.2]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.1...v2.14.2

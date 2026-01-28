@@ -197,6 +197,8 @@ https://code.claude.com/docs/ja/settings
 }
 ```
 
+> **Note (v2.1.21+)**: Claude Code v2.1.21 以降、Claude は `cat` / `sed` / `awk` より Read / Edit / Write ツールを優先します。そのため `Bash(cat:*)` の発火頻度は低下しますが、フォールバック用に維持してください。
+
 **間違った構文（絶対に使用しないこと）:**
 ```json
 {
