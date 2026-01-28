@@ -9,6 +9,32 @@
 
 ---
 
+## [2.14.6] - 2026-01-29
+
+### 🎯 あなたにとって何が変わるか
+
+**`/review-cc-work` の approve フローが「コミットして終了」に変更されました。次タスクへの自動遷移が廃止され、ユーザーの明示要求がある場合のみ次タスクに進みます。また、handoff 前に `/harness-review` のセルフレビューが必須になりました。**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| approve 後に自動で次タスク分析・ハンドオフ生成 | approve 後はコミット → **終了**（次タスクは明示要求時のみ） |
+| handoff 直前に `/harness-review` なしでも OK | 全テンプレートで `/harness-review` 必須フローを明記 |
+
+### Changed
+
+- **`/review-cc-work` approve フローの簡素化** (`opencode/commands/pm/review-cc-work.md`, `templates/*/commands/review-cc-work.md`)
+  - デフォルト動作を「コミットして終了」に変更
+  - 「承認のみ（デフォルト）」と「次タスク明示要求時」の2分岐に再構成
+  - ワークフロー図を `approve → commit → 終了` に更新
+
+- **`/harness-review` 必須フローの明記**
+  - 全ハンドオフテンプレート（approve/次タスク要求/request_changes）に追加
+  - `完了後は /harness-review でセルフレビュー → OK なら handoff、NG なら修正して再レビュー`
+
+---
+
 ## [2.14.5] - 2026-01-28
 
 ### 🎯 あなたにとって何が変わるか
@@ -2573,7 +2599,8 @@ Observation recorded: 10946-10951 ✅
 - **v0.4.0**: Claude Rules、Plugin Hooks、Named Sessions 対応
 - **v0.3.0**: 初期リリース（Plan → Work → Review サイクル）
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.5...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.6...HEAD
+[2.14.6]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.5...v2.14.6
 [2.14.5]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.4...v2.14.5
 [2.14.4]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.3...v2.14.4
 [2.14.3]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.2...v2.14.3
