@@ -1,78 +1,90 @@
-# Claude Harness
+<p align="center">
+  <img src="docs/images/claude-harness-logo-with-text.png" alt="Claude Harness" width="400">
+</p>
 
-English | [日本語](README_ja.md)
+<p align="center">
+  <strong>Turn Claude Code into a self-correcting development team.</strong>
+</p>
 
-![Claude Harness](docs/images/claude-harness-logo-with-text.png)
+<p align="center">
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.14.8-blue.svg" alt="Version"></a>
+  <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
+  <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1.21+-purple.svg" alt="Claude Code"></a>
+</p>
 
-**Turn Claude Code into a self-correcting development team.**
-
-Claude Harness runs Claude Code in an autonomous **Plan → Work → Review** cycle,
-catching mistakes before they ship.
-
-[![Version: 2.14.7](https://img.shields.io/badge/version-2.14.7-blue.svg)](VERSION)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.md)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-v2.1.6+-purple.svg)](docs/CLAUDE_CODE_COMPATIBILITY.md)
+<p align="center">
+  English | <a href="README_ja.md">日本語</a>
+</p>
 
 ---
 
-## See It In Action
+## The Problem
 
-```bash
-/plan-with-agent   # Brainstorm → Create a plan
-/work              # Execute the plan (with parallel workers)
-/harness-review    # Multi-perspective code review
+**Claude is brilliant. But it forgets. It wanders. It breaks things.**
+
+| Issue | What Happens |
+|-------|--------------|
+| **Forgets** | Past decisions vanish between sessions |
+| **Wanders** | Starts coding without a plan, loses direction |
+| **Breaks** | Skips tests, bypasses lint, ships bugs |
+| **Rushes** | Takes shortcuts when stuck—test tampering, empty catch blocks |
+
+Sound familiar?
+
+---
+
+## The Solution
+
+**Claude Harness wraps Claude Code in guardrails that enforce discipline.**
+
+```
+Plan  →  Work  →  Review  →  Commit
 ```
 
-**That's it.** Three commands turn a rough idea into reviewed, production-ready code.
+Three commands. That's it.
 
----
+```bash
+/plan-with-agent   # Brainstorm → Structured plan
+/work              # Execute with parallel workers + self-review
+/harness-review    # 8-expert code review
+```
 
-## Why Claude Harness?
-
-Solo developers face 4 recurring problems. Claude Harness solves all of them:
-
-| Problem | What Happens | How Harness Fixes It |
-|---------|--------------|---------------------|
-| **Confusion** | "Where do I start?" | `/plan-with-agent` breaks ideas into actionable tasks |
-| **Sloppiness** | Code quality drops under pressure | `/harness-review` runs 8 expert reviewers in parallel |
-| **Accidents** | Dangerous commands slip through | Hooks auto-block `rm -rf`, protect `.env`, guard secrets |
-| **Forgetfulness** | Past decisions lost between sessions | SSOT files + Claude-mem preserve context forever |
+**Result:** Production-ready code, not prototypes.
 
 ---
 
 ## Quick Start
 
-**Requirements**: Claude Code v2.1.6+ ([compatibility guide](docs/CLAUDE_CODE_COMPATIBILITY.md))
+### 10-Second Install
 
-### One-Liner Install
+```bash
+# In any project directory
+claude
+
+# Then run:
+/plugin marketplace add Chachamaru127/claude-code-harness
+/plugin install claude-code-harness@claude-code-harness-marketplace
+/harness-init
+```
+
+**Done.** Start with `/plan-with-agent`.
+
+<details>
+<summary>Alternative: One-liner script</summary>
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Chachamaru127/claude-code-harness/main/scripts/quick-install.sh | bash
 ```
 
-With development tools (AST-Grep, LSP):
+With dev tools (AST-Grep + LSP):
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Chachamaru127/claude-code-harness/main/scripts/quick-install.sh | bash -s -- --with-dev-tools
 ```
 
-### Manual Install
-
-```bash
-# 1. Open your project in Claude Code
-cd /path/to/your-project && claude
-
-# 2. Install the plugin
-/plugin marketplace add Chachamaru127/claude-code-harness
-/plugin install claude-code-harness@claude-code-harness-marketplace
-
-# 3. Initialize
-/harness-init
-```
-
-**Done.** Start with `/plan-with-agent` to create your first plan.
+</details>
 
 <details>
-<summary>Alternative: Local Clone</summary>
+<summary>Alternative: Local clone</summary>
 
 ```bash
 git clone https://github.com/Chachamaru127/claude-code-harness.git ~/claude-plugins/claude-code-harness
@@ -84,111 +96,30 @@ claude --plugin-dir ~/claude-plugins/claude-code-harness
 
 ---
 
-## What's New in v2.13
+## Before → After
 
-### Auto-Commit Workflow (v2.13.0)
-
-**`/work` now auto-commits when review passes—fully automated from idea to commit.**
-
-```bash
-/work                  # Implement → Review → Auto-commit (default)
-/work --no-commit      # Manual commit mode
-```
-
-| Before | After |
-|--------|-------|
-| Manual `git add && git commit` after `/work` | Auto-commit when review passes |
-| `--full` option for automation | Auto-commit is now default |
-
-**Project-level configuration**:
-```yaml
-# .claude-code-harness.config.yaml
-work:
-  auto_commit: false  # Disable for this project
-  commit_on_pm_approve: true  # 2-Agent: defer commit until PM approves
-```
-
----
-
-## What's New in v2.11
-
-### Video Generation (v2.11.0)
-
-**Auto-generate product demo, architecture, and release note videos from your codebase.**
-
-```bash
-/remotion-setup    # One-time Remotion setup
-/generate-video    # Analyze → Plan → Generate (parallel)
-```
-
-| Video Type | Auto-detected When | Structure |
-|------------|-------------------|-----------|
-| Product Demo | New project, UI changes | Intro → Feature Demo → CTA |
-| Architecture | Major refactoring | Overview → Details → Data Flow |
-| Release Notes | CHANGELOG updated | Version → Changes → New Feature Demo |
-
-- **Codebase analysis**: Auto-detects framework, features, UI components
-- **Smart scenario**: Suggests optimal video structure with AskUserQuestion
-- **Parallel generation**: Up to 5 agents generate scenes simultaneously
-- **Playwright integration**: Captures real UI interactions
-
-> ⚠️ Remotion may require a paid license for commercial use
-
----
-
-## What's New in v2.10
-
-### OpenCode.ai Compatibility (v2.10.0)
-
-**Use the Harness workflow with any LLM: o3, Gemini, Grok, DeepSeek, and more.**
-
-```bash
-/opencode-setup   # One-command installation
-```
-
-All core commands work in OpenCode.ai:
-- `/harness-init` → Project initialization
-- `/plan-with-agent` → Task planning
-- `/work` → Parallel task execution
-- `/harness-review` → Multi-perspective review
-
-See [OpenCode Compatibility Guide](docs/OPENCODE_COMPATIBILITY.md) for details.
+| Before (Raw Claude Code) | After (With Harness) |
+|--------------------------|----------------------|
+| Starts coding immediately | Plans first, then executes |
+| Reviews only if you ask | Auto-reviews every change |
+| Forgets past decisions | SSOT files preserve context |
+| `rm -rf` runs without warning | Dangerous commands blocked |
+| Manual `git commit` after work | Auto-commits when review passes |
+| One task at a time | Parallel workers for speed |
 
 ---
 
 ## Key Features
 
-### Parallel Full-Cycle Automation
+### 🎯 Plan → Work → Review Cycle
 
-```bash
-/work                  # Implement → Review → Auto-commit (default)
-/work --no-commit      # Skip auto-commit for manual control
-/work --parallel 5     # Force 5 parallel workers
-```
+Every idea goes through the same loop:
 
-Runs **implement → review → fix → auto-commit** in parallel for each task.
-Each worker reviews its own code, and commits automatically when review passes.
+1. **Plan** — `/plan-with-agent` turns vague ideas into `Plans.md`
+2. **Work** — `/work` executes tasks with parallel workers
+3. **Review** — `/harness-review` runs 8 expert reviewers
 
-### Code Intelligence (AST-Grep + LSP)
-
-```bash
-/dev-tools-setup   # One-time setup
-```
-
-Enables structural code search and semantic analysis:
-- Find code patterns: `console.log`, empty catch blocks, unused async
-- Impact analysis: Find all references before refactoring
-- Diagnostics: Type errors and warnings
-
-### 8-Expert Code Review
-
-```bash
-/harness-review
-```
-
-Security, performance, accessibility, maintainability—8 specialists review your code simultaneously. Optionally add [Codex](https://github.com/openai/codex) for a second opinion.
-
-### Safety Hooks
+### 🛡️ Safety Hooks
 
 | Protected | Action |
 |-----------|--------|
@@ -196,42 +127,35 @@ Security, performance, accessibility, maintainability—8 specialists review you
 | `rm -rf`, `sudo`, `git push --force` | Confirmation required |
 | `git status`, `npm test` | Auto-allowed |
 
-### Session Continuity
+### 🧠 Persistent Memory
 
 - **SSOT files**: `decisions.md` (why) + `patterns.md` (how)
-- **Claude-mem integration**: Past learnings persist across sessions
-- **Session resume**: `/resume` restores your exact work state
+- **Claude-mem integration**: Past learnings survive across sessions
+- **Session resume**: Pick up exactly where you left off
 
-### Cross-Session Communication
-
-```bash
-/session-broadcast "API changed: userId → user"
-/session-inbox   # Check messages from other sessions
-```
-
-Real-time messaging between sessions. When you change an API in Session A, Session B gets notified automatically.
-
-### MCP Server (Multi-Client Support)
+### ⚡ Parallel Execution
 
 ```bash
-/mcp-setup   # Configure for Claude Code, Codex, or Cursor
+/work --parallel 5   # 5 workers in parallel
 ```
 
-Use Harness from **Codex**, **Cursor**, or any MCP-compatible client. Share sessions across different AI tools working on the same project.
+Each worker implements, reviews its own code, and commits independently.
 
-### OpenCode Compatibility
-
-Harness works with [opencode.ai](https://opencode.ai/) too. Use the same workflow with GPT, Gemini, or any supported model:
+### 🔍 8-Expert Code Review
 
 ```bash
-# Quick setup (no Claude Code required)
-curl -fsSL https://raw.githubusercontent.com/Chachamaru127/claude-code-harness/main/scripts/setup-opencode.sh | bash
-
-# Or from Claude Code
-/opencode-setup
+/harness-review
 ```
 
-See [opencode/README.md](opencode/README.md) for full setup instructions.
+Security, performance, accessibility, maintainability—8 specialists review simultaneously. Add [Codex](https://github.com/openai/codex) for a second opinion.
+
+### 🔧 Code Intelligence
+
+```bash
+/dev-tools-setup   # One-time setup
+```
+
+AST-Grep + LSP for structural search and semantic analysis.
 
 ---
 
@@ -242,7 +166,7 @@ See [opencode/README.md](opencode/README.md) for full setup instructions.
 | **Solo developers** | Ship faster without sacrificing quality |
 | **Freelancers** | Deliver review reports as proof of quality |
 | **VibeCoder** | Build apps with natural language |
-| **Cursor users** | 2-Agent workflow separates planning from coding |
+| **Cursor users** | 2-Agent workflow: Cursor plans, Claude Code implements |
 
 ---
 
@@ -252,38 +176,25 @@ See [opencode/README.md](opencode/README.md) for full setup instructions.
 
 | Command | Purpose |
 |---------|---------|
-| `/plan-with-agent` | Turn ideas into plans |
+| `/plan-with-agent` | Turn ideas into actionable plans |
 | `/work` | Execute tasks from Plans.md |
 | `/harness-review` | Multi-expert code review |
-| `/sync-status` | Check progress, get next action |
+| `/sync-status` | Check progress, suggest next action |
 
-### Operations
+### Setup & Ops
 
 | Command | Purpose |
 |---------|---------|
 | `/harness-init` | Initialize project |
-| `/harness-update` | Update plugin files |
+| `/harness-update` | Update plugin |
 | `/dev-tools-setup` | Setup AST-Grep + LSP |
-| `/codex-review` | Codex-only second opinion |
 | `/skill-list` | Show all 67 skills |
 
-### Session & Multi-Client
+### 2-Agent (Cursor)
 
 | Command | Purpose |
 |---------|---------|
-| `/session-broadcast` | Send message to all sessions |
-| `/session-inbox` | Check messages from other sessions |
-| `/session-list` | List active sessions |
-| `/mcp-setup` | Configure MCP for Codex/Cursor |
-| `/webhook-setup` | Setup GitHub Actions automation |
-
-### 2-Agent Workflow (Cursor)
-
-| Command | Purpose |
-|---------|---------|
-| `/handoff-to-cursor` | Send completion report to PM |
-| `/plan-with-cc` | (Cursor) Plan, then hand to Claude Code |
-| `/review-cc-work` | (Cursor) Review implementation |
+| `/handoff-to-cursor` | Report completion to PM |
 
 ---
 
@@ -308,10 +219,10 @@ Skills auto-trigger based on your request:
 
 ```
 claude-code-harness/
-├── commands/     # 21 slash commands
+├── commands/     # 31 slash commands
 ├── skills/       # 67 skills (22 categories)
-├── agents/       # 6 sub-agents (parallel workers)
-├── hooks/        # Safety & automation hooks
+├── agents/       # 8 sub-agents (parallel workers)
+├── hooks/        # Safety & automation
 ├── scripts/      # Guard scripts
 └── templates/    # Generation templates
 ```
@@ -323,10 +234,16 @@ claude-code-harness/
 | Guide | Description |
 |-------|-------------|
 | [Changelog](CHANGELOG.md) | What's new in each version |
-| [Implementation Guide](IMPLEMENTATION_GUIDE.md) | Deep dive into internals |
-| [Development Flow](DEVELOPMENT_FLOW_GUIDE.md) | How to extend the harness |
-| [Cursor Integration](docs/CURSOR_INTEGRATION.md) | 2-Agent workflow setup |
 | [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md) | Version requirements |
+| [Cursor Integration](docs/CURSOR_INTEGRATION.md) | 2-Agent workflow setup |
+| [OpenCode Compatibility](docs/OPENCODE_COMPATIBILITY.md) | Use with other LLMs |
+
+---
+
+## Requirements
+
+- **Claude Code v2.1.21+** (recommended)
+- See [compatibility guide](docs/CLAUDE_CODE_COMPATIBILITY.md) for details
 
 ---
 

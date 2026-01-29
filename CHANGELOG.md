@@ -9,6 +9,33 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.14.8] - 2026-01-29
+
+### 🎯 What's Changed for You
+
+**README を全面リニューアル。問題提起から始まり、Before/After テーブル、10秒インストール、視覚的な機能紹介へと再構成しました。**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| 長い "What's New" セクションが先頭 | 問題提起 → 解決策 → Quick Start |
+| 機能説明がフラット | 絵文字付きセクションで視覚的に |
+| Before/After が分散 | 専用セクションで一覧比較 |
+| 345行 | 262行（24%削減） |
+
+### Changed
+
+- **README.md / README_ja.md の全面リニューアル**
+  - Problem-First アプローチ: 「Claude is brilliant. But it forgets. It wanders. It breaks things.」
+  - Before → After テーブルで変化を一目で理解可能に
+  - 10-Second Install セクションを冒頭に配置
+  - Key Features を絵文字付きセクションで視覚化
+  - 削除されたコマンド（`/session-broadcast` 等）への参照を削除
+  - アーキテクチャ情報を最新化（31 commands, 8 agents）
+
+---
+
 ## [2.14.7] - 2026-01-29
 
 ### Changed
@@ -1765,7 +1792,8 @@ Key milestones:
 - **v0.4.0**: Claude Rules, Plugin Hooks, Named Sessions support
 - **v0.3.0**: Initial release (Plan → Work → Review cycle)
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.7...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.8...HEAD
+[2.14.8]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.7...v2.14.8
 [2.14.7]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.6...v2.14.7
 [2.14.6]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.5...v2.14.6
 [2.14.5]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.4...v2.14.5
