@@ -9,6 +9,17 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.14.9] - 2026-01-29
+
+### Changed
+
+- **Handoff コマンドにレビューOK前提条件を明記** (`commands/handoff/handoff-to-cursor.md`, `commands/handoff/handoff-to-opencode.md`)
+  - Prerequisites（前提条件）セクションを追加: harness-review で APPROVE 後のみ実行可能
+  - 注意事項にレビューOK前 handoff 禁止を明記
+  - `/work` との連携フロー図を追加（Phase 1-4 の流れを可視化）
+
+---
+
 ## [2.14.8] - 2026-01-29
 
 ### 🎯 What's Changed for You

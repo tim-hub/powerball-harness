@@ -14,6 +14,21 @@ Plans.md を更新し、次のアクションを明確にします。
 - 「**変更内容とテスト結果を含めて**」→ `git diff` と実行コマンドを元に追加生成
 - 「**何を書けばいいかわからない**」→ 必要項目（やったこと / 変わったこと / 検証方法）をヒアリングします
 
+## Prerequisites（前提条件）
+
+> ⚠️ **このコマンドは harness-review で APPROVE が出た後にのみ実行すること**
+
+| 条件 | 必須 | 確認方法 |
+|------|------|---------|
+| harness-review 実施済み | ✅ | レビュー結果が APPROVE |
+| Critical/High 指摘なし | ✅ | 全て修正済み |
+| 実装完了 | ✅ | Plans.md タスクが完了状態 |
+
+**レビューOK前に handoff を実行してはいけない理由**:
+- PM がレビューしていない変更を受け取ることになる
+- 品質保証されていないコードが PM に渡る
+- `/work` のフロー（実装 → レビュー → 修正 → OK → handoff）が崩れる
+
 ## Deliverables
 
 - 「概要 / 完了タスク / 変更ファイル / 検証結果 / リスク / 次のアクション」を **PM に伝わる形式** で1ドキュメントにまとめる
@@ -81,6 +96,26 @@ Cursor に直接ペーストできる形式で出力してください。
 
 ## 注意事項
 
+- **harness-review で APPROVE が出た後にのみ実行すること**（レビューOK前の handoff は禁止）
 - 2-Agent モード（`pm:依頼中` 検出時）で `/work` 完了後に実行される
 - Solo モードでは handoff は不要（review ループのみ）
 - Plans.md のマーカーは `cc:完了` を使用すること（英語マーカーは不可）
+
+## `/work` との連携フロー
+
+```
+/work 実行
+    ↓
+Phase 1: 並列実装
+    ↓
+Phase 2: harness-review ループ
+    ├── NG (Critical/High あり) → 修正 → 再レビュー
+    └── OK (APPROVE) → Phase 3 へ
+    ↓
+Phase 3: Auto-commit（設定による）
+    ↓
+Phase 4: このコマンドを実行 ← ここで初めて handoff
+```
+
+> `/work` が Phase 4 で自動的にこのコマンドを呼び出します。
+> 手動で実行する場合も、必ず harness-review APPROVE 後に行うこと。
