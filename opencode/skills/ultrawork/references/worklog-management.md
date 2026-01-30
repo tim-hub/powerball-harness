@@ -4,11 +4,39 @@ ultrawork のワークログ管理に関する詳細仕様。
 
 ---
 
+## ⚠️ Security Notice
+
+### ワークログのセキュリティ
+
+`.claude/state/ultrawork.log.jsonl` にはエラーメッセージや実行ログが記録されます。
+
+**重要な注意事項**:
+
+1. **`.claude/state/` は `.gitignore` に追加すること**
+   ```gitignore
+   # Claude Code Harness state files
+   .claude/state/
+   ```
+
+2. **機密情報の漏洩防止**
+   - API キー、トークン、パスワードがエラーメッセージに含まれる可能性があります
+   - ワークログをリポジトリにコミットしないでください
+
+3. **ログの定期削除**
+   - 30日以上前のログは `archive/` に移動されます
+
+### 危険コマンドについて
+
+自己学習メカニズムで提示される戦略（`rm -rf` 等）は **Claude が自動実行するものではありません**。
+破壊的な操作は必ずユーザー確認が必要です。
+
+---
+
 ## ファイル構造
 
 ### 保存場所
 
-```
+```text
 .claude/state/ultrawork.log.jsonl
 ```
 
@@ -120,7 +148,7 @@ JSONL (JSON Lines) 形式。各行が1つのイベント。
 
 ### verify
 
-検証結果。
+検証結果（`/harness-review` の結果も含む）。
 
 ```json
 {
@@ -134,6 +162,11 @@ JSONL (JSON Lines) 形式。各行が1つのイベント。
   "review": "pending"
 }
 ```
+
+**review フィールドの値**:
+- `"pending"` - レビュー未実行
+- `"approve"` - `/harness-review` で APPROVE
+- `"needs_fix"` - Critical/High 指摘あり（次 iteration で修正）
 
 ### iteration_end
 
@@ -219,6 +252,8 @@ JSONL (JSON Lines) 形式。各行が1つのイベント。
 
 ## 読み込みパターン
 
+> **Note**: 以下のコード例は概念的な疑似コードです。実際の実装では適切な import と型定義が必要です。
+
 ### 再開時の読み込み
 
 ```typescript
@@ -237,10 +272,10 @@ function loadWorklog(): WorklogState {
     .filter(e => e.event === 'task_complete')
     .map(e => e.task_id);
 
-  // 学習データを集計
+  // 学習データを集計（priority フィールドを含める）
   const learnings = entries
     .filter(e => e.event === 'learned')
-    .map(e => ({ pattern: e.pattern, strategy: e.strategy }));
+    .map(e => ({ pattern: e.pattern, strategy: e.strategy, priority: e.priority || 'medium' }));
 
   return {
     lastIteration: lastState?.iteration || 0,
@@ -278,9 +313,10 @@ function analyzeFailures(entries: WorklogEntry[]): FailurePattern[] {
 function prepareIteration(worklog: WorklogState): IterationPlan {
   const { learnings, completedTasks } = worklog;
 
-  // 学習した戦略を優先度順に整理
+  // 学習した戦略を優先度順に整理（high > medium > low）
+  const priorityOrder = { high: 3, medium: 2, low: 1 };
   const strategies = learnings
-    .sort((a, b) => b.priority - a.priority)
+    .sort((a, b) => (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0))
     .map(l => l.strategy);
 
   return {
