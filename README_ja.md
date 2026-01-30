@@ -41,7 +41,7 @@
 Plan  →  Work  →  Review  →  Commit
 ```
 
-3つのコマンドだけ。
+覚えるべき3つのコアコマンド。
 
 ```bash
 /plan-with-agent   # 壁打ち → 構造化された計画
@@ -103,7 +103,7 @@ claude --plugin-dir ~/claude-plugins/claude-code-harness
 | すぐにコーディング開始 | まず計画、それから実行 |
 | 頼まないとレビューしない | 全ての変更を自動レビュー |
 | 過去の決定を忘れる | SSOT ファイルがコンテキストを保持 |
-| `rm -rf` が警告なしで実行 | 危険なコマンドをブロック |
+| `rm -rf` が警告なしで実行 | 危険なコマンドは確認を要求 |
 | 作業後に手動で `git commit` | レビュー通過で自動コミット |
 | 一度に1タスク | 並列ワーカーで高速化 |
 
@@ -139,7 +139,7 @@ claude --plugin-dir ~/claude-plugins/claude-code-harness
 /work --parallel 5   # 5ワーカーを並列実行
 ```
 
-各ワーカーが実装、自己レビュー、独立してコミット。
+各ワーカーが実装とセルフレビュー。全体レビュー通過後に自動コミット。
 
 ### 🔍 4観点の並列コードレビュー
 
@@ -147,7 +147,7 @@ claude --plugin-dir ~/claude-plugins/claude-code-harness
 /harness-review
 ```
 
-セキュリティ、パフォーマンス、アクセシビリティ、品質—4観点が同時並列でレビュー。[Codex](https://github.com/openai/codex) を追加すれば16種の専門家から適切なものを選択してセカンドオピニオンを取得可能。
+セキュリティ、パフォーマンス、アクセシビリティ、品質—4観点が同時並列でレビュー。[Codex](https://github.com/openai/codex) を追加すれば16種のエキスパートから4つを選択してセカンドオピニオンを取得可能。
 
 ### 🔧 コードインテリジェンス
 
@@ -188,7 +188,7 @@ AST-Grep + LSP による構造的検索とセマンティック分析。
 | `/harness-init` | プロジェクト初期化 |
 | `/harness-update` | プラグイン更新 |
 | `/dev-tools-setup` | AST-Grep + LSP セットアップ |
-| `/skill-list` | 全29スキルカテゴリを表示 |
+| `/skill-list` | 全28スキルカテゴリを表示 |
 
 ### 2-Agent (Cursor)
 
@@ -211,7 +211,7 @@ AST-Grep + LSP による構造的検索とセマンティック分析。
 | `deploy` | 「デプロイ」「Vercel」 |
 | `ui` | 「ヒーローセクション」「コンポーネント」 |
 
-**29スキルカテゴリ。** `/skill-list` で全て確認。
+**28スキルカテゴリ。** `/skill-list` で全て確認。
 
 ---
 
@@ -220,7 +220,7 @@ AST-Grep + LSP による構造的検索とセマンティック分析。
 ```
 claude-code-harness/
 ├── commands/     # 31 スラッシュコマンド
-├── skills/       # 29 スキルカテゴリ
+├── skills/       # 28 スキルカテゴリ
 ├── agents/       # 8 サブエージェント（並列ワーカー）
 ├── hooks/        # 安全性 & 自動化
 ├── scripts/      # ガードスクリプト

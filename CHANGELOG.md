@@ -9,6 +9,45 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.14.12] - 2026-01-30
+
+### 🎯 What's Changed for You
+
+**ドキュメントの正確性をさらに向上。Codex レビューで発見された不正確な表現を修正。**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| "Three commands. That's it." | "Three core commands to remember." |
+| "commits independently" | "Auto-commit after global review passes" |
+| "Dangerous commands blocked" | "Dangerous commands require confirmation" |
+| 29 skill categories | 28 skill categories |
+| 8 expert files in docs | 16 expert files (complete list) |
+
+### Changed
+
+- **README.md / README_ja.md**: Codex 指摘の3点を修正
+  - "Three commands" 表現を明確化（31コマンド中のコアを強調）
+  - task-worker のコミット動作を正確に記述
+  - 危険コマンドは「ブロック」ではなく「確認要求」に修正
+  - スキルカテゴリ数を 29 → 28 に修正
+
+- **codex-parallel-review.md**: 関連ファイルセクションを拡充
+  - 8 エキスパートから全 16 エキスパートをカテゴリ別に記載
+  - Code/Plan/Scope Review の各4エキスパートを明示
+
+- **docs/HARNESS_COMPLETE_MAP.md**: スキル数を 29 → 28 に修正
+
+### Added
+
+- **docs/notebooklm-v2.14.10.yaml**: NotebookLM プレゼンテーション用 YAML
+  - 10スライド構成（Plan/Work/Review 各ページ説明）
+  - サブエージェントのコンテキスト分離を強調
+  - Codex モード 16 エキスパート紹介
+
+---
+
 ## [2.14.11] - 2026-01-30
 
 ### 🎯 What's Changed for You

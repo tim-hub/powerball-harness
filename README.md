@@ -41,7 +41,7 @@ Sound familiar?
 Plan  →  Work  →  Review  →  Commit
 ```
 
-Three commands. That's it.
+Three core commands to remember.
 
 ```bash
 /plan-with-agent   # Brainstorm → Structured plan
@@ -103,7 +103,7 @@ claude --plugin-dir ~/claude-plugins/claude-code-harness
 | Starts coding immediately | Plans first, then executes |
 | Reviews only if you ask | Auto-reviews every change |
 | Forgets past decisions | SSOT files preserve context |
-| `rm -rf` runs without warning | Dangerous commands blocked |
+| `rm -rf` runs without warning | Dangerous commands require confirmation |
 | Manual `git commit` after work | Auto-commits when review passes |
 | One task at a time | Parallel workers for speed |
 
@@ -139,7 +139,7 @@ Every idea goes through the same loop:
 /work --parallel 5   # 5 workers in parallel
 ```
 
-Each worker implements, reviews its own code, and commits independently.
+Each worker implements and self-reviews. Auto-commit after global review passes.
 
 ### 🔍 4-Perspective Parallel Code Review
 
@@ -147,7 +147,7 @@ Each worker implements, reviews its own code, and commits independently.
 /harness-review
 ```
 
-Security, performance, accessibility, quality—4 perspectives review simultaneously in parallel. Add [Codex](https://github.com/openai/codex) for second opinions (selects relevant experts from 16 specialists).
+Security, performance, accessibility, quality—4 perspectives review simultaneously in parallel. Add [Codex](https://github.com/openai/codex) for second opinions (selects 4 relevant experts from 16 specialist types).
 
 ### 🔧 Code Intelligence
 
@@ -188,7 +188,7 @@ AST-Grep + LSP for structural search and semantic analysis.
 | `/harness-init` | Initialize project |
 | `/harness-update` | Update plugin |
 | `/dev-tools-setup` | Setup AST-Grep + LSP |
-| `/skill-list` | Show all 29 skill categories |
+| `/skill-list` | Show all 28 skill categories |
 
 ### 2-Agent (Cursor)
 
@@ -211,7 +211,7 @@ Skills auto-trigger based on your request:
 | `deploy` | "deploy", "Vercel", "production" |
 | `ui` | "hero section", "component", "form" |
 
-**29 skill categories.** Run `/skill-list` to see all.
+**28 skill categories.** Run `/skill-list` to see all.
 
 ---
 
@@ -220,7 +220,7 @@ Skills auto-trigger based on your request:
 ```
 claude-code-harness/
 ├── commands/     # 31 slash commands
-├── skills/       # 29 skill categories
+├── skills/       # 28 skill categories
 ├── agents/       # 8 sub-agents (parallel workers)
 ├── hooks/        # Safety & automation
 ├── scripts/      # Guard scripts

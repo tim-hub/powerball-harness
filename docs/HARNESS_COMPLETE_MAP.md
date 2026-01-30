@@ -953,7 +953,7 @@ claude-code-harness/
 │   ├── core/                 # 主要コマンド（7個）
 │   ├── handoff/              # 連携コマンド（2個）
 │   └── optional/             # オプションコマンド（22個）
-├── skills/                   # スキル（29カテゴリ）
+├── skills/                   # スキル（28カテゴリ）
 │   ├── impl/
 │   ├── review/
 │   ├── verify/
