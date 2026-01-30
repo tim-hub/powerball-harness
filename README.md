@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.14.8-blue.svg" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.14.10-blue.svg" alt="Version"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1.21+-purple.svg" alt="Claude Code"></a>
 </p>
@@ -46,7 +46,7 @@ Three commands. That's it.
 ```bash
 /plan-with-agent   # Brainstorm → Structured plan
 /work              # Execute with parallel workers + self-review
-/harness-review    # 8-expert code review
+/harness-review    # 4-perspective parallel code review
 ```
 
 **Result:** Production-ready code, not prototypes.
@@ -117,7 +117,7 @@ Every idea goes through the same loop:
 
 1. **Plan** — `/plan-with-agent` turns vague ideas into `Plans.md`
 2. **Work** — `/work` executes tasks with parallel workers
-3. **Review** — `/harness-review` runs 8 expert reviewers
+3. **Review** — `/harness-review` runs 4 perspectives in parallel
 
 ### 🛡️ Safety Hooks
 
@@ -141,13 +141,13 @@ Every idea goes through the same loop:
 
 Each worker implements, reviews its own code, and commits independently.
 
-### 🔍 8-Expert Code Review
+### 🔍 4-Perspective Parallel Code Review
 
 ```bash
 /harness-review
 ```
 
-Security, performance, accessibility, maintainability—8 specialists review simultaneously. Add [Codex](https://github.com/openai/codex) for a second opinion.
+Security, performance, accessibility, quality—4 perspectives review simultaneously in parallel. Add [Codex](https://github.com/openai/codex) for second opinions (selects relevant experts from 16 specialists).
 
 ### 🔧 Code Intelligence
 
@@ -178,7 +178,7 @@ AST-Grep + LSP for structural search and semantic analysis.
 |---------|---------|
 | `/plan-with-agent` | Turn ideas into actionable plans |
 | `/work` | Execute tasks from Plans.md |
-| `/harness-review` | Multi-expert code review |
+| `/harness-review` | 4-perspective parallel code review |
 | `/sync-status` | Check progress, suggest next action |
 
 ### Setup & Ops
@@ -188,7 +188,7 @@ AST-Grep + LSP for structural search and semantic analysis.
 | `/harness-init` | Initialize project |
 | `/harness-update` | Update plugin |
 | `/dev-tools-setup` | Setup AST-Grep + LSP |
-| `/skill-list` | Show all 67 skills |
+| `/skill-list` | Show all 29 skill categories |
 
 ### 2-Agent (Cursor)
 
@@ -211,7 +211,7 @@ Skills auto-trigger based on your request:
 | `deploy` | "deploy", "Vercel", "production" |
 | `ui` | "hero section", "component", "form" |
 
-**67 skills across 22 categories.** Run `/skill-list` to see all.
+**29 skill categories.** Run `/skill-list` to see all.
 
 ---
 
@@ -220,7 +220,7 @@ Skills auto-trigger based on your request:
 ```
 claude-code-harness/
 ├── commands/     # 31 slash commands
-├── skills/       # 67 skills (22 categories)
+├── skills/       # 29 skill categories
 ├── agents/       # 8 sub-agents (parallel workers)
 ├── hooks/        # Safety & automation
 ├── scripts/      # Guard scripts

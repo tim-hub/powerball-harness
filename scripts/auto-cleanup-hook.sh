@@ -65,6 +65,28 @@ if [[ "$FILE_PATH" == *"Plans.md"* ]] || [[ "$FILE_PATH" == *"plans.md"* ]]; the
     if [ "$lines" -gt "$PLANS_MAX_LINES" ]; then
       FEEDBACK="⚠️ Plans.md が ${lines} 行です（上限: ${PLANS_MAX_LINES}行）。/cleanup plans で古いタスクをアーカイブすることを推奨します。"
     fi
+
+    # Plans.md クリーンアップ（アーカイブ移動）検知時の SSOT 同期チェック
+    # アーカイブセクションへの編集がある場合、/sync-ssot-from-memory の事前実行を確認
+    if grep -q "📦 アーカイブ\|## アーカイブ\|Archive" "$FILE_PATH" 2>/dev/null; then
+      # Resolve repository root for consistent state directory lookup
+      CWD="${CWD:-$(pwd)}"  # Fallback to pwd if empty
+      REPO_ROOT=$(git -C "$CWD" rev-parse --show-toplevel 2>/dev/null) || REPO_ROOT="$CWD"
+      STATE_DIR="${REPO_ROOT}/.claude/state"
+
+      SSOT_FLAG="${STATE_DIR}/.ssot-synced-this-session"
+
+      if [ ! -f "$SSOT_FLAG" ]; then
+        # フラグがない場合、SSOT 同期を促す警告を追加
+        SSOT_WARNING="**Plans.md クリーンアップ前に /sync-ssot-from-memory を実行してください** - 重要な決定や学習事項が SSOT (decisions.md/patterns.md) に反映されていない可能性があります。"
+
+        if [ -n "$FEEDBACK" ]; then
+          FEEDBACK="${FEEDBACK} | ${SSOT_WARNING}"
+        else
+          FEEDBACK="⚠️ ${SSOT_WARNING}"
+        fi
+      fi
+    fi
   fi
 fi
 

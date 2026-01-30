@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.14.8-blue.svg" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.14.10-blue.svg" alt="Version"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1.21+-purple.svg" alt="Claude Code"></a>
 </p>
@@ -46,7 +46,7 @@ Plan  →  Work  →  Review  →  Commit
 ```bash
 /plan-with-agent   # 壁打ち → 構造化された計画
 /work              # 並列ワーカーで実行 + セルフレビュー
-/harness-review    # 8人の専門家によるコードレビュー
+/harness-review    # 4観点の並列コードレビュー
 ```
 
 **結果:** プロトタイプではなく、本番品質のコード。
@@ -117,7 +117,7 @@ claude --plugin-dir ~/claude-plugins/claude-code-harness
 
 1. **Plan** — `/plan-with-agent` が曖昧なアイデアを `Plans.md` に変換
 2. **Work** — `/work` が並列ワーカーでタスクを実行
-3. **Review** — `/harness-review` が8人の専門家でレビュー
+3. **Review** — `/harness-review` が4観点で並列レビュー
 
 ### 🛡️ 安全フック
 
@@ -141,13 +141,13 @@ claude --plugin-dir ~/claude-plugins/claude-code-harness
 
 各ワーカーが実装、自己レビュー、独立してコミット。
 
-### 🔍 8人の専門家によるコードレビュー
+### 🔍 4観点の並列コードレビュー
 
 ```bash
 /harness-review
 ```
 
-セキュリティ、パフォーマンス、アクセシビリティ、保守性—8人の専門家が同時にレビュー。[Codex](https://github.com/openai/codex) でセカンドオピニオンも可能。
+セキュリティ、パフォーマンス、アクセシビリティ、品質—4観点が同時並列でレビュー。[Codex](https://github.com/openai/codex) を追加すれば16種の専門家から適切なものを選択してセカンドオピニオンを取得可能。
 
 ### 🔧 コードインテリジェンス
 
@@ -178,7 +178,7 @@ AST-Grep + LSP による構造的検索とセマンティック分析。
 |----------|------|
 | `/plan-with-agent` | アイデアを実行可能な計画に変換 |
 | `/work` | Plans.md のタスクを実行 |
-| `/harness-review` | マルチエキスパートコードレビュー |
+| `/harness-review` | 4観点の並列コードレビュー |
 | `/sync-status` | 進捗確認、次のアクションを提案 |
 
 ### セットアップ & 運用
@@ -188,7 +188,7 @@ AST-Grep + LSP による構造的検索とセマンティック分析。
 | `/harness-init` | プロジェクト初期化 |
 | `/harness-update` | プラグイン更新 |
 | `/dev-tools-setup` | AST-Grep + LSP セットアップ |
-| `/skill-list` | 全67スキルを表示 |
+| `/skill-list` | 全29スキルカテゴリを表示 |
 
 ### 2-Agent (Cursor)
 
@@ -211,7 +211,7 @@ AST-Grep + LSP による構造的検索とセマンティック分析。
 | `deploy` | 「デプロイ」「Vercel」 |
 | `ui` | 「ヒーローセクション」「コンポーネント」 |
 
-**22カテゴリ、67スキル。** `/skill-list` で全て確認。
+**29スキルカテゴリ。** `/skill-list` で全て確認。
 
 ---
 
@@ -220,7 +220,7 @@ AST-Grep + LSP による構造的検索とセマンティック分析。
 ```
 claude-code-harness/
 ├── commands/     # 31 スラッシュコマンド
-├── skills/       # 67 スキル（22カテゴリ）
+├── skills/       # 29 スキルカテゴリ
 ├── agents/       # 8 サブエージェント（並列ワーカー）
 ├── hooks/        # 安全性 & 自動化
 ├── scripts/      # ガードスクリプト

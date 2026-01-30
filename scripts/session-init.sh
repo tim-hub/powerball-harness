@@ -79,6 +79,11 @@ mkdir -p "$STATE_DIR"
 # session-skills-used.json をリセット（新セッション開始）
 echo '{"used": [], "session_start": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > "$SESSION_SKILLS_USED_FILE"
 
+# SSOT 同期フラグをクリア（新セッション開始時）
+# このフラグは /sync-ssot-from-memory 実行時に作成され、
+# Plans.md クリーンアップ前の SSOT 同期確認に使用される
+rm -f "${STATE_DIR}/.ssot-synced-this-session" 2>/dev/null || true
+
 # ===== Step 2.5: Harness セッション初期化 & CC session_id マッピング =====
 SESSION_FILE="${STATE_DIR}/session.json"
 SESSION_MAP_FILE="${STATE_DIR}/session-map.json"

@@ -22,6 +22,17 @@
 | #18160 | 2:00 AM | 🔵 | handoff-to-opencode.md も同じ簡略版パターン | ~174 |
 | #18159 | " | 🔵 | CC-harness handoff-to-cursor.md は簡略版実装 | ~185 |
 | #18158 | " | 🔵 | CLAUDE.md ファイル内容は空 | ~87 |
+
+### Jan 29, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #18707 | 6:59 PM | ✅ | handoff-to-opencode.mdに/workとの連携フローを追加 - Cursor版と統一 | ~209 |
+| #18706 | " | ✅ | handoff-to-opencode.mdに前提条件セクションを追加 - Cursor版と統一 | ~174 |
+| #18705 | 6:58 PM | ✅ | handoff-to-cursor.mdに/workとの連携フローを追加 - ハンドオフ実行タイミングを視覚化 | ~206 |
+| #18704 | " | ✅ | handoff-to-cursor.mdに前提条件セクションを追加 - harness-review APPROVE後の実行を明記 | ~179 |
+| #18703 | " | 🔵 | handoff-to-opencode.mdの現在の構成を確認 - Fansレビュー条件が同様に欠落 | ~204 |
+| #18701 | " | 🔵 | handoff-to-cursor.mdの現在の構成を確認 - PM向けハンドオフドキュメント | ~184 |
 </claude-mem-context>
 
 # commands/handoff - ハンドオフコマンド

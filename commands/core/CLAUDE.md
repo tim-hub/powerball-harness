@@ -109,4 +109,10 @@ description: claude-mem context for core commands
 | #18549 | 2:48 PM | 🔵 | work.md の Phase 3-4 フロー詳細 - Escalation メカニズムと完全な 4 フェーズ図 | ~826 |
 | #18525 | 2:42 PM | 🔵 | harness-review コマンド - マルチパースペクティブレビューの自動検出機能 | ~902 |
 | #18512 | 2:37 PM | 🔵 | Claude Code Harness の /work コマンド - 並列実行対応のプラン実装ツール | ~235 |
+
+### Jan 29, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #18702 | 6:58 PM | 🔵 | work.mdの現在の構成を確認 - Fansレビュー条件の欠落を特定 | ~195 |
 </claude-mem-context>

@@ -9,6 +9,46 @@
 
 ---
 
+## [2.14.10] - 2026-01-30
+
+### 🎯 あなたにとって何が変わるか
+
+**ドキュメントの数値情報を最新化。レビューは4観点並列、スキルは29カテゴリ、コマンドは31個に修正。**
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| 8人の専門家レビュー | 4観点の並列レビュー |
+| 67スキル / 22カテゴリ | 29スキルカテゴリ |
+| コマンド合計 30 | コマンド合計 31（実数と一致） |
+
+### Fixed
+
+- **README.md / README_ja.md の数値情報を修正**
+  - 8-expert → 4-perspective parallel（5箇所）
+  - 67 skills / 22 categories → 29 skill categories（3箇所）
+  - バージョンバッジを 2.14.9 に更新
+
+- **docs/HARNESS_COMPLETE_MAP.md のコマンド数を修正**
+  - Core: 11 → 7、Optional: 17 → 22、Total: 30 → 31
+
+- **CHANGELOG 比較リンクに v2.14.9 を追加**
+
+### Added
+
+- **docs/CLAUDE_CODE_COMPATIBILITY.md に v2.14.9 互換性情報を追加**
+  - 4観点並列レビュー、auto-commit、OpenCode対応、MCP code intelligence
+
+- **SSOT 同期フラグ機能**（`scripts/auto-cleanup-hook.sh`, `session-init.sh`, `usage-tracker.sh`）
+  - Plans.md クリーンアップ前に `/sync-ssot-from-memory` 実行を促す仕組み
+  - セッション初期化時にフラグをリセット
+
+- **skills/maintenance/references/auto-cleanup.md に「Step 0: SSOT 同期」を追加**
+  - クリーンアップ前の Memory 抽出・昇格フローを必須化
+
+---
+
 ## [2.14.9] - 2026-01-29
 
 ### Changed
@@ -2647,7 +2687,9 @@ Observation recorded: 10946-10951 ✅
 - **v0.4.0**: Claude Rules、Plugin Hooks、Named Sessions 対応
 - **v0.3.0**: 初期リリース（Plan → Work → Review サイクル）
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.8...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.10...HEAD
+[2.14.10]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.9...v2.14.10
+[2.14.9]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.8...v2.14.9
 [2.14.8]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.7...v2.14.8
 [2.14.7]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.6...v2.14.7
 [2.14.6]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.14.5...v2.14.6
