@@ -68,6 +68,34 @@ import { TypingText } from "./components/TypingText";
 - ❌ ハードコードされた色（→ `brand.ts` を使用）
 - ❌ 文字ごとの opacity アニメーション（→ 文字列スライスを使用）
 
+### パフォーマンス最適化
+
+| 項目 | 推奨 |
+|------|------|
+| **Particles** | 共通コンポーネントとしてメモ化、または SceneBackground でラップ |
+| **スタイルオブジェクト** | アニメーション値以外は `useMemo()` でキャッシュ |
+| **アセットプリロード** | `preloadImage()`, `preloadFont()` で事前読み込み |
+| **spring 設定** | `damping: 200` でバウンスなしスムーズ動作 |
+
+```tsx
+// ✅ アセットプリロードの例
+import { preloadImage, staticFile } from "remotion";
+
+// コンポジション外で呼び出し
+preloadImage(staticFile("logo.png"));
+```
+
+### テンプレート変数
+
+テンプレートコード内の `{変数}` は生成時に置換されます：
+
+| 変数 | 説明 | 例 |
+|------|------|-----|
+| `{duration}` | シーン時間（秒） | `5` |
+| `{duration * 30}` | フレーム数（30fps） | `150` |
+| `{scene.name}` | シーン名 | `"intro"` |
+| `{scene.id}` | シーン番号 | `1` |
+
 ---
 
 ## ベストプラクティス要約
@@ -461,6 +489,22 @@ export const HookScene: React.FC<{
   "suggestion": "アプリを起動してください: npm run dev"
 }
 ```
+
+### エラーハンドリングガイダンス
+
+| エラー | 原因 | 対処 |
+|--------|------|------|
+| `Playwright capture failed - app not running` | ローカルアプリ未起動 | `npm run dev` でアプリ起動 |
+| `Invalid template` | 未対応テンプレート指定 | 利用可能テンプレートを確認 |
+| `Asset not found` | 画像/音声ファイル不在 | `public/` にアセット配置 |
+| `Remotion render failed` | コンポジションエラー | Studio でエラー詳細確認 |
+| `Network error` | MCP 接続失敗 | Playwright MCP 再起動 |
+
+**リカバリー可能なエラー** (`recoverable: true`):
+- ユーザー操作で解決可能（アプリ起動、ファイル配置等）
+
+**リカバリー不可能なエラー** (`recoverable: false`):
+- 設計変更が必要（テンプレート未対応、機能制限等）
 
 ---
 

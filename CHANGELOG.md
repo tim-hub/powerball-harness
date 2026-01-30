@@ -9,6 +9,25 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.16.1] - 2026-01-31
+
+### 🎯 What's Changed for You
+
+**`/generate-video` now automatically loads Remotion Skills**
+
+When generating videos, the video-scene-generator agent explicitly reads Remotion Skills at startup, ensuring technically correct code is auto-generated.
+
+### Changed
+
+- **Enhanced video-scene-generator Remotion Skills support** (`agents/video-scene-generator.md`)
+  - Added startup required action: Explicit READ instructions for Remotion Skills files
+  - Fixed Audio component: `Html5Audio` → `Audio` from `@remotion/media`
+  - Added performance optimization section: Memoization, preload, spring settings
+  - Added template variable documentation: `{duration}`, `{scene.name}` replacement rules
+  - Added error handling guidance: Common errors and solutions table
+
+---
+
 ## [2.16.0] - 2026-01-31
 
 ### 🎯 What's Changed for You

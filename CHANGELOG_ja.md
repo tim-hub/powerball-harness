@@ -9,6 +9,25 @@
 
 ---
 
+## [2.16.1] - 2026-01-31
+
+### 🎯 あなたにとって何が変わるか
+
+**`/generate-video` が Remotion Skills を自動で読み込むようになりました**
+
+動画生成時に video-scene-generator エージェントが起動時に Remotion Skills を明示的に読み込むため、技術的に正しいコードが自動生成されます。
+
+### Changed
+
+- **video-scene-generator の Remotion Skills 対応強化** (`agents/video-scene-generator.md`)
+  - 起動時必須アクション追加: Remotion Skills ファイルを明示的に READ する指示
+  - Audio コンポーネント修正: `Html5Audio` → `@remotion/media` の `Audio`
+  - パフォーマンス最適化セクション追加: メモ化、プリロード、spring 設定
+  - テンプレート変数の説明追加: `{duration}`, `{scene.name}` 等の置換ルール
+  - エラーハンドリングガイダンス追加: 一般的なエラーと対処法テーブル
+
+---
+
 ## [2.16.0] - 2026-01-31
 
 ### 🎯 あなたにとって何が変わるか
