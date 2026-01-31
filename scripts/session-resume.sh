@@ -164,6 +164,11 @@ echo '{"used": [], "session_start": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > "$SES
 # Plans.md クリーンアップ前の SSOT 同期確認に使用される
 rm -f "${STATE_DIR}/.ssot-synced-this-session" 2>/dev/null || true
 
+# ultrawork 警告フラグをクリア（セッション復元時）
+# このフラグは userprompt-inject-policy.sh で一度だけ警告するために使用される
+# 復元時にクリアすることで、復元後の最初のプロンプトで警告が再表示される
+rm -f "${STATE_DIR}/.ultrawork-review-warned" 2>/dev/null || true
+
 # ===== Plans.md チェック =====
 PLANS_INFO=""
 if [ -f "Plans.md" ]; then
@@ -172,6 +177,26 @@ if [ -f "Plans.md" ]; then
   PLANS_INFO="📄 Plans.md: 進行中 ${wip_count} / 未着手 ${todo_count}"
 else
   PLANS_INFO="📄 Plans.md: 未検出"
+fi
+
+# ===== ultrawork モード検出と harness-review 必須の再注入 =====
+ULTRAWORK_INFO=""
+ULTRAWORK_FILE="${STATE_DIR}/ultrawork-active.json"
+if [ -f "$ULTRAWORK_FILE" ] && command -v jq >/dev/null 2>&1; then
+  REVIEW_STATUS=$(jq -r '.review_status // "pending"' "$ULTRAWORK_FILE" 2>/dev/null)
+  STARTED_AT=$(jq -r '.started_at // "不明"' "$ULTRAWORK_FILE" 2>/dev/null)
+
+  case "$REVIEW_STATUS" in
+    "passed")
+      ULTRAWORK_INFO="⚡ **ultrawork モード継続中** (開始: ${STARTED_AT})\n   ✅ review_status: passed → 完了処理可能"
+      ;;
+    "failed")
+      ULTRAWORK_INFO="⚡ **ultrawork モード継続中** (開始: ${STARTED_AT})\n   ❌ review_status: failed → 修正後に /harness-review を再実行してください"
+      ;;
+    *)
+      ULTRAWORK_INFO="⚡ **ultrawork モード継続中** (開始: ${STARTED_AT})\n   ⚠️ review_status: pending → **完了前に /harness-review で APPROVE を得てください**"
+      ;;
+  esac
 fi
 
 # ===== 出力メッセージの構築 =====
@@ -195,6 +220,12 @@ esac
 
 add_line ""
 add_line "${PLANS_INFO}"
+
+# ultrawork モード情報を追加
+if [ -n "$ULTRAWORK_INFO" ]; then
+  add_line ""
+  add_line "$ULTRAWORK_INFO"
+fi
 
 # ===== JSON 出力 =====
 ESCAPED_OUTPUT=$(echo -e "$OUTPUT" | sed 's/\\/\\\\/g; s/"/\\"/g; s/$/\\n/' | tr -d '\n' | sed 's/\\n$//')

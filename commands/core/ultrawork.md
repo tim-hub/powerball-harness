@@ -123,9 +123,21 @@ ultrawork の自律実行中は、**特定条件下でのみ**これらの確認
     ".cache",
     "coverage",
     "build"
-  ]
+  ],
+  "review_status": "pending"
 }
 ```
+
+**review_status フィールド（必須）**:
+
+| 値 | 意味 | 遷移条件 |
+|----|------|---------|
+| `pending` | レビュー未実行 / 変更後 | 初期状態 / Write/Edit 実行後 |
+| `passed` | レビュー通過 | harness-review で APPROVE |
+| `failed` | レビュー NG | harness-review で Critical/High 指摘 |
+
+> ⚠️ **重要**: `review_status !== "passed"` の場合、ultrawork の完了処理は実行不可。
+> 必ず `/harness-review` で APPROVE を得てから完了すること。
 
 **ホワイトリストの例**:
 
@@ -320,8 +332,13 @@ ultrawork の自律実行中は、**特定条件下でのみ**これらの確認
 └─────────────────────────────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ 完了処理                                                    │
+│ 完了処理 ★ review_status チェック必須 ★                    │
 ├─────────────────────────────────────────────────────────────┤
+│  0. ★ review_status 確認（必須）                           │
+│     → ultrawork-active.json の review_status を確認        │
+│     → "passed" でない場合 → 完了処理を中断、警告を表示     │
+│     → 「harness-review で APPROVE を得てください」         │
+│                                                             │
 │  1. ガードバイパス解除                                      │
 │     → ultrawork-active.json 削除                           │
 │  2. 最終コミット（「コミットしないで」でスキップ）          │
@@ -398,6 +415,13 @@ ultrawork の自律実行中は、**特定条件下でのみ**これらの確認
 
 ## Completion Conditions
 
+> ⚠️ **WARNING: Review なしで完了扱い不可**
+>
+> ultrawork の完了処理は `review_status === "passed"` の場合のみ実行可能です。
+> セッションが継続（compact）しても、この条件は `ultrawork-active.json` で永続化されます。
+>
+> **必ず `/harness-review` で APPROVE を得てから完了してください。**
+
 ### デフォルト完了条件
 
 以下の**全て**を満たしたとき完了:
@@ -406,6 +430,7 @@ ultrawork の自律実行中は、**特定条件下でのみ**これらの確認
 2. ✅ 全体ビルド成功
 3. ✅ 全テスト通過（またはテストなし）
 4. ✅ harness-review で Critical/High なし
+5. ✅ **`review_status === "passed"`**（ultrawork-active.json で確認）
 
 ### カスタム完了条件
 

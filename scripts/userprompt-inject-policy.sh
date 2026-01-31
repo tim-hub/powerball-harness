@@ -153,6 +153,31 @@ fi
 # 注入コンテキストの生成
 INJECTION=""
 
+# ===== ultrawork モード検出と一度だけの harness-review 必須警告 =====
+# compact 後に session-resume.sh が発火しない場合の保険として、
+# UserPromptSubmit で一度だけ警告を注入する
+ULTRAWORK_FILE="${STATE_DIR}/ultrawork-active.json"
+ULTRAWORK_WARNED_FLAG="${STATE_DIR}/.ultrawork-review-warned"
+
+if [ -f "$ULTRAWORK_FILE" ] && [ ! -f "$ULTRAWORK_WARNED_FLAG" ] && command -v jq >/dev/null 2>&1; then
+  REVIEW_STATUS=$(jq -r '.review_status // "pending"' "$ULTRAWORK_FILE" 2>/dev/null)
+
+  if [ "$REVIEW_STATUS" != "passed" ]; then
+    INJECTION="
+## ⚡ ultrawork モード継続中
+
+**review_status: ${REVIEW_STATUS}**
+
+> ⚠️ **重要**: ultrawork の完了処理は \`review_status === \"passed\"\` の場合のみ実行可能です。
+> 必ず \`/harness-review\` で APPROVE を得てから完了してください。
+> コード変更後は review_status が pending にリセットされるため、再レビューが必要です。
+
+"
+    # 一度だけ警告するためのフラグを作成
+    touch "$ULTRAWORK_WARNED_FLAG" 2>/dev/null || true
+  fi
+fi
+
 if [ "$INTENT" = "semantic" ]; then
   if [ "$LSP_AVAILABLE" = "true" ]; then
     # LSP導入済み：LSPツール使用を推奨

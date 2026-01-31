@@ -155,4 +155,28 @@ if [ "$IS_IMPORTANT" = "true" ]; then
   esac
 fi
 
+# ==============================================================================
+# ultrawork モード時の review_status リセット
+# ==============================================================================
+# ultrawork 実行中に Write/Edit が入った場合、review_status を pending に戻す
+# これにより、コード変更後は必ず再レビューが必要になる
+# ==============================================================================
+ULTRAWORK_FILE=".claude/state/ultrawork-active.json"
+if [ -f "$ULTRAWORK_FILE" ] && command -v jq >/dev/null 2>&1; then
+  CURRENT_STATUS=$(jq -r '.review_status // "pending"' "$ULTRAWORK_FILE" 2>/dev/null)
+
+  # passed または failed の場合のみ pending にリセット
+  if [ "$CURRENT_STATUS" = "passed" ] || [ "$CURRENT_STATUS" = "failed" ]; then
+    TEMP_UW=$(mktemp 2>/dev/null)
+    if [ -n "$TEMP_UW" ]; then
+      if jq '.review_status = "pending"' "$ULTRAWORK_FILE" > "$TEMP_UW" 2>/dev/null; then
+        mv "$TEMP_UW" "$ULTRAWORK_FILE" 2>/dev/null || rm -f "$TEMP_UW"
+        echo "⚠️ ultrawork: コード変更を検出 → review_status を pending にリセット（再レビュー必須）" >&2
+      else
+        rm -f "$TEMP_UW"
+      fi
+    fi
+  fi
+fi
+
 exit 0
