@@ -20,6 +20,12 @@ planner.md からのシナリオ:
 ```
 シナリオ（N シーン）
     │
+    ├─[素材生成フェーズ] ← NEW
+    │   ├── 各シーンの素材必要判定
+    │   ├── Nano Banana Pro で画像生成（2枚）
+    │   ├── Claude が品質判定
+    │   └── OK → 採用 / NG → 再生成（最大3回）
+    │
     ├─[並列数決定]
     │   └─ min(シーン数, 5) を並列数とする
     │
@@ -37,6 +43,99 @@ planner.md からのシナリオ:
     └─[レンダリングフェーズ]
         └── 最終出力（mp4/webm/gif）
 ```
+
+---
+
+## 素材生成フェーズ（Nano Banana Pro）
+
+シーン生成前に、必要な素材画像を自動生成します。
+
+### 素材必要判定
+
+| シーンタイプ | 素材必要 | 理由 |
+|-------------|---------|------|
+| intro | ✅ 必要 | ロゴ、タイトルカード |
+| cta | ✅ 必要 | アクションバナー |
+| architecture | ✅ 必要 | 概念図、ダイアグラム |
+| ui-demo | ❌ 不要 | Playwright キャプチャ使用 |
+| changelog | ❌ 不要 | テキストベース |
+
+### 判定ロジック
+
+```javascript
+const needsGeneratedAsset = (scene) => {
+  // 既存素材がある場合はスキップ
+  if (scene.existingAssets?.length > 0) return false;
+
+  // Playwright キャプチャ対象はスキップ
+  if (scene.template === 'ui-demo') return false;
+
+  // テキストベースシーンはスキップ
+  if (scene.template === 'changelog') return false;
+
+  // それ以外は生成対象
+  return ['intro', 'cta', 'architecture', 'feature-highlight'].includes(scene.template);
+};
+```
+
+### 生成フロー
+
+```
+各シーンに対して:
+    │
+    ├── needsGeneratedAsset(scene) = false
+    │   └─ スキップ → 次のシーンへ
+    │
+    └── needsGeneratedAsset(scene) = true
+        │
+        ├── [Step 1] プロンプト生成
+        │   └─ シーン情報 + ブランド情報からプロンプト構築
+        │
+        ├── [Step 2] 画像生成（2枚同時）
+        │   └─ Nano Banana Pro API 呼び出し
+        │   └─ → image-generator.md 参照
+        │
+        ├── [Step 3] 品質判定
+        │   └─ Claude が2枚を評価・選択
+        │   └─ → image-quality-check.md 参照
+        │
+        └── [Step 4] 結果処理
+            ├── 成功 → out/assets/generated/{scene_name}.png
+            └── 失敗 → 再生成（最大3回）or フォールバック
+```
+
+### 生成画像の保存先
+
+```
+out/
+└── assets/
+    └── generated/
+        ├── intro.png
+        ├── cta.png
+        ├── architecture.png
+        └── feature-highlight.png
+```
+
+### シーンへの組み込み
+
+生成した画像は、シーン生成エージェントに渡されます:
+
+```
+Task:
+  subagent_type: "video-scene-generator"
+  prompt: |
+    シーン情報:
+    - 名前: intro
+    - テンプレート: intro
+    - 生成画像: out/assets/generated/intro.png  ← 追加
+
+    生成画像を背景またはメイン要素として使用してください。
+```
+
+### 詳細ドキュメント
+
+- [image-generator.md](./image-generator.md) - API 呼び出し、プロンプト設計
+- [image-quality-check.md](./image-quality-check.md) - 品質判定ロジック
 
 ---
 
@@ -195,6 +294,88 @@ export const CTAScene: React.FC<{
 
 export const DURATION = 150; // 5秒 @ 30fps
 ```
+
+---
+
+## 音声同期ルール（重要）
+
+ナレーション付き動画を生成する際は、以下のルールを厳守すること。
+
+### 1. 音声ファイル長さの事前確認
+
+```bash
+# 各音声ファイルの長さを確認
+for f in public/audio/*.wav; do
+  name=$(basename "$f" .wav)
+  dur=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$f")
+  frames=$(echo "$dur * 30" | bc | cut -d. -f1)
+  echo "$name: ${dur}秒 = ${frames}フレーム"
+done
+```
+
+### 2. シーン長さの計算式
+
+```
+シーン長さ = 1秒待機(30f) + 音声長さ + トランジション前余白(20f以上)
+```
+
+| 要素 | フレーム数 | 説明 |
+|------|-----------|------|
+| 1秒待機 | 30f | シーン開始後、視覚的に落ち着いてから音声開始 |
+| 音声長さ | 可変 | ffprobe で事前確認 |
+| 余白 | 20f以上 | トランジション開始前に音声終了 |
+
+### 3. 音声開始タイミング
+
+```
+音声開始 = シーン開始フレーム + 30フレーム（1秒待機）
+```
+
+### 4. シーン開始フレームの計算（TransitionSeries使用時）
+
+```
+シーン開始フレーム = 前シーン開始 + 前シーン長さ - トランジション長さ
+```
+
+**例（トランジション15フレームの場合）**:
+```
+hook:       0
+problem:    175 - 15 = 160
+solution:   160 + 415 - 15 = 560
+workPlan:   560 + 340 - 15 = 885
+...
+```
+
+### 5. 実装テンプレート
+
+```tsx
+const SCENE_DURATIONS = {
+  hook: 175,      // 30 + 121(音声) + 24(余白)
+  problem: 415,   // 30 + 360(音声) + 25(余白)
+  solution: 340,  // 30 + 286(音声) + 24(余白)
+  // ...
+};
+const TRANSITION = 15;
+
+// シーン開始フレーム（累積計算）
+// hook:0, problem:160, solution:560, ...
+
+const audioTimings = {
+  hook: 30,       // シーン0 + 30
+  problem: 190,   // シーン160 + 30
+  solution: 590,  // シーン560 + 30
+  // ...
+};
+```
+
+### 6. よくある問題と対策
+
+| 問題 | 原因 | 対策 |
+|------|------|------|
+| 音声が被る | 前の音声終了前に次の音声開始 | 音声長さを確認し、シーン長さを調整 |
+| スライド変更と音声がずれる | TransitionSeriesのオーバーラップ未考慮 | シーン開始 = 前シーン開始 + 前シーン長 - トランジション長 |
+| 音声が途中で切れる | シーン長さ < 音声長さ | シーン長さを音声長さ + 余白に調整 |
+| 無音時間が長い | 音声開始が遅すぎる | シーン開始 + 30f で統一 |
 
 ---
 

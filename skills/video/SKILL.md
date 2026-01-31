@@ -23,11 +23,14 @@ allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task", "AskUse
 | **コードベース分析** | See [references/analyzer.md](references/analyzer.md) |
 | **シナリオプランニング** | See [references/planner.md](references/planner.md) |
 | **並列シーン生成** | See [references/generator.md](references/generator.md) |
+| **AI画像生成** | See [references/image-generator.md](references/image-generator.md) |
+| **画像品質判定** | See [references/image-quality-check.md](references/image-quality-check.md) |
 
 ## Prerequisites
 
 - Remotion がセットアップ済み（`/remotion-setup`）
 - Node.js 18+
+- （オプション）`GOOGLE_AI_API_KEY` - AI画像生成用
 
 ## `/generate-video` フロー
 
@@ -44,6 +47,12 @@ allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task", "AskUse
     │   ├─ 動画タイプ自動判定
     │   ├─ シーン構成提案
     │   └─ ユーザー確認
+    │
+    ├─[Step 2.5] 素材生成（image-generator.md）← NEW
+    │   ├─ 素材必要判定（イントロ、CTA等）
+    │   ├─ Nano Banana Pro で2枚生成
+    │   ├─ Claude が品質判定（image-quality-check.md）
+    │   └─ OK → 採用 / NG → 再生成（最大3回）
     │
     └─[Step 3] 並列生成（generator.md）
         ├─ シーン並列生成（Task tool）
@@ -105,8 +114,25 @@ allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task", "AskUse
 
 > 詳細テンプレート: [references/best-practices.md](references/best-practices.md#テンプレート)
 
+## 音声同期ルール（重要）
+
+ナレーション付き動画では以下を厳守:
+
+| ルール | 値 |
+|--------|-----|
+| 音声開始 | シーン開始 + 30f（1秒待機） |
+| シーン長さ | 30f + 音声長さ + 20f余白 |
+| トランジション | 15f（隣接シーンとオーバーラップ） |
+| シーン開始計算 | 前シーン開始 + 前シーン長 - 15f |
+
+**事前確認**: `ffprobe` で音声長さを確認してからシーン設計
+
+> 詳細: [references/generator.md](references/generator.md#音声同期ルール重要)
+
 ## Notes
 
 - Remotion未セットアップの場合は `/remotion-setup` を案内
 - 並列生成数はシーン数に応じて自動調整（max 5）
 - 生成された動画は `out/` ディレクトリに出力
+- AI生成画像は `out/assets/generated/` に保存
+- `GOOGLE_AI_API_KEY` 未設定時は画像生成をスキップ（既存素材 or プレースホルダー使用）
