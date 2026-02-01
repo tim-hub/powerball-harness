@@ -328,7 +328,6 @@ flowchart TB
 
     subgraph HANDOFF["Handoff Commands（連携コマンド）"]
         H1["/handoff-to-cursor - Cursor への引き継ぎ"]
-        H2["/cc-cursor-cc - Cursor 経由の検証"]
     end
 
     subgraph OPTIONAL["Optional Commands（オプション）"]
@@ -364,7 +363,6 @@ flowchart TB
 | コマンド               | 説明                                                             | 用途                      |
 | ---------------------- | ---------------------------------------------------------------- | ------------------------- |
 | `/handoff-to-cursor` | 完了レポートを生成し、Cursor（PM）に引き継ぐ                     | 2-Agent: Impl → PM       |
-| `/cc-cursor-cc`      | Cursor でアイデアを検証し、Plans.md を更新後、Claude Code に戻す | 2-Agent: 計画の妥当性確認 |
 
 ### 3.4 Optional Commands 詳細
 
@@ -426,7 +424,7 @@ flowchart TB
     end
 
     subgraph WORKFLOW_GROUP["ワークフロー系"]
-        WF["workflow - ハンドオフ"]
+        WF["handoff - ハンドオフ"]
         WFG["workflow-guide - ガイダンス"]
         AGENT2["2agent - 2-Agent設定"]
         PARALLEL["parallel-workflows - 並列最適化"]
@@ -440,14 +438,14 @@ flowchart TB
 
     subgraph DEPLOY_GROUP["デプロイ・ドキュメント系"]
         DEPLOY["deploy - デプロイ"]
-        DOCS["docs - ドキュメント"]
+        DOCS["notebookLM - ドキュメント"]
         MAINT["maintenance - メンテナンス"]
     end
 
     subgraph INTEGRATION_GROUP["外部連携系"]
         CODEX["codex-review - Codex統合"]
         CURSOR["cursor-mem - Cursorメモリ"]
-        BROWSER["dev-browser - ブラウザ自動化"]
+        BROWSER["agent-browser - ブラウザ自動化"]
     end
 ```
 
@@ -490,7 +488,7 @@ flowchart TB
 
 | スキル                 | 説明                                             | トリガー例                             |
 | ---------------------- | ------------------------------------------------ | -------------------------------------- |
-| `workflow`           | ハンドオフ管理、レビューコメントの自動修正       | 「ハンドオフ」「PMに報告」「自動修正」 |
+| `handoff`            | ハンドオフ管理、レビューコメントの自動修正       | 「ハンドオフ」「PMに報告」「自動修正」 |
 | `workflow-guide`     | Cursor ↔ Claude Code 2-Agent ワークフローの解説 | 「ワークフロー」「コラボ」「プロセス」 |
 | `2agent`             | 2-Agent ワークフローの設定                       | 「2-Agent」「Cursor設定」「PM連携」    |
 | `parallel-workflows` | 複数タスクの並列実行最適化                       | 「並列で」「同時に」                   |
@@ -508,7 +506,7 @@ flowchart TB
 | スキル          | 説明                                                        | トリガー例                                 |
 | --------------- | ----------------------------------------------------------- | ------------------------------------------ |
 | `deploy`      | Vercel/Netlify へのデプロイ、アナリティクス、ヘルスチェック | 「デプロイ」「Vercel」「GA」               |
-| `docs`        | NotebookLM YAML やスライド用ドキュメント生成                | 「ドキュメント」「NotebookLM」「スライド」 |
+| `notebookLM`  | NotebookLM YAML やスライド用ドキュメント生成                | 「ドキュメント」「NotebookLM」「スライド」 |
 | `maintenance` | プロジェクトファイルの整理・クリーンアップ                  | 「整理して」「クリーンアップ」             |
 
 #### 外部連携系スキル
@@ -517,7 +515,7 @@ flowchart TB
 | ---------------- | -------------------------------------------------------------- | ---------------------------------------------------- |
 | `codex-review` | OpenAI Codex CLI を MCP サーバーとして統合、セカンドオピニオン | 「Codex レビュー」「セカンドオピニオン」             |
 | `cursor-mem`   | Cursor から claude-mem MCP サーバーにアクセス                  | 「メモリ検索」「過去の決定」                         |
-| `dev-browser`  | 永続的なページ状態でのブラウザ自動化                           | 「URL にアクセス」「クリック」「スクリーンショット」 |
+| `agent-browser`  | 永続的なページ状態でのブラウザ自動化                           | 「URL にアクセス」「クリック」「スクリーンショット」 |
 
 ---
 
@@ -960,7 +958,7 @@ claude-code-harness/
 │   ├── setup/
 │   ├── memory/
 │   ├── session-init/
-│   ├── workflow/
+│   ├── handoff/
 │   └── ...
 ├── agents/                   # サブエージェント（8個）
 │   ├── task-worker.md
