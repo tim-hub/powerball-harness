@@ -3,13 +3,15 @@
 </p>
 
 <p align="center">
-  <strong>Turn Claude Code into a self-correcting development team.</strong>
+  <strong>Plan. Work. Review. Ship.</strong><br>
+  <em>Turn Claude Code into a disciplined development partner.</em>
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.14.10-blue.svg" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.16.12-blue.svg" alt="Version"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
-  <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1.21+-purple.svg" alt="Claude Code"></a>
+  <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
+  <img src="https://img.shields.io/badge/Skills-42-orange.svg" alt="Skills">
 </p>
 
 <p align="center">
@@ -18,200 +20,179 @@
 
 ---
 
-## The Problem
+## Why Harness?
 
-**Claude is brilliant. But it forgets. It wanders. It breaks things.**
+Claude Code is powerful—but sometimes it needs structure.
 
-| Issue | What Happens |
-|-------|--------------|
-| **Forgets** | Past decisions vanish between sessions |
-| **Wanders** | Starts coding without a plan, loses direction |
-| **Breaks** | Skips tests, bypasses lint, ships bugs |
-| **Rushes** | Takes shortcuts when stuck—test tampering, empty catch blocks |
+```mermaid
+graph LR
+    A[Your Idea] --> B["/plan-with-agent"]
+    B --> C["Plans.md"]
+    C --> D["/work"]
+    D --> E["Code + Self-Review"]
+    E --> F["/harness-review"]
+    F --> G["Ship It"]
+```
 
-Sound familiar?
+**Three commands. One workflow. Production-ready code.**
+
+> **For VibeCoders**: Just say "I want a login form with email validation" and Harness handles planning, implementation, and review automatically.
 
 ---
 
-## The Solution
+## Requirements
 
-**Claude Harness wraps Claude Code in guardrails that enforce discipline.**
+Before installing, ensure you have:
 
-```
-Plan  →  Work  →  Review  →  Commit
-```
-
-Three core commands to remember.
-
-```bash
-/plan-with-agent   # Brainstorm → Structured plan
-/work              # Execute with parallel workers + self-review
-/harness-review    # 4-perspective parallel code review
-```
-
-**Result:** Production-ready code, not prototypes.
+- **Claude Code v2.1+** ([Install Guide](https://docs.anthropic.com/claude-code))
+- **Node.js 18+** (for safety hooks)
 
 ---
 
-## Quick Start
-
-### 10-Second Install
+## Install in 30 Seconds
 
 ```bash
-# In any project directory
+# Start Claude Code in your project
 claude
 
-# Then run:
+# Add the marketplace & install
 /plugin marketplace add Chachamaru127/claude-code-harness
 /plugin install claude-code-harness@claude-code-harness-marketplace
+
+# Initialize your project
 /harness-init
 ```
 
-**Done.** Start with `/plan-with-agent`.
-
-<details>
-<summary>Alternative: One-liner script</summary>
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/Chachamaru127/claude-code-harness/main/scripts/quick-install.sh | bash
-```
-
-With dev tools (AST-Grep + LSP):
-```bash
-curl -fsSL https://raw.githubusercontent.com/Chachamaru127/claude-code-harness/main/scripts/quick-install.sh | bash -s -- --with-dev-tools
-```
-
-</details>
-
-<details>
-<summary>Alternative: Local clone</summary>
-
-```bash
-git clone https://github.com/Chachamaru127/claude-code-harness.git ~/claude-plugins/claude-code-harness
-cd /path/to/your-project
-claude --plugin-dir ~/claude-plugins/claude-code-harness
-```
-
-</details>
+That's it. Start with `/plan-with-agent`.
 
 ---
 
-## Before → After
+## The Core Loop
 
-| Before (Raw Claude Code) | After (With Harness) |
-|--------------------------|----------------------|
-| Starts coding immediately | Plans first, then executes |
-| Reviews only if you ask | Auto-reviews every change |
-| Forgets past decisions | SSOT files preserve context |
-| `rm -rf` runs without warning | Dangerous commands require confirmation |
-| Manual `git commit` after work | Auto-commits when review passes |
-| One task at a time | Parallel workers for speed |
+### 1. Plan
 
----
-
-## Key Features
-
-### 🎯 Plan → Work → Review Cycle
-
-Every idea goes through the same loop:
-
-1. **Plan** — `/plan-with-agent` turns vague ideas into `Plans.md`
-2. **Work** — `/work` executes tasks with parallel workers
-3. **Review** — `/harness-review` runs 4 perspectives in parallel
-
-### 🛡️ Safety Hooks
-
-| Protected | Action |
-|-----------|--------|
-| `.git/`, `.env`, secrets | Write blocked |
-| `rm -rf`, `sudo`, `git push --force` | Confirmation required |
-| `git status`, `npm test` | Auto-allowed |
-
-### 🧠 Persistent Memory
-
-- **SSOT files**: `decisions.md` (why) + `patterns.md` (how)
-- **Claude-mem integration**: Past learnings survive across sessions
-- **Session resume**: Pick up exactly where you left off
-
-### ⚡ Parallel Execution
+Turn ideas into structured tasks.
 
 ```bash
-/work --parallel 5   # 5 workers in parallel
+/plan-with-agent
 ```
 
-Each worker implements and self-reviews. Auto-commit after global review passes.
+> "I want a login form with email validation"
 
-### 🔍 4-Perspective Parallel Code Review
+Harness creates `Plans.md` with clear acceptance criteria.
+
+### 2. Work
+
+Execute tasks with parallel workers.
+
+```bash
+/work              # Auto-detect parallelism
+/work --parallel 5 # 5 workers simultaneously
+```
+
+Each worker implements, self-reviews, and reports.
+
+### 3. Review
+
+4-perspective code review in parallel.
 
 ```bash
 /harness-review
 ```
 
-Security, performance, accessibility, quality—4 perspectives review simultaneously in parallel. Add [Codex](https://github.com/openai/codex) for second opinions (selects 4 relevant experts from 16 specialist types).
+| Perspective | Focus |
+|-------------|-------|
+| Security | Vulnerabilities, injection, auth |
+| Performance | Bottlenecks, memory, scaling |
+| Quality | Patterns, naming, maintainability |
+| Accessibility | WCAG compliance, screen readers, UX |
 
-### 🔧 Code Intelligence
+---
 
-```bash
-/dev-tools-setup   # One-time setup
-```
+## What Changes
 
-AST-Grep + LSP for structural search and semantic analysis.
+| Without Harness | With Harness |
+|-----------------|--------------|
+| Jumps into code immediately | Plans first, then executes |
+| Reviews only when asked | Auto-reviews every change |
+| Forgets past decisions | SSOT files preserve context |
+| `rm -rf` runs without warning | Dangerous commands blocked |
+| Manual git operations | Auto-commits when approved |
+| One task at a time | Parallel workers |
+
+> **SSOT** (Single Source of Truth): Files that store decisions and patterns across sessions.
+
+---
+
+## Safety First
+
+Harness protects your codebase with hooks (automatic safety checks):
+
+| Protected | Action |
+|-----------|--------|
+| `.git/`, `.env`, secrets | Write blocked |
+| `rm -rf`, `sudo`, `--force` | Confirmation required |
+| `git status`, `npm test` | Auto-allowed |
+| Test tampering | Warning triggered |
+
+---
+
+## 42 Skills, Zero Config
+
+Skills are capabilities that auto-load based on context. Use slash commands or just describe what you want.
+
+| Say This | Skill Activates |
+|----------|-----------------|
+| "implement login" | `impl` |
+| "review this code" | `harness-review` |
+| "fix the build error" | `verify` |
+| "add Stripe payments" | `auth` |
+| "deploy to Vercel" | `deploy` |
+| "create a hero section" | `ui` |
+
+> **Note**: All skills can be invoked via `/skill-name` command or natural language.
 
 ---
 
 ## Who Is This For?
 
-| You | Benefit |
-|-----|---------|
-| **Solo developers** | Ship faster without sacrificing quality |
-| **Freelancers** | Deliver review reports as proof of quality |
+| You Are | Harness Helps You |
+|---------|-------------------|
+| **Developer** | Ship faster with built-in QA |
+| **Freelancer** | Deliver review reports to clients |
+| **Indie Hacker** | Move fast without breaking things |
 | **VibeCoder** | Build apps with natural language |
-| **Cursor users** | 2-Agent workflow: Cursor plans, Claude Code implements |
+| **Team Lead** | Enforce standards across projects |
 
 ---
 
-## Commands
+## Commands at a Glance
 
 ### Core Workflow
 
-| Command | Purpose |
-|---------|---------|
-| `/plan-with-agent` | Turn ideas into actionable plans |
-| `/work` | Execute tasks from Plans.md |
-| `/harness-review` | 4-perspective parallel code review |
-| `/sync-status` | Check progress, suggest next action |
+| Command | What It Does |
+|---------|--------------|
+| `/plan-with-agent` | Ideas → `Plans.md` |
+| `/work` | Execute tasks in parallel |
+| `/harness-review` | 4-perspective review |
 
-### Setup & Ops
+### Operations
 
-| Command | Purpose |
-|---------|---------|
+| Command | What It Does |
+|---------|--------------|
 | `/harness-init` | Initialize project |
 | `/harness-update` | Update plugin |
-| `/dev-tools-setup` | Setup AST-Grep + LSP |
-| `/skill-list` | Show all 28 skill categories |
+| `/sync-status` | Check progress |
+| `/maintenance` | Clean up old tasks |
 
-### 2-Agent (Cursor)
+### Memory
 
-| Command | Purpose |
-|---------|---------|
-| `/handoff-to-cursor` | Report completion to PM |
+| Command | What It Does |
+|---------|--------------|
+| `/sync-ssot-from-memory` | Promote decisions to SSOT |
+| `/memory` | Manage SSOT files |
 
----
-
-## Skills
-
-Skills auto-trigger based on your request:
-
-| Skill | Triggers |
-|-------|----------|
-| `impl` | "implement", "add feature", "build" |
-| `review` | "review", "check security", "audit" |
-| `verify` | "build", "fix errors", "recover" |
-| `auth` | "login", "Stripe", "payment" |
-| `deploy` | "deploy", "Vercel", "production" |
-| `ui` | "hero section", "component", "form" |
-
-**28 skill categories.** Run `/skill-list` to see all.
+> **How it works**: Skills replaced commands in v2.16. You can invoke them via `/command` or natural language—same functionality, smarter loading.
 
 ---
 
@@ -219,8 +200,7 @@ Skills auto-trigger based on your request:
 
 ```
 claude-code-harness/
-├── commands/     # 31 slash commands
-├── skills/       # 28 skill categories
+├── skills/       # 42 skill definitions
 ├── agents/       # 8 sub-agents (parallel workers)
 ├── hooks/        # Safety & automation
 ├── scripts/      # Guard scripts
@@ -229,33 +209,116 @@ claude-code-harness/
 
 ---
 
-## Documentation
+## Advanced Features
 
-| Guide | Description |
-|-------|-------------|
-| [Changelog](CHANGELOG.md) | What's new in each version |
-| [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md) | Version requirements |
-| [Cursor Integration](docs/CURSOR_INTEGRATION.md) | 2-Agent workflow setup |
-| [OpenCode Compatibility](docs/OPENCODE_COMPATIBILITY.md) | Use with other LLMs |
+<details>
+<summary><strong>Parallel Execution</strong></summary>
+
+```bash
+/work --parallel 5
+```
+
+Each worker runs independently:
+1. Implements assigned task
+2. Runs self-review
+3. Reports completion
+
+Global review runs after all workers finish.
+
+</details>
+
+<details>
+<summary><strong>2-Agent Mode (with Cursor)</strong></summary>
+
+Use Cursor as PM, Claude Code as implementer.
+
+```bash
+/handoff       # Report to Cursor PM
+```
+
+Plans.md syncs between both.
+
+</details>
+
+<details>
+<summary><strong>Codex Integration</strong></summary>
+
+Add OpenAI Codex for second opinions:
+
+```bash
+/harness-review  # 4 perspectives + Codex
+```
+
+Codex selects 4 relevant experts from 16 specialist types.
+
+> **Setup required**: Install [Codex CLI](https://github.com/openai/codex) and configure API key. This is an optional feature.
+
+</details>
+
+<details>
+<summary><strong>Video Generation</strong></summary>
+
+Generate product videos with Remotion:
+
+```bash
+/generate-video
+```
+
+AI-generated scenes, narration, and effects.
+
+> **Dependencies**: Requires [Remotion](https://www.remotion.dev/) project setup and ffmpeg. This is an optional feature for advanced users.
+
+</details>
 
 ---
 
-## Requirements
+## Troubleshooting
 
-- **Claude Code v2.1.21+** (recommended)
-- See [compatibility guide](docs/CLAUDE_CODE_COMPATIBILITY.md) for details
+| Issue | Solution |
+|-------|----------|
+| Command not found | Run `/harness-init` first |
+| Plugin not loading | Clear cache: `rm -rf ~/.claude/plugins/cache/claude-code-harness-marketplace/` and restart |
+| Hooks not working | Ensure Node.js 18+ is installed |
+
+For more help, [open an issue](https://github.com/Chachamaru127/claude-code-harness/issues).
+
+---
+
+## Uninstall
+
+```bash
+/plugin uninstall claude-code-harness
+```
+
+This removes the plugin. Project files (Plans.md, SSOT files) remain unchanged.
+
+---
+
+## Documentation
+
+| Resource | Description |
+|----------|-------------|
+| [Changelog](CHANGELOG.md) | Version history |
+| [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md) | Requirements |
+| [Cursor Integration](docs/CURSOR_INTEGRATION.md) | 2-Agent setup |
+
+---
+
+## Contributing
+
+Issues and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
 ## Acknowledgments
 
-- **Hierarchical Skill Structure**: [AI Masao](https://note.com/masa_wunder)
-- **Test Tampering Prevention**: [Beagle](https://github.com/beagleworks) (Claude Code Meetup Tokyo 2025.12.22)
+- [AI Masao](https://note.com/masa_wunder) — Hierarchical skill design
+- [Beagle](https://github.com/beagleworks) — Test tampering prevention patterns
 
 ---
 
 ## License
 
-**MIT License** — Free to use, modify, and commercialize.
+**MIT License** — Free to use, modify, commercialize.
 
 [English](LICENSE.md) | [日本語](LICENSE.ja.md)

@@ -9,6 +9,39 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.16.12] - 2026-02-02
+
+### 🎯 What's Changed for You
+
+**README completely rewritten for both engineers and VibeCoders**
+
+Both English and Japanese README files have been rewritten from scratch with accurate information and better accessibility for non-technical users.
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| Outdated version (2.14.10) | Current version (2.16.12) |
+| Inaccurate counts (46+ skills) | Accurate counts (42 skills, 8 agents) |
+| Technical jargon only | SSOT/hooks explained for beginners |
+| No troubleshooting | Troubleshooting section added |
+| No uninstall instructions | Uninstall section added |
+
+### Changed
+
+- **README.md / README_ja.md completely rewritten**
+  - Added VibeCoder example at top ("Just say X and Harness handles it")
+  - Added Requirements section before install
+  - Added SSOT and hooks explanations for non-technical users
+  - Added Codex CLI setup prerequisites in Advanced Features
+  - Added Remotion/ffmpeg dependencies for video generation
+  - Added Troubleshooting section
+  - Added Uninstall section
+  - Fixed skills count: 42 (git-tracked)
+  - Fixed agents count: 8 (excluding CLAUDE.md)
+
+---
+
 ## [2.16.11] - 2026-02-02
 
 ### 🎯 What's Changed for You
