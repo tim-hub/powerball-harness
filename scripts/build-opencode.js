@@ -371,9 +371,14 @@ function main() {
   clearDir(OPENCODE_SKILLS_DIR);
   ensureDir(OPENCODE_DIR);
 
-  // コマンドを変換
+  // コマンドを変換（v2.17.0+: commands/ は Skills に移行済み、存在する場合のみ処理）
   console.log('📁 Converting commands:');
-  const commandCount = processDirectory(COMMANDS_DIR, OPENCODE_COMMANDS_DIR);
+  let commandCount = 0;
+  if (fs.existsSync(COMMANDS_DIR)) {
+    commandCount = processDirectory(COMMANDS_DIR, OPENCODE_COMMANDS_DIR);
+  } else {
+    console.log('  ⏭ commands/ not found (migrated to skills in v2.17.0+)');
+  }
 
   // PM コマンドを変換（templates/opencode/commands/ から）
   console.log('\n📁 Processing PM commands (from templates/opencode/):');

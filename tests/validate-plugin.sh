@@ -103,14 +103,14 @@ for field in "${REQUIRED_FIELDS[@]}"; do
 done
 
 echo ""
-echo "2. コマンドの検証"
+echo "2. コマンドの検証（レガシー）"
 echo "----------------------------------------"
 
-# コマンドは plugin.json で手動列挙せず、commands/ を自動検出する（Claude Code Plugins reference 準拠）
-# サブディレクトリ内のコマンドも検出（core/, handoff/, optional/ 等）
+# v2.17.0 以降: コマンドは Skills に移行済み
+# commands/ ディレクトリが存在する場合のみ検証（後方互換性）
 if [ -d "$PLUGIN_ROOT/commands" ]; then
     CMD_COUNT=$(find "$PLUGIN_ROOT/commands" -name "*.md" -type f | wc -l | tr -d ' ')
-    pass_test "commands/ に ${CMD_COUNT} 個のコマンドファイルがあります"
+    pass_test "commands/ に ${CMD_COUNT} 個のコマンドファイルがあります（レガシー）"
 
     # サブディレクトリ構造を表示
     for subdir in "$PLUGIN_ROOT/commands"/*/; do
@@ -136,7 +136,8 @@ if [ -d "$PLUGIN_ROOT/commands" ]; then
         fi
     done < <(find "$PLUGIN_ROOT/commands" -name "*.md" -type f | sort)
 else
-    fail_test "commands ディレクトリが見つかりません"
+    # v2.17.0+: Skills に移行済みのため、commands/ は不要
+    pass_test "commands/ は Skills に移行済み（v2.17.0+）"
 fi
 
 echo ""

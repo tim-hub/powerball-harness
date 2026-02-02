@@ -9,6 +9,19 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.16.15] - 2026-02-02
+
+### Fixed
+
+- **CI: validate-plugin.sh** now works with Skills-only architecture
+  - No longer fails when `commands/` directory doesn't exist
+  - Shows "commands/ は Skills に移行済み（v2.17.0+）" message
+- **CI: build-opencode.js** gracefully handles missing `commands/` directory
+  - Skips command processing if directory doesn't exist
+  - OpenCode sync works correctly post-Skills migration
+
+---
+
 ## [2.16.14] - 2026-02-02
 
 ### 🎯 What's Changed for You
