@@ -9,6 +9,39 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.16.17] - 2026-02-03
+
+### 🎯 What's Changed for You
+
+**All user-invocable skills now have `argument-hint` for better discoverability**
+
+Skills now show usage hints in autocomplete, making it easier to understand what arguments each skill accepts.
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| `/harness-review` (no hint) | `/harness-review [code\|plan\|scope]` |
+| `/troubleshoot` (no hint) | `/troubleshoot [build\|test\|runtime]` |
+| `/sync-status` (no hint) | `/sync-status [--verbose]` |
+
+### Added
+
+- **Skills Spec A+ compliance**: 17 skills now have `argument-hint` in frontmatter
+  - `2agent`, `agent-browser`, `ci`, `codex-review`, `cursor-mem`, `deploy`
+  - `generate-video`, `harness-mem`, `harness-review`, `harness-update`
+  - `localize-rules`, `maintenance`, `memory`, `notebookLM`
+  - `sync-ssot-from-memory`, `sync-status`, `troubleshoot`
+- **Session notification hooks**: Inter-session communication via inbox-check and auto-broadcast
+
+### Changed
+
+- **agents/*.md**: Updated skill references (`review` → `harness-review`)
+- **CONTRIBUTING.md**: Updated for Skills migration (v2.17.0+)
+- **Tests**: Updated for Skills-only architecture
+
+---
+
 ## [2.16.15] - 2026-02-02
 
 ### Fixed

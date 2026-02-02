@@ -9,6 +9,39 @@
 
 ---
 
+## [2.16.17] - 2026-02-03
+
+### 🎯 あなたにとって何が変わるか
+
+**すべてのユーザー起動可能スキルに `argument-hint` が追加され、使い方が分かりやすくなりました**
+
+スキルがオートコンプリートで使用法のヒントを表示するようになり、各スキルがどんな引数を受け付けるか理解しやすくなりました。
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| `/harness-review`（ヒントなし） | `/harness-review [code\|plan\|scope]` |
+| `/troubleshoot`（ヒントなし） | `/troubleshoot [build\|test\|runtime]` |
+| `/sync-status`（ヒントなし） | `/sync-status [--verbose]` |
+
+### Added
+
+- **Skills Spec A+ 準拠**: 17スキルに `argument-hint` をフロントマターに追加
+  - `2agent`, `agent-browser`, `ci`, `codex-review`, `cursor-mem`, `deploy`
+  - `generate-video`, `harness-mem`, `harness-review`, `harness-update`
+  - `localize-rules`, `maintenance`, `memory`, `notebookLM`
+  - `sync-ssot-from-memory`, `sync-status`, `troubleshoot`
+- **セッション間通知フック**: inbox-check と auto-broadcast でセッション間通信
+
+### Changed
+
+- **agents/*.md**: スキル参照を更新（`review` → `harness-review`）
+- **CONTRIBUTING.md**: Skills 移行（v2.17.0+）に合わせて更新
+- **テスト**: Skills-only アーキテクチャ対応に更新
+
+---
+
 ## [2.16.15] - 2026-02-02
 
 ### Fixed

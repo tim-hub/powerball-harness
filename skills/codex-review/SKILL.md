@@ -2,6 +2,7 @@
 name: codex-review
 description: "Integrates OpenAI Codex CLI as an MCP server to provide second-opinion reviews. Triggered by requests for Codex review, second opinion, or Codex setup. Do NOT load for: standard reviews without Codex, implementation work, or non-setup tasks."
 allowed-tools: ["Bash", "Read", "Write", "Edit"]
+argument-hint: "[code|plan|scope]"
 ---
 
 # Codex Review Integration Skill
