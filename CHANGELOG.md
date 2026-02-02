@@ -9,6 +9,31 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.16.14] - 2026-02-02
+
+### 🎯 What's Changed for You
+
+**All implementation tasks now automatically registered in Plans.md before execution**
+
+When you ask Claude Code to implement something, it will now register the task in Plans.md first, ensuring all work is tracked and reviewable.
+
+#### Before → After
+
+| Before | After |
+|--------|-------|
+| Ad-hoc requests bypass Plans.md | All tasks registered in Plans.md first |
+| Progress tracking incomplete | Full task history in Plans.md |
+| Some tasks missed by `/harness-review` | All tasks included in reviews |
+
+### Changed
+
+- **impl skill**: Added mandatory Plans.md registration (Step -1)
+  - Checks if task exists in Plans.md before implementation
+  - Auto-adds task with `cc:WIP` marker if not found
+  - Ensures full traceability for progress, review, and handoff
+
+---
+
 ## [2.16.12] - 2026-02-02
 
 ### 🎯 What's Changed for You
