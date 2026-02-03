@@ -1,6 +1,6 @@
 ---
 name: session
-description: "Unified session management - initialization, memory persistence, state control, and cross-session communication. Use when managing Claude Code sessions, /session command. Do NOT load for: app user sessions, login state, authentication features."
+description: "セッション管理の総合窓口。初期化・記憶・状態を一手に引き受けます。Use when managing Claude Code sessions, /session command. Do NOT load for: app user sessions, login state, authentication features."
 allowed-tools: ["Read", "Bash", "Write", "Edit", "Glob"]
 argument-hint: "[list|inbox|broadcast \"message\"]"
 ---

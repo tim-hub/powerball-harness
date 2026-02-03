@@ -1,6 +1,6 @@
 ---
 name: deploy
-description: "Sets up deployment, analytics, and health monitoring for projects. Use when user mentions deployment, Vercel, Netlify, analytics, or health checks. Do NOT load for: implementation work, local development, reviews, or setup."
+description: "VercelやNetlifyへいざ出陣。本番環境への片道切符を手配します。Use when user mentions deployment, Vercel, Netlify, analytics, or health checks. Do NOT load for: implementation work, local development, reviews, or setup."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 disable-model-invocation: true
 argument-hint: "[vercel|netlify|health]"

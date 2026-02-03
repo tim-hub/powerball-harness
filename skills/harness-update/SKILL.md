@@ -1,6 +1,6 @@
 ---
 name: harness-update
-description: "Safely update harness-enabled projects to latest version. Version detection → backup → non-destructive update. Use when user mentions '/harness-update', update harness, update version, or template updates. Do NOT load for: app updates, dependency updates, product version bumps."
+description: "Harnessを安全にアップデート。バックアップ付きで安心安全。Use when user mentions '/harness-update', update harness, update version, or template updates. Do NOT load for: app updates, dependency updates, product version bumps."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]
 disable-model-invocation: true
 argument-hint: "[--backup|--force]"

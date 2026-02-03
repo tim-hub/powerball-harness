@@ -1,6 +1,6 @@
 ---
 name: codex-worker
-description: "Delegates implementation tasks to Codex as a Worker. Use when user mentions 'Codex に実装させて', 'Codex Worker', 'Codex に作らせて', or '実装を依頼'. Do NOT load for: 'Codex レビュー', 'セカンドオピニオン', 'Codex の意見', 'Codex でレビュー', 'Codex セットアップ'."
+description: "Codexを下請けに。並列で実装を進めてもらう職人気質。Use when user mentions 'Codex に実装させて', 'Codex Worker', 'Codex に作らせて', or '実装を依頼'. Do NOT load for: 'Codex レビュー', 'セカンドオピニオン', 'Codex の意見', 'Codex でレビュー', 'Codex セットアップ'."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Task"]
 argument-hint: "[task description]"
 ---

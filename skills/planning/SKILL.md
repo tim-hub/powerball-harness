@@ -1,6 +1,6 @@
 ---
 name: plan-with-agent
-description: "Creates implementation plans from ideas and requirements, generating Plans.md ready for /work. Use when user mentions '/plan-with-agent', create a plan, organize tasks, feature planning, or TDD planning. Do NOT load for: implementation, reviews, or setup."
+description: "アイデアをPlans.mdに落とし込む。夢を計画に変える魔法使い。Use when user mentions '/plan-with-agent', create a plan, organize tasks, feature planning, or TDD planning. Do NOT load for: implementation, reviews, or setup."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "WebSearch", "Task"]
 argument-hint: "[--ci]"
 ---

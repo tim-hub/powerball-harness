@@ -1,6 +1,6 @@
 ---
 name: codex-review
-description: "Integrates OpenAI Codex CLI as an MCP server to provide second-opinion reviews. Use when user mentions 'Codex レビュー', 'セカンドオピニオン', 'Codex の意見', 'Codex でレビュー', or 'Codex セットアップ'. Do NOT load for: 'Codex に実装させて', 'Codex Worker', 'Codex に作らせて', '実装を依頼'."
+description: "Codexにセカンドオピニオンを求める。AI同士の忖度なしガチレビュー。Use when user mentions 'Codex レビュー', 'セカンドオピニオン', 'Codex の意見', 'Codex でレビュー', or 'Codex セットアップ'. Do NOT load for: 'Codex に実装させて', 'Codex Worker', 'Codex に作らせて', '実装を依頼'."
 allowed-tools: ["Bash", "Read", "Write", "Edit"]
 argument-hint: "[code|plan|scope]"
 ---

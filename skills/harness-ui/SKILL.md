@@ -1,6 +1,6 @@
 ---
 name: harness-ui
-description: "Displays Harness UI dashboard for monitoring and task management. Use when user mentions '/harness-ui', dashboard, monitoring, or UI display. Do NOT load for: app UI implementation, dashboard component creation, admin panel features."
+description: "Harnessダッシュボードを表示。現状を一目で把握できる司令塔。Use when user mentions '/harness-ui', dashboard, monitoring, or UI display. Do NOT load for: app UI implementation, dashboard component creation, admin panel features."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "WebFetch"]
 argument-hint: "[LICENSE_KEY] [--force]"
 user-invocable: false

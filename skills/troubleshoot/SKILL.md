@@ -1,6 +1,6 @@
 ---
 name: troubleshoot
-description: "Guides diagnosis and resolution when problems occur. Use when user mentions something broken, errors, or that it doesn't work. Do NOT load for: successful builds, new feature implementation, or reviews."
+description: "動かない？エラー？診断と修復をガイド。困ったときの駆け込み寺。Use when user mentions something broken, errors, or that it doesn't work. Do NOT load for: successful builds, new feature implementation, or reviews."
 allowed-tools: ["Read", "Grep", "Bash"]
 context: fork
 argument-hint: "[build|test|runtime]"
