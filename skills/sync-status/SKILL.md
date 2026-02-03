@@ -35,7 +35,30 @@ git diff --stat HEAD~3
 
 # Recent commit history
 git log --oneline -10
+
+# Agent Trace (直近の編集ファイル)
+tail -20 .claude/state/agent-trace.jsonl 2>/dev/null | jq -r '.files[].path' | sort -u
 ```
+
+### Step 1.5: Agent Trace Analysis
+
+Agent Trace から直近の編集履歴を取得し、Plans.md のタスクと照合:
+
+```bash
+# 直近の編集ファイル一覧
+RECENT_FILES=$(tail -20 .claude/state/agent-trace.jsonl 2>/dev/null | jq -r '.files[].path' | sort -u)
+
+# プロジェクト情報
+PROJECT=$(tail -1 .claude/state/agent-trace.jsonl 2>/dev/null | jq -r '.metadata.project')
+PROJECT_TYPE=$(tail -1 .claude/state/agent-trace.jsonl 2>/dev/null | jq -r '.metadata.projectType')
+```
+
+**照合ポイント**:
+| チェック項目 | 検出方法 |
+|------------|---------|
+| Plans.md にないファイル編集 | Agent Trace vs タスク記述 |
+| タスク記述と異なるファイル | 想定ファイル vs 実際の編集 |
+| 長時間編集がないタスク | Agent Trace 時系列 vs WIP期間 |
 
 ### Step 2: Detect Differences
 
@@ -64,6 +87,8 @@ Update? (yes / no)
 ```markdown
 ## 📊 Progress Summary
 
+**Project**: {{project_name}} ({{project_type}})
+
 | Status | Count |
 |--------|-------|
 | 🔴 Not started (cc:TODO) | {{count}} |
@@ -71,6 +96,11 @@ Update? (yes / no)
 | 🟢 Done (cc:done) | {{count}} |
 
 **Progress rate**: {{percent}}%
+
+### 📄 直近の編集ファイル (Agent Trace)
+- {{file1}}
+- {{file2}}
+- ...
 ```
 
 ### Step 5: Suggest Next Action

@@ -8,6 +8,30 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.17.1] - 2026-02-03
+
+### Added
+
+- **Agent Trace**: Track AI-generated code edits for session context visibility
+  - `emit-agent-trace.js`: PostToolUse hook records Edit/Write operations to `.claude/state/agent-trace.jsonl`
+  - `agent-trace-schema.json`: JSON Schema (v0.1.0) for trace records
+  - Stop hook now shows project name, current task, and recent edits at session end
+  - `sync-status` skill now includes Agent Trace data for progress verification
+  - `session-memory` skill now reads Agent Trace for cross-session context
+
+### Changed
+
+- Stop hook (`session-summary.sh`) enhanced with Agent Trace information display
+- VCS info retrieval optimized: single `git status --porcelain=2 -b -uno` call with 5s TTL cache
+- Repo root detection no longer spawns git process (walks up directory tree)
+
+### Fixed
+
+- Security hardening for trace file operations (symlink checks, permission enforcement)
+- Rotation concurrency protection with lock file (O_CREAT|O_EXCL pattern)
+
+---
+
 ## [2.17.0] - 2026-02-03
 
 ### Added
