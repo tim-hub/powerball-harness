@@ -8,7 +8,7 @@ Change history for claude-code-harness.
 
 ---
 
-## [2.17.7] - 2026-02-04
+## [2.17.8] - 2026-02-04
 
 ### Fixed
 
