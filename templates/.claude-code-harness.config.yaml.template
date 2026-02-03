@@ -50,7 +50,7 @@ quality_pack:
 # Review settings (commit judgment + Codex mode)
 review:
   # Review mode: default (Claude only) or codex (GPT experts delegation)
-  mode: default
+  mode: codex
 
   # Commit judgment settings
   judgment:
@@ -64,7 +64,7 @@ review:
   # Codex integration for parallel expert reviews
   codex:
     # Enable Codex mode (GPT experts delegation)
-    enabled: false
+    enabled: true
     # Auto-run without confirmation
     auto: true
     # Individual expert toggles

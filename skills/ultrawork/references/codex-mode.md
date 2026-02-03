@@ -67,6 +67,96 @@ Claude Code (Orchestrator)
 
 ## Execution Flow
 
+### Step 0: Worktree 必要性判定（必須）
+
+`--codex` 指定時、まず **Worktree が本当に必要か** を判定する。
+
+```
+タスク分析
+    ↓
+┌─────────────────────────────────────────────┐
+│ Worktree 必要性判定                          │
+├─────────────────────────────────────────────┤
+│  1. タスク数を確認                           │
+│  2. owns: アノテーションから所有ファイル取得  │
+│  3. ファイル重複チェック                     │
+│  4. 並列実行可能性を判定                     │
+└─────────────────────────────────────────────┘
+    ↓
+├── Worktree 使用 → Step 1〜8 実行
+└── 直接実行 → 通常の /ultrawork フロー
+```
+
+#### 判定基準
+
+| 条件 | Worktree | 理由 |
+|------|----------|------|
+| タスク 1 つのみ | ❌ 不要 | 並列の意味がない |
+| 全タスクが順次依存 | ❌ 不要 | 結局直列実行になる |
+| owns: が全て重複 | ❌ 不要 | 同じファイルを触るため並列不可 |
+| 変更予定ファイル < 5 | ❌ 不要 | Worktree オーバーヘッド > 効果 |
+| 並列可能タスク 2+ & ファイル分離 | ✅ 使用 | Worktree の価値あり |
+
+#### 判定アルゴリズム
+
+```javascript
+function shouldUseWorktree(tasks, parallelCount) {
+  // 1. タスク数チェック
+  if (tasks.length < 2) return { use: false, reason: "single_task" };
+
+  // 2. 並列数チェック
+  if (parallelCount < 2) return { use: false, reason: "sequential_mode" };
+
+  // 3. owns: からファイルパターンを抽出
+  const ownershipMap = tasks.map(t => ({
+    id: t.id,
+    owns: extractOwnsPatterns(t)
+  }));
+
+  // 4. ファイル重複チェック
+  const parallelGroups = groupByNoOverlap(ownershipMap);
+  if (parallelGroups.length < 2) {
+    return { use: false, reason: "all_files_overlap" };
+  }
+
+  // 5. 変更ファイル数チェック
+  const totalFiles = countUniqueFiles(ownershipMap);
+  if (totalFiles < 5) {
+    return { use: false, reason: "small_changeset" };
+  }
+
+  return { use: true, parallelGroups };
+}
+```
+
+#### 出力例
+
+**Worktree 使用時:**
+```
+📊 Worktree 判定結果
+
+タスク数: 5
+並列可能グループ: 3
+ファイル重複: なし
+変更予定ファイル: 12
+
+→ ✅ Worktree モードで実行（3 Worker 並列）
+```
+
+**直接実行時:**
+```
+📊 Worktree 判定結果
+
+タスク数: 2
+並列可能グループ: 0（全て順次依存）
+理由: all_files_overlap
+
+→ ❌ 直接実行モード（Worktree スキップ）
+   通常の /ultrawork フローで実行します
+```
+
+---
+
 ### Step 1: タスク分析
 
 ```json

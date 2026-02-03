@@ -1,107 +1,212 @@
-# Plans.md - generate-video品質向上計画
+# Plans.md - Claude Code Permissions 改善プラン
 
 ## 概要
 
-generate-videoスキルの品質向上。プロダクトデモ重視、JSONスキーマ駆動、視覚演出強化。
+Claude Code の Permissions ドキュメントに基づき、Harness プロジェクトの設定を改善する。
 
-## アーキテクチャ
+## 背景
 
-```
-分析 → シナリオ → Task並列(JSON+画像) → バリデーション → マージ → E2E検証 → render
-```
-
-## 技術決定事項
-
-| 項目 | 仕様 |
-|------|------|
-| **SSOT** | `schemas/*.schema.json` → Zod自動生成 |
-| **マージ** | sections[]順 + scene.order昇順、競合=Critical |
-| **決定性** | SHA-256ハッシュ + seed + package-lock固定 |
-| **バリデーション** | scene→scenario→E2E の3層ゲート |
+Claude Code の Permissions が独立ページ化され、以下の新機能・推奨設定が明確化：
+- Permission 構文の正規化（`:*` → ` *`）
+- Sandbox によるセキュリティ強化
+- 新フックイベント（PreCompact, SessionEnd）
+- Agent 型フック
+- Skills の `context: fork` と プリロード
 
 ---
 
-## 完了済み Phase（0-10）
+## Phase 1: 分析・調査（リサーチ）
 
-> 詳細: `.claude/archive/plans-phase0-10.md`
+### 1.1 Sandbox 影響分析 `[research]`
 
-- Phase 0-10: 全36タスク完了 ✅
-- Codex Review: Security A, Performance B, Quality B, Architect C
+| Task | 内容 | Status |
+|------|------|--------|
+| 1.1.1 | 現在の bypassPermissions 使用状況の確認 | `cc:TODO` |
+| 1.1.2 | Sandbox 有効時の操作感への影響調査 | `cc:TODO` |
+| 1.1.3 | excludedCommands に含めるべきコマンドの特定 | `cc:TODO` |
+| 1.1.4 | allowedDomains の候補リスト作成 | `cc:TODO` |
+
+**成果物**: Sandbox 設定推奨案
 
 ---
 
-## Phase 11: アーキテクチャ改善 `cc:DONE`
+### 1.2 PreCompact フック活用分析 `[research]`
 
-> **目標**: Codex Architect スコアを C → A に改善
+| Task | 内容 | Status |
+|------|------|--------|
+| 1.2.1 | Harness の既存 context 保存機能の確認 | `cc:TODO` |
+| 1.2.2 | compaction 時に失われる情報の特定 | `cc:TODO` |
+| 1.2.3 | PreCompact で保存すべき情報の設計 | `cc:TODO` |
+| 1.2.4 | session-resume との連携方法の検討 | `cc:TODO` |
 
-### 11.1 $ref 解決（型安全性） `cc:DONE`
+**成果物**: PreCompact フック実装提案
 
-| Task | WHERE | Status |
-|------|-------|--------|
-| 11.1.1 json-schema-deref 導入 | `scripts/generate-schemas.js` | ✅ |
-| 11.1.2 $ref 事前解決 | dereference 後に Zod 変換 | ✅ |
-| 11.1.3 scenes 型復元 | `z.any()` → 実際の Scene 型 | ✅ |
+---
 
-### 11.2 命名・単位統一 `cc:DONE`
+### 1.3 Agent 型フック活用分析 `[research]`
 
-| Task | WHERE | Status |
-|------|-------|--------|
-| 11.2.1 命名規約定義 | `references/naming-conventions.md` | ✅ |
-| 11.2.2 時間単位統一 | 全スキーマ `_ms` に統一 | ✅ |
-| 11.2.3 enum 統一 | `slide_in`/`cut` に統一 | ✅ |
-| 11.2.4 ケース統一 | `snake_case` に統一 | ✅ |
+| Task | 内容 | Status |
+|------|------|--------|
+| 1.3.1 | 現在の Stop フック（prompt 型）の評価 | `cc:TODO` |
+| 1.3.2 | Agent 型に切り替えるメリット・デメリット整理 | `cc:TODO` |
+| 1.3.3 | Agent 型が適切なユースケースの特定 | `cc:TODO` |
+| 1.3.4 | タイムアウト・コスト影響の検討 | `cc:TODO` |
 
-### 11.3 マージ決定性 `cc:DONE`
+**成果物**: Agent 型フック採用判断と設計
 
-| Task | WHERE | Status |
-|------|-------|--------|
-| 11.3.1 タイブレーク定義 | `scene_id` 辞書順でタイブレーク | ✅ |
-| 11.3.2 重複 order 検出 | 同一 section 内の order 重複を警告 | ✅ |
-| 11.3.3 未知 section エラー化 | 警告 → 失敗に変更 | ✅ |
+---
 
-### 11.4 バリデーション統合 `cc:DONE`
+### 1.4 context: fork 適用分析 `[research]`
 
-| Task | WHERE | Status |
-|------|-------|--------|
-| 11.4.1 merge-scenes 入口検証 | scenario 検証を必須化 | ✅ |
-| 11.4.2 render-video 入口検証 | video-script 検証を必須化 | ✅ |
-| 11.4.3 --skip-validation フラグ | 明示的スキップのみ許可 | ✅ |
+| Task | 内容 | Status |
+|------|------|--------|
+| 1.4.1 | 全スキル（45個）の分類確認 | `cc:DONE` |
+| 1.4.2 | 既に fork を使用しているスキル（4個）の確認 | `cc:DONE` |
+| 1.4.3 | fork 追加候補スキルの選定 | `cc:TODO` |
+| 1.4.4 | fork 不要スキルの理由整理 | `cc:TODO` |
 
-### 11.5 コンポーネント/スキーマ同期 `cc:DONE`
+**調査結果**:
+- 既存 fork スキル: `agent-browser`, `ci`, `harness-review`, `troubleshoot`
+- 候補: 重い調査系、外部連携系
 
-| Task | WHERE | Status |
-|------|-------|--------|
-| 11.5.1 型定義エクスポート | `src/types/components.ts` | ✅ |
-| 11.5.2 TSX props 型適用 | コンポーネントに型適用 | ✅ |
-| 11.5.3 変換レイヤー | `src/utils/converters.ts` | ✅ |
+---
 
-### 11.6 決定性テスト強化 `cc:DONE`
+### 1.5 Attribution と AgentTrace 統合分析 `[research]`
 
-| Task | WHERE | Status |
-|------|-------|--------|
-| 11.6.1 sortScenes エクスポート | `merge-scenes.js` からエクスポート | ✅ |
-| 11.6.2 ユニットテスト追加 | `tests/merge-scenes.test.js` | ✅ |
-| 11.6.3 E2E テスト追加 | `tests/e2e/merge-e2e.test.js` | ✅ |
+| Task | 内容 | Status |
+|------|------|--------|
+| 1.5.1 | AgentTrace の現在のスキーマ確認 | `cc:DONE` |
+| 1.5.2 | Attribution 情報の取得可能性調査 | `cc:DONE` |
+| 1.5.3 | スキーマ拡張設計（v0.2.0） | `cc:TODO` |
+| 1.5.4 | 環境変数からの情報取得方法確認 | `cc:TODO` |
+
+**調査結果**:
+- AgentTrace: v0.1.0、JSONL形式、PostToolUse で記録
+- Attribution 追加可能（plugin.json から license, version 取得可）
+- スキーマ拡張で `metadata.attribution` フィールド追加が妥当
+
+---
+
+### 1.6 SessionEnd フック重複確認 `[research]`
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 1.6.1 | 既存 Stop フックとの機能比較 | `cc:DONE` |
+| 1.6.2 | SessionEnd の発火条件確認 | `cc:DONE` |
+| 1.6.3 | 重複の有無判定 | `cc:DONE` |
+
+**調査結果**:
+- SessionEnd フックは**未実装**（hooks.json に定義なし）
+- Stop フックで session-summary を実行中
+- Stop: 応答終了ごと / SessionEnd: セッション完全終了時
+- **重複なし** - 異なるユースケースで併用可能
+
+---
+
+## Phase 2: 実装（確定タスク）
+
+### 2.1 Permission 構文修正 `[feature:breaking-change]`
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 2.1.1 | `.claude/settings.json` の `:*` → ` *` 置換 | `cc:TODO` |
+| 2.1.2 | `~/.claude/settings.json` の `:*` → ` *` 置換 | `cc:TODO` |
+| 2.1.3 | `.claude/settings.local.json` の `:*` → ` *` 置換 | `cc:TODO` |
+| 2.1.4 | 動作確認（git, npm, test コマンド） | `cc:TODO` |
+
+**影響**: 非推奨構文の修正。将来の互換性確保。
+
+---
+
+### 2.2 Skills プリロード導入 `[feature]`
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 2.2.1 | 既存エージェントの skills フィールド確認 | `cc:DONE` |
+| 2.2.2 | プリロード最適化の余地がないか検討 | `cc:TODO` |
+| 2.2.3 | 新規エージェント作成時のガイドライン文書化 | `cc:TODO` |
+
+**調査結果**:
+- 全9エージェントで既に skills プリロード使用中
+- 設計は既に最適化済み
+- ドキュメント整備が主なタスク
+
+---
+
+## Phase 3: 実装（分析結果に基づく）
+
+### 3.1 Sandbox 設定導入（条件付き）
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 3.1.1 | 推奨設定の作成 | `cc:TODO` |
+| 3.1.2 | ユーザー設定への適用 | `cc:TODO` |
+| 3.1.3 | 動作確認とフォールバック設計 | `cc:TODO` |
+
+---
+
+### 3.2 PreCompact フック実装
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 3.2.1 | pre-compact-save スクリプト作成 | `cc:TODO` |
+| 3.2.2 | hooks.json への追加 | `cc:TODO` |
+| 3.2.3 | session-resume との連携テスト | `cc:TODO` |
+
+---
+
+### 3.3 Agent 型フック検討（オプション）
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 3.3.1 | Stop フックの Agent 型移行判断 | `cc:TODO` |
+| 3.3.2 | 実装（必要な場合のみ） | `cc:TODO` |
+
+---
+
+### 3.4 context: fork 追加適用
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 3.4.1 | 候補スキルへの fork 適用 | `cc:TODO` |
+| 3.4.2 | 動作確認とパフォーマンス検証 | `cc:TODO` |
+
+---
+
+### 3.5 Attribution 統合
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 3.5.1 | AgentTrace スキーマ v0.2.0 作成 | `cc:TODO` |
+| 3.5.2 | emit-agent-trace.js 拡張 | `cc:TODO` |
+| 3.5.3 | テスト追加 | `cc:TODO` |
+
+---
+
+### 3.6 SessionEnd フック導入
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 3.6.1 | SessionEnd の用途設計 | `cc:TODO` |
+| 3.6.2 | hooks.json への追加 | `cc:TODO` |
+| 3.6.3 | 一時ファイルクリーンアップ実装 | `cc:TODO` |
 
 ---
 
 ## 完了基準
 
-- [x] アーキテクチャ決定
-- [x] 技術仕様定義
-- [x] 演出システム設計
-- [x] 画像パターン設計
-- [x] 全Phase実装完了
-- [x] Codexレビュー承認 (Quality: B, Architect: B+)
-- [x] Phase 11 完了（19タスク）
-- [x] Codexレビュー最終承認（Architect: A, Security: B, Performance: B, Quality: B）
+- [ ] Phase 1: 全分析タスク完了
+- [ ] Phase 2: 確定タスク実装完了
+- [ ] Phase 3: 分析結果に基づく実装完了
+- [ ] 動作確認・テスト合格
+- [ ] CHANGELOG 更新
+- [ ] バージョンアップ
 
-## 実装統計
+## 技術決定事項
 
-| 項目 | 数値 |
-|------|------|
-| スキーマファイル | 10個 |
-| スクリプト | 8個 |
-| コンポーネント | 4個 |
-| テストファイル | 10個 |
-| テスト数 | 184件 |
+| 項目 | 決定 | 根拠 |
+|------|------|------|
+| Permission 構文 | ` *` に統一 | 公式非推奨対応 |
+| SessionEnd | Stop と併用 | 異なるユースケース |
+| Skills プリロード | 既存設計を維持 | 既に最適化済み |
+| AgentTrace Attribution | v0.2.0 で追加 | 後方互換性維持 |

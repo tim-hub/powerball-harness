@@ -8,6 +8,17 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.17.9] - 2026-02-04
+
+### Changed
+
+- **Codex mode as default**: New project config template now defaults to `review.mode: codex`
+- **Worktree necessity check**: `/ultrawork --codex` now auto-determines if Worktree is actually needed
+  - Single task, all sequential dependencies, or file overlap → fallback to direct execution mode
+  - Avoids unnecessary Worktree creation overhead
+
+---
+
 ## [2.17.8] - 2026-02-04
 
 ### Fixed
