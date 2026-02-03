@@ -8,6 +8,42 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.17.6] - 2026-02-04
+
+### 🎯 What's Changed for You
+
+**generate-video スキルが JSON Schema 駆動のハイブリッドアーキテクチャに進化、README も刷新されました**
+
+| Before | After |
+|--------|-------|
+| 動画生成の設定がコードに散在 | JSON Schema でシナリオを一元管理 |
+| README の構成が長大 | TL;DR: Ultrawork セクションで即座に始められる |
+| スキル説明が英語のみ | 28個のスキル description が日本語化 + ユーモア表現 |
+
+### Added
+
+- **generate-video JSON Schema Architecture** (#37)
+  - `scenario-schema.json` でシナリオ構造を厳密定義
+  - `validate-scenario.js` でセマンティック検証
+  - `template-registry.js` でテンプレート管理
+  - パストラバーサル攻撃対策を実装
+
+- **TL;DR: Ultrawork セクション**: README に「説明が長い？これだけ」セクション追加
+  - 日本語版にも「🪄 説明が長い？ならこれ: Ultrawork」として追加
+
+### Changed
+
+- **スキル description 日本語化**: 28個のスキルに日本語の説明とユーモア表現を追加
+- **README 構成整理**: Install → TL;DR → Core Loop の流れに最適化
+- **スキル数更新**: 42 → 45 スキル
+
+### Fixed
+
+- `validate-scenario.js`: セマンティックエラーフィルタリングのバグ修正
+- `TransitionWrapper.tsx`: `slideIn` → `slide_in` でスキーマ命名規則に統一
+
+---
+
 ## [2.17.3] - 2026-02-03
 
 ### 🎯 What's Changed for You
