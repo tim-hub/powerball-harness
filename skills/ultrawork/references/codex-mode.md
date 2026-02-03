@@ -1,17 +1,12 @@
-# Codex Mode (Design Draft)
+# Codex Mode
 
-> **Status: Planned (未実装)**
+> **Status: Experimental**
 >
-> このドキュメントは**設計草案**です。現在のバージョンでは使用できません。
-> 以下の内容は将来の実装予定であり、変更される可能性があります。
+> この機能は実装済みですが、実験段階です。本番環境での使用前にテストを推奨します。
 
----
+`/ultrawork --codex` で Codex Worker を使った並列実行モード。
 
-## Design Draft: `/ultrawork --codex`
-
-Codex Worker を使った並列実行モードの設計案。
-
-## Proposed Overview
+## Overview
 
 ```
 Claude Code (Orchestrator)
@@ -38,22 +33,20 @@ Claude Code (Orchestrator)
           - Worktree クリーンアップ
 ```
 
-## Proposed Usage (未実装)
-
-> 以下は設計案であり、現在利用できません。
+## Usage
 
 ```bash
-# 基本（並列数はデフォルト 3）- 将来予定
+# 基本（並列数はデフォルト 3）
 /ultrawork --codex 全部やって
 
-# 並列数を指定 - 将来予定
+# 並列数を指定
 /ultrawork --codex --parallel 5 認証機能から完了して
 
-# シーケンシャル実行（並列なし）- 将来予定
+# シーケンシャル実行（並列なし）
 /ultrawork --codex --parallel 1 ログイン機能を実装
 ```
 
-## Proposed Options (未実装)
+## Options
 
 | オプション | 説明 | デフォルト |
 |-----------|------|-----------|
@@ -61,17 +54,18 @@ Claude Code (Orchestrator)
 | `--parallel N` | 並列 Worker 数 | 3 |
 | `--worktree-base PATH` | Worktree 作成先 | `../worktrees` |
 
-## Proposed Prerequisites (暫定)
+## Prerequisites
 
-> 実装時に変更される可能性があります。
-
-1. **Codex CLI**: ターゲットバージョン未定
+1. **Codex CLI**: `codex --version` >= 0.92.0
 2. **MCP 登録**: `claude mcp list` に codex が含まれる
 3. **Git worktree**: `git --version` >= 2.5.0
 
-## Proposed Execution Flow (設計案)
+セットアップ確認:
+```bash
+./scripts/codex-worker-setup.sh --check-only
+```
 
-> 以下は設計案であり、実装時に変更される可能性があります。
+## Execution Flow
 
 ### Step 1: タスク分析
 
@@ -141,10 +135,8 @@ AGENTS_SUMMARY: タスク1の実装を完了 | HASH:a1b2c3d4
 ### Step 6: 品質ゲート
 
 ```bash
-# プロジェクト既定の検証コマンドを使用（例）
-# ./tests/validate-plugin.sh
-# ./scripts/ci/check-consistency.sh
-# または npm run lint && npm test
+npm run lint
+npm test
 ```
 
 失敗時:
@@ -173,7 +165,7 @@ git worktree remove ../worktrees/worker-1
 git worktree prune
 ```
 
-## Proposed Error Handling (設計案)
+## Error Handling
 
 ### Worker 失敗時
 
@@ -189,7 +181,7 @@ git worktree prune
 3. 手動解決 or 自動リトライ選択
 4. 解決後、残りの Worker を再開
 
-## Proposed Monitoring (設計案)
+## Monitoring
 
 ### Progress Display
 
@@ -208,7 +200,7 @@ Completed: 1/3 | In Progress: 2 | Failed: 0
 - `.claude/state/locks.log` - ロック操作ログ
 - `.claude/state/codex-worker/` - 各 Worker のパラメータ
 
-## Related (参考 / 設計案)
+## Related
 
 - [codex-worker skill](../../codex-worker/SKILL.md) - 単体 Worker 実行
 - [parallel-strategy.md](../../codex-worker/references/parallel-strategy.md) - 並列戦略詳細

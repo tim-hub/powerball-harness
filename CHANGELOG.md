@@ -8,6 +8,36 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.17.0] - 2026-02-03
+
+### Added
+
+- **Codex Worker**: Delegate implementation tasks to OpenAI Codex as parallel workers
+  - `codex-worker` skill for single task delegation
+  - `ultrawork --codex` for parallel worker execution with git worktrees
+  - Quality gates: evidence verification, lint/type-check, test, tampering detection
+  - File locking mechanism with TTL and heartbeat
+  - Automatic Plans.md update on task completion
+
+### Changed
+
+- Skills `codex-worker` and `codex-review` now have explicit routing rules (Do NOT Load For sections)
+- Improved skill description for better auto-loading accuracy
+
+### Fixed
+
+- Shell script security improvements (jq injection, git option injection, value validation)
+- POSIX compatibility for grep patterns (`\s` to `[[:space:]]`)
+- Arithmetic operation in `set -e` context
+
+### Internal
+
+- Added 5 shell scripts: `codex-worker-setup.sh`, `codex-worker-engine.sh`, `codex-worker-lock.sh`, `codex-worker-quality-gate.sh`, `codex-worker-merge.sh`
+- Added integration test: `tests/test-codex-worker.sh`
+- Added reference documentation: `skills/codex-worker/references/*.md`
+
+---
+
 ## [2.16.21] - 2026-02-03
 
 ### Changed

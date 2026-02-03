@@ -1,6 +1,6 @@
 ---
 name: codex-review
-description: "Codex MCP でセカンドオピニオンレビューを提供。ルーティングルールは skills/routing-rules.md を参照。"
+description: "Integrates OpenAI Codex CLI as an MCP server to provide second-opinion reviews. Use when user mentions 'Codex レビュー', 'セカンドオピニオン', 'Codex の意見', 'Codex でレビュー', or 'Codex セットアップ'. Do NOT load for: 'Codex に実装させて', 'Codex Worker', 'Codex に作らせて', '実装を依頼'."
 allowed-tools: ["Bash", "Read", "Write", "Edit"]
 argument-hint: "[code|plan|scope]"
 ---
@@ -9,11 +9,16 @@ argument-hint: "[code|plan|scope]"
 
 OpenAI Codex CLI を MCP サーバーとして Claude Code に統合し、コードレビュー時にセカンドオピニオンを提供するスキル。
 
-## Routing Rules (SSOT)
+## Do NOT Load For (誤発動防止)
 
-> **このスキルのトリガー/除外ルールは [skills/routing-rules.md](../routing-rules.md) で一元管理されています。**
->
-> ローカルにルールを重複記載しないこと。変更が必要な場合は routing-rules.md を編集してください。
+以下のキーワードは `codex-worker` スキルが担当します（description と完全一致）:
+
+| トリガーワード | 正しいスキル | 理由 |
+|---------------|-------------|------|
+| "**Codex に実装させて**" | `codex-worker` | 実装 ≠ レビュー |
+| "**Codex Worker**" | `codex-worker` | Worker = 実装役 |
+| "**Codex に作らせて**" | `codex-worker` | 作成 = 実装 |
+| "**実装を依頼**" | `codex-worker` | 実装目的 |
 
 ## 🎯 使用場面
 
