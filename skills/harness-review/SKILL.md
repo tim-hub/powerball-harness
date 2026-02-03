@@ -293,6 +293,36 @@ Codex MCP 経由で**レビュータイプに応じた4つのエキスパート*
 
 ## 並列サブエージェント起動（Default モード）
 
+### 変更ファイル数・レビュー観点の算出（必須）
+
+**files_count は merge-base 基準で算出すること**（staged/unstaged も含める）:
+
+```bash
+base=$(git merge-base HEAD origin/main 2>/dev/null \
+  || git merge-base HEAD main 2>/dev/null \
+  || git merge-base HEAD master 2>/dev/null \
+  || git rev-parse HEAD~1 2>/dev/null \
+  || git hash-object -t tree /dev/null)
+committed=$(git diff --name-only --diff-filter=ACMRTUXB $base...HEAD)
+staged=$(git diff --name-only --cached)
+unstaged=$(git diff --name-only)
+files=$(echo -e "$committed\n$staged\n$unstaged" | sort -u | grep -v '^$')
+files_count=$(echo "$files" | wc -l)
+```
+
+**review_aspects はパスベースで検出**:
+
+```javascript
+function countReviewAspects(files) {
+  let aspects = 0;
+  if (files.some(f => /\/(auth|api|middleware|security)\//.test(f))) aspects++;
+  if (files.some(f => /\/(db|sql|repository|cache)\//.test(f))) aspects++;
+  if (files.some(f => /\/(components|pages|app)\/.*\.tsx$/.test(f))) aspects++;
+  if (files.some(f => /\/(pages|app)\/.*\.(metadata|head|seo)/.test(f))) aspects++;
+  return Math.max(aspects, 1);
+}
+```
+
 以下の条件を**両方**満たす場合、Task tool で code-reviewer を並列起動:
 
 - レビュー観点 >= 2（例: セキュリティ + パフォーマンス）

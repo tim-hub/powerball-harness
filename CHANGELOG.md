@@ -8,6 +8,44 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.17.3] - 2026-02-03
+
+### 🎯 What's Changed for You
+
+**Ultrawork がレビュー後に自動で自己修正ループに入るようになりました**
+
+| Before | After |
+|--------|-------|
+| レビュー後に手動でプロンプト入力が必要 | APPROVE まで自動修正ループ |
+| Codex 有無を手動で指定 | Codex MCP 自動検出 + フォールバック |
+| 改善方法が不明確 | 「🎯 How to Achieve A」で改善指針を明示 |
+
+### Added
+
+- **自己修正ループ**: `/harness-review` 実行後、APPROVE になるまで自動で修正を繰り返す
+  - リトライ状態管理（`ultrawork-retry.json`）で進捗追跡
+  - REJECT/STOP は即停止して手動介入を促す
+  - 最大3回のリトライ後に STOP
+
+- **検証全実行規則**: 存在する検証スクリプトを優先順で全て実行し、失敗で即停止
+
+- **改善指針テンプレート**: 「🎯 How to Achieve A」セクションで A 評価達成方法を明示
+  - Decision 別統一フォーマット（APPROVE/REQUEST CHANGES/REJECT/STOP）
+
+### Changed
+
+- **Codex 自動検出**: Codex MCP が利用可能な場合は自動で Codex モードに切り替え
+  - 利用不可の場合はサブエージェント並列にフォールバック
+  - `timeout_ms`（ミリ秒単位）でタイムアウト設定可能
+
+- **差分計算改善**: `merge-base` 基準で変更ファイル数を算出
+  - staged/unstaged 差分も含む
+  - 初回コミット/マージにも対応
+
+- **review_aspects 検出**: パスベースの正規表現で決定的に判定
+
+---
+
 ## [2.17.2] - 2026-02-03
 
 ### 🎯 What's Changed for You
