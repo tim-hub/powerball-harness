@@ -125,7 +125,7 @@ echo "🪝 [5/5] Hooks 設定の整合性..."
 HOOKS_JSON="$PLUGIN_ROOT/hooks/hooks.json"
 if [ -f "$HOOKS_JSON" ]; then
   # hooks.json 内のスクリプト参照を確認
-  SCRIPT_REFS=$(grep -oE '\$\{CLAUDE_PLUGIN_ROOT\}/scripts/[a-zA-Z0-9_.-]+' "$HOOKS_JSON" 2>/dev/null || true)
+  SCRIPT_REFS=$(grep -oE '\$\{CLAUDE_PLUGIN_ROOT\}/scripts/[a-zA-Z0-9_./-]+' "$HOOKS_JSON" 2>/dev/null || true)
 
   for ref in $SCRIPT_REFS; do
     script_name=$(echo "$ref" | sed 's|\${CLAUDE_PLUGIN_ROOT}/scripts/||')

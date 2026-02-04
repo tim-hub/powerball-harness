@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.17.6-blue.svg" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.18.4-blue.svg" alt="Version"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
   <img src="https://img.shields.io/badge/Skills-45-orange.svg" alt="Skills">
@@ -68,6 +68,26 @@ claude
 ```
 
 That's it. Start with `/plan-with-agent`.
+
+---
+
+## Codex CLI Setup
+
+Use Codex CLI with Team Config (shared `.codex/`):
+
+1. Copy `codex/.codex` into your project as `.codex`
+2. Copy `codex/AGENTS.md` into your project root as `AGENTS.md`
+3. Optional: copy `codex/.codex/config.toml` and set the MCP server path
+
+Script setup:
+
+```bash
+/path/to/claude-code-harness/scripts/setup-codex.sh
+```
+
+Claude Code users can run `/codex-setup` (or `/setup-tools codex`) to apply it without leaving the session.
+
+Use `$plan-with-agent`, `$work`, `$harness-review` to run the workflow.
 
 ---
 

@@ -22,6 +22,7 @@ Sets up a project so VibeCoder can start development with natural language only.
 
 - Real project generation (e.g., create-next-app) + initial setup
 - Prepare `Plans.md` / `AGENTS.md` / `CLAUDE.md` / `.claude/`
+- Optional: Codex CLI compatibility (`.codex/` + `AGENTS.md`)
 - **Environment diagnosis** → **SSOT initialization** → **Final validation**
 - → **Ready to run Plan→Work→Review immediately**
 
@@ -85,3 +86,4 @@ After setup:
 - "`/planning` I want to create XXX" → Create plan
 - "`/work`" → Execute tasks in Plans.md
 - "`npm run dev`" → Start dev server
+- If you need Codex CLI: run `/codex-setup`

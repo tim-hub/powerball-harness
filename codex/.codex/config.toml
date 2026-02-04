@@ -1,0 +1,9 @@
+# Codex Team Config (optional)
+#
+# This file is a template. If you do not want MCP, do not copy it.
+# When you do, place it at your project root as .codex/config.toml.
+
+[mcp_servers.harness]
+command = "node"
+args = ["/absolute/path/to/claude-code-harness/mcp-server/dist/index.js"]
+enabled = true

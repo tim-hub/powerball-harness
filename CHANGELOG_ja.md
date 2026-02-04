@@ -11,6 +11,31 @@
 
 ---
 
+## [2.18.4] - 2026-02-04
+
+### Added
+
+- **Codex セットアップコマンド**: `/codex-setup` と `scripts/codex-setup-local.sh` を追加
+- **Setup tools**: `/setup-tools codex` でセッション内セットアップ
+- **Harness init/update**: `/harness-init` と `/harness-update` に Codex CLI 同期を追加
+
+---
+
+## [2.18.2] - 2026-02-04
+
+### Added
+
+- **Codex CLI 配布物**: `codex/.codex` に全スキルと暫定 Rules ガードを追加
+- **Codex セットアップ**: `scripts/setup-codex.sh` と `codex/README.md` を追加
+- **Codex AGENTS**: `$skill` 呼び出し向け `codex/AGENTS.md` を追加
+- **Codex パッケージテスト**: `tests/test-codex-package.sh` を追加
+
+### Changed
+
+- **ドキュメント**: README に Codex CLI セットアップ手順を追記
+
+---
+
 ## [2.18.1] - 2026-02-04
 
 ### Added

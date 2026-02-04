@@ -4,6 +4,31 @@ Change history for claude-code-harness.
 
 > **📝 Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
+## [2.18.4] - 2026-02-04
+
+### Added
+
+- **Codex setup command**: Added `/codex-setup` skill and `scripts/codex-setup-local.sh`
+- **Setup tools**: `/setup-tools codex` subcommand for in-session Codex setup
+- **Harness init/update**: Optional Codex CLI sync during `/harness-init` and `/harness-update`
+
+---
+
+## [2.18.2] - 2026-02-04
+
+### Added
+
+- **Codex CLI distribution**: Added `codex/.codex` with full skills and temporary Rules guardrails
+- **Codex setup**: Added `scripts/setup-codex.sh` and `codex/README.md`
+- **Codex AGENTS**: Added `codex/AGENTS.md` tuned for `$skill` usage
+- **Codex package test**: Added `tests/test-codex-package.sh`
+
+### Changed
+
+- **Docs**: README now includes Codex CLI setup instructions
+
+---
+
 ## [2.18.1] - 2026-02-04
 
 ### Added
@@ -405,4 +430,7 @@ Change history for claude-code-harness.
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases).
 
+[2.18.4]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.18.2...v2.18.4
+[2.18.2]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.18.1...v2.18.2
+[2.18.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.18.0...v2.18.1
 [2.18.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.17.10...v2.18.0

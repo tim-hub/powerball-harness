@@ -1,0 +1,51 @@
+# Temporary guardrails for Codex CLI.
+# When Hooks are supported, migrate rules with the same HOOK:<id> tag.
+
+prefix_rule(
+  pattern = ["rm", ["-rf", "-fr"]],
+  decision = "prompt",
+  justification = "HOOK:dangerous-commands",
+  match = [
+    "rm -rf build",
+    "rm -fr /tmp/cache",
+  ],
+  not_match = [
+    "rm -r build",
+  ],
+)
+
+prefix_rule(
+  pattern = ["git", "reset", "--hard"],
+  decision = "prompt",
+  justification = "HOOK:dangerous-commands",
+  match = [
+    "git reset --hard HEAD~1",
+  ],
+  not_match = [
+    "git reset --soft HEAD~1",
+  ],
+)
+
+prefix_rule(
+  pattern = ["git", "clean"],
+  decision = "prompt",
+  justification = "HOOK:dangerous-commands",
+  match = [
+    "git clean -fdx",
+  ],
+  not_match = [
+    "git clean -n",
+  ],
+)
+
+prefix_rule(
+  pattern = ["sudo"],
+  decision = "prompt",
+  justification = "HOOK:dangerous-commands",
+  match = [
+    "sudo rm -rf /tmp",
+  ],
+  not_match = [
+    "sudo -n true",
+  ],
+)

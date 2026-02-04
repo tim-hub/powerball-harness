@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.17.6-blue.svg" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.18.4-blue.svg" alt="Version"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
   <img src="https://img.shields.io/badge/Skills-45-orange.svg" alt="Skills">
@@ -68,6 +68,26 @@ claude
 ```
 
 これだけ。`/plan-with-agent` から始めよう。
+
+---
+
+## Codex CLI セットアップ
+
+Codex CLI を Team Config（共有 `.codex/`）で使う場合:
+
+1. `codex/.codex` をプロジェクトの `.codex` にコピー
+2. `codex/AGENTS.md` をプロジェクト直下の `AGENTS.md` としてコピー
+3. 任意: `codex/.codex/config.toml` をコピーし、MCP サーバーのパスを設定
+
+スクリプトでセットアップ:
+
+```bash
+/path/to/claude-code-harness/scripts/setup-codex.sh
+```
+
+Claude Code からは `/codex-setup`（または `/setup-tools codex`）でセッション内完結できます。
+
+`$plan-with-agent`、`$work`、`$harness-review` を使ってフローを実行します。
 
 ---
 

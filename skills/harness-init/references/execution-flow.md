@@ -81,6 +81,19 @@ Combine Step 1 response + background analysis result
 2. **Add only missing files** (don't touch existing)
 3. **.claude/settings.json is non-destructive merge**
 
+## Phase 3.5: Optional Codex CLI Setup
+
+Ask once after setup:
+
+> Codex CLI でもこのプロジェクトを使いますか？
+> - yes → `/codex-setup` を実行
+> - no  → スキップ
+
+If yes:
+- Prefer `bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-setup-local.sh" --skip-mcp`
+- If MCP template is requested, run with `--with-mcp`
+- If `CLAUDE_PLUGIN_ROOT` is unavailable, run from plugin repo root
+
 ## Phase 4: Environment Diagnosis (Auto-execute)
 
 ```bash

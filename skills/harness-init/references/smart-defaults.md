@@ -10,6 +10,7 @@ To reduce questions, use auto-determination or default values.
 | Mode | Solo | 2-Agent if .cursor/ exists |
 | Tech stack | next-supabase | In auto mode |
 | Skills Gate | Auto-configured | Adjust later with `/skills-update` |
+| Codex CLI | off | Ask only if user mentions Codex |
 
 ## Config Override
 

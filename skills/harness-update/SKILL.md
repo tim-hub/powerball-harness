@@ -28,6 +28,7 @@ Safely update projects with existing harness to the latest harness version.
 - Non-destructive settings/workflow file updates
 - **No localization → overwrite / Localized → merge support**
 - **Skills diff detection** - Auto-detect and propose new skills
+- Optional: Codex CLI sync (`.codex/` + `AGENTS.md`)
 - Post-update verification
 
 ---
