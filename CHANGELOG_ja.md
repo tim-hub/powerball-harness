@@ -11,6 +11,14 @@
 
 ---
 
+## [2.18.7] - 2026-02-05
+
+### Changed
+
+- **Claude ガード**: 通常の `git push` では止めず、`-f/--force/--force-with-lease` のみ prompt するように変更しました。
+
+---
+
 ## [2.18.6] - 2026-02-05
 
 ### Fixed
@@ -357,3 +365,5 @@
 ## 過去バージョン
 
 v2.9.x 以前の詳細は [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases) を参照してください。
+
+[2.18.7]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.18.6...v2.18.7
