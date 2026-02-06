@@ -1,6 +1,8 @@
 ---
 name: harness-review
-description: "Multi-perspective review supporting code, plan, and scope analysis. Auto-detects review type from context. Use when user mentions reviews, code review, plan review, scope analysis, security, performance, quality checks, PRs, diffs, or change review. Do NOT load for: implementation work, new feature development, bug fixes, or setup."
+description: "コード・プラン・スコープを多角的にレビュー。品質の番人、参上。Use when user mentions reviews, code review, plan review, scope analysis, security, performance, quality checks, PRs, diffs, or change review. Do NOT load for: implementation work, new feature development, bug fixes, or setup."
+description-en: "Multi-angle review of code, plans, and scope. Quality guardian at your service. Use when user mentions reviews, code review, plan review, scope analysis, security, performance, quality checks, PRs, diffs, or change review. Do NOT load for: implementation work, new feature development, bug fixes, or setup."
+description-ja: "コード・プラン・スコープを多角的にレビュー。品質の番人、参上。Use when user mentions reviews, code review, plan review, scope analysis, security, performance, quality checks, PRs, diffs, or change review. Do NOT load for: implementation work, new feature development, bug fixes, or setup."
 allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 context: fork
 argument-hint: "[code|plan|scope]"
@@ -210,6 +212,50 @@ LSP operation=findReferences filePath="src/types/api.ts" line=10 character=12
 Codex モード（`review.mode: codex`）の場合は、**残コンテキストが 30%以下なら /compact を先に実行**してください。
 
 > **注意**: /compact 後も余裕が少ない場合は縮退せず続行します。
+
+### Git log 拡張フラグの活用（CC 2.1.30+）
+
+レビュー時のコミット分析で構造化されたログを活用します。
+
+#### 変更履歴の構造化分析
+
+```bash
+# 構造化フォーマットでコミット履歴取得
+git log --format="%h|%s|%an|%ad" --date=short -10
+
+# マージコミットを除外してレビュー
+git log --cherry-pick --no-merges main..HEAD
+
+# 変更ファイル一覧付き
+git log --raw -5
+```
+
+#### 主な活用場面
+
+| 用途 | フラグ | 効果 |
+|------|--------|------|
+| **コミット一覧取得** | `--format="%h|%s"` | 構造化された簡潔なログ |
+| **レビュー対象の明確化** | `--cherry-pick --no-merges` | マージコミット除外 |
+| **変更影響分析** | `--raw` | ファイル変更の詳細表示 |
+| **時系列での原因追跡** | `--topo-order` | トポロジカルソート |
+
+#### 出力例
+
+```markdown
+📊 コミット履歴分析（構造化）
+
+| Hash | Subject | Author | Date |
+|------|---------|--------|------|
+| a1b2c3d | feat: add auth | Alice | 2026-02-04 |
+| e4f5g6h | fix: cors error | Bob | 2026-02-03 |
+
+変更ファイル（--raw）:
+├── src/auth.ts (Modified)
+├── src/api/middleware.ts (Added)
+└── tests/auth.test.ts (Modified)
+
+→ 認証周りの変更を重点的にレビュー
+```
 
 ### Step 2: 過去のレビュー指摘検索（Memory-Enhanced）
 
@@ -430,6 +476,119 @@ Results:
 ```
 
 詳細: [docs/LSP_INTEGRATION.md](../../docs/LSP_INTEGRATION.md)
+
+---
+
+## 🔧 PDF ページ範囲読み取り（Claude Code 2.1.30+）
+
+ドキュメントレビュー時に大型 PDF を効率的に扱うための機能です。
+
+### ページ範囲指定で読み取り
+
+```javascript
+// ページ範囲指定で読み取り
+Read({ file_path: "docs/architecture.pdf", pages: "1-15" })
+
+// 変更履歴セクションのみ
+Read({ file_path: "docs/changelog.pdf", pages: "5-12" })
+
+// セキュリティ要件のみ
+Read({ file_path: "docs/requirements.pdf", pages: "45-60" })
+```
+
+### ドキュメントレビュー時の推奨アプローチ
+
+| レビュー対象 | 推奨読み取り方法 | 理由 |
+|------------|----------------|------|
+| **大型仕様書** | 目次 + 変更箇所のみ | 関連セクションに集中 |
+| **API設計書** | エンドポイント一覧 + セキュリティ章 | 重要な観点を優先 |
+| **アーキテクチャ文書** | システム構成図 + 非機能要件 | レビュー対象を絞り込み |
+| **ユーザーマニュアル** | 目次 + アクセシビリティ項 | 使いやすさを確認 |
+| **リリースノート** | 最新バージョンの変更点のみ | 関連する変更を特定 |
+
+### レビュー観点別の活用例
+
+#### セキュリティレビュー
+
+```markdown
+大型セキュリティ仕様書（200ページ）のレビュー:
+
+1. **目次で構造を把握**（1-3ページ）
+   Read({ file_path: "security-spec.pdf", pages: "1-3" })
+
+2. **認証・認可の章を精読**（25-45ページ）
+   Read({ file_path: "security-spec.pdf", pages: "25-45" })
+
+3. **脆弱性対策の章を精読**（78-92ページ）
+   Read({ file_path: "security-spec.pdf", pages: "78-92" })
+
+この方法で、セキュリティレビューに必要な部分だけを効率的に確認できます。
+```
+
+#### パフォーマンスレビュー
+
+```markdown
+パフォーマンス要件書（150ページ）のレビュー:
+
+1. **目次とサマリー**（1-5ページ）
+   Read({ file_path: "performance-spec.pdf", pages: "1-5" })
+
+2. **レスポンスタイム要件**（34-50ページ）
+   Read({ file_path: "performance-spec.pdf", pages: "34-50" })
+
+3. **負荷テスト結果**（120-135ページ）
+   Read({ file_path: "performance-spec.pdf", pages: "120-135" })
+```
+
+### レビューワークフロー統合
+
+#### Step 0: 品質判定ゲート（ドキュメント分析）
+
+ドキュメントレビュー時に、まずページ範囲指定で概要を把握:
+
+```
+1. 目次を読んで構造を理解
+   Read({ file_path: "spec.pdf", pages: "1-3" })
+
+2. 変更箇所を特定
+   目次から変更セクションのページ番号を取得
+
+3. 関連セクションのみ精読
+   Read({ file_path: "spec.pdf", pages: "{変更範囲}" })
+```
+
+#### 4視点レビューでの活用
+
+| 観点 | 読むべきページ範囲 | 例 |
+|------|------------------|-----|
+| **セキュリティ** | 認証・認可、暗号化、脆弱性対策 | pages: "25-45,78-92" |
+| **パフォーマンス** | 非機能要件、負荷テスト結果 | pages: "34-50,120-135" |
+| **品質** | コーディング規約、テスト戦略 | pages: "60-75" |
+| **アクセシビリティ** | UI/UX要件、WCAG準拠 | pages: "95-110" |
+
+### ベストプラクティス
+
+| 原則 | 説明 |
+|------|------|
+| **目次優先** | 常に目次で構造を把握してから詳細へ |
+| **観点別ページ範囲** | レビュー観点ごとに必要なページを特定 |
+| **変更差分に集中** | 既存ドキュメントは変更箇所のみレビュー |
+| **重要度順** | Critical → Major → Minor の順に読む |
+
+### トークン消費の比較
+
+| レビュー方法 | ドキュメント規模 | トークン消費 | レビュー精度 |
+|------------|---------------|------------|-------------|
+| **全ページ読み込み** | 200ページ | ~100,000 | 高 |
+| **ページ範囲指定** | 必要な30ページ | ~15,000 | 高 |
+
+→ **85%のトークン削減とレビュー時間短縮が可能**
+
+### 注意事項
+
+- ページ範囲は1-indexed（1ページ目は `pages: "1"`）
+- 複数範囲は未サポート（将来の拡張で対応予定）
+- 現時点では連続したページ範囲のみ指定可能
 
 ---
 

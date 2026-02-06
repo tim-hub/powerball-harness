@@ -1,20 +1,22 @@
 ---
-name: release
-description: "Automates release process: CHANGELOG update, version bump, and tag creation. Use when user mentions release, version bump, or tag creation. Do NOT load for: release planning discussions, version number mentions, 'ship it' casual talk."
+name: release-harness
+description: "Harness リリース作業を自動化。CHANGELOG、バージョン、タグをポチッと一発。Use when user mentions harness release, harness version bump. Do NOT load for: general release discussions, other project releases."
+description-en: "Automate Harness release. CHANGELOG, version, tag in one click. Use when user mentions harness release, harness version bump. Do NOT load for: general release discussions, other project releases."
+description-ja: "Harness リリース作業を自動化。CHANGELOG、バージョン、タグをポチッと一発。Use when user mentions harness release, harness version bump. Do NOT load for: general release discussions, other project releases."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[patch|minor|major]"
-disable-model-invocation: true
+context: fork
 ---
 
-# Release Skill
+# Release Harness Skill
 
 Automates the claude-code-harness release process.
 
 ## Quick Reference
 
-- "**Release a new version**" → `/release`
-- "**Bump patch version**" → `/release patch`
-- "**Create a minor release**" → `/release minor`
+- "**Release a new harness version**" → `/release-harness`
+- "**Bump patch version**" → `/release-harness patch`
+- "**Create a minor release**" → `/release-harness minor`
 
 ---
 
@@ -25,7 +27,54 @@ Automates the claude-code-harness release process.
 Run in parallel:
 1. `git status` - Check uncommitted changes
 2. `git diff --stat` - List changed files
-3. `git log --oneline -10` - Recent commit history
+3. `git log --format="%h|%s|%an|%ad" --date=short -10` - Recent commit history (structured)
+
+### Git log 拡張フラグの活用（CC 2.1.30+）
+
+リリースノート生成時に構造化ログを活用します。
+
+#### リリースノート用のコミット一覧
+
+```bash
+# 構造化フォーマットでコミット一覧取得
+git log --format="%s" vPREV..HEAD
+
+# マージコミットを除外（実質的な変更のみ）
+git log --cherry-pick --no-merges --format="%s" vPREV..HEAD
+
+# 詳細情報付き（作者・日付込み）
+git log --format="%h|%s|%an|%ad" --date=short vPREV..HEAD
+```
+
+#### 主な活用場面
+
+| 用途 | フラグ | 効果 |
+|------|--------|------|
+| **リリースノート生成** | `--format="%s"` | コミットメッセージのみ抽出 |
+| **マージ除外** | `--cherry-pick --no-merges` | 実コミットのみでノート作成 |
+| **詳細一覧** | `--format="%h\|%s\|%an\|%ad"` | 構造化された詳細情報 |
+| **変更ファイル** | `--raw` | 影響範囲の把握 |
+
+#### 出力例
+
+```markdown
+📝 リリース準備: v2.18.0
+
+前回リリース（v2.17.10）からのコミット:
+
+| Hash | Subject | Author | Date |
+|------|---------|--------|------|
+| a1b2c3d | feat: add git log flags | Alice | 2026-02-04 |
+| e4f5g6h | docs: update CI docs | Bob | 2026-02-03 |
+| i7j8k9l | fix: build script | Charlie | 2026-02-02 |
+
+自動生成されたリリースノート（マージ除外）:
+- feat: add git log flags
+- docs: update CI docs
+- fix: build script
+
+→ CHANGELOG.md の下書きに使用
+```
 
 ### Step 2: Version Determination
 

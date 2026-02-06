@@ -1,8 +1,11 @@
 ---
 name: memory
-description: "Manages memory, SSOT files, and Plans.md operations. Use when user mentions memory, SSOT, decisions.md, patterns.md, merging, or migration. Do NOT load for: implementation work, reviews, ad-hoc notes, or in-session logging."
+description: "SSOTと記憶を管理。decisions.mdとpatterns.mdの守護者です。Use when user mentions memory, SSOT, decisions.md, patterns.md, merging, or migration. Do NOT load for: implementation work, reviews, ad-hoc notes, or in-session logging."
+description-en: "Manage SSOT and memory. Guardian of decisions.md and patterns.md. Use when user mentions memory, SSOT, decisions.md, patterns.md, merging, or migration. Do NOT load for: implementation work, reviews, ad-hoc notes, or in-session logging."
+description-ja: "SSOTと記憶を管理。decisions.mdとpatterns.mdの守護者です。Use when user mentions memory, SSOT, decisions.md, patterns.md, merging, or migration. Do NOT load for: implementation work, reviews, ad-hoc notes, or in-session logging."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[ssot|sync|migrate]"
+context: fork
 ---
 
 # Memory Skills

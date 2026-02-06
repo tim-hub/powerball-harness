@@ -1,64 +1,60 @@
 # Architect Expert Prompt for Codex
 
-Codex MCP に送信する設計レビュー用プロンプト。
-> claude-delegator を参考に設計
+Architecture and design review prompt for Codex MCP.
 
 ## 7-Section Format
 
 ### TASK
 
-システム設計、アーキテクチャ判断、技術的トレードオフを分析し、設計上の問題や改善機会を検出してください。
+Analyze system design, architecture decisions, and technical tradeoffs to detect design issues and improvement opportunities.
 
 ### EXPECTED OUTCOME
 
-以下の形式で設計問題を報告:
-- 問題リスト（Severity: Critical/High/Medium/Low）
-- トレードオフ分析
-- 推奨アプローチ
-- 設計スコア（A-F）
+Report design issues in the following format:
+- Issue list (Severity: Critical/High/Medium/Low)
+- Tradeoff analysis
+- Recommended approach
+- Architecture score (A-F)
 
 ### CONTEXT
 
-レビュー対象:
-- 変更されたファイル: {files}
-- 技術スタック: {tech_stack}
-- 対象: アーキテクチャ、設計パターン、スケーラビリティ
+Review target:
+- Changed files: {files}
+- Tech stack: {tech_stack}
+- Focus: Architecture, design patterns, scalability
 
 ### CONSTRAINTS
 
-- **English only, max 1500 chars** (Claude integrates in Japanese)
-- Critical/High: report all, Medium/Low: max 3 each
-- No issues → `Score: A / No issues.`
 - Avoid premature over-abstraction
 - Base decisions on actual requirements
 
 ### MUST DO
 
-1. **システム設計**:
-   - モジュール境界の適切さ
-   - 依存関係の方向
-   - 責務の分離
+1. **System design**:
+   - Module boundary appropriateness
+   - Dependency direction
+   - Separation of concerns
 
-2. **スケーラビリティ**:
-   - ボトルネックになりうる箇所
-   - 水平/垂直スケーリングの考慮
-   - キャッシュ戦略
+2. **Scalability**:
+   - Potential bottlenecks
+   - Horizontal/vertical scaling considerations
+   - Cache strategy
 
-3. **保守性**:
-   - 変更容易性
-   - テスタビリティ
-   - デバッグ容易性
+3. **Maintainability**:
+   - Changeability
+   - Testability
+   - Debuggability
 
-4. **トレードオフ分析**:
-   - 複雑さ vs 柔軟性
-   - パフォーマンス vs 可読性
-   - DRY vs 明示性
+4. **Tradeoff analysis**:
+   - Complexity vs flexibility
+   - Performance vs readability
+   - DRY vs explicitness
 
 ### MUST NOT DO
 
-- 「将来のため」だけの抽象化を推奨しない
-- 単一用途の過度なパターン適用を推奨しない
-- 既存のうまく動いている設計を不必要に変更しない
+- Do not recommend abstractions "just for the future"
+- Do not recommend excessive pattern application for single-use cases
+- Do not unnecessarily change well-functioning existing designs
 
 ### OUTPUT FORMAT
 
@@ -78,11 +74,4 @@ Codex MCP に送信する設計レビュー用プロンプト。
 - **Current**: [Current approach and its pros/cons]
 - **Recommended**: [Recommended approach and why]
 - **Effort**: Quick/Short/Medium/Large
-
-### Summary
-
-- Critical: X
-- High: X
-- Medium: X
-- Low: X
 ```

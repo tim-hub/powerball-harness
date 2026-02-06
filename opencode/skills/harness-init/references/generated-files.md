@@ -32,6 +32,14 @@
 | `.cursor/commands/handoff-to-claude.md` | Task request |
 | `.cursor/commands/review-cc-work.md` | Implementation review |
 
+## Codex CLI Files (optional)
+
+| File | Purpose |
+|------|---------|
+| `.codex/skills/` | Codex CLI skills |
+| `.codex/rules/` | Temporary guardrails |
+| `.codex/config.toml` | MCP template (optional) |
+
 ## Completion Report Template
 
 ```

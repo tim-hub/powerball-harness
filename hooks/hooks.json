@@ -301,7 +301,7 @@
           },
           {
             "type": "prompt",
-            "prompt": "セッション終了の評価を行ってください。\n\n確認事項:\n1. ユーザーの依頼は完了しましたか？\n2. 未解決のエラーや問題がありますか？\n\n【重要】JSON形式で回答:\n- 終了OK: {\"ok\": true}\n- 継続必要: {\"ok\": false, \"reason\": \"キーワードのみ（例: 実行指示待ち/エラー未解決/確認待ち）\"}",
+            "prompt": "Evaluate session completion.\n\nCheck:\n1. Is the user's request complete?\n2. Are there unresolved errors or issues?\n\n[IMPORTANT] Respond in JSON format:\n- Done: {\"ok\": true}\n- Continue needed: {\"ok\": false, \"reason\": \"keyword only (e.g.: awaiting instruction/unresolved error/pending confirmation)\"}",
             "timeout": 30
           }
         ]

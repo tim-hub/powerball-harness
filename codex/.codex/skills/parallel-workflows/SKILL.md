@@ -1,6 +1,8 @@
 ---
 name: parallel-workflows
-description: "Optimizes parallel execution of multiple tasks. Use when user mentions running tasks in parallel or together. Do NOT load for: single tasks, sequential-only work, or tasks with dependencies."
+description: "複数タスクの並列実行を最適化。Use when user mentions running tasks in parallel or together. Do NOT load for: single tasks, sequential-only work, or tasks with dependencies."
+description-en: "Optimizes parallel execution of multiple tasks. Use when user mentions running tasks in parallel or together. Do NOT load for: single tasks, sequential-only work, or tasks with dependencies."
+description-ja: "複数タスクの並列実行を最適化。Use when user mentions running tasks in parallel or together. Do NOT load for: single tasks, sequential-only work, or tasks with dependencies."
 allowed-tools: ["Read", "Task"]
 user-invocable: false
 ---

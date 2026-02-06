@@ -1,6 +1,8 @@
 ---
 name: troubleshoot
 description: "動かない？エラー？診断と修復をガイド。困ったときの駆け込み寺。Use when user mentions something broken, errors, or that it doesn't work. Do NOT load for: successful builds, new feature implementation, or reviews."
+description-en: "Not working? Errors? Diagnosis and repair guide. Temple for troubled times. Use when user mentions something broken, errors, or that it doesn't work. Do NOT load for: successful builds, new feature implementation, or reviews."
+description-ja: "動かない？エラー？診断と修復をガイド。困ったときの駆け込み寺。Use when user mentions something broken, errors, or that it doesn't work. Do NOT load for: successful builds, new feature implementation, or reviews."
 allowed-tools: ["Read", "Grep", "Bash"]
 context: fork
 argument-hint: "[build|test|runtime]"

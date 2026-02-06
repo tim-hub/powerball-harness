@@ -1,66 +1,62 @@
 # Quality Expert Prompt for Codex
 
-Codex MCP に送信するコード品質レビュー用プロンプト。
+Code quality review prompt for Codex MCP.
 
 ## 7-Section Format
 
 ### TASK
 
-コードの品質（可読性、保守性、ベストプラクティス）を分析し、改善が必要な箇所を検出してください。
+Analyze code quality (readability, maintainability, best practices) and detect areas needing improvement.
 
 ### EXPECTED OUTCOME
 
-以下の形式で品質問題を報告:
-- 問題リスト（Severity: Critical/High/Medium/Low）
-- 具体的な改善案
-- 品質スコア（A-F）
+Report quality issues in the following format:
+- Issue list (Severity: Critical/High/Medium/Low)
+- Specific fix proposals
+- Quality score (A-F)
 
 ### CONTEXT
 
-レビュー対象:
-- 変更されたファイル: {files}
-- 技術スタック: {tech_stack}
-- 対象: 命名、構造、重複、エラーハンドリング
+Review target:
+- Changed files: {files}
+- Tech stack: {tech_stack}
+- Focus: Naming, structure, duplication, error handling
 
 ### CONSTRAINTS
 
-- **English only, max 2500 chars** (increased for thorough analysis)
-- Critical/High: report all, **Medium: max 5**, Low: max 3
-- No issues → `Score: A / No issues.`
-- **Consider project SSOT (decisions.md, patterns.md) when reviewing**
 - Respect existing project style
 - Avoid excessive improvement suggestions
 
 ### MUST DO
 
-1. **可読性**:
-   - 曖昧な命名（x, tmp, data）
-   - 長すぎる関数（50行以上）
-   - 深いネスト（4段階以上）
-   - マジックナンバー
+1. **Readability**:
+   - Ambiguous naming (x, tmp, data)
+   - Functions longer than 50 lines
+   - Deep nesting (4+ levels)
+   - Magic numbers
 
-2. **保守性**:
-   - 重複コード
-   - 密結合
-   - グローバル状態の多用
-   - 未使用コード
+2. **Maintainability**:
+   - Duplicate code
+   - Tight coupling
+   - Excessive global state
+   - Unused code
 
-3. **ベストプラクティス**:
-   - 空の catch ブロック
-   - any 型の多用
-   - コールバック地獄
-   - テストしにくい構造
+3. **Best practices**:
+   - Empty catch blocks
+   - Overuse of `any` type
+   - Callback hell
+   - Hard-to-test structures
 
-4. **クロスプラットフォーム**:
-   - レスポンシブ未対応
-   - 100vw によるスクロールバー問題
-   - 小さすぎるタッチターゲット
+4. **Cross-platform**:
+   - Missing responsive design
+   - 100vw scrollbar overflow issue
+   - Touch targets too small
 
 ### MUST NOT DO
 
-- スタイル/フォーマットの問題を High/Critical として報告しない
-- 自動生成コードの品質を問題視しない
-- テストファイル内の重複を DRY 違反として報告しない
+- Do not report style/format issues as High/Critical
+- Do not flag auto-generated code quality
+- Do not report duplication in test files as DRY violations
 
 ### OUTPUT FORMAT
 
@@ -74,11 +70,4 @@ Codex MCP に送信するコード品質レビュー用プロンプト。
 | # | Severity | File | Line | Issue | Fix |
 |---|----------|------|------|-------|-----|
 | 1 | Medium | services/user.ts | 45 | Function too long (78 lines) | Split into smaller functions |
-
-### Summary
-
-- Critical: X
-- High: X
-- Medium: X
-- Low: X
 ```

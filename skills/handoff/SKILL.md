@@ -1,6 +1,8 @@
 ---
 name: handoff
 description: "PMへの完了報告やエージェント間バトンタッチ。スムーズな引き継ぎを実現。Use when user mentions '/handoff', completion report, handoff to Cursor/OpenCode, auto-fix, or reporting to PM. Do NOT load for: casual completion statements, progress chat, informal status updates."
+description-en: "Completion report to PM and agent handoff. Smooth transition achieved. Use when user mentions '/handoff', completion report, handoff to Cursor/OpenCode, auto-fix, or reporting to PM. Do NOT load for: casual completion statements, progress chat, informal status updates."
+description-ja: "PMへの完了報告やエージェント間バトンタッチ。スムーズな引き継ぎを実現。Use when user mentions '/handoff', completion report, handoff to Cursor/OpenCode, auto-fix, or reporting to PM. Do NOT load for: casual completion statements, progress chat, informal status updates."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
 argument-hint: "[cursor|opencode|auto-fix]"
 ---

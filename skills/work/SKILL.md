@@ -1,6 +1,8 @@
 ---
 name: work
 description: "Plans.mdのタスクを実行。スマート並列検出でサクサク進める主力選手。Use when user mentions '/work', execute plan, implement tasks, build features, or work on tasks. Do NOT load for: planning, reviews, setup, or deployment."
+description-en: "Execute Plans.md tasks. Main player with smart parallel detection. Use when user mentions '/work', execute plan, implement tasks, build features, or work on tasks. Do NOT load for: planning, reviews, setup, or deployment."
+description-ja: "Plans.mdのタスクを実行。スマート並列検出でサクサク進める主力選手。Use when user mentions '/work', execute plan, implement tasks, build features, or work on tasks. Do NOT load for: planning, reviews, setup, or deployment."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[--parallel N] [--sequential] [--ci] [--no-commit] [--resume id] [--fork id]"
 disable-model-invocation: true

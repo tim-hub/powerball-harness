@@ -41,7 +41,12 @@ allowed-tools: ["Read", "Task", "Bash"]
         "compatibility": { "grade": "A", "issues": [] }
       },
       "build_result": "pass",
-      "test_result": "pass"
+      "test_result": "pass",
+      "metrics": {
+        "tokenCount": 2340,
+        "toolUses": 12,
+        "duration": 45000
+      }
     },
     {
       "task_id": "task2",
@@ -56,6 +61,11 @@ allowed-tools: ["Read", "Task", "Bash"]
             "issue": "型 'unknown' を 'User' に変換できません"
           }
         ]
+      },
+      "metrics": {
+        "tokenCount": 1890,
+        "toolUses": 8,
+        "duration": 32000
       }
     }
   ],
@@ -64,7 +74,12 @@ allowed-tools: ["Read", "Task", "Bash"]
   "changed_files": [
     "src/components/Header.tsx",
     "src/components/Footer.tsx"
-  ]
+  ],
+  "total_metrics": {
+    "tokenCount": 4230,
+    "toolUses": 20,
+    "duration": 77000
+  }
 }
 ```
 
@@ -289,9 +304,106 @@ Task tool で3つのtask-workerを並列起動:
 
 ---
 
+## メトリクス集計表示（CC 2.1.30+）
+
+### Task tool メトリクスの取得
+
+Claude Code 2.1.30 以降、Task tool の結果に以下のメトリクスが含まれます：
+
+- `tokenCount` - 消費トークン数
+- `toolUses` - ツール使用回数
+- `duration` - 実行時間（ミリ秒）
+
+### 集計表示例
+
+並列実行完了時に全ワーカーのメトリクスを集計して表示：
+
+```markdown
+🚀 Ultrawork 完了
+
+| Worker | Status | Tokens | Tools | Duration |
+|--------|--------|--------|-------|----------|
+| task-1 | ✅ | 2,340 | 12 | 45s |
+| task-2 | ✅ | 1,890 | 8 | 32s |
+| task-3 | ✅ | 3,120 | 15 | 58s |
+| **合計** | | **7,350** | **35** | **135s (2m 15s)** |
+
+📊 平均効率:
+- トークン/タスク: 2,450
+- ツール/タスク: 11.7
+- 時間/タスク: 45s
+```
+
+### 実装例
+
+```javascript
+// メトリクス集計関数
+function aggregateMetrics(workerResults) {
+  const totals = { tokenCount: 0, toolUses: 0, duration: 0 };
+  let count = 0;
+
+  for (const result of workerResults) {
+    if (result.metrics) {
+      totals.tokenCount += result.metrics.tokenCount || 0;
+      totals.toolUses += result.metrics.toolUses || 0;
+      totals.duration += result.metrics.duration || 0;
+      count++;
+    }
+  }
+
+  return {
+    totals,
+    averages: {
+      tokenCount: Math.round(totals.tokenCount / count),
+      toolUses: (totals.toolUses / count).toFixed(1),
+      duration: Math.round(totals.duration / count)
+    }
+  };
+}
+
+// 表示用フォーマット
+function formatDuration(ms) {
+  if (ms < 60000) return `${Math.round(ms / 1000)}s`;
+  const minutes = Math.floor(ms / 60000);
+  const seconds = Math.round((ms % 60000) / 1000);
+  return `${minutes}m ${seconds}s`;
+}
+
+function formatNumber(num) {
+  return num.toLocaleString();
+}
+```
+
+### AgentTrace への記録
+
+メトリクスは `.claude/state/agent-trace.jsonl` に自動記録されます（emit-agent-trace.js による）：
+
+```json
+{
+  "version": "0.3.0",
+  "id": "uuid",
+  "timestamp": "2026-02-04T...",
+  "tool": "Task",
+  "metrics": {
+    "tokenCount": 2340,
+    "toolUses": 12,
+    "duration": 45000
+  },
+  "metadata": {
+    "project": "my-project",
+    "taskId": "task-1"
+  }
+}
+```
+
+詳細: [docs/AGENT_TRACE_SCHEMA.md](../../../docs/AGENT_TRACE_SCHEMA.md)
+
+---
+
 ## 注意事項
 
 - **並列数の上限**: `parallel_count`で指定された数を超えない（デフォルト: 1、上限: 10）
 - **依存グループの待機**: 依存グループが完了するまで次のグループは実行しない
 - **エスカレーション処理**: `needs_escalation`が返された場合、ユーザー確認を待つ
 - **worktreeクリーンアップ**: `isolation_mode=worktree`時は後でworktreeを削除する必要がある（Phase3でマージ後）
+- **メトリクス収集**: CC 2.1.30+ では Task tool の結果に自動的にメトリクスが含まれる（古いバージョンでは null）

@@ -1,6 +1,8 @@
 ---
 name: setup-tools
 description: "開発ツールを一括セットアップ。CI、LSP、MCP、なんでもござれ。Use when user mentions '/setup', tool setup, CI setup, LSP setup, MCP setup, webhook setup, remotion setup, opencode setup, or codex setup. Do NOT load for: app setup screens, onboarding flows, CI concept questions."
+description-en: "Bulk development tool setup. CI, LSP, MCP, anything goes. Use when user mentions '/setup', tool setup, CI setup, LSP setup, MCP setup, webhook setup, remotion setup, opencode setup, or codex setup. Do NOT load for: app setup screens, onboarding flows, CI concept questions."
+description-ja: "開発ツールを一括セットアップ。CI、LSP、MCP、なんでもござれ。Use when user mentions '/setup', tool setup, CI setup, LSP setup, MCP setup, webhook setup, remotion setup, opencode setup, or codex setup. Do NOT load for: app setup screens, onboarding flows, CI concept questions."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob"]
 argument-hint: "[ci|dev-tools|lsp|mcp|opencode|codex|webhook|ui|remotion|skills]"
 disable-model-invocation: true

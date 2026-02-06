@@ -1,7 +1,9 @@
 ---
 name: session-state
 version: 1.0.0
-description: "Manages session state transitions per SESSION_ORCHESTRATION.md. Internal use only. Do NOT load for: user session management, login state, app state handling."
+description: "SESSION_ORCHESTRATION.mdに基づくセッション状態遷移管理。内部用。Do NOT load for: user session management, login state, app state handling."
+description-en: "Manages session state transitions per SESSION_ORCHESTRATION.md. Internal use only. Do NOT load for: user session management, login state, app state handling."
+description-ja: "SESSION_ORCHESTRATION.mdに基づくセッション状態遷移管理。内部用。Do NOT load for: user session management, login state, app state handling."
 allowed-tools: ["Read", "Bash"]
 user-invocable: false
 dependencies: []

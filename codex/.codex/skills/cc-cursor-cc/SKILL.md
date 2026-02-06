@@ -1,6 +1,8 @@
 ---
 name: cc-cursor-cc
-description: "Validates brainstormed ideas with Cursor PM, updates Plans.md, then handoff back. 2-Agent workflow support."
+description: "Cursor PMでアイデアを検証し、Plans.mdを更新してバトンタッチ。2-Agentワークフロー対応。"
+description-en: "Validates brainstormed ideas with Cursor PM, updates Plans.md, then handoff back. 2-Agent workflow support."
+description-ja: "Cursor PMでアイデアを検証し、Plans.mdを更新してバトンタッチ。2-Agentワークフロー対応。"
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 user-invocable: false
 ---

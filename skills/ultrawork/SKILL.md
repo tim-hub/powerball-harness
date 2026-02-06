@@ -1,6 +1,8 @@
 ---
 name: ultrawork
 description: "Plans.mdを完了まで自動反復。寝てる間に仕事が終わる夢を実現。Use when user mentions '/ultrawork', complete until done, finish all tasks, or autonomous execution. Do NOT load for: single tasks, reviews, or setup."
+description-en: "Auto-iterate Plans.md until complete. Dream of work finishing while sleeping realized. Use when user mentions '/ultrawork', complete until done, finish all tasks, or autonomous execution. Do NOT load for: single tasks, reviews, or setup."
+description-ja: "Plans.mdを完了まで自動反復。寝てる間に仕事が終わる夢を実現。Use when user mentions '/ultrawork', complete until done, finish all tasks, or autonomous execution. Do NOT load for: single tasks, reviews, or setup."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[natural language range] [--max-iterations N] [--codex] [--parallel N] [--worktree-base PATH]"
 disable-model-invocation: true

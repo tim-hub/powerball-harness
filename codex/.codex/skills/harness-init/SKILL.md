@@ -1,6 +1,8 @@
 ---
 name: harness-init
-description: "Project setup with environment check, file generation, SSOT sync, and validation. Use when user mentions '/harness-init', new project setup, launch a project, or introduce harness to existing project. Do NOT load for: implementation, reviews, or planning."
+description: "プロジェクトをHarness仕様に初期化。開発の準備体操はこちらで。Use when user mentions '/harness-init', new project setup, launch a project, or introduce harness to existing project. Do NOT load for: implementation, reviews, or planning."
+description-en: "Initialize project to Harness spec. Development warm-up here. Use when user mentions '/harness-init', new project setup, launch a project, or introduce harness to existing project. Do NOT load for: implementation, reviews, or planning."
+description-ja: "プロジェクトをHarness仕様に初期化。開発の準備体操はこちらで。Use when user mentions '/harness-init', new project setup, launch a project, or introduce harness to existing project. Do NOT load for: implementation, reviews, or planning."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[project-name] [--mode=solo|2agent] [--stack=next-supabase] [--name=app-name]"
 disable-model-invocation: true
@@ -22,6 +24,7 @@ Sets up a project so VibeCoder can start development with natural language only.
 
 - Real project generation (e.g., create-next-app) + initial setup
 - Prepare `Plans.md` / `AGENTS.md` / `CLAUDE.md` / `.claude/`
+- Optional: Codex CLI compatibility (`.codex/` + `AGENTS.md`)
 - **Environment diagnosis** → **SSOT initialization** → **Final validation**
 - → **Ready to run Plan→Work→Review immediately**
 
@@ -85,3 +88,4 @@ After setup:
 - "`/planning` I want to create XXX" → Create plan
 - "`/work`" → Execute tasks in Plans.md
 - "`npm run dev`" → Start dev server
+- If you need Codex CLI: run `/codex-setup`

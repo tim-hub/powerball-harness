@@ -1,6 +1,8 @@
 ---
 name: ultrawork
-description: "Autonomously iterates until specified Plans.md range is complete - long-running /work with self-learning. Use when user mentions '/ultrawork', complete until done, finish all tasks, or autonomous execution. Do NOT load for: single tasks, reviews, or setup."
+description: "Plans.mdを完了まで自動反復。寝てる間に仕事が終わる夢を実現。Use when user mentions '/ultrawork', complete until done, finish all tasks, or autonomous execution. Do NOT load for: single tasks, reviews, or setup."
+description-en: "Auto-iterate Plans.md until complete. Dream of work finishing while sleeping realized. Use when user mentions '/ultrawork', complete until done, finish all tasks, or autonomous execution. Do NOT load for: single tasks, reviews, or setup."
+description-ja: "Plans.mdを完了まで自動反復。寝てる間に仕事が終わる夢を実現。Use when user mentions '/ultrawork', complete until done, finish all tasks, or autonomous execution. Do NOT load for: single tasks, reviews, or setup."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[natural language range] [--max-iterations N] [--codex] [--parallel N] [--worktree-base PATH]"
 disable-model-invocation: true
@@ -53,6 +55,23 @@ Plans.md の指定範囲を**完了まで自動的に反復実行**する。
 | **Security & Guards** | See [references/security-guards.md](references/security-guards.md) |
 | **Session State** | See [references/session-state.md](references/session-state.md) |
 | **Codex Mode** (Experimental) | See [references/codex-mode.md](references/codex-mode.md) |
+
+## --codex モード時の役割分担
+
+`--codex` フラグ使用時、Claude と Codex Worker の役割は明確に分離されます。
+
+| 操作 | Claude (PM) | Codex Worker |
+|------|-------------|--------------|
+| タスク分析・分割 | ✅ | - |
+| 実装（Edit/Write） | ❌ **禁止** | ✅ |
+| レビュー・品質チェック | ✅ | - |
+| Plans.md マーカー更新 | ✅ | - |
+| Worktree 管理 | ✅ | - |
+
+**重要**: `--codex` 使用時、Claude の Edit/Write は `pretooluse-guard.sh` によってブロックされます。
+すべての実装は `mcp__codex__codex` 経由で Codex Worker に委譲してください。
+
+詳細: [references/codex-mode.md](references/codex-mode.md)
 
 ## Completion Conditions
 

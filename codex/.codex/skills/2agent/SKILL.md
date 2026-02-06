@@ -1,6 +1,8 @@
 ---
 name: 2agent
-description: "Configures 2-Agent workflow between PM and implementation roles. Use when user mentions 2-Agent setup, PM coordination, Cursor setup, or 2-agent operations. Do NOT load for: solo operation, workflow execution, or handoff processing."
+description: "PMと実装役の二人三脚を設定。息ぴったりの開発体制を構築。Use when user mentions 2-Agent setup, PM coordination, Cursor setup, or 2-agent operations. Do NOT load for: solo operation, workflow execution, or handoff processing."
+description-en: "Set up PM and Implementer duo. Build perfect sync development. Use when user mentions 2-Agent setup, PM coordination, Cursor setup, or 2-agent operations. Do NOT load for: solo operation, workflow execution, or handoff processing."
+description-ja: "PMと実装役の二人三脚を設定。息ぴったりの開発体制を構築。Use when user mentions 2-Agent setup, PM coordination, Cursor setup, or 2-agent operations. Do NOT load for: solo operation, workflow execution, or handoff processing."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[setup|cursor-rules|auto]"
 ---

@@ -1,50 +1,46 @@
 # Accessibility Expert Prompt for Codex
 
-Codex MCP に送信するアクセシビリティレビュー用プロンプト。
+Accessibility (a11y) review prompt for Codex MCP.
 
 ## 7-Section Format
 
 ### TASK
 
-Web アクセシビリティ（a11y）を分析し、WCAG 2.1 AA ガイドラインへの準拠を確認してください。
+Analyze web accessibility and verify compliance with WCAG 2.1 AA guidelines.
 
 ### EXPECTED OUTCOME
 
-以下の形式で a11y 問題を報告:
-- 問題リスト（Severity: Critical/High/Medium/Low）
-- WCAG 基準への参照
-- 修正案
-- a11y スコア（A-F）
+Report a11y issues in the following format:
+- Issue list (Severity: Critical/High/Medium/Low)
+- WCAG criterion reference
+- Fix proposals
+- Accessibility score (A-F)
 
 ### CONTEXT
 
-レビュー対象:
-- 変更されたファイル: {files}
-- フレームワーク: {tech_stack}
-- 対象: UI コンポーネント、フォーム、画像、ナビゲーション
+Review target:
+- Changed files: {files}
+- Framework: {tech_stack}
+- Focus: UI components, forms, images, navigation
 
 ### CONSTRAINTS
 
-- **English only, max 2500 chars** (increased for thorough analysis)
-- Critical/High: report all, **Medium: max 5**, Low: max 3
-- No issues → `Score: A / No issues.`
-- **Consider project SSOT (decisions.md, patterns.md) when reviewing**
 - WCAG 2.1 AA baseline
 - Consider framework-specific patterns (React/Vue/Svelte)
 
 ### MUST DO
 
-1. **セマンティック HTML**: 見出し構造、ランドマーク、ボタン vs div
-2. **画像・メディア**: alt 属性、装飾画像、動画キャプション
-3. **フォーム**: ラベル、エラーメッセージ、必須フィールド
-4. **キーボード**: フォーカス管理、トラップ防止、ESC 対応
-5. **ARIA**: 冗長な ARIA 削除、動的コンテンツの aria-live
+1. **Semantic HTML**: Heading hierarchy, landmarks, button vs div
+2. **Images/media**: alt attributes, decorative images, video captions
+3. **Forms**: Labels, error messages, required fields
+4. **Keyboard**: Focus management, trap prevention, ESC handling
+5. **ARIA**: Remove redundant ARIA, aria-live for dynamic content
 
 ### MUST NOT DO
 
-- 非 UI ファイル（API、ユーティリティ）を a11y 対象にしない
-- 装飾画像に意味のある alt を要求しない
-- aria-hidden の正しい使用を問題として報告しない
+- Do not flag non-UI files (API, utilities) for a11y
+- Do not require meaningful alt for decorative images
+- Do not report correct aria-hidden usage as an issue
 
 ### OUTPUT FORMAT
 
@@ -58,11 +54,4 @@ Web アクセシビリティ（a11y）を分析し、WCAG 2.1 AA ガイドライ
 | # | Severity | File | Line | Issue | WCAG | Fix |
 |---|----------|------|------|-------|------|-----|
 | 1 | High | components/Button.tsx | 12 | div used as button | 4.1.2 | Use <button> element |
-
-### Summary
-
-- Critical: X
-- High: X
-- Medium: X
-- Low: X
 ```

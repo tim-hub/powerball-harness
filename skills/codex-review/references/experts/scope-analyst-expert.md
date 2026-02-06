@@ -1,67 +1,62 @@
 # Scope Analyst Expert Prompt for Codex
 
-Codex MCP に送信する要件分析用プロンプト。
-> claude-delegator を参考に設計
+Requirements/scope analysis prompt for Codex MCP.
 
 ## 7-Section Format
 
 ### TASK
 
-要件・リクエストを分析し、計画開始前に曖昧さ、隠れた要件、潜在的な問題を検出してください。
+Analyze requirements and requests to detect ambiguities, hidden requirements, and potential issues before planning begins.
 
 ### EXPECTED OUTCOME
 
-以下の形式で要件の問題を報告:
-- インテント分類
-- 発見事項リスト
-- 確認が必要な質問
-- リスクと軽減策
-- 推奨アクション
+Report scope analysis in the following format:
+- Intent classification
+- Findings list
+- Clarification questions
+- Risks and mitigations
+- Recommended action
 
 ### CONTEXT
 
-分析対象:
-- 要件/リクエスト: {requirements}
-- 対象: 曖昧さ、隠れた要件、依存関係、リスク
+Analysis target:
+- Requirements/request: {requirements}
+- Focus: Ambiguities, hidden requirements, dependencies, risks
 
 ### CONSTRAINTS
 
-- **English only, max 2500 chars** (increased for thorough analysis)
-- Critical/High: report all, **Medium: max 5**, Low: max 3
-- No issues → `Score: A / No issues.`
-- **Consider project SSOT (decisions.md, patterns.md) when reviewing**
 - Focus on real problems
 - Avoid over-analysis
 
 ### MUST DO
 
-1. **インテント分類**:
+1. **Intent classification**:
 
-| タイプ | フォーカス | 主な質問 |
-|--------|----------|----------|
-| リファクタリング | 安全性 | 何が壊れる？テストカバレッジは？ |
-| 新規構築 | 発見 | 類似パターンは？未知の要素は？ |
-| 中規模タスク | ガードレール | スコープ内/外は？ |
-| アーキテクチャ | 戦略 | トレードオフは？2年後の視点は？ |
-| バグ修正 | 根本原因 | 本当のバグ vs 症状は？影響範囲は？ |
-| 調査 | 終了条件 | 答えるべき質問は？いつ止めるか？ |
+| Type | Focus | Key Question |
+|------|-------|-------------|
+| Refactoring | Safety | What breaks? Test coverage? |
+| New build | Discovery | Similar patterns? Unknown elements? |
+| Medium task | Guardrails | In/out of scope? |
+| Architecture | Strategy | Tradeoffs? 2-year perspective? |
+| Bug fix | Root cause | Real bug vs symptom? Blast radius? |
+| Investigation | Exit criteria | Questions to answer? When to stop? |
 
-2. **分析項目**:
-   - **隠れた要件**: 暗黙の前提、ビジネスコンテキスト、エッジケース
-   - **曖昧さ**: 複数解釈、未決定事項、実装者による差異
-   - **依存関係**: 既存コード、必要な前提条件、破壊リスク
-   - **リスク**: 失敗時の影響、ロールバック計画
+2. **Analysis items**:
+   - **Hidden requirements**: Implicit assumptions, business context, edge cases
+   - **Ambiguities**: Multiple interpretations, undecided items, implementer variance
+   - **Dependencies**: Existing code, prerequisites, breaking risks
+   - **Risks**: Failure impact, rollback plan
 
-3. **アンチパターン検出**:
-   - 過剰設計: 「将来のため」だけの抽象化
-   - スコープクリープ: 「ついでに」の変更
-   - 曖昧シグナル: 「簡単なはず」「X のように」
+3. **Anti-pattern detection**:
+   - Over-engineering: Abstractions "just for the future"
+   - Scope creep: "While we're at it" changes
+   - Ambiguity signals: "Should be easy", "Like X"
 
 ### MUST NOT DO
 
-- 明確で小さなタスクに過度な分析を適用しない
-- 存在しないリスクを作り出さない
-- 確認済みの前提を再質問しない
+- Do not apply excessive analysis to clear, small tasks
+- Do not invent non-existent risks
+- Do not re-question confirmed assumptions
 
 ### OUTPUT FORMAT
 

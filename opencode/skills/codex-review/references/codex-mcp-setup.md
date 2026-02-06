@@ -99,6 +99,49 @@ codex login status
 
 ---
 
+### Step 2.5: OAuth Client 認証（Claude Code 2.1.30+）
+
+DCR（Dynamic Client Registration）非対応の MCP サーバーで OAuth 認証を設定する場合に使用します。
+
+**対象サーバー例**:
+- Slack MCP サーバー（将来的な統合候補）
+- カスタム OAuth 対応 MCP サーバー
+
+**設定方法**:
+
+```bash
+# OAuth クライアント認証情報を指定して MCP 追加
+claude mcp add --scope user my-mcp \
+  --client-id "your-client-id" \
+  --client-secret "your-client-secret" \
+  -- my-mcp-server
+
+# 環境変数から読み取る場合（推奨）
+claude mcp add --scope user my-mcp \
+  --client-id "$MY_CLIENT_ID" \
+  --client-secret "$MY_CLIENT_SECRET" \
+  -- my-mcp-server
+```
+
+**設定項目の説明**:
+
+| オプション | 説明 | 例 |
+|-----------|------|-----|
+| `--client-id` | OAuth クライアント ID | `oauth-client-123abc` |
+| `--client-secret` | OAuth クライアントシークレット | `secret-xyz789` |
+
+**注意事項**:
+
+- クライアントシークレットは機密情報です。環境変数からの読み取りを推奨します
+- 認証情報は `~/.config/claude/mcp.json` に保存されます
+- DCR 対応サーバーでは `--client-id` / `--client-secret` は不要です（自動登録）
+
+**Slack MCP サーバー統合について**:
+
+現在、Slack MCP サーバーの統合は検討段階です（Plans.md で範囲外として分離）。OAuth Client 認証が必要になる場合は、上記の手順で設定可能です。
+
+---
+
 ### Step 3: MCP サーバー登録
 
 ```bash

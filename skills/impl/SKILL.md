@@ -1,6 +1,8 @@
 ---
 name: impl
-description: "Implements features and writes code based on Plans.md tasks. Use when user mentions implementation, adding features, writing code, or creating new functions. Do not use for review or build verification."
+description: "Plans.mdのタスクに基づいて機能を実装しコードを書く。Use when user mentions implementation, adding features, writing code, or creating new functions. Do not use for review or build verification."
+description-en: "Implements features and writes code based on Plans.md tasks. Use when user mentions implementation, adding features, writing code, or creating new functions. Do not use for review or build verification."
+description-ja: "Plans.mdのタスクに基づいて機能を実装しコードを書く。Use when user mentions implementation, adding features, writing code, or creating new functions. Do not use for review or build verification."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
 user-invocable: false
 ---

@@ -28,7 +28,8 @@ skills/
 ```yaml
 ---
 name: skill-name
-description: "Brief description for auto-loading. Include trigger phrases."
+description: "English description for auto-loading. Include trigger phrases."
+description-ja: "日本語の説明。トリガーフレーズを含む。"
 allowed-tools: ["Read", "Write", "Edit", "Bash", ...]
 ---
 ```
@@ -38,7 +39,8 @@ allowed-tools: ["Read", "Write", "Edit", "Bash", ...]
 | Field | Required | Description |
 |-------|----------|-------------|
 | `name` | Yes | Skill identifier (matches directory name) |
-| `description` | Yes | Description for auto-loading (include trigger phrases) |
+| `description` | Yes | English description for auto-loading (include trigger phrases). Token-efficient. |
+| `description-ja` | Recommended | Japanese description for i18n. Use `scripts/set-locale.sh ja` to swap into `description`. |
 | `allowed-tools` | No | Tools the skill can use |
 | `argument-hint` | No | Usage hint (e.g., `"[option1|option2]"`) |
 | `disable-model-invocation` | No | Set `true` for dangerous operations |

@@ -1,6 +1,8 @@
 ---
 name: harness-review
 description: "コード・プラン・スコープを多角的にレビュー。品質の番人、参上。Use when user mentions reviews, code review, plan review, scope analysis, security, performance, quality checks, PRs, diffs, or change review. Do NOT load for: implementation work, new feature development, bug fixes, or setup."
+description-en: "Multi-angle review of code, plans, and scope. Quality guardian at your service. Use when user mentions reviews, code review, plan review, scope analysis, security, performance, quality checks, PRs, diffs, or change review. Do NOT load for: implementation work, new feature development, bug fixes, or setup."
+description-ja: "コード・プラン・スコープを多角的にレビュー。品質の番人、参上。Use when user mentions reviews, code review, plan review, scope analysis, security, performance, quality checks, PRs, diffs, or change review. Do NOT load for: implementation work, new feature development, bug fixes, or setup."
 allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 context: fork
 argument-hint: "[code|plan|scope]"

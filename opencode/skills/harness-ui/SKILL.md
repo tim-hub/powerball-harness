@@ -1,6 +1,8 @@
 ---
 name: harness-ui
-description: "Displays Harness UI dashboard for monitoring and task management. Use when user mentions '/harness-ui', dashboard, monitoring, or UI display. Do NOT load for: app UI implementation, dashboard component creation, admin panel features."
+description: "Harnessダッシュボードを表示。現状を一目で把握できる司令塔。Use when user mentions '/harness-ui', dashboard, monitoring, or UI display. Do NOT load for: app UI implementation, dashboard component creation, admin panel features."
+description-en: "Display Harness dashboard. Command center for status at a glance. Use when user mentions '/harness-ui', dashboard, monitoring, or UI display. Do NOT load for: app UI implementation, dashboard component creation, admin panel features."
+description-ja: "Harnessダッシュボードを表示。現状を一目で把握できる司令塔。Use when user mentions '/harness-ui', dashboard, monitoring, or UI display. Do NOT load for: app UI implementation, dashboard component creation, admin panel features."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "WebFetch"]
 argument-hint: "[LICENSE_KEY] [--force]"
 user-invocable: false
@@ -23,6 +25,38 @@ Displays the Harness UI dashboard for monitoring sessions, tasks, and project st
 /harness-ui YOUR-KEY     # Set license key and open
 /harness-ui --force      # Force re-setup
 ```
+
+## Accessibility Settings (CC 2.1.30+)
+
+視覚的な快適性のための設定です。
+
+### Reduced Motion 設定
+
+Claude Code の設定ファイルでアニメーションを最小化できます:
+
+```jsonc
+// settings.json
+{
+  "reducedMotion": true  // アニメーションを最小化
+}
+```
+
+**推奨設定**:
+
+| 設定 | 用途 |
+|------|------|
+| `reducedMotion: true` | モーション酔い対策、集中力向上 |
+| `reducedMotion: false` | デフォルト（アニメーションあり） |
+
+**こんな方におすすめ**:
+- 長時間作業で目が疲れやすい方
+- アニメーションによる視覚的な刺激に敏感な方
+- 集中して作業したい方
+
+設定ファイルの場所:
+- **macOS**: `~/Library/Application Support/Claude/settings.json`
+- **Windows**: `%APPDATA%\Claude\settings.json`
+- **Linux**: `~/.config/Claude/settings.json`
 
 ## Features
 

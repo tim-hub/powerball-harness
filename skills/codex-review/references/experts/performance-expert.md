@@ -1,60 +1,56 @@
 # Performance Expert Prompt for Codex
 
-Codex MCP に送信するパフォーマンスレビュー用プロンプト。
+Performance review prompt for Codex MCP.
 
 ## 7-Section Format
 
 ### TASK
 
-コードのパフォーマンス問題を分析し、非効率なパターン、ボトルネック、最適化の機会を検出してください。
+Analyze code for performance issues, detecting inefficient patterns, bottlenecks, and optimization opportunities.
 
 ### EXPECTED OUTCOME
 
-以下の形式でパフォーマンス問題を報告:
-- 問題リスト（Severity: Critical/High/Medium/Low）
-- 改善案と期待効果
-- パフォーマンススコア（A-F）
+Report performance issues in the following format:
+- Issue list (Severity: Critical/High/Medium/Low)
+- Fix proposals with expected impact
+- Performance score (A-F)
 
 ### CONTEXT
 
-レビュー対象:
-- 変更されたファイル: {files}
-- 技術スタック: {tech_stack}
-- 対象: レンダリング、DB クエリ、アルゴリズム、メモリ
+Review target:
+- Changed files: {files}
+- Tech stack: {tech_stack}
+- Focus: Rendering, DB queries, algorithms, memory
 
 ### CONSTRAINTS
 
-- **English only, max 2500 chars** (increased for thorough analysis)
-- Critical/High: report all, **Medium: max 5**, Low: max 3
-- No issues → `Score: A / No issues.`
-- **Consider project SSOT (decisions.md, patterns.md) when reviewing**
 - Avoid premature optimization, focus on real bottlenecks
 - Show measurable improvement impact
 
 ### MUST DO
 
-1. **フロントエンド**:
-   - 不要な再レンダリング（useCallback/useMemo 未使用）
-   - 大きなリストの非仮想化
-   - 重い計算の同期実行
-   - バンドルサイズ（大きな依存関係）
+1. **Frontend**:
+   - Unnecessary re-renders (missing useCallback/useMemo)
+   - Large lists without virtualization
+   - Synchronous heavy computation
+   - Bundle size (large dependencies)
 
-2. **バックエンド**:
-   - N+1 クエリ問題
-   - インデックス未使用
-   - 同期 I/O のブロッキング
-   - キャッシュ未使用
+2. **Backend**:
+   - N+1 query problem
+   - Missing indexes
+   - Blocking synchronous I/O
+   - Missing cache
 
-3. **一般**:
-   - O(n²) 以上のアルゴリズム
-   - ループ内での文字列連結
-   - 正規表現の毎回コンパイル
+3. **General**:
+   - O(n²) or worse algorithms
+   - String concatenation in loops
+   - Regex recompilation on every call
 
 ### MUST NOT DO
 
-- 可読性を大幅に犠牲にする最適化を推奨しない
-- マイクロ最適化（影響 < 1ms）を Critical として報告しない
-- 測定せずに「遅い」と断定しない
+- Do not recommend optimizations that significantly sacrifice readability
+- Do not report micro-optimizations (impact < 1ms) as Critical
+- Do not assert "slow" without measurement evidence
 
 ### OUTPUT FORMAT
 
@@ -68,11 +64,4 @@ Codex MCP に送信するパフォーマンスレビュー用プロンプト。
 | # | Severity | File | Line | Issue | Impact | Fix |
 |---|----------|------|------|-------|--------|-----|
 | 1 | High | api/posts.ts | 23 | N+1 query | ~100ms per request | Use include/prefetch |
-
-### Summary
-
-- Critical: X
-- High: X
-- Medium: X
-- Low: X
 ```

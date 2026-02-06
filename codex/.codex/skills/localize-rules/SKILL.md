@@ -1,6 +1,8 @@
 ---
 name: localize-rules
-description: "Localizes rule files to match project structure. Use when user mentions localizing rules, adapting rules to project, or customizing templates. Do NOT load for: app i18n/localization features, business rule implementation."
+description: "ルールをプロジェクトに最適化。郷に入っては郷に従え精神。Use when user mentions localizing rules, adapting rules to project, or customizing templates. Do NOT load for: app i18n/localization features, business rule implementation."
+description-en: "Optimize rules for project. When in Rome, do as Romans do. Use when user mentions localizing rules, adapting rules to project, or customizing templates. Do NOT load for: app i18n/localization features, business rule implementation."
+description-ja: "ルールをプロジェクトに最適化。郷に入っては郷に従え精神。Use when user mentions localizing rules, adapting rules to project, or customizing templates. Do NOT load for: app i18n/localization features, business rule implementation."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]
 disable-model-invocation: true
 argument-hint: "[template-name]"

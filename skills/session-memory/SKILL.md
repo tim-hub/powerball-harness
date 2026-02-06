@@ -1,6 +1,8 @@
 ---
 name: session-memory
-description: "Manages cross-session learning and memory persistence. Use when user asks about previous sessions, history, or to continue from before. Do NOT load for: implementation work, reviews, or ad-hoc information."
+description: "セッション間の学習と記憶の永続化を管理。Use when user asks about previous sessions, history, or to continue from before. Do NOT load for: implementation work, reviews, or ad-hoc information."
+description-en: "Manages cross-session learning and memory persistence. Use when user asks about previous sessions, history, or to continue from before. Do NOT load for: implementation work, reviews, or ad-hoc information."
+description-ja: "セッション間の学習と記憶の永続化を管理。Use when user asks about previous sessions, history, or to continue from before. Do NOT load for: implementation work, reviews, or ad-hoc information."
 allowed-tools: ["Read", "Write", "Append"]
 user-invocable: false
 ---

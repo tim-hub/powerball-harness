@@ -1,6 +1,8 @@
 ---
 name: session-memory
-description: "Manages cross-session learning and memory persistence. Use when user asks about previous sessions, history, or to continue from before. Do NOT load for: implementation work, reviews, or ad-hoc information."
+description: "セッション間の学習と記憶の永続化を管理。Use when user asks about previous sessions, history, or to continue from before. Do NOT load for: implementation work, reviews, or ad-hoc information."
+description-en: "Manages cross-session learning and memory persistence. Use when user asks about previous sessions, history, or to continue from before. Do NOT load for: implementation work, reviews, or ad-hoc information."
+description-ja: "セッション間の学習と記憶の永続化を管理。Use when user asks about previous sessions, history, or to continue from before. Do NOT load for: implementation work, reviews, or ad-hoc information."
 allowed-tools: ["Read", "Write", "Append"]
 user-invocable: false
 ---
@@ -168,6 +170,30 @@ tail -1 .claude/state/agent-trace.jsonl | jq '.metadata'
 1. セッションサマリーを生成
 2. `context.json` を更新
 3. 次回への引き継ぎ事項を記録
+
+---
+
+## メモリ最適化（CC 2.1.30+）
+
+Claude Code 2.1.30 以降、セッション再開時のメモリ使用量が **68% 削減** されました。
+
+### 推奨ワークフロー
+
+```bash
+# 長時間作業は --resume を活用
+claude --resume
+
+# 大規模タスクは分割してセッション再開
+claude --resume "続きから"
+```
+
+| シナリオ | 推奨 |
+|---------|------|
+| 長時間実装 | 1-2時間ごとにセッション再開 |
+| 大規模リファクタ | 機能単位でセッション分割 |
+| メモリ不足警告 | 即座に `--resume` で再開 |
+
+> 💡 メモリ効率が大幅に改善されたため、セッション再開を積極的に活用してください。
 
 ---
 

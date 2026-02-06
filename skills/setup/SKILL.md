@@ -1,6 +1,8 @@
 ---
 name: setup
-description: "Sets up new projects and generates workflow files like CLAUDE.md, AGENTS.md, Plans.md. Use when user mentions setup, initialization, new projects, or workflow file generation. Do NOT load for: implementation work, reviews, build verification, or deployments."
+description: "新規プロジェクトのセットアップとCLAUDE.md、AGENTS.md、Plans.mdなどのワークフローファイル生成。Use when user mentions setup, initialization, new projects, or workflow file generation. Do NOT load for: implementation work, reviews, build verification, or deployments."
+description-en: "Sets up new projects and generates workflow files like CLAUDE.md, AGENTS.md, Plans.md. Use when user mentions setup, initialization, new projects, or workflow file generation. Do NOT load for: implementation work, reviews, build verification, or deployments."
+description-ja: "新規プロジェクトのセットアップとCLAUDE.md、AGENTS.md、Plans.mdなどのワークフローファイル生成。Use when user mentions setup, initialization, new projects, or workflow file generation. Do NOT load for: implementation work, reviews, build verification, or deployments."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
 user-invocable: false
 ---

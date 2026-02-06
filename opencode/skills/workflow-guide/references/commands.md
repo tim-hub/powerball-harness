@@ -22,6 +22,22 @@
 
 ---
 
+### /codex-setup
+
+Codex CLI 用の `.codex/` と `AGENTS.md` を導入・更新。
+
+```
+/codex-setup
+```
+
+**生成されるファイル**:
+- .codex/skills/
+- .codex/rules/
+- AGENTS.md
+- (optional) .codex/config.toml
+
+---
+
 ### /plan-with-agent
 
 タスクの計画・分解。

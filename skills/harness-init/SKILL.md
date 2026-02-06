@@ -1,6 +1,8 @@
 ---
 name: harness-init
 description: "プロジェクトをHarness仕様に初期化。開発の準備体操はこちらで。Use when user mentions '/harness-init', new project setup, launch a project, or introduce harness to existing project. Do NOT load for: implementation, reviews, or planning."
+description-en: "Initialize project to Harness spec. Development warm-up here. Use when user mentions '/harness-init', new project setup, launch a project, or introduce harness to existing project. Do NOT load for: implementation, reviews, or planning."
+description-ja: "プロジェクトをHarness仕様に初期化。開発の準備体操はこちらで。Use when user mentions '/harness-init', new project setup, launch a project, or introduce harness to existing project. Do NOT load for: implementation, reviews, or planning."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[project-name] [--mode=solo|2agent] [--stack=next-supabase] [--name=app-name]"
 disable-model-invocation: true

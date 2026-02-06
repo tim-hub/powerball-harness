@@ -42,8 +42,8 @@
         "provider": {
           "type": "string",
           "description": "TTS provider",
-          "enum": ["google-cloud-tts", "elevenlabs", "openai-tts", "aws-polly", "custom"],
-          "examples": ["google-cloud-tts", "elevenlabs"]
+          "enum": ["google-cloud-tts", "elevenlabs", "openai-tts", "aws-polly", "aivis", "voicevox", "custom"],
+          "examples": ["google-cloud-tts", "elevenlabs", "aivis"]
         },
         "voice_id": {
           "type": "string",
@@ -116,6 +116,63 @@
             "excited"
           ],
           "default": "neutral"
+        },
+        "aivis": {
+          "type": "object",
+          "description": "Aivis Cloud API specific settings (for provider: 'aivis')",
+          "properties": {
+            "speaker_id": {
+              "type": "integer",
+              "description": "Speaker ID (Aivis model specific)",
+              "minimum": 0,
+              "examples": [888753760, 888753761, 888753762]
+            },
+            "intonation_scale": {
+              "type": "number",
+              "description": "Intonation scale (0.0-2.0, 1.0 is normal)",
+              "minimum": 0.0,
+              "maximum": 2.0,
+              "default": 1.0
+            },
+            "pre_phoneme_length": {
+              "type": "number",
+              "description": "Pre-phoneme silence length in seconds",
+              "minimum": 0.0,
+              "default": 0.1
+            },
+            "post_phoneme_length": {
+              "type": "number",
+              "description": "Post-phoneme silence length in seconds",
+              "minimum": 0.0,
+              "default": 0.1
+            }
+          }
+        },
+        "voicevox": {
+          "type": "object",
+          "description": "VOICEVOX specific settings (for provider: 'voicevox')",
+          "properties": {
+            "speaker_id": {
+              "type": "integer",
+              "description": "Speaker ID (e.g., 1=ずんだもん, 3=四国めたん)",
+              "minimum": 0,
+              "examples": [1, 3, 8, 13]
+            },
+            "intonation_scale": {
+              "type": "number",
+              "description": "Intonation scale",
+              "minimum": 0.0,
+              "maximum": 2.0,
+              "default": 1.0
+            },
+            "volume_scale": {
+              "type": "number",
+              "description": "Volume scale",
+              "minimum": 0.0,
+              "maximum": 2.0,
+              "default": 1.0
+            }
+          }
         }
       }
     },
@@ -447,6 +504,53 @@
       "personality": {
         "traits": ["professional", "technical", "calm"],
         "expertise_level": "expert"
+      }
+    },
+    {
+      "character_id": "aivis-narrator",
+      "name": "Aivis Narrator",
+      "role": "narrator",
+      "voice": {
+        "provider": "aivis",
+        "language": "ja",
+        "speed": 1.1,
+        "style": "professional",
+        "aivis": {
+          "speaker_id": 888753760,
+          "intonation_scale": 1.0,
+          "pre_phoneme_length": 0.1,
+          "post_phoneme_length": 0.1
+        }
+      },
+      "appearance": {
+        "type": "none"
+      }
+    },
+    {
+      "character_id": "voicevox-zundamon",
+      "name": "ずんだもん",
+      "role": "guide",
+      "voice": {
+        "provider": "voicevox",
+        "language": "ja",
+        "speed": 1.0,
+        "style": "cheerful",
+        "voicevox": {
+          "speaker_id": 1,
+          "intonation_scale": 1.2,
+          "volume_scale": 1.0
+        }
+      },
+      "appearance": {
+        "type": "avatar",
+        "avatar": {
+          "style": "cartoon"
+        },
+        "position": "right"
+      },
+      "personality": {
+        "traits": ["friendly", "enthusiastic", "beginner-friendly"],
+        "expertise_level": "beginner"
       }
     }
   ],

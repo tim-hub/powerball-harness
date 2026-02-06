@@ -1,6 +1,8 @@
 ---
 name: plan-with-agent
 description: "アイデアをPlans.mdに落とし込む。夢を計画に変える魔法使い。Use when user mentions '/plan-with-agent', create a plan, organize tasks, feature planning, or TDD planning. Do NOT load for: implementation, reviews, or setup."
+description-en: "Organize ideas into Plans.md. Wizard turning dreams into plans. Use when user mentions '/plan-with-agent', create a plan, organize tasks, feature planning, or TDD planning. Do NOT load for: implementation, reviews, or setup."
+description-ja: "アイデアをPlans.mdに落とし込む。夢を計画に変える魔法使い。Use when user mentions '/plan-with-agent', create a plan, organize tasks, feature planning, or TDD planning. Do NOT load for: implementation, reviews, or setup."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "WebSearch", "Task"]
 argument-hint: "[--ci]"
 ---

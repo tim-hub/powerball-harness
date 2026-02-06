@@ -181,14 +181,15 @@ https://code.claude.com/docs/ja/settings
     "ask": [
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push --force-with-lease:*)",
       "Bash(git checkout:*)",
       "Bash(rm:*)",
       "Bash(mv:*)"
     ],
     "deny": [
-      "Bash(git push --force:*)",
-      "Bash(git reset --hard:*)",
       "Bash(:*credentials:*)",
       "Bash(:*password:*)",
       "Bash(:*secret:*)"
@@ -224,7 +225,7 @@ https://code.claude.com/docs/ja/settings
 
 - `.claude/settings.json` が存在し、JSONとしてパース可能
 - `permissions.deny` に `.env` / `secrets` / SSH鍵系の `Read(...)` が含まれる
-- `permissions.ask` に `Bash(rm:*)` / `Bash(git push:*)` 等が含まれる（**Edit / Write は含まない**）
+- `permissions.ask` に `Bash(rm -r:*)` / `Bash(git push -f:*)` / `Bash(git push --force:*)` / `Bash(git push --force-with-lease:*)` / `Bash(git reset --hard:*)` / `Bash(git clean -f:*)` 等が含まれる（**Edit / Write は含まない**）
 - `permissions.disableBypassPermissionsMode` が **設定されていない**（bypassPermissions 許可）
 
 ---
@@ -251,7 +252,7 @@ https://code.claude.com/docs/ja/settings
 一時的に試すだけなら:
    claude --dangerously-skip-permissions
 
-⚠️ 注意: deny/ask に設定した危険操作（rm、git push等）は引き続き制御されます。
+⚠️ 注意: deny/ask に設定した危険操作（rm、git push の force 系等）は引き続き制御されます。
 ```
 
 ### オプション: settings.local.json の配置

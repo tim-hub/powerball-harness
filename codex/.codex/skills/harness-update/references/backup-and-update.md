@@ -38,6 +38,7 @@ mkdir -p "$BACKUP_DIR"
 [ -f CLAUDE.md ] && cp CLAUDE.md "$BACKUP_DIR/"
 [ -f Plans.md ] && cp Plans.md "$BACKUP_DIR/"
 [ -d .claude/rules ] && cp -r .claude/rules "$BACKUP_DIR/"
+[ -d .codex ] && cp -r .codex "$BACKUP_DIR/"
 [ -d .cursor/commands ] && cp -r .cursor/commands "$BACKUP_DIR/"
 
 echo "✅ Backup created: $BACKUP_DIR"
@@ -168,6 +169,25 @@ done
 > - **yes** - Add all
 > - **select** - Select individually
 > - **skip** - Don't add now
+
+## Step 5.5: Codex CLI Sync (Optional)
+
+If the project uses Codex CLI (or user requests), sync `.codex/` files:
+
+1. Confirm with the user
+2. Run setup script (non-destructive, backups created)
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-setup-local.sh" --skip-mcp
+```
+
+> Note: If `CLAUDE_PLUGIN_ROOT` is unavailable, run from plugin repo root:
+>
+> ```bash
+> bash ./scripts/codex-setup-local.sh --skip-mcp
+> ```
+
+If MCP template is requested, use `--with-mcp`.
 
 ## Step 6: Update Cursor Commands
 

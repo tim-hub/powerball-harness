@@ -1,6 +1,8 @@
 ---
 name: sync-status
 description: "進捗とPlans.mdを現実に同期。『今どこ？』がすぐわかる現在地確認。Use when user mentions '/sync-status', progress check, where am I at, or sync Plans.md. Do NOT load for: casual 'how is it going' chat, informal progress questions."
+description-en: "Sync progress with Plans.md to reality. 'Where am I?' quick location check. Use when user mentions '/sync-status', progress check, where am I at, or sync Plans.md. Do NOT load for: casual 'how is it going' chat, informal progress questions."
+description-ja: "進捗とPlans.mdを現実に同期。『今どこ？』がすぐわかる現在地確認。Use when user mentions '/sync-status', progress check, where am I at, or sync Plans.md. Do NOT load for: casual 'how is it going' chat, informal progress questions."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
 argument-hint: "[--verbose]"
 ---
