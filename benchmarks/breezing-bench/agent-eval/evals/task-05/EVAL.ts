@@ -256,9 +256,16 @@ test("hidden tests pass", () => {
     execSync("npm install", { stdio: "pipe" });
   }
 
-  // Run hidden tests
+  // Write standalone vitest config for hidden tests
+  // (agent-eval sets include:['EVAL.ts'], so nested vitest needs its own config)
+  writeFileSync(
+    join(process.cwd(), "vitest.hidden.config.ts"),
+    'import { defineConfig } from "vitest/config";\nexport default defineConfig({ test: { include: ["src/__hidden_tests__/**/*.test.ts"] } });\n'
+  );
+
+  // Run hidden tests with standalone config
   const result = execSync(
-    "npx vitest run --reporter=json src/__hidden_tests__/",
+    "npx vitest run --reporter=json --config vitest.hidden.config.ts",
     { encoding: "utf-8", stdio: "pipe" }
   );
 
