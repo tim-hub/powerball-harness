@@ -17,10 +17,14 @@ Change history for claude-code-harness.
 
 ### Added
 
-- **breezing skill**: Full auto task completion using Agent Teams
+- **breezing skill (v2)**: Full auto task completion using Agent Teams
   - Lead in delegate mode (coordination only), Implementer for coding, independent Reviewer
   - `--codex-review` for multi-AI review integration
-  - For larger task sets than `/ultrawork`
+  - session_id-based Hook enforcement: Reviewer Read-only, Implementer file ownership (pretooluse-guard.sh)
+  - Flexible flow: Lead-autonomous stages replace rigid Phase 0-4
+  - State simplification: Agent Teams TaskList as SSOT, breezing-active.json metadata-only
+  - Peer-to-peer: Reviewer↔Implementer direct dialogue for lightweight questions
+  - Agent Trace: per-Teammate metrics in completion reports
 - **Codex mode guard**: Added Codex mode detection to `pretooluse-guard.sh`
   - Claude functions as PM, delegating implementation to Codex Worker
   - Enabled via `codex_mode: true` in `ultrawork-active.json`

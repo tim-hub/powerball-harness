@@ -67,6 +67,13 @@ ULTRAWORK_MAX_AGE_HOURS=24
 # （実装は Codex Worker に委譲）
 CODEX_MODE="false"
 
+# ===== Breezing Role Guard =====
+# Agent Teams Teammate のロールベースアクセス制御
+# session_id でセッションを識別し、ロールに応じて Write/Edit を制限
+BREEZING_ROLE=""
+BREEZING_OWNS=""
+SESSION_ID=""
+
 # Ultrawork モード検出関数（CWD 取得後に呼び出す）
 check_ultrawork_mode() {
   local cwd_path="$1"
@@ -165,6 +172,79 @@ except:
   [ "$is_codex" = "true" ] && CODEX_MODE="true"
 }
 
+# Breezing ロール検出関数（CWD + SESSION_ID 取得後に呼び出す）
+# .claude/state/breezing-session-roles.json から session_id → role を検索
+check_breezing_role() {
+  local cwd_path="$1"
+  local roles_file="${cwd_path}/.claude/state/breezing-session-roles.json"
+
+  [ -z "$SESSION_ID" ] && return
+  [ ! -f "$roles_file" ] && return
+
+  if ! command -v jq >/dev/null 2>&1; then
+    return
+  fi
+
+  BREEZING_ROLE=$(jq -r --arg sid "$SESSION_ID" '.[$sid].role // empty' "$roles_file" 2>/dev/null)
+  BREEZING_OWNS=$(jq -r --arg sid "$SESSION_ID" '.[$sid].owns // empty' "$roles_file" 2>/dev/null)
+}
+
+# Breezing ロール登録 Write の検出と処理
+# Teammate の最初の Write (breezing-role-*.json) で session_id → role を登録
+try_register_breezing_role() {
+  local file_path="$1"
+  local cwd_path="$2"
+  local roles_file="${cwd_path}/.claude/state/breezing-session-roles.json"
+
+  # breezing-role-*.json への Write のみ対象
+  BASENAME_ROLE="${file_path##*/}"
+  case "$BASENAME_ROLE" in
+    breezing-role-*.json) ;;
+    *) return 1 ;;
+  esac
+
+  # パスが .claude/state/ 配下であることを確認
+  case "$file_path" in
+    .claude/state/breezing-role-*.json|*/.claude/state/breezing-role-*.json) ;;
+    *) return 1 ;;
+  esac
+
+  [ -z "$SESSION_ID" ] && return 1
+
+  if ! command -v jq >/dev/null 2>&1; then
+    return 1
+  fi
+
+  # tool_input.content からロール情報を抽出
+  local content role owns
+  content=$(echo "$INPUT" | jq -r '.tool_input.content // empty' 2>/dev/null)
+  [ -z "$content" ] && return 1
+
+  role=$(echo "$content" | jq -r '.role // empty' 2>/dev/null)
+  [ -z "$role" ] && return 1
+
+  # セキュリティ: role は既知の値のみ許可
+  case "$role" in
+    reviewer|implementer|lead) ;;
+    *) return 1 ;;
+  esac
+
+  owns=$(echo "$content" | jq -c '.owns // []' 2>/dev/null || echo '[]')
+
+  # session_id → role マッピングを登録
+  mkdir -p "${cwd_path}/.claude/state" 2>/dev/null || true
+
+  if [ ! -f "$roles_file" ]; then
+    echo '{}' > "$roles_file"
+  fi
+
+  jq --arg sid "$SESSION_ID" --arg role "$role" --argjson owns "$owns" \
+    '.[$sid] = {"role": $role, "owns": $owns}' \
+    "$roles_file" > "${roles_file}.tmp" && mv "${roles_file}.tmp" "$roles_file"
+
+  return 0
+}
+
 msg() {
   # msg <key> [arg]
   local key="$1"
@@ -216,6 +296,7 @@ if command -v jq >/dev/null 2>&1; then
   FILE_PATH="$(echo "$INPUT" | jq -r '.tool_input.file_path // empty' 2>/dev/null)"
   COMMAND="$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)"
   CWD="$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null)"
+  SESSION_ID="$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)"
 elif command -v python3 >/dev/null 2>&1; then
   eval "$(echo "$INPUT" | python3 - <<'PY' 2>/dev/null
 import json, shlex, sys
@@ -225,11 +306,13 @@ except Exception:
     data = {}
 tool_name = data.get("tool_name") or ""
 cwd = data.get("cwd") or ""
+session_id = data.get("session_id") or ""
 tool_input = data.get("tool_input") or {}
 file_path = tool_input.get("file_path") or ""
 command = tool_input.get("command") or ""
 print(f"TOOL_NAME={shlex.quote(tool_name)}")
 print(f"CWD={shlex.quote(cwd)}")
+print(f"SESSION_ID={shlex.quote(session_id)}")
 print(f"FILE_PATH={shlex.quote(file_path)}")
 print(f"COMMAND={shlex.quote(command)}")
 PY
@@ -242,6 +325,7 @@ fi
 if [ -n "$CWD" ]; then
   check_ultrawork_mode "$CWD"
   check_codex_mode "$CWD"
+  check_breezing_role "$CWD"
 fi
 
 # ===== Cost Control: セッション単位でツール呼び出し数を追跡 =====
@@ -505,6 +589,65 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
     fi
   fi
 
+  # ===== Breezing Role Guard: Teammate のロールベースアクセス制御 =====
+  if [ -n "$SESSION_ID" ] && [ -n "$CWD" ]; then
+    # ロール登録 Write の検出（breezing-role-*.json への Write は登録処理）
+    if try_register_breezing_role "$FILE_PATH" "$CWD" 2>/dev/null; then
+      exit 0  # 登録 Write は許可
+    fi
+
+    # Reviewer: Write/Edit をブロック（.claude/state/ は許可）
+    if [ "$BREEZING_ROLE" = "reviewer" ]; then
+      case "$FILE_PATH" in
+        .claude/state/*|*/.claude/state/*) ;; # state ファイルは許可
+        *)
+          emit_deny "[Breezing] Reviewer は Read-only です。コードの修正は Implementer の責務です。"
+          exit 0
+          ;;
+      esac
+    fi
+
+    # Implementer: owns 外のファイルへの Write/Edit をブロック
+    if [ "$BREEZING_ROLE" = "implementer" ] && [ -n "$BREEZING_OWNS" ] && [ "$BREEZING_OWNS" != "null" ]; then
+      # .claude/state/ は常に許可
+      case "$FILE_PATH" in
+        .claude/state/*|*/.claude/state/*) ;; # state ファイルは許可
+        *.md) ;; # ドキュメントファイルは許可
+        *)
+          # owns パスとのマッチング
+          BREEZING_FILE_ALLOWED="false"
+
+          # CWD からの相対パスを計算（REL_PATH はこの時点で未定義のため）
+          BREEZING_REL_PATH="$FILE_PATH"
+          if [ -n "$CWD" ]; then
+            BREEZING_REL_PATH="${FILE_PATH#${CWD}/}"
+          fi
+
+          # jq で owns 配列を取得してマッチング
+          if [ -f "${CWD}/.claude/state/breezing-session-roles.json" ]; then
+            while IFS= read -r OWNED_PATTERN; do
+              [ -z "$OWNED_PATTERN" ] && continue
+              # 絶対パスでマッチング
+              case "$FILE_PATH" in
+                $OWNED_PATTERN*) BREEZING_FILE_ALLOWED="true"; break ;;
+              esac
+              # 相対パスでもマッチング
+              case "$BREEZING_REL_PATH" in
+                $OWNED_PATTERN*) BREEZING_FILE_ALLOWED="true"; break ;;
+              esac
+            done < <(jq -r --arg sid "$SESSION_ID" '.[$sid].owns[]? // empty' \
+              "${CWD}/.claude/state/breezing-session-roles.json" 2>/dev/null)
+          fi
+
+          if [ "$BREEZING_FILE_ALLOWED" = "false" ]; then
+            emit_deny "[Breezing] このファイルは owns 範囲外です: $FILE_PATH"
+            exit 0
+          fi
+          ;;
+      esac
+    fi
+  fi
+
   # Normalize paths for cross-platform comparison
   NORM_FILE_PATH="$(normalize_path "$FILE_PATH")"
   NORM_CWD="$(normalize_path "$CWD")"
@@ -691,6 +834,41 @@ if [ "$TOOL_NAME" = "Bash" ]; then
     exit 0
   fi
 
+  # ===== Breezing Role Guard: Bash コマンド制限 =====
+  if [ -n "$BREEZING_ROLE" ]; then
+    # Reviewer: 書き込み系 Bash コマンドをブロック
+    if [ "$BREEZING_ROLE" = "reviewer" ]; then
+      # 読み取り専用コマンド（cat, grep, ls, git status/diff/log, echo）は許可
+      # 書き込み系（リダイレクト、sed -i、tee、mv、cp、rm、git commit/push）はブロック
+      # 2>&1（stderr→stdout）は読み取り安全なので除外
+      BREEZING_SANITIZED_CMD=$(echo "$COMMAND" | sed 's/2>&1//g; s/>&2//g')
+      if echo "$BREEZING_SANITIZED_CMD" | grep -Eq '(>|>>|2>|&>|(^|[[:space:]])tee([[:space:]]|$)|sed[[:space:]]+-i)'; then
+        emit_deny "[Breezing] Reviewer は書き込み系 Bash コマンドを実行できません。"
+        exit 0
+      fi
+      if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])(mv|cp|rm|mkdir|touch)[[:space:]]'; then
+        emit_deny "[Breezing] Reviewer はファイル操作コマンドを実行できません。"
+        exit 0
+      fi
+      if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+(commit|push|add|checkout|reset|rebase|merge|cherry-pick)([[:space:]]|$)'; then
+        emit_deny "[Breezing] Reviewer は git 変更コマンドを実行できません。"
+        exit 0
+      fi
+    fi
+
+    # Implementer: git commit をブロック（コミットは Lead のみ）
+    if [ "$BREEZING_ROLE" = "implementer" ]; then
+      if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+commit([[:space:]]|$)'; then
+        emit_deny "[Breezing] Implementer は git commit を実行できません。コミットは Lead が完了ステージで一括実行します。"
+        exit 0
+      fi
+      if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+push([[:space:]]|$)'; then
+        emit_deny "[Breezing] Implementer は git push を実行できません。"
+        exit 0
+      fi
+    fi
+  fi
+
   # ===== Codex Mode: PM は Bash での書き込み系コマンドも制限 =====
   if [ "$CODEX_MODE" = "true" ]; then
     # 書き込み系パターンを検出
@@ -700,7 +878,9 @@ if [ "$TOOL_NAME" = "Bash" ]; then
     # - awk -i inplace
     # 注意: 読み取り専用コマンド（cat, grep, ls, git status 等）は許可
     # 注意: rm は後の rm -rf ホワイトリストで処理するためここでは除外
-    if echo "$COMMAND" | grep -Eq '(>|>>|2>|&>|(^|[[:space:]])tee([[:space:]]|$)|sed[[:space:]]+-i|awk[[:space:]]+-i[[:space:]]+inplace)'; then
+    # 2>&1（stderr→stdout）は読み取り安全なので除外
+    CODEX_SANITIZED_CMD=$(echo "$COMMAND" | sed 's/2>&1//g; s/>&2//g')
+    if echo "$CODEX_SANITIZED_CMD" | grep -Eq '(>|>>|2>|&>|(^|[[:space:]])tee([[:space:]]|$)|sed[[:space:]]+-i|awk[[:space:]]+-i[[:space:]]+inplace)'; then
       emit_deny "$(msg deny_codex_mode)"
       exit 0
     fi

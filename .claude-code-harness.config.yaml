@@ -11,6 +11,15 @@ review:
   # Default mode: "default" (4 perspectives) or "codex" (parallel MCP execution)
   mode: codex
 
+# Breezing settings (Agent Teams)
+breezing:
+  # Default parallel implementer count
+  default_parallel: 2
+  # Maximum retake attempts before user escalation
+  max_retakes: 3
+  # State file path
+  state_file: .claude/state/breezing-active.json
+
 # Cleanup thresholds
 cleanup:
   plans:
