@@ -181,6 +181,9 @@ out/
 /benchmarks/scripts/
 /benchmarks/tasks/
 /benchmarks/breezing-bench/results/
+/benchmarks/breezing-bench/agent-eval/results/
+/benchmarks/breezing-bench/agent-eval/node_modules/
+/benchmarks/breezing-bench/agent-eval/.env
 
 # MCP Server (local development only)
 /mcp-server/

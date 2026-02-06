@@ -15,6 +15,7 @@ Agent Teams の Teammates は Lead の環境を自動的に継承する。
 | MCP サーバー設定 | ✅ 自動 | Codex, chrome-devtools 等 |
 | Skills | ✅ 自動 | プロジェクトコンテキストとして読み込み |
 | 権限設定 | ✅ 自動 | Lead の permission mode を継承 |
+| **Agent Memory** | ✅ 自動 | エージェント定義の `memory` フィールドに基づく永続メモリ注入 |
 
 ### 継承されない項目（確認済み）
 
@@ -24,6 +25,12 @@ Agent Teams の Teammates は Lead の環境を自動的に継承する。
 | 会話コンテキスト | ❌ | spawn prompt で必要な情報を渡す |
 | Skills の暗黙的ロード | ❌ | spawn prompt で明示的に指定 |
 | TaskList の状態 | ✅ 共有 | Agent Teams の共有タスクリスト |
+
+> **Agent Memory の継承について**: `memory` フィールドはエージェント定義 (`agents/*.md`) の
+> フロントマターで設定される。`subagent_type` でエージェントを指定して spawn すると、
+> そのエージェントの `memory` 設定に基づき MEMORY.md が自動注入される。
+> Breezing では Implementer に `task-worker` (`memory: project`)、
+> Reviewer に `code-reviewer` (`memory: project`) を使用。
 
 > **Hook 未継承の確認方法**: Agent Teams Teammate をスポーンし、`.claude/state/breezing-role-probe.json` への Write を実行。PreToolUse hook (pretooluse-guard.sh) が発火せず breezing-session-roles.json が生成されないこと、PostToolUse hook (emit-agent-trace.js) が発火せず agent-trace.jsonl にエントリが追加されないことを確認済み (Claude Code 2.1.33)。
 >

@@ -1,0 +1,19 @@
+{
+  "name": "breezing-bench-agent-eval",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "eval:vanilla": "npx @vercel/agent-eval vanilla",
+    "eval:breezing": "npx @vercel/agent-eval breezing",
+    "eval:vanilla:dry": "npx @vercel/agent-eval vanilla --dry",
+    "eval:breezing:dry": "npx @vercel/agent-eval breezing --dry",
+    "eval:smoke": "npx @vercel/agent-eval vanilla --evals task-01",
+    "analyze": "python3 analyzer/analyzer.py"
+  },
+  "dependencies": {
+    "@vercel/agent-eval": "^0.0.11"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

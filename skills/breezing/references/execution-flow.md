@@ -96,8 +96,12 @@ Team 構成:
    - owns: アノテーション付与
    - addBlockedBy で依存関係設定
 4. Implementer Teammates spawn (N 個)
+   - `subagent_type: "claude-code-harness:task-worker"` で spawn
+   - エージェント定義の `memory: project` により永続メモリが自動注入
    - spawn prompt でロールマーカーファイル Write を指示
 5. Reviewer Teammate spawn (1 個)
+   - `subagent_type: "claude-code-harness:code-reviewer"` で spawn
+   - エージェント定義の `memory: project` により永続メモリが自動注入
    - spawn prompt でロールマーカーファイル Write を指示
 6. (--codex-review) Codex MCP レビュー設定
 

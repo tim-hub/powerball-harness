@@ -6,6 +6,29 @@
 
 set -euo pipefail
 
+# macOS 互換: timeout コマンドのポータブルラッパー
+if command -v timeout &>/dev/null; then
+  TIMEOUT_CMD="timeout"
+elif command -v gtimeout &>/dev/null; then
+  TIMEOUT_CMD="gtimeout"
+else
+  # macOS fallback: background + kill で実装
+  portable_timeout() {
+    local duration="$1"
+    shift
+    "$@" &
+    local pid=$!
+    ( sleep "$duration" && kill "$pid" 2>/dev/null ) &
+    local watcher=$!
+    wait "$pid" 2>/dev/null
+    local exit_code=$?
+    kill "$watcher" 2>/dev/null
+    wait "$watcher" 2>/dev/null || true
+    return $exit_code
+  }
+  TIMEOUT_CMD="portable_timeout"
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 RESULTS_DIR="$SCRIPT_DIR/results"
@@ -250,15 +273,17 @@ Write clean TypeScript code with proper error handling.
 Create tests for your implementation.
 Make sure all existing tests still pass."
 
-  # Claude CLI で実行 (bypassPermissions, 非対話)
-  timeout $((MAX_TURNS * 30)) claude \
-    --model "$MODEL" \
-    --max-turns "$MAX_TURNS" \
-    --output-format text \
-    -p "$prompt" \
-    --cwd "$work_dir" \
-    --allowedTools "Read,Write,Edit,Bash,Glob,Grep" \
-    2>"$RESULTS_DIR/${result_id}.stderr" \
+  # Claude CLI で実行 (非対話, パーミッション全スキップ, セッション保存なし)
+  ( cd "$work_dir" && \
+    $TIMEOUT_CMD $((MAX_TURNS * 30)) claude \
+      --model "$MODEL" \
+      --max-budget-usd 0.50 \
+      --output-format text \
+      --dangerously-skip-permissions \
+      --no-session-persistence \
+      -p "$prompt" \
+      --allowedTools "Read,Write,Edit,Bash,Glob,Grep" \
+  ) 2>"$RESULTS_DIR/${result_id}.stderr" \
     >"$RESULTS_DIR/${result_id}.stdout" || true
 }
 
@@ -292,14 +317,17 @@ ${task_prompt}
 6. If Reviewer finds CRITICAL issues, message Implementer to fix them
 7. After review cycle, clean up the team"
 
-  timeout $((MAX_TURNS * 60)) claude \
-    --model "$MODEL" \
-    --max-turns "$MAX_TURNS" \
-    --output-format text \
-    -p "$prompt" \
-    --cwd "$work_dir" \
-    --allowedTools "Read,Write,Edit,Bash,Glob,Grep,Task,TeamCreate,TeamDelete,TaskCreate,TaskUpdate,TaskList,TaskGet,SendMessage" \
-    2>"$RESULTS_DIR/${result_id}.stderr" \
+  # Breezing は Team 使用のため予算を増やす
+  ( cd "$work_dir" && \
+    $TIMEOUT_CMD $((MAX_TURNS * 60)) claude \
+      --model "$MODEL" \
+      --max-budget-usd 1.50 \
+      --output-format text \
+      --dangerously-skip-permissions \
+      --no-session-persistence \
+      -p "$prompt" \
+      --allowedTools "Read,Write,Edit,Bash,Glob,Grep,Task,TeamCreate,TeamDelete,TaskCreate,TaskUpdate,TaskList,TaskGet,SendMessage" \
+  ) 2>"$RESULTS_DIR/${result_id}.stderr" \
     >"$RESULTS_DIR/${result_id}.stdout" || true
 }
 
