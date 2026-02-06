@@ -173,8 +173,14 @@ out/
 # OpenCode (local-only)
 .opencode/
 
-# Benchmarks - entire directory (local development only)
-/benchmarks/
+# Benchmarks - local development data only
+/benchmarks/evals-*/
+/benchmarks/results/
+/benchmarks/test-project/
+/benchmarks/versions/
+/benchmarks/scripts/
+/benchmarks/tasks/
+/benchmarks/breezing-bench/results/
 
 # MCP Server (local development only)
 /mcp-server/

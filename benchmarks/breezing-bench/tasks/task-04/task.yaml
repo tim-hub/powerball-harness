@@ -1,0 +1,10 @@
+id: "task-04"
+name: "セキュリティ - ユーザー登録 API"
+difficulty: "Medium-Hard"
+prompt: "types.ts と db.ts を使用して、セキュアなユーザー登録機能を実装してください。パスワードのハッシュ化、入力バリデーション、SQL injection/XSS 対策を含めてください。"
+hidden_test_count: 12
+setup_files:
+  - src/types.ts
+  - src/db.ts
+  - package.json
+  - tsconfig.json

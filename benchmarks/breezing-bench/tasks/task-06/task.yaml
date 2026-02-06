@@ -1,0 +1,9 @@
+id: "task-06"
+name: "型安全リファクタ - any 排除"
+difficulty: "Hard"
+prompt: "data-processor.ts の any を全て排除し、適切な型定義を追加してください。tsc --noEmit が通るようにし、既存のロジックは変更しないでください。"
+hidden_test_count: 10
+setup_files:
+  - src/data-processor.ts
+  - package.json
+  - tsconfig.json

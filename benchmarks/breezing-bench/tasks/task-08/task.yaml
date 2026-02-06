@@ -1,0 +1,9 @@
+id: "task-08"
+name: "並行処理 - Rate Limiter"
+difficulty: "Hard"
+prompt: "Token Bucket アルゴリズムを使った RateLimiter を実装してください。types.ts のインターフェースに従い、時間経過でトークンがリフィルされる仕組みを実装してください。"
+hidden_test_count: 10
+setup_files:
+  - src/types.ts
+  - package.json
+  - tsconfig.json
