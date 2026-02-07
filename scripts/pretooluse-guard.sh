@@ -74,6 +74,11 @@ BREEZING_ROLE=""
 BREEZING_OWNS=""
 SESSION_ID=""
 
+# ===== Breezing-Codex Mode Detection =====
+# breezing-codex モード (impl_mode: "codex") 時は直接の Write/Edit をブロック
+# （実装は Codex MCP 経由で Codex Implementer に委譲）
+BREEZING_CODEX_MODE="false"
+
 # Ultrawork モード検出関数（CWD 取得後に呼び出す）
 check_ultrawork_mode() {
   local cwd_path="$1"
@@ -189,6 +194,39 @@ check_breezing_role() {
   BREEZING_OWNS=$(jq -r --arg sid "$SESSION_ID" '.[$sid].owns // empty' "$roles_file" 2>/dev/null)
 }
 
+# Breezing-Codex モード検出関数（CWD 取得後に呼び出す）
+# breezing-active.json に impl_mode: "codex" がある場合、直接の Write/Edit をブロック
+check_breezing_codex_mode() {
+  local cwd_path="$1"
+  local active_file="${cwd_path}/.claude/state/breezing-active.json"
+
+  [ ! -f "$active_file" ] && return
+
+  local is_codex="false"
+
+  if command -v jq >/dev/null 2>&1; then
+    local impl_mode
+    impl_mode=$(jq -r '.impl_mode // empty' "$active_file" 2>/dev/null)
+    [ "$impl_mode" = "codex" ] && is_codex="true"
+  elif command -v python3 >/dev/null 2>&1; then
+    is_codex=$(python3 -c '
+import json, sys
+try:
+    with open(sys.argv[1]) as f:
+        data = json.load(f)
+    val = data.get("impl_mode", "")
+    print("true" if val == "codex" else "false")
+except:
+    print("false")
+' "$active_file" 2>/dev/null || echo "false")
+  else
+    echo "[Breezing-Codex] Warning: jq/python3 not found, breezing-codex mode detection disabled" >&2
+    return
+  fi
+
+  [ "$is_codex" = "true" ] && BREEZING_CODEX_MODE="true"
+}
+
 # Breezing ロール登録 Write の検出と処理
 # Teammate の最初の Write (breezing-role-*.json) で session_id → role を登録
 try_register_breezing_role() {
@@ -260,6 +298,7 @@ msg() {
       ask_rm_rf) echo "Confirm: rm -rf requested ($arg)" ;;
       deny_git_commit_no_review) echo "Blocked: Run /harness-review before committing. After review approval, run git commit again." ;;
       deny_codex_mode) echo "[Codex Mode] Claude is the PM. Direct Edit/Write is prohibited. Delegate implementation to Codex Worker via mcp__codex__codex." ;;
+      deny_breezing_codex_mode) echo "[Breezing-Codex] Direct Edit/Write is prohibited in codex impl mode. Implementation must go through mcp__codex__codex." ;;
       *) echo "$key $arg" ;;
     esac
     return 0
@@ -275,6 +314,7 @@ msg() {
     ask_rm_rf) echo "確認: rm -rf を実行しようとしています（command: $arg）" ;;
     deny_git_commit_no_review) echo "ブロック: コミット前に /harness-review を実行してください。レビュー後、再度 git commit を実行できます。" ;;
     deny_codex_mode) echo "[Codex Mode] --codex モードでは Claude は PM 役です。直接の Edit/Write は禁止されています。実装は mcp__codex__codex 経由で Codex Worker に委譲してください。" ;;
+    deny_breezing_codex_mode) echo "[Breezing-Codex] codex 実装モードでは直接の Edit/Write は禁止されています。実装は mcp__codex__codex 経由で行ってください。" ;;
     *) echo "$key $arg" ;;
   esac
 }
@@ -326,6 +366,7 @@ if [ -n "$CWD" ]; then
   check_ultrawork_mode "$CWD"
   check_codex_mode "$CWD"
   check_breezing_role "$CWD"
+  check_breezing_codex_mode "$CWD"
 fi
 
 # ===== Cost Control: セッション単位でツール呼び出し数を追跡 =====
@@ -587,6 +628,25 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
       emit_deny "$(msg deny_codex_mode)"
       exit 0
     fi
+  fi
+
+  # ===== Breezing-Codex Mode: 直接の Edit/Write をブロック =====
+  if [ "$BREEZING_CODEX_MODE" = "true" ]; then
+    if [ -L "$FILE_PATH" ]; then
+      emit_deny "[Breezing-Codex] Symbolic links are not allowed"
+      exit 0
+    fi
+    # 許可リスト: breezing 関連 state, review state, *.md (ドキュメント)
+    # セキュリティ: ultrawork-active.json 等の制御ファイルは許可しない
+    case "$FILE_PATH" in
+      .claude/state/breezing*|*/.claude/state/breezing*) ;; # breezing state は許可
+      .claude/state/review*|*/.claude/state/review*) ;; # review state は許可
+      *.md) ;; # ドキュメントファイルは許可
+      *)
+        emit_deny "$(msg deny_breezing_codex_mode)"
+        exit 0
+        ;;
+    esac
   fi
 
   # ===== Breezing Role Guard: Teammate のロールベースアクセス制御 =====
@@ -866,6 +926,26 @@ if [ "$TOOL_NAME" = "Bash" ]; then
         emit_deny "[Breezing] Implementer は git push を実行できません。"
         exit 0
       fi
+    fi
+  fi
+
+  # ===== Breezing-Codex Mode: Bash での書き込み系コマンドを制限 =====
+  if [ "$BREEZING_CODEX_MODE" = "true" ]; then
+    # リダイレクト・インプレース編集をブロック（2>&1 は読み取り安全なので除外）
+    BREEZING_CODEX_SANITIZED_CMD=$(echo "$COMMAND" | sed 's/2>&1//g; s/>&2//g')
+    if echo "$BREEZING_CODEX_SANITIZED_CMD" | grep -Eq '(>|>>|2>|&>|(^|[[:space:]])tee([[:space:]]|$)|sed[[:space:]]+-i|awk[[:space:]]+-i[[:space:]]+inplace)'; then
+      emit_deny "$(msg deny_breezing_codex_mode)"
+      exit 0
+    fi
+    # ファイル操作コマンドをブロック
+    if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])(mv|cp|rm|mkdir|touch)[[:space:]]'; then
+      emit_deny "[Breezing-Codex] File operation commands are prohibited in codex impl mode."
+      exit 0
+    fi
+    # git 変更コマンドをブロック
+    if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+(commit|push|add|checkout|reset|rebase|merge|cherry-pick|apply|am|switch|restore|stash|pull|clean|rm|mv|submodule)([[:space:]]|$)'; then
+      emit_deny "[Breezing-Codex] Git mutation commands are prohibited in codex impl mode."
+      exit 0
     fi
   fi
 
