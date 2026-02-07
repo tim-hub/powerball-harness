@@ -15,7 +15,7 @@ Agent Teams は experimental 機能であり、以下の制約がある:
 ## 解決策: 二層永続化
 
 ```
-Agent Teams TaskList (~/.claude/tasks/{team-name}/)
+Agent Teams TaskList (~/.claude/tasks/{team_name}/)
   → 実行中タスク状態の SSOT (Source of Truth)
   → Agent Teams が管理、Harness は読むだけ
   → ディスク上にファイルとして永続化（セッション切れでも消えない）
@@ -39,6 +39,7 @@ breezing-active.json (.claude/state/)
   "started_at": "2026-02-06T03:00:00Z",
   "team_name": "breezing-auth-feature",
   "task_range": "認証機能からユーザー管理まで",
+  "impl_mode": "standard",
   "plans_md_mapping": {
     "task-1": "4.1",
     "task-2": "4.2",
@@ -67,6 +68,7 @@ breezing-active.json (.claude/state/)
 | `session_id` | セッション識別子 | 準備ステージで設定 |
 | `team_name` | Agent Teams Team 名 | 準備ステージで設定 |
 | `task_range` | ユーザー指定の範囲テキスト | 準備ステージで設定 |
+| `impl_mode` | 実装モード (`"standard"` or `"codex"`)。Compaction 復元キー | Step 0 で即時書き込み |
 | `plans_md_mapping` | TaskList ID → Plans.md セクション番号 | 準備ステージで設定 |
 | `options` | 実行オプション | 準備ステージで設定 |
 | `team` | Team 構成情報 | 準備ステージで設定 |
@@ -84,6 +86,7 @@ breezing-active.json (.claude/state/)
 | `review.history` | 削除 | Agent Trace で自動記録 |
 | なし | `team_name` 追加 | TaskList 永続化パスに必要 |
 | なし | `plans_md_mapping` 追加 | TaskList ↔ Plans.md の紐付け |
+| なし | `impl_mode` 追加 | Compaction 復元キー (`"standard"` or `"codex"`) |
 
 ## Plans.md の更新タイミング
 
@@ -107,6 +110,64 @@ breezing-active.json (.claude/state/)
 - 途中更新は同期ずれリスクを生む
 - TaskList が SSOT なので Plans.md の途中状態は不要
 - 完了時の一括更新で Plans.md の整合性を保証
+
+## Compaction 復元フロー（同一セッション内）
+
+Compaction はセッション再開とは異なり、**同一セッション内でコンテキストが圧縮される現象**。
+スキルの指示が失われ、Lead が直接実装を始めてしまうリスクがある。
+
+### 問題
+
+```
+Compaction 前: Lead はスキルのフロー全体を記憶 → Team spawn → Implementer
+Compaction 後: Lead は「タスクを完了すべき」しか残っていない → 直接実装
+```
+
+### 対策: breezing-active.json による復元
+
+```text
+Compaction 発生
+    ↓
+Lead: breezing-active.json を Read
+    ↓
+impl_mode を確認:
+  ├── "codex" → breezing-codex モード → Team 再構築 (codex-implementer spawn)
+  ├── "standard" → 通常 breezing → Team 再構築 (task-worker spawn)
+  └── なし or 未設定 → 通常 breezing として扱う（後方互換）
+    ↓
+現在のスキルとモード不一致チェック:
+  ├── /breezing-codex 実行中に impl_mode="standard" → ユーザーに確認
+  └── /breezing 実行中に impl_mode="codex" → ユーザーに確認
+    ↓
+team_name で既存 Team を確認:
+  ├── Team 存在 → TaskList で未完了タスクを確認 → サイクル再開
+  └── Team 消失 → 新 Team 作成 → 未完了タスクを再登録 → サイクル再開
+```
+
+### 実装側の責務
+
+breezing-active.json への `impl_mode` 書き込みは**スキル実行の最初のステップ**で行う。
+環境チェックよりも前に書き込むことで、準備ステージ中の compaction にも対応できる。
+
+```jsonc
+// Step 0 で即時書き込み
+{
+  "impl_mode": "codex",  // breezing-codex の場合
+  "session_id": "...",
+  "started_at": "..."
+}
+```
+
+### breezing（通常版）への適用
+
+通常の breezing でも同様の問題が発生しうる。breezing-active.json に以下を追加推奨:
+
+```jsonc
+{
+  "impl_mode": "standard",  // 通常 breezing
+  // ... 既存フィールド
+}
+```
 
 ## 「続きやって」再開フロー
 
@@ -153,7 +214,7 @@ breezing-active.json (.claude/state/)
 
 ```
 Agent Teams TaskList のファイル保存先:
-  ~/.claude/tasks/{team-name}/
+  ~/.claude/tasks/{team_name}/
 
 例:
   ~/.claude/tasks/breezing-auth-feature/

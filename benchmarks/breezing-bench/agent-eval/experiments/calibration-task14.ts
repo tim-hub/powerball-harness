@@ -1,26 +1,15 @@
 import type { ExperimentConfig } from "@vercel/agent-eval";
 
-// Vanilla condition: single agent, minimal instructions (no validate)
+// Quick re-calibration for task-14 after BUG comment removal
 export default {
-  agent: "claude-code",
-  model: "claude-haiku-4-5-20251001",
+  agent: "vercel-ai-gateway/claude-code",
+  model: "haiku",
   runs: 3,
   earlyExit: false,
   timeout: 300,
   scripts: ["test"],
   sandbox: "docker",
-  evals: [
-    "task-01",
-    "task-02",
-    "task-03",
-    "task-04",
-    "task-05",
-    "task-06",
-    "task-07",
-    "task-08",
-    "task-09",
-    "task-10",
-  ],
+  evals: ["task-14"],
   setup: async (sandbox) => {
     await sandbox.writeFiles({
       "CLAUDE.md": [

@@ -1,25 +1,20 @@
 import type { ExperimentConfig } from "@vercel/agent-eval";
 
-// Vanilla condition: single agent, minimal instructions (no validate)
+// Calibration batch A: tasks 11-15, 2 runs each (10 concurrent)
 export default {
-  agent: "claude-code",
-  model: "claude-haiku-4-5-20251001",
-  runs: 3,
+  agent: "vercel-ai-gateway/claude-code",
+  model: "haiku",
+  runs: 2,
   earlyExit: false,
   timeout: 300,
   scripts: ["test"],
   sandbox: "docker",
   evals: [
-    "task-01",
-    "task-02",
-    "task-03",
-    "task-04",
-    "task-05",
-    "task-06",
-    "task-07",
-    "task-08",
-    "task-09",
-    "task-10",
+    "task-11",
+    "task-12",
+    "task-13",
+    "task-14",
+    "task-15",
   ],
   setup: async (sandbox) => {
     await sandbox.writeFiles({
