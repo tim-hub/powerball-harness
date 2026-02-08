@@ -65,6 +65,35 @@ EOF
     fi
 fi
 
+# timeout / gtimeout チェック（macOS 互換性）
+TIMEOUT_CMD=""
+if command -v timeout &> /dev/null; then
+    TIMEOUT_CMD="timeout"
+elif command -v gtimeout &> /dev/null; then
+    TIMEOUT_CMD="gtimeout"
+fi
+
+if [[ -z "$TIMEOUT_CMD" ]]; then
+    cat << 'EOF'
+
+⚠️ **timeout コマンドが見つかりません**
+
+Codex CLI の並列レビューではタイムアウト制御に `timeout` コマンドを使用します。
+macOS にはデフォルトで含まれていないため、以下でインストールしてください:
+
+```bash
+brew install coreutils
+```
+
+これにより `gtimeout` が使えるようになり、Harness が自動検出します。
+未インストールでも Codex は動作しますが、タイムアウト制御が効きません。
+
+EOF
+else
+    echo ""
+    echo "**タイムアウトコマンド**: \`${TIMEOUT_CMD}\` ✅"
+fi
+
 cat << 'EOF'
 
 セカンドオピニオンレビューを有効化するには:
