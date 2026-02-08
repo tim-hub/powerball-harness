@@ -26,22 +26,17 @@
 - "Codex に作らせて"
 - "実装を依頼"
 
-### codex-worker
+### /work --codex (旧 codex-worker)
 
-**目的**: Codex を実装ワーカーとして使用
+**目的**: Codex を実装エンジンとして使用
 
-**トリガーキーワード**（description から引用）:
+**トリガーキーワード**:
 - "Codex に実装させて"
 - "Codex Worker"
 - "Codex に作らせて"
 - "実装を依頼"
 
-**除外キーワード**（description から引用）:
-- "Codex レビュー"
-- "セカンドオピニオン"
-- "Codex の意見"
-- "Codex でレビュー"
-- "Codex セットアップ"
+**対応**: `/work --codex` で実行
 
 ## ルーティング判定フロー（参考）
 

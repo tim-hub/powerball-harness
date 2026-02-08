@@ -323,7 +323,7 @@ Codex MCP 経由で**レビュータイプに応じた4つのエキスパート*
    - CLI/バックエンド → Accessibility, SEO 除外
    - ドキュメントのみ変更 → Quality, Architect, Plan Reviewer, Scope Analyst を優先（Security, Performance は除外可）
 2. 有効なエキスパートの `experts/*.md` からプロンプトを **個別に読み込む**
-3. 有効なエキスパートのみ `mcp__codex__codex` を **1つのレスポンス内で並列実行**
+3. 有効なエキスパートのみ `codex exec` を **Bash バックグラウンドプロセスで並列実行**
 4. 各結果を統合して判定
 
 **詳細**: [codex-review/references/codex-parallel-review.md](../codex-review/references/codex-parallel-review.md)

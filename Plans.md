@@ -1,127 +1,183 @@
-# Breezing v2 ベンチマーク — GLM 検証プラン
+# スキル統合プラン — 28 → 19 スキルへ
 
-## 現状
+## 背景
 
-| 項目 | 状態 |
-|------|------|
-| GLM API | `https://api.z.ai/api/anthropic` 経由で動作確認済み |
-| モデル | `haiku` → `glm-4.5-air` マッピング |
-| task-02 (breezing) | 1/1 pass (69.4s) ✅ |
-| 前回結果 (Anthropic haiku) | Vanilla 4/20 = Breezing 4/20 → **差なし** |
-| validate.ts あり | task-02, 09, 10 のみ (他7タスクは echo プレースホルダー) |
-
-### "新機能 + 隠しバグ" パターン (task-02, 09, 10)
-
-| タスク | PROMPT (新機能) | 隠しバグ (既存コード) |
-|--------|----------------|---------------------|
-| task-02 | `getByStatus()` 追加 | `updatedAt` が `new Date(old.getTime())` でコピー |
-| task-09 | `stringifyCsv()` 追加 | カラム不一致行を除外せず push |
-| task-10 | `search()` 追加 | `updatedAt` が `new Date(old.getTime())` でコピー |
+v2.19.0 で実装コマンドを 5→2 に統合した。次はスキル全体の整理。
+ユーザーに見えるスキル数を 28 → 19 に削減し、認知負荷を下げる。
 
 ---
 
-## Phase 1: GLM クイック検証 [feature:decision-gate] ✅ DONE
+## Phase 1: memory 統合 (3→1)
 
-3タスク × 3runs × 2条件 = 18 runs で Breezing の効果を確認
+`/memory` に `/sync-ssot-from-memory` と `/cursor-mem` を吸収。
 
-### 1.1 GLM 用 experiment configs 作成
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 1.1.1 | `experiments/glm-calibrate-breezing.ts` 作成 (task-02,09,10 × 3runs, validate あり) | `cc:DONE` |
-| 1.1.2 | `experiments/glm-calibrate-vanilla.ts` 作成 (task-02,09,10 × 3runs, validate なし) | `cc:DONE` |
-
-### 1.2 Breezing 条件実行
+### 1.1 memory SKILL.md に統合機能を追加
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 1.2.1 | `npx @vercel/agent-eval glm-calibrate-breezing` 実行 | `cc:DONE` |
+| 1.1.1 | `/memory` SKILL.md の description に sync-ssot, cursor-mem のトリガーフレーズを追加 | ✅ |
+| 1.1.2 | SKILL.md 本文に「SSOT 昇格」と「記憶検索」セクションを追加 | ✅ |
+| 1.1.3 | sync-ssot-from-memory の処理ロジックを `references/sync-ssot.md` として移設 | ✅ |
+| 1.1.4 | cursor-mem の処理ロジックを `references/cursor-mem-search.md` として移設 | ✅ |
 
-結果: **9/9 (100%)** — task-02: 3/3, task-09: 3/3, task-10: 3/3
-
-### 1.3 Vanilla 条件実行
+### 1.2 旧スキルのアーカイブ
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 1.3.1 | `npx @vercel/agent-eval glm-calibrate-vanilla` 実行 | `cc:DONE` |
-
-結果: **2/9 (22%)** — task-02: 0/3, task-09: 1/3, task-10: 1/3
-
-### 1.4 結果判定
-
-**✅ gap あり: Breezing 100% vs Vanilla 22% (+78%pt)** → Phase 3 に直行
+| 1.2.1 | `skills/sync-ssot-from-memory/` → `skills/_archived/sync-ssot-from-memory/` に移動 | ✅ |
+| 1.2.2 | `skills/cursor-mem/` → `skills/_archived/cursor-mem/` に移動 | ✅ |
 
 ---
 
-## Phase 2: タスク拡張 — DEFERRED
+## Phase 2: setup 統合 (5→1)
 
-Phase 1 で 78%pt の gap を確認。3 タスクでの統計的検出力は十分。
-拡張は将来の追加検証として保留し、Phase 3 に直行する。
+`/setup` に `/harness-mem`, `/codex-setup`, `/2agent`, `/localize-rules` を吸収。
+`/setup-tools` をベースに、サブコマンド的に分岐する構成。
 
-| Task | 内容 | Status |
-|------|------|--------|
-| 2.x | 残り 7 タスクへの validate.ts 追加 | `DEFERRED` |
-
----
-
-## Phase 3: 本番ベンチマーク ✅ DONE
+### 2.1 setup SKILL.md の拡張
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 3.1 | `glm-breezing.ts` / `glm-vanilla.ts` 最終版作成 (3タスク × 5runs) | `cc:DONE` |
-| 3.2 | Breezing 条件実行 | `cc:DONE` |
-| 3.3 | Vanilla 条件実行 | `cc:DONE` |
+| 2.1.1 | `/setup-tools` SKILL.md の description に統合対象のトリガーフレーズを追加 | ✅ |
+| 2.1.2 | SKILL.md 本文にルーティングテーブル追加（ユーザー意図 → 適切な reference へ分岐） | ✅ |
+| 2.1.3 | harness-mem の処理ロジックを `references/harness-mem.md` として移設 | ✅ |
+| 2.1.4 | codex-setup の処理ロジックを `references/codex-setup.md` として移設 | ✅ |
+| 2.1.5 | 2agent の SKILL.md + references/ を `references/2agent-setup.md` + `references/2agent/` として移設 | ✅ |
+| 2.1.6 | localize-rules の処理ロジックを `references/localize-rules.md` として移設 | ✅ |
 
-### 結果
-
-| 条件 | task-02 | task-09 | task-10 | 合計 |
-|------|---------|---------|---------|------|
-| **Breezing** | 5/5 (100%) | 5/5 (100%) | 4/5 (80%) | **14/15 (93.3%)** |
-| **Vanilla** | 0/5 (0%) | 2/5 (40%) | 1/5 (20%) | **3/15 (20.0%)** |
-| **差分** | +100%pt | +60%pt | +60%pt | **+73.3%pt** |
-
----
-
-## Phase 4: 統計分析 & レポート ✅ DONE
+### 2.2 スキル名変更
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 4.1 | `analyze-results.py` 作成・実行 | `cc:DONE` |
-| 4.2 | 統計検定（Welch's t, Fisher's exact, Chi-squared） | `cc:DONE` |
-| 4.3 | 最終レポート | `cc:DONE` |
+| 2.2.1 | `skills/setup-tools/` → `skills/setup/` にリネーム（name: setup に変更） | ✅ |
 
-### 統計分析結果
+### 2.3 旧スキルのアーカイブ
 
-| 検定 | 統計量 | p値 | 判定 |
-|------|--------|-----|------|
-| Welch's t-test | t = 5.82 | p = 0.000003 | *** (p<0.001) |
-| Fisher's exact test | — | p = 0.000058 | *** (p<0.001) |
-| Chi-squared test | χ² = 13.57 | p = 0.000229 | *** (p<0.001) |
-
-| 効果量 | 値 | 判定 |
-|--------|-----|------|
-| **Hedges' g** | **2.07** | **Large** (基準: >0.8) |
-| **95% CI** | **[49.5%pt, 97.2%pt]** | 全区間が0を大きく超過 |
-
-### 結論
-
-**Breezing 条件は Vanilla 条件に対し統計的に有意に優れている (p < 0.001)**
-- パス率改善: +73.3%pt (93.3% vs 20.0%)
-- 効果量: Hedges' g = 2.07 (Large)
-- validate-and-fix サイクルが実質的な品質改善をもたらす
+| Task | 内容 | Status |
+|------|------|--------|
+| 2.3.1 | `skills/harness-mem/` → `skills/_archived/harness-mem/` に移動 | ✅ |
+| 2.3.2 | `skills/codex-setup/` → `skills/_archived/codex-setup/` に移動 | ✅ |
+| 2.3.3 | `skills/2agent/` → `skills/_archived/2agent/` に移動 | ✅ |
+| 2.3.4 | `skills/localize-rules/` → `skills/_archived/localize-rules/` に移動 | ✅ |
 
 ---
 
-## 技術メモ
+## Phase 3: 非表示化 (3スキル)
 
-### node_modules パッチ (npm install で消える)
-- `shared.js`: `AI_GATEWAY.baseUrl` → `https://api.z.ai/api/anthropic`
-- `claude-code.js`: `ANTHROPIC_DEFAULT_*_MODEL` env vars をコンテナに pass-through
+`user-invocable: false` を設定。description のトリガーフレーズは維持し、
+他スキルからの内部呼び出しは引き続き可能にする。
 
-### .env (agent-eval/)
-```
-AI_GATEWAY_API_KEY=<GLM_API_KEY>
-ANTHROPIC_DEFAULT_HAIKU_MODEL=glm-4.5-air
-ANTHROPIC_DEFAULT_SONNET_MODEL=glm-4.7
-ANTHROPIC_DEFAULT_OPUS_MODEL=glm-4.7
-```
+| Task | 内容 | Status |
+|------|------|--------|
+| 3.1 | `skills/x-release-harness/SKILL.md` に `user-invocable: false` 追加 | ✅ |
+| 3.2 | `skills/ci/SKILL.md` に `user-invocable: false` 追加。`/troubleshoot` の description に「CIが落ちた」トリガーを追加し、内部で ci を呼ぶ導線を確保 | ✅ |
+| 3.3 | `skills/agent-browser/SKILL.md` に `user-invocable: false` 追加。description のトリガーフレーズ（「ブラウザで操作」等）は維持し自動ロード経由のアクセスを確保 | ✅ |
+
+---
+
+## Phase 4: CLAUDE.md 更新 + ミラー同期
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 4.1 | CLAUDE.md のスキルカテゴリテーブルを更新（統合後の 19 スキル反映） | ✅ |
+| 4.2 | CLAUDE.md のスキル階層構造ツリーを更新 | ✅ |
+| 4.3 | ミラー同期 (`rsync skills/ → codex/.codex/skills/, opencode/skills/, .opencode/skills/`) | ✅ |
+| 4.4 | バージョンバンプ (v2.20.0) + CHANGELOG エントリ追加 | ✅ |
+| 4.5 | `./tests/validate-plugin.sh && ./scripts/ci/check-consistency.sh` で検証 | ✅ |
+
+---
+
+## 検証方法
+
+1. **構造検証**: `./tests/validate-plugin.sh && ./scripts/ci/check-consistency.sh`
+2. **統合後の動作**: `/memory sync`, `/memory search` で旧機能がルーティングされること
+3. **setup ルーティング**: `/setup codex`, `/setup 2agent` 等で正しい reference にルーティング
+4. **非表示確認**: スキルリストに ci, agent-browser, release-harness が出ないこと
+5. **自動ロード確認**: 「CIが落ちた」→ troubleshoot 経由で ci にルーティングされること
+6. **ミラー一致**: `diff -rq skills/ codex/.codex/skills/`
+
+## Phase C: Codex レビュー修正ループ (R1-R10)
+
+3エキスパート（Security, Quality, Architect）による Codex 並列レビュー → 修正 → 再レビューを10ラウンド実施。
+
+| Task | 内容 | Status |
+|------|------|--------|
+| C.1 | Security エキスパート: Score A 達成（R5で達成、R10まで維持） | ✅ |
+| C.2 | Quality エキスパート: consolidation スコープ High ゼロ達成（R10） | ✅ |
+| C.3 | Architect エキスパート: consolidation スコープ High ゼロ達成（R10） | ✅ |
+| C.4 | 累計修正: ~34ファイル、壊れたリンク・旧スキル名参照・コマンド名不一致を修正 | ✅ |
+| C.5 | ミラー同期 + validate-plugin.sh + check-consistency.sh 全パス | ✅ |
+
+---
+
+## Phase 5: DEFER 項目（Codex レビューで検出された pre-existing 問題）
+
+R1-R10 で検出されたが、consolidation スコープ外の pre-existing 問題。
+
+### 5.1 Security 強化
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 5.1.1 | `pretooluse-guard.sh` symlink bypass 対策（realpath 検証追加） | |
+| 5.1.2 | `permission-request.sh:58` npm/pnpm/yarn 自動承認をリポジトリ別 allowlist 方式に変更 | |
+| 5.1.3 | `userprompt-track-command.sh:77` prompt_preview のパーミッション hardening (umask 077) | |
+| 5.1.4 | `session-monitor.sh:275` resume_token の chmod 600 + umask 077 | |
+| 5.1.5 | `pretooluse-guard.sh:354` eval を直接パース（jq/python）に置換 | |
+
+### 5.2 ドキュメント・リンク修正
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 5.2.1 | `docs/QUALITY_GUARD_DESIGN.md` broken SSOT link 修正 | |
+| 5.2.2 | `docs/PLAN_RULES_IMPROVEMENT.md` stale command refs 修正 | |
+| 5.2.3 | `docs/plans/claude-mem-integration.md` stale paths 修正 | |
+| 5.2.4 | `skills/workflow-guide/references/commands.md` path mismatch 修正 | |
+| 5.2.5 | templates 内の `/skills-update` 参照を削除または更新 | |
+
+### 5.3 generate-video メンテナンス
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 5.3.1 | `agents/video-scene-generator.md` Remotion paths 更新 | |
+| 5.3.2 | `skills/generate-video/` references 内の Remotion paths 更新 | |
+| 5.3.3 | `generate-video/src/schemas/*.ts` z.any() → z.unknown() / proper unions に修正 | |
+
+### 5.4 Architecture: Hook オーケストレーター
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 5.4.1 | PostToolUse fan-out (9スクリプト) を単一 Node オーケストレーターに統合 | |
+| 5.4.2 | stdin JSON パース共通化（scripts/lib/hook-input.js） | |
+
+### 5.5 Architecture: State 管理
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 5.5.1 | `.claude/state/*.json` のスキーマ定義 + atomic write helper 導入 | |
+| 5.5.2 | ロック戦略の統一（flock or advisory lock） | |
+
+### 5.6 ビルド・ツーリング整理
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 5.6.1 | `check-checklist-sync.sh` empty gate logic 修正 | |
+| 5.6.2 | `workflows/default/init.yaml` project-analyzer 参照修正 | |
+| 5.6.3 | `build-opencode.js` commands/ 空ディレクトリ対応 | |
+| 5.6.4 | `harness-ui` command catalog 空対応（統合後） | |
+| 5.6.5 | `parse-work-flags.md` internal inconsistency 修正 | |
+
+### 5.7 命名・ルーティング整理
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 5.7.1 | `/planning` → `/plan-with-agent` 完全統一（dual naming 解消） | |
+| 5.7.2 | `verify` skill の `user-invocable` 整合性確認 | |
+| 5.7.3 | setup と codex-review の Codex セットアップ重複整理 | |
+| 5.7.4 | `_archived/` 配下からの dangling references 削除 | |
+
+---
+
+## 対象外（今回は見送り）
+
+- `/gogcli-ops` — 独立した外部ツール連携。統合先がない。使用頻度に応じて別途判断
+- `/deploy` — 高インパクト操作。明示的なコマンドとして維持（Codex も非表示に反対）

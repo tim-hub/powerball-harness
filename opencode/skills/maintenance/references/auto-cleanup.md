@@ -102,8 +102,8 @@ cleanup:
 ⚠️ **Plans.md クリーンアップ前に、必ずメモリシステムから重要な情報を SSOT に昇格させること**
 
 ```bash
-# 必須: /sync-ssot-from-memory を先に実行
-/sync-ssot-from-memory
+# 必須: /memory でSSOT昇格を先に実行
+/memory sync
 ```
 
 **実行する理由**:
@@ -123,7 +123,7 @@ cleanup:
 **同期完了の確認**:
 
 ```markdown
-✅ /sync-ssot-from-memory 実行済み
+✅ /memory sync 実行済み
 - decisions.md: D{N} 追加/更新
 - patterns.md: P{N} 追加/更新
 ```

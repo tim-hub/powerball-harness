@@ -88,11 +88,11 @@ compare_lists() {
 # メイン検証
 # ================================
 
-# setup-2agent の検証（v2.17.0+ スキル移行後）
-if [ -f "$PLUGIN_ROOT/scripts/setup-2agent.sh" ] && [ -f "$PLUGIN_ROOT/skills/2agent/SKILL.md" ]; then
-  echo "✓ 2agent スキルとスクリプトが存在します"
+# setup hub の検証（v2.19.0+ 2agent は setup に統合）
+if [ -f "$PLUGIN_ROOT/skills/setup/SKILL.md" ] && [ -f "$PLUGIN_ROOT/skills/setup/references/2agent-setup.md" ]; then
+  echo "✓ setup スキルと 2agent-setup リファレンスが存在します"
 else
-  echo "⚠️ 2agent のファイルが見つかりません（スキル移行後の構成を確認）"
+  echo "⚠️ setup/references/2agent-setup.md が見つかりません（統合後の構成を確認）"
 fi
 
 # Note: v2.17.0以降、コマンドはスキルに移行されました

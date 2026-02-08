@@ -4,6 +4,81 @@ Change history for claude-code-harness.
 
 > **📝 Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
+## [2.20.0] - 2026-02-08
+
+### 🎯 What's Changed for You
+
+**28スキルを19スキルに統合。重複を解消し、迷わず使えるスキル体系に。**
+
+| Before | After |
+|--------|-------|
+| `memory`, `sync-ssot-from-memory`, `cursor-mem` の3スキル | `memory` 1つに統合（SSOT昇格・記憶検索を references に移設） |
+| `setup`, `setup-tools`, `harness-mem`, `codex-setup`, `2agent`, `localize-rules` の6スキル | `setup` 1つに統合（ツール設定・2-Agent・harness-mem・Codex CLI・ルールローカライズを references に移設） |
+| `ci`, `agent-browser`, `x-release-harness` がスラッシュコマンドとして露出 | `user-invocable: false` で非表示化（自動ロード経由でアクセス可能） |
+| `troubleshoot` は CI 障害をカバーせず | `troubleshoot` の description に CI 障害トリガーを追加 |
+
+### Changed
+
+- **`/memory` 統合**: `sync-ssot-from-memory` と `cursor-mem` の機能を統合
+  - SSOT昇格ロジック → `references/sync-ssot-from-memory.md`（既存）
+  - Cursor連携メモリ → `references/cursor-mem-search.md`（新規）
+  - description にトリガーフレーズを拡張
+- **`/setup` 統合**: `setup-tools`, `harness-mem`, `codex-setup`, `2agent`, `localize-rules` を統合
+  - 全 references を `setup/references/` に集約
+  - ルーティングテーブルでユーザー意図→適切な reference に分岐
+- **`/troubleshoot`**: CI 障害トリガー（「CIが落ちた」「CI failures」）を description に追加
+
+### Added
+
+- `skills/memory/references/cursor-mem-search.md` - Cursor連携メモリ検索リファレンス
+- `skills/setup/references/harness-mem.md` - Harness-Mem セットアップリファレンス
+- `skills/setup/references/localize-rules.md` - ルールローカライズリファレンス
+
+### Removed (archived)
+
+- `skills/sync-ssot-from-memory/` → `skills/_archived/`
+- `skills/cursor-mem/` → `skills/_archived/`
+- `skills/setup-tools/` → `skills/_archived/`
+- `skills/harness-mem/` → `skills/_archived/`
+- `skills/codex-setup/` → `skills/_archived/`
+- `skills/2agent/` → `skills/_archived/`
+- `skills/localize-rules/` → `skills/_archived/`
+
+---
+
+## [2.19.0] - 2026-02-08
+
+### 🎯 What's Changed for You
+
+**5つの実装コマンドを `/work` と `/breezing` の2つに統一。両方 `--codex` 対応。**
+
+| Before | After |
+|--------|-------|
+| `/work`, `/ultrawork`, `/breezing`, `/breezing-codex`, `/codex-worker` の5コマンド | `/work` と `/breezing` の2コマンドに統一 |
+| コマンドの使い分けが複雑 | `/work` = Claude 実装、`/breezing` = チーム完走 |
+| Codex は別コマンド (`/codex-worker`, `/breezing-codex`) | `--codex` フラグで統一切り替え |
+| スコープ指定方法がコマンドごとに異なる | 両コマンド共通の対話式スコープ確認 |
+
+### Changed
+
+- **`/work` 全面改修**: 対話式スコープ確認 + タスク数に応じた自動戦略選択
+  - 1タスク → 直接実装、2-3 → 並列、4+ → 自動反復（旧 ultrawork 統合）
+  - `--codex` フラグで Codex MCP 実装委託モード
+  - 新リファレンス: scope-dialog.md, auto-iteration.md, codex-engine.md
+- **`/breezing` 更新**: `--codex` フラグ統合（旧 breezing-codex 吸収）
+  - 対話式スコープ確認の追加
+  - Codex Implementer 連携を codex-engine.md に集約
+- **pretooluse-guard.sh**: `ultrawork-active.json` → `work-active.json` に統一
+  - 後方互換: 旧ファイル名もフォールバックで検出
+
+### Removed
+
+- **ultrawork** スキル → `/work all` で同等機能（`skills/_archived/` に移動）
+- **breezing-codex** スキル → `/breezing --codex` で同等機能（`skills/_archived/` に移動）
+- **codex-worker** スキル → `/work --codex` で同等機能（`skills/_archived/` に移動）
+
+---
+
 ## [2.18.11] - 2026-02-06
 
 ### 🎯 What's Changed for You

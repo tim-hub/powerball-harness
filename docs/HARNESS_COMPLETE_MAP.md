@@ -331,9 +331,9 @@ flowchart TB
     end
 
     subgraph OPTIONAL["Optional Commands（オプション）"]
-        O1["/ci-setup - CI/CD 構築"]
-        O2["/lsp-setup - LSP 導入"]
-        O3["/harness-mem - メモリ統合"]
+        O1["/setup ci - CI/CD 構築"]
+        O2["/setup lsp - LSP 導入"]
+        O3["/setup harness-mem - メモリ統合"]
         O4["/harness-update - アップデート"]
         O5["/release - リリース自動化"]
         O6["/codex-mode - Codex 切替"]
@@ -368,9 +368,9 @@ flowchart TB
 
 | コマンド                   | 説明                                                          | 用途                     |
 | -------------------------- | ------------------------------------------------------------- | ------------------------ |
-| `/ci-setup`              | GitHub Actions などの CI/CD パイプラインを構築                | CI/CD 自動化             |
-| `/lsp-setup`             | Language Server Protocol を導入・設定                         | コード補完・定義ジャンプ |
-| `/harness-mem`           | claude-mem との統合をセットアップ                             | 横断セッションメモリ     |
+| `/setup ci`              | GitHub Actions などの CI/CD パイプラインを構築                | CI/CD 自動化             |
+| `/setup lsp`             | Language Server Protocol を導入・設定                         | コード補完・定義ジャンプ |
+| `/setup harness-mem`     | claude-mem との統合をセットアップ                             | 横断セッションメモリ     |
 | `/harness-update`        | ハーネスを最新バージョンに安全にアップデート                  | バージョン管理           |
 | `/harness-ui`            | harness-ui ダッシュボードを起動（未セットアップなら自動構築） | 可視化                   |
 | `/release`               | CHANGELOG 更新、バージョン更新、タグ作成を自動化              | リリース管理             |
@@ -379,8 +379,8 @@ flowchart TB
 | `/crud`                  | CRUD 機能を自動生成（バリデーション、認証、本番品質）         | 機能生成                 |
 | `/skills-update`         | Skills Gate の対象スキルを管理（add/remove/enable/disable）   | スキル管理               |
 | `/sync-project-specs`    | 作業後に Plans.md 等が更新されているか確認・同期              | 整合性確認               |
-| `/sync-ssot-from-memory` | メモリシステムの重要な観察を SSOT に昇格                      | ナレッジ管理             |
-| `/localize-rules`        | プロジェクト構造に合わせてルールをローカライズ                | カスタマイズ             |
+| `/memory sync`           | メモリシステムの重要な観察を SSOT に昇格                      | ナレッジ管理             |
+| `/setup localize-rules`  | プロジェクト構造に合わせてルールをローカライズ                | カスタマイズ             |
 
 ### 3.5 CI Mode 詳細
 
@@ -405,7 +405,7 @@ flowchart TB
     end
 
     subgraph QUALITY_GROUP["品質系"]
-        REVIEW["review - コードレビュー"]
+        REVIEW["harness-review - コードレビュー"]
         VERIFY["verify - ビルド検証"]
         CI["ci - CI/CD修正"]
     end
@@ -426,7 +426,7 @@ flowchart TB
     subgraph WORKFLOW_GROUP["ワークフロー系"]
         WF["handoff - ハンドオフ"]
         WFG["workflow-guide - ガイダンス"]
-        AGENT2["2agent - 2-Agent設定"]
+        AGENT2["setup (2agent) - 2-Agent設定"]
         PARALLEL["parallel-workflows - 並列最適化"]
     end
 
@@ -444,7 +444,7 @@ flowchart TB
 
     subgraph INTEGRATION_GROUP["外部連携系"]
         CODEX["codex-review - Codex統合"]
-        CURSOR["cursor-mem - Cursorメモリ"]
+        CURSOR["memory (cursor-mem) - Cursorメモリ"]
         BROWSER["agent-browser - ブラウザ自動化"]
     end
 ```
@@ -490,7 +490,7 @@ flowchart TB
 | ---------------------- | ------------------------------------------------ | -------------------------------------- |
 | `handoff`            | ハンドオフ管理、レビューコメントの自動修正       | 「ハンドオフ」「PMに報告」「自動修正」 |
 | `workflow-guide`     | Cursor ↔ Claude Code 2-Agent ワークフローの解説 | 「ワークフロー」「コラボ」「プロセス」 |
-| `2agent`             | 2-Agent ワークフローの設定                       | 「2-Agent」「Cursor設定」「PM連携」    |
+| `setup` (2agent)     | 2-Agent ワークフローの設定（`setup` に統合）     | 「2-Agent」「Cursor設定」「PM連携」    |
 | `parallel-workflows` | 複数タスクの並列実行最適化                       | 「並列で」「同時に」                   |
 
 #### ガイダンス系スキル
@@ -514,7 +514,7 @@ flowchart TB
 | スキル           | 説明                                                           | トリガー例                                           |
 | ---------------- | -------------------------------------------------------------- | ---------------------------------------------------- |
 | `codex-review` | OpenAI Codex CLI を MCP サーバーとして統合、セカンドオピニオン | 「Codex レビュー」「セカンドオピニオン」             |
-| `cursor-mem`   | Cursor から claude-mem MCP サーバーにアクセス                  | 「メモリ検索」「過去の決定」                         |
+| `memory` (cursor-mem) | Cursor から claude-mem MCP サーバーにアクセス（`memory` に統合） | 「メモリ検索」「過去の決定」                         |
 | `agent-browser`  | 永続的なページ状態でのブラウザ自動化                           | 「URL にアクセス」「クリック」「スクリーンショット」 |
 
 ---

@@ -86,7 +86,7 @@ Combine Step 1 response + background analysis result
 Ask once after setup:
 
 > Codex CLI でもこのプロジェクトを使いますか？
-> - yes → `/codex-setup` を実行
+> - yes → `/setup codex` を実行
 > - no  → スキップ
 
 If yes:

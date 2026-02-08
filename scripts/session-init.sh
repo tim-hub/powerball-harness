@@ -86,8 +86,10 @@ echo '{"used": [], "session_start": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > "$SES
 # Plans.md クリーンアップ前の SSOT 同期確認に使用される
 rm -f "${STATE_DIR}/.ssot-synced-this-session" 2>/dev/null || true
 
-# ultrawork 警告フラグをクリア（新セッション開始時）
+# work 警告フラグをクリア（新セッション開始時）
 # このフラグは userprompt-inject-policy.sh で一度だけ警告するために使用される
+# 後方互換: 両方のフラグ名をクリア
+rm -f "${STATE_DIR}/.work-review-warned" 2>/dev/null || true
 rm -f "${STATE_DIR}/.ultrawork-review-warned" 2>/dev/null || true
 
 # ===== Step 2.5: Harness セッション初期化 & CC session_id マッピング =====

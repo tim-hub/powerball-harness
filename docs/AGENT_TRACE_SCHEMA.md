@@ -146,10 +146,10 @@ const trace = {
 
 ### 1. Cost Tracking (Parallel Workflows)
 
-When using `/ultrawork` with parallel task-workers, aggregate metrics across all workers:
+When using `/work all` with parallel task-workers, aggregate metrics across all workers:
 
 ```markdown
-🚀 Ultrawork 完了
+🚀 /work all 完了
 ├─ Worker 1: ✅ 2,340 tokens | 12 tools | 45s
 ├─ Worker 2: ✅ 1,890 tokens | 8 tools | 32s
 ├─ Worker 3: ✅ 3,120 tokens | 15 tools | 58s

@@ -91,13 +91,13 @@ cd claude-code-harness
 ```
 1. クライアントからの依頼
    ↓
-2. /plan でプロジェクト計画作成
+2. /plan-with-agent でプロジェクト計画作成
    ↓
 3. /work で機能実装
    ↓
 4. /harness-review でコードレビュー
    ↓
-5. /validate で納品前検証
+5. ./tests/validate-plugin.sh で納品前検証
    ↓
 6. 納品
 ```

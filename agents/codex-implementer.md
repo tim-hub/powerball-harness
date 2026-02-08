@@ -1,20 +1,20 @@
 ---
 name: codex-implementer
-description: Codex MCP 経由で実装を委託するプロキシ実装エージェント
+description: Codex CLI 経由で実装を委託するプロキシ実装エージェント
 tools: [Read, Write, Edit, Bash, Grep, Glob]
 disallowedTools: [Task]
 model: sonnet
 color: green
 memory: project
 skills:
-  - codex-worker
+  - work
   - verify
 ---
 
 # Codex Implementer Agent
 
-Codex MCP (`mcp__codex__codex`) を呼び出して実装を委託し、品質検証を自己完結で行うエージェント。
-**breezing-codex** スキルの Implementer ロールとして使用される。
+Codex CLI (`codex exec`) を呼び出して実装を委託し、品質検証を自己完結で行うエージェント。
+**breezing --codex** モードの Implementer ロールとして使用される。
 
 ---
 
@@ -70,14 +70,15 @@ Task tool で subagent_type="codex-implementer" を指定
 │  └───────────────────────────────────────────────┘      │
 │                    ↓                                     │
 │  ┌───────────────────────────────────────────────┐      │
-│  │ Step 3: Codex MCP 呼び出し                    │      │
-│  │  - mcp__codex__codex({                        │      │
-│  │      prompt: タスク内容 + 証跡指示,           │      │
-│  │      base-instructions: Rules + AGENTS.md,    │      │
-│  │      cwd: worktree or project root,           │      │
-│  │      approval-policy: "never",                │      │
-│  │      sandbox: "workspace-write"               │      │
-│  │    })                                         │      │
+│  │ Step 3: Codex CLI 呼び出し                    │      │
+│  │  - プロンプトファイル生成:                     │      │
+│  │    base-instructions + タスク内容を            │      │
+│  │    /tmp/codex-prompt-{id}.md に書き出し        │      │
+│  │  - 実行:                                      │      │
+│  │    $TIMEOUT 180 codex exec \                  │      │
+│  │      "$(cat /tmp/codex-prompt-{id}.md)" \     │      │
+│  │      2>/dev/null                              │      │
+│  │  - タイムアウト時: exit 124 → エスカレーション │      │
 │  └───────────────────────────────────────────────┘      │
 │                    ↓                                     │
 │  ┌───────────────────────────────────────────────┐      │
@@ -110,17 +111,45 @@ Task tool で subagent_type="codex-implementer" を指定
 
 ---
 
-## MCP 呼び出しパラメータ
+## CLI 呼び出しパラメータ
 
-```json
-{
-  "prompt": "タスク内容 + AGENTS_SUMMARY 証跡出力指示",
-  "base-instructions": "Rules 連結 + AGENTS.md 強制読み込み指示 + owns 制約",
-  "cwd": "/path/to/worktree or project root",
-  "approval-policy": "never",
-  "sandbox": "workspace-write"
-}
+### プロンプト構成
+
+プロンプトは以下の順で連結して1つのテキストにする:
+
+1. base-instructions（.claude/rules/*.md 連結 + AGENTS.md 準拠指示 + owns 制約）
+2. ---（区切り）
+3. タスク内容 + AGENTS_SUMMARY 証跡出力指示
+
+### 実行コマンド
+
+```bash
+# タイムアウトコマンド検出（macOS: brew install coreutils）
+TIMEOUT=$(command -v timeout || command -v gtimeout || echo "")
+
+# プロンプトファイル生成
+cat <<'CODEX_PROMPT' > /tmp/codex-prompt-{id}.md
+{base-instructions}
+---
+{タスク内容 + 証跡指示}
+CODEX_PROMPT
+
+# 実行（タイムアウト 180秒）
+$TIMEOUT 180 codex exec "$(cat /tmp/codex-prompt-{id}.md)" 2>/dev/null
+EXIT_CODE=$?
+
+# タイムアウト判定
+if [ $EXIT_CODE -eq 124 ]; then
+  echo "TIMEOUT: Codex CLI timed out after 180s"
+fi
 ```
+
+### タイムアウト
+
+| 状況 | タイムアウト | 対応 |
+|------|------------|------|
+| 通常タスク | 180秒 | exit 124 → リトライ |
+| 大規模タスク | 300秒 | exit 124 → エスカレーション |
 
 ### base-instructions テンプレート
 

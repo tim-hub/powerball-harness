@@ -141,7 +141,7 @@ Skill ツールで 'mem-search' を呼び出す
 
 ```bash
 # 重要な決定を SSOT に昇格
-/sync-ssot-from-memory
+/memory sync
 
 # 昇格対象:
 # - decision タイプの観測 → decisions.md
@@ -177,6 +177,6 @@ Claude-mem 統合を一時的に無効化する場合：
 
 ## 関連
 
-- `/harness-mem` - Claude-mem 統合セットアップ
+- `/setup harness-mem` - Claude-mem 統合セットアップ
 - `mem-search` スキル - 過去の記憶検索
-- `/sync-ssot-from-memory` - 観測の SSOT 昇格
+- `/memory sync` - 観測の SSOT 昇格

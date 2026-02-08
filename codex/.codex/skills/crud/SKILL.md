@@ -45,7 +45,7 @@ Auto-generates CRUD functionality for specified entities (tables) at **productio
 
 ## Execution Flow
 
-See [references/execution-flow.md](references/execution-flow.md) for detailed steps.
+Detailed steps are described in the phases below.
 
 ### Phase 1: Entity Analysis
 

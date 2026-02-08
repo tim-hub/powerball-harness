@@ -114,7 +114,7 @@ fi
 
 if [ "$MCP_FOUND" = false ]; then
   check_result fail "MCP 設定が見つかりません"
-  echo "  セットアップコマンド: /cursor-mem"
+  echo "  セットアップコマンド: /setup harness-mem"
 fi
 echo ""
 
@@ -174,7 +174,7 @@ if [ -f ".cursor/hooks.json" ]; then
   fi
 else
   check_result fail "hooks.json が存在しません"
-  echo "  セットアップコマンド: /cursor-mem"
+  echo "  セットアップコマンド: /setup harness-mem"
 fi
 
 if [ -f ".cursor/hooks.json.example" ]; then
@@ -286,16 +286,16 @@ echo ""
 # ========================================
 echo -e "${BLUE}【Phase 7】ドキュメント確認${NC}"
 
-if [ -f "docs/guides/cursor-mem-integration.md" ]; then
-  check_result pass "統合ガイドが存在します"
+if [ -f "skills/memory/references/cursor-mem-search.md" ]; then
+  check_result pass "Cursor メモリ検索リファレンスが存在します"
 else
-  check_result warn "統合ガイドが存在しません"
+  check_result warn "Cursor メモリ検索リファレンスが存在しません"
 fi
 
-if [ -f "commands/optional/cursor-mem.md" ]; then
-  check_result pass "コマンドドキュメントが存在します"
+if [ -f "skills/memory/SKILL.md" ]; then
+  check_result pass "メモリスキルドキュメントが存在します"
 else
-  check_result fail "コマンドドキュメントが存在しません"
+  check_result fail "メモリスキルドキュメントが存在しません"
 fi
 echo ""
 
@@ -319,8 +319,8 @@ if [ "$FAILED_CHECKS" -gt 0 ]; then
   echo ""
   echo "修正方法:"
   echo "  1. Worker が起動していない → claude-mem restart"
-  echo "  2. MCP 設定がない → /cursor-mem コマンドを実行"
-  echo "  3. hooks.json がない → /cursor-mem コマンドを実行"
+  echo "  2. MCP 設定がない → /setup harness-mem コマンドを実行"
+  echo "  3. hooks.json がない → /setup harness-mem コマンドを実行"
   echo "  4. スクリプトがない → プラグインを再インストール"
   echo ""
   exit 1

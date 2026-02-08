@@ -67,4 +67,4 @@ ANALYSIS=$("$PLUGIN_PATH/scripts/analyze-project.sh")
 
 - `scripts/analyze-project.sh`
 - `templates/rules/`
-- `commands/setup-cursor.md`
+- `skills/setup/references/cursor-setup.md`

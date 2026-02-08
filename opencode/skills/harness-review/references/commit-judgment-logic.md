@@ -175,4 +175,4 @@ review:
 
 - `skills/harness-review/SKILL.md` - レビュースキル本体
 - `skills/codex-review/references/codex-parallel-review.md` - Codex 並列呼び出し
-- `commands/optional/codex-mode.md` - Codex モード切り替え
+- `skills/codex-review/references/codex-mode.md` - Codex モード切り替え

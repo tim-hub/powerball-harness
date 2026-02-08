@@ -27,8 +27,8 @@ Organizes ideas and requirements, converting them into executable tasks in Plans
 ## Usage
 
 ```bash
-/planning              # Interactive planning
-/planning --ci         # CI mode (non-interactive)
+/plan-with-agent       # Interactive planning
+/plan-with-agent --ci  # CI mode (non-interactive)
 ```
 
 ## Mode-specific Usage

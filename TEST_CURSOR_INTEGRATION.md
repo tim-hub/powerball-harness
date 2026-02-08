@@ -161,6 +161,5 @@ ls -la /Users/tachibanashuuta/Desktop/Code/CC-harness/claude-code-harness-cursor
 
 ## 🔗 参考資料
 
-- [統合ガイド](docs/guides/cursor-mem-integration.md)
-- [スキル詳細](skills/cursor-mem/SKILL.md)
-- [使用例](skills/cursor-mem/examples.md)
+- [メモリスキル](skills/memory/SKILL.md)
+- [Cursor メモリ検索](skills/memory/references/cursor-mem-search.md)

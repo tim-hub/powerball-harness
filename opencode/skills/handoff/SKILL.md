@@ -154,4 +154,4 @@ Phase 4: This skill runs ← First time handoff happens
 
 - `work` - Main implementation workflow
 - `harness-review` - Code review
-- `2agent` - 2-Agent workflow setup
+- `setup` - Project setup (includes 2-Agent workflow)

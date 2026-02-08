@@ -97,4 +97,4 @@ These are **never** overwritten:
 
 - `/harness-init` - New project setup
 - `/sync-status` - Check current project status
-- `/setup-tools` - Setup development tools
+- `/setup` - Setup development tools

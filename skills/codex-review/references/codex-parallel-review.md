@@ -1,10 +1,10 @@
 # Codex Parallel Review Execution Guide
 
-Orchestration steps for calling multiple experts in parallel via MCP in Codex mode.
+Orchestration steps for calling multiple experts in parallel via Codex CLI in Codex mode.
 
 ## Overview
 
-In Codex mode, Claude acts as an orchestrator, calling **4 experts** in parallel via MCP. Different experts are used depending on the review type.
+In Codex mode, Claude acts as an orchestrator, calling **4 experts** in parallel via Codex CLI (`codex exec`). Different experts are used depending on the review type.
 
 ## Review Types and 4 Experts
 
@@ -19,7 +19,7 @@ Claude (Orchestrator)
     ↓
 Determine review type
     ↓
-Parallel MCP calls (4 experts)
+Parallel CLI calls (4 experts)
     ├── Expert 1
     ├── Expert 2
     ├── Expert 3
@@ -38,7 +38,7 @@ Aggregate results → Judgment
 
 | Prohibited | Reason |
 |------|------|
-| ❌ Combining multiple experts in a single MCP call | Each expert's specialization is diluted |
+| ❌ Combining multiple experts in a single CLI call | Each expert's specialization is diluted |
 | ❌ Requesting "check security, performance, and quality" in one call | Aspects are mixed, preventing deep analysis |
 | ❌ Sending generic prompts without reading experts/*.md | Expert prompt insights are not utilized |
 
@@ -46,23 +46,34 @@ Aggregate results → Judgment
 
 | Required | Method |
 |------|------|
-| ✅ Execute each expert via **individual MCP calls** | Call `mcp__codex__codex` 4 times based on review type |
+| ✅ Execute each expert via **individual CLI calls** | Call `codex exec` 4 times based on review type |
 | ✅ Read prompts **individually from experts/*.md** | `security-expert.md` → Security call → `performance-expert.md` → Performance call... |
-| ✅ **Execute 4 MCP calls in parallel within one response** | Use Claude's parallel tool calling feature |
+| ✅ **Execute 4 CLI calls in parallel via Bash background processes** | Use `&` + `wait` for parallel execution |
 
 ### Correct Execution Pattern
 
-```
-1. Determine enabled experts based on config and project type
-2. Execute only enabled experts in parallel within one response:
+```bash
+# 0. Detect timeout command (macOS: brew install coreutils)
+TIMEOUT=$(command -v timeout || command -v gtimeout || echo "")
 
-mcp__codex__codex({prompt: content from security-expert.md, base-instructions: shared constraints})
-mcp__codex__codex({prompt: content from performance-expert.md, base-instructions: shared constraints})
-mcp__codex__codex({prompt: content from quality-expert.md, base-instructions: shared constraints})
-... (only enabled ones)
+# 1. Determine enabled experts based on config and project type
+# 2. Write each expert prompt to temp file with shared constraints prepended
+# 3. Execute only enabled experts in parallel:
 
-→ Parallel execution of only necessary experts
-→ Skip irrelevant aspects to reduce cost
+for expert in security performance quality accessibility; do
+  $TIMEOUT 120 codex exec "$(cat /tmp/expert-${expert}-prompt.md)" \
+    > /tmp/expert-${expert}-result.txt 2>/dev/null &
+done
+wait
+
+# 4. Collect results
+for expert in security performance quality accessibility; do
+  echo "=== ${expert} ==="
+  cat /tmp/expert-${expert}-result.txt
+done
+
+# → Parallel execution of only necessary experts
+# → Skip irrelevant aspects to reduce cost
 ```
 
 ### Why Separate Them?
@@ -250,35 +261,50 @@ Review with these project conventions in mind.
 
 > **Effect**: By referencing SSOT, reviewers understand "why this implementation" and prevent off-target feedback.
 
-### Step 5: Parallel MCP Calls
+### Step 5: Parallel CLI Calls
 
-**Execution mode**: Parallel experts are **MCP-based** (leveraging Claude's built-in parallel feature)
-
-> Single `/codex-review` uses exec, but parallel is more efficient with MCP (no shell management needed)
+**Execution mode**: Parallel experts use **Bash background processes** (`&` + `wait`)
 
 **Important**: Call only enabled experts determined in Step 3
 
-Use the `base-instructions` parameter to inject shared constraints:
+Prepend shared constraints to each expert prompt file:
 
-```typescript
-// Conceptual code for parallel invocation
-const enabledExperts = Object.entries(config.review.codex.experts)
-  .filter(([_, enabled]) => enabled)
-  .map(([name]) => name);
+```bash
+# Read shared constraints
+SHARED=$(cat experts/_shared-constraints.md)
 
-// Read shared constraints
-const sharedConstraints = readFile('experts/_shared-constraints.md');
+# Prepare prompt files for each enabled expert
+for expert in "${ENABLED_EXPERTS[@]}"; do
+  cat <<PROMPT > /tmp/expert-${expert}-prompt.md
+${SHARED}
 
-// Parallel execution
-const results = await Promise.all(
-  enabledExperts.map(expert =>
-    mcp__codex__codex({
-      prompt: getPromptForExpert(expert, files, techStack),
-      baseInstructions: sharedConstraints,  // Inject shared constraints
-      sandbox: "read-only"
-    })
-  )
-);
+---
+
+$(cat experts/${expert}-expert.md)
+
+## Review Target
+Files: ${FILES}
+Tech Stack: ${TECH_STACK}
+
+$(git diff HEAD~1)
+PROMPT
+done
+
+# Detect timeout command (macOS: brew install coreutils)
+TIMEOUT=$(command -v timeout || command -v gtimeout || echo "")
+
+# Parallel execution (timeout 120s each)
+for expert in "${ENABLED_EXPERTS[@]}"; do
+  $TIMEOUT 120 codex exec "$(cat /tmp/expert-${expert}-prompt.md)" \
+    > /tmp/expert-${expert}-result.txt 2>/dev/null &
+done
+wait
+
+# Collect results
+for expert in "${ENABLED_EXPERTS[@]}"; do
+  echo "=== ${expert} ==="
+  cat /tmp/expert-${expert}-result.txt
+done
 ```
 
 ### Step 5.1: Output Limitation Rules (Prevent Context Overflow + Sufficient Analysis)

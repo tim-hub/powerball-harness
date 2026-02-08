@@ -22,12 +22,12 @@
 
 ---
 
-### /codex-setup
+### /setup codex
 
 Codex CLI 用の `.codex/` と `AGENTS.md` を導入・更新。
 
 ```
-/codex-setup
+/setup codex
 ```
 
 **生成されるファイル**:

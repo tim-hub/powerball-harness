@@ -1,21 +1,21 @@
 ---
 name: codex-review-integration
-description: "Codex MCP を使用したレビュー実行手順"
+description: "Codex CLI を使用したレビュー実行手順"
 allowed-tools: ["Read", "Bash"]
 ---
 
 # Codex レビュー実行
 
-Codex MCP を使用してコードレビューを実行する手順。
+Codex CLI を使用してコードレビューを実行する手順。
 
 ---
 
 ## 🎯 概要
 
-Codex MCP が設定済みの場合、以下の方法でレビューを実行できます：
+Codex CLI がインストール済みの場合、以下の方法でレビューを実行できます：
 
 1. **`/harness-review` 経由**: 自動的に Codex 統合
-2. **直接呼び出し**: MCP ツールを直接使用
+2. **直接呼び出し**: Codex CLI を直接使用
 
 ---
 
@@ -30,7 +30,7 @@ harness-review スキル起動
     ↓
 codex.enabled 確認 → true
     ↓
-Claude + Codex 並列レビュー
+Claude + Codex CLI 並列レビュー
     ↓
 結果統合
 ```
@@ -38,11 +38,10 @@ Claude + Codex 並列レビュー
 ### 方法2: 直接呼び出し
 
 ```bash
-# MCP ツールを直接呼び出し（スキル内から）
-mcp__codex__* を使用
-
-# または Codex CLI を直接実行
-codex exec --json "以下のコードをレビューしてください: ..."
+# Codex CLI を直接実行
+# macOS: brew install coreutils
+TIMEOUT=$(command -v timeout || command -v gtimeout || echo "")
+$TIMEOUT 120 codex exec "以下のコードをレビューしてください: ..." 2>/dev/null
 ```
 
 ---

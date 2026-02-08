@@ -167,6 +167,8 @@ rm -f "${STATE_DIR}/.ssot-synced-this-session" 2>/dev/null || true
 # ultrawork 警告フラグをクリア（セッション復元時）
 # このフラグは userprompt-inject-policy.sh で一度だけ警告するために使用される
 # 復元時にクリアすることで、復元後の最初のプロンプトで警告が再表示される
+# 後方互換: 両方のフラグ名をクリア
+rm -f "${STATE_DIR}/.work-review-warned" 2>/dev/null || true
 rm -f "${STATE_DIR}/.ultrawork-review-warned" 2>/dev/null || true
 
 # ===== Plans.md チェック =====
@@ -204,22 +206,26 @@ if [ -f "$SESSION_FILE" ] && command -v jq >/dev/null 2>&1; then
   fi
 fi
 
-# ===== ultrawork モード検出と harness-review 必須の再注入 =====
-ULTRAWORK_INFO=""
-ULTRAWORK_FILE="${STATE_DIR}/ultrawork-active.json"
-if [ -f "$ULTRAWORK_FILE" ] && command -v jq >/dev/null 2>&1; then
-  REVIEW_STATUS=$(jq -r '.review_status // "pending"' "$ULTRAWORK_FILE" 2>/dev/null)
-  STARTED_AT=$(jq -r '.started_at // "不明"' "$ULTRAWORK_FILE" 2>/dev/null)
+# ===== Work モード検出と harness-review 必須の再注入 =====
+WORK_INFO=""
+WORK_FILE="${STATE_DIR}/work-active.json"
+# 後方互換: work-active.json がなければ ultrawork-active.json を試行
+if [ ! -f "$WORK_FILE" ]; then
+  WORK_FILE="${STATE_DIR}/ultrawork-active.json"
+fi
+if [ -f "$WORK_FILE" ] && command -v jq >/dev/null 2>&1; then
+  REVIEW_STATUS=$(jq -r '.review_status // "pending"' "$WORK_FILE" 2>/dev/null)
+  STARTED_AT=$(jq -r '.started_at // "不明"' "$WORK_FILE" 2>/dev/null)
 
   case "$REVIEW_STATUS" in
     "passed")
-      ULTRAWORK_INFO="⚡ **ultrawork モード継続中** (開始: ${STARTED_AT})\n   ✅ review_status: passed → 完了処理可能"
+      WORK_INFO="⚡ **work モード継続中** (開始: ${STARTED_AT})\n   ✅ review_status: passed → 完了処理可能"
       ;;
     "failed")
-      ULTRAWORK_INFO="⚡ **ultrawork モード継続中** (開始: ${STARTED_AT})\n   ❌ review_status: failed → 修正後に /harness-review を再実行してください"
+      WORK_INFO="⚡ **work モード継続中** (開始: ${STARTED_AT})\n   ❌ review_status: failed → 修正後に /harness-review を再実行してください"
       ;;
     *)
-      ULTRAWORK_INFO="⚡ **ultrawork モード継続中** (開始: ${STARTED_AT})\n   ⚠️ review_status: pending → **完了前に /harness-review で APPROVE を得てください**"
+      WORK_INFO="⚡ **work モード継続中** (開始: ${STARTED_AT})\n   ⚠️ review_status: pending → **完了前に /harness-review で APPROVE を得てください**"
       ;;
   esac
 fi
@@ -253,9 +259,9 @@ if [ -n "$ACTIVE_SKILL_INFO" ]; then
 fi
 
 # ultrawork モード情報を追加
-if [ -n "$ULTRAWORK_INFO" ]; then
+if [ -n "$WORK_INFO" ]; then
   add_line ""
-  add_line "$ULTRAWORK_INFO"
+  add_line "$WORK_INFO"
 fi
 
 # ===== JSON 出力 =====

@@ -85,7 +85,7 @@ Step 3: Completion report
 ## Next Steps
 
 After setup:
-- "`/planning` I want to create XXX" → Create plan
+- "`/plan-with-agent` I want to create XXX" → Create plan
 - "`/work`" → Execute tasks in Plans.md
 - "`npm run dev`" → Start dev server
-- If you need Codex CLI: run `/codex-setup`
+- If you need Codex CLI: run `/setup codex`

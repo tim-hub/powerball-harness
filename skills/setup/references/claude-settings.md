@@ -80,7 +80,7 @@ claude plugin install rust-analyzer-lsp
 - シンボルリネーム (rename)
 - 診断情報 (diagnostics)
 
-詳細: [docs/LSP_INTEGRATION.md](../../../docs/LSP_INTEGRATION.md) または `/lsp-setup` コマンドを実行してください。
+詳細: [docs/LSP_INTEGRATION.md](../../../docs/LSP_INTEGRATION.md) または `/setup lsp` コマンドを実行してください。
 
 **注意**: プロジェクトで使用する MCP サーバーに合わせて設定してください。
 

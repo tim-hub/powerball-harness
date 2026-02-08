@@ -5,6 +5,7 @@ description-en: "Automate Harness release. CHANGELOG, version, tag in one click.
 description-ja: "Harness リリース作業を自動化。CHANGELOG、バージョン、タグをポチッと一発。Use when user mentions harness release, harness version bump. Do NOT load for: general release discussions, other project releases."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[patch|minor|major]"
+user-invocable: false
 context: fork
 ---
 

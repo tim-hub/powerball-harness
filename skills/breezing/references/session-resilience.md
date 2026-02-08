@@ -136,7 +136,7 @@ impl_mode を確認:
   └── なし or 未設定 → 通常 breezing として扱う（後方互換）
     ↓
 現在のスキルとモード不一致チェック:
-  ├── /breezing-codex 実行中に impl_mode="standard" → ユーザーに確認
+  ├── /breezing --codex 実行中に impl_mode="standard" → ユーザーに確認
   └── /breezing 実行中に impl_mode="codex" → ユーザーに確認
     ↓
 team_name で既存 Team を確認:

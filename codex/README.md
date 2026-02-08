@@ -16,7 +16,7 @@ Codex CLI compatible distribution of Claude Code Harness.
 If you use Claude Code Harness, you can run:
 
 ```
-/codex-setup
+/setup codex
 ```
 
 ### Option 2: Manual

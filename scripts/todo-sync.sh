@@ -85,24 +85,28 @@ if [ -f "$EVENT_LOG" ]; then
   echo "{\"type\":\"todo.sync\",\"ts\":\"$NOW\",\"data\":{\"pending\":$PENDING_COUNT,\"in_progress\":$WIP_COUNT,\"completed\":$DONE_COUNT}}" >> "$EVENT_LOG"
 fi
 
-# ===== ultrawork モードでの全完了検出と警告 =====
-ULTRAWORK_WARNING=""
-ULTRAWORK_FILE="${STATE_DIR}/ultrawork-active.json"
+# ===== Work モードでの全完了検出と警告 =====
+WORK_WARNING=""
+WORK_FILE="${STATE_DIR}/work-active.json"
+# 後方互換: work-active.json がなければ ultrawork-active.json を試行
+if [ ! -f "$WORK_FILE" ]; then
+  WORK_FILE="${STATE_DIR}/ultrawork-active.json"
+fi
 TOTAL_COUNT=$((PENDING_COUNT + WIP_COUNT + DONE_COUNT))
 
-# 全タスク完了 (pending=0, WIP=0, completed>0) かつ ultrawork モードの場合
+# 全タスク完了 (pending=0, WIP=0, completed>0) かつ Work モードの場合
 if [ "$PENDING_COUNT" -eq 0 ] && [ "$WIP_COUNT" -eq 0 ] && [ "$DONE_COUNT" -gt 0 ]; then
-  if [ -f "$ULTRAWORK_FILE" ]; then
-    REVIEW_STATUS=$(jq -r '.review_status // "pending"' "$ULTRAWORK_FILE" 2>/dev/null)
+  if [ -f "$WORK_FILE" ]; then
+    REVIEW_STATUS=$(jq -r '.review_status // "pending"' "$WORK_FILE" 2>/dev/null)
 
     if [ "$REVIEW_STATUS" != "passed" ]; then
-      ULTRAWORK_WARNING="\n\n⚠️ **ultrawork 完了前チェック**: review_status=${REVIEW_STATUS}\n→ 完了処理の前に /harness-review で APPROVE を取得してください"
+      WORK_WARNING="\n\n⚠️ **work 完了前チェック**: review_status=${REVIEW_STATUS}\n→ 完了処理の前に /harness-review で APPROVE を取得してください"
     fi
   fi
 fi
 
 # additionalContext として同期情報を出力
-OUTPUT="[TodoSync] Plans.md と同期: TODO=$PENDING_COUNT, WIP=$WIP_COUNT, done=$DONE_COUNT${ULTRAWORK_WARNING}"
+OUTPUT="[TodoSync] Plans.md と同期: TODO=$PENDING_COUNT, WIP=$WIP_COUNT, done=$DONE_COUNT${WORK_WARNING}"
 
 if command -v jq >/dev/null 2>&1; then
   jq -nc --arg ctx "$OUTPUT" \

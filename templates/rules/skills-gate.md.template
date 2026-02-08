@@ -157,5 +157,5 @@ Memory-Enhanced 機能は自動的にスキップされます。
 
 ```bash
 # Claude-mem 統合を有効化
-/harness-mem
+/setup harness-mem
 ```

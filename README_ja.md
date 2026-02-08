@@ -85,25 +85,25 @@ Codex CLI を Team Config（共有 `.codex/`）で使う場合:
 /path/to/claude-code-harness/scripts/setup-codex.sh
 ```
 
-Claude Code からは `/codex-setup`（または `/setup-tools codex`）でセッション内完結できます。
+Claude Code からは `/setup codex` でセッション内完結できます。
 
 `$plan-with-agent`、`$work`、`$harness-review` を使ってフローを実行します。
 
 ---
 
-## 🪄 説明が長い？ならこれ: Ultrawork
+## 🪄 説明が長い？ならこれ: /work all
 
 **読むのが面倒？** これだけ打てばいい:
 
 ```
-ultrawork ログインフォームを作って
+/work all
 ```
 
-**この一言で、Harness が全部やる。** 計画 → 実装 → レビュー → コミット。
+**このひと言で、Harness が全部やる。** 計画 → 並列実装 → レビュー → コミット。
 
 ```mermaid
 graph LR
-    A["ultrawork"] --> B["計画生成"]
+    A["/work all"] --> B["計画生成"]
     B --> C["並列実装"]
     C --> D["セルフレビュー"]
     D --> E["品質チェック"]
@@ -112,8 +112,8 @@ graph LR
 
 | Before | After |
 |--------|-------|
-| `/plan-with-agent` → `/work` → `/harness-review` → `git commit` | `ultrawork` |
-| 5回のコマンド | **1回** |
+| `/plan-with-agent` → `/work` → `/harness-review` → `git commit` | `/work all` |
+| 4回のコマンド | **1回** |
 
 > ⚠️ **実験的機能**: 計画を承認したら、Claude が責任を持って完遂。品質チェックで問題があればコミットをブロック。
 
@@ -221,12 +221,12 @@ claude-code-harness/
 ## 高度な機能
 
 <details>
-<summary><strong>Codex Worker</strong></summary>
+<summary><strong>Codex エンジン</strong></summary>
 
 実装タスクを OpenAI Codex に並列委託:
 
 ```bash
-/codex-worker API エンドポイントを5つ実装して
+/work --codex API エンドポイントを5つ実装して
 ```
 
 Codex が実装 → セルフレビュー → 報告。Claude Code ワーカーと併用可能。

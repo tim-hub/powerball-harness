@@ -52,19 +52,21 @@ detect_lang() {
 
 LANG_CODE="$(detect_lang)"
 
-# ===== Ultrawork Mode Detection =====
-# ultrawork 実行中は特定の確認プロンプトをスキップ
+# ===== Work Mode Detection =====
+# /work (auto-iteration) 実行中は特定の確認プロンプトをスキップ
 # セキュリティ: 有効期限（24時間）でバイパスを制限
 # Note: CWD は後で JSON から取得されるため、ここでは初期化のみ
+# 後方互換: ultrawork-active.json も work-active.json として検出
 
-ULTRAWORK_MODE="false"
-ULTRAWORK_BYPASS_RM_RF="false"
-ULTRAWORK_BYPASS_GIT_PUSH="false"
-ULTRAWORK_MAX_AGE_HOURS=24
+WORK_MODE="false"
+WORK_BYPASS_RM_RF="false"
+WORK_BYPASS_GIT_PUSH="false"
+WORK_MAX_AGE_HOURS=24
 
 # ===== Codex Mode Detection =====
 # --codex モード時は Claude は PM 役であり、Edit/Write は禁止
 # （実装は Codex Worker に委譲）
+# work-active.json の codex_mode: true で検出
 CODEX_MODE="false"
 
 # ===== Breezing Role Guard =====
@@ -79,15 +81,21 @@ SESSION_ID=""
 # （実装は Codex MCP 経由で Codex Implementer に委譲）
 BREEZING_CODEX_MODE="false"
 
-# Ultrawork モード検出関数（CWD 取得後に呼び出す）
-check_ultrawork_mode() {
+# Work モード検出関数（CWD 取得後に呼び出す）
+# work-active.json を優先、後方互換で ultrawork-active.json もフォールバック
+check_work_mode() {
   local cwd_path="$1"
-  local active_file="${cwd_path}/.claude/state/ultrawork-active.json"
+  local active_file="${cwd_path}/.claude/state/work-active.json"
+
+  # 後方互換: work-active.json がなければ ultrawork-active.json を試行
+  if [ ! -f "$active_file" ]; then
+    active_file="${cwd_path}/.claude/state/ultrawork-active.json"
+  fi
 
   [ ! -f "$active_file" ] && return
 
   if ! command -v jq >/dev/null 2>&1; then
-    echo "[ultrawork] Warning: jq not installed, guard bypass disabled" >&2
+    echo "[work] Warning: jq not installed, guard bypass disabled" >&2
     return
   fi
 
@@ -118,39 +126,44 @@ check_ultrawork_mode() {
   fi
 
   if [ "$started_epoch" -eq 0 ]; then
-    echo "[ultrawork] Warning: failed to parse started_at, guard bypass disabled" >&2
+    echo "[work] Warning: failed to parse started_at, guard bypass disabled" >&2
     return
   fi
 
   # 未来時刻チェック（改ざん防止）
   if [ "$started_epoch" -gt "$current_epoch" ]; then
-    echo "[ultrawork] Warning: started_at is in the future, guard bypass disabled" >&2
+    echo "[work] Warning: started_at is in the future, guard bypass disabled" >&2
     return
   fi
 
   local age_hours=$(( (current_epoch - started_epoch) / 3600 ))
-  if [ "$age_hours" -ge "$ULTRAWORK_MAX_AGE_HOURS" ]; then
+  if [ "$age_hours" -ge "$WORK_MAX_AGE_HOURS" ]; then
     rm -f "$active_file" 2>/dev/null || true
-    echo "[ultrawork] Warning: ultrawork-active.json expired (${age_hours}h >= ${ULTRAWORK_MAX_AGE_HOURS}h), removed" >&2
+    echo "[work] Warning: work-active.json expired (${age_hours}h >= ${WORK_MAX_AGE_HOURS}h), removed" >&2
     return
   fi
 
-  ULTRAWORK_MODE="true"
-  ULTRAWORK_BYPASS_RM_RF=$(jq -r '.bypass_guards | contains(["rm_rf"])' "$active_file" 2>/dev/null || echo "false")
-  ULTRAWORK_BYPASS_GIT_PUSH=$(jq -r '.bypass_guards | contains(["git_push"])' "$active_file" 2>/dev/null || echo "false")
+  WORK_MODE="true"
+  WORK_BYPASS_RM_RF=$(jq -r '.bypass_guards | contains(["rm_rf"])' "$active_file" 2>/dev/null || echo "false")
+  WORK_BYPASS_GIT_PUSH=$(jq -r '.bypass_guards | contains(["git_push"])' "$active_file" 2>/dev/null || echo "false")
 }
 
 # Codex モード検出関数（CWD 取得後に呼び出す）
-# ultrawork-active.json に codex_mode: true がある場合、Claude の Edit/Write をブロック
-# 前提: ULTRAWORK_MODE が true かつ TTL が有効な場合のみ CODEX_MODE を設定
+# work-active.json に codex_mode: true がある場合、Claude の Edit/Write をブロック
+# 前提: WORK_MODE が true かつ TTL が有効な場合のみ CODEX_MODE を設定
 check_codex_mode() {
   local cwd_path="$1"
-  local active_file="${cwd_path}/.claude/state/ultrawork-active.json"
+  local active_file="${cwd_path}/.claude/state/work-active.json"
+
+  # 後方互換: work-active.json がなければ ultrawork-active.json を試行
+  if [ ! -f "$active_file" ]; then
+    active_file="${cwd_path}/.claude/state/ultrawork-active.json"
+  fi
 
   [ ! -f "$active_file" ] && return
 
-  # Ultrawork モードが有効でない場合はスキップ（TTL 切れ等を考慮）
-  [ "$ULTRAWORK_MODE" != "true" ] && return
+  # Work モードが有効でない場合はスキップ（TTL 切れ等を考慮）
+  [ "$WORK_MODE" != "true" ] && return
 
   local is_codex="false"
 
@@ -361,9 +374,9 @@ fi
 
 [ -z "$TOOL_NAME" ] && exit 0
 
-# ===== Ultrawork モード検出実行（CWD 取得後） =====
+# ===== Work モード検出実行（CWD 取得後） =====
 if [ -n "$CWD" ]; then
-  check_ultrawork_mode "$CWD"
+  check_work_mode "$CWD"
   check_codex_mode "$CWD"
   check_breezing_role "$CWD"
   check_breezing_codex_mode "$CWD"
@@ -1009,8 +1022,8 @@ if [ "$TOOL_NAME" = "Bash" ]; then
   fi
 
   if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+push([[:space:]]|$)'; then
-    # Ultrawork モード中はバイパス可能
-    if [ "$ULTRAWORK_MODE" = "true" ] && [ "$ULTRAWORK_BYPASS_GIT_PUSH" = "true" ]; then
+    # Work モード中はバイパス可能
+    if [ "$WORK_MODE" = "true" ] && [ "$WORK_BYPASS_GIT_PUSH" = "true" ]; then
       : # スキップ（自動承認）
     else
       emit_ask "$(msg ask_git_push "$COMMAND")"
@@ -1023,12 +1036,12 @@ if [ "$TOOL_NAME" = "Bash" ]; then
   if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])rm[[:space:]]+-[a-z]*r[a-z]*[[:space:]]' || \
      echo "$COMMAND" | grep -Eiq '(^|[[:space:]])rm[[:space:]]+--recursive'; then
 
-    # ===== Ultrawork ホワイトリスト方式（Codex 承認済み） =====
+    # ===== Work ホワイトリスト方式（Codex 承認済み） =====
     # デフォルト: 確認を求める
     RM_AUTO_APPROVE="false"
 
-    # Ultrawork モードが有効で rm_rf バイパスが許可されている場合のみチェック
-    if [ "$ULTRAWORK_MODE" = "true" ] && [ "$ULTRAWORK_BYPASS_RM_RF" = "true" ]; then
+    # Work モードが有効で rm_rf バイパスが許可されている場合のみチェック
+    if [ "$WORK_MODE" = "true" ] && [ "$WORK_BYPASS_RM_RF" = "true" ]; then
 
       # 0. 許可されるフラグ形式のみ（rm -rf または rm -r -f）
       # rm -rfv, rm -fr, rm --recursive など他の形式は確認を求める
@@ -1078,10 +1091,14 @@ if [ "$TOOL_NAME" = "Bash" ]; then
                 *)
                   # 10. ホワイトリストチェック
                   if [ -n "$CWD" ]; then
-                    ULTRAWORK_FILE="$CWD/.claude/state/ultrawork-active.json"
-                    if [ -f "$ULTRAWORK_FILE" ] && command -v jq >/dev/null 2>&1; then
+                    WORK_FILE="$CWD/.claude/state/work-active.json"
+                    # 後方互換: work-active.json がなければ ultrawork-active.json を試行
+                    if [ ! -f "$WORK_FILE" ]; then
+                      WORK_FILE="$CWD/.claude/state/ultrawork-active.json"
+                    fi
+                    if [ -f "$WORK_FILE" ] && command -v jq >/dev/null 2>&1; then
                       # allowed_rm_paths からホワイトリストを取得
-                      ALLOWED_PATHS=$(jq -r '.allowed_rm_paths[]? // empty' "$ULTRAWORK_FILE" 2>/dev/null)
+                      ALLOWED_PATHS=$(jq -r '.allowed_rm_paths[]? // empty' "$WORK_FILE" 2>/dev/null)
                       if [ -n "$ALLOWED_PATHS" ]; then
                         while IFS= read -r ALLOWED; do
                           if [ "$RM_TARGET" = "$ALLOWED" ]; then

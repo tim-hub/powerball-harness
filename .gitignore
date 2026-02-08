@@ -15,6 +15,11 @@ Thumbs.db
 *~
 *.code-workspace
 docs/design/
+# Environment variables
+.env
+.env.*
+!.env.example
+
 # Local development
 .claude/*
 !.claude/rules/
@@ -93,6 +98,9 @@ docs/claude-mem-japanese-setup.md
 # LSP (Language Server Protocol) configuration
 .lsp.json
 *lsp*config*.json
+
+# アーカイブ済みスキル（統合・非推奨）
+**/skills/_archived/
 
 # 開発用テストスキル
 skills/test-*/

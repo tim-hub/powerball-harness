@@ -105,15 +105,14 @@ echo ""
 echo "📋 [4/5] スキル定義の期待ファイル構成..."
 
 # update-2agent-files の REQUIRED_FILES とテンプレートの同期
-UPDATE_SKILL="$PLUGIN_ROOT/skills/2agent/update-2agent-files/doc.md"
-if [ -f "$UPDATE_SKILL" ]; then
-  # スキル内の .claude/rules/ 参照を確認
-  if ! grep -q "\.claude/rules" "$UPDATE_SKILL"; then
-    echo "  ❌ update-2agent-files に .claude/rules/ の参照がありません"
-    ERRORS=$((ERRORS + 1))
-  else
-    echo "  ✅ update-2agent-files に rules 参照あり"
-  fi
+# 2agent は setup hub に統合済み（skills/_archived/2agent/）
+# 代わりに setup/references/2agent-setup.md を確認
+SETUP_2AGENT="$PLUGIN_ROOT/skills/setup/references/2agent-setup.md"
+if [ -f "$SETUP_2AGENT" ]; then
+  echo "  ✅ setup/references/2agent-setup.md が存在"
+else
+  echo "  ❌ setup/references/2agent-setup.md が見つかりません"
+  ERRORS=$((ERRORS + 1))
 fi
 
 # ================================

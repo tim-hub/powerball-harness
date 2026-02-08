@@ -67,7 +67,7 @@ claude plugin install gopls-lsp
 
 **どのプラグインが必要か分からない場合**:
 - `/plugin` コマンドで "lsp" を検索して、プロジェクトの言語に該当するものを選択
-- または `/lsp-setup` コマンドで自動検出・提案を受ける
+- または `/setup lsp` コマンドで自動検出・提案を受ける
 
 **利用可能な公式プラグイン**: typescript-lsp, pyright-lsp, rust-analyzer-lsp, gopls-lsp, clangd-lsp, jdtls-lsp, swift-lsp, lua-lsp, php-lsp, csharp-lsp（詳細は下記「公式LSPプラグイン一覧」参照）
 
@@ -111,16 +111,16 @@ claude plugin install pyright-lsp
 
 > **重要**: プラグインは言語サーバーのバイナリを**含みません**。Step 1 で言語サーバーを別途インストールしてください。
 
-> **迷ったら**: `/lsp-setup` コマンドが、プロジェクトの言語を自動検出して必要なプラグインを提案します。
+> **迷ったら**: `/setup lsp` コマンドが、プロジェクトの言語を自動検出して必要なプラグインを提案します。
 
 ---
 
 ## 既存プロジェクトへの導入
 
-既存プロジェクトに LSP を追加するには `/lsp-setup` コマンドを使用:
+既存プロジェクトに LSP を追加するには `/setup lsp` コマンドを使用:
 
 ```
-/lsp-setup
+/setup lsp
 ```
 
 このコマンドは:
@@ -361,7 +361,7 @@ unset CC_HARNESS_PHASE0_LOG
 
 1. 公式LSPプラグインがインストールされているか確認
 2. 言語サーバーがインストールされているか確認（例: `which typescript-language-server`, `which pyright`）
-3. `/lsp-setup` コマンドで設定を確認
+3. `/setup lsp` コマンドで設定を確認
 
 ### 診断結果が表示されない場合
 

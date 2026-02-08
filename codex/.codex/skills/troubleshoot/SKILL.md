@@ -1,8 +1,8 @@
 ---
 name: troubleshoot
-description: "動かない？エラー？診断と修復をガイド。困ったときの駆け込み寺。Use when user mentions something broken, errors, or that it doesn't work. Do NOT load for: successful builds, new feature implementation, or reviews."
-description-en: "Not working? Errors? Diagnosis and repair guide. Temple for troubled times. Use when user mentions something broken, errors, or that it doesn't work. Do NOT load for: successful builds, new feature implementation, or reviews."
-description-ja: "動かない？エラー？診断と修復をガイド。困ったときの駆け込み寺。Use when user mentions something broken, errors, or that it doesn't work. Do NOT load for: successful builds, new feature implementation, or reviews."
+description: "Diagnosis and repair guide for errors and failures including CI. Use when user mentions something broken, errors, it doesn't work, CI failures, CIが落ちた, build errors, test failures, or pipeline issues. Do NOT load for: successful builds, new feature implementation, or reviews."
+description-en: "Diagnosis and repair guide for errors and failures including CI. Use when user mentions something broken, errors, it doesn't work, CI failures, build errors, test failures, or pipeline issues. Do NOT load for: successful builds, new feature implementation, or reviews."
+description-ja: "動かない？エラー？CIが赤い？診断と修復をガイド。困ったときの駆け込み寺。Use when user mentions something broken, errors, it doesn't work, CI failures, CIが落ちた, build errors, test failures, or pipeline issues. Do NOT load for: successful builds, new feature implementation, or reviews."
 allowed-tools: ["Read", "Grep", "Bash"]
 context: fork
 argument-hint: "[build|test|runtime]"
@@ -69,6 +69,9 @@ npm ls --depth=0
 | ビルドエラー | `Build failed` | error-recovery agent |
 | ランタイム | 画面が表示されない | ログ分析 |
 | 環境設定 | 接続エラー | 環境変数確認 |
+| **CI/CD** | CI が落ちた、パイプライン失敗 | **ci スキルに dispatch** |
+
+> **CI/CD 問題**: CI 障害・テスト失敗・パイプライン問題を検出した場合、`ci` スキル（`skills/ci/`）に処理を委譲します。ci スキルは `ci-cd-fixer` エージェントを使用して自動診断・修正を行います。
 
 ---
 

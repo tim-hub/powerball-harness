@@ -85,25 +85,25 @@ Script setup:
 /path/to/claude-code-harness/scripts/setup-codex.sh
 ```
 
-Claude Code users can run `/codex-setup` (or `/setup-tools codex`) to apply it without leaving the session.
+Claude Code users can run `/setup codex` to apply it without leaving the session.
 
 Use `$plan-with-agent`, `$work`, `$harness-review` to run the workflow.
 
 ---
 
-## 🪄 TL;DR: Ultrawork
+## 🪄 TL;DR: Work All
 
 **Don't want to read all this?** Just type:
 
 ```
-ultrawork create a login form
+/work all
 ```
 
-**One word. Harness does the rest.** Plan → Implement → Review → Commit.
+**One command. Harness does the rest.** Plan → Parallel Implementation → Review → Commit.
 
 ```mermaid
 graph LR
-    A["ultrawork"] --> B["Generate Plan"]
+    A["/work all"] --> B["Generate Plan"]
     B --> C["Parallel Implementation"]
     C --> D["Self-Review"]
     D --> E["Quality Gate"]
@@ -112,8 +112,8 @@ graph LR
 
 | Before | After |
 |--------|-------|
-| `/plan-with-agent` → `/work` → `/harness-review` → `git commit` | `ultrawork` |
-| 5 commands | **1** |
+| `/plan-with-agent` → `/work` → `/harness-review` → `git commit` | `/work all` |
+| 4 commands | **1** |
 
 > ⚠️ **Experimental**: Once you approve the plan, Claude runs to completion. Quality gate blocks commit if issues found.
 
@@ -221,12 +221,12 @@ claude-code-harness/
 ## Advanced Features
 
 <details>
-<summary><strong>Codex Worker</strong></summary>
+<summary><strong>Codex Engine</strong></summary>
 
 Delegate implementation tasks to OpenAI Codex in parallel:
 
 ```bash
-/codex-worker implement these 5 API endpoints
+/work --codex implement these 5 API endpoints
 ```
 
 Codex implements → Self-reviews → Reports back. Works alongside Claude Code workers.
