@@ -4,6 +4,19 @@ Change history for claude-code-harness.
 
 > **📝 Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
+## [2.20.1] - 2026-02-10
+
+### Fixed
+
+- **PostToolUse hook syntax error**: Fix bash parser error in `posttooluse-tampering-detector.sh` caused by `|| true` after heredoc inside command substitution
+- **python3 fallback in all hooks**: Replace heredoc python3 fallback with `python3 -c` in all 10 hook scripts to fix stdin conflict
+- **POSIX compliance**: Replace `echo` with `printf '%s'` for safe input piping, `echo -e` with `printf '%b'`
+- **Pattern matching**: Replace `echo | grep -qE` with `[[ =~ ]]` for 6 pattern checks (with word boundaries)
+- **Error handling**: Change `set -euo pipefail` to `set +e` to match all other PostToolUse scripts
+- **Bilingual warnings**: Add English + Japanese warning messages to hook scripts
+
+---
+
 ## [2.20.0] - 2026-02-08
 
 ### 🎯 What's Changed for You
