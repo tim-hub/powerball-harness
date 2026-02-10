@@ -99,7 +99,7 @@ codex login status
 
 ---
 
-### Step 2.5: OAuth Client 認証（Claude Code 2.1.30+）
+### Step 2.5: OAuth Client 認証（Claude Code 2.1.38+）
 
 DCR（Dynamic Client Registration）非対応の MCP サーバーで OAuth 認証を設定する場合に使用します。
 

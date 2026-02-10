@@ -23,6 +23,14 @@ context: fork
 | **メモリ→SSOT昇格** | See [references/sync-ssot-from-memory.md](references/sync-ssot-from-memory.md) |
 | **記憶検索（Cursor連携）** | See [references/cursor-mem-search.md](references/cursor-mem-search.md) |
 
+## Claude Code 自動メモリとの関係（D22）
+
+Harness の SSOT メモリ（Layer 2）は Claude Code の自動メモリ（Layer 1）と共存します。
+自動メモリは汎用的な学習を暗黙的に記録し、SSOT はプロジェクト固有の意思決定を明示的に管理します。
+Layer 1 の知見がプロジェクト全体に重要な場合、`/memory ssot` で Layer 2 に昇格してください。
+
+詳細: [D22: 3層メモリアーキテクチャ](../../.claude/memory/decisions.md#d22-3層メモリアーキテクチャ)
+
 ## 実行手順
 
 1. ユーザーのリクエストを分類

@@ -69,6 +69,7 @@ spawn 時に mode: "bypassPermissions" を指定
 |---------|--------|--------------------------|
 | **PreToolUse hooks** | pretooluse-guard（Lead セッション） | ⚠️ Teammate に未継承（将来対応予定） |
 | **エージェント定義** | `disallowedTools` で使用禁止ツール指定 | ✅ 機能する |
+| **Task(agent_type) 制限** | `Task(task-worker)` 等でスポーン可能なエージェント種類を制限 (CC 2.1.33+) | ✅ 機能する |
 | **spawn prompt 制約** | ロール別の行動制約を明記 | ✅ 機能する |
 | **.claude/rules/** | test-quality.md, implementation-quality.md | ✅ Teammate に継承 |
 | **Lead の監視** | git diff で違反検知、SendMessage で警告 | ✅ 機能する |

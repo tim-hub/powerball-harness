@@ -1,6 +1,6 @@
 ---
 name: release-harness
-description: "Harness リリース作業を自動化。CHANGELOG、バージョン、タグをポチッと一発。Use when user mentions harness release, harness version bump. Do NOT load for: general release discussions, other project releases."
+description: "Automate Harness release. CHANGELOG, version, tag in one click. Use when user mentions harness release, harness version bump. Do NOT load for: general release discussions, other project releases."
 description-en: "Automate Harness release. CHANGELOG, version, tag in one click. Use when user mentions harness release, harness version bump. Do NOT load for: general release discussions, other project releases."
 description-ja: "Harness リリース作業を自動化。CHANGELOG、バージョン、タグをポチッと一発。Use when user mentions harness release, harness version bump. Do NOT load for: general release discussions, other project releases."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
@@ -15,9 +15,9 @@ Automates the claude-code-harness release process.
 
 ## Quick Reference
 
-- "**Release a new harness version**" → `/release-harness`
-- "**Bump patch version**" → `/release-harness patch`
-- "**Create a minor release**" → `/release-harness minor`
+- "**Release a new harness version**" -> `/release-harness`
+- "**Bump patch version**" -> `/release-harness patch`
+- "**Create a minor release**" -> `/release-harness minor`
 
 ---
 
@@ -30,52 +30,31 @@ Run in parallel:
 2. `git diff --stat` - List changed files
 3. `git log --format="%h|%s|%an|%ad" --date=short -10` - Recent commit history (structured)
 
-### Git log 拡張フラグの活用（CC 2.1.30+）
+### Git Log Flags (CC 2.1.30+)
 
-リリースノート生成時に構造化ログを活用します。
+Use structured log output for release note generation.
 
-#### リリースノート用のコミット一覧
+#### Commit List for Release Notes
 
 ```bash
-# 構造化フォーマットでコミット一覧取得
+# Structured format commit list
 git log --format="%s" vPREV..HEAD
 
-# マージコミットを除外（実質的な変更のみ）
+# Exclude merge commits (actual changes only)
 git log --cherry-pick --no-merges --format="%s" vPREV..HEAD
 
-# 詳細情報付き（作者・日付込み）
+# Detailed info (with author and date)
 git log --format="%h|%s|%an|%ad" --date=short vPREV..HEAD
 ```
 
-#### 主な活用場面
+#### Key Use Cases
 
-| 用途 | フラグ | 効果 |
-|------|--------|------|
-| **リリースノート生成** | `--format="%s"` | コミットメッセージのみ抽出 |
-| **マージ除外** | `--cherry-pick --no-merges` | 実コミットのみでノート作成 |
-| **詳細一覧** | `--format="%h\|%s\|%an\|%ad"` | 構造化された詳細情報 |
-| **変更ファイル** | `--raw` | 影響範囲の把握 |
-
-#### 出力例
-
-```markdown
-📝 リリース準備: v2.18.0
-
-前回リリース（v2.17.10）からのコミット:
-
-| Hash | Subject | Author | Date |
-|------|---------|--------|------|
-| a1b2c3d | feat: add git log flags | Alice | 2026-02-04 |
-| e4f5g6h | docs: update CI docs | Bob | 2026-02-03 |
-| i7j8k9l | fix: build script | Charlie | 2026-02-02 |
-
-自動生成されたリリースノート（マージ除外）:
-- feat: add git log flags
-- docs: update CI docs
-- fix: build script
-
-→ CHANGELOG.md の下書きに使用
-```
+| Use Case | Flags | Effect |
+|----------|-------|--------|
+| **Release note generation** | `--format="%s"` | Extract commit messages only |
+| **Exclude merges** | `--cherry-pick --no-merges` | Actual commits only |
+| **Detailed list** | `--format="%h\|%s\|%an\|%ad"` | Structured detailed info |
+| **Changed files** | `--raw` | Impact analysis |
 
 ### Step 2: Version Determination
 
@@ -93,59 +72,47 @@ Ask user: "What should the next version be? (e.g., 2.5.23)"
 
 ### Step 3: CHANGELOG Update (JP + EN)
 
-> **⚠️ 重要**: ユーザー体験に影響する変更を中心に記載。内部修正は簡潔に。
+> **Important**: Focus on user-facing changes. Keep internal fixes brief.
 
 Update both `CHANGELOG_ja.md` and `CHANGELOG.md`.
 
-#### CHANGELOG 記載ルール
+#### CHANGELOG Rules
 
-| 変更タイプ | 記載方法 |
-|-----------|---------|
-| **ユーザー体験に影響** | `🎯 What's Changed for You` + Before/After テーブル |
-| **新機能追加** | `Added` セクションで簡潔に |
-| **内部修正（CI/テスト/ドキュメント）** | `Internal` セクションで1行のみ |
-| **バグ修正（ユーザー影響あり）** | `Fixed` セクション |
-| **バグ修正（内部のみ）** | 省略または `Internal` に統合 |
+| Change Type | How to Document |
+|-------------|-----------------|
+| **User-facing impact** | `What's Changed` + Before/After table |
+| **New feature** | `Added` section, concise |
+| **Internal (CI/test/docs)** | `Internal` section, one line |
+| **Bug fix (user-facing)** | `Fixed` section |
+| **Bug fix (internal only)** | Omit or merge into `Internal` |
 
-#### テンプレート
+#### Template
 
 ```markdown
 ## [X.Y.Z] - YYYY-MM-DD
 
-### 🎯 What's Changed for You
+### What's Changed
 
-**ユーザー体験の変化を1行で説明**
+**One-line description of user experience change**
 
 | Before | After |
 |--------|-------|
-| 変更前の状態 | 変更後の状態 |
+| Previous state | New state |
 
 ### Added
 
-- 新機能の簡潔な説明
+- Concise feature description
 
 ### Internal
 
-- 内部修正の1行サマリー
+- One-line summary of internal changes
 ```
 
-#### Before/After テーブルのルール
+#### Before/After Table Rules
 
-- **体験が変わる変更のみ** Before/After を記載
-- 内部修正（CI、テスト、リファクタリング）には不要
-- 技術詳細ではなく **ユーザー視点の変化** を記載
-
-#### 悪い例 vs 良い例
-
-```markdown
-❌ 悪い例（技術詳細すぎる）:
-- **agents/*.md**: スキル参照を更新（`review` → `harness-review`）
-- **CI: validate-plugin.sh** が Skills 移行後も正常動作するように修正
-
-✅ 良い例（ユーザー視点）:
-### Internal
-- CI/テスト/ドキュメントを Skills 移行後の構造に更新
-```
+- Only for **user-facing changes**
+- Not needed for internal fixes (CI, tests, refactoring)
+- Write from **user perspective**, not technical details
 
 ### Step 3.5: README Update Check
 
@@ -183,21 +150,21 @@ git push origin vX.Y.Z
 gh release create vX.Y.Z \
   --title "vX.Y.Z - Title" \
   --notes "$(cat <<'EOF'
-## 🎯 What's Changed for You
+## What's Changed
 
-**ユーザー体験の変化を1行で**
+**One-line user experience change**
 
 | Before | After |
 |--------|-------|
-| 変更前 | 変更後 |
+| Previous state | New state |
 
 ### Added / Changed / Fixed
 
-- 簡潔な説明
+- Concise description
 
 ---
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+Generated with [Claude Code](https://claude.com/claude-code)
 EOF
 )"
 ```
@@ -209,7 +176,7 @@ EOF
 Follow `.claude/rules/github-release.md`:
 
 ```markdown
-## 🎯 What's Changed for You
+## What's Changed
 
 **One-line value description**
 
@@ -223,7 +190,7 @@ Follow `.claude/rules/github-release.md`:
 
 ---
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
 ---

@@ -304,11 +304,11 @@ Task tool で3つのtask-workerを並列起動:
 
 ---
 
-## メトリクス集計表示（CC 2.1.30+）
+## メトリクス集計表示（CC 2.1.38+）
 
 ### Task tool メトリクスの取得
 
-Claude Code 2.1.30 以降、Task tool の結果に以下のメトリクスが含まれます：
+Claude Code 2.1.38 以降、Task tool の結果に以下のメトリクスが含まれます：
 
 - `tokenCount` - 消費トークン数
 - `toolUses` - ツール使用回数
@@ -406,4 +406,4 @@ function formatNumber(num) {
 - **依存グループの待機**: 依存グループが完了するまで次のグループは実行しない
 - **エスカレーション処理**: `needs_escalation`が返された場合、ユーザー確認を待つ
 - **worktreeクリーンアップ**: `isolation_mode=worktree`時は後でworktreeを削除する必要がある（Phase3でマージ後）
-- **メトリクス収集**: CC 2.1.30+ では Task tool の結果に自動的にメトリクスが含まれる（古いバージョンでは null）
+- **メトリクス収集**: CC 2.1.38+ では Task tool の結果に自動的にメトリクスが含まれる（古いバージョンでは null）

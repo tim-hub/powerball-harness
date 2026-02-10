@@ -26,7 +26,7 @@ Displays the Harness UI dashboard for monitoring sessions, tasks, and project st
 /harness-ui --force      # Force re-setup
 ```
 
-## Accessibility Settings (CC 2.1.30+)
+## Accessibility Settings (CC 2.1.38+)
 
 視覚的な快適性のための設定です。
 

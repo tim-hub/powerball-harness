@@ -360,7 +360,7 @@ Phase 4 の統合検証は ultrawork と同一:
 ✅ 4. 認証ミドルウェアの作成
 ✅ 5. セッション管理
 
-## Team Activity (TaskCompleted Hook)
+## Team Activity (TaskCompleted/TeammateIdle Hook - 実装済み)
 | Teammate | 完了タスク | 完了時刻 |
 |----------|-----------|---------|
 | Implementer #1 | #1, #3 | 14:32, 14:45 |
@@ -382,5 +382,5 @@ Phase 4 の統合検証は ultrawork と同一:
 ```
 
 > **メトリクスの制限**: PostToolUse Hook は Teammate に継承されないため、Teammate 別のトークン数・ツール使用数は取得不可。
-> TaskCompleted Hook（Lead 側で発火）により「誰がどのタスクをいつ完了したか」のタイムラインは記録される。
+> TaskCompleted/TeammateIdle Hook（Lead 側で発火、実装済み）により「誰がどのタスクをいつ完了したか」のタイムラインは `.claude/state/breezing-timeline.jsonl` に記録される。
 > Lead 自身の agent-trace.jsonl は正常に記録される。全体コストは `/cost` コマンドで確認可能。

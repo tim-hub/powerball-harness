@@ -52,9 +52,14 @@ allowed-tools: ["Read", "Write", "Edit", "Bash", ...]
 
 | Guideline | Recommendation |
 |-----------|----------------|
-| SKILL.md | Keep under 500 lines |
+| SKILL.md | 推奨 500 行以下 |
 | Large content | Split into `references/` files |
 | References | Use descriptive filenames |
+
+> **Note (CC 2.1.32+)**: スキルの文字バジェットはコンテキスト窓の **2%** に自動スケールされます。
+> 500 行はあくまで推奨値であり、実効上限はモデルのコンテキスト窓サイズに依存します。
+> 大きなスキルファイルは自動的にトリミングされる可能性があるため、
+> 重要な情報は SKILL.md の先頭付近に配置し、詳細は `references/` に分割してください。
 
 ### 5. Description Best Practices
 
@@ -153,7 +158,7 @@ When creating or editing skill files:
 - [ ] SKILL.md has required frontmatter (`name`, `description`)
 - [ ] `name` matches directory name
 - [ ] `description` includes trigger phrases and exclusions
-- [ ] SKILL.md under 500 lines (use references for large content)
+- [ ] SKILL.md は推奨 500 行以下 (use references for large content; 2% budget scaling applies)
 - [ ] References in `references/` subdirectory
 - [ ] Related skills documented
 - [ ] Add entry to CHANGELOG.md (for new skills)

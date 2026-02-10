@@ -7,7 +7,22 @@
 
 > **📝 記載ルール**: ユーザー体験に影響する変更を中心に記載。内部修正は簡潔に。
 
-## [Unreleased]
+## [2.20.2] - 2026-02-10
+
+### Added
+
+- **TeammateIdle/TaskCompleted フックハンドラ**: `scripts/hook-handlers/teammate-idle.sh` と `task-completed.sh` を新規作成。Agent Teams のイベントを `.claude/state/breezing-timeline.jsonl` に記録
+- **3層メモリアーキテクチャ (D22)**: Claude Code 自動メモリ、Harness SSOT、Agent Memory の共存設計を `decisions.md` に記録
+- **Task(agent_type) パターン (P18)**: サブエージェント種別制限構文を `patterns.md` に記録
+
+### Changed
+
+- **Claude Code 2.1.38+ 対応**: CLAUDE.md の Feature Table に 6 行追加（TeammateIdle/TaskCompleted Hook、Agent Memory、Fast mode、自動メモリ記録、スキルバジェットスケーリング、Task(agent_type) 制限）
+- **バージョン参照更新**: 全スキル・エージェントの「CC 2.1.30+」を「CC 2.1.38+」に更新（16+ ファイル）
+- **スキルバジェットスケーリング**: `skill-editing.md` の 500 行ハードルールを推奨に緩和、CC 2.1.32+ の 2% スケーリングを注記
+- **セッションメモリ**: `session-memory/SKILL.md` と `memory/SKILL.md` に「自動メモリとの関係（D22）」セクション追加
+- **Breezing 実行フロー**: `execution-flow.md` のフック実装状態を「実装済み」に更新
+- **ガードレール継承**: 安全メカニズムテーブルに Task(agent_type) を追加
 
 ---
 
@@ -188,7 +203,7 @@
 
 ### Added
 
-- **Claude Code 2.1.30 対応**: 新機能との完全統合
+- **Claude Code 2.1.38 対応**: 新機能との完全統合
   - **AgentTrace v0.3.0**: Task tool メトリクス対応（tokenCount, toolUses, duration）
   - **`/debug` コマンド連携**: troubleshoot スキルが複雑なセッション問題に `/debug` を案内
   - **PDF ページ範囲読み込み**: notebookLM, harness-review で `pages` パラメータ対応

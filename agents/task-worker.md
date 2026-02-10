@@ -352,11 +352,11 @@ npm test -- src/foo.test.ts
 
 ---
 
-## MCP ツールアクセス（Claude Code 2.1.30+）
+## MCP ツールアクセス（Claude Code 2.1.38+）
 
 ### サブエージェントでの MCP ツール利用
 
-Claude Code 2.1.30 以降、Task tool で起動されたサブエージェント（task-worker を含む）から SDK 提供 MCP ツールが利用可能になりました。
+Claude Code 2.1.38 以降、Task tool で起動されたサブエージェント（task-worker を含む）から SDK 提供 MCP ツールが利用可能になりました。
 
 | MCP ツール | サブエージェントでの利用 | 用途 |
 |-----------|------------------------|------|
@@ -410,7 +410,7 @@ MCP ツールが使えない場合:
 1. **Claude Code のバージョン確認**
    ```bash
    claude --version
-   # 2.1.30 以降であることを確認
+   # 2.1.38 以降であることを確認
    ```
 
 2. **MCP サーバーの設定確認**

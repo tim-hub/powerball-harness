@@ -4,6 +4,25 @@ Change history for claude-code-harness.
 
 > **📝 Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
+## [2.20.2] - 2026-02-10
+
+### Added
+
+- **TeammateIdle/TaskCompleted hook handlers**: New `scripts/hook-handlers/teammate-idle.sh` and `task-completed.sh` log agent team events to `.claude/state/breezing-timeline.jsonl`
+- **3-layer memory architecture (D22)**: Documented coexistence design for Claude Code auto memory, Harness SSOT, and Agent Memory in `decisions.md`
+- **Task(agent_type) pattern (P18)**: Documented sub-agent type restriction syntax in `patterns.md`
+
+### Changed
+
+- **Claude Code 2.1.38+ adaptation**: Updated Feature Table in CLAUDE.md with 6 new rows (TeammateIdle/TaskCompleted Hook, Agent Memory, Fast mode, Auto Memory, Skill Budget Scaling, Task(agent_type))
+- **Version references**: Updated all "CC 2.1.30+" references to "CC 2.1.38+" across 16+ skill and agent files
+- **Skill budget scaling**: Relaxed 500-line hard rule to recommendation in `skill-editing.md`, noting CC 2.1.32+ 2% context window scaling
+- **Session memory**: Added "Auto Memory Relationship (D22)" section to `session-memory/SKILL.md` and `memory/SKILL.md`
+- **Breezing execution flow**: Updated hook implementation status to "implemented" in `execution-flow.md`
+- **Guardrails inheritance**: Added Task(agent_type) to safety mechanism table
+
+---
+
 ## [2.20.1] - 2026-02-10
 
 ### Fixed

@@ -173,9 +173,9 @@ tail -1 .claude/state/agent-trace.jsonl | jq '.metadata'
 
 ---
 
-## メモリ最適化（CC 2.1.30+）
+## メモリ最適化（CC 2.1.38+）
 
-Claude Code 2.1.30 以降、セッション再開時のメモリ使用量が **68% 削減** されました。
+Claude Code 2.1.38 以降、セッション再開時のメモリ使用量が **68% 削減** されました。
 
 ### 推奨ワークフロー
 
@@ -236,6 +236,27 @@ Claude Code:
 - Supabase Auth を採用
 - App Router を使用
 ```
+
+---
+
+## Claude Code 自動メモリとの関係（D22）
+
+Claude Code 2.1.32+ には「自動メモリ」機能があり、`~/.claude/projects/<project>/memory/MEMORY.md` にセッション間の学習を自動保存します。
+
+Harness のメモリシステムとは**3層アーキテクチャ**として共存します:
+
+| 層 | システム | 内容 | 管理 |
+|----|---------|------|------|
+| **Layer 1** | Claude Code 自動メモリ | 汎用的な学習（ミス回避、ツール使い方） | 暗黙的・自動 |
+| **Layer 2** | Harness SSOT | プロジェクト固有の決定事項・パターン | 明示的・手動 |
+| **Layer 3** | Agent Memory | エージェント別のタスク学習 | エージェント定義 |
+
+**使い分け**:
+- Layer 1 の知見がプロジェクト全体に重要 → `/memory ssot` で Layer 2 に昇格
+- 日常的な学習は Layer 1 に任せる（無効化しない）
+- Agent Teams 使用時は並列書き込みに注意
+
+詳細: [D22: 3層メモリアーキテクチャ](../../.claude/memory/decisions.md#d22-3層メモリアーキテクチャ)
 
 ---
 
