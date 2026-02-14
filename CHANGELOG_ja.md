@@ -7,6 +7,17 @@
 
 > **📝 記載ルール**: ユーザー体験に影響する変更を中心に記載。内部修正は簡潔に。
 
+## [2.20.7] - 2026-02-14
+
+### Fixed
+
+- **Stop フックの「JSON validation failed」エラー (#42)**: 信頼性の低い `type: "prompt"` フックを確定的な `type: "command"` フック（`stop-session-evaluator.sh`）に置換
+  - 根本原因: prompt type フックが LLM に JSON 形式での応答を指示していたが、モデルが自然言語を返すことが多く、毎ターン JSON パースエラーが発生
+  - 新しいコマンドベースの評価スクリプトは常に有効な JSON を出力し、バリデーションエラーを完全に排除
+  - `hooks/hooks.json` と `.claude-plugin/hooks.json` の両方を同期して更新
+
+---
+
 ## [2.20.5] - 2026-02-12
 
 ### Fixed

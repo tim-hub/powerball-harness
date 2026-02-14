@@ -4,6 +4,16 @@ Change history for claude-code-harness.
 
 > **📝 Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
+## [2.20.7] - 2026-02-14
+
+### Fixed
+
+- **Stop hook "JSON validation failed" on every turn (#42)**: Replaced unreliable `type: "prompt"` hook with deterministic `type: "command"` hook (`stop-session-evaluator.sh`)
+  - Root cause: prompt-type hook instructed the LLM to respond in JSON, but the model frequently returned natural language, causing repeated JSON parse errors
+  - New command-based evaluator always outputs valid JSON, eliminating validation failures entirely
+  - Both `hooks/hooks.json` and `.claude-plugin/hooks.json` updated in sync
+
+---
 ## [2.20.6] - 2026-02-14
 
 ### Fixed
@@ -15,7 +25,6 @@ Change history for claude-code-harness.
   - `test-hook-event-names.sh` テスト追加（hookEventName 一貫性の回帰テスト）
 
 ---
-
 ## [2.20.5] - 2026-02-12
 
 ### Fixed

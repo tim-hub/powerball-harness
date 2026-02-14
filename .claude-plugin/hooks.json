@@ -322,8 +322,8 @@
             "timeout": 60
           },
           {
-            "type": "prompt",
-            "prompt": "Evaluate session completion.\n\nCheck:\n1. Is the user's request complete?\n2. Are there unresolved errors or issues?\n\n[IMPORTANT] Respond in JSON format:\n- Done: {\"ok\": true}\n- Continue needed: {\"ok\": false, \"reason\": \"keyword only (e.g.: awaiting instruction/unresolved error/pending confirmation)\"}",
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/stop-session-evaluator",
             "timeout": 30
           }
         ]
