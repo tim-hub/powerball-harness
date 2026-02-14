@@ -4,6 +4,19 @@ Change history for claude-code-harness.
 
 > **📝 Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
+## [2.20.6] - 2026-02-14
+
+### Changed
+
+- **Claude Code 2.1.41/2.1.42 adaptation**: Updated compatibility matrix and recommended version to v2.1.41+
+  - Added v2.1.39〜v2.1.42 entries to `docs/CLAUDE_CODE_COMPATIBILITY.md` (4 new version sections, 30+ feature rows)
+  - Recommended version raised from v2.1.38+ to **v2.1.41+** (Agent Teams Bedrock/Vertex/Foundry model ID fix, Hook stderr visibility fix)
+- **Breezing Bedrock/Vertex/Foundry note**: Added CC 2.1.41+ requirement note to `guardrails-inheritance.md` for non-Anthropic API users
+- **Session `/rename` auto-naming**: Added CC 2.1.41+ auto-generate session name documentation to session skill
+- **Troubleshoot `claude auth` commands**: Added CC 2.1.41+ `claude auth login/status/logout` to diagnostic table
+
+---
+
 ## [2.20.5] - 2026-02-12
 
 ### Fixed

@@ -36,6 +36,11 @@ Agent Teams の Teammates は Lead の環境を自動的に継承する。
 >
 > 公式ドキュメントの継承リスト: "CLAUDE.md, MCP servers, and skills" — Hooks は含まれていない。
 
+### Bedrock/Vertex/Foundry 環境での注意（CC 2.1.41+）
+
+CC 2.1.41 未満では Agent Teams が Bedrock/Vertex/Foundry で誤ったモデル識別子を使用するバグがあった。
+`/breezing` を Bedrock/Vertex/Foundry 環境で使用する場合は **CC 2.1.41 以上を強く推奨**。
+
 ### Lead 側で発火する Teammate 関連 Hook（2.1.33+）
 
 Teammate 内部で Hook は動かないが、Lead 側で以下のイベントが発火する:

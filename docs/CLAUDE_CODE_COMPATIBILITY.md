@@ -8,9 +8,57 @@
 |-------------------|-------------------------|--------------|------|
 | v2.9.0 | v2.1.1+ | v2.1.6+ | hooks, skills 基本機能 |
 | v2.9.24 | v2.1.6+ | v2.1.21+ | Setup hook, plansDirectory, context_window, セッション間通信 |
-| **v2.14.9** | v2.1.6+ | **v2.1.21+** | 4観点並列レビュー、auto-commit、OpenCode対応、MCP code intelligence |
+| v2.14.9 | v2.1.6+ | v2.1.21+ | 4観点並列レビュー、auto-commit、OpenCode対応、MCP code intelligence |
+| **v2.20.6** | v2.1.1+ | **v2.1.41+** | Agent Teams Bedrock/Vertex/Foundry 修正、Hook stderr 表示修正、起動性能改善 |
 
 ## バージョン別機能対応
+
+### v2.1.42 (2026-02-14)
+
+| 機能 | Harness 対応 | 備考 |
+|------|-------------|------|
+| Zod スキーマ遅延構築による起動性能改善 | 有利 | CC の起動が高速化。Harness 側の対応不要 |
+| プロンプトキャッシュヒット率改善（日付をシステムプロンプト外に移動） | 有利 | API コスト削減・レイテンシ改善。対応不要 |
+| Opus 4.6 effort callout（対象ユーザーへの1回限り通知） | - | 情報通知のみ。Harness 影響なし |
+| `/resume` 中断メッセージのセッションタイトル表示修正 | 有利 | session-control スキルの UX 向上。セッション一覧がよりわかりやすく |
+| 画像サイズ制限エラーで `/compact` を提案 | 有利 | harness-review 等で大きな画像を扱う際のエラーメッセージが改善 |
+
+### v2.1.41 (2026-02-13)
+
+| 機能 | Harness 対応 | 備考 |
+|------|-------------|------|
+| CC 内での CC 二重起動ガード | 有利 | `codex exec` 等での事故的な CC 再起動を防止 |
+| Agent Teams: Bedrock/Vertex/Foundry モデル ID 修正 | **重要** | `/breezing` が Bedrock/Vertex/Foundry 環境で正常動作するように。v2.1.41+ 推奨の主因 |
+| MCP ツールのストリーミング中画像コンテンツでクラッシュ修正 | 有利 | agent-browser (Chrome DevTools MCP) 等の安定性向上 |
+| `/resume` プレビューの raw XML タグ表示修正 | 有利 | セッション再開時にスキル名が正しく表示される |
+| Bedrock/Vertex/Foundry のエラーメッセージ改善 | 有利 | troubleshoot スキルでの診断が容易に（フォールバック提案付き） |
+| プラグイン browse の "Space to Toggle" ヒント修正 | - | UI レベルの修正。Harness 影響なし |
+| Hook blocking エラー (exit code 2) の stderr 表示修正 | **重要** | pretooluse-guard.sh 等のブロック理由がユーザーに正しく表示されるように |
+| Hook blocking stderr の UI 表示修正（重複修正） | **重要** | 上記と合わせて Hook エラーの可視性が大幅改善 |
+| OTel イベント/スパンに `speed` 属性追加 | 将来対応 | AgentTrace と連携して fast mode の可視化に活用可能 |
+| `claude auth login/status/logout` サブコマンド追加 | 検討中 | setup スキルの認証トラブルシュートで `claude auth status` を案内可能 |
+| Windows ARM64 (win32-arm64) ネイティブバイナリ対応 | - | プラットフォームサポート拡大。Harness 影響なし |
+| `/rename` が引数なしでセッション名自動生成 | 有利 | session スキルで活用可能。コンテキストから自動命名 |
+| 狭いターミナルのプロンプトフッター改善 | - | UI レイアウト修正。Harness 影響なし |
+| @-mention のアンカーフラグメント修正（`@README.md#installation`） | 有利 | スキルドキュメントでファイル内特定セクション参照が可能に |
+| FileReadTool の FIFO/dev/stdin/大ファイルブロック修正 | 有利 | ファイル読み取りのハング防止。安定性向上 |
+| ストリーミング Agent SDK のバックグラウンドタスク通知修正 | 有利 | `/breezing` の Teammate 完了通知が確実に届くように |
+| classifier ルール入力のカーソルジャンプ修正 | - | UI レベルの修正。Harness 影響なし |
+| markdown リンク表示テキストが raw URL で消える修正 | 有利 | スキル出力のリンク可読性向上 |
+| auto-compact 失敗エラー通知の非表示化 | 有利 | 不要なエラー通知が抑制され UX 改善 |
+| 権限待ち時間がサブエージェント経過時間に含まれる問題修正 | 有利 | AgentTrace メトリクスの精度向上（Task tool のduration が正確に） |
+| plan mode 中の proactive ticks 発火修正 | 有利 | `/planning` スキル使用中の安定性向上 |
+| 設定変更時の古い権限ルールクリア | 有利 | ディスク上の settings.json 変更がリアルタイム反映 |
+
+### v2.1.39 (2026-02-11)
+
+| 機能 | Harness 対応 | 備考 |
+|------|-------------|------|
+| ターミナルレンダリング性能改善 | 有利 | 大量出力時の描画が高速化 |
+| 致命的エラーが飲み込まれる問題の修正 | 有利 | エラー診断がより確実に |
+| セッションクローズ後のプロセスハング修正 | 有利 | セッション終了時の安定性向上 |
+| ターミナル画面境界での文字ロス修正 | 有利 | 日本語表示の安定性向上 |
+| verbose transcript view の空行修正 | - | デバッグ表示の改善。Harness 影響なし |
 
 ### v2.1.22 (2026-01-28)
 
@@ -140,11 +188,13 @@ cat /path/to/harness/VERSION
 - additionalContext（v2.1.9+）
 - agent_type（v2.1.2+）
 - LSP tool（v2.0.74+）
+- Agent Teams Bedrock/Vertex/Foundry 正常動作（v2.1.41+）
 
-古いバージョンの Claude Code でも Harness は動作しますが、上記機能は無効化されます。
+古いバージョンの Claude Code でも Harness は動作しますが、上記機能は無効化または制限されます。
 
 ## 更新履歴
 
+- 2026-02-14: v2.1.39〜v2.1.42 対応追加（Agent Teams モデルID修正、Hook stderr修正、起動性能改善）。推奨バージョンを v2.1.41+ に引き上げ
 - 2026-01-30: Harness v2.14.9 対応追加（4観点並列レビュー、auto-commit、OpenCode対応）
 - 2026-01-28: v2.1.21〜v2.1.22 対応追加（ファイル操作ツール優先、全角数字入力、セッション再開修正）
 - 2026-01-27: v2.1.20 対応追加（init-only フック、権限プロンプト対応、Bash(*) ワイルドカード）

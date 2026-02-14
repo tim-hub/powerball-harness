@@ -7,6 +7,19 @@
 
 > **📝 記載ルール**: ユーザー体験に影響する変更を中心に記載。内部修正は簡潔に。
 
+## [2.20.6] - 2026-02-14
+
+### Changed
+
+- **Claude Code 2.1.41/2.1.42 対応**: 互換性マトリクスと推奨バージョンを v2.1.41+ に引き上げ
+  - `docs/CLAUDE_CODE_COMPATIBILITY.md` に v2.1.39〜v2.1.42 の4バージョン・30+行の機能対応を追加
+  - 推奨バージョンを v2.1.38+ → **v2.1.41+** に引き上げ（Agent Teams の Bedrock/Vertex/Foundry モデルID修正、Hook stderr 表示修正が主因）
+- **Breezing Bedrock/Vertex/Foundry 注記**: `guardrails-inheritance.md` に CC 2.1.41+ 必須の注記追加
+- **セッション `/rename` 自動命名**: session スキルに CC 2.1.41+ のセッション名自動生成ドキュメント追加
+- **トラブルシュート `claude auth` コマンド**: 診断テーブルに CC 2.1.41+ の `claude auth login/status/logout` を追加
+
+---
+
 ## [2.20.5] - 2026-02-12
 
 ### Fixed
