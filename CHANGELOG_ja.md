@@ -29,6 +29,17 @@
   - `hooks/hooks.json` と `.claude-plugin/hooks.json` の両方を同期して更新
 
 ---
+## [2.20.6] - 2026-02-14
+
+### Fixed
+
+- **session-auto-broadcast.sh の hookEventName バリデーションエラー** (#41):
+  - `hookEventName` を `"AutoBroadcast"` → `"PostToolUse"` に修正（4箇所）
+  - `session-broadcast.sh` の `hookEventName` を `"Broadcast"` → `"PostToolUse"` に修正
+  - subprocess の stdout 汚染を防止（`>/dev/null` リダイレクト追加）
+  - `test-hook-event-names.sh` テスト追加（hookEventName 一貫性の回帰テスト）
+
+---
 ## [2.20.5] - 2026-02-12
 
 ### Fixed
@@ -549,4 +560,8 @@
 
 v2.9.x 以前の詳細は [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases) を参照してください。
 
+[2.20.8]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.7...v2.20.8
+[2.20.7]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.6...v2.20.7
+[2.20.6]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.5...v2.20.6
+[2.20.5]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.4...v2.20.5
 [2.18.7]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.18.6...v2.18.7
