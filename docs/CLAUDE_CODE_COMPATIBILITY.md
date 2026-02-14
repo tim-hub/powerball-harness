@@ -36,7 +36,7 @@
 | Hook blocking エラー (exit code 2) の stderr 表示修正 | **重要** | pretooluse-guard.sh 等のブロック理由がユーザーに正しく表示されるように |
 | Hook blocking stderr の UI 表示修正（重複修正） | **重要** | 上記と合わせて Hook エラーの可視性が大幅改善 |
 | OTel イベント/スパンに `speed` 属性追加 | 将来対応 | AgentTrace と連携して fast mode の可視化に活用可能 |
-| `claude auth login/status/logout` サブコマンド追加 | 検討中 | setup スキルの認証トラブルシュートで `claude auth status` を案内可能 |
+| `claude auth login/status/logout` サブコマンド追加 | 対応済み | troubleshoot スキルの診断テーブルに `claude auth status` を追加 |
 | Windows ARM64 (win32-arm64) ネイティブバイナリ対応 | - | プラットフォームサポート拡大。Harness 影響なし |
 | `/rename` が引数なしでセッション名自動生成 | 有利 | session スキルで活用可能。コンテキストから自動命名 |
 | 狭いターミナルのプロンプトフッター改善 | - | UI レイアウト修正。Harness 影響なし |
