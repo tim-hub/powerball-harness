@@ -4,6 +4,18 @@ Change history for claude-code-harness.
 
 > **📝 Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
+## [2.20.6] - 2026-02-14
+
+### Fixed
+
+- **session-auto-broadcast.sh の hookEventName バリデーションエラー** (#41):
+  - `hookEventName` を `"AutoBroadcast"` → `"PostToolUse"` に修正（4箇所）
+  - `session-broadcast.sh` の `hookEventName` を `"Broadcast"` → `"PostToolUse"` に修正
+  - subprocess の stdout 汚染を防止（`>/dev/null` リダイレクト追加）
+  - `test-hook-event-names.sh` テスト追加（hookEventName 一貫性の回帰テスト）
+
+---
+
 ## [2.20.5] - 2026-02-12
 
 ### Fixed

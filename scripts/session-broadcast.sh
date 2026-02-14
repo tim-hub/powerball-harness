@@ -125,7 +125,7 @@ main() {
   # JSON 出力（hooks 用）
   if [ "${HOOK_OUTPUT:-}" = "true" ]; then
     cat <<EOF
-{"hookSpecificOutput":{"hookEventName":"Broadcast","additionalContext":"📤 ブロードキャスト送信: ${message:0:50}..."}}
+{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"📤 ブロードキャスト送信: ${message:0:50}..."}}
 EOF
   fi
 }

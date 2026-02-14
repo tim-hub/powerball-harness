@@ -45,7 +45,7 @@ fi
 
 # ファイルパスがない場合は終了
 if [ -z "$FILE_PATH" ]; then
-  echo '{"hookSpecificOutput":{"hookEventName":"AutoBroadcast","additionalContext":""}}'
+  echo '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":""}}'
   exit 0
 fi
 
@@ -56,7 +56,7 @@ if [ -f "$CONFIG_FILE" ] && command -v jq >/dev/null 2>&1; then
 fi
 
 if [ "$AUTO_BROADCAST_ENABLED" != "true" ]; then
-  echo '{"hookSpecificOutput":{"hookEventName":"AutoBroadcast","additionalContext":""}}'
+  echo '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":""}}'
   exit 0
 fi
 
@@ -90,14 +90,14 @@ if [ "$should_broadcast" = "true" ]; then
   FILE_NAME=$(basename "$FILE_PATH")
 
   # ブロードキャストを実行
-  HOOK_OUTPUT=true bash "$SCRIPT_DIR/session-broadcast.sh" --auto "$FILE_PATH" "パターン '$matched_pattern' にマッチ" 2>/dev/null || true
+  bash "$SCRIPT_DIR/session-broadcast.sh" --auto "$FILE_PATH" "パターン '$matched_pattern' にマッチ" >/dev/null 2>/dev/null || true
 
   # 通知メッセージを出力
   cat <<EOF
-{"hookSpecificOutput":{"hookEventName":"AutoBroadcast","additionalContext":"📢 自動ブロードキャスト: ${FILE_NAME} の変更を他セッションに通知しました"}}
+{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"📢 自動ブロードキャスト: ${FILE_NAME} の変更を他セッションに通知しました"}}
 EOF
 else
-  echo '{"hookSpecificOutput":{"hookEventName":"AutoBroadcast","additionalContext":""}}'
+  echo '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":""}}'
 fi
 
 exit 0
