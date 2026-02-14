@@ -21,6 +21,12 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m'
 
+# POSIX 互換の抽出関数（grep -P を避ける）
+extract_hook_event_names() {
+  local file="$1"
+  sed -n 's/.*"hookEventName"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$file"
+}
+
 # テスト関数
 run_test() {
   local test_name="$1"
@@ -51,7 +57,7 @@ test_auto_broadcast_event_name() {
 
   # hookEventName が PostToolUse 以外のものを含んでいないか
   local bad_names
-  bad_names=$(grep -oP '"hookEventName"\s*:\s*"\K[^"]+' "$script" | grep -v "PostToolUse" || true)
+  bad_names=$(extract_hook_event_names "$script" | grep -v '^PostToolUse$' || true)
 
   if [ -n "$bad_names" ]; then
     echo "    Error: Invalid hookEventName found: $bad_names (expected PostToolUse)"
@@ -88,8 +94,10 @@ test_posttooluse_scripts_consistency() {
 
   # PostToolUse に登録されたスクリプト名を抽出
   local scripts
-  scripts=$(jq -r '.hooks.PostToolUse[]?.hooks[]?.command // empty' "$hooks_file" \
-    | grep -oP 'run-script.js"\s+\K\S+' || true)
+  scripts=$(jq -r '
+    .hooks.PostToolUse[]?.hooks[]?.command // empty
+    | try (capture("run-script\\.js\"\\s+(?<name>\\S+)").name) catch empty
+  ' "$hooks_file")
 
   for script_name in $scripts; do
     local script_path="$PROJECT_ROOT/scripts/${script_name}.sh"
@@ -100,7 +108,7 @@ test_posttooluse_scripts_consistency() {
     # hookEventName が含まれるスクリプトのみチェック
     if grep -q '"hookEventName"' "$script_path" 2>/dev/null; then
       local bad
-      bad=$(grep -oP '"hookEventName"\s*:\s*"\K[^"]+' "$script_path" | grep -v "PostToolUse" || true)
+      bad=$(extract_hook_event_names "$script_path" | grep -v '^PostToolUse$' || true)
       if [ -n "$bad" ]; then
         violations="${violations}  ${script_name}: uses '$bad' instead of 'PostToolUse'\n"
       fi
