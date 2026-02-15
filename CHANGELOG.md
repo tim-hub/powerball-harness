@@ -4,6 +4,25 @@ Change history for claude-code-harness.
 
 > **📝 Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
+## [2.20.9] - 2026-02-15
+
+### 🎯 What's Changed for You
+
+**In Codex mode, `harness-review` guidance is now consistently documented as delegating to Claude CLI (`claude -p`).**
+
+| Before | After |
+|--------|-------|
+| Codex-side review docs mixed Codex/MCP wording and delegation targets | Codex-side docs consistently describe Claude CLI (`claude -p`) delegation flow |
+
+### Changed
+
+- Updated Codex-side review docs to align review mode wording, integration flow, and detection guidance around `claude -p` delegation.
+
+### Internal
+
+- Documentation consistency cleanup for Codex review-mode references.
+
+---
 ## [2.20.8] - 2026-02-14
 
 ### Changed
@@ -710,6 +729,7 @@ Change history for claude-code-harness.
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases).
 
+[2.20.9]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.8...v2.20.9
 [2.20.8]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.7...v2.20.8
 [2.20.7]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.6...v2.20.7
 [2.20.6]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.5...v2.20.6

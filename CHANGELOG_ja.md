@@ -7,6 +7,25 @@
 
 > **📝 記載ルール**: ユーザー体験に影響する変更を中心に記載。内部修正は簡潔に。
 
+## [2.20.9] - 2026-02-15
+
+### 🎯 あなたにとって何が変わるか
+
+**Codex モード時の `harness-review` は、Claude CLI（`claude -p`）へ委譲されることがドキュメント上で一貫しました。**
+
+| Before | After |
+|--------|-------|
+| Codex 側レビュー文書で Codex/MCP と委譲先の表現が混在 | Codex 側文書で `claude -p` 委譲フローに表現を統一 |
+
+### Changed
+
+- Codex 側レビュー文書を更新し、レビュー モード説明・統合フロー・検出ガイダンスを `claude -p` 委譲前提に統一。
+
+### Internal
+
+- Codex レビュー関連ドキュメントの用語不整合を解消。
+
+---
 ## [2.20.8] - 2026-02-14
 
 ### Changed
@@ -560,6 +579,7 @@
 
 v2.9.x 以前の詳細は [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases) を参照してください。
 
+[2.20.9]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.8...v2.20.9
 [2.20.8]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.7...v2.20.8
 [2.20.7]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.6...v2.20.7
 [2.20.6]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.5...v2.20.6
