@@ -291,16 +291,17 @@ mem-search: concepts:gotcha "{変更箇所に関連するキーワード}"
 設定確認: .claude-code-harness.config.yaml
     ↓
 ├── review.mode: default → Claude 単体レビュー
-└── review.mode: codex   → Codex 並列レビュー（レビュータイプごとに4エキスパート）
+└── review.mode: codex   → Claude 並列レビュー（`claude -p` / レビュータイプごとに4エキスパート）
 ```
 
 ### Default モード（Claude 単体）
 
 Claude が直接レビューを実行。小〜中規模の変更に最適。
 
-### Codex モード（並列エキスパート）
+### Codex モード（Claude 並列エキスパート委譲）
 
-Codex MCP 経由で**レビュータイプに応じた4つのエキスパート**を **個別に並列呼び出し**:
+Codex 上で `harness-review` を実行する場合は、Claude CLI（`claude -p`）経由で
+**レビュータイプに応じた4つのエキスパート**を **個別に並列呼び出し**:
 
 | Review Type | エキスパート |
 |-------------|-------------|
@@ -310,11 +311,11 @@ Codex MCP 経由で**レビュータイプに応じた4つのエキスパート*
 
 #### ⚠️ Codex モード実行時の必須ルール
 
-**絶対に1回の MCP 呼び出しで複数エキスパートをまとめないこと。**
+**絶対に1回の `claude -p` 呼び出しで複数エキスパートをまとめないこと。**
 
 ```
-✅ 正しい: 4回の MCP 呼び出しを1つのレスポンス内で並列実行
-❌ 間違い: 1回の呼び出しで「全観点をレビューして」と依頼
+✅ 正しい: 4回の `claude -p` 呼び出しを1つのレスポンス内で並列実行
+❌ 間違い: 1回の `claude -p` 呼び出しで「全観点をレビューして」と依頼
 ```
 
 **実行手順**:
@@ -323,10 +324,10 @@ Codex MCP 経由で**レビュータイプに応じた4つのエキスパート*
    - CLI/バックエンド → Accessibility, SEO 除外
    - ドキュメントのみ変更 → Quality, Architect, Plan Reviewer, Scope Analyst を優先（Security, Performance は除外可）
 2. 有効なエキスパートの `experts/*.md` からプロンプトを **個別に読み込む**
-3. 有効なエキスパートのみ `codex exec` を **Bash バックグラウンドプロセスで並列実行**
+3. 有効なエキスパートのみ `claude -p` を **Bash バックグラウンドプロセスで並列実行**
 4. 各結果を統合して判定
 
-**詳細**: [codex-review/references/codex-parallel-review.md](../codex-review/references/codex-parallel-review.md)
+**詳細**: [references/codex-integration.md](references/codex-integration.md)
 
 **Codex モード有効化**:
 ```bash

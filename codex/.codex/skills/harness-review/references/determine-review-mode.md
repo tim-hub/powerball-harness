@@ -1,12 +1,13 @@
 ---
 name: determine-review-mode
-description: "Determine review mode (default/codex) from .claude-code-harness.config.yaml. Falls back to 'default' if Codex is not configured or enabled."
+description: "Determine review mode (default/codex) from .claude-code-harness.config.yaml. Falls back to 'default' if Claude CLI delegation is unavailable."
 allowed-tools: ["Read"]
 ---
 
 # Determine Review Mode
 
-`.claude-code-harness.config.yaml`からレビューモードを決定し、**Codex MCP を自動検出**して利用可否を判断する。利用不可の場合は`default`にフォールバックする。
+`.claude-code-harness.config.yaml`からレビューモードを決定し、**Claude CLI（`claude -p`）を自動検出**して
+Codex 実行時の委譲可否を判断する。利用不可の場合は`default`にフォールバックする。
 
 ---
 
@@ -52,16 +53,16 @@ review:
   mode: codex  # または "default"
   codex:
     enabled: true      # または false
-    timeout_ms: 60000  # Codex MCP のタイムアウト（ミリ秒）
+    timeout_ms: 60000  # Claude CLI 委譲のタイムアウト（ミリ秒）
 ```
 
-### Step 3: Codex MCP 自動検出（必須）
+### Step 3: Claude CLI 自動検出（必須）
 
-Codex MCP サーバーの有無を確認する。検出に失敗したら `default` にフォールバック。
+`claude` コマンドの有無を確認する。検出に失敗したら `default` にフォールバック。
 
 ```bash
-# 例: MCP サーバー一覧で codex を検出
-claude mcp list | grep -i codex
+# 例: Claude CLI の存在確認
+command -v claude
 ```
 
 > **タイムアウト**: `review.codex.timeout_ms`（ms）を上限に検出を打ち切る。
@@ -72,13 +73,13 @@ claude mcp list | grep -i codex
 // 疑似コード例
 let review_mode = "default";
 const timeoutMs = config.review?.codex?.timeout_ms ?? 60000;
-const codexAvailable = detectCodexMcp(timeoutMs);
+const claudeAvailable = detectClaudeCli(timeoutMs);
 
 // 1. review.modeを確認
 if (config.review?.mode === "codex") {
   // 2. review.codex.enabledを確認
-  if (config.review?.codex?.enabled === true && codexAvailable) {
-    // 3. Codex MCP サーバーが利用可能なら codex
+  if (config.review?.codex?.enabled === true && claudeAvailable) {
+    // 3. Claude CLI 委譲が利用可能なら codex
     review_mode = "codex";
   }
 }
@@ -95,7 +96,7 @@ return { review_mode };
 2. `review.mode`が未設定または`default`
 3. `review.mode`が`codex`だが`review.codex.enabled`が`false`
 4. `review.codex.enabled`が未設定
-5. Codex MCP サーバーが検出できない（`timeout_ms` 超過含む）
+5. Claude CLI が検出できない（`timeout_ms` 超過含む）
 
 ---
 
@@ -152,4 +153,4 @@ review:
 
 - **安全側に倒す**: Codex設定が不明確な場合は`default`にフォールバック
 - **設定ファイルの優先**: 環境変数などではなく、設定ファイルの値を優先する
-- **MCPサーバー確認**: 実装時は`claude mcp list`でCodex MCPサーバーの存在も確認可能（オプション）
+- **実行環境確認**: 実装時は`command -v claude`で Claude CLI の存在を確認可能（オプション）
