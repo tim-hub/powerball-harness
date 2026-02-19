@@ -195,12 +195,12 @@ except:
   fi
 
   # シグナル dedup ヘルパー: セッションスコープで重複チェック
-  # SESSION_ID があればセッション単位、なければグローバルで dedup
+  # SESSION_ID があればセッション単位（同一レコード内で AND 判定）、なければグローバルで dedup
   _signal_exists() {
     local sig_type="$1"
-    if [ -n "${SESSION_ID}" ]; then
-      grep -Fq "\"${sig_type}\"" "${SIGNALS_FILE}" 2>/dev/null && \
-        grep -Fq "\"session_id\":\"${SESSION_ID}\"" "${SIGNALS_FILE}" 2>/dev/null
+    if [ -n "${SESSION_ID}" ] && [ -f "${SIGNALS_FILE}" ]; then
+      # 同一行に signal と session_id の両方を含むレコードが存在するか
+      grep -F "\"${sig_type}\"" "${SIGNALS_FILE}" 2>/dev/null | grep -Fq "\"session_id\":\"${SESSION_ID}\"" 2>/dev/null
     else
       grep -Fq "\"${sig_type}\"" "${SIGNALS_FILE}" 2>/dev/null
     fi
