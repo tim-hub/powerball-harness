@@ -4,6 +4,20 @@ Change history for claude-code-harness.
 
 > **📝 Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
+## [2.20.13] - 2026-02-19
+
+### Added
+
+- **Breezing Planning Discussion (Phase 0)**: `--discuss` flag enables pre-execution plan review with Planner + Critic teammates
+- **Task granularity validation (V1–V5)**: validates task scope, ambiguity, owns overlap, dependency consistency, and TDD markers before TaskCreate
+- **Progressive Batch strategy**: automatic batch splitting for 8+ tasks with 60% completion triggers
+- **Implementer peer communication (Pattern D)**: direct Implementer-to-Implementer knowledge sharing via SendMessage
+- **Hook-driven signals**: `task-completed.sh` now generates `partial_review_recommended` and `next_batch_recommended` signals
+- **Spec Driven Development integration**: `[feature:tdd]` markers in Plans.md trigger test-first task generation
+- **New agents**: `plan-analyst` (task analysis) and `plan-critic` (Red Teaming review) for Phase 0
+
+---
+
 ## [2.20.11] - 2026-02-19
 
 ### Changed
