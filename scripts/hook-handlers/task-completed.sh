@@ -129,6 +129,65 @@ if [ -n "${log_entry}" ]; then
   rotate_jsonl "${TIMELINE_FILE}"
 fi
 
+# === シグナル生成（動的オーケストレーション） ===
+SIGNALS_FILE="${STATE_DIR}/breezing-signals.jsonl"
+BREEZING_ACTIVE="${STATE_DIR}/breezing-active.json"
+
+# breezing セッションがアクティブな場合のみシグナルを生成
+if [ -f "${BREEZING_ACTIVE}" ]; then
+  # 完了タスク数をカウント
+  COMPLETED_COUNT=0
+  if [ -f "${TIMELINE_FILE}" ]; then
+    COMPLETED_COUNT="$(grep -c '"event":"task_completed"' "${TIMELINE_FILE}" 2>/dev/null)" || COMPLETED_COUNT=0
+  fi
+
+  # breezing-active.json から合計タスク数を取得（batching 対応）
+  TOTAL_TASKS=0
+  if command -v jq >/dev/null 2>&1; then
+    TOTAL_TASKS="$(jq -r '.batching.batches // [] | map(select(.status == "in_progress")) | .[0].task_ids // [] | length' "${BREEZING_ACTIVE}" 2>/dev/null)" || TOTAL_TASKS=0
+    # batching でない場合は plans_md_mapping のキー数で推定
+    if [ "${TOTAL_TASKS}" = "0" ] || [ "${TOTAL_TASKS}" = "null" ]; then
+      TOTAL_TASKS="$(jq -r '.plans_md_mapping // {} | keys | length' "${BREEZING_ACTIVE}" 2>/dev/null)" || TOTAL_TASKS=0
+    fi
+  fi
+
+  # 50% 完了シグナル: 部分レビュー推奨
+  if [ "${TOTAL_TASKS}" -gt 0 ] 2>/dev/null; then
+    HALF=$(( TOTAL_TASKS / 2 ))
+    if [ "${COMPLETED_COUNT}" -eq "${HALF}" ] && [ "${HALF}" -gt 1 ] 2>/dev/null; then
+      SIGNAL_ENTRY=""
+      if command -v jq >/dev/null 2>&1; then
+        SIGNAL_ENTRY="$(jq -nc \
+          --arg signal "partial_review_recommended" \
+          --arg completed "${COMPLETED_COUNT}" \
+          --arg total "${TOTAL_TASKS}" \
+          --arg timestamp "${TS}" \
+          '{signal:$signal, completed:$completed, total:$total, timestamp:$timestamp}')"
+      fi
+      if [ -n "${SIGNAL_ENTRY}" ]; then
+        echo "${SIGNAL_ENTRY}" >> "${SIGNALS_FILE}" 2>/dev/null || true
+      fi
+    fi
+
+    # 60% 完了シグナル: 次バッチ登録推奨（Progressive Batch 用）
+    SIXTY_PCT=$(( TOTAL_TASKS * 60 / 100 ))
+    if [ "${COMPLETED_COUNT}" -eq "${SIXTY_PCT}" ] && [ "${SIXTY_PCT}" -gt 0 ] 2>/dev/null; then
+      BATCH_SIGNAL=""
+      if command -v jq >/dev/null 2>&1; then
+        BATCH_SIGNAL="$(jq -nc \
+          --arg signal "next_batch_recommended" \
+          --arg completed "${COMPLETED_COUNT}" \
+          --arg total "${TOTAL_TASKS}" \
+          --arg timestamp "${TS}" \
+          '{signal:$signal, completed:$completed, total:$total, timestamp:$timestamp}')"
+      fi
+      if [ -n "${BATCH_SIGNAL}" ]; then
+        echo "${BATCH_SIGNAL}" >> "${SIGNALS_FILE}" 2>/dev/null || true
+      fi
+    fi
+  fi
+fi
+
 # === レスポンス ===
 echo '{"decision":"approve","reason":"TaskCompleted tracked"}'
 exit 0

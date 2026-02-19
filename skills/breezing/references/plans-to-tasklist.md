@@ -17,6 +17,73 @@ Plans.md (cc:done) に更新
 **重要**: Agent Teams TaskList が実行中のタスク状態の SSOT。
 Plans.md は完了時のみ更新する（途中の cc:WIP 更新は不要）。
 
+## タスク粒度バリデーション（TaskCreate 前の必須チェック）
+
+TaskCreate 登録の**前に**、Plans.md の各タスクを以下の観点でバリデーションする。
+問題が検出された場合はユーザーに修正提案を表示し、承認を得てから TaskCreate に進む。
+
+### バリデーション観点
+
+| # | チェック項目 | 検出条件 | 重要度 | アクション |
+|---|---|---|---|---|
+| V1 | **スコープ過大** | owns 推定ファイル数 > 10、またはサブタスクが 5+ 項目 | warning | 分割を提案 |
+| V2 | **記述曖昧** | 具体的ファイルパス/コンポーネント名/API 名がゼロ | warning | 具体化を要求 |
+| V3 | **owns 重複過多** | 2タスクが owns の 50% 以上を共有 | warning | マージまたは順次化を提案 |
+| V4 | **抽象キーワード** | 「改善」「リファクタリング」「最適化」等のみで受入条件なし | warning | 受入条件の明示を要求 |
+| V5 | **依存関係未宣言** | 同一ファイルを触るタスク間に blockedBy がない | error | addBlockedBy を自動付与 |
+
+### バリデーション実行フロー
+
+```text
+Plans.md から対象タスクを抽出
+    ↓
+各タスクに V1〜V5 を適用
+    ↓
+┌── 問題なし → TaskCreate 登録へ
+└── 問題あり → バリデーションレポートをユーザーに表示
+                ↓
+              ユーザー判断:
+                ├── 修正する → Plans.md 修正後に再バリデーション
+                ├── そのまま続行 → warning は無視して TaskCreate 登録
+                └── 中止 → breezing-active.json 削除して停止
+```
+
+### バリデーションレポート例
+
+```text
+🏇 Breezing - タスク品質チェック
+
+⚠️ 2 件の警告が見つかりました:
+
+1. [V1] タスク 4.1「UI全体のリファクタリング」
+   → スコープ過大: 推定 15 ファイルに影響
+   → 提案: 「ヘッダーのリファクタリング」「サイドバーのリファクタリング」等に分割
+
+2. [V2] タスク 4.3「パフォーマンス改善」
+   → 記述曖昧: 具体的な対象ファイル/メトリクスが不明
+   → 提案: 「src/db/users.ts の N+1 クエリ解消」等に具体化
+
+✅ タスク 4.2「認証ミドルウェアの作成」— 問題なし
+
+修正しますか？ (修正 / そのまま続行 / 中止)
+```
+
+### V5 の自動修復
+
+V5（依存関係未宣言）は Lead が**自動的に addBlockedBy を付与**する:
+
+```
+検出:
+  タスク A: owns: src/auth/login.ts
+  タスク B: owns: src/auth/login.ts (blockedBy 未設定)
+
+自動修復:
+  → B に addBlockedBy: [A] を設定
+  → バリデーションレポートに「自動付与」として記載
+```
+
+V5 は error レベルだが自動修復可能なため、ユーザー承認なしで適用する。
+
 ## 変換ルール
 
 ### 1. タスク粒度
@@ -107,7 +174,73 @@ TaskCreate の `activeForm` は**タスク名を present continuous 形式に変
 | テストの追加 | テストを追加中 |
 | バグ修正: ログアウト | ログアウトバグを修正中 |
 
-### 5. plans_md_mapping 生成
+### 5. Spec Driven Development 連携（[feature:tdd] マーカー）
+
+Plans.md に `/plan-with-agent` が付与した `[feature:tdd]` マーカーがある場合、
+テスト仕様を TaskCreate に統合する。
+
+#### 検出と変換
+
+```markdown
+<!-- Plans.md -->
+### 4.1 ログイン機能の実装 <!-- cc:TODO --> <!-- feature:tdd -->
+- ログインフォーム作成
+- バリデーション追加
+- API エンドポイント接続
+
+**テストケース設計:**
+- 正常ログイン → トークン返却
+- 無効な認証情報 → 401 エラー
+- レート制限 → 429 エラー
+```
+
+↓ 変換
+
+```
+TaskCreate:
+  subject: "4.1a ログイン機能のテスト作成"
+  description: |
+    以下のテストケースを先行実装:
+    - 正常ログイン → トークン返却
+    - 無効な認証情報 → 401 エラー
+    - レート制限 → 429 エラー
+    owns: src/__tests__/auth/login.test.ts
+  activeForm: "ログイン機能のテストを作成中"
+
+TaskCreate:
+  subject: "4.1b ログイン機能の実装"
+  description: |
+    テストが先行作成済み。テストを通す実装を行う。
+    - ログインフォーム作成
+    - バリデーション追加
+    - API エンドポイント接続
+    owns: src/components/LoginForm.tsx, src/app/api/auth/login/route.ts
+  addBlockedBy: ["4.1a"]
+  activeForm: "ログイン機能を実装中"
+```
+
+#### 変換ルール
+
+| 条件 | 変換 |
+|---|---|
+| `[feature:tdd]` + テストケース設計あり | テスト作成タスク(a) + 実装タスク(b)に分割。b は a に blockedBy |
+| `[feature:tdd]` + テストケース設計なし | Implementer spawn prompt に「テスト先行」指示を追加（分割はしない） |
+| `[feature:tdd]` なし | 通常変換（分割なし） |
+
+#### Reviewer への影響
+
+`[feature:tdd]` タスクのレビュー時、Reviewer はスペック充足を追加チェック:
+
+```
+通常レビュー観点 (セキュリティ/パフォーマンス/品質/互換性)
+  +
+スペック充足チェック:
+  - テストケース設計の全シナリオがテストコードに反映されているか
+  - テストが meaningful か（アサーションが適切か）
+  - 実装がテストを通しているか
+```
+
+### 6. plans_md_mapping 生成
 
 TaskCreate と同時に breezing-active.json の `plans_md_mapping` を生成:
 
@@ -211,10 +344,62 @@ TaskCreate と同時に breezing-active.json の `plans_md_mapping` を生成:
 → 具体的なファイル/方法が特定されるまで承認しない
 ```
 
-### 大量タスク (10+)
+### 大量タスク: Progressive Batch 戦略
 
+タスク総数 > 8 の場合、Progressive Batching を有効化する。
+TaskList が肥大化するのを防ぎ、Lead のコンテキスト窓を保全する。
+
+#### 有効化条件
+
+| タスク数 | 戦略 |
+|---|---|
+| ≤ 8 | 全タスクを一括 TaskCreate |
+| 9〜20 | Progressive Batch (2-3 バッチ) |
+| 21+ | Progressive Batch (4+ バッチ) + ユーザーに分割実行を推奨 |
+
+#### バッチ構成ルール
+
+```text
+Batch 1（初期バッチ）:
+  → blockedBy が空のタスク群（独立フロンティア）を全て登録
+  → 最大 8 タスクまで
+
+Batch 2（次バッチ）: Batch 1 の 60% 完了時に登録
+  → Batch 1 のタスクに blockedBy で依存していたタスク群
+  → + 追加の独立タスク（Batch 1 に含まれなかった分）
+  → 最大 8 タスクまで
+
+Batch N: 前バッチの 60% 完了時に登録（以降同様）
 ```
-1. 最初に独立タスクのみ TaskCreate (batch 1)
-2. batch 1 が半分完了 → 次の batch を TaskCreate
-3. メモリ効率のため、一度に全タスクを登録しない
+
+#### 60% 完了のトラッキング
+
+```text
+TaskCompleted Hook (Lead 側で発火)
+  → breezing-timeline.jsonl に記録
+  → Lead が TaskList で completed 数をカウント
+  → completed / batch_total ≥ 0.6 → 次バッチ登録
 ```
+
+#### breezing-active.json への記録
+
+```json
+{
+  "batching": {
+    "enabled": true,
+    "total_tasks": 15,
+    "current_batch": 2,
+    "batches": [
+      {"batch": 1, "task_ids": ["task-1", "task-2", "task-3", "task-4"], "status": "completed"},
+      {"batch": 2, "task_ids": ["task-5", "task-6", "task-7"], "status": "in_progress"},
+      {"batch": 3, "task_ids": [], "status": "pending"}
+    ]
+  }
+}
+```
+
+#### 注意事項
+
+- Implementer はバッチの存在を意識しない（TaskList の pending タスクを順次消化するだけ）
+- バッチ境界でのレビュー判断は Lead の裁量（バッチ完了ごとに部分レビューを推奨）
+- 「続きやって」での再開時は、batching メタデータから未登録バッチを復元
