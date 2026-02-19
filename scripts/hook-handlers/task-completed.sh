@@ -160,57 +160,85 @@ if [ -f "${BREEZING_ACTIVE}" ]; then
   fi
 
   # 現在バッチのタスクのみで完了数をカウント（前バッチの完了を除外）
+  # 各タスク ID につき存在すれば +1（リテイク等による重複カウントを防止）
   COMPLETED_COUNT=0
   if [ -f "${TIMELINE_FILE}" ] && [ -n "${CURRENT_BATCH_IDS}" ]; then
-    # バッチ内の各タスク ID でタイムラインを検索し、マッチ数を合算
     IFS=',' read -ra _batch_id_arr <<< "${CURRENT_BATCH_IDS}"
     for _bid in "${_batch_id_arr[@]}"; do
       _bid="$(echo "${_bid}" | tr -d '[:space:]')"
       if [ -n "${_bid}" ]; then
-        _matches="$(grep -c "\"task_id\":\"${_bid}\"" "${TIMELINE_FILE}" 2>/dev/null)" || _matches=0
-        COMPLETED_COUNT=$(( COMPLETED_COUNT + _matches ))
+        if grep -q "\"task_id\":\"${_bid}\"" "${TIMELINE_FILE}" 2>/dev/null; then
+          COMPLETED_COUNT=$(( COMPLETED_COUNT + 1 ))
+        fi
       fi
     done
-    unset _batch_id_arr _bid _matches
+    unset _batch_id_arr _bid
   elif [ -f "${TIMELINE_FILE}" ]; then
     # フォールバック: バッチ ID が取得できない場合は全体カウント
     COMPLETED_COUNT="$(grep -c '"event":"task_completed"' "${TIMELINE_FILE}" 2>/dev/null)" || COMPLETED_COUNT=0
   fi
 
   # 50% 完了シグナル: 部分レビュー推奨
+  # -ge で閾値飛び越え（同時完了等）に対応、既発行チェックで重複防止
   # 切り上げ計算で閾値が早すぎるトリガーを防止
   if [ "${TOTAL_TASKS}" -gt 0 ] 2>/dev/null; then
     HALF=$(( (TOTAL_TASKS + 1) / 2 ))
-    if [ "${COMPLETED_COUNT}" -eq "${HALF}" ] && [ "${HALF}" -gt 1 ] 2>/dev/null; then
-      SIGNAL_ENTRY=""
-      if command -v jq >/dev/null 2>&1; then
-        SIGNAL_ENTRY="$(jq -nc \
-          --arg signal "partial_review_recommended" \
-          --arg completed "${COMPLETED_COUNT}" \
-          --arg total "${TOTAL_TASKS}" \
-          --arg timestamp "${TS}" \
-          '{signal:$signal, completed:$completed, total:$total, timestamp:$timestamp}')"
-      fi
-      if [ -n "${SIGNAL_ENTRY}" ]; then
-        echo "${SIGNAL_ENTRY}" >> "${SIGNALS_FILE}" 2>/dev/null || true
+    if [ "${COMPLETED_COUNT}" -ge "${HALF}" ] && [ "${HALF}" -gt 1 ] 2>/dev/null; then
+      # 既にシグナル発行済みか確認（重複防止）
+      if ! grep -q '"partial_review_recommended"' "${SIGNALS_FILE}" 2>/dev/null; then
+        SIGNAL_ENTRY=""
+        if command -v jq >/dev/null 2>&1; then
+          SIGNAL_ENTRY="$(jq -nc \
+            --arg signal "partial_review_recommended" \
+            --arg completed "${COMPLETED_COUNT}" \
+            --arg total "${TOTAL_TASKS}" \
+            --arg timestamp "${TS}" \
+            '{signal:$signal, completed:$completed, total:$total, timestamp:$timestamp}')"
+        elif command -v python3 >/dev/null 2>&1; then
+          SIGNAL_ENTRY="$(python3 -c "
+import json, sys
+print(json.dumps({
+    'signal': 'partial_review_recommended',
+    'completed': sys.argv[1],
+    'total': sys.argv[2],
+    'timestamp': sys.argv[3]
+}, ensure_ascii=False))
+" "${COMPLETED_COUNT}" "${TOTAL_TASKS}" "${TS}" 2>/dev/null)" || SIGNAL_ENTRY=""
+        fi
+        if [ -n "${SIGNAL_ENTRY}" ]; then
+          echo "${SIGNAL_ENTRY}" >> "${SIGNALS_FILE}" 2>/dev/null || true
+        fi
       fi
     fi
 
     # 60% 完了シグナル: 次バッチ登録推奨（Progressive Batch 用）
     # 切り上げ: (n * 60 + 99) / 100 で端数切り捨てによる早期トリガーを防止
     SIXTY_PCT=$(( (TOTAL_TASKS * 60 + 99) / 100 ))
-    if [ "${COMPLETED_COUNT}" -eq "${SIXTY_PCT}" ] && [ "${SIXTY_PCT}" -gt 0 ] 2>/dev/null; then
-      BATCH_SIGNAL=""
-      if command -v jq >/dev/null 2>&1; then
-        BATCH_SIGNAL="$(jq -nc \
-          --arg signal "next_batch_recommended" \
-          --arg completed "${COMPLETED_COUNT}" \
-          --arg total "${TOTAL_TASKS}" \
-          --arg timestamp "${TS}" \
-          '{signal:$signal, completed:$completed, total:$total, timestamp:$timestamp}')"
-      fi
-      if [ -n "${BATCH_SIGNAL}" ]; then
-        echo "${BATCH_SIGNAL}" >> "${SIGNALS_FILE}" 2>/dev/null || true
+    if [ "${COMPLETED_COUNT}" -ge "${SIXTY_PCT}" ] && [ "${SIXTY_PCT}" -gt 0 ] 2>/dev/null; then
+      # 既にシグナル発行済みか確認（重複防止）
+      if ! grep -q '"next_batch_recommended"' "${SIGNALS_FILE}" 2>/dev/null; then
+        BATCH_SIGNAL=""
+        if command -v jq >/dev/null 2>&1; then
+          BATCH_SIGNAL="$(jq -nc \
+            --arg signal "next_batch_recommended" \
+            --arg completed "${COMPLETED_COUNT}" \
+            --arg total "${TOTAL_TASKS}" \
+            --arg timestamp "${TS}" \
+            '{signal:$signal, completed:$completed, total:$total, timestamp:$timestamp}')"
+        elif command -v python3 >/dev/null 2>&1; then
+          BATCH_SIGNAL="$(python3 -c "
+import json, sys
+print(json.dumps({
+    'signal': 'next_batch_recommended',
+    'completed': sys.argv[1],
+    'total': sys.argv[2],
+    'timestamp': sys.argv[3]
+}, ensure_ascii=False))
+" "${COMPLETED_COUNT}" "${TOTAL_TASKS}" "${TS}" 2>/dev/null)" || BATCH_SIGNAL=""
+        fi
+        if [ -n "${BATCH_SIGNAL}" ]; then
+          echo "${BATCH_SIGNAL}" >> "${SIGNALS_FILE}" 2>/dev/null || true
+        fi
       fi
     fi
   fi

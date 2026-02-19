@@ -77,21 +77,21 @@ memory: project
 
 ```json
 {
-  "assessment": "approve" | "revise_recommended" | "revise_required",
+  "assessment": "revise_recommended",
   "findings": [
     {
-      "severity": "critical" | "warning" | "info",
-      "category": "goal_coverage" | "granularity" | "dependency" | "parallelism" | "risk" | "alternative",
-      "task": "4.1",
-      "issue": "問題の説明",
-      "suggestion": "修正提案"
+      "severity": "warning",
+      "category": "granularity",
+      "task": "4.3",
+      "issue": "「パフォーマンス改善」は受入条件が不明",
+      "suggestion": "具体的なメトリクスと対象ファイルを明示"
     }
   ],
   "dependency_graph_issues": [
     "タスク A,B が src/middleware.ts を共有するが依存未宣言"
   ],
-  "parallelism_score": "high" | "medium" | "low",
-  "summary": "総評"
+  "parallelism_score": "medium",
+  "summary": "概ね妥当だが、タスク 4.3 の具体化が推奨"
 }
 ```
 

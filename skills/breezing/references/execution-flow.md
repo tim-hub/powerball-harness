@@ -107,10 +107,11 @@ Step 0: breezing-active.json 即時書き込み（全 Phase の前に実行）
 
 ```text
 1. Planner (plan-analyst) + Critic (plan-critic) を spawn
+   ※ mode: "bypassPermissions" で spawn（Teammate はプロンプト不可のため必須）
 2. Round 1: Planner がタスク分析 → Planner ↔ Critic 直接対話で疑問点を解消
 3. Round 2: Critic が Red Teaming 検証 → Planner に確認が必要な点を直接質問
 4. Round 3: Lead が両者の分析を統合 → ユーザーに提示
-5. (必要なら) ユーザーが Plans.md 修正 → 追加ラウンド（最大 3 ラウンド）
+5. (必要なら) ユーザーが Plans.md 修正 → 追加ラウンド（合計で最大 3 ラウンドまで）
 6. Planner/Critic shutdown → Phase A へ
 ```
 

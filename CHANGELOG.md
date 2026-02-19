@@ -16,6 +16,14 @@ Change history for claude-code-harness.
 - **Spec Driven Development integration**: `[feature:tdd]` markers in Plans.md trigger test-first task generation
 - **New agents**: `plan-analyst` (task analysis) and `plan-critic` (Red Teaming review) for Phase 0
 
+### Fixed
+
+- **Signal threshold comparison**: Changed `-eq` to `-ge` in `task-completed.sh` to handle simultaneous task completions that skip exact threshold
+- **Signal deduplication**: Added existing signal check before emitting to prevent duplicate signals
+- **Signal generation fallback**: Added `python3` fallback for signal JSON generation when `jq` is unavailable
+- **Completion counting**: Fixed `grep -c` overcounting in batch scope (now counts each task_id once regardless of retakes)
+- **Document consistency**: Resolved contradictions between execution-flow.md, team-composition.md, and planning-discussion.md regarding round counts and V1-V4 skip policy
+
 ---
 
 ## [2.20.11] - 2026-02-19
@@ -783,6 +791,7 @@ Change history for claude-code-harness.
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases).
 
+[2.20.13]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.11...v2.20.13
 [2.20.11]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.10...v2.20.11
 [2.20.10]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.9...v2.20.10
 [2.20.9]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.8...v2.20.9

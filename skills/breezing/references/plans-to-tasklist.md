@@ -256,6 +256,23 @@ TaskCreate と同時に breezing-active.json の `plans_md_mapping` を生成:
 
 これにより完了ステージで TaskList ID → Plans.md セクション番号を逆引き可能。
 
+#### `[feature:tdd]` 分割時の 1:N マッピング
+
+`[feature:tdd]` でタスクが分割された場合、1 つの Plans.md セクションに複数のタスク ID がマッピングされる:
+
+```json
+{
+  "plans_md_mapping": {
+    "task-1a": "4.1",
+    "task-1b": "4.1",
+    "task-2": "4.2"
+  }
+}
+```
+
+**完了ステージの注意**: 同一セクション番号にマッピングされた全タスクが `completed` の場合にのみ `cc:done` に更新する。
+一部のみ完了した状態で `cc:done` にしないこと。
+
 ## Plans.md マーカーとの対応
 
 | Plans.md マーカー | TaskList status | 同期方向 |

@@ -86,7 +86,7 @@ Planner → SendMessage → Lead:
 
 ### Round 2: Critic の批判的レビュー + Planner ↔ Critic 直接対話
 
-**記事の知見**: Agent Teams の最大の強みは「Teammate 間の直接対話（intra-round discussion）」。
+**設計判断**: Agent Teams の直接対話機能を活用し、Teammate 間の直接対話（intra-round discussion）を中核に据える。
 Lead を仲介せず、Planner と Critic が直接やりとりして疑問点を解消する。
 
 ```text
@@ -196,7 +196,7 @@ Phase 0 を実行した場合、メタデータに記録:
 {
   "planning_discussion": {
     "enabled": true,
-    "rounds": 2,
+    "rounds": 3,
     "critic_assessment": "approve",
     "findings_resolved": 2,
     "findings_accepted": 1
