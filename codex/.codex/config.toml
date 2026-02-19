@@ -3,16 +3,7 @@
 # This file is a template. If you do not want MCP, do not copy it.
 # When you do, place it at your project root as .codex/config.toml.
 
-# Optional: Codex notify hook -> Unified Harness Memory bridge
-# The script receives one JSON argument from Codex (agent-turn-complete payload).
-notify = ["bash", "../harness-mem/scripts/hook-handlers/memory-codex-notify.sh"]
-
 [mcp_servers.harness]
 command = "node"
-args = ["../harness-mem/mcp-server/dist/index.js"]
+args = ["/absolute/path/to/claude-code-harness/mcp-server/dist/index.js"]
 enabled = true
-
-[mcp_servers.harness.env]
-HARNESS_MEM_HOST = "127.0.0.1"
-HARNESS_MEM_PORT = "37888"
-HARNESS_MEM_DB_PATH = "~/.harness-mem/harness-mem.db"

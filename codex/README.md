@@ -17,19 +17,6 @@ Project-local install is still available:
 /path/to/claude-code-harness/scripts/setup-codex.sh --project --skip-mcp
 ```
 
-### Option 1.1: Unified Memory setup (Codex/OpenCode/Claude shared DB)
-
-```bash
-# From your target project
-/path/to/claude-code-harness/scripts/harness-mem setup --platform codex
-```
-
-Health check / auto-fix:
-
-```bash
-/path/to/claude-code-harness/scripts/harness-mem doctor --platform codex --fix
-```
-
 ### Option 1.5: Claude Code (in-session)
 
 If you use Claude Code Harness, you can run:
@@ -64,8 +51,7 @@ cp claude-code-harness/codex/AGENTS.md /path/to/project/AGENTS.md
 
 ## Rules
 
-- `$CODEX_HOME/rules/harness.rules` provides guardrails and memory bridge defaults.
-- Rules are used together with Codex `notify` hook and skills.
+- `$CODEX_HOME/rules/harness.rules` provides guardrails.
 
 ## MCP (optional)
 
@@ -77,9 +63,7 @@ cp codex/.codex/config.toml "$CODEX_HOME/config.toml"
 ```
 
 Then edit the `mcp_servers.harness` path to your local build.
-Also edit the `notify` script path to your local harness checkout.
 
 ## Notes
 
-- Codex supports hook events internally; the stable user-facing entry point is `notify`.
-- Use `notify` + Rules + Skills + history ingest together for robust memory capture.
+- Codex supports hook events internally.

@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.20.10-blue.svg" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.20.11-blue.svg" alt="Version"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
   <img src="https://img.shields.io/badge/Skills-45-orange.svg" alt="Skills">
@@ -94,15 +94,6 @@ Project-local fallback is still available:
 Claude Code users can run `/setup codex` to apply user-based setup without leaving the session.
 
 Use `$plan-with-agent`, `$work`, `$harness-review` to run the workflow.
-
-## Unified Memory Setup (Claude/Codex/OpenCode shared)
-
-```bash
-# from your project
-/path/to/claude-code-harness/scripts/harness-mem setup
-```
-
-This wires platform adapters, starts `harness-memd`, and runs smoke + search quality checks.
 
 ---
 

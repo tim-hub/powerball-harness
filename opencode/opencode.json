@@ -6,19 +6,8 @@
       "enabled": true,
       "command": [
         "node",
-        "../harness-mem/mcp-server/dist/index.js"
-      ],
-      "env": {
-        "HARNESS_MEM_HOST": "127.0.0.1",
-        "HARNESS_MEM_PORT": "37888",
-        "HARNESS_MEM_DB_PATH": "~/.harness-mem/harness-mem.db"
-      }
-    }
-  },
-  "plugins": {
-    "harness-memory": {
-      "enabled": true,
-      "entry": "../harness-mem/opencode/plugins/harness-memory/index.ts"
+        "./path/to/claude-code-harness/mcp-server/dist/index.js"
+      ]
     }
   }
 }

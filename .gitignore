@@ -115,8 +115,15 @@ opencode/skills/x-release-harness/
 codex/.codex/skills/x-promo/
 codex/.codex/skills/x-release-harness/
 
-# Harness UI - ベータゲート（Polarライセンス検証）で保護済み
-# /harness-ui/  ← 2.6.22+ で配布対象に変更
+# Harness UI / optional UI integration (distribution excluded)
+/harness-ui/
+/skills/harness-ui/
+/opencode/skills/harness-ui/
+/codex/.codex/skills/harness-ui/
+/scripts/harness-ui-register.sh
+/scripts/test-harness-ui-register.sh
+/templates/mcp/harness-ui.mcp.json.template
+/.claude/rules/harness-ui.md
 
 # Harness UI Archive (deprecated old implementation)
 /harness-ui-archive/
@@ -124,6 +131,16 @@ codex/.codex/skills/x-release-harness/
 # MCP Server（オプション機能、別途インストール）
 /mcp-server/
 .mcp.json
+
+# Harness Memory local bridge wrappers (distribution excluded)
+/scripts/harness-mem
+/scripts/harness-memd
+/scripts/harness-mem-client.sh
+/scripts/hook-handlers/memory-post-tool-use.sh
+/scripts/hook-handlers/memory-session-start.sh
+/scripts/hook-handlers/memory-stop.sh
+/scripts/hook-handlers/memory-user-prompt.sh
+/scripts/hook-handlers/memory-codex-notify.sh
 
 # スライド中間ファイル
 docs/slides/

@@ -4,6 +4,21 @@ Change history for claude-code-harness.
 
 > **📝 Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
+## [2.20.11] - 2026-02-19
+
+### Changed
+
+- **Harness UI moved out of distribution scope**: tracked UI assets/skills/templates/hooks are excluded from release payload
+- **SessionStart hooks simplified**: removed `harness-ui-register` execution from startup/resume
+
+### Fixed
+
+- **Issue #50**: removed distribution-path dependency on memory wrapper scripts with hardcoded absolute paths
+  - distribution no longer tracks the 8 wrapper files (`scripts/harness-mem*`, `scripts/hook-handlers/memory-*.sh`)
+  - hooks/config no longer reference those wrapper scripts
+
+---
+
 ## [2.20.10] - 2026-02-18
 
 ### What's Changed
@@ -754,6 +769,7 @@ Change history for claude-code-harness.
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases).
 
+[2.20.11]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.10...v2.20.11
 [2.20.10]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.9...v2.20.10
 [2.20.9]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.8...v2.20.9
 [2.20.8]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.7...v2.20.8

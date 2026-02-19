@@ -7,6 +7,21 @@
 
 > **📝 記載ルール**: ユーザー体験に影響する変更を中心に記載。内部修正は簡潔に。
 
+## [2.20.11] - 2026-02-19
+
+### Changed
+
+- **Harness UI を配布対象外へ移動**: UI 本体・スキル・テンプレート・フックスクリプトを配布ペイロードから除外
+- **SessionStart フックを簡素化**: startup/resume から `harness-ui-register` 呼び出しを削除
+
+### Fixed
+
+- **Issue #50 対応**: 絶対パスを含む memory wrapper スクリプトへの配布経路依存を解消
+  - 配布インデックスから 8 スクリプト（`scripts/harness-mem*`, `scripts/hook-handlers/memory-*.sh`）を除外
+  - hooks/config から当該 wrapper 参照を削除
+
+---
+
 ## [2.20.10] - 2026-02-18
 
 ### 🎯 あなたにとって何が変わるか
@@ -604,6 +619,7 @@
 
 v2.9.x 以前の詳細は [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases) を参照してください。
 
+[2.20.11]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.10...v2.20.11
 [2.20.10]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.9...v2.20.10
 [2.20.9]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.8...v2.20.9
 [2.20.8]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.7...v2.20.8

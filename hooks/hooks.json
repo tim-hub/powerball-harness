@@ -101,12 +101,6 @@
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" session-monitor",
             "timeout": 30,
             "once": true
-          },
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" harness-ui-register",
-            "timeout": 10,
-            "once": true
           }
         ]
       },
@@ -129,12 +123,6 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" session-monitor",
             "timeout": 30,
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" harness-ui-register",
-            "timeout": 10,
             "once": true
           }
         ]
