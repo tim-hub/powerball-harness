@@ -336,10 +336,33 @@ TaskCreate と同時に breezing-active.json の `plans_md_mapping` を生成:
 2. ~/.claude/tasks/{team_name}/ からタスク状態を確認
    → 存在しない場合: Plans.md から未完了タスクを特定
 3. 未完了タスクのみ新 Team の TaskCreate で再登録
-4. plans_md_mapping を新タスク ID で更新
+4. plans_md_mapping のステール ID 調整（下記参照）
 5. 依存関係を再構築
 6. 実装サイクルから再開
 ```
+
+### ステール ID 調整ルール
+
+再開時に新しいタスク ID が発行されるため、plans_md_mapping の整合性を保つ:
+
+```text
+調整フロー:
+1. 旧 mapping から各セクション番号の旧タスク ID を取得
+2. completed 状態の旧 ID → そのまま保持（完了済みなので再登録不要）
+3. 未完了の旧 ID → 新 Team の TaskCreate で再登録、新 ID を取得
+4. mapping を更新: 旧 ID (未完了) → 新 ID に置換
+5. 完了判定は active な ID セット（completed + 新 ID）で評価
+
+例:
+  旧: {"task-1a": "4.1", "task-1b": "4.1", "task-2": "4.2"}
+  task-1a: completed, task-1b: 未完了, task-2: 未完了
+  ↓
+  新: {"task-1a": "4.1", "task-5": "4.1", "task-6": "4.2"}
+  (task-1a は完了済みなので保持、task-1b は task-5 に再登録)
+```
+
+**完了判定**: セクション 4.1 の cc:done 判定は `task-1a` (completed) + `task-5` (active) の両方が completed であること。
+ステール ID (`task-1b`) は mapping から削除し、判定対象に含めない。
 
 ## エッジケース
 

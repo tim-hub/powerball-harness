@@ -12,7 +12,7 @@ Step 0: breezing-active.json 即時書き込み（全 Phase の前に実行）
 ┌─────────────────────────────────────────────────────────────┐
 │ Phase 0: Planning Discussion（--discuss 時のみ）             │
 │                                                              │
-│  Planner + Critic を spawn → 計画議論 2-3 ラウンド          │
+│  Planner + Critic を spawn → 計画議論 最大 3 ラウンド       │
 │  Planner ↔ Critic 直接対話 + Lead 調整                      │
 │  → 精査済み計画をユーザーに提示 → Planner/Critic shutdown   │
 │                                                              │
@@ -294,6 +294,15 @@ Hook が生成したシグナルに基づいて自律的に判断する:
 
 > **注**: シグナルは推奨であり、Lead は状況に応じて無視できる。
 > 例: 残りタスクが 1 個なら部分レビューは不要。
+
+**シグナルのセッションスコープ**:
+- 各シグナルには `session_id` が付与される（breezing-active.json の session_id と一致）
+- dedup はセッション単位で行われるため、前回セッションのシグナルが今回のセッションを抑制しない
+- **50% シグナルの最小バッチサイズ**: バッチサイズ 1-2 では部分レビューは不発（全体レビューで十分なため）
+
+**シグナルファイルのライフサイクル**:
+- セッション開始時: breezing-active.json 書き込み時に `breezing-signals.jsonl` はリセットしない（セッション ID で分離）
+- セッション終了時: Phase C の cleanup で `breezing-signals.jsonl` を削除
 
 ### Implementer の自律ループ
 

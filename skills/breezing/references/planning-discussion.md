@@ -199,10 +199,24 @@ Phase 0 を実行した場合、メタデータに記録:
     "rounds": 3,
     "critic_assessment": "approve",
     "findings_resolved": 2,
-    "findings_accepted": 1
+    "findings_accepted": 1,
+    "handoff": {
+      "estimated_owns": {
+        "4.1": ["src/components/LoginForm.tsx", "src/app/api/auth/login/route.ts"],
+        "4.2": ["src/middleware.ts", "src/lib/auth.ts"]
+      },
+      "proposed_dependencies": [
+        {"from": "4.1", "to": "4.2", "reason": "loginHandler レスポンス型依存"}
+      ],
+      "findings_digest": ["4.3 の受入条件を具体化済み", "テストタスク追加済み"]
+    }
   }
 }
 ```
+
+> **Compaction 対策**: `handoff` フィールドに Phase 0 の成果物（owns 推定、依存提案、
+> findings の要約）を永続化する。コンテキスト圧縮が Phase 0 と Phase A の間に発生しても、
+> breezing-active.json から復元可能。
 
 ## コスト考慮
 

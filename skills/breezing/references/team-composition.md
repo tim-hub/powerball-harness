@@ -349,7 +349,7 @@ spawn prompt で使用すべきスキルを明示的に指定すること。
 Lead はユーザーのパーミッションモードを**維持したまま**計画議論を実施:
 
 1. Planner + Critic spawn
-2. 2-3 ラウンドの議論（Planner 分析 → Critic 批判 → Lead 統合判断）
+2. 最大 3 ラウンドの議論（Planner 分析 → Critic 批判 → Lead 統合判断）
 3. ユーザーに精査済み計画を提示
 4. Planner/Critic shutdown → Phase A へ
 
