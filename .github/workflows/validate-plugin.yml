@@ -32,6 +32,9 @@ jobs:
           echo "::warning title=Version bump missing::Code changes detected but VERSION was not bumped. Please bump version before merging."
           exit 1
 
+      - name: Install ripgrep
+        run: sudo apt-get install -y ripgrep
+
       - name: Validate plugin structure
         run: |
           bash ./tests/validate-plugin.sh

@@ -271,6 +271,12 @@ if [ -d "opencode/skills" ] && [ -d "codex/.codex/skills" ]; then
   get_skill_names() {
     local root="$1"
     find "$root" -mindepth 1 -maxdepth 1 -type d | while IFS= read -r d; do
+      local dirname
+      dirname="$(basename "$d")"
+      # Skip dev/test/unsupported skills (matches build-opencode.js logic)
+      case "$dirname" in
+        test-*|x-*|breezing|_archived|harness-ui) continue ;;
+      esac
       if [ -f "$d/SKILL.md" ]; then
         sed -n 's/^name:[[:space:]]*//p' "$d/SKILL.md" | head -n 1 | tr -d '\"'
       fi
