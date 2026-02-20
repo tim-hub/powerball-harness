@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.20.11-blue.svg" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.21.0-blue.svg" alt="Version"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
   <img src="https://img.shields.io/badge/Skills-45-orange.svg" alt="Skills">
@@ -225,6 +225,30 @@ claude-code-harness/
 ---
 
 ## Advanced Features
+
+<details>
+<summary><strong>Breezing (Agent Teams)</strong></summary>
+
+Run entire task lists with autonomous agent teams:
+
+```bash
+/breezing all                    # Plan review + parallel implementation
+/breezing --no-discuss all       # Skip plan review, go straight to coding
+/breezing --codex all            # Delegate to Codex engine
+```
+
+**Phase 0 (Planning Discussion)** runs by default—Planner analyzes task quality, Critic challenges the plan, then you approve before coding starts.
+
+| Feature | Description |
+|---------|-------------|
+| Planning Discussion | Planner + Critic review your plan (default-on) |
+| Task Validation (V1–V5) | Scope, ambiguity, overlap, dependency, TDD checks |
+| Progressive Batching | 8+ tasks auto-split into manageable batches |
+| Hook-driven Signals | Auto-triggers for partial review and next batch |
+
+> **Cost**: ~5.5x tokens (default) vs ~4x (with `--no-discuss`). The plan review pays for itself by reducing rework.
+
+</details>
 
 <details>
 <summary><strong>Codex Engine</strong></summary>

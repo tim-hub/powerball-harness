@@ -4,6 +4,45 @@ Change history for claude-code-harness.
 
 > **📝 Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
+## [2.21.0] - 2026-02-20
+
+### 🎯 What's Changed for You
+
+**Breezing now reviews your plan before coding starts. Phase 0 (Planning Discussion) runs by default—skip with `--no-discuss`.**
+
+| Before | After |
+|--------|-------|
+| `/breezing` jumps straight into coding | Plan reviewed by Planner + Critic before implementation |
+| No task validation before execution | V1–V5 checks (scope, ambiguity, overlap, deps, TDD) |
+| All tasks registered at once | 8+ tasks auto-split into progressive batches |
+| Implementers communicate only via Lead | Implementers can message each other directly |
+
+### Added
+
+- **Breezing Planning Discussion (Phase 0)**: pre-execution plan review with Planner + Critic teammates (default-on, skip with `--no-discuss`)
+- **Task granularity validation (V1–V5)**: validates task scope, ambiguity, owns overlap, dependency consistency, and TDD markers before TaskCreate
+- **Progressive Batch strategy**: automatic batch splitting for 8+ tasks with 60% completion triggers
+- **Implementer peer communication (Pattern D)**: direct Implementer-to-Implementer knowledge sharing via SendMessage
+- **Hook-driven signals**: `task-completed.sh` now generates `partial_review_recommended` and `next_batch_recommended` signals
+- **Spec Driven Development integration**: `[feature:tdd]` markers in Plans.md trigger test-first task generation
+- **New agents**: `plan-analyst` (task analysis) and `plan-critic` (Red Teaming review) for Phase 0
+
+### Fixed
+
+- **Signal threshold comparison**: Changed `-eq` to `-ge` in `task-completed.sh` to handle simultaneous task completions that skip exact threshold
+- **Signal deduplication**: Added existing signal check before emitting to prevent duplicate signals
+- **Signal generation fallback**: Added `python3` fallback for signal JSON generation when `jq` is unavailable
+- **Completion counting**: Fixed `grep -c` overcounting in batch scope (now counts each task_id once regardless of retakes)
+- **Document consistency**: Resolved contradictions between execution-flow.md, team-composition.md, and planning-discussion.md regarding round counts and V1-V4 skip policy
+- **Signal session scoping**: Signals now include `session_id` and dedup is session-scoped, preventing prior sessions from suppressing signals
+- **grep pattern safety**: Changed `grep -q` to `grep -Fq` (fixed-string match) for task_id lookups, preventing regex meta-character injection
+- **stdin piping safety**: Changed `echo` to `printf '%s'` for JSON piping to jq/python3, preventing edge-case mangling
+- **DRY signal construction**: Extracted `_build_signal_json` helper to eliminate jq/python3 fallback duplication in signal paths
+- **Phase 0 handoff persistence**: Added `handoff` payload to breezing-active.json for Compaction resilience between Phase 0 and Phase A
+- **Resume stale-ID reconciliation**: Added rules for mapping old task IDs to new IDs during session resume, with completion evaluation against active ID set
+
+---
+
 ## [2.20.13] - 2026-02-19
 
 ### What's Changed
@@ -32,7 +71,6 @@ Change history for claude-code-harness.
 - Strengthened `tests/test-codex-package.sh` and CI to guard against legacy vocabulary regressions and enforce required multi-agent keywords/config defaults.
 
 ---
-
 ## [2.20.11] - 2026-02-19
 
 ### Changed
@@ -798,6 +836,8 @@ Change history for claude-code-harness.
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases).
 
+[2.21.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.13...v2.21.0
+[2.20.13]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.11...v2.20.13
 [2.20.11]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.10...v2.20.11
 [2.20.10]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.9...v2.20.10
 [2.20.9]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.8...v2.20.9

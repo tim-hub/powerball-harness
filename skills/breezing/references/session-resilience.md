@@ -75,6 +75,30 @@ breezing-active.json (.claude/state/)
 | `review.retake_count` | リテイク回数 | リテイク発生時にインクリメント |
 | `review.max_retakes` | リテイク上限 | 固定値 (デフォルト 3) |
 
+### Progressive Batch 状態の永続化
+
+タスク数 > 8 で Progressive Batching が有効な場合、`batching` フィールドを追加:
+
+```json
+{
+  "batching": {
+    "enabled": true,
+    "total_tasks": 15,
+    "current_batch": 2,
+    "batches": [
+      {"batch": 1, "task_ids": ["task-1", "task-2", "task-3"], "status": "completed"},
+      {"batch": 2, "task_ids": ["task-4", "task-5"], "status": "in_progress"},
+      {"batch": 3, "task_ids": [], "status": "pending"}
+    ]
+  }
+}
+```
+
+「続きやって」での再開時:
+1. `batching.current_batch` で現在のバッチを特定
+2. `status: "in_progress"` のバッチの未完了タスクを再登録
+3. `status: "pending"` のバッチは元の Plans.md セクションから復元
+
 ### v1 → v2 の変更点
 
 | v1 | v2 | 理由 |
