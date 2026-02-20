@@ -8,7 +8,7 @@ Change history for claude-code-harness.
 
 ### Added
 
-- **Breezing Planning Discussion (Phase 0)**: `--discuss` flag enables pre-execution plan review with Planner + Critic teammates
+- **Breezing Planning Discussion (Phase 0)**: pre-execution plan review with Planner + Critic teammates (default-on, skip with `--no-discuss`)
 - **Task granularity validation (V1–V5)**: validates task scope, ambiguity, owns overlap, dependency consistency, and TDD markers before TaskCreate
 - **Progressive Batch strategy**: automatic batch splitting for 8+ tasks with 60% completion triggers
 - **Implementer peer communication (Pattern D)**: direct Implementer-to-Implementer knowledge sharing via SendMessage

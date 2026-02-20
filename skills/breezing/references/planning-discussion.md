@@ -1,14 +1,14 @@
 # Planning Discussion (Phase 0)
 
-`--discuss` フラグ使用時の計画議論フェーズ仕様。
+計画議論フェーズ仕様（デフォルト実行、`--no-discuss` でスキップ）。
 Agent Teams を活用して、実行前にタスク分解の妥当性を議論・精査する。
 
 ## 概要
 
 ```text
-/breezing --discuss all
+/breezing all
     ↓
-Phase 0: Planning Discussion（実行前の計画議論）
+Phase 0: Planning Discussion（デフォルトで実行）
   ├── Planner: タスク分析・粒度精査・owns 推定・リスク評価
   ├── Critic: Red Teaming 視点で計画を批判
   └── Lead: 議論を調整、精査済み計画をユーザーに提示
@@ -20,13 +20,11 @@ Phase A: Pre-delegate（通常フローに合流）
 
 | 条件 | Phase 0 起動 |
 |---|---|
-| `--discuss` フラグ指定 | 常に起動 |
-| フラグなし | スキップ（直接 Phase A へ） |
+| フラグなし（デフォルト） | 常に起動 |
+| `--no-discuss` フラグ指定 | スキップ（直接 Phase A へ） |
 
-> **注**: Phase A の V1〜V4 バリデーションで多数の warning が見つかった場合、
-> Lead は「次回は `--discuss` の使用を推奨」とユーザーに提案できる。
-> ただし Phase 0 は Phase A の**前**に実行されるため、
-> V1〜V4 の結果を見てから Phase 0 に戻ることはできない。
+> **注**: `--no-discuss` でスキップした場合でも、Phase A の V1〜V4 バリデーションは実行される。
+> Phase 0 は戦略/アーキテクチャ評価、V1〜V4 は技術的詳細チェックで役割が異なる。
 
 ## Team 構成（Phase 0 限定）
 
