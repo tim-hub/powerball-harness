@@ -4,29 +4,55 @@ Change history for claude-code-harness.
 
 > **📝 Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
-## [2.21.1] - 2026-02-21
+## [2.22.0] - 2026-02-21
 
 ### 🎯 What's Changed for You
 
-**Security guardrails now apply automatically from the moment you install Harness — no `/harness-init` required.**
+**Security guardrails now apply automatically from the moment you install Harness — no `/harness-init` required. Permission policy hardened with least-privilege defaults and privacy-safe session logging.**
 
 | Before | After |
 |--------|-------|
 | Security settings (deny/ask rules) required running `/harness-init` | Plugin settings applied automatically on install (CC 2.1.49+) |
-| `stop-session-evaluator.sh` always returned `{"ok":true}` without reading input | Hook now reads `last_assistant_message` from Stop payload and records a summary to `session.json` |
+| Plugin settings had a broad `allow` rule; no DB CLI protection | Least-privilege: removed blanket `allow`; added deny for `psql`/`mysql`/`mongo` |
+| `stop-session-evaluator.sh` always returned `{"ok":true}` without reading input | Hook reads `last_assistant_message`, stores length+hash only (privacy-safe) with atomic writes |
 | No hook for configuration file changes | New `ConfigChange` hook records config changes to breezing timeline when active |
+| `npm install` / `bun install` ran without confirmation | Package manager installs now require user confirmation (`ask` rule) |
 
 ### Added
 
-- **Plugin settings.json** (`.claude-plugin/settings.json`): default security permissions distributed with the plugin. Deny rules for `.env`, secrets, SSH keys, and `sudo`; ask rules for destructive operations (`rm -r`, `git push --force`, `git reset --hard`) — active from install (CC 2.1.49+)
+- **Plugin settings.json** (`.claude-plugin/settings.json`): default security permissions distributed with the plugin — active from install (CC 2.1.49+)
+  - **Deny**: `.env`, secrets, SSH keys (`id_rsa`, `id_ed25519`), `.aws/`, `.ssh/`, `.npmrc`, `sudo`, `rm -rf/-fr`, DB CLIs (`psql`, `mysql`, `mongo`)
+  - **Ask**: destructive git (`push --force`, `reset --hard`, `clean -f`, `rebase`, `merge`), package installs (`npm/bun/pnpm install`), `npx`/`npm exec`
 - **`ConfigChange` hook** (`scripts/hook-handlers/config-change.sh`): records configuration file changes to `breezing-timeline.jsonl` when breezing is active; always non-blocking
-- **`last_assistant_message` support** in `stop-session-evaluator.sh`: reads CC 2.1.47+ Stop payload and stores a 200-char message summary to `.claude/state/session.json`
+  - Normalizes `file_path` to repo-relative paths in timeline logs
+  - Portable timeout detection (`timeout`/`gtimeout`/`dd` fallback)
+- **`last_assistant_message` support** in `stop-session-evaluator.sh`: reads CC 2.1.47+ Stop payload
+  - Stores message length + SHA-256 hash only (no plaintext — privacy by design)
+  - Atomic writes via `mktemp` (TOCTOU fix)
+  - Portable hash detection (`shasum`/`sha256sum`)
+- **CC 2.1.49 compatibility matrix** (`docs/CLAUDE_CODE_COMPATIBILITY.md`): added v2.1.43-v2.1.49 entries covering Plugin settings.json, Worktree isolation, Background agents, ConfigChange hook, Sonnet 4.6, WASM memory fix
 
 ### Changed
 
+- **Breezing: Worktree isolation support** (CC 2.1.49+): documented `isolation: "worktree"` in `guardrails-inheritance.md` — parallel Implementers can now work on the same files without conflicts via git worktree isolation
+- **Breezing: Agent model field fix** (CC 2.1.47+): documented model field behavior change in guardrails for correct agent spawning
+- **Breezing: Background agents** (`background: true`): `video-scene-generator` agent now supports non-blocking background execution
+- **Breezing: opencode mirror full sync**: all 10 breezing reference files (execution-flow, team-composition, review-retake-loop, session-resilience, planning-discussion, plans-to-tasklist, codex-engine, codex-review-integration, guardrails-inheritance, SKILL.md) synced to `opencode/skills/breezing/` for the first time
+- **Breezing: Codex mirror updates**: all breezing reference files in `codex/.codex/skills/breezing/` updated to latest
+- **Work skill**: major Codex mirror updates for auto-commit, auto-iteration, codex-engine, error-handling, execution-flow, parallel-execution, review-loop, scope-dialog, session-management
 - **`quick-install.sh`**: added note that default security permissions apply automatically — no manual configuration needed
 - **`claude-settings.md` skill**: added note that CC 2.1.49+ auto-applies plugin settings; manual `settings.json` generation only needed for project-specific additions
-- **`settings.security.json.template`**: updated `_harness_version` to 2.21.0 and added `_harness_note` clarifying role separation from plugin settings
+- **`settings.security.json.template`**: updated `_harness_version` and added `_harness_note` clarifying role separation from plugin settings; unified `rm -rf/-fr` deny variants
+- **Version references**: updated from CC 2.1.38 to 2.1.49 across 16+ skill and agent files
+
+### Security
+
+- **Least-privilege enforcement**: removed overly broad `allow` from plugin settings.json; all permissions now explicit deny or ask
+- **DB CLI deny rules**: `psql`, `mysql`, `mongod`, `mongo` blocked by default to prevent accidental data operations
+- **Secret path expansion**: added `id_ed25519`, recursive `.ssh/`, `.aws/`, `.npmrc` to deny patterns
+- **Privacy-safe session logging**: `last_assistant_message` stored as length+hash, not plaintext
+- **Atomic file writes**: `session.json` updates use `mktemp` + `mv` to prevent TOCTOU race conditions
+- All 3 Codex experts (Security/Quality/Architect) scored A on hardening review
 
 ---
 
@@ -862,6 +888,7 @@ Change history for claude-code-harness.
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases).
 
+[2.22.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.21.0...v2.22.0
 [2.21.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.13...v2.21.0
 [2.20.13]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.11...v2.20.13
 [2.20.11]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.10...v2.20.11

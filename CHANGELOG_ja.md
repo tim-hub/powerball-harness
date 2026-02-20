@@ -7,29 +7,94 @@
 
 > **📝 記載ルール**: ユーザー体験に影響する変更を中心に記載。内部修正は簡潔に。
 
-## [2.21.1] - 2026-02-21
+## [2.22.0] - 2026-02-21
 
 ### 🎯 あなたにとって何が変わるか
 
-**Harness をインストールした瞬間からセキュリティガードレールが有効になります — `/harness-init` は不要です。**
+**Harness をインストールした瞬間からセキュリティガードレールが有効になります — `/harness-init` は不要です。権限ポリシーは最小権限原則で強化され、セッションログもプライバシー安全になりました。**
 
 | Before | After |
 |--------|-------|
 | セキュリティ設定（deny/ask ルール）の有効化には `/harness-init` の実行が必要だった | CC 2.1.49+ ではインストール直後から Plugin settings が自動適用される |
-| `stop-session-evaluator.sh` は入力を読まず常に `{"ok":true}` を返すだけだった | Stop ペイロードの `last_assistant_message` を読み取り、要約を `session.json` に記録するようになった |
+| Plugin settings に広範な `allow` ルールがあり、DB CLI の保護がなかった | 最小権限: 包括的 `allow` を削除、`psql`/`mysql`/`mongo` の deny を追加 |
+| `stop-session-evaluator.sh` は入力を読まず常に `{"ok":true}` を返すだけだった | `last_assistant_message` を読み取り、長さ+ハッシュのみ保存（プライバシー安全）、アトミック書き込み対応 |
 | 設定ファイル変更時のフックがなかった | 新しい `ConfigChange` フックが breezing アクティブ時に設定変更をタイムラインに記録 |
+| `npm install` / `bun install` が確認なしで実行された | パッケージマネージャのインストールにユーザー確認が必要に（`ask` ルール） |
 
 ### Added
 
-- **Plugin settings.json** (`.claude-plugin/settings.json`): プラグインと共に配布されるデフォルトのセキュリティ権限設定。`.env`・secrets・SSH 鍵・`sudo` の deny ルール、破壊的操作（`rm -r`・`git push --force`・`git reset --hard`）の ask ルールをインストール直後から適用（CC 2.1.49+）
+- **Plugin settings.json** (`.claude-plugin/settings.json`): プラグインと共に配布されるデフォルトのセキュリティ権限設定 — インストール直後から有効（CC 2.1.49+）
+  - **Deny**: `.env`、secrets、SSH 鍵（`id_rsa`、`id_ed25519`）、`.aws/`、`.ssh/`、`.npmrc`、`sudo`、`rm -rf/-fr`、DB CLI（`psql`、`mysql`、`mongo`）
+  - **Ask**: 破壊的 git（`push --force`、`reset --hard`、`clean -f`、`rebase`、`merge`）、パッケージインストール（`npm/bun/pnpm install`）、`npx`/`npm exec`
 - **`ConfigChange` フック** (`scripts/hook-handlers/config-change.sh`): breezing アクティブ時に設定ファイルの変更を `breezing-timeline.jsonl` に記録。常に非ブロッキング
-- **`stop-session-evaluator.sh` での `last_assistant_message` 対応**: CC 2.1.47+ の Stop ペイロードを読み取り、メッセージの先頭 200 文字を `.claude/state/session.json` の `last_message_summary` に保存
+  - `file_path` をリポジトリ相対パスに正規化してタイムラインに記録
+  - ポータブルなタイムアウト検出（`timeout`/`gtimeout`/`dd` フォールバック）
+- **`stop-session-evaluator.sh` での `last_assistant_message` 対応**: CC 2.1.47+ の Stop ペイロードを読み取り
+  - メッセージの長さ + SHA-256 ハッシュのみ保存（平文なし — プライバシー・バイ・デザイン）
+  - `mktemp` によるアトミック書き込み（TOCTOU 修正）
+  - ポータブルなハッシュ検出（`shasum`/`sha256sum`）
+- **CC 2.1.49 互換性マトリクス** (`docs/CLAUDE_CODE_COMPATIBILITY.md`): v2.1.43-v2.1.49 のエントリを追加。Plugin settings.json、Worktree isolation、Background agents、ConfigChange hook、Sonnet 4.6、WASM memory fix をカバー
 
 ### Changed
 
+- **Breezing: Worktree isolation 対応**（CC 2.1.49+）: `guardrails-inheritance.md` に `isolation: "worktree"` を記述 — 並列 Implementer が同一ファイルを編集しても git worktree 分離により衝突しない
+- **Breezing: Agent model フィールド修正**（CC 2.1.47+）: エージェント spawn 時の model フィールド動作変更をガードレールに記述
+- **Breezing: Background agents**（`background: true`）: `video-scene-generator` エージェントが非ブロッキングバックグラウンド実行に対応
+- **Breezing: opencode ミラー完全同期**: breezing の全10リファレンスファイル（execution-flow, team-composition, review-retake-loop, session-resilience, planning-discussion, plans-to-tasklist, codex-engine, codex-review-integration, guardrails-inheritance, SKILL.md）を `opencode/skills/breezing/` に初めて同期
+- **Breezing: Codex ミラー更新**: `codex/.codex/skills/breezing/` の全リファレンスファイルを最新版に更新
+- **Work スキル**: Codex ミラーの auto-commit, auto-iteration, codex-engine, error-handling, execution-flow, parallel-execution, review-loop, scope-dialog, session-management を大幅更新
 - **`quick-install.sh`**: デフォルトのセキュリティ設定が自動適用される旨の案内メッセージを追加
 - **`claude-settings.md` スキル**: CC 2.1.49+ では plugin settings が自動適用されるため、手動での `settings.json` 生成はプロジェクト固有の追加設定が必要な場合のみと注記を追加
-- **`settings.security.json.template`**: `_harness_version` を 2.21.0 に更新、plugin settings との役割分担を明記する `_harness_note` を追加
+- **`settings.security.json.template`**: `_harness_version` を更新、plugin settings との役割分担を明記する `_harness_note` を追加、`rm -rf/-fr` の deny バリアントを統一
+- **バージョン参照**: 16 以上のスキル・エージェントファイルで CC 2.1.38 → 2.1.49 に更新
+
+### Security
+
+- **最小権限の強制**: plugin settings.json から過度に広い `allow` を削除。すべての権限を明示的な deny または ask に
+- **DB CLI deny ルール**: `psql`、`mysql`、`mongod`、`mongo` をデフォルトでブロックし、誤操作によるデータ破壊を防止
+- **シークレットパスの拡張**: `id_ed25519`、再帰的 `.ssh/`、`.aws/`、`.npmrc` を deny パターンに追加
+- **プライバシー安全なセッションログ**: `last_assistant_message` を平文ではなく長さ+ハッシュで保存
+- **アトミックファイル書き込み**: `session.json` の更新に `mktemp` + `mv` を使用し、TOCTOU 競合条件を防止
+- Codex 3 エキスパート（Security/Quality/Architect）全員がハードニングレビューで A 評価
+
+---
+
+## [2.21.0] - 2026-02-20
+
+### 🎯 あなたにとって何が変わるか
+
+**Breezing がコーディング開始前にプランをレビューするようになりました。Phase 0（Planning Discussion）がデフォルトで実行されます — `--no-discuss` でスキップ可能。**
+
+| Before | After |
+|--------|-------|
+| `/breezing` は即座にコーディングを開始 | 実装前に Planner + Critic がプランをレビュー |
+| タスク登録前のバリデーションなし | V1〜V5 チェック（スコープ、曖昧性、owns 重複、依存関係、TDD） |
+| 全タスクを一度に登録 | 8タスク以上は自動的にプログレッシブバッチに分割 |
+| Implementer 間は Lead 経由でのみ通信 | Implementer 同士が直接メッセージ可能 |
+
+### Added
+
+- **Breezing Planning Discussion（Phase 0）**: 実装前に Planner + Critic のチームメイトがプランを精査（デフォルト有効、`--no-discuss` でスキップ）
+- **タスク粒度バリデーション（V1〜V5）**: TaskCreate 前にスコープ、曖昧性、owns 重複、依存関係の整合性、TDD マーカーを検証
+- **プログレッシブバッチ戦略**: 8タスク以上の場合に自動バッチ分割、60% 完了でトリガー
+- **Implementer 間の直接通信（パターン D）**: SendMessage による Implementer 同士のナレッジ共有
+- **フック駆動シグナル**: `task-completed.sh` が `partial_review_recommended` と `next_batch_recommended` シグナルを生成
+- **Spec Driven Development 統合**: Plans.md の `[feature:tdd]` マーカーがテストファースト型タスク生成をトリガー
+- **新エージェント**: `plan-analyst`（タスク分析）と `plan-critic`（Red Teaming レビュー）を Phase 0 用に追加
+
+### Fixed
+
+- **シグナル閾値比較**: `task-completed.sh` の `-eq` を `-ge` に変更。同時完了で閾値を飛び越すケースに対応
+- **シグナル重複防止**: シグナル発行前に既存シグナルの存在チェックを追加
+- **シグナル生成フォールバック**: `jq` が利用不可の場合に `python3` フォールバックを追加
+- **完了カウント修正**: バッチスコープ内の `grep -c` 過剰カウントを修正（リテイク回数に関係なく task_id ごとに1回カウント）
+- **ドキュメント整合性**: execution-flow.md、team-composition.md、planning-discussion.md 間のラウンド数・V1-V4 スキップポリシーの矛盾を解消
+- **シグナルのセッションスコープ**: シグナルに `session_id` を含め、セッション単位で重複排除。前セッションのシグナルが新セッションを抑制しない
+- **grep パターン安全性**: task_id 検索の `grep -q` を `grep -Fq`（固定文字列マッチ）に変更。正規表現メタ文字のインジェクション防止
+- **stdin パイプ安全性**: JSON を jq/python3 にパイプする際の `echo` を `printf '%s'` に変更。エッジケースの文字化け防止
+- **DRY シグナル構築**: `_build_signal_json` ヘルパーを抽出し、シグナルパスの jq/python3 フォールバック重複を排除
+- **Phase 0 ハンドオフ永続化**: Compaction 耐性のため breezing-active.json に `handoff` ペイロードを追加（Phase 0 → Phase A 間）
+- **Resume 時の stale-ID 照合**: セッション再開時に旧タスク ID を新 ID にマッピングするルールを追加。アクティブ ID セットに対する完了判定
 
 ---
 
