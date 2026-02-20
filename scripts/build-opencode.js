@@ -313,9 +313,10 @@ function copySkills() {
     const srcSkillDir = path.join(SKILLS_DIR, skillName);
     const destSkillDir = path.join(OPENCODE_SKILLS_DIR, skillName);
 
-    // テスト用・開発用スキルはスキップ
-    if (skillName.startsWith('test-') || skillName.startsWith('x-')) {
-      console.log(`  ⏭ ${skillName}/ (dev/test skill, skipped)`);
+    // テスト用・開発用・opencode 非対応スキルはスキップ
+    const skipSkills = ['breezing'];
+    if (skillName.startsWith('test-') || skillName.startsWith('x-') || skipSkills.includes(skillName)) {
+      console.log(`  ⏭ ${skillName}/ (dev/test/unsupported skill, skipped)`);
       continue;
     }
 

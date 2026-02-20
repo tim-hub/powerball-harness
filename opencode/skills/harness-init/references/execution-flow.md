@@ -90,8 +90,8 @@ Ask once after setup:
 > - no  → スキップ
 
 If yes:
-- Prefer `bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-setup-local.sh" --skip-mcp`
-- If MCP template is requested, run with `--with-mcp`
+- Prefer `bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-setup-local.sh" --user --skip-mcp`
+- If MCP template is requested, run with `--user --with-mcp`
 - If `CLAUDE_PLUGIN_ROOT` is unavailable, run from plugin repo root
 
 ## Phase 4: Environment Diagnosis (Auto-execute)

@@ -24,17 +24,21 @@
 
 ### /setup codex
 
-Codex CLI 用の `.codex/` と `AGENTS.md` を導入・更新。
+Codex CLI 用の Harness 設定を**ユーザーベース**（`${CODEX_HOME:-~/.codex}`）に導入・更新。
 
 ```
 /setup codex
 ```
 
-**生成されるファイル**:
+**生成されるファイル（デフォルト）**:
+- ${CODEX_HOME:-~/.codex}/skills/
+- ${CODEX_HOME:-~/.codex}/rules/
+- (optional) ${CODEX_HOME:-~/.codex}/config.toml
+
+**project モード時のみ**:
 - .codex/skills/
 - .codex/rules/
 - AGENTS.md
-- (optional) .codex/config.toml
 
 ---
 
