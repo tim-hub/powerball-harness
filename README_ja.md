@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.20.11-blue.svg" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.21.0-blue.svg" alt="Version"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
   <img src="https://img.shields.io/badge/Skills-45-orange.svg" alt="Skills">
@@ -225,6 +225,30 @@ claude-code-harness/
 ---
 
 ## 高度な機能
+
+<details>
+<summary><strong>Breezing（Agent Teams）</strong></summary>
+
+自律エージェントチームでタスクリストを一気に完走:
+
+```bash
+/breezing all                    # 計画レビュー + 並列実装
+/breezing --no-discuss all       # 計画レビューをスキップして即実装
+/breezing --codex all            # Codex エンジンに委託
+```
+
+**Phase 0（計画議論）** がデフォルトで実行されます。Planner がタスクの品質を分析し、Critic が計画を批判的にチェック。あなたが承認してからコーディングが始まります。
+
+| 機能 | 説明 |
+|------|------|
+| 計画議論 | Planner + Critic が計画をレビュー（デフォルトON） |
+| タスク検証 (V1–V5) | スコープ・曖昧さ・重複・依存・TDD をチェック |
+| Progressive Batching | 8タスク以上は自動でバッチ分割 |
+| Hook シグナル | 部分レビューや次バッチの自動トリガー |
+
+> **コスト**: デフォルトで約5.5倍のトークン（`--no-discuss` なら約4倍）。計画レビューにより手戻りが減るので投資対効果は高い。
+
+</details>
 
 <details>
 <summary><strong>Codex エンジン</strong></summary>

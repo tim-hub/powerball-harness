@@ -40,4 +40,7 @@ jobs:
         run: |
           bash ./scripts/ci/check-consistency.sh
 
+      - name: Validate codex package (multi-agent migration guards)
+        run: |
+          bash ./tests/test-codex-package.sh
 

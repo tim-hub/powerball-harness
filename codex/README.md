@@ -19,51 +19,66 @@ Project-local install is still available:
 
 ### Option 1.5: Claude Code (in-session)
 
-If you use Claude Code Harness, you can run:
+If you use Claude Code Harness, run:
 
-```
+```bash
 /setup codex
 ```
 
 ### Option 2: Manual (user-based)
 
 ```bash
-# Clone Harness
 git clone https://github.com/Chachamaru127/claude-code-harness.git
 
-# User-level Codex home
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
-mkdir -p "$CODEX_HOME/skills" "$CODEX_HOME/rules"
+BACKUP_ROOT="$CODEX_HOME/backups/manual-codex-setup"
+mkdir -p "$CODEX_HOME/skills" "$CODEX_HOME/rules" "$BACKUP_ROOT"
 
-# Copy Codex Harness skills/rules
-cp -R claude-code-harness/codex/.codex/skills/* "$CODEX_HOME/skills/"
+# Prevent duplicate skill listings from legacy backup/archive directories.
+for legacy in "$CODEX_HOME/skills"/_archived "$CODEX_HOME/skills"/*.backup.*; do
+  [ -e "$legacy" ] || continue
+  mv "$legacy" "$BACKUP_ROOT/"
+done
+
+for entry in claude-code-harness/codex/.codex/skills/*; do
+  name="$(basename "$entry")"
+  case "$name" in
+    _archived|*.backup.*) continue ;;
+  esac
+  rm -rf "$CODEX_HOME/skills/$name"
+  cp -R "$entry" "$CODEX_HOME/skills/"
+done
 cp -R claude-code-harness/codex/.codex/rules/* "$CODEX_HOME/rules/"
-
-# Optional: project-level AGENTS.md (only if needed)
-cp claude-code-harness/codex/AGENTS.md /path/to/project/AGENTS.md
+cp claude-code-harness/codex/.codex/config.toml "$CODEX_HOME/config.toml"
 ```
 
-## How to Use
+## Codex Multi-Agent Defaults
 
-- Use `$skill-name` to explicitly invoke skills.
-- Codex reads skills from `$CODEX_HOME/skills/<skill-name>/SKILL.md` (user) and `.codex/skills/...` (project override).
-- Custom prompts like `/work` are not the primary path for Codex.
+- `features.multi_agent = true`
+- Harness role declarations are installed under `[agents.*]`
+- Setup scripts always ensure `multi_agent` + role defaults in target `config.toml`
+- Setup scripts keep backups in `$CODEX_HOME/backups/*` so Codex does not list old skills
+
+## Runtime Behavior
+
+- `$work` / `$breezing` default to Codex native multi-agent orchestration.
+- Native flow uses `spawn_agent`, `wait`, `send_input`, `resume_agent`, `close_agent`.
+- `--claude` switches both implementation and review to Claude delegation.
+- `--claude + --codex-review` is invalid and should fail before execution.
+
+## State Path
+
+Harness runtime state is written under:
+
+```text
+${CODEX_HOME:-~/.codex}/state/harness/
+```
 
 ## Rules
 
-- `$CODEX_HOME/rules/harness.rules` provides guardrails.
-
-## MCP (optional)
-
-If you want user-level MCP integration, copy the template:
-
-```bash
-CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
-cp codex/.codex/config.toml "$CODEX_HOME/config.toml"
-```
-
-Then edit the `mcp_servers.harness` path to your local build.
+`$CODEX_HOME/rules/harness.rules` provides command guardrails.
 
 ## Notes
 
-- Codex supports hook events internally.
+- Codex reads skills from `$CODEX_HOME/skills/<skill-name>/SKILL.md`.
+- Project-local `.codex/skills` overrides user-level skills.

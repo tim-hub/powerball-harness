@@ -1,7 +1,23 @@
-# Codex Team Config (optional)
-#
-# This file is a template. If you do not want MCP, do not copy it.
-# When you do, place it at your project root as .codex/config.toml.
+# Codex Team Config template
+# Copy to ${CODEX_HOME:-~/.codex}/config.toml (user) or .codex/config.toml (project).
+
+[features]
+multi_agent = true
+
+[agents]
+max_threads = 8
+
+[agents.implementer]
+description = "Codex implementation worker for harness task execution"
+
+[agents.reviewer]
+description = "Codex reviewer worker for harness review and retake loops"
+
+[agents.claude_implementer]
+description = "Claude CLI delegated implementation worker (used when --claude)"
+
+[agents.claude_reviewer]
+description = "Claude CLI delegated reviewer worker (used when --claude)"
 
 [mcp_servers.harness]
 command = "node"

@@ -7,6 +7,35 @@
 
 > **📝 記載ルール**: ユーザー体験に影響する変更を中心に記載。内部修正は簡潔に。
 
+## [2.20.13] - 2026-02-19
+
+### 🎯 あなたにとって何が変わるか
+
+**Codex 実行はネイティブ・マルチエージェント前提に統一され、`--claude` 指定時は実装とレビューの両方が Claude 委譲に固定されました。**
+
+| Before | After |
+|--------|-------|
+| Codex スキル文書に旧タスクチーム語彙や旧状態パスが混在 | Codex ネイティブのマルチエージェント語彙（`spawn_agent` / `wait` / `send_input` / `resume_agent` / `close_agent`）と CODEX_HOME 状態パスに統一 |
+| `--claude` の説明が一部で「実装委譲のみ」に見える箇所があった | `--claude` は「実装 + レビューとも Claude 委譲」に統一 |
+| setup 後の `multi_agent` / ロール既定値が暗黙 | setup スクリプトが `config.toml` に `features.multi_agent=true` と harness 用 `[agents.*]` 既定を自動補完 |
+
+### Changed
+
+- Codex 配布の `work` / `breezing` 文書をネイティブ・マルチエージェント前提へ全面更新し、旧タスクチーム語彙を除去。
+- Codex スキル文書の状態保存先を `${CODEX_HOME:-~/.codex}/state/harness/` に統一。
+- `--claude + --codex-review` の同時指定を開始前エラーとして明記。
+- Codex README と setup リファレンスを、マルチエージェント既定とロール宣言前提に整合。
+
+### Fixed
+
+- `work` / `breezing` の両方で、`--claude` 時のレビュー経路を Claude 固定として明示。
+
+### Internal
+
+- `tests/test-codex-package.sh` と CI を強化し、旧語彙の再流入とマルチエージェント必須キーワード/設定欠落を検知可能に。
+
+---
+
 ## [2.20.11] - 2026-02-19
 
 ### Changed

@@ -2,18 +2,14 @@
 
 Setup project for Codex CLI compatibility.
 
-## Quick Reference
-
-- "**Codex CLI でも使いたい**" → Codex setup
-- "**Codex の設定を入れて**" → Codex setup
-- "**.codex を入れて**" → Codex setup
-
 ## Deliverables
 
 - `.codex/skills/` - Harness skills for Codex
-- `.codex/rules/` - Temporary guardrails
-- `AGENTS.md` - Codex rules file
+- `.codex/rules/` - Guardrails
+- `AGENTS.md` - Project instructions (project mode only)
 - Optional: `.codex/config.toml` (MCP template)
+- Required defaults: `features.multi_agent=true` and `[agents.*]` role declarations
+- Legacy cleanup: `_archived` and `*.backup.*` under skills are moved to backup directory
 
 ---
 
@@ -21,24 +17,20 @@ Setup project for Codex CLI compatibility.
 
 ### Step 1: Confirmation
 
-> Codex CLI 用の設定を入れますか？
->
-> - `.codex/skills/`
-> - `.codex/rules/`
-> - `AGENTS.md`
-> - (optional) `.codex/config.toml`
->
-> 続行しますか？ (y/n)
-
-**Wait for response**
+```text
+Codex CLI 用の設定を入れますか？
+- skills/rules
+- (project mode only) AGENTS.md
+- config.toml defaults (multi_agent + roles)
+```
 
 ### Step 2: MCP Template Decision
 
-> MCP テンプレート（`.codex/config.toml`）もコピーしますか？
-> - yes → `--with-mcp`
-> - no  → `--skip-mcp`
-
-**Wait for response**
+```text
+MCP テンプレート（config.toml）をコピーしますか？
+- yes -> --with-mcp
+- no  -> --skip-mcp
+```
 
 ### Step 3: Run Setup Script
 
@@ -46,57 +38,41 @@ Setup project for Codex CLI compatibility.
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-setup-local.sh" --with-mcp
 ```
 
-or:
+or
 
 ```bash
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-setup-local.sh" --skip-mcp
 ```
 
-> Note: If `CLAUDE_PLUGIN_ROOT` is unavailable, run from plugin repo root:
->
-> ```bash
-> bash ./scripts/codex-setup-local.sh --with-mcp
-> ```
->
-> or:
->
-> ```bash
-> bash ./scripts/codex-setup-local.sh --skip-mcp
-> ```
-
-### Step 4: Verify Copy
+### Step 4: Verify
 
 ```bash
 ls -la .codex/skills
 ls -la .codex/rules
-ls -la AGENTS.md
+[ -f .codex/config.toml ] && rg -n "multi_agent|\[agents" .codex/config.toml
 ```
 
 ### Step 5: Completion Message
 
-> Codex CLI setup complete!
->
-> **Generated/updated:**
-> - `.codex/skills/`
-> - `.codex/rules/`
-> - `AGENTS.md`
-> - (optional) `.codex/config.toml`
->
-> **Usage:**
-> - Start Codex in the project
-> - Use `$plan-with-agent`, `$work`, `$harness-review`
+```text
+Codex CLI setup complete.
+- multi_agent defaults applied
+- harness role defaults applied
+```
 
 ---
 
-## Notes
+## Runtime Expectations
 
-- If `.codex/skills` or `.codex/rules` exists, the script creates a timestamp backup
-- `AGENTS.md` is backed up before overwrite
-- MCP template is optional and not overwritten if already present
+- `$work` / `$breezing` default to Codex native multi-agent execution.
+- `--claude` routes both implementation and review to Claude.
+- `--claude + --codex-review` is invalid.
 
-## Related: Codex MCP Review Integration
+## State Path
 
-Codex を Claude Code の MCP サーバーとして登録し、セカンドオピニオンレビューに使う場合は、codex-review スキルを参照:
+Use `${CODEX_HOME:-~/.codex}/state/harness/` for runtime state.
 
-- [codex-mcp-setup.md](../../codex-review/references/codex-mcp-setup.md) - Codex MCP サーバー登録手順
-- [codex-review-integration.md](../../codex-review/references/codex-review-integration.md) - レビュー統合
+## Duplicate Listing Guard
+
+- Setup scripts skip `_archived` and `*.backup.*` when syncing skills.
+- Existing legacy skill folders are moved to `${CODEX_HOME:-~/.codex}/backups/*` (or `.codex/backups/*` in project mode).
