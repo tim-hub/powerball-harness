@@ -7,6 +7,32 @@
 
 > **📝 記載ルール**: ユーザー体験に影響する変更を中心に記載。内部修正は簡潔に。
 
+## [2.23.0] - 2026-02-21
+
+### 🎯 あなたにとって何が変わるか
+
+**Codex breezing に独自の Phase 0（計画議論）が追加されました — Codex ネイティブのマルチエージェント API を使って、Planner と Critic が実装前に計画を分析します。**
+
+| Before | After |
+|--------|-------|
+| Codex breezing の Phase 0 はデッドコード（Claude 専用 API を参照していた） | Phase 0 が `spawn_agent`/`send_input`/`wait`/`close_agent` でネイティブ動作 |
+| `config.toml` に 4 つのエージェント定義 | `plan_analyst`、`plan_critic`、`task_worker`、`code_reviewer`、`codex_implementer` を含む 9 定義 |
+| breezing の全リファレンスファイルが Claude と Codex で同一だった | 3 ファイルがプラットフォーム固有の実装で意図的に分岐 |
+
+### Added
+
+- **Codex Phase 0（計画議論）**: Claude Agent Teams から Codex ネイティブマルチエージェント API（`spawn_agent`/`send_input`/`wait`/`close_agent`）に移植
+- **5 つの新 Codex エージェント定義**（`config.toml`）: `plan_analyst`、`plan_critic`、`task_worker`、`code_reviewer`、`codex_implementer`
+- **ミラー同期 divergence 管理**（D24、P20）: breezing の 3 ファイル（`planning-discussion.md`、`execution-flow.md`、`team-composition.md`）を rsync 除外対象に設定し、Codex ネイティブ実装を保護
+
+### Changed
+
+- **Codex `planning-discussion.md`**: Codex ネイティブ API で全面書き換え — Planner ↔ Critic の対話を Lead 中継パターン（`send_input` + `wait` ループ）で実装
+- **Codex `execution-flow.md`**: Phase 0 + Phase A の spawn ロジックを `spawn_agent()` 形式に更新。環境チェックを `config.toml [features] multi_agent = true` 参照に変更
+- **Codex `team-composition.md`**: 全ロール定義を更新 — `subagent_type` 削除、`spawn_agent()` 形式、`SendMessage` → `send_input()`、`shutdown_request` → `close_agent()`
+
+---
+
 ## [2.22.0] - 2026-02-21
 
 ### 🎯 あなたにとって何が変わるか

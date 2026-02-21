@@ -13,11 +13,26 @@ description = "Codex implementation worker for harness task execution"
 [agents.reviewer]
 description = "Codex reviewer worker for harness review and retake loops"
 
+[agents.task_worker]
+description = "Standard Breezing implementer (impl_mode: standard). Implements tasks, runs self-review, build, and tests. Alias for implementer in the Breezing workflow."
+
+[agents.code_reviewer]
+description = "Breezing reviewer. Performs independent code review with harness-review 4-point assessment. Issues APPROVE / REQUEST_CHANGES / REJECT / STOP. Read-only."
+
+[agents.codex_implementer]
+description = "Codex Breezing implementer (impl_mode: codex, used with --codex flag). Invokes Codex CLI, verifies AGENTS_SUMMARY, enforces Quality Gates."
+
 [agents.claude_implementer]
 description = "Claude CLI delegated implementation worker (used when --claude)"
 
 [agents.claude_reviewer]
 description = "Claude CLI delegated reviewer worker (used when --claude)"
+
+[agents.plan_analyst]
+description = "Phase 0 planning analyst: analyzes task granularity, estimates owns files, proposes dependencies, and evaluates risk. Read-only access to codebase."
+
+[agents.plan_critic]
+description = "Phase 0 plan critic: red-teaming review of task decomposition. Checks goal coverage, granularity, dependency accuracy, parallelism, and risk. Read-only access."
 
 [mcp_servers.harness]
 command = "node"

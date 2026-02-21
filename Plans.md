@@ -525,3 +525,87 @@ Claude Code が 2.1.38 → 2.1.49 まで 11 バージョン進行。
 | 11.5.3 | CHANGELOG.md + CHANGELOG_ja.md エントリ追加 | cc:done |
 | 11.5.4 | ミラー同期 + validate-plugin.sh + check-consistency.sh | cc:done |
 | 11.5.5 | バージョンバンプ: `./scripts/sync-version.sh bump` | cc:done |
+
+---
+
+## Phase 12: Codex Breezing Phase 0 (Planning Discussion) 移植
+
+Claude 版 breezing の Phase 0（Planner + Critic による計画議論）を、Codex ネイティブ
+マルチエージェント API (`spawn_agent`/`send_input`/`wait`/`close_agent`) に移植する。
+
+### 背景
+
+- Claude 版 Phase 0 は Claude Code Agent Teams（`TeamCreate`/`SendMessage`/`Task`）で実装
+- Codex 版は `planning-discussion.md` 含め breezing 全ファイルが Claude 版と完全同一（diff=0）
+- Codex には独自のマルチエージェント API があり、`config.toml` でエージェントを定義する
+- `codex/.codex/agents/` ディレクトリが未作成、`plan_analyst`/`plan_critic` の定義なし
+
+### 設計方針
+
+| 決定事項 | 内容 |
+|---------|------|
+| **API 対応表** | `SendMessage` → `send_input`, `Task(spawn)` → `spawn_agent`, `shutdown_request` → `close_agent`, `TaskList` → 該当なし（Codex は組み込みタスク管理なし） |
+| **エージェント定義** | `config.toml` の `[agents.*]` セクションに追加（Codex 標準形式） |
+| **ミラー同期** | breezing は Codex 固有の Phase 0 実装を持つため、`planning-discussion.md`、`execution-flow.md`、`team-composition.md` を rsync 除外対象とする |
+| **共有ファイル** | SKILL.md、review-retake-loop.md、plans-to-tasklist.md 等は引き続きミラー同期 |
+
+### 12.1 Codex エージェント定義の追加
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 12.1.1 | `codex/.codex/config.toml` に `[agents.plan_analyst]` 追加（description + model + developer_instructions） | cc:done |
+| 12.1.2 | `codex/.codex/config.toml` に `[agents.plan_critic]` 追加（Red Teaming 視点の批判的検証） | cc:done |
+
+### 12.2 planning-discussion.md の Codex 版書き換え
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 12.2.1 | `codex/.codex/skills/breezing/references/planning-discussion.md` を Codex ネイティブ API で全面書き換え | cc:done |
+| 12.2.2 | Round 1-3 の対話フローを `spawn_agent`/`send_input`/`wait`/`close_agent` パターンに変換 | cc:done |
+| 12.2.3 | Planner ↔ Critic 直接対話を Codex の `send_input` チェーンで表現 | cc:done |
+| 12.2.4 | `breezing-active.json` への記録フォーマットは Claude 版と互換維持 | cc:done |
+
+### 12.3 execution-flow.md の Codex 版更新
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 12.3.1 | Phase 0 セクションの API 参照を Codex ネイティブに変更（`spawn_agent` 等） | cc:done |
+| 12.3.2 | `subagent_type` → `agent_name`、`mode: "bypassPermissions"` → Codex サンドボックスポリシーに書き換え | cc:done |
+
+### 12.4 team-composition.md の Codex 版更新
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 12.4.1 | Phase 0 限定ロール（Planner/Critic）の定義を Codex config.toml 参照に変更 | cc:done |
+| 12.4.2 | Planner/Critic Spawn Prompt を Codex `spawn_agent` 呼び出し形式に変換 | cc:done |
+| 12.4.3 | コスト見積もりテーブルを Codex トークン特性に合わせて調整 | cc:done |
+
+### 12.5 ミラー同期の divergence 管理
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 12.5.1 | breezing の Codex 固有ファイルリスト（planning-discussion.md, execution-flow.md, team-composition.md）を文書化 | cc:done |
+| 12.5.2 | ミラー同期手順に `--exclude` パターンを追加（breezing の Codex 固有ファイルを保護） | cc:done |
+
+### 12.6 検証 + リリース
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 12.6.1 | Codex 版 breezing ファイルの内部整合性チェック（API 参照の一貫性） | cc:done |
+| 12.6.2 | Claude 版 breezing が影響を受けていないことを確認（diff で変更なし） | cc:done |
+| 12.6.3 | `./tests/validate-plugin.sh && ./scripts/ci/check-consistency.sh` 検証 | cc:done |
+| 12.6.4 | CHANGELOG.md + CHANGELOG_ja.md エントリ追加 | cc:done |
+| 12.6.5 | バージョンバンプ + コミット | cc:done |
+
+---
+
+### Phase 12 検証チェックリスト
+
+| # | 検証項目 | 方法 |
+|---|---------|------|
+| 1 | config.toml に plan_analyst/plan_critic が定義済み | `grep plan_analyst codex/.codex/config.toml` |
+| 2 | Codex 版 planning-discussion.md に `spawn_agent` 等のネイティブ API が記述 | 目視確認 |
+| 3 | Codex 版に Claude Code 固有の API 参照が残っていない | `grep -r "SendMessage\|TeamCreate\|subagent_type" codex/.codex/skills/breezing/references/planning-discussion.md` でゼロ件 |
+| 4 | Claude 版 breezing が変更されていない | `git diff skills/breezing/` で変更なし |
+| 5 | breezing-active.json フォーマットが Claude/Codex で互換 | planning_discussion セクションの JSON スキーマ比較 |
+| 6 | validate-plugin.sh + check-consistency.sh 全パス | CI 実行 |

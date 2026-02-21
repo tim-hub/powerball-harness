@@ -107,13 +107,25 @@ Step 0: breezing-active.json 即時書き込み（全 Phase の前に実行）
 
 ```text
 1. Planner (plan-analyst) + Critic (plan-critic) を spawn
-   ※ mode: "bypassPermissions" で spawn（Teammate はプロンプト不可のため必須）
+   planner_id = spawn_agent("plan_analyst", task)
+   critic_id  = spawn_agent("plan_critic", task)
 2. Round 1: Planner がタスク分析 → Planner ↔ Critic 直接対話で疑問点を解消
+   send_input(planner_id, "Plans.md のタスクを分析してください。...")
+   planner_report = wait(planner_id, timeout_ms=120000)
 3. Round 2: Critic が Red Teaming 検証 → Planner に確認が必要な点を直接質問
+   send_input(critic_id, "Planner の分析を批判的に検証してください。...")
+   critic_report = wait(critic_id, timeout_ms=120000)
 4. Round 3: Lead が両者の分析を統合 → ユーザーに提示
 5. (必要なら) ユーザーが Plans.md 修正 → 追加ラウンド（合計で最大 3 ラウンドまで）
-6. Planner/Critic shutdown → Phase A へ
+   send_input(planner_id, "修正された Plans.md を再分析してください。")
+   resume_agent(critic_id, "再検証してください。")
+6. Planner/Critic を終了 → Phase A へ
+   close_agent(planner_id)
+   close_agent(critic_id)
 ```
+
+**エージェント定義**: `config.toml` の `[agents.plan_analyst]` / `[agents.plan_critic]` で設定。
+Codex はサンドボックスポリシーで制御するため、`mode: "bypassPermissions"` は不要。
 
 Phase 0 で得られた情報（owns 推定、依存提案等）は Phase A に引き継がれ、
 Phase A の V1〜V4 バリデーションの**参考情報**として活用する（ただしスキップはしない。
@@ -125,24 +137,21 @@ Phase 0 は戦略/アーキテクチャ評価、V1〜V4 は技術的詳細チェ
 
 ### 1. 環境チェック
 
-```bash
-# Agent Teams 有効化チェック
-# CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 が必要
+```toml
+# config.toml のマルチエージェント有効化チェック
+# [features] セクションに multi_agent = true が必要
 ```
 
 未設定時のメッセージ:
 
 ```text
-⚠️ Agent Teams が有効化されていません。
+⚠️ マルチエージェントが有効化されていません。
 
-以下を settings.json に追加してください:
-{
-  "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
-  }
-}
+config.toml に以下を追加してください:
+[features]
+multi_agent = true
 
-Agent Teams なしで実行する場合は `/work all` を使用してください。
+マルチエージェントなしで実行する場合は `work all` を使用してください。
 ```
 
 ### 2. 範囲確認（ユーザー承認必須）
@@ -189,20 +198,18 @@ Team 構成:
 3. Plans.md タスクを TaskCreate で共有タスクリストに登録
    - owns: アノテーション付与
    - addBlockedBy で依存関係設定（V5 自動修復分を含む）
-4. Implementer Teammates spawn (N 個)
+4. Implementer エージェント spawn (N 個)
    - **`--codex` フラグによるエージェント選択（必須分岐）**:
-     - `--codex` **あり** → `subagent_type: "claude-code-harness:codex-implementer"` で spawn
-     - `--codex` **なし** → `subagent_type: "claude-code-harness:task-worker"` で spawn
+     - `--codex` **あり** → `spawn_agent("codex_implementer", task)` で生成
+     - `--codex` **なし** → `spawn_agent("task_worker", task)` で生成
    - **並列 spawn**: N 個の Implementer を**同時に spawn** する（N = min(独立タスク数, --parallel N, 3)）
-   - `mode: "bypassPermissions"` を指定（Teammate はプロンプト不可のため必須）
-   - エージェント定義の `memory: project` により永続メモリが自動注入
-   - spawn prompt でロールマーカーファイル Write を指示
-   - **注意**: `impl_mode: "codex"` の場合に `task-worker` を spawn するのは**絶対禁止**。逆も同様。
-5. Reviewer Teammate spawn (1 個)
-   - `subagent_type: "claude-code-harness:code-reviewer"` で spawn
-   - `mode: "bypassPermissions"` を指定（Teammate はプロンプト不可のため必須）
-   - エージェント定義の `memory: project` により永続メモリが自動注入
-   - spawn prompt でロールマーカーファイル Write を指示
+   - エージェント定義: `config.toml` の `[agents.task_worker]` / `[agents.codex_implementer]`
+   - Codex サンドボックスポリシーで権限制御。`mode: "bypassPermissions"` は不要。
+   - **注意**: `impl_mode: "codex"` の場合に `task_worker` を spawn するのは**絶対禁止**。逆も同様。
+5. Reviewer エージェント spawn (1 個)
+   - `spawn_agent("code_reviewer", task)` で生成
+   - エージェント定義: `config.toml` の `[agents.code_reviewer]`
+   - Codex サンドボックスポリシーで権限制御。`mode: "bypassPermissions"` は不要。
 6. (--codex-review) Codex MCP レビュー設定
 7. **delegate mode ON** → Phase B へ遷移（ここで初めてモード変更）
 
