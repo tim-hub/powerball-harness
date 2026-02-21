@@ -4,6 +4,32 @@ Change history for claude-code-harness.
 
 > **📝 Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
+## [2.23.1] - 2026-02-22
+
+### 🎯 What's Changed for You
+
+**Codex CLI setup now merges files instead of overwriting, and README setup instructions are clearer with a collapsible quick-start.**
+
+| Before | After |
+|--------|-------|
+| `setup-codex.sh` overwrote all destination files on every sync | Merge strategy: new files added, existing files updated, user-created files preserved |
+| Codex CLI Setup was a top-level README section | Moved to collapsible `<details>` block with step-by-step quick-start |
+| `config.toml` had 4 agent definitions | 9 agents: added `task_worker`, `code_reviewer`, `codex_implementer`, `plan_analyst`, `plan_critic` |
+
+### Changed
+
+- **README (EN/JA)**: Codex CLI Setup section moved from top-level to collapsible `<details>` block with prerequisites, 3-step quick-start, and flag reference table
+- **`setup-codex.sh`**: `sync_named_children()` rewritten with 3-way merge strategy — new files are copied, existing files are backed up and updated, destination-only files are preserved; log output now shows `(N new, N updated, N preserved, N skipped)`
+- **`codex-setup-local.sh`**: same merge strategy applied to project-local setup script
+
+### Added
+
+- **`merge_dir_recursive()`** helper in both setup scripts for recursive directory merging with backup
+- **5 new Codex agent definitions** in `setup-codex.sh` `config.toml` generation: `task_worker`, `code_reviewer`, `codex_implementer`, `plan_analyst`, `plan_critic` (Breezing roles)
+- Idempotent agent injection: existing `config.toml` files receive missing agent entries without duplicating existing ones
+
+---
+
 ## [2.23.0] - 2026-02-21
 
 ### 🎯 What's Changed for You
@@ -914,6 +940,8 @@ Change history for claude-code-harness.
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases).
 
+[2.23.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.23.0...v2.23.1
+[2.23.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.22.0...v2.23.0
 [2.22.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.21.0...v2.22.0
 [2.21.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.13...v2.21.0
 [2.20.13]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.11...v2.20.13

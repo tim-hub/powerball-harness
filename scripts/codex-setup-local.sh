@@ -124,6 +124,35 @@ cleanup_legacy_skill_entries() {
   done
 }
 
+merge_dir_recursive() {
+  local src_dir="$1"
+  local dst_dir="$2"
+  local backup_root="$3"
+  local _copied_ref="$4"
+  local _updated_ref="$5"
+
+  mkdir -p "$dst_dir"
+
+  local entry
+  for entry in "$src_dir"/*; do
+    [ -e "$entry" ] || continue
+    local name
+    name="$(basename "$entry")"
+    local dst_path="$dst_dir/$name"
+
+    if [ ! -e "$dst_path" ]; then
+      cp -R "$entry" "$dst_dir/"
+      eval "$_copied_ref=\$((\$$_copied_ref + 1))"
+    elif [ -d "$entry" ] && [ -d "$dst_path" ]; then
+      merge_dir_recursive "$entry" "$dst_path" "$backup_root" "$_copied_ref" "$_updated_ref"
+    else
+      backup_path "$dst_path" "$backup_root"
+      cp -R "$entry" "$dst_dir/"
+      eval "$_updated_ref=\$((\$$_updated_ref + 1))"
+    fi
+  done
+}
+
 sync_named_children() {
   local src_dir="$1"
   local dst_dir="$2"
@@ -134,7 +163,9 @@ sync_named_children() {
   mkdir -p "$dst_dir"
 
   local copied=0
+  local updated=0
   local skipped=0
+  local preserved=0
   local entry
   for entry in "$src_dir"/*; do
     [ -e "$entry" ] || continue
@@ -146,15 +177,29 @@ sync_named_children() {
     fi
     local dst_path="$dst_dir/$name"
 
-    if [ -e "$dst_path" ]; then
+    if [ ! -e "$dst_path" ]; then
+      cp -R "$entry" "$dst_dir/"
+      copied=$((copied + 1))
+    elif [ -d "$entry" ] && [ -d "$dst_path" ]; then
+      merge_dir_recursive "$entry" "$dst_path" "$backup_root" "copied" "updated"
+    else
       backup_path "$dst_path" "$backup_root"
+      cp -R "$entry" "$dst_dir/"
+      updated=$((updated + 1))
     fi
-
-    cp -R "$entry" "$dst_dir/"
-    copied=$((copied + 1))
   done
 
-  echo "$label synced to $dst_dir ($copied items, $skipped skipped)"
+  for entry in "$dst_dir"/*; do
+    [ -e "$entry" ] || continue
+    local name
+    name="$(basename "$entry")"
+    if should_skip_sync_entry "$name"; then
+      continue
+    fi
+    [ -e "$src_dir/$name" ] || preserved=$((preserved + 1))
+  done
+
+  echo "$label merged to $dst_dir ($copied new, $updated updated, $preserved preserved, $skipped skipped)"
 }
 
 copy_project_agents() {

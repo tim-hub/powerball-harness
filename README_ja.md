@@ -71,32 +71,6 @@ claude
 
 ---
 
-## Codex CLI セットアップ
-
-Codex CLI をユーザーベース Harness 設定（`CODEX_HOME` 共有）で使う場合:
-
-1. スキル/ルールを `${CODEX_HOME:-~/.codex}` に導入（ユーザースコープ）
-2. 必要なプロジェクトだけ `AGENTS.md` を追加
-3. 任意: `${CODEX_HOME}/config.toml` を導入して MCP テンプレートを設定
-
-スクリプトでセットアップ:
-
-```bash
-/path/to/claude-code-harness/scripts/setup-codex.sh --user --skip-mcp
-```
-
-プロジェクトローカル導入に戻したい場合:
-
-```bash
-/path/to/claude-code-harness/scripts/setup-codex.sh --project --skip-mcp
-```
-
-Claude Code からは `/setup codex` でユーザーベース導入をセッション内で実行できます。
-
-`$plan-with-agent`、`$work`、`$harness-review` を使ってフローを実行します。
-
----
-
 ## 🪄 説明が長い？ならこれ: /work all
 
 **読むのが面倒？** これだけ打てばいい:
@@ -262,6 +236,39 @@ claude-code-harness/
 Codex が実装 → セルフレビュー → 報告。Claude Code ワーカーと併用可能。
 
 > **セットアップが必要**: [Codex CLI](https://github.com/openai/codex) をインストールし、APIキーを設定。
+
+</details>
+
+<details>
+<summary><strong>Codex CLI セットアップ</strong></summary>
+
+[Codex CLI](https://github.com/openai/codex) で Harness を利用できます。Claude Code は不要です。
+
+**前提条件**: [Codex CLI](https://github.com/openai/codex)（`npm i -g @openai/codex`）、OpenAI API キー（`OPENAI_API_KEY`）、Git。
+
+```bash
+# 1. Harness リポジトリをクローン
+git clone https://github.com/Chachamaru127/claude-code-harness.git
+cd claude-code-harness
+
+# 2. スキル/ルールをユーザースコープ（~/.codex）にインストール
+./scripts/setup-codex.sh --user --skip-mcp
+
+# 3. プロジェクトに移動して作業開始
+cd /path/to/your-project
+codex
+```
+
+Codex 内で `$plan-with-agent`、`$work`、`$breezing`、`$harness-review` を使ってワークフローを実行します。
+
+| フラグ | 説明 |
+|--------|------|
+| `--user` | `~/.codex` にインストール（プロジェクト横断で共有、デフォルト） |
+| `--project` | カレントディレクトリの `.codex/` にインストール |
+| `--with-mcp` | `config.toml` MCP テンプレートをコピー |
+| `--skip-mcp` | MCP テンプレートをスキップ（おすすめ） |
+
+> Claude Code ユーザーはセッション内で `/setup codex` を実行するだけで同じセットアップが適用されます。
 
 </details>
 

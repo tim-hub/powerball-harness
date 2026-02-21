@@ -128,6 +128,35 @@ cleanup_legacy_skill_entries() {
     done
 }
 
+merge_dir_recursive() {
+    local src_dir="$1"
+    local dst_dir="$2"
+    local backup_root="$3"
+    local _copied_ref="$4"
+    local _updated_ref="$5"
+
+    mkdir -p "$dst_dir"
+
+    local entry
+    for entry in "$src_dir"/*; do
+        [ -e "$entry" ] || continue
+        local name
+        name="$(basename "$entry")"
+        local dst_path="$dst_dir/$name"
+
+        if [ ! -e "$dst_path" ]; then
+            cp -R "$entry" "$dst_dir/"
+            eval "$_copied_ref=\$((\$$_copied_ref + 1))"
+        elif [ -d "$entry" ] && [ -d "$dst_path" ]; then
+            merge_dir_recursive "$entry" "$dst_path" "$backup_root" "$_copied_ref" "$_updated_ref"
+        else
+            backup_path "$dst_path" "$backup_root"
+            cp -R "$entry" "$dst_dir/"
+            eval "$_updated_ref=\$((\$$_updated_ref + 1))"
+        fi
+    done
+}
+
 sync_named_children() {
     local src_dir="$1"
     local dst_dir="$2"
@@ -142,7 +171,9 @@ sync_named_children() {
     mkdir -p "$dst_dir"
 
     local copied=0
+    local updated=0
     local skipped=0
+    local preserved=0
     local entry
     for entry in "$src_dir"/*; do
         [ -e "$entry" ] || continue
@@ -155,15 +186,29 @@ sync_named_children() {
         fi
         local dst_path="$dst_dir/$name"
 
-        if [ -e "$dst_path" ]; then
+        if [ ! -e "$dst_path" ]; then
+            cp -R "$entry" "$dst_dir/"
+            copied=$((copied + 1))
+        elif [ -d "$entry" ] && [ -d "$dst_path" ]; then
+            merge_dir_recursive "$entry" "$dst_path" "$backup_root" "copied" "updated"
+        else
             backup_path "$dst_path" "$backup_root"
+            cp -R "$entry" "$dst_dir/"
+            updated=$((updated + 1))
         fi
-
-        cp -R "$entry" "$dst_dir/"
-        copied=$((copied + 1))
     done
 
-    log_ok "$label synced to $dst_dir ($copied items, $skipped skipped)"
+    for entry in "$dst_dir"/*; do
+        [ -e "$entry" ] || continue
+        local name
+        name="$(basename "$entry")"
+        if should_skip_sync_entry "$name"; then
+            continue
+        fi
+        [ -e "$src_dir/$name" ] || preserved=$((preserved + 1))
+    done
+
+    log_ok "$label merged to $dst_dir ($copied new, $updated updated, $preserved preserved, $skipped skipped)"
 }
 
 copy_project_agents() {
@@ -255,11 +300,26 @@ description = "Codex implementation worker for harness task execution"
 [agents.reviewer]
 description = "Codex reviewer worker for harness review and retake loops"
 
+[agents.task_worker]
+description = "Standard Breezing implementer (impl_mode: standard). Implements tasks, runs self-review, build, and tests."
+
+[agents.code_reviewer]
+description = "Breezing reviewer. Performs independent code review with harness-review 4-point assessment. Issues APPROVE / REQUEST_CHANGES / REJECT / STOP. Read-only."
+
+[agents.codex_implementer]
+description = "Codex Breezing implementer (impl_mode: codex, used with --codex flag). Invokes Codex CLI, verifies AGENTS_SUMMARY, enforces Quality Gates."
+
 [agents.claude_implementer]
 description = "Claude CLI delegated implementation worker (used when --claude)"
 
 [agents.claude_reviewer]
 description = "Claude CLI delegated reviewer worker (used when --claude)"
+
+[agents.plan_analyst]
+description = "Phase 0 planning analyst: analyzes task granularity, estimates owns files, proposes dependencies, and evaluates risk. Read-only access to codebase."
+
+[agents.plan_critic]
+description = "Phase 0 plan critic: red-teaming review of task decomposition. Checks goal coverage, granularity, dependency accuracy, parallelism, and risk. Read-only access."
 CFG
         log_ok "Created $cfg with multi_agent + harness role defaults"
         return
@@ -312,6 +372,46 @@ CFG
 
 [agents.claude_reviewer]
 description = "Claude CLI delegated reviewer worker (used when --claude)"
+CFG
+    fi
+
+    if ! grep -q '^\[agents\.task_worker\]' "$cfg"; then
+        cat >> "$cfg" <<'CFG'
+
+[agents.task_worker]
+description = "Standard Breezing implementer (impl_mode: standard). Implements tasks, runs self-review, build, and tests."
+CFG
+    fi
+
+    if ! grep -q '^\[agents\.code_reviewer\]' "$cfg"; then
+        cat >> "$cfg" <<'CFG'
+
+[agents.code_reviewer]
+description = "Breezing reviewer. Performs independent code review with harness-review 4-point assessment. Issues APPROVE / REQUEST_CHANGES / REJECT / STOP. Read-only."
+CFG
+    fi
+
+    if ! grep -q '^\[agents\.codex_implementer\]' "$cfg"; then
+        cat >> "$cfg" <<'CFG'
+
+[agents.codex_implementer]
+description = "Codex Breezing implementer (impl_mode: codex, used with --codex flag). Invokes Codex CLI, verifies AGENTS_SUMMARY, enforces Quality Gates."
+CFG
+    fi
+
+    if ! grep -q '^\[agents\.plan_analyst\]' "$cfg"; then
+        cat >> "$cfg" <<'CFG'
+
+[agents.plan_analyst]
+description = "Phase 0 planning analyst: analyzes task granularity, estimates owns files, proposes dependencies, and evaluates risk. Read-only access to codebase."
+CFG
+    fi
+
+    if ! grep -q '^\[agents\.plan_critic\]' "$cfg"; then
+        cat >> "$cfg" <<'CFG'
+
+[agents.plan_critic]
+description = "Phase 0 plan critic: red-teaming review of task decomposition. Checks goal coverage, granularity, dependency accuracy, parallelism, and risk. Read-only access."
 CFG
     fi
 }

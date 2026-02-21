@@ -71,32 +71,6 @@ That's it. Start with `/plan-with-agent`.
 
 ---
 
-## Codex CLI Setup
-
-Use Codex CLI with user-based Harness config (shared via `CODEX_HOME`):
-
-1. Install skills/rules to `${CODEX_HOME:-~/.codex}` (user scope)
-2. Optional: add project `AGENTS.md` only where needed
-3. Optional: install `${CODEX_HOME}/config.toml` MCP template
-
-Script setup:
-
-```bash
-/path/to/claude-code-harness/scripts/setup-codex.sh --user --skip-mcp
-```
-
-Project-local fallback is still available:
-
-```bash
-/path/to/claude-code-harness/scripts/setup-codex.sh --project --skip-mcp
-```
-
-Claude Code users can run `/setup codex` to apply user-based setup without leaving the session.
-
-Use `$plan-with-agent`, `$work`, `$harness-review` to run the workflow.
-
----
-
 ## 🪄 TL;DR: Work All
 
 **Don't want to read all this?** Just type:
@@ -262,6 +236,39 @@ Delegate implementation tasks to OpenAI Codex in parallel:
 Codex implements → Self-reviews → Reports back. Works alongside Claude Code workers.
 
 > **Setup required**: Install [Codex CLI](https://github.com/openai/codex) and configure API key.
+
+</details>
+
+<details>
+<summary><strong>Codex CLI Setup</strong></summary>
+
+Use Harness with [Codex CLI](https://github.com/openai/codex) — no Claude Code required.
+
+**Prerequisites**: [Codex CLI](https://github.com/openai/codex) (`npm i -g @openai/codex`), OpenAI API key (`OPENAI_API_KEY`), Git.
+
+```bash
+# 1. Clone the Harness repository
+git clone https://github.com/Chachamaru127/claude-code-harness.git
+cd claude-code-harness
+
+# 2. Install skills/rules to user scope (~/.codex)
+./scripts/setup-codex.sh --user --skip-mcp
+
+# 3. Go to your project and start working
+cd /path/to/your-project
+codex
+```
+
+Once inside Codex, use `$plan-with-agent`, `$work`, `$breezing`, and `$harness-review`.
+
+| Flag | Description |
+|------|-------------|
+| `--user` | Install to `~/.codex` (shared across projects, default) |
+| `--project` | Install to `.codex/` in current directory |
+| `--with-mcp` | Copy `config.toml` MCP template |
+| `--skip-mcp` | Skip MCP template (recommended) |
+
+> Claude Code users can run `/setup codex` inside a session instead.
 
 </details>
 
