@@ -1,6 +1,6 @@
 # Scope Analyst Expert Prompt for Codex
 
-Requirements/scope analysis prompt for Codex MCP.
+Requirements/scope analysis prompt for Codex CLI (`codex exec`).
 
 ## 7-Section Format
 

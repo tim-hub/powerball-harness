@@ -207,7 +207,7 @@ Example 3: After task addition → Scope Review
 | `{plan_content}` | Plans.md content | For Plan Reviewer | When applicable |
 | `{requirements}` | Requirements content | For Scope Analyst | When applicable |
 
-**Read `experts/_shared-constraints.md` and prepare it as `base-instructions` for all MCP calls.**
+**Read `experts/_shared-constraints.md` and prepare it as `base-instructions` for all `codex exec` calls.**
 
 > **Note**: Diff and SSOT context are **injected directly to Codex by the orchestrator**. No need to add placeholders in expert templates.
 
@@ -472,7 +472,7 @@ Skip failed experts and continue judgment?
 ```markdown
 ❌ Failed to communicate with Codex experts
 
-Cause: MCP server connection error
+Cause: codex exec command failed or timed out
 
 Fallback: Execute review with Claude alone?
 ```

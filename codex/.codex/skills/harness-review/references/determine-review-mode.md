@@ -1,12 +1,12 @@
 ---
 name: determine-review-mode
-description: "Determine review mode (default/codex) from .claude-code-harness.config.yaml. Falls back to 'default' if Codex is not configured or enabled."
+description: "Determine review mode (default/codex) from .claude-code-harness.config.yaml. Falls back to 'default' if Codex CLI is not available or not enabled."
 allowed-tools: ["Read"]
 ---
 
 # Determine Review Mode
 
-`.claude-code-harness.config.yaml`からレビューモードを決定し、**Codex MCP を自動検出**して利用可否を判断する。利用不可の場合は`default`にフォールバックする。
+`.claude-code-harness.config.yaml` からレビューモードを決定し、**Codex CLI (`codex exec`) の利用可否**を判断する。利用不可の場合は `default` にフォールバックする。
 
 ---
 
@@ -24,7 +24,7 @@ allowed-tools: ["Read"]
 }
 ```
 
-または、Codexが有効な場合：
+または、Codex が有効な場合：
 
 ```json
 {
@@ -52,19 +52,26 @@ review:
   mode: codex  # または "default"
   codex:
     enabled: true      # または false
-    timeout_ms: 60000  # Codex MCP のタイムアウト（ミリ秒）
+    timeout_ms: 60000  # Codex CLI 実行タイムアウト（ミリ秒）
 ```
 
-### Step 3: Codex MCP 自動検出（必須）
+### Step 3: Codex CLI 可用性チェック（必須）
 
-Codex MCP サーバーの有無を確認する。検出に失敗したら `default` にフォールバック。
+Codex CLI の実行可否を確認する。確認に失敗したら `default` にフォールバック。
 
 ```bash
-# 例: MCP サーバー一覧で codex を検出
-claude mcp list | grep -i codex
+# 1) CLI が存在するか
+command -v codex
+
+# 2) 認証済みか
+codex login status
+
+# 3) 実行確認（timeout は timeout_ms を秒に変換して使用）
+TIMEOUT=$(command -v timeout || command -v gtimeout || echo "")
+$TIMEOUT 10 codex exec "echo test" >/dev/null 2>&1
 ```
 
-> **タイムアウト**: `review.codex.timeout_ms`（ms）を上限に検出を打ち切る。
+> `timeout` / `gtimeout` がない環境では、タイムアウト制御なしで短い `codex exec` を行う。
 
 ### Step 4: 判定ロジック
 
@@ -72,36 +79,34 @@ claude mcp list | grep -i codex
 // 疑似コード例
 let review_mode = "default";
 const timeoutMs = config.review?.codex?.timeout_ms ?? 60000;
-const codexAvailable = detectCodexMcp(timeoutMs);
+const codexAvailable = detectCodexCli(timeoutMs);
 
-// 1. review.modeを確認
 if (config.review?.mode === "codex") {
-  // 2. review.codex.enabledを確認
   if (config.review?.codex?.enabled === true && codexAvailable) {
-    // 3. Codex MCP サーバーが利用可能なら codex
     review_mode = "codex";
   }
 }
 
-// デフォルトは "default"
 return { review_mode };
 ```
 
 ### Step 5: フォールバック条件
 
-以下の場合は`default`にフォールバック：
+以下の場合は `default` にフォールバック：
 
 1. `config_file` が存在しない
-2. `review.mode`が未設定または`default`
-3. `review.mode`が`codex`だが`review.codex.enabled`が`false`
-4. `review.codex.enabled`が未設定
-5. Codex MCP サーバーが検出できない（`timeout_ms` 超過含む）
+2. `review.mode` が未設定または `default`
+3. `review.mode` が `codex` だが `review.codex.enabled` が `false`
+4. `review.codex.enabled` が未設定
+5. `codex` コマンドが見つからない
+6. `codex login status` が失敗する
+7. `codex exec` の実行確認が失敗する（`timeout_ms` 超過含む）
 
 ---
 
 ## 使用例
 
-### 例1: Codex有効
+### 例1: Codex 有効
 
 **設定ファイル**:
 ```yaml
@@ -118,7 +123,7 @@ review:
 }
 ```
 
-### 例2: Codex無効
+### 例2: Codex 無効
 
 **設定ファイル**:
 ```yaml
@@ -137,7 +142,7 @@ review:
 
 ### 例3: 設定ファイル未設定
 
-**設定ファイル**: 存在しない、または`review`セクションなし
+**設定ファイル**: 存在しない、または `review` セクションなし
 
 **出力**:
 ```json
@@ -150,6 +155,6 @@ review:
 
 ## 注意事項
 
-- **安全側に倒す**: Codex設定が不明確な場合は`default`にフォールバック
-- **設定ファイルの優先**: 環境変数などではなく、設定ファイルの値を優先する
-- **MCPサーバー確認**: 実装時は`claude mcp list`でCodex MCPサーバーの存在も確認可能（オプション）
+- **安全側に倒す**: Codex 設定が不明確な場合は `default` にフォールバック
+- **設定ファイルの優先**: 環境変数などではなく、設定ファイルの値を優先
+- **CLI-only 方針**: Codex 呼び出しは `codex exec`（Bash）を使用し、旧サーバー登録方式には依存しない

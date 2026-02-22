@@ -1,6 +1,6 @@
 # Accessibility Expert Prompt for Codex
 
-Accessibility (a11y) review prompt for Codex MCP.
+Accessibility (a11y) review prompt for Codex CLI (`codex exec`).
 
 ## 7-Section Format
 

@@ -167,6 +167,7 @@ Skills auto-load based on context. Use slash commands or natural language.
 | `/plan-with-agent` | Ideas → `Plans.md` |
 | `/work` | Execute tasks in parallel |
 | `/harness-review` | 4-perspective review |
+| `/generate-slide` | Generate one-page project intro slides |
 | `/harness-init` | Initialize project |
 | `/sync-status` | Check progress |
 | `/memory` | Manage SSOT files |
@@ -291,10 +292,27 @@ Plans.md syncs between both.
 Add OpenAI Codex for second opinions:
 
 ```bash
-/harness-review  # 4 perspectives + Codex
+/harness-review  # 4 perspectives + Codex CLI
 ```
 
-Codex selects 4 relevant experts from 16 specialist types.
+Codex selects 4 relevant experts from 16 specialist types via `codex exec`.
+
+</details>
+
+<details>
+<summary><strong>Slide Generation</strong></summary>
+
+Generate one-page project intro slides:
+
+```bash
+/generate-slide
+```
+
+- 3 visual patterns (Minimalist / Infographic / Hero)
+- 2 candidates per pattern with quality scoring
+- Best 3 slides exported to `out/slides/selected/`
+
+> **Dependencies**: `GOOGLE_AI_API_KEY` and Google AI Studio access.
 
 </details>
 

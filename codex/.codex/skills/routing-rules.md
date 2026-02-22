@@ -11,7 +11,7 @@
 
 ### codex-review
 
-**目的**: Codex MCP でセカンドオピニオンレビューを提供
+**目的**: Codex CLI (`codex exec`) でセカンドオピニオンレビューを提供
 
 **トリガーキーワード**（description から引用）:
 - "Codex レビュー"

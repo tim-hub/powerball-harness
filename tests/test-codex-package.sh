@@ -190,6 +190,41 @@ else
   log_pass "Codex native multi-agent keywords present"
 fi
 
+log_test "Non-breezing Codex skills are CLI-only"
+cli_only_targets=(
+  "codex/.codex/skills/work/SKILL.md"
+  "codex/.codex/skills/harness-review/SKILL.md"
+  "codex/.codex/skills/harness-review/references/codex-integration.md"
+  "codex/.codex/skills/harness-review/references/determine-review-mode.md"
+  "codex/.codex/skills/codex-review/SKILL.md"
+  "codex/.codex/skills/codex-review/references/codex-mcp-setup.md"
+  "codex/.codex/skills/codex-review/references/codex-mode.md"
+  "codex/.codex/skills/codex-review/references/codex-parallel-review.md"
+  "codex/.codex/skills/routing-rules.md"
+)
+forbidden_cli_terms=(
+  "Codex MCP"
+  "claude mcp add --scope user codex"
+  "claude mcp list | grep -i codex"
+  "@openai/codex-cli"
+  "MCP server connection error"
+  "all MCP calls"
+)
+cli_only_ok=true
+for pat in "${forbidden_cli_terms[@]}"; do
+  if rg -n --fixed-strings "$pat" "${cli_only_targets[@]}" >/tmp/codex-cli-only.$$ 2>/dev/null; then
+    echo "  forbidden CLI-only pattern found: $pat"
+    head -5 /tmp/codex-cli-only.$$ | sed 's/^/    /'
+    cli_only_ok=false
+  fi
+done
+rm -f /tmp/codex-cli-only.$$ || true
+if $cli_only_ok; then
+  log_pass "CLI-only vocabulary checks passed for non-breezing Codex skills"
+else
+  log_fail "CLI-only vocabulary check failed for non-breezing Codex skills"
+fi
+
 log_test "--claude review routing is fixed to Claude"
 claude_review_check=true
 if ! rg -q --fixed-strings '| `review_engine` | `codex` | `claude` |' "codex/.codex/skills/breezing/SKILL.md"; then
@@ -249,6 +284,14 @@ for script in "${setup_scripts[@]}"; do
     echo "  missing cleanup_legacy_skill_entries: $script"
     scripts_ok=false
   fi
+  if ! rg -q --fixed-strings 'extract_skill_frontmatter_name' "$script"; then
+    echo "  missing extract_skill_frontmatter_name: $script"
+    scripts_ok=false
+  fi
+  if ! rg -q --fixed-strings 'cleanup_legacy_skill_name_duplicates' "$script"; then
+    echo "  missing cleanup_legacy_skill_name_duplicates: $script"
+    scripts_ok=false
+  fi
   if ! rg -q --fixed-strings '_archived|*.backup.*' "$script"; then
     echo "  missing legacy skip rule (_archived|*.backup.*): $script"
     scripts_ok=false
@@ -263,6 +306,42 @@ if $scripts_ok; then
   log_pass "Setup script duplicate-skill guards are present"
 else
   log_fail "Setup script duplicate-skill guards are missing"
+fi
+
+# Test 1.8: codex-setup-local should cleanup legacy renamed skill aliases
+log_test "codex-setup-local cleans legacy renamed skill aliases"
+if PROJECT_ROOT="$PROJECT_ROOT" bash -lc '
+set -euo pipefail
+project_root="$PROJECT_ROOT"
+tmp_home="$(mktemp -d)"
+trap "rm -rf \"$tmp_home\"" EXIT
+
+export HOME="$tmp_home"
+export CODEX_HOME="$tmp_home/.codex"
+mkdir -p "$CODEX_HOME/skills/plan-with-agent/references"
+cat > "$CODEX_HOME/skills/plan-with-agent/SKILL.md" <<'"'"'EOF'"'"'
+---
+name: plan-with-agent
+description: legacy alias for migration test
+allowed-tools: ["Read"]
+---
+EOF
+
+CLAUDE_PLUGIN_ROOT="$project_root" bash "$project_root/scripts/codex-setup-local.sh" --user --skip-mcp >/dev/null
+
+test -f "$CODEX_HOME/skills/planning/SKILL.md"
+if [ -d "$CODEX_HOME/skills/plan-with-agent" ]; then
+  echo "  legacy alias directory still exists"
+  exit 1
+fi
+if ! find "$CODEX_HOME/backups/codex-setup-local" -type d -name "plan-with-agent.*" | grep -q .; then
+  echo "  legacy alias backup not found"
+  exit 1
+fi
+'; then
+  log_pass "Legacy renamed alias cleanup works"
+else
+  log_fail "Legacy renamed alias cleanup failed"
 fi
 
 # Test 2: skills directory parity

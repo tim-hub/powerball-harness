@@ -1,281 +1,147 @@
 ---
-name: codex-mcp-setup
-description: "Codex CLI の検出・MCP 登録・認証確認を行うセットアップ手順"
-allowed-tools: ["Bash", "Read", "Write", "Edit"]
+name: codex-cli-setup
+description: "Codex CLI の検出・認証・`codex exec` 動作確認を行うセットアップ手順（legacy filename: codex-mcp-setup.md）"
+allowed-tools: ["Bash", "Read"]
 ---
 
-# Codex MCP セットアップ
+# Codex CLI セットアップ（legacy filename: `codex-mcp-setup.md`）
 
-OpenAI Codex CLI を Claude Code の MCP サーバーとして登録するセットアップ手順。
+OpenAI Codex CLI をレビュー実行で使うためのセットアップ手順。
+
+## 前提
+
+- `codex exec` を実行できること
+- ネットワーク接続があること
+
+## セットアップフロー
+
+1. Codex CLI のインストール
+2. Codex 認証
+3. `codex exec` の動作確認
+4. harness-review 連携設定（任意）
 
 ---
 
-## 🎯 このスキルでやること
-
-1. Codex CLI のインストール確認
-2. Codex 認証状態の確認
-3. MCP サーバーとしての登録
-4. 設定ファイルの更新
-5. 動作確認
-
----
-
-## 実行フロー
-
-### Step 1: Codex CLI の確認
+## Step 1: Codex CLI インストール
 
 ```bash
-# Codex CLI が存在するか確認
+# macOS (Homebrew)
+brew install openai-codex
+
+# cross-platform (npm)
+npm install -g @openai/codex
+```
+
+確認:
+
+```bash
 which codex
-```
-
-**結果判定**:
-
-| 結果 | 次のアクション |
-|------|---------------|
-| パスが表示される | Step 2 へ |
-| `not found` | インストール案内を表示 |
-
-**インストール案内（未インストール時）**:
-
-```markdown
-⚠️ Codex CLI がインストールされていません
-
-インストール方法:
-
-1. **Homebrew（macOS）**:
-   ```bash
-   brew install openai-codex
-   ```
-
-2. **npm（クロスプラットフォーム）**:
-   ```bash
-   npm install -g @openai/codex-cli
-   ```
-
-3. **公式ドキュメント**:
-   https://developers.openai.com/codex/cli/installation
-
-インストール後、再度このコマンドを実行してください。
+codex --version
 ```
 
 ---
 
-### Step 2: 認証状態の確認
+## Step 2: Codex 認証
 
 ```bash
-# ログイン状態を確認
+codex login
 codex login status
 ```
 
-**結果判定**:
-
-| 終了コード | 意味 | 次のアクション |
-|-----------|------|---------------|
-| 0 | ログイン済み | Step 3 へ |
-| 非0 | 未ログイン | 認証案内を表示 |
-
-**認証案内（未ログイン時）**:
-
-```markdown
-🔐 Codex にログインが必要です
-
-ログイン方法:
-
-1. **OAuth（推奨）**:
-   ```bash
-   codex login
-   ```
-   ブラウザが開き、OpenAI アカウントで認証します。
-
-2. **API キー**:
-   ```bash
-   echo $OPENAI_API_KEY | codex login --with-api-key
-   ```
-   環境変数に設定済みの API キーを使用します。
-
-ログイン後、再度このコマンドを実行してください。
-```
+`codex login status` が成功すれば認証完了。
 
 ---
 
-### Step 2.5: OAuth Client 認証（Claude Code 2.1.49+）
-
-DCR（Dynamic Client Registration）非対応の MCP サーバーで OAuth 認証を設定する場合に使用します。
-
-**対象サーバー例**:
-- Slack MCP サーバー（将来的な統合候補）
-- カスタム OAuth 対応 MCP サーバー
-
-**設定方法**:
+## Step 3: `codex exec` 動作確認
 
 ```bash
-# OAuth クライアント認証情報を指定して MCP 追加
-claude mcp add --scope user my-mcp \
-  --client-id "your-client-id" \
-  --client-secret "your-client-secret" \
-  -- my-mcp-server
+TIMEOUT=$(command -v timeout || command -v gtimeout || echo "")
 
-# 環境変数から読み取る場合（推奨）
-claude mcp add --scope user my-mcp \
-  --client-id "$MY_CLIENT_ID" \
-  --client-secret "$MY_CLIENT_SECRET" \
-  -- my-mcp-server
+if [ -n "$TIMEOUT" ]; then
+  $TIMEOUT 15 codex exec "echo test" >/tmp/codex-cli-smoke.txt 2>/dev/null
+else
+  codex exec "echo test" >/tmp/codex-cli-smoke.txt 2>/dev/null
+fi
 ```
 
-**設定項目の説明**:
-
-| オプション | 説明 | 例 |
-|-----------|------|-----|
-| `--client-id` | OAuth クライアント ID | `oauth-client-123abc` |
-| `--client-secret` | OAuth クライアントシークレット | `secret-xyz789` |
-
-**注意事項**:
-
-- クライアントシークレットは機密情報です。環境変数からの読み取りを推奨します
-- 認証情報は `~/.config/claude/mcp.json` に保存されます
-- DCR 対応サーバーでは `--client-id` / `--client-secret` は不要です（自動登録）
-
-**Slack MCP サーバー統合について**:
-
-現在、Slack MCP サーバーの統合は検討段階です（Plans.md で範囲外として分離）。OAuth Client 認証が必要になる場合は、上記の手順で設定可能です。
-
----
-
-### Step 3: MCP サーバー登録
+確認:
 
 ```bash
-# Codex を MCP サーバーとして登録
-claude mcp add --scope user codex -- codex mcp-server
+test -s /tmp/codex-cli-smoke.txt && echo "ok" || echo "failed"
 ```
-
-**成功時の出力例**:
-
-```
-Added MCP server: codex
-Scope: user
-Command: codex mcp-server
-```
-
-**エラー時の対応**:
-
-| エラー | 原因 | 対応 |
-|-------|------|------|
-| `Already exists` | 既に登録済み | Step 4 へ（スキップ可） |
-| `Command not found` | claude CLI がない | Claude Code を最新版に更新 |
-| `Permission denied` | 権限不足 | `--scope project` を試す |
 
 ---
 
-### Step 4: 設定ファイル更新
+## Step 4: harness-review で Codex を有効化（任意）
 
-`.claude-code-harness.config.yaml` に Codex 設定を追加:
+`.claude-code-harness.config.yaml`:
 
 ```yaml
-# 追加する設定
 review:
+  mode: codex
   codex:
     enabled: true
-    auto: false
-    prompt: "日本語でコードレビューを行い、問題点と改善提案を出力してください"
+    timeout_ms: 60000
 ```
 
-**設定項目の説明**:
-
-| 項目 | 型 | デフォルト | 説明 |
-|-----|-----|-----------|------|
-| `enabled` | boolean | `false` | Codex 統合を有効化 |
-| `auto` | boolean | `false` | `/harness-review` 時に自動で Codex を呼び出すか |
-| `prompt` | string | (上記) | Codex へ送信するレビュープロンプト |
-
----
-
-### Step 5: 動作確認
-
-```bash
-# MCP サーバー一覧を確認
-claude mcp list
-```
-
-**期待される出力**:
-
-```
-codex (user)
-  Command: codex mcp-server
-  Status: Ready
-```
-
-**簡易テスト（オプション）**:
-
-```bash
-# Codex MCP が応答するか確認
-codex exec --json "Hello, this is a test" 2>/dev/null | head -1
-```
-
----
-
-## 完了メッセージ
-
-セットアップ完了時に表示:
-
-```markdown
-✅ Codex MCP セットアップ完了
-
-**設定内容**:
-- MCP サーバー: codex (user scope)
-- 自動レビュー: 無効（毎回確認）
-- プロンプト言語: 日本語
-
-**使い方**:
-- `/harness-review` 実行時に「Codex にもレビューさせますか？」と確認
-- `codex.auto: true` で自動実行に変更可能
-
-**次のアクション**:
-- `codex.enabled: true` を設定ファイルで確認
-- `/harness-review` でセカンドオピニオンを試す
-```
+この設定で `/harness-review` 時に Codex レビューを使える。
 
 ---
 
 ## トラブルシューティング
 
-### 問題: `claude mcp add` が失敗する
+### 問題: `codex` コマンドが見つからない
 
-**原因**: Claude Code のバージョンが古い
+対処:
 
-**解決策**:
 ```bash
-# Claude Code を更新
-claude update
-
-# 再試行
-claude mcp add --scope user codex -- codex mcp-server
+which codex
+echo "$PATH"
 ```
 
-### 問題: Codex MCP が応答しない
+- Homebrew なら `brew list openai-codex`
+- npm なら `npm list -g @openai/codex --depth=0`
 
-**原因**: Codex CLI の問題
+### 問題: 認証エラー
 
-**解決策**:
+対処:
+
 ```bash
-# Codex 単体で動作確認
-codex exec "Hello" --output-last-message /tmp/test.txt
-cat /tmp/test.txt
+codex logout
+codex login
+codex login status
 ```
 
-### 問題: API エラーが発生する
+### 問題: `codex exec` がタイムアウトする
 
-**原因**: OpenAI クレジット不足または API 制限
+対処:
 
-**解決策**:
-1. OpenAI ダッシュボードでクレジット確認
-2. API 使用量制限を確認
-3. レート制限の場合は時間を置いて再試行
+```bash
+# macOS の場合
+brew install coreutils
+
+# 再確認
+TIMEOUT=$(command -v timeout || command -v gtimeout || echo "")
+$TIMEOUT 30 codex exec "echo test"
+```
+
+### 問題: レビュー結果が返らない
+
+- ネットワーク接続
+- アカウント状態
+- `timeout_ms` を増やして再試行
 
 ---
 
-## 関連ドキュメント
+## 完了メッセージ（例）
 
-- [Codex CLI Reference](https://developers.openai.com/codex/cli/reference/)
-- [Claude Code MCP 公式ドキュメント](https://docs.anthropic.com/claude-code/mcp)
-- [codex-review-integration.md](./codex-review-integration.md) - レビュー統合手順
+```markdown
+✅ Codex CLI セットアップ完了
+
+- codex: 利用可能
+- login: 認証済み
+- codex exec: 動作確認済み
+
+次の手順:
+- `/harness-review` で Codex 併用レビューを実行
+```

@@ -103,12 +103,13 @@ Project mode adds/updates:
 ## Notes
 
 - Existing target items are backed up with timestamp suffixes
+- Legacy renamed skill aliases with duplicate `name:` (for example `plan-with-agent/` after migration to `planning/`) are moved to backups to avoid duplicated command entries
 - User mode keeps project `AGENTS.md` unchanged
 - MCP template is optional and not overwritten if already present
 
-## Related: Codex MCP Review Integration
+## Related: Codex CLI Review Integration
 
-If you want to register Codex as Claude Code MCP server for second-opinion reviews, see codex-review:
+If you want to use Codex CLI for second-opinion reviews, see codex-review:
 
-- [codex-mcp-setup.md](../../codex-review/references/codex-mcp-setup.md) - Codex MCP registration
+- [codex-mcp-setup.md](../../codex-review/references/codex-mcp-setup.md) - Codex CLI setup (legacy filename)
 - [codex-review-integration.md](../../codex-review/references/codex-review-integration.md) - Review integration

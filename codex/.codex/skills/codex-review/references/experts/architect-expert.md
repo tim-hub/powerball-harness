@@ -1,6 +1,6 @@
 # Architect Expert Prompt for Codex
 
-Architecture and design review prompt for Codex MCP.
+Architecture and design review prompt for Codex CLI (`codex exec`).
 
 ## 7-Section Format
 

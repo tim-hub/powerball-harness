@@ -78,7 +78,7 @@ SESSION_ID=""
 
 # ===== Breezing-Codex Mode Detection =====
 # breezing-codex モード (impl_mode: "codex") 時は直接の Write/Edit をブロック
-# （実装は Codex MCP 経由で Codex Implementer に委譲）
+# （実装は codex exec (CLI) 経由で Codex Implementer に委譲）
 BREEZING_CODEX_MODE="false"
 
 # Work モード検出関数（CWD 取得後に呼び出す）
@@ -1243,5 +1243,4 @@ if [ "$TOOL_NAME" = "Bash" ]; then
 fi
 
 exit 0
-
 

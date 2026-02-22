@@ -45,7 +45,7 @@ Toggle Codex mode (parallel delegation to GPT experts) during reviews.
 Current: **OFF** (default mode)
 
 Reviewer: Claude alone
-Codex MCP: Configured
+Codex CLI: Ready
 
 Toggle: `/codex-mode on` to enable
 ```

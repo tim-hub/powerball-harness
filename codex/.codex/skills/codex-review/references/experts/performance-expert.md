@@ -1,6 +1,6 @@
 # Performance Expert Prompt for Codex
 
-Performance review prompt for Codex MCP.
+Performance review prompt for Codex CLI (`codex exec`).
 
 ## 7-Section Format
 

@@ -1,6 +1,6 @@
 # SEO Expert Prompt for Codex
 
-SEO/OGP review prompt for Codex MCP.
+SEO/OGP review prompt for Codex CLI (`codex exec`).
 
 ## 7-Section Format
 

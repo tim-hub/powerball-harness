@@ -26,7 +26,7 @@ CHECK_ONLY=false
 ERRORS=()
 WARNINGS=()
 CODEX_CLI_OK=false
-CLAUDE_CLI_OK=false
+CODEX_EXEC_OK=false
 
 # ヘルパー関数
 log_info() {
@@ -129,23 +129,33 @@ check_git_version() {
     fi
 }
 
-# MCP サーバー登録確認
-check_mcp_registration() {
-    log_info "MCP サーバー登録を確認中..."
+# Codex CLI 実行確認（CLI-only）
+check_codex_exec() {
+    log_info "Codex CLI 実行を確認中..."
 
-    if ! command -v claude &> /dev/null; then
-        log_warn "Claude CLI が見つかりません（MCP 登録確認をスキップ）"
+    if [[ "$CODEX_CLI_OK" != true ]]; then
+        log_warn "Codex CLI が未インストールまたはバージョン不足のためスキップ"
         return 1
     fi
 
-    CLAUDE_CLI_OK=true
+    local timeout_cmd=""
+    if command -v timeout &> /dev/null; then
+        timeout_cmd="timeout"
+    elif command -v gtimeout &> /dev/null; then
+        timeout_cmd="gtimeout"
+    fi
 
-    if claude mcp list 2>/dev/null | grep -q "codex"; then
-        log_info "Codex MCP サーバー: 登録済み"
+    if [[ -z "$timeout_cmd" ]]; then
+        log_warn "timeout/gtimeout が見つかりません（Codex CLI 実行確認をスキップ）"
+        return 1
+    fi
+
+    if "$timeout_cmd" 15 codex exec "echo test" >/dev/null 2>&1; then
+        log_info "Codex CLI 実行: OK"
+        CODEX_EXEC_OK=true
         return 0
     else
-        log_warn "Codex MCP サーバー: 未登録"
-        log_info "登録方法: claude mcp add --scope user codex -- codex mcp-server"
+        log_warn "Codex CLI 実行確認に失敗（認証/接続/タイムアウトを確認）"
         return 1
     fi
 }
@@ -175,17 +185,17 @@ generate_config() {
         codex_version=$(codex --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
     fi
 
-    # MCP 登録状態
-    local mcp_registered="false"
-    if [[ "$CLAUDE_CLI_OK" == true ]] && claude mcp list 2>/dev/null | grep -q "codex"; then
-        mcp_registered="true"
+    # Codex 実行状態
+    local codex_exec_ready="false"
+    if [[ "$CODEX_EXEC_OK" == true ]]; then
+        codex_exec_ready="true"
     fi
 
     # 設定ファイル生成（キー名は common.sh の get_config と一致させる）
     cat > "$config_file" << EOF
 {
   "codex_version": "$codex_version",
-  "mcp_registered": $mcp_registered,
+  "codex_exec_ready": $codex_exec_ready,
   "setup_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "approval_policy": "never",
   "sandbox": "workspace-write",
@@ -233,7 +243,7 @@ main() {
     check_codex_cli || true
     check_codex_auth || true
     check_git_version || true
-    check_mcp_registration || true
+    check_codex_exec || true
     generate_config || true
 
     echo ""

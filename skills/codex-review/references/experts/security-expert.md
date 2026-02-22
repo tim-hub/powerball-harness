@@ -1,6 +1,6 @@
 # Security Expert Prompt for Codex
 
-Security review prompt for Codex MCP.
+Security review prompt for Codex CLI (`codex exec`).
 
 ## 7-Section Format
 

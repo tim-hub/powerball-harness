@@ -7,6 +7,38 @@
 
 > **📝 記載ルール**: ユーザー体験に影響する変更を中心に記載。内部修正は簡潔に。
 
+## [2.23.3] - 2026-02-22
+
+### 🎯 あなたにとって何が変わるか
+
+**breezing 以外の Codex 連携が `codex exec` 前提に統一され、Codex 配布パッケージにも `generate-slide` スキルが含まれるようになりました。**
+
+| Before | After |
+|--------|-------|
+| `work`/`harness-review`/`codex-review` の文書で Codex MCP 表現と CLI 実行例が混在 | 非breezing領域は `codex exec` の CLI-only 運用として一貫した説明に統一 |
+| `codex-worker-setup.sh` が MCP 登録状態をチェック | `codex exec` の実行可否を直接チェックする `codex_exec_ready` 方式に変更 |
+| Codex パッケージ検証で非breezingの MCP 語彙回帰を検知できなかった | `tests/test-codex-package.sh` に CLI-only 回帰テストを追加 |
+| `generate-slide` が source/opencode にはあるが Codex 配布には未収録 | `codex/.codex/skills/generate-slide/` を追加し parity テスト通過 |
+
+### Added
+
+- **Codex 配布のスキル整合**: `generate-slide` を `codex/.codex/skills/` に追加
+- **CLI-only 回帰ガード**: `tests/test-codex-package.sh` に非breezing対象の語彙チェックを追加
+- **README 更新（EN/JA）**: `/generate-slide` のコマンド説明とスライド生成セクションを追記
+
+### Changed
+
+- **Codex 文書（非breezing）**: `work`、`harness-review`、`codex-review`、routing/setup 参照を `codex exec` 前提の表現に統一
+- **Codex セットアップ参照**: `codex-mcp-setup.md` を Codex CLI セットアップ内容に刷新（ファイル名は互換のため維持）
+- **README の Codex レビュー説明（EN/JA）**: セカンドオピニオンの実行経路を Codex CLI ベースとして明確化
+
+### Fixed
+
+- **セットアップ実挙動の不一致**: `scripts/codex-worker-setup.sh` の MCP 登録確認を CLI 実行確認へ置換
+- **Codex ミラー整合性**: `skills/` と `codex/.codex/skills/` の非breezing文書差分を同期
+
+---
+
 ## [2.23.2] - 2026-02-22
 
 ### 🎯 あなたにとって何が変わるか
@@ -813,6 +845,12 @@
 
 v2.9.x 以前の詳細は [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases) を参照してください。
 
+[2.23.3]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.23.2...v2.23.3
+[2.23.2]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.23.1...v2.23.2
+[2.23.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.23.0...v2.23.1
+[2.23.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.22.0...v2.23.0
+[2.22.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.21.0...v2.22.0
+[2.21.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.13...v2.21.0
 [2.20.11]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.10...v2.20.11
 [2.20.10]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.9...v2.20.10
 [2.20.9]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.8...v2.20.9

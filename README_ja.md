@@ -167,6 +167,7 @@ Harness はフックでコードベースを保護:
 | `/plan-with-agent` | アイデア → `Plans.md` |
 | `/work` | タスクを並列実行 |
 | `/harness-review` | 4視点レビュー |
+| `/generate-slide` | 1枚のプロジェクト紹介スライドを生成 |
 | `/harness-init` | プロジェクト初期化 |
 | `/sync-status` | 進捗確認 |
 | `/memory` | SSOT ファイルを管理 |
@@ -291,10 +292,27 @@ Plans.md が両者間で同期。
 OpenAI Codex でセカンドオピニオンを追加：
 
 ```bash
-/harness-review  # 4視点 + Codex
+/harness-review  # 4視点 + Codex CLI
 ```
 
-Codex が16種のスペシャリストから4人の関連エキスパートを選出。
+Codex が `codex exec` 経由で、16種のスペシャリストから4人の関連エキスパートを選出。
+
+</details>
+
+<details>
+<summary><strong>スライド生成</strong></summary>
+
+1枚のプロジェクト紹介スライドを自動生成：
+
+```bash
+/generate-slide
+```
+
+- 3つのビジュアルパターン（Minimalist / Infographic / Hero）
+- 各パターン2候補を品質スコアリング
+- 最良3枚を `out/slides/selected/` に出力
+
+> **前提**: `GOOGLE_AI_API_KEY` と Google AI Studio の利用設定。
 
 </details>
 

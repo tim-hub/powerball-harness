@@ -1,6 +1,6 @@
 # Quality Expert Prompt for Codex
 
-Code quality review prompt for Codex MCP.
+Code quality review prompt for Codex CLI (`codex exec`).
 
 ## 7-Section Format
 

@@ -128,6 +128,79 @@ cleanup_legacy_skill_entries() {
     done
 }
 
+extract_skill_frontmatter_name() {
+    local skill_file="$1"
+    [ -f "$skill_file" ] || return 1
+
+    awk '
+        BEGIN { in_frontmatter = 0 }
+        /^---[[:space:]]*$/ {
+            if (in_frontmatter == 0) {
+                in_frontmatter = 1
+                next
+            }
+            exit
+        }
+        in_frontmatter == 1 && /^[[:space:]]*name:[[:space:]]*/ {
+            sub(/^[[:space:]]*name:[[:space:]]*/, "", $0)
+            gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+            gsub(/^"|"$/, "", $0)
+            print $0
+            exit
+        }
+    ' "$skill_file"
+}
+
+cleanup_legacy_skill_name_duplicates() {
+    local src_dir="$1"
+    local dst_dir="$2"
+    local backup_root="$3"
+    [ -d "$src_dir" ] || return 0
+    [ -d "$dst_dir" ] || return 0
+
+    local src_skill_names=""
+    local src_entry
+    for src_entry in "$src_dir"/*; do
+        [ -d "$src_entry" ] || continue
+        local src_name
+        src_name="$(basename "$src_entry")"
+        if should_skip_sync_entry "$src_name"; then
+            continue
+        fi
+        local src_skill_name
+        src_skill_name="$(extract_skill_frontmatter_name "$src_entry/SKILL.md" || true)"
+        [ -n "$src_skill_name" ] || continue
+        src_skill_names+=$'\n'"$src_skill_name"
+    done
+
+    [ -n "$src_skill_names" ] || return 0
+
+    local deduped=0
+    local dst_entry
+    for dst_entry in "$dst_dir"/*; do
+        [ -d "$dst_entry" ] || continue
+        local dst_name
+        dst_name="$(basename "$dst_entry")"
+        if should_skip_sync_entry "$dst_name"; then
+            continue
+        fi
+        [ -e "$src_dir/$dst_name" ] && continue
+
+        local dst_skill_name
+        dst_skill_name="$(extract_skill_frontmatter_name "$dst_entry/SKILL.md" || true)"
+        [ -n "$dst_skill_name" ] || continue
+
+        if printf '%s\n' "$src_skill_names" | grep -Fxq "$dst_skill_name"; then
+            backup_path "$dst_entry" "$backup_root"
+            deduped=$((deduped + 1))
+        fi
+    done
+
+    if [ "$deduped" -gt 0 ]; then
+        log_warn "Moved $deduped legacy skill alias(es) with duplicate frontmatter name"
+    fi
+}
+
 merge_dir_recursive() {
     local src_dir="$1"
     local dst_dir="$2"
@@ -469,6 +542,7 @@ main() {
     backup_root="$(resolve_backup_root "$target_root")"
 
     cleanup_legacy_skill_entries "$target_root/skills" "$backup_root"
+    cleanup_legacy_skill_name_duplicates "$TEMP_DIR/harness/codex/.codex/skills" "$target_root/skills" "$backup_root"
     sync_named_children "$TEMP_DIR/harness/codex/.codex/skills" "$target_root/skills" "Skills" "$backup_root"
     sync_named_children "$TEMP_DIR/harness/codex/.codex/rules" "$target_root/rules" "Rules" "$backup_root"
 
