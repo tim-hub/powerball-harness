@@ -11,9 +11,9 @@
 
 **特殊な点**: このプロジェクトは「ハーネス自身を使ってハーネスを改善する」自己参照的な構成です。
 
-## Claude Code 2.1.38+ 新機能活用ガイド
+## Claude Code 2.1.49+ 新機能活用ガイド
 
-Harness は Claude Code 2.1.38 の新機能をフル活用しています。
+Harness は Claude Code 2.1.49 の新機能をフル活用しています。
 
 | 機能 | 活用スキル | 用途 |
 |------|-----------|------|
@@ -31,6 +31,12 @@ Harness は Claude Code 2.1.38 の新機能をフル活用しています。
 | **自動メモリ記録** | session-memory | セッション間知識の自動永続化 |
 | **スキルバジェットスケーリング** | 全スキル | コンテキスト窓の 2% に自動調整 |
 | **Task(agent_type) 制限** | agents/ | サブエージェント種類制限 |
+| **Plugin settings.json** | setup | init トークン削減・即時セキュリティ保護 |
+| **Worktree isolation** | breezing, parallel-workflows | 同一ファイル並列書き込み安全化 |
+| **Background agents** | generate-video | 非同期シーン生成 |
+| **ConfigChange hook** | hooks | 設定変更監査 |
+| **last_assistant_message** | session-memory | セッション品質評価 |
+| **Sonnet 4.6 (1M context)** | 全スキル | 大規模コンテキスト処理 |
 
 詳細は各スキルの SKILL.md を参照してください。
 

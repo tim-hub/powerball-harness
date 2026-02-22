@@ -10,9 +10,9 @@ Claude は Lead（指揮）と Reviewer（品質保証）に専念する。
     │
 Phase A: Pre-delegate（準備 + breezing-active.json 書き込み + Team spawn）
     │
-    ↓ delegate mode ON
+    ↓ Phase B 開始
 Phase B: Delegate
-Lead ─ 指揮のみ（TaskCreate/TaskUpdate/SendMessage のみ）
+Lead ─ 指揮のみ（spawn_agent/send_input/タスクリスト管理 のみ）
   │
   ├── Codex Implementer #1 (sonnet) ─ Codex CLI 呼び出し + Quality Gates
   ├── Codex Implementer #2 (sonnet) ─ 同上 (独立タスク)
@@ -20,7 +20,7 @@ Lead ─ 指揮のみ（TaskCreate/TaskUpdate/SendMessage のみ）
   │
   └── Reviewer (sonnet) ─ harness-review 4 観点 + 判定
     │
-    ↓ delegate mode OFF
+    ↓ Phase B 終了
 Phase C: Post-delegate（Plans.md 更新 + git commit + cleanup）
 ```
 
@@ -28,14 +28,14 @@ Phase C: Post-delegate（Plans.md 更新 + git commit + cleanup）
 
 **Compaction が発生した場合（コンテキストが圧縮された場合）の復元手順:**
 
-1. `.claude/state/breezing-active.json` を Read する（ファイルが存在しない/読めない場合は停止してユーザーに確認）
+1. `${CODEX_HOME:-~/.codex}/state/harness/breezing-active.json` を Read する（ファイルが存在しない/読めない場合は停止してユーザーに確認）
 2. `impl_mode` が `"codex"` であることを確認
 3. `team_name` で TaskList が存在するか確認（`~/.claude/tasks/{team_name}/`）
-4. Team が消失していれば再作成（Phase A として実行 — delegate mode に入る前に spawn を完了）:
+4. Team が消失していれば再作成（Phase A として実行 — Phase B に入る前に spawn を完了）:
    - TeamCreate
    - codex-implementer Teammate を `team.implementer_count` 個 spawn（`mode: "bypassPermissions"`）
    - code-reviewer Teammate を spawn（`mode: "bypassPermissions"`）
-   - delegate mode ON → Phase B へ遷移
+   - Phase B 開始 → Phase B へ遷移
 5. `team_name` がまだない（準備ステージ中の compaction）場合は、準備ステージの範囲確認から再開
 6. TaskList で未完了タスクを確認し、サイクルを再開
 
@@ -81,10 +81,10 @@ Phase C: Post-delegate（Plans.md 更新 + git commit + cleanup）
 
 | 項目 | 設定 |
 |------|------|
-| **モード** | Phase A/C: ユーザーのパーミッションモード維持, Phase B: delegate mode |
+| **モード** | Phase A/C: ユーザーのパーミッションモード維持, Phase B: 調整専念 |
 | **責務** | タスク分配、進捗監視、リテイク分解、ファイル分離戦略決定 |
-| **Phase A ツール** | Write, Edit, Bash, TaskCreate（準備・初期化用） |
-| **Phase B ツール** | TaskCreate, TaskUpdate, TaskList, TaskGet, SendMessage のみ |
+| **Phase A ツール** | Write, Edit, Bash, spawn_agent（準備・初期化用） |
+| **Phase B ツール** | spawn_agent, send_input, wait, close_agent, タスクリスト管理 のみ |
 | **Phase C ツール** | Write, Edit, Bash（Plans.md 更新、git commit、cleanup 用） |
 | **禁止事項** | Phase B 中の Write, Edit, Bash による直接実装 |
 
@@ -92,7 +92,7 @@ Phase C: Post-delegate（Plans.md 更新 + git commit + cleanup）
 
 | 項目 | 設定 |
 |------|------|
-| **subagent_type** | `claude-code-harness:codex-implementer` |
+| **role** | `codex_implementer`（`spawn_agent("codex_implementer", task)` で生成） |
 | **数** | 1〜3 (独立タスク数に基づく自動決定) |
 | **責務** | Codex CLI 呼び出し、AGENTS_SUMMARY 検証、Quality Gates 実行 |
 | **ツール** | `Bash (codex exec)` |
@@ -101,7 +101,7 @@ Phase C: Post-delegate（Plans.md 更新 + git commit + cleanup）
 
 | 項目 | 設定 |
 |------|------|
-| **subagent_type** | `claude-code-harness:code-reviewer` |
+| **role** | `code_reviewer`（`spawn_agent("code_reviewer", task)` で生成） |
 | **数** | 1 (常に) |
 | **制約** | Read-only (Write/Edit 禁止) |
 
@@ -175,7 +175,7 @@ AGENTS_SUMMARY: <1行要約> | HASH:<SHA256先頭8文字>
 
 ## Prerequisites
 
-1. **Agent Teams 有効化**: `settings.json` に `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`
+1. **マルチエージェント有効化**: `config.toml` の `[features] multi_agent = true`
 2. **Codex CLI インストール済み**: `which codex` でパスが表示されること
 3. **Plans.md** が存在し、未完了タスクがあること
 

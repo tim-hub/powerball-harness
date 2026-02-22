@@ -39,7 +39,7 @@ Reviewer → SendMessage → Lead:
 
 Lead:
   1. findings を修正タスクに分解
-  2. TaskCreate で修正タスク登録
+  2. タスクリストに修正タスク登録
   3. Implementer に SendMessage で修正指示
 
 Implementer:
@@ -133,7 +133,7 @@ Lead がレビュー指示 (任意のタイミング)
 ┌──────────────────────────────────────────────────────┐
 │ Step 3: Lead がリテイク処理                           │
 │  a. findings を修正タスクに分解                       │
-│  b. 修正タスクを TaskCreate で登録                    │
+│  b. 修正タスクをタスクリストに登録                    │
 │  c. 担当 Implementer に SendMessage で修正指示        │
 │  d. retake_count++ (breezing-active.json 更新)       │
 │  e. retake_count > 3 → ユーザーにエスカレーション    │
@@ -265,7 +265,7 @@ Reviewer からの findings:
 Lead が生成する修正タスク:
 
 ```
-TaskCreate:
+task_register:
   subject: "src/auth/login.ts のセキュリティ・品質修正"
   description: |
     以下の 2 件を修正:
@@ -273,7 +273,7 @@ TaskCreate:
     2. L42: エラーハンドリング不足 → try-catch 追加
     owns: src/auth/login.ts
 
-TaskCreate:
+task_register:
   subject: "src/db/users.ts の N+1 クエリ修正"
   description: |
     L8: N+1 クエリ → JOIN または一括取得に変更
