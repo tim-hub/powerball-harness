@@ -163,6 +163,71 @@ find_related_tests() {
     return 1
 }
 
+# テストを実際に実行して結果ファイルを書き出す（HARNESS_AUTO_TEST=run モード）
+run_tests() {
+    local test_cmd="$1"
+    local related_test="$2"
+
+    STATE_DIR=".claude/state"
+    mkdir -p "$STATE_DIR"
+
+    RESULT_FILE="${STATE_DIR}/test-result.json"
+    TIMESTAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+    # 実行コマンドを決定（関連テストがあれば絞り込む）
+    if [ -n "$related_test" ]; then
+        EXEC_CMD="$test_cmd -- $related_test"
+    else
+        EXEC_CMD="$test_cmd"
+    fi
+
+    # タイムアウト付きでテスト実行（最大 60 秒）
+    TIMEOUT_CMD=$(command -v timeout || command -v gtimeout || echo "")
+    TMP_OUT="${STATE_DIR}/test-output.tmp"
+
+    if [ -n "$TIMEOUT_CMD" ]; then
+        $TIMEOUT_CMD 60 bash -c "$EXEC_CMD" > "$TMP_OUT" 2>&1
+        EXIT_CODE=$?
+    else
+        bash -c "$EXEC_CMD" > "$TMP_OUT" 2>&1
+        EXIT_CODE=$?
+    fi
+
+    # 出力を取得（最大 200 行）
+    OUTPUT=$(head -200 "$TMP_OUT" 2>/dev/null || true)
+    rm -f "$TMP_OUT"
+
+    # 成否判定
+    if [ "$EXIT_CODE" -eq 0 ]; then
+        STATUS="passed"
+    elif [ "$EXIT_CODE" -eq 124 ]; then
+        STATUS="timeout"
+    else
+        STATUS="failed"
+    fi
+
+    # 結果を JSON で書き出す
+    if command -v jq >/dev/null 2>&1; then
+        jq -n \
+            --arg ts "$TIMESTAMP" \
+            --arg file "$CHANGED_FILE" \
+            --arg cmd "$EXEC_CMD" \
+            --arg status "$STATUS" \
+            --argjson code "$EXIT_CODE" \
+            --arg out "$OUTPUT" \
+            '{timestamp:$ts,changed_file:$file,command:$cmd,status:$status,exit_code:$code,output:$out}' \
+            > "$RESULT_FILE" 2>/dev/null || true
+    else
+        # jq がない場合は最小限の JSON を出力
+        ESCAPED_OUT=$(printf '%s' "$OUTPUT" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' ' ')
+        cat > "$RESULT_FILE" << EOF
+{"timestamp":"$TIMESTAMP","changed_file":"$CHANGED_FILE","command":"$EXEC_CMD","status":"$STATUS","exit_code":$EXIT_CODE,"output":"$ESCAPED_OUT"}
+EOF
+    fi
+
+    return "$EXIT_CODE"
+}
+
 # メイン処理
 main() {
     # テスト実行が必要かチェック
@@ -183,7 +248,57 @@ main() {
     STATE_DIR=".claude/state"
     mkdir -p "$STATE_DIR"
 
-    # テスト推奨を記録
+    # HARNESS_AUTO_TEST=run の場合は実際にテストを実行
+    if [ "${HARNESS_AUTO_TEST:-}" = "run" ]; then
+        run_tests "$TEST_CMD" "$RELATED_TEST"
+        EXIT_CODE=$?
+
+        # 結果サマリーを stderr に出力（hooks ログ用）
+        RESULT_FILE="${STATE_DIR}/test-result.json"
+        if [ -f "$RESULT_FILE" ]; then
+            STATUS=$(command -v jq >/dev/null 2>&1 && jq -r '.status // "unknown"' "$RESULT_FILE" 2>/dev/null || grep -o '"status":"[^"]*"' "$RESULT_FILE" | head -1 | sed 's/"status":"\([^"]*\)"/\1/')
+            OUTPUT_SNIPPET=$(command -v jq >/dev/null 2>&1 && jq -r '.output // ""' "$RESULT_FILE" 2>/dev/null | head -30 || true)
+            echo "[auto-test-runner] run mode: $STATUS (exit=$EXIT_CODE) file=$CHANGED_FILE" >&2
+
+            # テスト結果を additionalContext として Claude に通知
+            if [ "$STATUS" = "passed" ]; then
+                CONTEXT_MSG="[Auto Test Runner] Tests passed / テスト成功
+Command: $TEST_CMD
+File: $CHANGED_FILE
+Status: PASSED (exit=0)"
+            elif [ "$STATUS" = "timeout" ]; then
+                CONTEXT_MSG="[Auto Test Runner] Tests timed out / テストがタイムアウトしました (60s)
+Command: $TEST_CMD
+File: $CHANGED_FILE
+Status: TIMEOUT
+
+Output:
+${OUTPUT_SNIPPET}"
+            else
+                CONTEXT_MSG="[Auto Test Runner] Tests failed / テスト失敗
+Command: $TEST_CMD
+File: $CHANGED_FILE
+Status: FAILED (exit=$EXIT_CODE)
+
+Output:
+${OUTPUT_SNIPPET}
+
+Fix the implementation to make the tests pass. / テストが通るように実装を修正してください。"
+            fi
+
+            # JSON 出力（additionalContext）
+            if command -v jq >/dev/null 2>&1; then
+                jq -nc --arg ctx "$CONTEXT_MSG" \
+                    '{hookSpecificOutput:{hookEventName:"PostToolUse",additionalContext:$ctx}}'
+            else
+                ESCAPED_CTX=$(printf '%s' "$CONTEXT_MSG" | sed 's/\\/\\\\/g; s/"/\\"/g; s/$/\\n/' | tr -d '\n' | sed 's/\\n$//')
+                printf '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"%s"}}\n' "$ESCAPED_CTX"
+            fi
+        fi
+        exit 0
+    fi
+
+    # デフォルト: recommend モード（テスト推奨を記録）
     cat > "${STATE_DIR}/test-recommendation.json" << EOF
 {
   "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",

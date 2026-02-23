@@ -4,6 +4,44 @@ Change history for claude-code-harness.
 
 > **📝 Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
+## [Unreleased]
+
+### 🎯 What's Changed for You
+
+**Phase 13: Breezing quality automation and Codex rule injection — tamper detection, auto-test runner, CI signal handling, AGENTS.md rule sync, and APPROVE fast-path.**
+
+| Before | After |
+|--------|-------|
+| Test tampering detection covered skip patterns and assertion deletion only | 12+ patterns: weakening (`toBe → toBeTruthy`), timeout inflation, catch-all assertions, Python skip decorators |
+| Auto-test runner only recommended tests without running them | `HARNESS_AUTO_TEST=run` actually runs tests and feeds results back via `additionalContext` |
+| CI failures required manual detection | PostToolUse hook detects CI failures after `git push` and injects `ci-cd-fixer` recommendation signals |
+| `.claude/rules/` existed only for Claude Code; Codex had no rule awareness | `sync-rules-to-agents.sh` auto-syncs rules to `codex/AGENTS.md`; Codex reads full project rules on startup |
+| `codex exec` called bare without pre/post processing | `codex-exec-wrapper.sh` handles rule sync, `[HARNESS-LEARNING]` extraction, and secret filtering |
+| Breezing Phase C required manual APPROVE confirmation | `review-result.json` + commit hash check enables instant fast-path to integration tests |
+| Implementer count fixed at `min(独立タスク数, 3)` | Auto-calculated as `max(1, min(独立タスク数, --parallel, planner_max_parallel, 5))` |
+
+### Added
+
+- **Tamper detection (12+ patterns)**: assertion weakening, timeout inflation, catch-all assertions, Python skip decorators — `scripts/posttooluse-tampering-detector.sh`
+- **`HARNESS_AUTO_TEST=run` mode**: `scripts/auto-test-runner.sh` actually runs tests and returns pass/fail via `additionalContext` JSON
+- **CI signal injection**: `scripts/hook-handlers/ci-status-checker.sh` detects CI failures post-push and writes to `breezing-signals.jsonl`; `scripts/hook-handlers/breezing-signal-injector.sh` injects unconsumed signals via UserPromptSubmit hook
+- **`sync-rules-to-agents.sh`**: Auto-converts `.claude/rules/*.md` to `codex/AGENTS.md` Rules section with hash-based drift detection
+- **`codex-exec-wrapper.sh`**: Pre/post wrapper for `codex exec` — rule sync, `[HARNESS-LEARNING]` marker extraction, secret filtering, atomic write-back to `codex-learnings.md`
+- **APPROVE fast-path (Phase C)**: Checks `.claude/state/review-result.json` + HEAD commit hash; skips manual confirmation when APPROVE is already recorded
+- **`review-result.json` auto-record**: Reviewer reports `review_result_json` in SendMessage; Lead writes `.claude/state/review-result.json` for fast-path reference
+- **Docs reorganization**: `docs/CLAUDE-feature-table.md`, `docs/CLAUDE-skill-catalog.md`, `docs/CLAUDE-commands.md` — detailed references extracted from CLAUDE.md
+- **`harness.rules` — execpolicy guard rules**: `npm test`/`yarn test`/`pnpm test` auto-allowed; `git push --force`, `git reset --hard`, `rm -rf`, `git clean -f`, SQL destructive statements (`DROP TABLE`, `DELETE FROM`) require user confirmation via `codex execpolicy`; 20 patterns verified with `codex execpolicy check`
+
+### Changed
+
+- **CLAUDE.md compressed to 120 lines**: Feature Table (5 items), skill category table (5 categories); full details moved to `docs/`
+- **Implementer count auto-determination**: `max(1, min(独立タスク数, --parallel N, planner_max_parallel, 5))` — starvation prevention + hard cap at 5
+- **`review-retake-loop.md`**: Added `review-result.json` write spec with JSON format, Reviewer→Lead delegation flow, and file lifecycle
+- **`execution-flow.md` Phase C**: APPROVE fast-path check added as step 2; phase processing renumbered
+- **`team-composition.md`**: Extended configuration (5 Implementers) cost estimate table added
+
+---
+
 ## [2.23.3] - 2026-02-22
 
 ### 🎯 What's Changed for You

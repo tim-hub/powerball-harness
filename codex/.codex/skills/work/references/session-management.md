@@ -6,7 +6,7 @@
 
 ```bash
 # CLI: アーカイブディレクトリを確認
-ls -la ${CODEX_HOME:-~/.codex}/state/harness/sessions/
+ls -la .claude/state/sessions/
 
 # UI: harness-ui のWorkページでセッション一覧を確認
 # → Session Archives テーブルから resume/fork コマンドをコピー可能
@@ -32,10 +32,10 @@ ls -la ${CODEX_HOME:-~/.codex}/state/harness/sessions/
 
 ```bash
 # Current session state
-cat ${CODEX_HOME:-~/.codex}/state/harness/session.json | jq '.state, .session_id'
+cat .claude/state/session.json | jq '.state, .session_id'
 
 # Event history
-tail -20 ${CODEX_HOME:-~/.codex}/state/harness/session.events.jsonl
+tail -20 .claude/state/session.events.jsonl
 ```
 
 ## Auto-judgment Logic

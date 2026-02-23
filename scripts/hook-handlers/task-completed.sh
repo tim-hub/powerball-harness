@@ -260,6 +260,252 @@ print(json.dumps({
   fi
 fi
 
+# === テスト結果参照ロジック ===
+# auto-test-runner の結果ファイルを確認し、未実行/失敗時は exit 2 でエスカレーション
+TEST_RESULT_FILE="${STATE_DIR}/test-result.json"
+QUALITY_GATE_FILE="${STATE_DIR}/task-quality-gate.json"
+
+# タスク ID 別の失敗カウントを更新
+# $1: task_id, $2: "increment"|"reset"
+update_failure_count() {
+  local tid="$1"
+  local action="$2"
+  [ -z "${tid}" ] && return 0
+
+  if command -v jq >/dev/null 2>&1; then
+    local current_count=0
+    if [ -f "${QUALITY_GATE_FILE}" ]; then
+      current_count="$(jq -r --arg tid "${tid}" '.[$tid].failure_count // 0' "${QUALITY_GATE_FILE}" 2>/dev/null)" || current_count=0
+    fi
+    local new_count=0
+    if [ "${action}" = "increment" ]; then
+      new_count=$(( current_count + 1 ))
+    fi
+    # ファイル更新（存在しない場合は新規作成）
+    local existing="{}"
+    if [ -f "${QUALITY_GATE_FILE}" ]; then
+      existing="$(cat "${QUALITY_GATE_FILE}" 2>/dev/null)" || existing="{}"
+    fi
+    jq -n \
+      --argjson existing "${existing}" \
+      --arg tid "${tid}" \
+      --argjson count "${new_count}" \
+      --arg ts "${TS}" \
+      --arg action "${action}" \
+      '$existing * {($tid): {"failure_count": $count, "last_action": $action, "updated_at": $ts}}' \
+      > "${QUALITY_GATE_FILE}.tmp" 2>/dev/null && \
+      mv "${QUALITY_GATE_FILE}.tmp" "${QUALITY_GATE_FILE}" 2>/dev/null || true
+    echo "${new_count}"
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 -c "
+import json, sys
+tid, action, ts = sys.argv[1], sys.argv[2], sys.argv[3]
+path = sys.argv[4]
+try:
+    data = json.load(open(path))
+except Exception:
+    data = {}
+entry = data.get(tid, {})
+count = entry.get('failure_count', 0)
+if action == 'increment':
+    count += 1
+else:
+    count = 0
+data[tid] = {'failure_count': count, 'last_action': action, 'updated_at': ts}
+json.dump(data, open(path, 'w'), ensure_ascii=False, indent=2)
+print(count)
+" "${tid}" "${action}" "${TS}" "${QUALITY_GATE_FILE}" 2>/dev/null || echo "0"
+  else
+    echo "0"
+  fi
+}
+
+check_test_result() {
+  # 結果ファイルが存在しない場合: テスト未実行
+  if [ ! -f "${TEST_RESULT_FILE}" ]; then
+    return 0  # 未実行はスキップ（テストが不要なプロジェクトも存在するため）
+  fi
+
+  # 結果ファイルの読み取り
+  local status=""
+  if command -v jq >/dev/null 2>&1; then
+    status="$(jq -r '.status // ""' "${TEST_RESULT_FILE}" 2>/dev/null)" || status=""
+  elif command -v python3 >/dev/null 2>&1; then
+    status="$(python3 -c "
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+    print(d.get('status', ''))
+except:
+    print('')
+" "${TEST_RESULT_FILE}" 2>/dev/null)" || status=""
+  fi
+
+  # status=failed の場合は失敗として検知
+  if [ "${status}" = "failed" ]; then
+    return 1
+  fi
+
+  return 0
+}
+
+if ! check_test_result; then
+  # テスト失敗: 失敗カウントをインクリメント
+  FAIL_COUNT="$(update_failure_count "${TASK_ID}" "increment")"
+
+  # タイムラインにも記録
+  FAIL_ENTRY=""
+  if command -v jq >/dev/null 2>&1; then
+    FAIL_ENTRY="$(jq -nc \
+      --arg event "test_result_failed" \
+      --arg teammate "${TEAMMATE_NAME}" \
+      --arg task_id "${TASK_ID}" \
+      --arg subject "${TASK_SUBJECT}" \
+      --arg timestamp "${TS}" \
+      --arg failure_count "${FAIL_COUNT}" \
+      '{event:$event, teammate:$teammate, task_id:$task_id, subject:$subject, timestamp:$timestamp, failure_count:$failure_count}')"
+  fi
+  if [ -n "${FAIL_ENTRY}" ]; then
+    echo "${FAIL_ENTRY}" >> "${TIMELINE_FILE}" 2>/dev/null || true
+  fi
+
+  # 3回連続失敗でエスカレーション（D21 自動化: exit 0 + stderr 出力）
+  ESCALATION_THRESHOLD=3
+  if [ "${FAIL_COUNT}" -ge "${ESCALATION_THRESHOLD}" ] 2>/dev/null; then
+    # テスト結果から原因分類・推奨アクション・試行履歴を収集
+    _last_cmd=""
+    _last_output=""
+    _failure_category="unknown"
+    _recommended_action=""
+
+    if [ -f "${TEST_RESULT_FILE}" ]; then
+      if command -v jq >/dev/null 2>&1; then
+        _last_cmd="$(jq -r '.command // ""' "${TEST_RESULT_FILE}" 2>/dev/null)" || _last_cmd=""
+        _last_output="$(jq -r '.output // ""' "${TEST_RESULT_FILE}" 2>/dev/null | head -20)" || _last_output=""
+      elif command -v python3 >/dev/null 2>&1; then
+        _parsed_result="$(python3 -c "
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+    print(d.get('command', ''))
+    print('---OUTPUT---')
+    out = d.get('output', '')
+    print('\n'.join(str(out).split('\n')[:20]))
+except Exception as e:
+    print('')
+    print('---OUTPUT---')
+" "${TEST_RESULT_FILE}" 2>/dev/null)"
+        _last_cmd="$(echo "${_parsed_result}" | head -1)"
+        _last_output="$(echo "${_parsed_result}" | tail -n +3)"
+      fi
+    fi
+
+    # 原因分類（テスト出力のキーワードから推定）
+    if echo "${_last_output}" | grep -qi "syntax\|SyntaxError\|parse error\|unexpected token"; then
+      _failure_category="syntax_error"
+      _recommended_action="構文エラーを修正してください。コードの文法を確認してください。"
+    elif echo "${_last_output}" | grep -qi "cannot find module\|module not found\|import.*error\|ModuleNotFoundError"; then
+      _failure_category="import_error"
+      _recommended_action="モジュール/インポートエラーを修正してください。依存関係を確認してください（npm install / pip install）。"
+    elif echo "${_last_output}" | grep -qi "type.*error\|TypeError\|is not assignable\|Property.*does not exist"; then
+      _failure_category="type_error"
+      _recommended_action="型エラーを修正してください。型定義と実装の不一致を確認してください。"
+    elif echo "${_last_output}" | grep -qi "assertion\|AssertionError\|expect.*received\|toBe\|toEqual\|FAIL\|FAILED"; then
+      _failure_category="assertion_error"
+      _recommended_action="テストアサーションが失敗しています。期待値と実際の値の差分を確認してください。"
+    elif echo "${_last_output}" | grep -qi "timeout\|Timeout\|ETIMEDOUT\|timed out"; then
+      _failure_category="timeout"
+      _recommended_action="タイムアウトが発生しました。非同期処理やネットワーク依存を確認してください。"
+    elif echo "${_last_output}" | grep -qi "permission\|EACCES\|EPERM\|access denied"; then
+      _failure_category="permission_error"
+      _recommended_action="権限エラーが発生しています。ファイルのパーミッションを確認してください。"
+    else
+      _failure_category="runtime_error"
+      _recommended_action="ランタイムエラーが発生しています。テスト出力を詳しく確認してください。"
+    fi
+
+    # 試行履歴を quality-gate ファイルから取得
+    _history_summary=""
+    if [ -f "${QUALITY_GATE_FILE}" ]; then
+      if command -v jq >/dev/null 2>&1; then
+        _history_summary="$(jq -r --arg tid "${TASK_ID}" '
+          .[$tid] |
+          "  失敗カウント: \(.failure_count // 0)\n  最終更新: \(.updated_at // "不明")"
+        ' "${QUALITY_GATE_FILE}" 2>/dev/null)" || _history_summary=""
+      fi
+    fi
+
+    # エスカレーションレポートを stderr に出力
+    {
+      echo ""
+      echo "=========================================="
+      echo "[ESCALATION] 3回連続失敗を検知 - 自動修正ループを停止"
+      echo "=========================================="
+      echo "  タスク ID  : ${TASK_ID}"
+      echo "  タスク名   : ${TASK_SUBJECT}"
+      echo "  担当者     : ${TEAMMATE_NAME}"
+      echo "  連続失敗数 : ${FAIL_COUNT}"
+      echo "  検知時刻   : ${TS}"
+      echo "------------------------------------------"
+      echo "  [原因分類]"
+      echo "  カテゴリ   : ${_failure_category}"
+      echo ""
+      echo "  [推奨アクション]"
+      echo "  ${_recommended_action}"
+      echo ""
+      if [ -n "${_last_cmd}" ]; then
+        echo "  [最後に実行したコマンド]"
+        echo "  ${_last_cmd}"
+        echo ""
+      fi
+      if [ -n "${_last_output}" ]; then
+        echo "  [テスト出力（最大20行）]"
+        echo "${_last_output}" | while IFS= read -r _line; do
+          echo "    ${_line}"
+        done
+        echo ""
+      fi
+      if [ -n "${_history_summary}" ]; then
+        echo "  [試行履歴]"
+        echo "${_history_summary}"
+        echo ""
+      fi
+      echo "  詳細ファイル: ${QUALITY_GATE_FILE}"
+      echo "  手動対応が必要です。エスカレーション記録後、ループを終了します。"
+      echo "=========================================="
+      echo ""
+    } >&2 2>/dev/null || true
+
+    # エスカレーション記録をタイムラインに追記
+    ESC_ENTRY=""
+    if command -v jq >/dev/null 2>&1; then
+      ESC_ENTRY="$(jq -nc \
+        --arg event "escalation_triggered" \
+        --arg teammate "${TEAMMATE_NAME}" \
+        --arg task_id "${TASK_ID}" \
+        --arg subject "${TASK_SUBJECT}" \
+        --arg timestamp "${TS}" \
+        --arg failure_count "${FAIL_COUNT}" \
+        '{event:$event, teammate:$teammate, task_id:$task_id, subject:$subject, timestamp:$timestamp, failure_count:$failure_count}')"
+    fi
+    if [ -n "${ESC_ENTRY}" ]; then
+      echo "${ESC_ENTRY}" >> "${TIMELINE_FILE}" 2>/dev/null || true
+    fi
+
+    # exit 0 でフックを承認（自動修正ループを止めた後の復旧は手動）
+    echo '{"decision":"approve","reason":"TaskCompleted: 3-strike escalation triggered - manual intervention required"}'
+    exit 0
+  fi
+
+  echo '{"decision":"block","reason":"TaskCompleted: test result shows failure - escalation required"}'
+  exit 2
+else
+  # テスト成功またはテスト未実行: 失敗カウントをリセット
+  if [ -n "${TASK_ID}" ]; then
+    update_failure_count "${TASK_ID}" "reset" >/dev/null 2>&1 || true
+  fi
+fi
+
 # === レスポンス ===
 echo '{"decision":"approve","reason":"TaskCompleted tracked"}'
 exit 0

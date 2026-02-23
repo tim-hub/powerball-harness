@@ -33,7 +33,7 @@ Parse tasks from Plans.md:
 For each parallel group:
     ↓
 Launch task-worker with Task tool:
-  - role: "task_worker"
+  - subagent_type: "task-worker"
   - run_in_background: true
   - prompt: {
       task: "task description",

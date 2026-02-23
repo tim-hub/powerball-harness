@@ -42,7 +42,7 @@ review:
   codex:
     enabled: true   # これが true の場合のみ Codex 統合
     auto: false     # false の場合は確認を求める
-    timeout_ms: 60000 # Codex MCP のタイムアウト（ミリ秒）
+    timeout_ms: 60000 # Codex CLI のタイムアウト（ミリ秒）
 ```
 
 ### Step 2: 確認プロンプト（auto: false の場合）

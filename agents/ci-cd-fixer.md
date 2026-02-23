@@ -408,6 +408,60 @@ npm test
 
 ---
 
+## CI 失敗の自動検知シグナル受信時の対応手順
+
+`ci-status-checker.sh` が CI 失敗を検知し、`additionalContext` 経由でシグナルが注入された場合の対応フロー。
+
+### シグナルの形式
+
+```
+[CI Status Checker] CI run failed
+Run ID: <run_id>
+Branch: <branch>
+Workflow: <workflow_name>
+Failed jobs: <job_names>
+```
+
+### 受信時の即時アクション
+
+1. **シグナルを確認**: `[CI Status Checker]` プレフィックスを検出したら自動検知トリガーとして扱う
+2. **Run ID を抽出**: シグナルから `run_id` を取得し、詳細ログ取得に使用
+3. **自動的に Phase 0 から開始**: 通常フロー（環境チェック → 設定確認 → CI状態確認 → 診断）を即時実行
+
+```bash
+# シグナルから run_id を取得して詳細ログを確認
+RUN_ID="<run_id_from_signal>"
+gh run view "$RUN_ID" --log-failed 2>/dev/null | head -100
+```
+
+### 自動検知時の注意点
+
+- **ユーザーへの確認不要**: シグナル受信は「CI失敗の診断を開始してください」という暗黙の指示として扱う
+- **dry-run モードを維持**: 設定変更なしに apply-local/apply-and-push に昇格しない
+- **ブランチ保護を確認**: シグナルに含まれるブランチが protected_branches でないか確認してから修正
+
+### シグナル受信後のレポート形式
+
+```markdown
+## 🔔 CI 自動検知レポート
+
+**検知元**: ci-status-checker.sh (PostToolUse hook)
+**Run ID**: {{run_id}}
+**ブランチ**: {{branch}}
+**ワークフロー**: {{workflow}}
+**失敗ジョブ**: {{failed_jobs}}
+
+### 診断結果
+
+{{Phase 2-3 の診断結果を記載}}
+
+### 推奨アクション
+
+{{Phase 4 のプランを記載}}
+```
+
+---
+
 ## 注意事項
 
 - **デフォルトは安全側に倒す**: 設定がなければ何もしない

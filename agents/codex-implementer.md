@@ -124,9 +124,6 @@ Task tool で subagent_type="codex-implementer" を指定
 ### 実行コマンド
 
 ```bash
-# タイムアウトコマンド検出（macOS: brew install coreutils）
-TIMEOUT=$(command -v timeout || command -v gtimeout || echo "")
-
 # プロンプトファイル生成
 cat <<'CODEX_PROMPT' > /tmp/codex-prompt-{id}.md
 {base-instructions}
@@ -134,8 +131,11 @@ cat <<'CODEX_PROMPT' > /tmp/codex-prompt-{id}.md
 {タスク内容 + 証跡指示}
 CODEX_PROMPT
 
-# 実行（タイムアウト 180秒）
-$TIMEOUT 180 codex exec "$(cat /tmp/codex-prompt-{id}.md)" 2>/dev/null
+# ラッパー経由で実行（タイムアウト 180秒）
+# - 前処理: AGENTS.md 最新チェック (sync-rules-to-agents.sh)
+# - 後処理: [HARNESS-LEARNING] 抽出 → シークレットフィルタ → codex-learnings.md 追記
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null)}"
+"${PLUGIN_ROOT}/scripts/codex/codex-exec-wrapper.sh" /tmp/codex-prompt-{id}.md 180
 EXIT_CODE=$?
 
 # タイムアウト判定

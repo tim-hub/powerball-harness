@@ -7,6 +7,44 @@
 
 > **📝 記載ルール**: ユーザー体験に影響する変更を中心に記載。内部修正は簡潔に。
 
+## [Unreleased]
+
+### 🎯 あなたにとって何が変わるか
+
+**Phase 13: Breezing 品質自動化と Codex ルール注入 — 改ざん検知、自動テスト実行、CI シグナル連携、AGENTS.md ルール同期、APPROVE ファストパス。**
+
+| Before | After |
+|--------|-------|
+| テスト改ざん検知は skip パターンとアサーション削除のみ | 12+ パターン: 弱体化（`toBe → toBeTruthy`）、タイムアウト水増し、catch-all アサーション、Python skip デコレータ |
+| auto-test-runner はテスト実行を推奨するだけで実際には実行しない | `HARNESS_AUTO_TEST=run` で実際にテストを実行し、結果を `additionalContext` で返す |
+| CI 失敗は手動で検知が必要 | PostToolUse フックが `git push` 後の CI 失敗を検知し `ci-cd-fixer` 推奨シグナルを注入 |
+| `.claude/rules/` は Claude Code 専用で Codex はルールを認識できなかった | `sync-rules-to-agents.sh` でルールを `codex/AGENTS.md` に自動同期; Codex 起動時にプロジェクトルールを読み込む |
+| `codex exec` は前後処理なしで裸で呼び出されていた | `codex-exec-wrapper.sh` でルール同期、`[HARNESS-LEARNING]` 抽出、シークレットフィルタリングを処理 |
+| Breezing Phase C は手動の APPROVE 確認が必要 | `review-result.json` + コミットハッシュチェックで即座に統合テストへのファストパスを実現 |
+| Implementer 数は `min(独立タスク数, 3)` で固定 | `max(1, min(独立タスク数, --parallel, planner_max_parallel, 5))` で自動計算 |
+
+### Added
+
+- **改ざん検知（12+ パターン）**: アサーション弱体化、タイムアウト水増し、catch-all アサーション、Python skip デコレータ — `scripts/posttooluse-tampering-detector.sh`
+- **`HARNESS_AUTO_TEST=run` モード**: `scripts/auto-test-runner.sh` が実際にテストを実行し `additionalContext` JSON で合否を返す
+- **CI シグナル注入**: `scripts/hook-handlers/ci-status-checker.sh` が push 後の CI 失敗を検知して `breezing-signals.jsonl` に書き込み; `scripts/hook-handlers/breezing-signal-injector.sh` が UserPromptSubmit フックで未消費シグナルを注入
+- **`sync-rules-to-agents.sh`**: `.claude/rules/*.md` を `codex/AGENTS.md` の Rules セクションに自動変換（ハッシュベースのドリフト検知付き）
+- **`codex-exec-wrapper.sh`**: `codex exec` の前後処理ラッパー — ルール同期、`[HARNESS-LEARNING]` マーカー抽出、シークレットフィルタリング、`codex-learnings.md` へのアトミック書き戻し
+- **APPROVE ファストパス（Phase C）**: `.claude/state/review-result.json` + HEAD コミットハッシュを確認し、APPROVE 記録済みの場合は手動確認をスキップ
+- **`review-result.json` 自動記録**: Reviewer が SendMessage の `review_result_json` フィールドで報告; Lead が `.claude/state/review-result.json` に書き込み、ファストパス参照用に保存
+- **ドキュメント再構成**: `docs/CLAUDE-feature-table.md`、`docs/CLAUDE-skill-catalog.md`、`docs/CLAUDE-commands.md` — CLAUDE.md から詳細リファレンスを分離
+- **`harness.rules` — execpolicy ガードルール**: `npm test`/`yarn test`/`pnpm test` を自動許可; `git push --force`、`git reset --hard`、`rm -rf`、`git clean -f`、SQL 破壊的ステートメント（`DROP TABLE`、`DELETE FROM`）はユーザー確認を要求; `codex execpolicy check` で 20 パターンを検証済み
+
+### Changed
+
+- **CLAUDE.md を 120 行以下に圧縮**: Feature Table（5 件）、スキルカテゴリ表（5 カテゴリ）; 詳細は `docs/` に移管
+- **Implementer 数自動決定**: `max(1, min(独立タスク数, --parallel N, planner_max_parallel, 5))` — スターブ防止 + ハード上限 5
+- **`review-retake-loop.md`**: `review-result.json` 書き込み仕様を追加（JSON フォーマット、Reviewer→Lead 委任フロー、ファイルライフサイクル）
+- **`execution-flow.md` Phase C**: APPROVE ファストパスチェックをステップ 2 として追加; フェーズ処理番号を更新
+- **`team-composition.md`**: Extended 構成（5 Implementer）のコスト見積もり表を追加
+
+---
+
 ## [2.23.3] - 2026-02-22
 
 ### 🎯 あなたにとって何が変わるか

@@ -25,12 +25,12 @@ Step 0: breezing-active.json 即時書き込み（全 Phase の前に実行）
 │                                                              │
 │  Step 1: 環境チェック                                        │
 │  Step 2: 範囲確認（ユーザー承認）                            │
-│  Step 3: Team 初期化 → タスクリスト登録 → Teammates spawn      │
+│  Step 3: Team 初期化 → TaskCreate → Teammates spawn          │
 │                                                              │
 │  ※ Write/Edit/Bash はこの Phase でのみ Lead が直接使用       │
 │  ※ 環境チェック失敗時は breezing-active.json を削除          │
 └─────────────────────────────────────────────────────────────┘
-    ↓ Phase B 開始
+    ↓ delegate mode ON
 ┌─────────────────────────────────────────────────────────────┐
 │ Phase B: Delegate（Lead は調整専念、コード編集禁止）          │
 │                                                              │
@@ -46,10 +46,10 @@ Step 0: breezing-active.json 即時書き込み（全 Phase の前に実行）
 │  ・重大な問題 → タスク分解して修正タスク登録                 │
 │  ・3回リテイク超過 → ユーザーにエスカレーション              │
 │                                                              │
-│  Lead 使用可能ツール: spawn_agent/send_input/タスクリスト/    │
-│                       wait/close_agent のみ                  │
+│  Lead 使用可能ツール: TaskCreate/TaskUpdate/TaskList/         │
+│                       TaskGet/SendMessage のみ               │
 └─────────────────────────────────────────────────────────────┘
-    ↓ 全タスク完了 + APPROVE → Phase B 終了
+    ↓ 全タスク完了 + APPROVE → delegate mode OFF
 ┌─────────────────────────────────────────────────────────────┐
 │ Phase C: Post-delegate（パーミッションモード復元）            │
 │                                                              │
@@ -70,7 +70,7 @@ Step 0: breezing-active.json 即時書き込み（全 Phase の前に実行）
 **Phase 0・Phase A のいずれよりも前に実行する。** Compaction 対策として、モード情報を永続化する。
 
 ```jsonc
-// ${CODEX_HOME:-~/.codex}/state/harness/breezing-active.json に即時書き込み
+// .claude/state/breezing-active.json に即時書き込み
 {
   "session_id": "breezing-{timestamp}",
   "started_at": "{ISO8601}",
@@ -88,7 +88,7 @@ Step 0: breezing-active.json 即時書き込み（全 Phase の前に実行）
 | `"codex"` | `--codex` フラグ**あり** | `claude-code-harness:codex-implementer` | pretooluse-guard が Write/Edit/Bash を制限 |
 
 > **重要**: `--codex` フラグがある場合は `impl_mode` を必ず `"codex"` に設定すること。
-> この値が Step 3 の Implementer spawn_agent("role", ...) 選択と、Compaction 復元時のエージェント選択の両方を決定する。
+> この値が Step 3 の Implementer subagent_type 選択と、Compaction 復元時のエージェント選択の両方を決定する。
 
 **なぜ最初に書くか**: Compaction が準備ステージ中に発生しても、`impl_mode` が永続化されていれば復元できる。
 
@@ -107,25 +107,13 @@ Step 0: breezing-active.json 即時書き込み（全 Phase の前に実行）
 
 ```text
 1. Planner (plan-analyst) + Critic (plan-critic) を spawn
-   planner_id = spawn_agent("plan_analyst", task)
-   critic_id  = spawn_agent("plan_critic", task)
+   ※ mode: "bypassPermissions" で spawn（Teammate はプロンプト不可のため必須）
 2. Round 1: Planner がタスク分析 → Planner ↔ Critic 直接対話で疑問点を解消
-   send_input(planner_id, "Plans.md のタスクを分析してください。...")
-   planner_report = wait(planner_id, timeout_ms=120000)
 3. Round 2: Critic が Red Teaming 検証 → Planner に確認が必要な点を直接質問
-   send_input(critic_id, "Planner の分析を批判的に検証してください。...")
-   critic_report = wait(critic_id, timeout_ms=120000)
 4. Round 3: Lead が両者の分析を統合 → ユーザーに提示
 5. (必要なら) ユーザーが Plans.md 修正 → 追加ラウンド（合計で最大 3 ラウンドまで）
-   send_input(planner_id, "修正された Plans.md を再分析してください。")
-   resume_agent(critic_id, "再検証してください。")
-6. Planner/Critic を終了 → Phase A へ
-   close_agent(planner_id)
-   close_agent(critic_id)
+6. Planner/Critic shutdown → Phase A へ
 ```
-
-**エージェント定義**: `config.toml` の `[agents.plan_analyst]` / `[agents.plan_critic]` で設定。
-Codex はサンドボックスポリシーで制御するため、`mode: "bypassPermissions"` は不要。
 
 Phase 0 で得られた情報（owns 推定、依存提案等）は Phase A に引き継がれ、
 Phase A の V1〜V4 バリデーションの**参考情報**として活用する（ただしスキップはしない。
@@ -137,21 +125,24 @@ Phase 0 は戦略/アーキテクチャ評価、V1〜V4 は技術的詳細チェ
 
 ### 1. 環境チェック
 
-```toml
-# config.toml のマルチエージェント有効化チェック
-# [features] セクションに multi_agent = true が必要
+```bash
+# Agent Teams 有効化チェック
+# CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 が必要
 ```
 
 未設定時のメッセージ:
 
 ```text
-⚠️ マルチエージェントが有効化されていません。
+⚠️ Agent Teams が有効化されていません。
 
-config.toml に以下を追加してください:
-[features]
-multi_agent = true
+以下を settings.json に追加してください:
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
 
-マルチエージェントなしで実行する場合は `work all` を使用してください。
+Agent Teams なしで実行する場合は `/work all` を使用してください。
 ```
 
 ### 2. 範囲確認（ユーザー承認必須）
@@ -175,7 +166,7 @@ multi_agent = true
 └── 5. セッション管理 (cc:TODO)
 
 Team 構成:
-├── Lead: 調整専念 (Phase B)
+├── Lead: 調整専念 (Phase B で delegate mode)
 ├── Implementer: 2 個 (独立タスク数に基づく)
 └── Reviewer: 1 個
 
@@ -186,38 +177,40 @@ Team 構成:
 
 ### 3. Team 初期化（Phase A 最終ステップ）
 
-> **重要**: Step 3 は Phase A 内で実行する。Phase B にはまだ入らない。
-> breezing-active.json の Write、タスクリスト登録、Teammates spawn を
+> **重要**: Step 3 は Phase A 内で実行する。delegate mode にはまだ入らない。
+> breezing-active.json の Write、TaskCreate 登録、Teammates spawn を
 > ユーザーのパーミッションモード（bypass 等）を維持したまま完了する。
 
 1. breezing-active.json 更新（メタデータ追記 — タスク状態は Agent Teams TaskList に委譲）
-2. **タスク粒度バリデーション**（タスクリスト登録前の必須チェック）
+2. **タスク粒度バリデーション**（TaskCreate 前の必須チェック）
    - V1〜V5 の観点で各タスクを検証（詳細: plans-to-tasklist.md 参照）
    - 問題あり → ユーザーに修正提案を表示、承認後に続行
    - V5（依存関係未宣言）は自動修復
-3. Plans.md タスクを spawn_agent/タスクリスト API で共有タスクリストに登録
+3. Plans.md タスクを TaskCreate で共有タスクリストに登録
    - owns: アノテーション付与
    - addBlockedBy で依存関係設定（V5 自動修復分を含む）
-4. Implementer エージェント spawn (N 個)
+4. Implementer Teammates spawn (N 個)
    - **`--codex` フラグによるエージェント選択（必須分岐）**:
-     - `--codex` **あり** → `spawn_agent("codex_implementer", task)` で生成
-     - `--codex` **なし** → `spawn_agent("task_worker", task)` で生成
-   - **並列 spawn**: N 個の Implementer を**同時に spawn** する（N = min(独立タスク数, --parallel N, 3)）
-   - エージェント定義: `config.toml` の `[agents.task_worker]` / `[agents.codex_implementer]`
-   - Codex サンドボックスポリシーで権限制御。`mode: "bypassPermissions"` は不要。
-   - **注意**: `impl_mode: "codex"` の場合に `task_worker` を spawn するのは**絶対禁止**。逆も同様。
-5. Reviewer エージェント spawn (1 個)
-   - `spawn_agent("code_reviewer", task)` で生成
-   - エージェント定義: `config.toml` の `[agents.code_reviewer]`
-   - Codex サンドボックスポリシーで権限制御。`mode: "bypassPermissions"` は不要。
+     - `--codex` **あり** → `subagent_type: "claude-code-harness:codex-implementer"` で spawn
+     - `--codex` **なし** → `subagent_type: "claude-code-harness:task-worker"` で spawn
+   - **並列 spawn**: N 個の Implementer を**同時に spawn** する（N = max(1, min(独立タスク数, --parallel N, planner_max_parallel, 5))。planner_max_parallel/--parallel 未指定時はデフォルト上限 3）
+   - `mode: "bypassPermissions"` を指定（Teammate はプロンプト不可のため必須）
+   - エージェント定義の `memory: project` により永続メモリが自動注入
+   - spawn prompt でロールマーカーファイル Write を指示
+   - **注意**: `impl_mode: "codex"` の場合に `task-worker` を spawn するのは**絶対禁止**。逆も同様。
+5. Reviewer Teammate spawn (1 個)
+   - `subagent_type: "claude-code-harness:code-reviewer"` で spawn
+   - `mode: "bypassPermissions"` を指定（Teammate はプロンプト不可のため必須）
+   - エージェント定義の `memory: project` により永続メモリが自動注入
+   - spawn prompt でロールマーカーファイル Write を指示
 6. (--codex-review) Codex MCP レビュー設定
-7. **Phase B 開始** → Phase B へ遷移（ここで初めてモード変更）
+7. **delegate mode ON** → Phase B へ遷移（ここで初めてモード変更）
 
 詳細: team-composition.md 参照
 
 ### breezing-active.json スキーマ (v2)
 
-**ファイル**: `${CODEX_HOME:-~/.codex}/state/harness/breezing-active.json`
+**ファイル**: `.claude/state/breezing-active.json`
 
 タスク状態は Agent Teams TaskList (`~/.claude/tasks/`) に一元化。
 breezing-active.json はメタデータのみを保持。
@@ -255,16 +248,30 @@ breezing-active.json はメタデータのみを保持。
 ```
 独立タスク数 = 依存関係なしで並列実行可能なタスク数
 
-Implementer 数 = min(独立タスク数, --parallel N, 3)
+Implementer 数 = max(1, min(独立タスク数, --parallel N, planner_max_parallel, 5))
 
-デフォルト上限: 3 (トークンコスト抑制)
+  max(1, ...) : スターブ防止（最低 1 Implementer を保証）
+  min(..., 5) : 過剰 spawn 防止（ハード上限）
+  planner_max_parallel: Phase 0 Planner が推奨する並列数（未設定時は無視）
+  --parallel N: ユーザー指定（未指定時は無視）
+  デフォルト上限: 3 (--parallel 未指定かつ planner_max_parallel 未設定時の実効値)
 ```
 
-### タスクリスト登録ルール
+#### 計算例
 
-Plans.md のタスクを Agent Teams の共有タスクリストに変換する際:
+| 独立タスク数 | --parallel | planner_max_parallel | Implementer 数 |
+|------------|-----------|---------------------|---------------|
+| 5          | 未指定     | 未設定               | min(5, 3) = 3 |
+| 5          | 2          | 未設定               | min(5, 2, 3) = 2 |
+| 8          | 5          | 4                   | min(8, 5, 4) = 4 |
+| 1          | 5          | 未設定               | max(1, min(1, 5, 3)) = 1 |
+| 20         | 10         | 未設定               | max(1, min(20, 10, 5)) = 5 |
 
-1. **タスク粒度**: Plans.md の 1 タスク = 1 タスクリストエントリ
+### TaskCreate 登録ルール
+
+Plans.md のタスクを Agent Teams の共有タスクリスト (TaskCreate) に変換する際:
+
+1. **タスク粒度**: Plans.md の 1 タスク = 1 TaskCreate エントリ
 2. **owns: アノテーション**: 各タスクが触るファイルを description に記載
 3. **依存関係**: 同一ファイルを触るタスクは `addBlockedBy` で順次化
 4. **activeForm**: 進捗表示用の present continuous 形式
@@ -291,13 +298,13 @@ Lead はサイクル内で以下を**自律的に判断**する:
 
 ### シグナルベースの動的判断
 
-Lead は Phase B 中に `${CODEX_HOME:-~/.codex}/state/harness/breezing-signals.jsonl` を定期チェックし、
+Lead は Phase B 中に `.claude/state/breezing-signals.jsonl` を定期チェックし、
 Hook が生成したシグナルに基づいて自律的に判断する:
 
 | シグナル | 意味 | Lead のアクション |
 |---|---|---|
 | `partial_review_recommended` | タスクの 50% が完了 | Reviewer に部分レビューを指示（推奨） |
-| `next_batch_recommended` | 現バッチの 60% が完了 | 次バッチのタスクリスト登録（Progressive Batch 時） |
+| `next_batch_recommended` | 現バッチの 60% が完了 | 次バッチの TaskCreate 登録（Progressive Batch 時） |
 
 > **注**: シグナルは推奨であり、Lead は状況に応じて無視できる。
 > 例: 残りタスクが 1 個なら部分レビューは不要。
@@ -378,27 +385,58 @@ Lead の判断:
 
 ### Phase 遷移: delegate → Post-delegate
 
-**全タスク完了 + APPROVE 確定後、Phase B を終了してから完了処理を行う。**
+**全タスク完了 + APPROVE 確定後、delegate mode を解除してから完了処理を行う。**
 
 ```text
-Phase B 終了条件:
+Phase B (delegate) 終了条件:
   ・全タスクが completed
   ・Reviewer の最終判定が APPROVE
     ↓
-Phase B 終了 → Phase C (Post-delegate) へ遷移
+delegate mode OFF → Phase C (Post-delegate) へ遷移
   ・Lead が Write/Edit/Bash を再び使用可能
   ・ユーザーの元のパーミッションモード（bypass 等）が復元される
 ```
 
+### APPROVE ファストパス（Phase C 冒頭で実行）
+
+delegate mode 解除直後に `.claude/state/review-result.json` を確認し、
+条件を満たす場合は統合検証フェーズへ即座にスキップする。
+
+```bash
+# review-result.json が存在する場合のみチェック
+REVIEW_RESULT=".claude/state/review-result.json"
+if [ -f "$REVIEW_RESULT" ]; then
+  VERDICT=$(jq -r '.verdict // ""' "$REVIEW_RESULT")
+  RESULT_HASH=$(jq -r '.commit_hash // ""' "$REVIEW_RESULT")
+  HEAD_HASH=$(git rev-parse HEAD 2>/dev/null || echo "")
+
+  if [ "$VERDICT" = "APPROVE" ] && [ -n "$RESULT_HASH" ] && [ "$RESULT_HASH" = "$HEAD_HASH" ]; then
+    # ファストパス: 手動確認スキップ → 統合検証へ直行
+    echo "APPROVE ファストパス: review-result.json を確認 (hash: $HEAD_HASH)"
+    goto 統合ビルド・テスト最終確認
+  fi
+fi
+# ハッシュ不一致または review-result.json 未存在 → 通常フロー継続
+```
+
+**ファストパス条件**:
+1. `.claude/state/review-result.json` が存在する
+2. `verdict` フィールドが `"APPROVE"`
+3. `commit_hash` が現在の `HEAD` と一致（レビュー後に追加コミットがないことを確認）
+
+**フォールバック**: 条件未達の場合は通常の手動確認フローを維持する。
+
 ### 処理
 
-1. **Phase B 終了**（Phase C 開始）
-2. 統合ビルド・テスト最終確認
-3. Plans.md 更新 (cc:TODO → cc:done)
-4. git commit (Conventional Commits 形式)
-5. breezing-active.json 削除
-6. Team クリーンアップ
-7. メトリクスレポート生成
+1. **delegate mode 解除**（Phase C 開始）
+2. **APPROVE ファストパスチェック**（上記参照）
+3. 統合ビルド・テスト最終確認
+4. Plans.md 更新 (cc:TODO → cc:done)
+5. git commit (Conventional Commits 形式)
+6. breezing-active.json 削除
+7. review-result.json 削除（`rm -f .claude/state/review-result.json`）
+8. Team クリーンアップ
+9. メトリクスレポート生成
 
 ### 検証実行規則
 
@@ -454,5 +492,5 @@ Phase 4 の統合検証は ultrawork と同一:
 ```
 
 > **メトリクスの制限**: PostToolUse Hook は Teammate に継承されないため、Teammate 別のトークン数・ツール使用数は取得不可。
-> TaskCompleted/TeammateIdle Hook（Lead 側で発火、実装済み）により「誰がどのタスクをいつ完了したか」のタイムラインは `${CODEX_HOME:-~/.codex}/state/harness/breezing-timeline.jsonl` に記録される。
+> TaskCompleted/TeammateIdle Hook（Lead 側で発火、実装済み）により「誰がどのタスクをいつ完了したか」のタイムラインは `.claude/state/breezing-timeline.jsonl` に記録される。
 > Lead 自身の agent-trace.jsonl は正常に記録される。全体コストは `/cost` コマンドで確認可能。

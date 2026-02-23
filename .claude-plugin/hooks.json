@@ -195,6 +195,11 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" userprompt-track-command",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/breezing-signal-injector",
+            "timeout": 10
           }
         ]
       }
@@ -217,6 +222,12 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" posttooluse-commit-cleanup",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/ci-status-checker",
+            "timeout": 30,
+            "async": true
           }
         ]
       },
@@ -271,7 +282,8 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" auto-test-runner",
-            "timeout": 120
+            "timeout": 120,
+            "async": true
           },
           {
             "type": "command",

@@ -12,6 +12,78 @@
 # - `.codex/history.jsonl` は daemon が自動インジェストするため、削除しないこと。
 # - 上記のいずれかが失敗した場合は `scripts/harness-memd doctor` → `scripts/harness-memd cleanup-stale` → `scripts/harness-memd start` の順で復旧する。
 
+# === Test execution auto-allow ===
+# package.json scripts.test のみを auto-allow。
+# コマンド連結（&&, ||, ;, |）は含まない純粋なテスト実行コマンドのみ許可。
+
+prefix_rule(
+  pattern = ["npm", "test"],
+  decision = "allow",
+  justification = "HOOK:test-allow",
+  match = [
+    "npm test",
+    "npm test --",
+  ],
+)
+
+prefix_rule(
+  pattern = ["npm", "run", "test"],
+  decision = "allow",
+  justification = "HOOK:test-allow",
+  match = [
+    "npm run test",
+    "npm run test -- --verbose",
+  ],
+)
+
+prefix_rule(
+  pattern = ["yarn", "test"],
+  decision = "allow",
+  justification = "HOOK:test-allow",
+  match = [
+    "yarn test",
+    "yarn test --verbose",
+  ],
+)
+
+prefix_rule(
+  pattern = ["pnpm", "test"],
+  decision = "allow",
+  justification = "HOOK:test-allow",
+  match = [
+    "pnpm test",
+    "pnpm test --",
+  ],
+)
+
+prefix_rule(
+  pattern = ["pnpm", "run", "test"],
+  decision = "allow",
+  justification = "HOOK:test-allow",
+  match = [
+    "pnpm run test",
+  ],
+)
+
+# === Command chaining prompt ===
+# && / || による任意コマンド連結をユーザー確認にする。
+# NOTE: execpolicy の valid な decision は allow / prompt のみ（deny は未サポート）。
+# コマンド連結の match 例にシェル演算子を含めるとパース時エラーになるため例を省略。
+
+prefix_rule(
+  pattern = ["&&"],
+  decision = "prompt",
+  justification = "HOOK:no-command-chaining",
+)
+
+prefix_rule(
+  pattern = ["||"],
+  decision = "prompt",
+  justification = "HOOK:no-command-chaining",
+)
+
+# === Dangerous commands ===
+
 prefix_rule(
   pattern = ["rm", ["-rf", "-fr"]],
   decision = "prompt",
@@ -118,5 +190,102 @@ prefix_rule(
   match = [
     "pkill -f harness-memd",
     "pkill -f memory-server/src/index.ts",
+  ],
+)
+
+# === Destructive git operations (prompt) ===
+# Codex が実行しようとした場合はユーザー確認。
+# NOTE: execpolicy の valid な decision は allow / prompt のみ（deny は未サポート）。
+
+prefix_rule(
+  pattern = ["git", "push", "--force"],
+  decision = "prompt",
+  justification = "HOOK:deny-destructive-git",
+  match = [
+    "git push --force",
+    "git push --force origin main",
+  ],
+  not_match = [
+    "git push origin main",
+    "git push --force-with-lease origin main",
+  ],
+)
+
+prefix_rule(
+  pattern = ["git", "push", "-f"],
+  decision = "prompt",
+  justification = "HOOK:deny-destructive-git",
+  match = [
+    "git push -f",
+    "git push -f origin main",
+  ],
+  not_match = [
+    "git push origin main",
+  ],
+)
+
+prefix_rule(
+  pattern = ["git", "reset", "--hard"],
+  decision = "prompt",
+  justification = "HOOK:deny-destructive-git",
+  match = [
+    "git reset --hard HEAD~1",
+    "git reset --hard origin/main",
+  ],
+  not_match = [
+    "git reset --soft HEAD~1",
+    "git reset HEAD file.txt",
+  ],
+)
+
+prefix_rule(
+  pattern = ["git", "clean", "-f"],
+  decision = "prompt",
+  justification = "HOOK:deny-destructive-git",
+  match = [
+    "git clean -f",
+  ],
+  not_match = [
+    "git clean -n",
+    "git clean --dry-run",
+  ],
+)
+
+prefix_rule(
+  pattern = ["rm", "-rf", "/"],
+  decision = "prompt",
+  justification = "HOOK:deny-rm-root",
+  match = [
+    "rm -rf /",
+  ],
+  not_match = [
+    "rm -rf ./build",
+    "rm -rf build",
+  ],
+)
+
+# === SQL destructive statements (prompt) ===
+# DROP TABLE / DELETE FROM をシェル経由で実行しようとする場合にユーザー確認。
+
+prefix_rule(
+  pattern = ["DROP", "TABLE"],
+  decision = "prompt",
+  justification = "HOOK:deny-sql-destructive",
+  match = [
+    "DROP TABLE users",
+    "DROP TABLE IF EXISTS sessions",
+  ],
+)
+
+prefix_rule(
+  pattern = ["DELETE", "FROM"],
+  decision = "prompt",
+  justification = "HOOK:deny-sql-destructive",
+  match = [
+    "DELETE FROM users WHERE id = 1",
+    "DELETE FROM sessions",
+  ],
+  not_match = [
+    "SELECT * FROM users",
   ],
 )

@@ -1,611 +1,309 @@
-# スキル統合プラン — 28 → 19 スキルへ
+# まさおハーネス理論ベンチマーク改善プラン
 
-## 背景
-
-v2.19.0 で実装コマンドを 5→2 に統合した。次はスキル全体の整理。
-ユーザーに見えるスキル数を 28 → 19 に削減し、認知負荷を下げる。
-
----
-
-## Phase 1: memory 統合 (3→1)
-
-`/memory` に `/sync-ssot-from-memory` と `/cursor-mem` を吸収。
-
-### 1.1 memory SKILL.md に統合機能を追加
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 1.1.1 | `/memory` SKILL.md の description に sync-ssot, cursor-mem のトリガーフレーズを追加 | ✅ |
-| 1.1.2 | SKILL.md 本文に「SSOT 昇格」と「記憶検索」セクションを追加 | ✅ |
-| 1.1.3 | sync-ssot-from-memory の処理ロジックを `references/sync-ssot.md` として移設 | ✅ |
-| 1.1.4 | cursor-mem の処理ロジックを `references/cursor-mem-search.md` として移設 | ✅ |
-
-### 1.2 旧スキルのアーカイブ
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 1.2.1 | `skills/sync-ssot-from-memory/` → `skills/_archived/sync-ssot-from-memory/` に移動 | ✅ |
-| 1.2.2 | `skills/cursor-mem/` → `skills/_archived/cursor-mem/` に移動 | ✅ |
+作成日: 2026-02-23
+基準: `docs/research/masaoharness-benchmark-report.md`（5 Opus 4.6 エージェントによる精密評価）
+現在スコア: CC 182/200 (91.0%, Level 5.5) / Codex 143/200 (71.5%, Level 4.0)
 
 ---
 
-## Phase 2: setup 統合 (5→1)
+## 優先度マトリクス
 
-`/setup` に `/harness-mem`, `/codex-setup`, `/2agent`, `/localize-rules` を吸収。
-`/setup-tools` をベースに、サブコマンド的に分岐する構成。
-
-### 2.1 setup SKILL.md の拡張
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 2.1.1 | `/setup-tools` SKILL.md の description に統合対象のトリガーフレーズを追加 | ✅ |
-| 2.1.2 | SKILL.md 本文にルーティングテーブル追加（ユーザー意図 → 適切な reference へ分岐） | ✅ |
-| 2.1.3 | harness-mem の処理ロジックを `references/harness-mem.md` として移設 | ✅ |
-| 2.1.4 | codex-setup の処理ロジックを `references/codex-setup.md` として移設 | ✅ |
-| 2.1.5 | 2agent の SKILL.md + references/ を `references/2agent-setup.md` + `references/2agent/` として移設 | ✅ |
-| 2.1.6 | localize-rules の処理ロジックを `references/localize-rules.md` として移設 | ✅ |
-
-### 2.2 スキル名変更
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 2.2.1 | `skills/setup-tools/` → `skills/setup/` にリネーム（name: setup に変更） | ✅ |
-
-### 2.3 旧スキルのアーカイブ
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 2.3.1 | `skills/harness-mem/` → `skills/_archived/harness-mem/` に移動 | ✅ |
-| 2.3.2 | `skills/codex-setup/` → `skills/_archived/codex-setup/` に移動 | ✅ |
-| 2.3.3 | `skills/2agent/` → `skills/_archived/2agent/` に移動 | ✅ |
-| 2.3.4 | `skills/localize-rules/` → `skills/_archived/localize-rules/` に移動 | ✅ |
+| 優先度 | Phase | 対象 Level | 改善幅 | 難度 |
+|--------|-------|-----------|--------|------|
+| **Required** | 13.1 | L5 自動検証 | +2.0pt | 中 |
+| **Required** | 13.2 | L1 CLAUDE.md | +2.0pt | 低 |
+| **Recommended** | 13.3 | L1-2 Codex | +5.0pt | 中 |
+| **Optional** | 13.4 | L6 オーケスト | +1.5pt | 高 |
 
 ---
 
-## Phase 3: 非表示化 (3スキル)
+## Phase 13.1: 自動検証ループ強化（Level 5: 80% → 88%）[P1]
 
-`user-invocable: false` を設定。description のトリガーフレーズは維持し、
-他スキルからの内部呼び出しは引き続き可能にする。
+仕様確認済み: TaskCompleted exit 2 で拒否可能、async hook で非ブロッキング実行可能、Hooks からの spawn は不可（feedback 注入で代替）。
+
+### 13.1.1 TaskCompleted 品質ゲート [feature:quality]
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 3.1 | `skills/x-release-harness/SKILL.md` に `user-invocable: false` 追加 | ✅ |
-| 3.2 | `skills/ci/SKILL.md` に `user-invocable: false` 追加。`/troubleshoot` の description に「CIが落ちた」トリガーを追加し、内部で ci を呼ぶ導線を確保 | ✅ |
-| 3.3 | `skills/agent-browser/SKILL.md` に `user-invocable: false` 追加。description のトリガーフレーズ（「ブラウザで操作」等）は維持し自動ロード経由のアクセスを確保 | ✅ |
+| 13.1.1.1 | `task-completed.sh` にテスト結果参照を追加: auto-test-runner の結果ファイルを確認 → 未実行/失敗時 exit 2（テスト実行自体は async hook 側で行い、hook 内での長時間実行を回避） | cc:完了 |
+| 13.1.1.2 | `.claude/state/task-quality-gate.json` で失敗カウントを管理（タスク ID 別） | cc:完了 |
+| 13.1.1.3 | 3回連続失敗で exit 0 + stderr にエスカレーションレポートを出力（D21 自動化） | cc:完了 |
+| 13.1.1.4 | エスカレーションレポートのフォーマット定義（原因分類 + 推奨アクション + 試行履歴） | cc:完了 |
+
+### 13.1.2 テスト改ざん検知パターン追加
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 13.1.2.1 | assertion weakening 検知: `toBe` → `toBeTruthy`, `toEqual` → `toBeDefined` のパターン追加 | cc:完了 |
+| 13.1.2.2 | timeout 値の大幅引き上げ検知: `jest.setTimeout(30000)` 等 | cc:完了 |
+| 13.1.2.3 | catch-all assertion 検知: `expect(true).toBe(true)` 等の無意味テスト | cc:完了 |
+| 13.1.2.4 | Python: `pytest.mark.skip` / `unittest.skip` デコレータ検知 | cc:完了 |
+
+### 13.1.3 auto-test-runner.sh の実行モード追加
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 13.1.3.1 | `HARNESS_AUTO_TEST=run` 環境変数で実行モードを切り替え可能に | cc:完了 |
+| 13.1.3.2 | `async: true` を hooks.json に追加し非ブロッキング実行（[async hook 仕様](https://code.claude.com/docs/en/hooks)） | cc:完了 |
+| 13.1.3.3 | テスト結果を `additionalContext` で Claude に自動フィードバック | cc:完了 |
+
+### 13.1.4 CI 復旧の自律性向上
+
+**仕様制約**: Hooks からエージェント spawn は不可。feedback 注入で Lead に判断を委ねる方式に修正。
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 13.1.4.1 | PostToolUse (Bash matcher) で `git push` / `gh pr` 後の CI ステータスを非同期チェック | cc:完了 |
+| 13.1.4.2 | CI 失敗検知時に `additionalContext` で「ci-cd-fixer の spawn を推奨」メッセージを注入 | cc:完了 |
+| 13.1.4.3 | `ci-cd-fixer.md` のプロンプトに「CI 失敗の自動検知シグナル受信時の対応手順」を追加 | cc:完了 |
 
 ---
 
-## Phase 4: CLAUDE.md 更新 + ミラー同期
+## Phase 13.2: CLAUDE.md 電報体最適化（Level 1: 88% → 96%）[P3]
+
+仕様確認済み: 全提案はドキュメント整理のみ（仕様依存なし）。120行目標はスキルバジェット2%スケーリング（CC 2.1.32+）と整合。
+
+### 13.2.1 references/ へのコンテンツ移管
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 4.1 | CLAUDE.md のスキルカテゴリテーブルを更新（統合後の 19 スキル反映） | ✅ |
-| 4.2 | CLAUDE.md のスキル階層構造ツリーを更新 | ✅ |
-| 4.3 | ミラー同期 (`rsync skills/ → codex/.codex/skills/, opencode/skills/, .opencode/skills/`) | ✅ |
-| 4.4 | バージョンバンプ (v2.20.0) + CHANGELOG エントリ追加 | ✅ |
-| 4.5 | `./tests/validate-plugin.sh && ./scripts/ci/check-consistency.sh` で検証 | ✅ |
+| 13.2.1.1 | `docs/CLAUDE-feature-table.md` 新規作成: Feature Table 全20行を移管 | cc:完了 |
+| 13.2.1.2 | `docs/CLAUDE-skill-catalog.md` 新規作成: スキル階層ツリー + 全カテゴリ表 + 開発用スキル（計31行） | cc:完了 |
+| 13.2.1.3 | `docs/CLAUDE-commands.md` 新規作成: 主要コマンド表 + ハンドオフ（計21行） | cc:完了 |
+
+### 13.2.2 CLAUDE.md 本文の圧縮
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 13.2.2.1 | Feature Table → 上位5機能のみ残し「詳細: docs/CLAUDE-feature-table.md」リンク追加 | cc:完了 |
+| 13.2.2.2 | スキルカテゴリ表 → 頻出5カテゴリ（work/breezing/review/setup/memory）のみ残し「詳細: docs/CLAUDE-skill-catalog.md」リンク追加 | cc:完了 |
+| 13.2.2.3 | テスト方法セクション → コマンド2行 +「詳細: docs/」リンクに圧縮 | cc:完了 |
+| 13.2.2.4 | コマンド表 → 主要6コマンドのみ残し残りは docs/ リンク | cc:完了 |
+| 13.2.2.5 | 開発ルール → commit 種別リストを短縮、CHANGELOG 詳細は rules/ 参照へ | cc:完了 |
+| 13.2.2.6 | テスト改ざん防止 → rules/ リンクのみに圧縮（3行） | cc:完了 |
+
+### 13.2.3 検証
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 13.2.3.1 | 圧縮後の CLAUDE.md が 120行以下であることを確認 | cc:完了 |
+| 13.2.3.2 | 移管先ドキュメントからの CLAUDE.md 逆参照が正しいことを確認 | cc:完了 |
 
 ---
 
-## 検証方法
+## Phase 13.3: Codex CLI 経路のルール注入強化（Level 1: 60% → 72%, Level 2: 64% → 76%）[P2]
 
-1. **構造検証**: `./tests/validate-plugin.sh && ./scripts/ci/check-consistency.sh`
-2. **統合後の動作**: `/memory sync`, `/memory search` で旧機能がルーティングされること
-3. **setup ルーティング**: `/setup codex`, `/setup 2agent` 等で正しい reference にルーティング
-4. **非表示確認**: スキルリストに ci, agent-browser, release-harness が出ないこと
-5. **自動ロード確認**: 「CIが落ちた」→ troubleshoot 経由で ci にルーティングされること
-6. **ミラー一致**: `diff -rq skills/ codex/.codex/skills/`
+### 仕様検証結果
 
-## Phase C: Codex レビュー修正ループ (R1-R10)
+| 提案 | Codex 仕様 | 実現可否 | 修正 |
+|------|-----------|---------|------|
+| `base-instructions` で rules/ 自動注入 | ❌ `base-instructions` は Codex に存在しない概念 | ⚠️ 修正必要 | **AGENTS.md 階層に統合** |
+| codex exec 後の SSOT 自動追記 | `codex exec` は stdout に結果を出力（[公式](https://developers.openai.com/codex/cli/reference/)） | ✅ 実現可能 | ラッパースクリプトで後処理 |
+| Agent Memory bridge | Codex にはセッション間メモリ機構なし | ✅ 実現可能 | ラッパーで `.claude/memory/` に書き戻し |
 
-3エキスパート（Security, Quality, Architect）による Codex 並列レビュー → 修正 → 再レビューを10ラウンド実施。
+### 13.3.1 AGENTS.md へのルール統合
+
+Codex は `AGENTS.md` を階層的に読み込む（[Codex Rules 仕様](https://developers.openai.com/codex/rules)）。`.claude/rules/` の内容を `codex/.codex/AGENTS.md` に統合する。
 
 | Task | 内容 | Status |
 |------|------|--------|
-| C.1 | Security エキスパート: Score A 達成（R5で達成、R10まで維持） | ✅ |
-| C.2 | Quality エキスパート: consolidation スコープ High ゼロ達成（R10） | ✅ |
-| C.3 | Architect エキスパート: consolidation スコープ High ゼロ達成（R10） | ✅ |
-| C.4 | 累計修正: ~34ファイル、壊れたリンク・旧スキル名参照・コマンド名不一致を修正 | ✅ |
-| C.5 | ミラー同期 + validate-plugin.sh + check-consistency.sh 全パス | ✅ |
+| 13.3.1.1 | `scripts/codex/sync-rules-to-agents.sh` 新規作成: `.claude/rules/*.md` → `codex/.codex/AGENTS.md` への自動変換 + ハッシュ比較で SSOT ドリフト検知 | cc:完了 |
+| 13.3.1.2 | `test-quality.md` のテスト改ざん禁止パターンを AGENTS.md 形式に変換 | cc:完了 |
+| 13.3.1.3 | `implementation-quality.md` の形骸化実装禁止パターンを AGENTS.md 形式に変換 | cc:完了 |
+| 13.3.1.4 | `codex-cli-only.md` の Codex 固有ルールを AGENTS.md に統合 | cc:完了 |
+
+### 13.3.2 Codex exec ラッパーによるメモリ永続化
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 13.3.2.1 | `scripts/codex/codex-exec-wrapper.sh` 新規作成: codex exec の前処理（ルール注入）と後処理（結果記録）を自動化 | cc:完了 |
+| 13.3.2.2 | 後処理: stdout から構造化マーカー `[HARNESS-LEARNING]` 付き行のみ抽出（非構造化出力の誤解析を回避） | cc:完了 |
+| 13.3.2.3 | 抽出結果を `.claude/memory/codex-learnings.md` に flock 付きアトミック追記 + シークレットフィルタ（token/key/password パターン除去） | cc:完了 |
+| 13.3.2.4 | `codex-implementer.md` の codex exec 呼び出しをラッパー経由に変更 | cc:完了 |
+
+### 13.3.3 Codex .rules ファイル整備
+
+Codex は `./codex/rules/` 配下の `.rules` ファイルでコマンド実行ポリシーを制御できる（[execpolicy 仕様](https://developers.openai.com/codex/cli/reference/)）。
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 13.3.3.1 | `codex/.codex/rules/harness.rules` を拡充: package.json の scripts.test のみ auto-allow（任意コマンド連結は deny） | cc:完了 |
+| 13.3.3.2 | 危険コマンド（rm -rf, git push --force）を deny に追加 | cc:完了 |
+| 13.3.3.3 | `codex execpolicy check` で全ルールの動作検証 | cc:完了 |
+
+### 13.3.4 検証
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 13.3.4.1 | `codex exec` でルール統合版 AGENTS.md が正しく読み込まれることを確認 | cc:完了 |
+| 13.3.4.2 | ラッパースクリプト経由の codex exec でメモリ書き戻しが動作することを確認 | cc:完了 |
+| 13.3.4.3 | `.rules` ファイルの execpolicy check で全パターンが期待通りの判定を返すことを確認 | cc:完了 |
 
 ---
 
-## Phase 5: DEFER 項目（Codex レビューで検出された pre-existing 問題）
+## Phase 13.4: Level 6 動的オーケストレーション強化（Level 6: 88% → 94%）[P4]
 
-R1-R10 で検出されたが、consolidation スコープ外の pre-existing 問題。
+### 仕様検証結果
 
-### 5.1 Security 強化
+| 提案 | Claude Code 仕様 | 実現可否 | 修正 |
+|------|-----------------|---------|------|
+| 自動チーム構成 | Planner の max_parallel は参考情報扱い | ✅ 実現可能 | execution-flow.md のロジック拡張 |
+| APPROVE → auto-commit Hook | PostToolUse で SendMessage を match 可能 | ⚠️ リスク高 | **Phase C のフロー改善に変更** |
+| シグナル消費側の自動注入 | UserPromptSubmit hook で systemMessage 注入可能 | ✅ 実現可能（低コスト） | cc:完了 |
 
-| Task | 内容 | Status |
-|------|------|--------|
-| 5.1.1 | `pretooluse-guard.sh` symlink bypass 対策（realpath 検証追加） | ✅ |
-| 5.1.2 | `permission-request.sh:58` npm/pnpm/yarn 自動承認をリポジトリ別 allowlist 方式に変更 | ✅ |
-| 5.1.3 | `userprompt-track-command.sh:77` prompt_preview のパーミッション hardening (umask 077) | ✅ |
-| 5.1.4 | `session-monitor.sh:275` resume_token の chmod 600 + umask 077 | ✅ |
-| 5.1.5 | `pretooluse-guard.sh:354` eval を直接パース（jq/python）に置換 | ✅ |
-
-### 5.2 ドキュメント・リンク修正
+### 13.4.1 シグナル消費側の自動注入（最低コスト改善）
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 5.2.1 | `docs/QUALITY_GUARD_DESIGN.md` broken SSOT link 修正 | ✅ |
-| 5.2.2 | `docs/PLAN_RULES_IMPROVEMENT.md` stale command refs 修正 | ✅ |
-| 5.2.3 | `docs/plans/claude-mem-integration.md` stale paths 修正 | ✅ |
-| 5.2.4 | `skills/workflow-guide/references/commands.md` path mismatch 修正 | ✅ |
-| 5.2.5 | templates 内の `/skills-update` 参照を削除または更新 | ✅ |
+| 13.4.1.1 | `scripts/hook-handlers/breezing-signal-injector.sh` 新規作成: `breezing-signals.jsonl` を読んで未消費シグナルを `systemMessage` に注入 | cc:完了 |
+| 13.4.1.2 | `hooks.json` の `UserPromptSubmit` に signal-injector を追加（breezing-active.json 存在時のみ発火） | cc:完了 |
+| 13.4.1.3 | シグナル消費済みフラグの管理（flock + tmp-rename でアトミック更新、consumed_at タイムスタンプ） | cc:完了 |
 
-### 5.3 generate-video メンテナンス
+### 13.4.2 Planner フィードバックによるチーム自動構成
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 5.3.1 | `agents/video-scene-generator.md` Remotion paths 更新 | ✅ |
-| 5.3.2 | `skills/generate-video/` references 内の Remotion paths 更新 | ✅ |
-| 5.3.3 | `generate-video/src/schemas/*.ts` z.any() → z.unknown() / proper unions に修正 | ✅ |
+| 13.4.2.1 | `planning-discussion.md` に Planner の `parallelism_assessment.max_parallel` を Lead が参照する手順を追加 | cc:完了 |
+| 13.4.2.2 | `execution-flow.md` の Implementer 数自動決定ロジックを拡張: `max(1, min(planner_max_parallel, --parallel N, 5))` でスターブ防止 | cc:完了 |
+| 13.4.2.3 | `team-composition.md` に Extended 構成（5 Impl）のコスト見積もりを追加 | cc:完了 |
 
-### 5.4 Architecture: Hook オーケストレーター
+### 13.4.3 Phase C コミット判断の効率化
 
-| Task | 内容 | Status |
-|------|------|--------|
-| 5.4.1 | PostToolUse fan-out (9スクリプト) を単一 Node オーケストレーターに統合 | |
-| 5.4.2 | stdin JSON パース共通化（scripts/lib/hook-input.js） | |
-
-### 5.5 Architecture: State 管理
+**仕様制約**: PostToolUse の SendMessage matcher で APPROVE を検知し auto-commit する方式は誤検知リスクが高い（Reviewer の返答フォーマット依存）。代わりに、Phase C の Lead 判断フローを効率化する。
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 5.5.1 | `.claude/state/*.json` のスキーマ定義 + atomic write helper 導入 | |
-| 5.5.2 | ロック戦略の統一（flock or advisory lock） | |
-
-### 5.6 ビルド・ツーリング整理
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 5.6.1 | `check-checklist-sync.sh` empty gate logic 修正 | ✅ |
-| 5.6.2 | `workflows/default/init.yaml` project-analyzer 参照修正 | ✅ |
-| 5.6.3 | `build-opencode.js` commands/ 空ディレクトリ対応 | ✅ |
-| 5.6.4 | `harness-ui` command catalog 空対応（統合後） | ✅ |
-| 5.6.5 | `parse-work-flags.md` internal inconsistency 修正 | ✅ |
-
-### 5.7 命名・ルーティング整理
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 5.7.1 | `/planning` → `/plan-with-agent` 完全統一（dual naming 解消） | ✅ |
-| 5.7.2 | `verify` skill の `user-invocable` 整合性確認 | ✅ |
-| 5.7.3 | setup と codex-review の Codex セットアップ重複整理 | ✅ |
-| 5.7.4 | `_archived/` 配下からの dangling references 削除 | ✅ |
+| 13.4.3.1 | `execution-flow.md` Phase C に「APPROVE 検知 → 即座に統合検証 → コミット」のファストパスを追加 | cc:完了 |
+| 13.4.3.2 | `review-retake-loop.md` の APPROVE 判定結果を `.claude/state/review-result.json` に自動記録（task-completed.sh から） | cc:完了 |
+| 13.4.3.3 | Phase C 冒頭で `review-result.json` を読み、全 APPROVE かつ対象コミットハッシュが HEAD と一致する場合のみファストパス許可 | cc:完了 |
 
 ---
 
-## Phase 6: リリースクリーンアップ (v2.20.0 再統合)
-
-v2.20.1 の内容を v2.20.0 に統合し、リポジトリ品質を向上。
-
-### 6.1 Breezing Teammate 権限修正
+## Phase 13.5: ミラー同期 + 検証 + リリース
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 6.1.1 | Teammate の "prompts unavailable" 根本原因調査（公式仕様検証） | ✅ |
-| 6.1.2 | `mode: "bypassPermissions"` + PreToolUse hooks 多層防御の採用決定 | ✅ |
-| 6.1.3 | execution-flow.md, team-composition.md, codex-engine.md, guardrails-inheritance.md に反映 | ✅ |
-| 6.1.4 | session-resilience.md のコンパクション回復処理にも反映 | ✅ |
+| 13.5.1 | `bash -n` 全新規スクリプト構文チェック | cc:完了 |
+| 13.5.2 | ミラー同期: `rsync -av --delete skills/ codex/.codex/skills/` + `opencode/skills/` | cc:完了 |
+| 13.5.3 | `./tests/validate-plugin.sh && ./scripts/ci/check-consistency.sh` 検証 | cc:完了 |
+| 13.5.4 | `.claude/memory/decisions.md` に D25: まさお理論ベンチマーク改善 を記録 | cc:完了 |
+| 13.5.5 | CHANGELOG.md + CHANGELOG_ja.md エントリ追加 | cc:完了 |
+| 13.5.6 | バージョンバンプ + コミット | cc:完了 |
 
-### 6.2 Breezing Phase A/B/C 分離
+検証: TaskCompleted exit 2 動作 / 改ざん検知 12+ パターン / CLAUDE.md 120行以下 / AGENTS.md 統合 / メモリ書き戻し / シグナル注入 / validate-plugin + check-consistency 全パス
 
-| Task | 内容 | Status |
-|------|------|--------|
-| 6.2.1 | Phase A (Pre-delegate): ユーザー権限維持でTeam初期化・spawn | ✅ |
-| 6.2.2 | Phase B (Delegate): Lead は TaskCreate/TaskUpdate/SendMessage のみ | ✅ |
-| 6.2.3 | Phase C (Post-delegate): delegate 解除→統合検証・コミット・クリーンアップ | ✅ |
-
-### 6.3 英語リリース + gitignore クリーンアップ
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 6.3.1 | GitHub リリースノートを英語に統一（ルール・スキル更新） | ✅ |
-| 6.3.2 | 不要ファイルの精査: ビルド成果物, 開発ドキュメント, ロックファイル | ✅ |
-| 6.3.3 | .gitignore 更新 + 33ファイル untrack | ✅ |
-| 6.3.4 | v2.20.1 を v2.20.0 に統合 (amend + force push) | ✅ |
-| 6.3.5 | CHANGELOG.md / CHANGELOG_ja.md を v2.20.0 に統合更新 | ✅ |
+対象外: APPROVE auto-commit Hook（誤検知リスク）/ Codex base-instructions（仕様不在）/ ポジティビティバイアス対抗（別Phase）
 
 ---
 
-## 対象外（今回は見送り）
+## Phase 14: release-har スキル再設計 — 「速さ」と「配信品質」の両立（v2）
 
-- `/gogcli-ops` — 独立した外部ツール連携。統合先がない。使用頻度に応じて別途判断
-- `/deploy` — 高インパクト操作。明示的なコマンドとして維持（Codex も非表示に反対）
+作成日: 2026-02-23（v2: ディベート統合後の改訂版）
+起点: AI 系 OSS ベストプラクティス分析 + 5 リポジトリ実地調査 + 3 エージェントディベート
+目的: 「変更から配布物までの一連を事故らず作る」スキルへの進化
 
----
+### 調査に基づく設計原則（旧プランから修正）
 
-## Phase 8: Issue #40 — PostToolUse Hook 修正
-
-GitHub Issue #40: `posttooluse-tampering-detector.sh` の bash パーサーエラー修正 + 全スクリプト python3 フォールバック改善。
-
-### 8.1 tampering-detector 本体修正 (Phase 1+3+4)
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 8.1.1 | `set -euo pipefail` → `set +e` (他 PostToolUse スクリプトと統一) | cc:done |
-| 8.1.2 | 行39 `\|\| true` 削除 (syntax error 根本原因) | cc:done |
-| 8.1.3 | `echo \| grep -qE` → `[[ =~ ]]` (6箇所、パフォーマンス改善) | cc:done |
-| 8.1.4 | eval + shlex.quote 維持、python3 -c 方式に変更 (Reviewer 判断) | cc:done |
-| 8.1.5 | `echo -e` → `printf '%b'` (POSIX 準拠) | cc:done |
-| 8.1.6 | 警告メッセージのバイリンガル化 (日本語 + English) | cc:done |
-| 8.1.7 | jq パス: `echo "$INPUT"` → `printf '%s' "$INPUT"` | cc:done |
-
-### 8.2 python3 フォールバック修正 (Phase 2, 9スクリプト)
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 8.2.1 | `posttooluse-log-toolname.sh` python3 -c 方式に変更 | cc:done |
-| 8.2.2 | `auto-test-runner.sh` python3 -c 方式に変更 | cc:done |
-| 8.2.3 | `permission-request.sh` python3 -c 方式に変更 | cc:done |
-| 8.2.4 | `skill-child-reminder.sh` python3 -c 方式に変更 | cc:done |
-| 8.2.5 | `plans-watcher.sh` python3 -c 方式に変更 | cc:done |
-| 8.2.6 | `auto-cleanup-hook.sh` python3 -c 方式に変更 | cc:done |
-| 8.2.7 | `track-changes.sh` python3 -c 方式に変更 | cc:done |
-| 8.2.8 | `posttooluse-security-review.sh` python3 -c 方式に変更 | cc:done |
-| 8.2.9 | `posttooluse-quality-pack.sh` python3 -c 方式に変更 | cc:done |
-
-### 8.3 検証 + ミラー同期 (Phase 5)
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 8.3.1 | `bash -n` 全修正スクリプト構文チェック | cc:done |
-| 8.3.2 | `./tests/validate-plugin.sh` 実行 | cc:done |
-| 8.3.3 | `./scripts/ci/check-consistency.sh` 実行 | cc:done |
-| 8.3.4 | ミラー同期確認 (.claude-plugin/hooks.json 等) | cc:done |
-
----
-
-## Phase 9: Harness-mem UI 同等化 (Claude-mem運用同等)
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 9.1 | memory-server に `/v1/feed`, `/v1/stream`, `/v1/projects/stats` を追加 | cc:完了 |
-| 9.2 | harness-mem-ui を React+TS+Vite へ再構築（Feature Flag fallback付き） | cc:完了 |
-| 9.3 | SSE/無限スクロール/プロジェクトフィルタ/設定永続化を実装 | cc:完了 |
-| 9.4 | UI Unit / API Integration / E2E テストを追加 | cc:完了 |
-| 9.5 | docs と setup ガイド更新 + 回帰テスト完了 | cc:完了 |
-
-## Phase 9: Claude Code 2.1.30 → 2.1.38 対応
-
-Claude Code が 2.1.30 から 2.1.38 まで 8 バージョン進行。Harness の CLAUDE.md は「2.1.30+」で止まっている。
-Breezing の一部ドキュメント（guardrails-inheritance.md, team-composition.md）は既に 2.1.33 の情報を反映済みだが、
-hooks.json の実装・CLAUDE.md の Feature Table・各スキルのバージョン参照は未更新。
-
-### 対応バージョン範囲
-
-| Ver | リリース内容（Harness に関連するもの） | 影響度 |
-|-----|---------------------------------------|--------|
-| 2.1.31 | セッション再開ヒント、全角スペース対応、PDF ロック修正 | 低 |
-| 2.1.32 | Opus 4.6、Agent Teams preview、自動メモリ記録、--add-dir スキル自動ロード、スキル文字バジェット 2% スケーリング | **高** |
-| 2.1.33 | TeammateIdle/TaskCompleted hook、Task(agent_type) 制限、memory frontmatter 公式化、プラグイン名スキル表示 | **高** |
-| 2.1.34 | Bash ask permission bypass セキュリティ修正 | 中 |
-| 2.1.36 | Fast mode for Opus 4.6 | 中 |
-| 2.1.38 | .claude/skills 書き込みブロック（sandbox）、heredoc 解析強化 | 中 |
+| 原則 | 旧プランの問題 | ディベート後の方針 | 根拠 |
+|------|--------------|------------------|------|
+| **差別化の核心** | ルールベース分類のみ（semantic-release と同じ） | **Claude が diff を読んで変更の本質を要約** | エコシステムAgent: 唯一の差別化点 |
+| SemVer 自動判定 | Recommended | **Required に昇格**。引数指定時は確認なし | 実用主義Agent: 止まらない体験 |
+| Dry-run | Recommended | **Required に昇格**。全出力プレビュー | 3Agent全員合意 |
+| バージョン同期 | **欠如していた** | Pre-flight に sync-version.sh check を組込 | 品質Agent: claude-mem/ecc で実被害 |
+| 多チャネル配信 | P3（3チャネル） | **X告知文のみ、`--announce` オプション** | 折衷: 拡散起点だが強制は過剰 |
+| README lint | P3 | **削除**（harness-review の責務） | 3Agent全員合意: 単一責任原則違反 |
+| Highlights抽出 | コミット数・ファイル数で判定 | **Claude の読解力で diff 要約** | 3Agent全員合意: 量的指標は不正確 |
+| references/ | 4ファイル新規作成 | **2ファイルに縮小**（テンプレート + フォーマット） | 実用主義Agent: SKILL.md内記述で十分な部分あり |
 
 ### 優先度マトリクス
 
-| 優先度 | 項目 | 理由 |
-|--------|------|------|
-| **Required** | CLAUDE.md Feature Table 更新 | ユーザーへの正確な情報提供 |
-| **Required** | TeammateIdle/TaskCompleted hook 実装 | Breezing docs に記述済みだが hooks.json に未実装 |
-| **Required** | 自動メモリ記録との共存設計 | 競合の可能性があり調査必須 |
-| **Recommended** | Task(agent_type) 制限の検討 | エージェントセキュリティ強化 |
-| **Recommended** | スキル文字バジェットガイドライン更新 | skill-editing.md の 500 行ルール見直し |
-| **Recommended** | Fast mode ドキュメント | ユーザー向け情報 |
-| **Optional** | .claude/skills sandbox 書き込みブロック検証 | pretooluse-guard との相互作用確認 |
-| **Optional** | heredoc 解析互換性検証 | hooks スクリプトへの影響確認 |
-| **Optional** | マイナーバージョン参照更新 | 各スキルの「CC 2.1.30+」表記を「CC 2.1.38+」に統一 |
+| 優先度 | Phase | 内容 | タスク数 |
+|--------|-------|------|---------|
+| **Required** | 14.1 | Pre-flight + 変更分析エンジン | 5 |
+| **Required** | 14.2 | Release Notes 品質（diff 要約 = 差別化の核） | 3 |
+| **Required** | 14.3 | SemVer 自動判定 + dry-run | 3 |
+| **Recommended** | 14.4 | テンプレート整備 + SKILL.md 再構成 | 3 |
+| **Optional** | 14.5 | X 告知文（`--announce`） | 1 |
+| Required | 14.6 | 検証 + 同期 | 2 |
+
+合計: **17 タスク**（旧 31 → 55% 削減）
+
+### 削除したタスク（理由）
+
+| 旧タスク | 削除理由 | 判定Agent |
+|---------|---------|-----------|
+| 14.1.3 change-classification.md | SKILL.md内の分類ロジック記述で十分 | 実用主義 |
+| 14.1.4 announcement-templates.md | 汎用テンプレートは使えないか具体すぎて適用不可 | 実用主義 |
+| 14.2.2 PR ベース分析（gh依存） | 汎用スキルの前提（GitHub以外も対象）と矛盾 | 3Agent合意 |
+| 14.2.5 New Contributors 自動生成 | 著者名表記ゆれで誤検知。GitHub標準機能で代替可 | 3Agent合意 |
+| 14.3.2 Highlights コミット数判定 | 量的指標でユーザー重要度は判定不可 | 3Agent合意 |
+| 14.6.1 Discussions 告知文 | ROI不明。調査5プロジェクトで誰も実装していない | 実用主義 |
+| 14.6.3 Discord 告知文 | 同上 | 実用主義 |
+| 14.7.1〜7.3 README lint 全3件 | release の責務外。harness-review に委譲 | 3Agent合意 |
+| 14.8.1 x-release-harness 同期 | 最小変更のため個別同期不要。14.6で一括検証 | 実用主義 |
+| 14.8.2 ミラー同期 | release-har の機能ではなくリリース作業。Phase 13.5 と重複 | エコシステム |
 
 ---
 
-### 9.1 CLAUDE.md Feature Table 更新 [feature:docs]
+### Phase 14.1: Pre-flight + 変更分析エンジン [P1]
 
-`CLAUDE.md` の「Claude Code 2.1.30+ 新機能活用ガイド」テーブルを 2.1.38+ に更新。
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 9.1.1 | ヘッダーを「2.1.30+」→「2.1.38+」に変更 | cc:done |
-| 9.1.2 | 既存 8 行の機能・活用スキル・用途を最新に更新（古い機能は維持、表現を調整） | cc:done |
-| 9.1.3 | 新規行追加: `TeammateIdle/TaskCompleted Hook` → breezing → チーム監視の自動化 | cc:done |
-| 9.1.4 | 新規行追加: `Agent Memory (memory frontmatter)` → task-worker, code-reviewer → 永続的学習 | cc:done |
-| 9.1.5 | 新規行追加: `Fast mode (Opus 4.6)` → 全スキル → 高速出力モード | cc:done |
-| 9.1.6 | 新規行追加: `自動メモリ記録` → session-memory → セッション間知識の自動永続化 | cc:done |
-| 9.1.7 | 新規行追加: `スキルバジェットスケーリング` → 全スキル → コンテキスト窓の 2% に自動調整 | cc:done |
-| 9.1.8 | 新規行追加: `Task(agent_type) 制限` → agents/ → サブエージェント制限構文 | cc:done |
-
----
-
-### 9.2 TeammateIdle / TaskCompleted Hook 実装
-
-Breezing docs（guardrails-inheritance.md, team-composition.md）では既にこれらの Hook イベントを記述しているが、
-`hooks.json` に実際のハンドラが存在しない。Lead 側で発火するイベントであり、チーム監視に活用する。
-
-**設計判断**: TeammateIdle と TaskCompleted は Lead のコンテキストで発火する。
-ペイロード: `teammate_name`, `team_name` (Idle) / `teammate_name`, `task_id`, `task_subject`, `task_description` (TaskCompleted)。
-トークン数・ツール使用数は含まれない（2.1.33 で検証済み、guardrails-inheritance.md に記載）。
+現行 Step 1 の `git log --oneline -10` → 前タグからの全変更を構造的に取得・分類。
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 9.2.1 | `scripts/hook-handlers/teammate-idle.sh` 新規作成: イベントを `.claude/state/breezing-timeline.jsonl` に追記 | cc:done |
-| 9.2.2 | `scripts/hook-handlers/task-completed.sh` 新規作成: タスク完了をタイムラインに追記 | cc:done |
-| 9.2.3 | `hooks/hooks.json` に `TeammateIdle` ハンドラ追加 (timeout: 10) | cc:done |
-| 9.2.4 | `hooks/hooks.json` に `TaskCompleted` ハンドラ追加 (timeout: 10) | cc:done |
-| 9.2.5 | `.claude-plugin/hooks.json` に同期 | cc:done |
-| 9.2.6 | `breezing/references/execution-flow.md` の「Team Activity」セクションでフックの実装状態を「実装済み」に更新 | cc:done |
-| 9.2.7 | `bash -n` 構文チェック + 動作検証 | cc:done |
+| 14.1.1 | **Pre-flight チェック追加**: バージョンファイル同期確認（`sync-version.sh check` 相当）、未コミット変更の警告、`gh` コマンド存在確認（なければ git log のみで続行） | cc:TODO |
+| 14.1.2 | Step 1 を拡張: `git log --format="%h\|%s\|%an\|%ad" --date=short vPREV..HEAD` で前タグからの全変更を取得 | cc:TODO |
+| 14.1.3 | Conventional Commits 分類ロジック: `feat/fix/docs/perf/refactor/test/chore` → カテゴリマッピング + `BREAKING CHANGE:` / `!:` の自動検出 | cc:TODO |
+| 14.1.4 | Compare リンク自動生成: `https://github.com/OWNER/REPO/compare/vPREV...vNEW`（`gh` 存在時のみ、なければスキップ） | cc:TODO |
+| 14.1.5 | 分析サマリの表示: 「feat: N件、fix: M件、breaking: K件、contributors: L名」を一覧表示 | cc:TODO |
 
----
+### Phase 14.2: Release Notes 品質（差別化の核心）[P1]
 
-### 9.3 自動メモリ記録との共存設計
-
-Claude Code 2.1.32 で「自動メモリ記録」機能が追加された。これは Harness の session-memory スキル・
-`.claude/memory/` SSOT・agent memory (`memory: project`) とは別系統の Claude Code 組み込み機能。
-共存設計を明確にし、ドキュメントに反映する。
-
-**調査ポイント**:
-- Claude Code 自動メモリは `~/.claude/` 配下に保存される（プロジェクト固有ではない）
-- Harness の `.claude/memory/decisions.md`, `patterns.md` は SSOT として手動管理
-- Agent memory (`memory: project`) は `.claude/agent-memory/` 配下
-- 3 系統のメモリが独立して動作するか、干渉するかを確認
+**Claude が diff を読んで変更の本質を理解し、ユーザー向け Release Notes を生成。** これが semantic-release/Changesets にはできない唯一の差別化点。
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 9.3.1 | Claude Code 自動メモリの保存先・フォーマット・トリガー条件を調査 (WebSearch + 公式ドキュメント) | cc:done |
-| 9.3.2 | Harness memory (SSOT) との責務分界を定義: 自動メモリ = 暗黙的/汎用、SSOT = 明示的/プロジェクト固有 | cc:done |
-| 9.3.3 | `skills/session-memory/SKILL.md` に「自動メモリとの関係」セクション追加 | cc:done |
-| 9.3.4 | `skills/memory/SKILL.md` に自動メモリとの関係に関する注記追加 | cc:done |
-| 9.3.5 | `.claude/memory/decisions.md` に D-next: 「3 層メモリアーキテクチャ」決定を記録 | cc:done |
+| 14.2.1 | **diff 要約機能**: `git diff vPREV..HEAD` の内容を Claude が読み、「このリリースの本質は何か」を Highlights（最大3つ）として 1-3 文で要約。Before/After テーブルも同時生成 | cc:TODO |
+| 14.2.2 | Release Notes 構造: Highlights → Breaking Changes（移行手順）→ Notable Changes（カテゴリ別）→ Full Changelog（compare リンク）の 4 セクション。`.claude/rules/github-release.md` と整合 | cc:TODO |
+| 14.2.3 | フッター統一: `Generated with [Claude Code](https://claude.com/claude-code)` を必ず付与 | cc:TODO |
 
----
-
-### 9.4 Agent Type Restriction (Task(agent_type)) の検討
-
-Claude Code 2.1.33 で `tools` フロントマターに `Task(agent_type)` 構文が追加された。
-これにより、エージェントがスポーン可能なサブエージェントの種類を制限できる。
-
-**現状分析**:
-- `task-worker`: `disallowedTools: [Task]` → Task 完全禁止（適切: ワーカーはサブエージェント不要）
-- `code-reviewer`: `disallowedTools: [Write, Edit, Bash, Task]` → Task 完全禁止（適切: レビュワーは read-only）
-- `codex-implementer`: `tools: [Read, Write, Edit, Bash, Grep, Glob]` → Task 未リスト（暗黙的に使用不可）
-- 他エージェント: 同様に Task 未リスト
-
-**結論**: 現在の設計では Task をスポーンする必要のあるエージェントがないため、構文変更の実益は小さい。
-ただし、将来的に Lead エージェントや orchestrator を定義する際に有用なため、ドキュメントに記録する。
+### Phase 14.3: SemVer 自動判定 + dry-run [P1]
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 9.4.1 | `agents/CLAUDE.md` または `.claude/memory/patterns.md` に `Task(agent_type)` パターンを記録 | cc:done |
-| 9.4.2 | `skills/breezing/references/guardrails-inheritance.md` に利用可能な制限手段として追記 | cc:done |
+| 14.3.1 | SemVer 自動判定: Breaking → MAJOR、feat → MINOR、fix/docs/refactor のみ → PATCH。判定根拠を「N件のfeat, K件のfix → MINOR提案」形式で表示。引数指定（`patch`/`minor`/`major`）時は確認なしで採用 | cc:TODO |
+| 14.3.2 | dry-run をデフォルト前段に: CHANGELOG 差分、Release Notes 全文、タグ名をプレビュー → 「この内容で実行しますか？」→ Yes で本実行 | cc:TODO |
+| 14.3.3 | 0.x.y 時の特殊処理: メジャーバージョン 0 の場合は MINOR でも破壊的変更を許容（SemVer 仕様準拠） | cc:TODO |
 
----
-
-### 9.5 スキルバジェットスケーリング対応
-
-Claude Code 2.1.32 で「スキル文字バジェットがコンテキスト窓の 2% にスケール」に変更。
-現在の `.claude/rules/skill-editing.md` は「500 行以下」のハードルールを記載。
+### Phase 14.4: テンプレート整備 + SKILL.md 再構成 [P2]
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 9.5.1 | `skill-editing.md` の「File Size Guidelines」に 2.1.32 のスケーリング動作を注記 | cc:done |
-| 9.5.2 | 500 行ルールを「推奨」に緩和し、「2% スケーリングにより実効上限はモデルのコンテキスト窓に依存」と説明追加 | cc:done |
+| 14.4.1 | `references/release-notes-template.md` 新規作成: 4 セクション構造テンプレート（Highlights / Breaking / Notable / Full Changelog）+ Before/After テーブル例 | cc:TODO |
+| 14.4.2 | `references/changelog-format.md` 新規作成: Keep a Changelog 1.1.0 準拠フォーマット + Harness 固有の Before/After テーブル規約 | cc:TODO |
+| 14.4.3 | SKILL.md 本文を再構成: Pre-flight → 分析 → diff要約 → SemVer判定 → dry-run → 実行の新フローに書き直し。references/ への参照を追加 | cc:TODO |
 
----
-
-### 9.6 バージョン参照の一括更新
-
-各スキルの「CC 2.1.30+」表記を「CC 2.1.38+」に更新。CLAUDE.md の更新に合わせて実施。
-
-**対象ファイル** (skills/ 内、ミラー除外):
-- `skills/session/SKILL.md` (72行目)
-- `skills/session-memory/SKILL.md` (176行目)
-- `skills/harness-review/SKILL.md` (216行目, 482行目)
-- `skills/harness-ui/SKILL.md` (29行目)
-- `skills/parallel-workflows/references/run-task-workers.md` (307, 311, 409行目)
-- `skills/codex-review/references/codex-mcp-setup.md` (102行目)
-- `skills/troubleshoot/SKILL.md` (CC 2.1.30 参照があれば)
-- `agents/task-worker.md` (355行目: MCP ツールアクセス)
+### Phase 14.5: X 告知文（`--announce`）[P3]
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 9.6.1 | 上記ファイルの「CC 2.1.30+」→「CC 2.1.38+」一括更新 | cc:done |
-| 9.6.2 | 新規追加の機能参照（Fast mode, 自動メモリ等）を適切なスキルに追記 | cc:done |
-| 9.6.3 | `CHANGELOG_ja.md` の 2.1.30 対応行も更新 | cc:done |
+| 14.5.1 | `--announce` オプション: X 向け 280 文字以内の告知文を Release Notes から自動生成。Highlights の 1 行要約 + リリースリンク。デフォルト OFF | cc:TODO |
 
----
-
-### 9.7 セキュリティ・互換性検証
+### Phase 14.6: 検証 + 同期
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 9.7.1 | `.claude/skills` sandbox 書き込みブロック: pretooluse-guard.sh との相互作用テスト | cc:done |
-| 9.7.2 | heredoc 解析強化: hooks スクリプト内の heredoc パターンの互換性チェック (`bash -n` + 実テスト) | cc:done |
-| 9.7.3 | Bash ask permission bypass 修正 (2.1.34): `autoAllowBashIfSandboxed` 設定が有効な場合の hooks 動作確認 | cc:done |
+| 14.6.1 | `./tests/validate-plugin.sh && ./scripts/ci/check-consistency.sh` で構造検証 + `.claude/rules/github-release.md` を新テンプレートと整合 | cc:TODO |
+| 14.6.2 | CHANGELOG.md + CHANGELOG_ja.md エントリ追加 + バージョンバンプ | cc:TODO |
 
----
+検証: Pre-flight のバージョン同期チェック / diff 要約の品質 / SemVer 自動判定の正確性 / dry-run の全出力プレビュー / validate-plugin + check-consistency 全パス
 
-### 9.8 ミラー同期 + 検証 + リリース
+### リスク評価
 
-| Task | 内容 | Status |
-|------|------|--------|
-| 9.8.1 | ミラー同期: `rsync -av --delete skills/ codex/.codex/skills/` + `opencode/skills/` | cc:done |
-| 9.8.2 | `.claude-plugin/hooks.json` 同期 (9.2.5 と重複、最終確認) | cc:done |
-| 9.8.3 | `./tests/validate-plugin.sh` 実行 | cc:done |
-| 9.8.4 | `./scripts/ci/check-consistency.sh` 実行 | cc:done |
-| 9.8.5 | バージョンバンプ: `./scripts/sync-version.sh bump` (patch or minor) | cc:done |
-| 9.8.6 | CHANGELOG.md エントリ追加 | cc:done |
-| 9.8.7 | コミット: `feat: support Claude Code 2.1.38 features` | cc:done |
+| リスク | 深刻度 | 軽減策 |
+|--------|--------|--------|
+| 初回リリース（前タグなし）で Pre-flight 失敗 | 中 | タグ 0 件時は `--all` にフォールバック |
+| Breaking change 検出漏れ（Conventional Commits 未使用プロジェクト） | 高 | diff 要約で Claude が意味的に検出。完全自動判定ではなくユーザー確認を挟む |
+| diff が巨大すぎて要約が不正確 | 中 | `--stat` で変更概要を先に取得し、重要ファイルのみ diff を読む |
 
----
-
-### Phase 9 検証チェックリスト
-
-| # | 検証項目 | 方法 |
-|---|---------|------|
-| 1 | CLAUDE.md Feature Table が 2.1.38+ を反映 | 目視確認 |
-| 2 | hooks.json に TeammateIdle/TaskCompleted が存在 | `jq '.hooks.TeammateIdle' hooks/hooks.json` |
-| 3 | 新規スクリプトの構文チェック通過 | `bash -n scripts/hook-handlers/teammate-idle.sh` |
-| 4 | 自動メモリとの共存設計が decisions.md に記録 | 目視確認 |
-| 5 | skill-editing.md がバジェットスケーリングを反映 | 目視確認 |
-| 6 | 全スキルのバージョン参照が 2.1.38+ に更新 | `grep -r "2\.1\.30" skills/` でゼロ件 |
-| 7 | ミラー同期完了 | `diff -rq skills/ codex/.codex/skills/` |
-| 8 | validate-plugin.sh + check-consistency.sh 全パス | CI 実行 |
-
----
-
-## Phase 10: Unified Harness Memory 実装（Claude Code / Codex / OpenCode 共通）
-
-作成日: 2026-02-14  
-目的: `Claude-mem` 相当の「記録・検索・注入」をプラットフォーム共通の1実装で提供する。
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 10.1 | `memory-server/` 新規実装（Bun daemon + SQLite + FTS/Vector + API） | cc:完了 |
-| 10.2 | `mcp-server/src/tools/memory.ts` 追加と `index.ts` ルーティング接続 | cc:完了 |
-| 10.3 | `scripts/harness-memd` 追加（start/stop/restart/status + lock/pid） | cc:完了 |
-| 10.4 | `scripts/hook-handlers/memory-*.sh` 追加 | cc:完了 |
-| 10.5 | `hooks/hooks.json` と `.claude-plugin/hooks.json` に memory 配線 | cc:完了 |
-| 10.6 | `codex/.codex/rules/harness.rules` に Codex memory 導線追加 | cc:完了 |
-| 10.7 | `skills/session-init/SKILL.md` `skills/work/SKILL.md` `skills/handoff/SKILL.md` 更新 | cc:完了 |
-| 10.8 | `opencode/*` と `.opencode/*` の memory adapter 設定更新 | cc:完了 |
-| 10.9 | `docs/plans/official-memory-extension-plan.md` を完成形計画へ置換 | cc:完了 |
-| 10.10 | ビルド/検証（mcp-server build + hooks sync + 主要テスト） | cc:完了 |
-
----
-
-## Phase 11: Claude Code 2.1.49 対応
-
-Claude Code が 2.1.38 → 2.1.49 まで 11 バージョン進行。
-主要変更: Plugin settings.json 同梱、Worktree isolation、Background agents、ConfigChange hook、last_assistant_message in Stop hooks。
-
-### 11.1 Plugin settings.json 同梱 [S 優先度]
-
-`.claude-plugin/settings.json` で安全なデフォルト権限を配布し、init 時のトークン消費を大幅削減。
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 11.1.1 | `.claude-plugin/settings.json` 新規作成（安全なデフォルト権限: deny + ask） | cc:done |
-| 11.1.2 | `skills/setup/references/claude-settings.md` を簡略化（settings.json 自動適用を反映） | cc:done |
-| 11.1.3 | `templates/claude/settings.security.json.template` を settings.json と整合確認 | cc:done |
-| 11.1.4 | `scripts/quick-install.sh` の案内メッセージ更新 | cc:done |
-
-### 11.2 Agent 定義更新 [A 優先度]
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 11.2.1 | `agents/video-scene-generator.md` に `background: true` 追加 | cc:done |
-| 11.2.2 | Worktree isolation 対応状況を `breezing/references/guardrails-inheritance.md` に追記 | cc:done |
-| 11.2.3 | Agent model field fix (2.1.47) 検証記録を guardrails-inheritance.md に追記 | cc:done |
-
-### 11.3 Hook 拡張 [B 優先度]
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 11.3.1 | `stop-session-evaluator.sh` で `last_assistant_message` を活用 | cc:done |
-| 11.3.2 | `ConfigChange` hook を `hooks/hooks.json` に追加 | cc:done |
-| 11.3.3 | `.claude-plugin/hooks.json` に同期 | cc:done |
-
-### 11.4 バージョン参照・ドキュメント更新 [C 優先度]
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 11.4.1 | CLAUDE.md Feature Table に 2.1.49 新機能行を追加 | cc:done |
-| 11.4.2 | `docs/CLAUDE_CODE_COMPATIBILITY.md` に v2.1.43〜v2.1.49 追加 | cc:done |
-| 11.4.3 | skills/ 内の「2.1.38」参照を「2.1.49」に更新（8ファイル） | cc:done |
-| 11.4.4 | `agents/task-worker.md` のバージョン参照更新 | cc:done |
-
-### 11.5 SSOT・CHANGELOG・ミラー同期 [C 優先度]
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 11.5.1 | `.claude/memory/decisions.md` に D23: Plugin settings.json 導入 | cc:done |
-| 11.5.2 | `.claude/memory/patterns.md` に P19: Plugin settings.json パターン | cc:done |
-| 11.5.3 | CHANGELOG.md + CHANGELOG_ja.md エントリ追加 | cc:done |
-| 11.5.4 | ミラー同期 + validate-plugin.sh + check-consistency.sh | cc:done |
-| 11.5.5 | バージョンバンプ: `./scripts/sync-version.sh bump` | cc:done |
-
----
-
-## Phase 12: Codex Breezing Phase 0 (Planning Discussion) 移植
-
-Claude 版 breezing の Phase 0（Planner + Critic による計画議論）を、Codex ネイティブ
-マルチエージェント API (`spawn_agent`/`send_input`/`wait`/`close_agent`) に移植する。
-
-### 背景
-
-- Claude 版 Phase 0 は Claude Code Agent Teams（`TeamCreate`/`SendMessage`/`Task`）で実装
-- Codex 版は `planning-discussion.md` 含め breezing 全ファイルが Claude 版と完全同一（diff=0）
-- Codex には独自のマルチエージェント API があり、`config.toml` でエージェントを定義する
-- `codex/.codex/agents/` ディレクトリが未作成、`plan_analyst`/`plan_critic` の定義なし
-
-### 設計方針
-
-| 決定事項 | 内容 |
-|---------|------|
-| **API 対応表** | `SendMessage` → `send_input`, `Task(spawn)` → `spawn_agent`, `shutdown_request` → `close_agent`, `TaskList` → 該当なし（Codex は組み込みタスク管理なし） |
-| **エージェント定義** | `config.toml` の `[agents.*]` セクションに追加（Codex 標準形式） |
-| **ミラー同期** | breezing は Codex 固有の Phase 0 実装を持つため、`planning-discussion.md`、`execution-flow.md`、`team-composition.md` を rsync 除外対象とする |
-| **共有ファイル** | SKILL.md、review-retake-loop.md、plans-to-tasklist.md 等は引き続きミラー同期 |
-
-### 12.1 Codex エージェント定義の追加
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 12.1.1 | `codex/.codex/config.toml` に `[agents.plan_analyst]` 追加（description + model + developer_instructions） | cc:done |
-| 12.1.2 | `codex/.codex/config.toml` に `[agents.plan_critic]` 追加（Red Teaming 視点の批判的検証） | cc:done |
-
-### 12.2 planning-discussion.md の Codex 版書き換え
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 12.2.1 | `codex/.codex/skills/breezing/references/planning-discussion.md` を Codex ネイティブ API で全面書き換え | cc:done |
-| 12.2.2 | Round 1-3 の対話フローを `spawn_agent`/`send_input`/`wait`/`close_agent` パターンに変換 | cc:done |
-| 12.2.3 | Planner ↔ Critic 直接対話を Codex の `send_input` チェーンで表現 | cc:done |
-| 12.2.4 | `breezing-active.json` への記録フォーマットは Claude 版と互換維持 | cc:done |
-
-### 12.3 execution-flow.md の Codex 版更新
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 12.3.1 | Phase 0 セクションの API 参照を Codex ネイティブに変更（`spawn_agent` 等） | cc:done |
-| 12.3.2 | `subagent_type` → `agent_name`、`mode: "bypassPermissions"` → Codex サンドボックスポリシーに書き換え | cc:done |
-
-### 12.4 team-composition.md の Codex 版更新
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 12.4.1 | Phase 0 限定ロール（Planner/Critic）の定義を Codex config.toml 参照に変更 | cc:done |
-| 12.4.2 | Planner/Critic Spawn Prompt を Codex `spawn_agent` 呼び出し形式に変換 | cc:done |
-| 12.4.3 | コスト見積もりテーブルを Codex トークン特性に合わせて調整 | cc:done |
-
-### 12.5 ミラー同期の divergence 管理
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 12.5.1 | breezing の Codex 固有ファイルリスト（planning-discussion.md, execution-flow.md, team-composition.md）を文書化 | cc:done |
-| 12.5.2 | ミラー同期手順に `--exclude` パターンを追加（breezing の Codex 固有ファイルを保護） | cc:done |
-
-### 12.6 検証 + リリース
-
-| Task | 内容 | Status |
-|------|------|--------|
-| 12.6.1 | Codex 版 breezing ファイルの内部整合性チェック（API 参照の一貫性） | cc:done |
-| 12.6.2 | Claude 版 breezing が影響を受けていないことを確認（diff で変更なし） | cc:done |
-| 12.6.3 | `./tests/validate-plugin.sh && ./scripts/ci/check-consistency.sh` 検証 | cc:done |
-| 12.6.4 | CHANGELOG.md + CHANGELOG_ja.md エントリ追加 | cc:done |
-| 12.6.5 | バージョンバンプ + コミット | cc:done |
-
----
-
-### Phase 12 検証チェックリスト
-
-| # | 検証項目 | 方法 |
-|---|---------|------|
-| 1 | config.toml に plan_analyst/plan_critic が定義済み | `grep plan_analyst codex/.codex/config.toml` |
-| 2 | Codex 版 planning-discussion.md に `spawn_agent` 等のネイティブ API が記述 | 目視確認 |
-| 3 | Codex 版に Claude Code 固有の API 参照が残っていない | `grep -r "SendMessage\|TeamCreate\|subagent_type" codex/.codex/skills/breezing/references/planning-discussion.md` でゼロ件 |
-| 4 | Claude 版 breezing が変更されていない | `git diff skills/breezing/` で変更なし |
-| 5 | breezing-active.json フォーマットが Claude/Codex で互換 | planning_discussion セクションの JSON スキーマ比較 |
-| 6 | validate-plugin.sh + check-consistency.sh 全パス | CI 実行 |
+対象外: CI/CD パイプライン統合（Release Drafter / Towncrier / Changesets）/ README lint（harness-review の責務）/ ミラー同期（リリース作業で別途実施）

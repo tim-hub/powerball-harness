@@ -39,7 +39,7 @@ Reviewer → SendMessage → Lead:
 
 Lead:
   1. findings を修正タスクに分解
-  2. タスクリストに修正タスク登録
+  2. TaskCreate で修正タスク登録
   3. Implementer に SendMessage で修正指示
 
 Implementer:
@@ -133,7 +133,7 @@ Lead がレビュー指示 (任意のタイミング)
 ┌──────────────────────────────────────────────────────┐
 │ Step 3: Lead がリテイク処理                           │
 │  a. findings を修正タスクに分解                       │
-│  b. 修正タスクをタスクリストに登録                    │
+│  b. 修正タスクを TaskCreate で登録                    │
 │  c. 担当 Implementer に SendMessage で修正指示        │
 │  d. retake_count++ (breezing-active.json 更新)       │
 │  e. retake_count > 3 → ユーザーにエスカレーション    │
@@ -151,6 +151,83 @@ Lead がレビュー指示 (任意のタイミング)
 │  → Step 1 へ戻る                                      │
 └──────────────────────────────────────────────────────┘
 ```
+
+## review-result.json への自動記録
+
+Reviewer が APPROVE/REQUEST_CHANGES 判定を下した際、判定結果を `.claude/state/review-result.json` に記録する。
+この記録は Phase C の APPROVE ファストパス（`execution-flow.md` 参照）で参照される。
+
+### 記録タイミング
+
+- **APPROVE 時**: Lead への SendMessage と同時に記録する（Phase C ファストパスで使用）
+- **REQUEST_CHANGES 時**: 同様に記録する（ファストパスでは `APPROVE` 以外は無視される）
+
+### JSON フォーマット
+
+```json
+{
+  "verdict": "APPROVE",
+  "grade": "A",
+  "commit_hash": "abc1234def567890",
+  "timestamp": "2026-02-22T14:30:00Z",
+  "reviewer": "reviewer",
+  "session_id": "breezing-20260222-1400"
+}
+```
+
+| フィールド | 型 | 説明 |
+|-----------|-----|------|
+| `verdict` | string | `"APPROVE"` / `"REQUEST_CHANGES"` / `"REJECT"` / `"STOP"` |
+| `grade` | string | `"A"` / `"B"` / `"C"` / `"D"` / `"N/A"` |
+| `commit_hash` | string | レビュー時点の `git rev-parse HEAD` の値 |
+| `timestamp` | string | ISO 8601 形式の UTC タイムスタンプ |
+| `reviewer` | string | Reviewer の Teammate 名 |
+| `session_id` | string | `breezing-active.json` の `session_id`（セッション照合用） |
+
+### 記録方法（Reviewer は Read-only のため Lead が書き込む）
+
+Reviewer は `.claude/state/review-result.json` を**直接書き込めない**（Read-only 制約）。
+そのため、Lead への SendMessage 報告に `review_result_json` フィールドを含め、
+Lead が受信後に `review-result.json` への書き込みを実行する。
+
+**Reviewer の SendMessage 報告フォーマット（追加フィールド）**:
+
+```json
+{
+  "decision": "APPROVE",
+  "grade": "A",
+  "findings": [],
+  "review_result_json": {
+    "verdict": "APPROVE",
+    "grade": "A",
+    "commit_hash": "<git rev-parse HEAD の出力>",
+    "timestamp": "<ISO 8601 UTC>",
+    "reviewer": "reviewer",
+    "session_id": "<breezing-active.json の session_id>"
+  },
+  "summary": "全観点で問題なし"
+}
+```
+
+**Lead の書き込み手順**（delegate mode 解除前または解除後に実行）:
+
+```bash
+# .claude/state/review-result.json に書き込む
+jq -n \
+  --arg verdict "APPROVE" \
+  --arg grade "A" \
+  --arg hash "$(git rev-parse HEAD)" \
+  --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --arg reviewer "reviewer" \
+  --arg session "$(jq -r .session_id .claude/state/breezing-active.json)" \
+  '{verdict:$verdict,grade:$grade,commit_hash:$hash,timestamp:$ts,reviewer:$reviewer,session_id:$session}' \
+  > .claude/state/review-result.json
+```
+
+**ファイルのライフサイクル**:
+- 作成: Reviewer の APPROVE 報告を Lead が受信した直後
+- 参照: Phase C の APPROVE ファストパスチェック時
+- 削除: Phase C の cleanup ステップ（`rm -f .claude/state/review-result.json`）
 
 ## 判定基準
 
@@ -265,7 +342,7 @@ Reviewer からの findings:
 Lead が生成する修正タスク:
 
 ```
-task_register:
+TaskCreate:
   subject: "src/auth/login.ts のセキュリティ・品質修正"
   description: |
     以下の 2 件を修正:
@@ -273,12 +350,47 @@ task_register:
     2. L42: エラーハンドリング不足 → try-catch 追加
     owns: src/auth/login.ts
 
-task_register:
+TaskCreate:
   subject: "src/db/users.ts の N+1 クエリ修正"
   description: |
     L8: N+1 クエリ → JOIN または一括取得に変更
     owns: src/db/users.ts
 ```
+
+## APPROVE 結果の自動記録
+
+### review-result.json スキーマ
+
+Reviewer が APPROVE 判定を下した際、Lead は `.claude/state/review-result.json` にその結果を記録する。
+この記録は Phase C の APPROVE ファストパスチェック（execution-flow.md 参照）で参照される。
+
+```json
+{
+  "verdict": "APPROVE",
+  "commit_hash": "abc1234",
+  "timestamp": "2026-02-23T03:00:00Z",
+  "reviewer": "reviewer",
+  "grade": "A",
+  "session_id": "breezing-20260223-0300"
+}
+```
+
+**フィールド仕様**:
+
+| フィールド | 型 | 説明 |
+|-----------|-----|------|
+| `verdict` | string | `"APPROVE"` / `"REQUEST_CHANGES"` / `"REJECT"` / `"STOP"` |
+| `commit_hash` | string | 判定時の HEAD コミットハッシュ（`git rev-parse HEAD` の出力） |
+| `timestamp` | string | 記録時刻（ISO 8601 UTC） |
+| `reviewer` | string | Reviewer の Teammate 名 |
+| `grade` | string | `"A"` / `"B"` / `"C"` / `"D"` / `"N/A"` |
+| `session_id` | string | breezing-active.json の session_id と一致 |
+
+**Lead の記録タイミング**: Reviewer からの APPROVE SendMessage 受信直後に Write で記録する。
+
+**APPROVE 以外の判定**: REQUEST_CHANGES/REJECT/STOP の場合も記録する（ファストパスは発動しないが、デバッグ情報として有用）。
+
+**ライフサイクル**: Phase C 完了（breezing-active.json 削除）と同時に review-result.json も削除する。
 
 ## リテイク回数管理
 

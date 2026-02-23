@@ -1,6 +1,6 @@
 # Plan Reviewer Expert Prompt for Codex
 
-Plan review prompt for Codex MCP.
+Plan review prompt for Codex CLI (`codex exec`).
 
 ## 7-Section Format
 

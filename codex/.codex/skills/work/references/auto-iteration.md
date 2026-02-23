@@ -18,7 +18,7 @@
 │ Phase 1: 初期化                                              │
 │  1. 依存関係グラフ構築                                      │
 │  2. 完了条件の設定                                          │
-│  3. ワークログ初期化 → ${CODEX_HOME:-~/.codex}/state/harness/work.log.jsonl │
+│  3. ワークログ初期化 → .claude/state/work.log.jsonl          │
 │  4. ガードバイパス有効化 → work-active.json                  │
 │  5. session.json に active_skill: "work" を設定             │
 └─────────────────────────────────────────────────────────────┘
@@ -90,7 +90,7 @@ Iteration 2:
 
 ## Worklog Format
 
-`${CODEX_HOME:-~/.codex}/state/harness/work.log.jsonl`:
+`.claude/state/work.log.jsonl`:
 
 ```jsonl
 {"ts":"2026-02-08T10:00:00Z","event":"start","range":"1-5","max_iterations":10}
@@ -131,7 +131,7 @@ Iteration 2:
 /work --resume latest
 
 # 内部動作:
-# 1. ${CODEX_HOME:-~/.codex}/state/harness/work.log.jsonl を読み込み
+# 1. .claude/state/work.log.jsonl を読み込み
 # 2. 最後の iteration_end を特定
 # 3. 完了タスクをスキップして未完了から再開
 # 4. 失敗履歴を学習データとして引き継ぎ

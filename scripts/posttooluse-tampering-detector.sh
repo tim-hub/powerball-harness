@@ -103,9 +103,15 @@ CHECK_CONTENT="${NEW_STRING}${CONTENT}"
 
 # テストファイルの改ざん検出
 if is_test_file "$FILE_PATH"; then
-  # skip 化検出 / Test skip detected
+  # skip 化検出 (JS/TS) / Test skip detected
   if [[ "$CHECK_CONTENT" =~ (^|[^a-zA-Z_])(it|describe|test)\.skip[[:space:]]*\(|(^|[^a-zA-Z_])xit[[:space:]]*\(|(^|[^a-zA-Z_])xdescribe[[:space:]]*\( ]]; then
     WARNINGS="${WARNINGS}⚠️ Test skip detected / テストの skip 化を検出 (it.skip/describe.skip/xit)\n"
+  fi
+
+  # skip 化検出 (Python) / Python test skip detected
+  # @pytest.mark.skip, @pytest.mark.skipIf, @unittest.skip, @unittest.skipIf, self.skipTest()
+  if [[ "$CHECK_CONTENT" =~ @pytest\.mark\.skip|@unittest\.skip|self\.skipTest[[:space:]]*\( ]]; then
+    WARNINGS="${WARNINGS}⚠️ Python test skip detected / Python テストの skip 化を検出 (@pytest.mark.skip / @unittest.skip / self.skipTest)\n"
   fi
 
   # .only 化検出 / Test .only detected
@@ -134,6 +140,38 @@ if is_test_file "$FILE_PATH"; then
     if [ "$OLD_ASSERTS" -gt 0 ] && [ "$NEW_ASSERTS" -lt "$OLD_ASSERTS" ]; then
       WARNINGS="${WARNINGS}⚠️ Assertion removal detected / アサーション削除を検出 (assert: ${OLD_ASSERTS} → ${NEW_ASSERTS})\n"
     fi
+  fi
+
+  # assertion weakening 検出（Edit の場合）/ Assertion weakening detected
+  # toBe → toBeTruthy/toBeDefined/toBeUndefined/toBeNull/toBeFalsy のような緩いアサーションへの置き換えを検出
+  if [ -n "$OLD_STRING" ] && [ -n "$NEW_STRING" ]; then
+    # OLD に厳格なアサーションがあり、NEW で弱いアサーションに置き換えられたか確認
+    OLD_STRICT=$(printf '%s' "$OLD_STRING" | grep -cE '\.toBe\(|\.toEqual\(|\.toStrictEqual\(|\.toHaveBeenCalledWith\(' || true)
+    NEW_WEAK=$(printf '%s' "$NEW_STRING" | grep -cE '\.toBeTruthy\(|\.toBeDefined\(|\.toBeUndefined\(|\.toBeNull\(|\.toBeFalsy\(|\.toBeGreaterThanOrEqual\(0\)|\.toHaveBeenCalled\(\)' || true)
+    NEW_STRICT=$(printf '%s' "$NEW_STRING" | grep -cE '\.toBe\(|\.toEqual\(|\.toStrictEqual\(|\.toHaveBeenCalledWith\(' || true)
+    # 厳格なアサーションが減り、弱いアサーションが増えた場合に警告
+    if [ "$OLD_STRICT" -gt 0 ] && [ "$NEW_STRICT" -lt "$OLD_STRICT" ] && [ "$NEW_WEAK" -gt 0 ]; then
+      WARNINGS="${WARNINGS}⚠️ Assertion weakening detected / アサーション弱体化を検出 (strict: ${OLD_STRICT} → ${NEW_STRICT}, weak: +${NEW_WEAK}). e.g. toBe → toBeTruthy, toEqual → toBeDefined\n"
+    fi
+  fi
+
+  # timeout 値の大幅引き上げ検出 / Large timeout increase detected
+  # jest.setTimeout(N), jasmine.DEFAULT_TIMEOUT_INTERVAL = N, { timeout: N } 等の大きな値 (30000ms 以上) を検出
+  TIMEOUT_THRESHOLD=30000
+  TIMEOUT_HIT=$(printf '%s' "$CHECK_CONTENT" | grep -E 'jest\.setTimeout\(|jasmine\.DEFAULT_TIMEOUT_INTERVAL|[[:space:]]timeout[[:space:]]*:' | grep -oE '[0-9]+' | awk -v thr="$TIMEOUT_THRESHOLD" '$1 >= thr {found=1} END {print found+0}' || true)
+  if [ "${TIMEOUT_HIT:-0}" -gt 0 ]; then
+    WARNINGS="${WARNINGS}⚠️ Large timeout detected / タイムアウト値の大幅引き上げを検出 (≥${TIMEOUT_THRESHOLD}ms). e.g. jest.setTimeout(30000)\n"
+  fi
+
+  # catch-all assertion 検出 / Catch-all assertion detected
+  # expect(true).toBe(true), expect(1).toBe(1) 等の常に成功する無意味なアサーションを検出
+  if [[ "$CHECK_CONTENT" =~ expect\((true|false|1|0|null|undefined|[\"\']{2})\)\.(toBe|toEqual|toStrictEqual)\((true|false|1|0|null|undefined|[\"\']{2})\) ]]; then
+    WARNINGS="${WARNINGS}⚠️ Catch-all assertion detected / 常に成功する無意味なアサーションを検出 (e.g. expect(true).toBe(true))\n"
+  fi
+
+  # toBeUndefined/toBeNull/toBeFalsy/toBeTruthy を定数値に適用するパターン
+  if [[ "$CHECK_CONTENT" =~ expect\((true|false|null|undefined|0)\)\.(toBeUndefined|toBeNull|toBeFalsy|toBeTruthy)\(\) ]]; then
+    WARNINGS="${WARNINGS}⚠️ Catch-all assertion detected / 定数に対する弱いアサーションを検出 (e.g. expect(false).toBeFalsy())\n"
   fi
 fi
 
