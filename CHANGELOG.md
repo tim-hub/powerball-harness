@@ -39,6 +39,7 @@ Change history for claude-code-harness.
 - **`review-retake-loop.md`**: Added `review-result.json` write spec with JSON format, Reviewer→Lead delegation flow, and file lifecycle
 - **`execution-flow.md` Phase C**: APPROVE fast-path check added as step 2; phase processing renumbered
 - **`team-composition.md`**: Extended configuration (5 Implementers) cost estimate table added
+- **`release-har` skill redesigned (Phase 14)**: Full redesign with Pre-flight checks, structured git log, Conventional Commits classification, Claude diff summarization (Highlights + Before/After), SemVer auto-detection, dry-run preview, 4-section Release Notes, Compare link auto-generation, `--announce` option, and `--dry-run` default gate; `references/release-notes-template.md` and `references/changelog-format.md` added
 
 ---
 

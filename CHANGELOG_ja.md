@@ -42,6 +42,7 @@
 - **`review-retake-loop.md`**: `review-result.json` 書き込み仕様を追加（JSON フォーマット、Reviewer→Lead 委任フロー、ファイルライフサイクル）
 - **`execution-flow.md` Phase C**: APPROVE ファストパスチェックをステップ 2 として追加; フェーズ処理番号を更新
 - **`team-composition.md`**: Extended 構成（5 Implementer）のコスト見積もり表を追加
+- **`release-har` スキル全面再設計（Phase 14）**: Pre-flight チェック、構造化 git log、Conventional Commits 分類、Claude diff 要約（Highlights + Before/After）、SemVer 自動判定、dry-run プレビュー、4セクション Release Notes、Compare リンク自動生成、`--announce` オプション、`--dry-run` デフォルトゲートを追加。`references/release-notes-template.md`・`references/changelog-format.md` を新規作成
 
 ---
 
