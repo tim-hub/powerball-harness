@@ -4,7 +4,7 @@ Change history for claude-code-harness.
 
 > **📝 Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
-## [Unreleased]
+## [2.23.5] - 2026-02-23
 
 ### 🎯 What's Changed for You
 
