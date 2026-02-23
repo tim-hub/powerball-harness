@@ -446,7 +446,7 @@
 
 ## [2.20.0] - 2026-02-08
 
-### 🎯 What's Changed for You
+### 🎯 あなたにとって何が変わるか
 
 **28スキルを19に統合。Breezing の Phase A/B/C 分離、Teammate 権限修正、リポジトリクリーンアップを実施。**
 
@@ -532,7 +532,7 @@
 
 ## [2.18.11] - 2026-02-06
 
-### 🎯 What's Changed for You
+### 🎯 あなたにとって何が変わるか
 
 **`--codex` モード時、Claude は PM として振る舞い、Edit/Write が自動ブロックされるようになりました**
 
@@ -1047,7 +1047,8 @@ v2.9.x 以前の詳細は [GitHub Releases](https://github.com/Chachamaru127/cla
 [2.20.5]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.4...v2.20.5
 [2.20.4]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.3...v2.20.4
 [2.20.3]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.2...v2.20.3
-[2.20.2]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.0...v2.20.2
+[2.20.2]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.1...v2.20.2
+[2.20.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.20.0...v2.20.1
 [2.20.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.18.11...v2.20.0
 [2.18.11]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.18.10...v2.18.11
 [2.18.10]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.18.7...v2.18.10
@@ -1076,4 +1077,3 @@ v2.9.x 以前の詳細は [GitHub Releases](https://github.com/Chachamaru127/cla
 [2.12.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.11.0...v2.12.0
 [2.11.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.10.0...v2.11.0
 [2.10.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.9.24...v2.10.0
-[2.18.7]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.18.6...v2.18.7
