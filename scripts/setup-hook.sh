@@ -147,7 +147,12 @@ run_maintenance() {
     fi
   fi
 
-  # 5. 設定ファイルの検証
+  # 5. SIMPLE モード警告を追加
+  if [ "$SIMPLE_MODE" = "true" ]; then
+    messages+=("WARNING: CLAUDE_CODE_SIMPLE mode — skills/agents/memory disabled, hooks only")
+  fi
+
+  # 6. 設定ファイルの検証
   CONFIG_FILE=".claude-code-harness.config.yaml"
   if [ -f "$CONFIG_FILE" ]; then
     # 基本的な YAML 構文チェック

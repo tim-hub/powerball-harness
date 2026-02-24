@@ -296,13 +296,12 @@ fi
 add_line "# [claude-code-harness] セッション初期化"
 add_line ""
 
-# SIMPLE モード警告（additionalContext にも出力）
+# SIMPLE モード警告（additionalContext にも出力 — check-simple-mode.sh の警告文を再利用）
 if [ "$SIMPLE_MODE" = "true" ]; then
   add_line "⚠️ **CLAUDE_CODE_SIMPLE モード検出** (CC v2.1.50+)"
-  add_line "- スキル無効: /work, /breezing, /plan-with-agent, /harness-review は使用不可"
-  add_line "- エージェント無効: task-worker, code-reviewer, 並列実行は使用不可"
-  add_line "- メモリ無効: プロジェクトメモリ・セッション間学習は使用不可"
-  add_line "- フック有効: 安全ガード・セッション管理は引き続き動作"
+  while IFS= read -r warning_line; do
+    add_line "$warning_line"
+  done <<< "$(simple_mode_warning ja)"
   add_line ""
 fi
 
