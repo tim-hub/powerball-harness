@@ -38,7 +38,7 @@
 | `isolation: worktree` のエージェント定義サポート（宣言的 worktree） | 有利 | v2.1.49 の Task tool パラメータに加え、エージェント定義で宣言的に worktree 分離を指定可能に |
 | LSP `startupTimeout` 設定 | **対応済み** | `skills/setup/references/lsp-setup.md` に既に文書化済み |
 | シンボリックリンクディレクトリでのセッション永続性修正 | 有利 | シンボリックリンクを使用するプロジェクトでのセッション可視性が改善 |
-| `CLAUDE_CODE_SIMPLE` モードで skills/memory/agents を除外 | 要注意 | SIMPLE モード使用時は Harness スキル・エージェントが無効化される。フックのみ動作 |
+| `CLAUDE_CODE_SIMPLE` モードで skills/memory/agents を除外 | **対応済み** | SIMPLE モード使用時は Harness スキル（37）・エージェント（11）・メモリが無効化。フックのみ動作。SessionStart/Setup フックで自動検出・警告表示（v2.25.0+）。詳細: [SIMPLE_MODE_COMPATIBILITY.md](./SIMPLE_MODE_COMPATIBILITY.md) |
 | WASM メモリの無制限成長修正（tree-sitter パーサーの定期リセット） | 有利 | 長時間セッションでの WASM メモリリーク解消 |
 | Headless モード起動高速化（WASM/UI インポート遅延） | 有利 | `-p` フラグ使用時の起動性能向上 |
 
@@ -265,6 +265,10 @@ cat /path/to/harness/VERSION
 - LSP tool（v2.0.74+）
 - Agent Teams Bedrock/Vertex/Foundry 正常動作（v2.1.41+）
 - `CLAUDE_CODE_SIMPLE` モードでスキル・メモリ・エージェント無効化（v2.1.50+）
+  - **影響**: 37 スキル・11 エージェント・プロジェクトメモリがすべて無効化
+  - **動作するもの**: フック（安全ガード・セッション管理）のみ
+  - **検出**: SessionStart / Setup フックで自動検出・警告表示（Harness v2.25.0+）
+  - **詳細**: [docs/SIMPLE_MODE_COMPATIBILITY.md](./SIMPLE_MODE_COMPATIBILITY.md)
 
 古いバージョンの Claude Code でも Harness は動作しますが、上記機能は無効化または制限されます。
 

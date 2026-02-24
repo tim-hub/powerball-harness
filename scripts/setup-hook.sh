@@ -13,6 +13,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODE="${1:-init}"
 
+# ===== SIMPLE モード検出 =====
+SIMPLE_MODE="false"
+if [ -f "$SCRIPT_DIR/check-simple-mode.sh" ]; then
+  # shellcheck source=./check-simple-mode.sh
+  source "$SCRIPT_DIR/check-simple-mode.sh"
+  if is_simple_mode; then
+    SIMPLE_MODE="true"
+    echo -e "\033[1;33m[WARNING]\033[0m CLAUDE_CODE_SIMPLE mode detected — skills/agents/memory disabled" >&2
+  fi
+fi
+
 # stdin から JSON 入力を読み取り（Claude Code v2.1.10+）
 INPUT=""
 if [ ! -t 0 ]; then
@@ -81,6 +92,11 @@ run_init() {
   # 6. テンプレートトラッカーの初期化
   if [ -f "$SCRIPT_DIR/template-tracker.sh" ]; then
     bash "$SCRIPT_DIR/template-tracker.sh" init >/dev/null 2>&1 || true
+  fi
+
+  # SIMPLE モード警告を追加
+  if [ "$SIMPLE_MODE" = "true" ]; then
+    messages+=("WARNING: CLAUDE_CODE_SIMPLE mode — skills/agents/memory disabled, hooks only")
   fi
 
   # 結果出力
