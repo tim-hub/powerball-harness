@@ -11,8 +11,36 @@
 | v2.14.9 | v2.1.6+ | v2.1.21+ | 4観点並列レビュー、auto-commit、OpenCode対応、MCP code intelligence |
 | **v2.20.6** | v2.1.1+ | **v2.1.41+** | Agent Teams Bedrock/Vertex/Foundry 修正、Hook stderr 表示修正、起動性能改善 |
 | **v2.21.0** | v2.1.1+ | **v2.1.49+** | Plugin settings.json、Worktree isolation、Background agents、ConfigChange hook、last_assistant_message |
+| **v2.24.0** | v2.1.1+ | **v2.1.51+** | メモリリーク修正、WorktreeCreate/Remove hook、`claude agents` CLI、remote-control、ツール出力 50K 閾値変更 |
 
 ## バージョン別機能対応
+
+### v2.1.51 (2026-02-24)
+
+| 機能 | Harness 対応 | 備考 |
+|------|-------------|------|
+| `claude remote-control` サブコマンド（外部ビルドとローカル環境サービング） | 将来対応 | 外部ビルドシステムとの連携に将来活用可能。Breezing のクロスセッション制御に応用の余地あり |
+| カスタム npm レジストリ・バージョンピニング（プラグインインストール） | 有利 | エアギャップ環境やバージョン固定が必要な環境でのプラグイン管理が改善 |
+| ツール出力 50K 閾値変更（100K → 50K でディスク永続化） | **互換** | Harness フックの出力は最大 500B に切り詰め済み（`ci-status-checker.sh`）。影響なし |
+| `statusLine`/`fileSuggestion` フックのワークスペース信頼検証修正 | **影響なし** | Harness はこれらのフックタイプを使用していない |
+| SKILL.md YAML 配列 description のオートコンプリートクラッシュ修正 | **影響なし** | 全スキルの description は文字列形式を使用。脆弱性なし |
+| モデルピッカーの人間可読ラベル表示（"Sonnet 4.5" 等） | 有利 | `/model` コマンドでの UX 向上 |
+| `CLAUDE_CODE_ACCOUNT_UUID` 等の新環境変数 | 有利 | SDK テレメトリ用メタデータ。Harness は現時点で未使用 |
+
+### v2.1.50 (2026-02-23)
+
+| 機能 | Harness 対応 | 備考 |
+|------|-------------|------|
+| メモリリーク修正（LSP 診断・大型ツール出力・ファイル履歴・シェル実行） | **重要** | `/breezing` 等の長時間チームセッションの安定性が大幅改善。Harness 側は JSONL ローテーション（500→400 行）で既に対策済み |
+| 完了タスクの GC（ガベージコレクション）修正 | **重要** | 多数のタスクを spawn する `/breezing` セッションでメモリ圧迫を防止 |
+| `WorktreeCreate`/`WorktreeRemove` フックイベント | 将来対応 | Worktree 作成・削除時のカスタム VCS セットアップに活用可能。Breezing 並列ワークフローの自動化候補 |
+| `claude agents` CLI コマンド（エージェント一覧・詳細表示） | **対応済み** | `troubleshoot` スキルの診断テーブルに追加。エージェント spawn 失敗時の診断に有用 |
+| `isolation: worktree` のエージェント定義サポート（宣言的 worktree） | 有利 | v2.1.49 の Task tool パラメータに加え、エージェント定義で宣言的に worktree 分離を指定可能に |
+| LSP `startupTimeout` 設定 | **対応済み** | `skills/setup/references/lsp-setup.md` に既に文書化済み |
+| シンボリックリンクディレクトリでのセッション永続性修正 | 有利 | シンボリックリンクを使用するプロジェクトでのセッション可視性が改善 |
+| `CLAUDE_CODE_SIMPLE` モードで skills/memory/agents を除外 | 要注意 | SIMPLE モード使用時は Harness スキル・エージェントが無効化される。フックのみ動作 |
+| WASM メモリの無制限成長修正（tree-sitter パーサーの定期リセット） | 有利 | 長時間セッションでの WASM メモリリーク解消 |
+| Headless モード起動高速化（WASM/UI インポート遅延） | 有利 | `-p` フラグ使用時の起動性能向上 |
 
 ### v2.1.49 (2026-02-21)
 
@@ -236,11 +264,13 @@ cat /path/to/harness/VERSION
 - agent_type（v2.1.2+）
 - LSP tool（v2.0.74+）
 - Agent Teams Bedrock/Vertex/Foundry 正常動作（v2.1.41+）
+- `CLAUDE_CODE_SIMPLE` モードでスキル・メモリ・エージェント無効化（v2.1.50+）
 
 古いバージョンの Claude Code でも Harness は動作しますが、上記機能は無効化または制限されます。
 
 ## 更新履歴
 
+- 2026-02-24: v2.1.50〜v2.1.51 対応追加（メモリリーク修正、WorktreeCreate/Remove hook、`claude agents` CLI、remote-control、ツール出力閾値変更、SIMPLE モード注意事項）。推奨バージョンを v2.1.51+ に引き上げ
 - 2026-02-21: v2.1.43〜v2.1.49 対応追加（Plugin settings.json、Worktree isolation、Background agents、ConfigChange hook、last_assistant_message、Sonnet 4.6）。推奨バージョンを v2.1.49+ に引き上げ
 - 2026-02-14: v2.1.39〜v2.1.42 対応追加（Agent Teams モデルID修正、Hook stderr修正、起動性能改善）。推奨バージョンを v2.1.41+ に引き上げ
 - 2026-01-30: Harness v2.14.9 対応追加（4観点並列レビュー、auto-commit、OpenCode対応）

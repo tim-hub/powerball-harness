@@ -1,6 +1,6 @@
-# Claude Code 2.1.49+ 新機能活用ガイド（完全版）
+# Claude Code 2.1.51+ 新機能活用ガイド（完全版）
 
-> **概要**: Harness が活用する Claude Code 2.1.49+ の全機能一覧。
+> **概要**: Harness が活用する Claude Code 2.1.51+ の全機能一覧。
 > CLAUDE.md の Feature Table の完全版（詳細説明付き）。
 
 ## 機能一覧
@@ -27,6 +27,10 @@
 | **ConfigChange hook** | hooks | 設定変更監査 |
 | **last_assistant_message** | session-memory | セッション品質評価 |
 | **Sonnet 4.6 (1M context)** | 全スキル | 大規模コンテキスト処理 |
+| **メモリリーク修正 (v2.1.50)** | breezing, work | 長時間チームセッションの安定性向上 |
+| **`claude agents` CLI (v2.1.50)** | troubleshoot | エージェント定義の診断・確認 |
+| **WorktreeCreate/Remove hook (v2.1.50)** | breezing | Worktree ライフサイクル管理（将来対応） |
+| **`claude remote-control` (v2.1.51)** | 将来対応 | 外部ビルドとローカル環境サービング |
 
 ## 機能詳細
 
@@ -138,6 +142,32 @@ init トークン消費を削減し、セキュリティポリシーをセッシ
 
 最大 1M トークンのコンテキスト窓を持つ Sonnet 4.6 モデル。
 大規模コードベースの分析、長大なドキュメント処理に対応。全スキルで利用可能。
+
+### メモリリーク修正 (v2.1.50)
+
+CC 2.1.50 で LSP 診断データ、大型ツール出力、ファイル履歴、シェル実行に関するメモリリークが修正された。
+完了タスクのガベージコレクションも実装され、`/breezing` 等の長時間チームセッションの安定性が大幅に改善。
+Harness 側は JSONL ローテーション（500→400 行）やアトミック更新で既に独自対策を実施済み。
+
+### `claude agents` CLI (v2.1.50)
+
+`claude agents list` で登録済みエージェントの一覧を表示。
+`troubleshoot` スキルでエージェント spawn 失敗時の診断に活用。
+
+```bash
+claude agents list   # 登録済みエージェントの一覧
+```
+
+### WorktreeCreate/WorktreeRemove hook (v2.1.50)
+
+Worktree の作成・削除時に発火する新しいライフサイクルフック。
+`/breezing` 並列ワークフローでの自動セットアップ・クリーンアップに将来活用可能。
+現状は Harness 未実装。`skills/breezing/references/guardrails-inheritance.md` に記載。
+
+### `claude remote-control` (v2.1.51)
+
+外部ビルドシステムとローカル環境のサービングを可能にするサブコマンド。
+将来的に Breezing のクロスセッション制御や CI 連携に活用の余地あり。
 
 ## 関連ドキュメント
 
