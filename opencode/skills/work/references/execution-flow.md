@@ -109,6 +109,43 @@ Loop until OK or max iterations reached
 | **Plan Review** | Clarity, Feasibility, Dependencies, Acceptance |
 | **Scope Review** | Scope-creep, Priority, Feasibility, Impact |
 
+## Phase 3.5: Auto-Refinement
+
+### Prerequisites
+- Phase 2 (Cross-review) returned APPROVE
+- `--no-simplify` not specified
+
+### Execution flow
+
+```
+harness-review APPROVE:
+    ↓
+Check simplify_mode (from work-active.json or --flags):
+  ├── "skip" (--no-simplify) → Skip to Phase 3
+  ├── "default" → Execute /simplify only
+  └── "deep" (--deep-simplify) → Execute /simplify then code-simplifier
+    ↓
+Execute /simplify via Skill tool:
+  - /simplify runs 3 parallel agents (Code Reuse, Code Quality, Efficiency)
+  - Auto-fixes valid issues, skips false positives
+  - Returns summary of changes
+    ↓
+(deep mode only) Execute code-simplifier via Task tool:
+  - subagent_type: "code-simplifier:code-simplifier"
+  - Single Opus agent focusing on clarity, consistency, maintainability
+  - Follows CLAUDE.md project standards
+    ↓
+Check if refinement made changes:
+  YES → Show diff summary → Proceed to Phase 3
+  NO  → "Code already clean" → Proceed to Phase 3
+```
+
+### Notes
+- /simplify is a bundled command (Claude Code v2.1.63+), available in all environments
+- code-simplifier is an Anthropic official plugin; --deep-simplify skips gracefully if not installed
+- Phase 3.5 runs AFTER review approval, so it won't introduce issues that weren't reviewed
+- If /simplify makes significant structural changes, consider re-running harness-review (manual decision)
+
 ## Phase 3: Auto-commit
 
 ### Review OK判定

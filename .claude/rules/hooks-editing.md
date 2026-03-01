@@ -29,6 +29,8 @@ hooks/hooks.json           ← Source file (for development)
 
 ## Hook Types
 
+3 つのタイプが利用可能です: `command`（汎用）、`prompt`（Stop/SubagentStop 限定）、`http`（v2.1.63+ 外部連携）。
+
 ### command Type (General Purpose)
 
 Available for all events:
@@ -60,6 +62,81 @@ Available for all events:
 ```
 
 ⚠️ **Note**: If you don't explicitly instruct JSON format in the prompt, the LLM may return natural language and cause a `JSON validation failed` error
+
+### http Type (v2.1.63+)
+
+JSON を URL に POST する新しいフック形式。外部サービスとの連携に使用。
+
+```json
+{
+  "type": "http",
+  "url": "http://localhost:8080/hooks/pre-tool-use",
+  "timeout": 30,
+  "headers": {
+    "Authorization": "Bearer $MY_TOKEN"
+  },
+  "allowedEnvVars": ["MY_TOKEN"]
+}
+```
+
+#### HTTP hook 専用フィールド
+
+| フィールド | 必須 | 説明 |
+|-----------|------|------|
+| `url` | Yes | POST 先の URL |
+| `headers` | No | 追加 HTTP ヘッダー。`$VAR` / `${VAR}` で環境変数展開可 |
+| `allowedEnvVars` | No | `headers` で展開を許可する環境変数名リスト。未指定時は展開されない |
+
+#### レスポンス仕様
+
+| レスポンス | 動作 |
+|-----------|------|
+| `2xx` + 空ボディ | 成功、続行 |
+| `2xx` + JSON ボディ | 成功、JSON は command hook と同じスキーマで解析 |
+| `非 2xx` / タイムアウト | ノンブロッキングエラー、実行続行 |
+
+#### command hook との主な違い
+
+| 項目 | command hook | http hook |
+|------|-------------|-----------|
+| 入力 | stdin (JSON) | POST body (JSON) |
+| 成功判定 | exit code 0 | 2xx ステータス |
+| ブロッキング | exit 2 | 2xx + `permissionDecision: "deny"` の JSON |
+| 非同期実行 | `async: true` 対応 | 非対応 |
+| `/hooks` メニュー | 追加可能 | 不可（JSON 直接編集のみ） |
+| 環境変数 | シェル環境で自動展開 | `allowedEnvVars` に明示リスト必要 |
+
+#### サンプルテンプレート
+
+**Slack 通知**:
+```json
+{
+  "type": "http",
+  "url": "https://hooks.slack.com/services/T00/B00/xxx",
+  "timeout": 10
+}
+```
+
+**メトリクス収集**:
+```json
+{
+  "type": "http",
+  "url": "http://localhost:9090/metrics/hook",
+  "timeout": 5,
+  "headers": { "X-Source": "claude-code-harness" }
+}
+```
+
+**外部ダッシュボード更新**:
+```json
+{
+  "type": "http",
+  "url": "https://dashboard.example.com/api/events",
+  "timeout": 15,
+  "headers": { "Authorization": "Bearer $DASHBOARD_TOKEN" },
+  "allowedEnvVars": ["DASHBOARD_TOKEN"]
+}
+```
 
 ### Recommended Pattern
 

@@ -11,6 +11,44 @@
 
 ---
 
+## [2.26.1] - 2026-03-02
+
+### Added
+
+- **セクション別 SVG イラスト 12 点**: EN 6 点 + JA 6 点の手作り SVG を両 README に埋め込み（before-after、/work all フロー、並列ワーカー、セーフティシールド、スキルエコシステム、breezing エージェント）
+
+### Fixed
+
+- **review-loop.md APPROVE フロー不整合**: APPROVE 判定テーブルに Phase 3.5 Auto-Refinement ステップが欠落しており、SKILL.md・execution-flow.md と不整合だった問題を修正
+
+## [2.26.0] - 2026-03-02
+
+### 🎯 あなたにとって何が変わるか
+
+**Claude Code v2.1.63 統合: `/work` がレビュー後にコードを自動洗練、`/breezing` が横展開タスクを `/batch` に委任可能に、HTTP hooks で外部サービス連携が可能に。**
+
+| Before | After |
+|--------|-------|
+| `/work` フロー: 実装 → レビュー → コミット | `/work` フロー: 実装 → レビュー → **自動洗練** → コミット |
+| 横展開マイグレーションは手動対応 | `/breezing` が自動検出し `/batch` に委任提案 |
+| Feature table は v2.1.51 まで | Feature table は v2.1.63 まで（27機能） |
+| フックは `command` / `prompt` のみ | `http` タイプ追加（外部サービスへ POST） |
+
+### Added
+
+- **`/work` に Phase 3.5 Auto-Refinement**: レビュー APPROVE 後に `/simplify` が自動実行。`--deep-simplify` で `code-simplifier` プラグインも併用。`--no-simplify` でスキップ
+- **`/breezing` に `/batch` 委任**: 横展開パターン（migrate/replace-all/add-to-all）を検出し、`/batch` 委任を自動提案
+- **HTTP hooks ドキュメント** (`.claude/rules/hooks-editing.md`): `type: "http"` 仕様、フィールド一覧、レスポンス動作、command との比較表、3サンプルテンプレート（Slack・メトリクス・ダッシュボード）
+- **Feature table に7件追加** (`docs/CLAUDE-feature-table.md`): `/simplify`、`/batch`、`code-simplifier` プラグイン、HTTP hooks、auto-memory worktree 共有、`/clear` スキルキャッシュリセット、`ENABLE_CLAUDEAI_MCP_SERVERS`
+
+### Changed
+
+- **バージョン表記**: CLAUDE.md・feature table の `2.1.49+` → `2.1.63+`
+- **機能数**: CLAUDE.md・feature table の 20 → 27
+- **`/breezing` guardrails**: auto-memory worktree 共有（v2.1.63）を継承テーブルに追加
+- **`troubleshoot` スキル**: CC v2.1.63+ 診断に `/clear` キャッシュリセットを追加
+- **`work-active.json` スキーマ**: `simplify_mode: "default" | "deep" | "skip"` フィールド追加
+
 ## [2.23.6] - 2026-02-24
 
 ### Added
@@ -1044,6 +1082,10 @@
 
 v2.9.x 以前の詳細は [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases) を参照してください。
 
+[2.26.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.26.0...v2.26.1
+[2.26.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.25.0...v2.26.0
+[2.25.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.24.0...v2.25.0
+[2.24.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.23.6...v2.24.0
 [2.23.6]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.23.5...v2.23.6
 [2.23.5]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.23.3...v2.23.5
 [2.23.3]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.23.2...v2.23.3

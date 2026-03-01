@@ -8,6 +8,44 @@ Change history for claude-code-harness.
 
 ---
 
+## [2.26.1] - 2026-03-02
+
+### Added
+
+- **12 section-specific SVG illustrations**: 6 EN + 6 JA hand-crafted visuals embedded in both READMEs (before-after, /work all flow, parallel workers, safety shield, skills ecosystem, breezing agents)
+
+### Fixed
+
+- **review-loop.md APPROVE flow inconsistency**: Phase 3.5 Auto-Refinement step was missing from the APPROVE judgment table, causing inconsistency with SKILL.md and execution-flow.md
+
+## [2.26.0] - 2026-03-02
+
+### 🎯 What's Changed for You
+
+**Claude Code v2.1.63 integration: `/work` now auto-simplifies code after review, `/breezing` can delegate horizontal tasks to `/batch`, and HTTP hooks enable external service notifications.**
+
+| Before | After |
+|--------|-------|
+| `/work` flow: implement → review → commit | `/work` flow: implement → review → **auto-simplify** → commit |
+| Horizontal migration tasks handled manually | `/breezing` auto-detects and delegates to `/batch` |
+| Feature table covers up to v2.1.51 | Feature table covers up to v2.1.63 (27 features) |
+| Hooks only support `command` and `prompt` types | Hooks now support `http` type (POST to external services) |
+
+### Added
+
+- **Phase 3.5 Auto-Refinement in `/work`**: After review APPROVE, `/simplify` runs automatically to clean up code. `--deep-simplify` adds `code-simplifier` plugin. `--no-simplify` skips
+- **`/batch` delegation in `/breezing`**: Horizontal pattern detection (migrate/replace-all/add-to-all) auto-proposes `/batch` delegation for bulk changes
+- **HTTP hooks documentation** (`.claude/rules/hooks-editing.md`): `type: "http"` spec with field reference, response behavior, command-vs-http comparison table, and 3 sample templates (Slack, metrics, dashboard)
+- **7 new feature-table entries** (`docs/CLAUDE-feature-table.md`): `/simplify`, `/batch`, `code-simplifier` plugin, HTTP hooks, auto-memory worktree sharing, `/clear` skill cache reset, `ENABLE_CLAUDEAI_MCP_SERVERS`
+
+### Changed
+
+- **Version references**: `2.1.49+` → `2.1.63+` across CLAUDE.md and feature table
+- **Feature count**: 20 → 27 in CLAUDE.md and feature table
+- **`/breezing` guardrails**: Added auto-memory worktree sharing (v2.1.63) to inheritance table
+- **`troubleshoot` skill**: Added `/clear` cache reset to CC v2.1.63+ diagnostics
+- **`work-active.json` schema**: Added `simplify_mode: "default" | "deep" | "skip"` field
+
 ## [2.25.0] - 2026-02-24
 
 ### 🎯 What's Changed for You
@@ -1097,6 +1135,8 @@ Change history for claude-code-harness.
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases).
 
+[2.26.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.26.0...v2.26.1
+[2.26.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.25.0...v2.26.0
 [2.25.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.24.0...v2.25.0
 [2.24.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.23.6...v2.24.0
 [2.23.6]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.23.5...v2.23.6

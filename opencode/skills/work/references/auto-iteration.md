@@ -43,6 +43,12 @@
 │    - APPROVE まで自動修正を繰り返す                         │
 │    - REJECT/STOP は即停止                                   │
 │                                                             │
+│  Step 3.7: Auto-Refinement                                  │
+│    - harness-review APPROVE 後のみ                          │
+│    - /simplify で自動コード洗練                             │
+│    - --deep-simplify 時は code-simplifier も実行            │
+│    - --no-simplify 時はスキップ                             │
+│                                                             │
 │  Step 4: 判定                                               │
 │    - APPROVE → 完了処理へ                                   │
 │    - REQUEST CHANGES → 自己修正ループ                       │
