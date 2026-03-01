@@ -11,6 +11,16 @@
 
 ---
 
+## [2.26.1] - 2026-03-02
+
+### Added
+
+- **セクション別 SVG イラスト 12 点**: EN 6 点 + JA 6 点の手作り SVG を両 README に埋め込み（before-after、/work all フロー、並列ワーカー、セーフティシールド、スキルエコシステム、breezing エージェント）
+
+### Fixed
+
+- **review-loop.md APPROVE フロー不整合**: APPROVE 判定テーブルに Phase 3.5 Auto-Refinement ステップが欠落しており、SKILL.md・execution-flow.md と不整合だった問題を修正
+
 ## [2.26.0] - 2026-03-02
 
 ### 🎯 あなたにとって何が変わるか
@@ -1072,6 +1082,10 @@
 
 v2.9.x 以前の詳細は [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases) を参照してください。
 
+[2.26.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.26.0...v2.26.1
+[2.26.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.25.0...v2.26.0
+[2.25.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.24.0...v2.25.0
+[2.24.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.23.6...v2.24.0
 [2.23.6]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.23.5...v2.23.6
 [2.23.5]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.23.3...v2.23.5
 [2.23.3]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.23.2...v2.23.3
