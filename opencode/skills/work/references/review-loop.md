@@ -62,5 +62,5 @@ How to proceed?
 
 | 判定 | 条件 | アクション |
 |------|------|-----------|
-| APPROVE | Critical/High の指摘なし | → Phase 3 (commit) → Phase 4 (handoff) |
+| APPROVE | Critical/High の指摘なし | → Phase 3.5 (Auto-Refinement) → Phase 4 (commit) → handoff |
 | REQUEST_CHANGES | Critical/High の指摘あり | → Fix → Re-review (loop) |
