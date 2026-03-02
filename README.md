@@ -186,15 +186,15 @@ v3 unifies 42 skills into **5 verb skills**. Auto-load by context. Slash command
 
 ### Key Commands
 
-| Command | v3 Verb | What It Does |
-|---------|---------|--------------|
-| `/plan-with-agent` | plan | Ideas → `Plans.md` |
-| `/work` | execute | Parallel implementation |
-| `/work all` | execute | Plan → Implement → Review → Commit |
-| `/harness-review` | review | 4-perspective code review |
-| `/harness-init` | setup | Initialize project |
-| `/sync-status` | plan | Check progress |
-| `/memory` | — | Manage SSOT files |
+| Command | What It Does | Legacy Redirect |
+|---------|--------------|-----------------|
+| `/plan-harness` | Ideas → `Plans.md` | `/plan-with-agent`, `/planning` |
+| `/work-harness` | Parallel implementation | `/work`, `/breezing`, `/impl` |
+| `/work-harness all` | Plan → Implement → Review → Commit | `/work all` |
+| `/review-harness` | 4-perspective code review | `/harness-review`, `/verify` |
+| `/release-harness` | CHANGELOG, tag, GitHub Release | `/release-har`, `/handoff` |
+| `/setup-harness` | Initialize project | `/harness-init`, `/setup` |
+| `/memory` | Manage SSOT files | — |
 
 ---
 

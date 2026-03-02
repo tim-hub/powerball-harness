@@ -186,15 +186,15 @@ v3 で42スキルを **5つの動詞スキル**に統合。コンテキストで
 
 ### 主要コマンド
 
-| コマンド | v3 動詞 | 機能 |
-|----------|---------|------|
-| `/plan-with-agent` | plan | アイデア → `Plans.md` |
-| `/work` | execute | 並列実装 |
-| `/work all` | execute | 計画 → 実装 → レビュー → コミット |
-| `/harness-review` | review | 4視点コードレビュー |
-| `/harness-init` | setup | プロジェクト初期化 |
-| `/sync-status` | plan | 進捗確認 |
-| `/memory` | — | SSOT ファイルを管理 |
+| コマンド | 機能 | 旧コマンド |
+|----------|------|-----------|
+| `/plan-harness` | アイデア → `Plans.md` | `/plan-with-agent`, `/planning` |
+| `/work-harness` | 並列実装 | `/work`, `/breezing`, `/impl` |
+| `/work-harness all` | 計画 → 実装 → レビュー → コミット | `/work all` |
+| `/review-harness` | 4視点コードレビュー | `/harness-review`, `/verify` |
+| `/release-harness` | CHANGELOG、タグ、GitHub Release | `/release-har`, `/handoff` |
+| `/setup-harness` | プロジェクト初期化 | `/harness-init`, `/setup` |
+| `/memory` | SSOT ファイルを管理 | — |
 
 ---
 

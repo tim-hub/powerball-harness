@@ -1,7 +1,7 @@
 ---
-name: execute
-description: "Unified execution skill for Harness v3. Implements Plans.md tasks from single task to full parallel team runs. Use when user mentions: implement, execute, /execute, /work, do everything, build features, run tasks, breezing, team run, --codex, --parallel. Do NOT load for: planning, code review, release, or setup."
-description-ja: "Harness v3 統合実行スキル。Plans.md タスクを1件から全並列チーム実行まで担当。以下で起動: 実装して、実行して、/execute、/work、全部やって、breezing、チーム実行、--codex、--parallel。プランニング・レビュー・リリース・セットアップには使わない。"
+name: work-harness
+description: "Unified execution skill for Harness v3. Implements Plans.md tasks from single task to full parallel team runs. Use when user mentions: implement, execute, /work-harness, /work, do everything, build features, run tasks, breezing, team run, --codex, --parallel. Do NOT load for: planning, code review, release, or setup."
+description-ja: "Harness v3 統合実行スキル。Plans.md タスクを1件から全並列チーム実行まで担当。以下で起動: 実装して、実行して、/work-harness、/work、全部やって、breezing、チーム実行、--codex、--parallel。プランニング・レビュー・リリース・セットアップには使わない。"
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[all] [task-number|range] [--codex] [--parallel N] [--no-commit] [--resume id] [--breezing]"
 ---

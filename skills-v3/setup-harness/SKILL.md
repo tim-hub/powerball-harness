@@ -1,7 +1,7 @@
 ---
-name: setup
-description: "Unified setup skill for Harness v3. Project init, tool setup, 2-agent config, memory setup, symlink management. Use when user mentions: setup, initialization, new project, CI setup, codex CLI setup, harness-mem, agent setup, symlinks, /setup. Do NOT load for: implementation, code review, release, or planning."
-description-ja: "Harness v3 統合セットアップスキル。プロジェクト初期化・ツール設定・2エージェント構成・メモリ設定・symlink管理。以下で起動: セットアップ、初期化、新規プロジェクト、CIセットアップ、codex CLIセットアップ、harness-mem、エージェント設定、symlink、/setup。実装・レビュー・リリース・プランニングには使わない。"
+name: setup-harness
+description: "Unified setup skill for Harness v3. Project init, tool setup, 2-agent config, memory setup, symlink management. Use when user mentions: setup, initialization, new project, CI setup, codex CLI setup, harness-mem, agent setup, symlinks, /setup-harness. Do NOT load for: implementation, code review, release, or planning."
+description-ja: "Harness v3 統合セットアップスキル。プロジェクト初期化・ツール設定・2エージェント構成・メモリ設定・symlink管理。以下で起動: セットアップ、初期化、新規プロジェクト、CIセットアップ、codex CLIセットアップ、harness-mem、エージェント設定、symlink、/setup-harness。実装・レビュー・リリース・プランニングには使わない。"
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
 argument-hint: "[init|ci|codex|harness-mem|symlinks|agents|localize]"
 ---
