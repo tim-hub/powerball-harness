@@ -67,7 +67,7 @@
 | 17.2.2 | `core/state/store.ts` 作成。better-sqlite3 ラッパー | cc:完了 |
 | 17.2.3 | `core/state/migration.ts` 作成。JSON/JSONL→SQLite移行 | cc:完了 |
 | 17.2.4 | `core/state/__tests__/store.test.ts` 単体テスト | cc:完了 |
-| 17.2.5 | guardrails のJSONスタブをSQLiteストアに差し替え | cc:TODO |
+| 17.2.5 | guardrails のJSONスタブをSQLiteストアに差し替え | cc:完了 |
 | 17.2.6 | `hooks/session.sh` + `core/engine/lifecycle.ts` 作成 | cc:TODO |
 
 ### Phase 17.3: スキル統合 42→5 + 拡張パック分離 [P1]
@@ -118,8 +118,8 @@
 | Task | 内容 | Status |
 |------|------|--------|
 | 17.7.1 | `core/guardrails/__tests__/integration.test.ts` E2Eテスト | cc:完了 |
-| 17.7.2 | `core/state/__tests__/migration.test.ts` 移行テスト | cc:TODO |
-| 17.7.3 | `tests/validate-plugin-v3.sh` v3バリデータ | cc:TODO |
+| 17.7.2 | `core/state/__tests__/migration.test.ts` 移行テスト | cc:完了 |
+| 17.7.3 | `tests/validate-plugin-v3.sh` v3バリデータ | cc:完了 |
 | 17.7.4 | breezing-bench v2 vs v3 比較ベンチマーク | cc:TODO |
-| 17.7.5 | VERSION 3.0.0 バンプ + CHANGELOG + plugin.json | cc:TODO |
+| 17.7.5 | VERSION 3.0.0 バンプ + CHANGELOG + plugin.json | cc:完了 |
 | 17.7.6 | main マージ + GitHub Release | cc:TODO |
