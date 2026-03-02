@@ -39,15 +39,23 @@ Change history for claude-code-harness.
 
 - **Skills**: 42 → 5 (plan/execute/review/release/setup). Legacy `skills/` retained for backwards compatibility
 - **Agents**: 11 → 3 (worker/reviewer/scaffolder). Legacy `agents/` retained for backwards compatibility
-- **Hooks shims**: `hooks/pre-tool.sh`, `hooks/post-tool.sh`, `hooks/session.sh` now delegate to `core/src/index.ts`
+- **Hooks shims**: `hooks/pre-tool.sh`, `hooks/post-tool.sh`, `hooks/permission.sh` now delegate to `core/src/index.ts`
+- **PermissionRequest**: Switched from v2 `run-script.js permission-request` to v3 TypeScript core (`hooks/permission.sh`)
 - **`check-consistency.sh`**: Mirror check updated from rsync diff to symlink validation
 - **CLAUDE.md**: Compact v3 version; architecture details moved to `.claude/rules/v3-architecture.md`
+- **README.md / README_ja.md**: Updated for v3 (5 verb skills, 3 agents, TypeScript core, architecture diagram)
+
+### Fixed
+
+- **`core/src/state/store.ts`**: Fixed `better-sqlite3` type import — `typeof import("better-sqlite3").default` → `import type DatabaseConstructor from "better-sqlite3"` (ESM/CJS compatibility)
+- **Duplicate `posttooluse-tampering-detector`**: Removed v2 script from PostToolUse `Write|Edit|Task` block (v3 `post-tool.ts` already handles tampering detection)
 
 ### Removed
 
 - rsync-based mirror sync (replaced by symlinks)
 - Standalone Bash guardrail scripts (replaced by `core/src/guardrails/`)
 - Scattered JSON/JSONL state files (replaced by SQLite)
+- Duplicate `posttooluse-tampering-detector` hook (consolidated into v3 post-tool engine)
 
 ---
 

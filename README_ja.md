@@ -8,10 +8,11 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.23.6-blue.svg" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-3.0.0-blue.svg" alt="Version"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
-  <img src="https://img.shields.io/badge/Skills-41-orange.svg" alt="Skills">
+  <img src="https://img.shields.io/badge/Skills-5_Verbs-orange.svg" alt="Skills">
+  <img src="https://img.shields.io/badge/Core-TypeScript-blue.svg" alt="TypeScript Core">
 </p>
 
 <p align="center">
@@ -53,7 +54,7 @@ graph LR
 ## 動作要件
 
 - **Claude Code v2.1+** ([インストールガイド](https://docs.anthropic.com/claude-code))
-- **Node.js 18+** (セーフティフック用)
+- **Node.js 18+** (TypeScript コアエンジン & セーフティフック用)
 
 ---
 
@@ -149,14 +150,17 @@ Harness が明確な受入条件付きの `Plans.md` を作成。
 
 ## セーフティファースト
 
-Harness はフックでコードベースを保護:
+Harness v3 は **TypeScript ガードレールエンジン**（`core/`）でコードベースを保護 — 9つの宣言的ルール（R01–R09）、コンパイル済み＆型チェック済み:
 
-| 保護対象 | アクション |
-|----------|------------|
-| `.git/`, `.env`, シークレット | 書き込みブロック |
-| `rm -rf`, `sudo`, `--force` | 確認が必要 |
-| `git status`, `npm test` | 自動許可 |
-| テスト改ざん | 警告をトリガー |
+| ルール | 保護対象 | アクション |
+|--------|----------|------------|
+| R01 | `sudo` コマンド | **拒否** |
+| R02 | `.git/`, `.env`, シークレット | 書き込み**拒否** |
+| R03 | `rm -rf /`, 破壊的パス | **拒否** |
+| R04 | `git push --force` | **拒否** |
+| R05–R09 | モード固有のガード | コンテキスト判定 |
+| Post | `it.skip`, アサーション改ざん | **警告** |
+| Perm | `git status`, `npm test` | **自動許可** |
 
 <p align="center">
   <img src="assets/readme-visuals-ja/safety-shield.svg" alt="セーフティシールド" width="600">
@@ -164,17 +168,17 @@ Harness はフックでコードベースを保護:
 
 ---
 
-## 41スキル、設定不要
+## 5動詞スキル、設定不要
 
-スキルはコンテキストに応じて自動ロード。スラッシュコマンドでも自然言語でも起動可能。
+v3 で42スキルを **5つの動詞スキル**に統合。コンテキストで自動ロード。スラッシュでも自然言語でもOK。
 
-| こう言うと | スキル |
-|------------|--------|
-| 「ログインを実装して」 | `impl` |
-| 「このコードをレビューして」 | `harness-review` |
-| 「ビルドエラーを直して」 | `verify` |
-| 「Stripe決済を追加して」 | `auth` |
-| 「Vercelにデプロイして」 | `deploy` |
+| 動詞 | 機能 | 旧スキル |
+|------|------|----------|
+| `plan` | アイデア → Plans.md | planning, plans-management, sync-status |
+| `execute` | 並列実装 | work, breezing, impl |
+| `review` | 4視点コードレビュー | harness-review, codex-review |
+| `release` | CHANGELOG、タグ、GitHub Release | release-har, handoff |
+| `setup` | プロジェクト初期化 & ツール設定 | setup, harness-init |
 
 <p align="center">
   <img src="assets/readme-visuals-ja/skills-ecosystem.svg" alt="スキルエコシステム" width="640">
@@ -182,15 +186,15 @@ Harness はフックでコードベースを保護:
 
 ### 主要コマンド
 
-| コマンド | 機能 |
-|----------|------|
-| `/plan-with-agent` | アイデア → `Plans.md` |
-| `/work` | タスクを並列実行 |
-| `/harness-review` | 4視点レビュー |
-| `/generate-slide` | 1枚のプロジェクト紹介スライドを生成 |
-| `/harness-init` | プロジェクト初期化 |
-| `/sync-status` | 進捗確認 |
-| `/memory` | SSOT ファイルを管理 |
+| コマンド | v3 動詞 | 機能 |
+|----------|---------|------|
+| `/plan-with-agent` | plan | アイデア → `Plans.md` |
+| `/work` | execute | 並列実装 |
+| `/work all` | execute | 計画 → 実装 → レビュー → コミット |
+| `/harness-review` | review | 4視点コードレビュー |
+| `/harness-init` | setup | プロジェクト初期化 |
+| `/sync-status` | plan | 進捗確認 |
+| `/memory` | — | SSOT ファイルを管理 |
 
 ---
 
@@ -210,11 +214,15 @@ Harness はフックでコードベースを保護:
 
 ```
 claude-code-harness/
-├── skills/       # 41のスキル定義
-├── agents/       # 11のサブエージェント（並列ワーカー）
-├── hooks/        # セーフティ & オートメーション
-├── scripts/      # ガードスクリプト
-└── templates/    # 生成テンプレート
+├── core/           # TypeScript ガードレールエンジン（strict ESM, NodeNext）
+│   └── src/        #   guardrails/ state/ engine/
+├── skills-v3/      # 5動詞スキル（plan/execute/review/release/setup）
+├── agents-v3/      # 3エージェント（worker/reviewer/scaffolder）
+├── hooks/          # 薄いシム → core/ エンジン
+├── skills/         # 旧41スキル（互換性のため保持）
+├── agents/         # 旧11エージェント（互換性のため保持）
+├── scripts/        # v2 フックスクリプト（v3 core と共存）
+└── templates/      # 生成テンプレート
 ```
 
 ---

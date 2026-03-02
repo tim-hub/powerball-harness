@@ -8,10 +8,11 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-2.23.6-blue.svg" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-3.0.0-blue.svg" alt="Version"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
-  <img src="https://img.shields.io/badge/Skills-41-orange.svg" alt="Skills">
+  <img src="https://img.shields.io/badge/Skills-5_Verbs-orange.svg" alt="Skills">
+  <img src="https://img.shields.io/badge/Core-TypeScript-blue.svg" alt="TypeScript Core">
 </p>
 
 <p align="center">
@@ -53,7 +54,7 @@ graph LR
 ## Requirements
 
 - **Claude Code v2.1+** ([Install Guide](https://docs.anthropic.com/claude-code))
-- **Node.js 18+** (for safety hooks)
+- **Node.js 18+** (for TypeScript core engine & safety hooks)
 
 ---
 
@@ -149,14 +150,17 @@ Each worker implements, self-reviews, and reports.
 
 ## Safety First
 
-Harness protects your codebase with hooks:
+Harness v3 protects your codebase with a **TypeScript guardrail engine** (`core/`) — 9 declarative rules (R01–R09), compiled and type-checked:
 
-| Protected | Action |
-|-----------|--------|
-| `.git/`, `.env`, secrets | Write blocked |
-| `rm -rf`, `sudo`, `--force` | Confirmation required |
-| `git status`, `npm test` | Auto-allowed |
-| Test tampering | Warning triggered |
+| Rule | Protected | Action |
+|------|-----------|--------|
+| R01 | `sudo` commands | **Deny** |
+| R02 | `.git/`, `.env`, secrets | **Deny** write |
+| R03 | `rm -rf /`, destructive paths | **Deny** |
+| R04 | `git push --force` | **Deny** |
+| R05–R09 | Mode-specific guards | Context-aware |
+| Post | `it.skip`, assertion tampering | **Warning** |
+| Perm | `git status`, `npm test` | **Auto-allow** |
 
 <p align="center">
   <img src="assets/readme-visuals-en/safety-shield.svg" alt="Safety shield" width="600">
@@ -164,17 +168,17 @@ Harness protects your codebase with hooks:
 
 ---
 
-## 41 Skills, Zero Config
+## 5 Verb Skills, Zero Config
 
-Skills auto-load based on context. Use slash commands or natural language.
+v3 unifies 42 skills into **5 verb skills**. Auto-load by context. Slash commands or natural language.
 
-| Say This | Skill |
-|----------|-------|
-| "implement login" | `impl` |
-| "review this code" | `harness-review` |
-| "fix the build error" | `verify` |
-| "add Stripe payments" | `auth` |
-| "deploy to Vercel" | `deploy` |
+| Verb | What It Does | Legacy Equivalent |
+|------|-------------|-------------------|
+| `plan` | Ideas → Plans.md | planning, plans-management, sync-status |
+| `execute` | Parallel implementation | work, breezing, impl |
+| `review` | 4-perspective code review | harness-review, codex-review |
+| `release` | CHANGELOG, tag, GitHub Release | release-har, handoff |
+| `setup` | Project init & tool config | setup, harness-init |
 
 <p align="center">
   <img src="assets/readme-visuals-en/skills-ecosystem.svg" alt="Skills ecosystem" width="640">
@@ -182,15 +186,15 @@ Skills auto-load based on context. Use slash commands or natural language.
 
 ### Key Commands
 
-| Command | What It Does |
-|---------|--------------|
-| `/plan-with-agent` | Ideas → `Plans.md` |
-| `/work` | Execute tasks in parallel |
-| `/harness-review` | 4-perspective review |
-| `/generate-slide` | Generate one-page project intro slides |
-| `/harness-init` | Initialize project |
-| `/sync-status` | Check progress |
-| `/memory` | Manage SSOT files |
+| Command | v3 Verb | What It Does |
+|---------|---------|--------------|
+| `/plan-with-agent` | plan | Ideas → `Plans.md` |
+| `/work` | execute | Parallel implementation |
+| `/work all` | execute | Plan → Implement → Review → Commit |
+| `/harness-review` | review | 4-perspective code review |
+| `/harness-init` | setup | Initialize project |
+| `/sync-status` | plan | Check progress |
+| `/memory` | — | Manage SSOT files |
 
 ---
 
@@ -210,11 +214,15 @@ Skills auto-load based on context. Use slash commands or natural language.
 
 ```
 claude-code-harness/
-├── skills/       # 41 skill definitions
-├── agents/       # 11 sub-agents (parallel workers)
-├── hooks/        # Safety & automation
-├── scripts/      # Guard scripts
-└── templates/    # Generation templates
+├── core/           # TypeScript guardrail engine (strict ESM, NodeNext)
+│   └── src/        #   guardrails/ state/ engine/
+├── skills-v3/      # 5 verb skills (plan/execute/review/release/setup)
+├── agents-v3/      # 3 agents (worker/reviewer/scaffolder)
+├── hooks/          # Thin shims → core/ engine
+├── skills/         # 41 legacy skills (retained for compatibility)
+├── agents/         # 11 legacy agents (retained for compatibility)
+├── scripts/        # v2 hook scripts (coexist with v3 core)
+└── templates/      # Generation templates
 ```
 
 ---
