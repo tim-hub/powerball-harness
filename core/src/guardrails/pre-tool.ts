@@ -14,20 +14,26 @@ import { evaluateRules } from "./rules.js";
  * work-active.json / session-state の読み取りは Phase 17.2 で SQLite に移行予定。
  * 現時点では環境変数・HookInput の cwd / plugin_root からコンテキストを取得する。
  */
+/** 環境変数が truthy 値（"1", "true", "yes"）かどうか判定 */
+function isTruthy(value: string | undefined): boolean {
+  return value === "1" || value === "true" || value === "yes";
+}
+
 function buildContext(input: HookInput): RuleContext {
+  // cwd がプロジェクトルート。plugin_root はプラグイン自身のパスなので除外
   const projectRoot =
-    input.plugin_root ??
     input.cwd ??
+    process.env["HARNESS_PROJECT_ROOT"] ??
     process.env["PROJECT_ROOT"] ??
     process.cwd();
 
   // work モード: 環境変数または work-active.json を参照（簡易実装）
   const workMode =
-    process.env["HARNESS_WORK_MODE"] === "true" ||
-    process.env["ULTRAWORK_MODE"] === "true";
+    isTruthy(process.env["HARNESS_WORK_MODE"]) ||
+    isTruthy(process.env["ULTRAWORK_MODE"]);
 
   // codex モード: 環境変数から取得
-  const codexMode = process.env["HARNESS_CODEX_MODE"] === "true";
+  const codexMode = isTruthy(process.env["HARNESS_CODEX_MODE"]);
 
   // breezing ロール: 環境変数から取得
   const breezingRole = process.env["HARNESS_BREEZING_ROLE"] ?? null;

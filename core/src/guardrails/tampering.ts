@@ -111,7 +111,8 @@ const TAMPERING_PATTERNS: readonly TamperingPattern[] = [
   {
     id: "T08:eslint-disable",
     description: "eslint-disable による lint ルール無効化",
-    pattern: /\/\/\s*eslint-disable(?:-next-line|-line)?(?:\s+[^\n]+)?$/m,
+    // // eslint-disable と /* eslint-disable */ 両形式に対応
+    pattern: /(?:\/\/\s*eslint-disable(?:-next-line|-line)?(?:\s+[^\n]+)?$|\/\*\s*eslint-disable\b[^*]*\*\/)/m,
     testFileOnly: false,
   },
 
