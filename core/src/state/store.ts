@@ -10,16 +10,17 @@
 import { createRequire } from "node:module";
 import { ALL_DDL, SCHEMA_VERSION, CREATE_SCHEMA_META } from "./schema.js";
 import type { Signal, SessionState, TaskFailure } from "../types.js";
+import type DatabaseConstructor from "better-sqlite3";
 
 // ESM から CommonJS ネイティブアドオンを読み込む標準パターン
 const require = createRequire(import.meta.url);
-const Database = require("better-sqlite3") as typeof import("better-sqlite3").default;
+const Database = require("better-sqlite3") as typeof DatabaseConstructor;
 
 // ============================================================
 // 型定義
 // ============================================================
 
-/** better-sqlite3 の Statement 型を回避するための内部型 */
+/** better-sqlite3 の Database インスタンス型 */
 type BetterSqliteDB = InstanceType<typeof Database>;
 
 /** work_states レコードの行型 */

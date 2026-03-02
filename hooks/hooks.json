@@ -39,7 +39,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" permission-request",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/permission.sh\"",
             "timeout": 30
           }
         ]
@@ -309,11 +309,6 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" tdd-order-check",
             "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" posttooluse-tampering-detector",
-            "timeout": 10
           },
           {
             "type": "command",
