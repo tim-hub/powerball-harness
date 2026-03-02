@@ -82,7 +82,7 @@
 | 17.3.6 | `skills-v3/extensions/` に拡張パック移動（auth, crud, ui 等 11スキル） | cc:完了 |
 | 17.3.7 | `core/engine/lifecycle.ts` 作成（session系5スキル吸収） | cc:TODO |
 | 17.3.8 | `skills-v3/routing-rules.md` 作成（5エントリ） | cc:完了 |
-| 17.3.9 | CLAUDE.md にガイダンス統合（vibecoder-guide, workflow-guide, principles） | cc:TODO |
+| 17.3.9 | CLAUDE.md にガイダンス統合（vibecoder-guide, workflow-guide, principles） | cc:完了 |
 
 ### Phase 17.4: ミラー廃止 — rsync→シンボリックリンク [P1]
 
@@ -91,7 +91,7 @@
 | 17.4.1 | `codex/.codex/skills/` → シンボリックリンクに置換 | cc:完了 |
 | 17.4.2 | `opencode/skills/`, `.opencode/skills/` → シンボリックリンクに置換 | cc:完了 |
 | 17.4.3 | `check-consistency.sh` のミラーチェック → symlink チェックに更新 | cc:完了 |
-| 17.4.4 | rsync 参照をすべて削除・更新 | cc:TODO |
+| 17.4.4 | rsync 参照をすべて削除・更新 | cc:完了 |
 
 ### Phase 17.5: エージェント統合 11→3 [P2]
 
@@ -100,8 +100,8 @@
 | 17.5.1 | `agents-v3/worker.md` 作成（task-worker + codex-implementer + error-recovery 統合） | cc:完了 |
 | 17.5.2 | `agents-v3/reviewer.md` 作成（code-reviewer + plan-critic + plan-analyst 統合） | cc:完了 |
 | 17.5.3 | `agents-v3/scaffolder.md` 作成（project-analyzer + project-scaffolder + project-state-updater 統合） | cc:完了 |
-| 17.5.4 | team-composition.md を3エージェント構成に更新 | cc:TODO |
-| 17.5.5 | `.claude/agent-memory/` を3エージェントに再編 | cc:TODO |
+| 17.5.4 | team-composition.md を3エージェント構成に更新 | cc:完了 |
+| 17.5.5 | `.claude/agent-memory/` を3エージェントに再編 | cc:完了 |
 
 ### Phase 17.6: リポジトリ整理 [P2] [P]
 
@@ -117,7 +117,7 @@
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 17.7.1 | `core/guardrails/__tests__/integration.test.ts` E2Eテスト | cc:TODO |
+| 17.7.1 | `core/guardrails/__tests__/integration.test.ts` E2Eテスト | cc:完了 |
 | 17.7.2 | `core/state/__tests__/migration.test.ts` 移行テスト | cc:TODO |
 | 17.7.3 | `tests/validate-plugin-v3.sh` v3バリデータ | cc:TODO |
 | 17.7.4 | breezing-bench v2 vs v3 比較ベンチマーク | cc:TODO |
