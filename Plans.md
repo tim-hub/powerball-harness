@@ -74,7 +74,7 @@
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 17.3.1 | `skills-v3/plan/SKILL.md` 作成（planning + plans-management + sync-status 統合） | cc:TODO |
+| 17.3.1 | `skills-v3/plan/SKILL.md` 作成（planning + plans-management + sync-status 統合） | cc:完了 |
 | 17.3.2 | `skills-v3/execute/SKILL.md` 作成（work + impl + breezing + parallel + ci 統合） | cc:TODO |
 | 17.3.3 | `skills-v3/review/SKILL.md` 作成（harness-review + codex-review + verify + troubleshoot 統合） | cc:TODO |
 | 17.3.4 | `skills-v3/release/SKILL.md` 作成（release-har + x-release-harness + handoff 統合） | cc:TODO |
@@ -111,7 +111,7 @@
 | 17.6.2 | `docs/` を精選（残す4件、アーカイブ、削除） | cc:完了 |
 | 17.6.3 | `CHANGELOG_ja.md` を削除（英語版に一本化） | cc:完了 |
 | 17.6.4 | `benchmarks/evals-v2/`, `evals-v3/` を削除 | cc:完了 |
-| 17.6.5 | プラグイン外コード分離（app, frontend, remotion 等） | cc:TODO |
+| 17.6.5 | プラグイン外コード分離（mcp-server/, profiles/ を削除。workflows/, templates/ は残す） | cc:完了 |
 
 ### Phase 17.7: テスト・検証・カットオーバー [P1]
 

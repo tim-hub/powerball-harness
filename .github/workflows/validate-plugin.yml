@@ -47,3 +47,30 @@ jobs:
         run: |
           bash ./tests/test-codex-package.sh
 
+  test-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: core/package-lock.json
+
+      - name: Install core dependencies
+        working-directory: core
+        run: npm ci
+
+      - name: Typecheck core
+        working-directory: core
+        run: npm run typecheck
+
+      - name: Run vitest
+        working-directory: core
+        run: npm test
+
