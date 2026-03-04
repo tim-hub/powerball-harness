@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 200" fill="none">
+  <defs>
+    <filter id="shCl"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#94a3b8" flood-opacity="0.08"/></filter>
+  </defs>
+  <rect width="560" height="200" rx="12" fill="#ffffff"/>
+  <rect width="560" height="200" rx="12" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Plan -->
+  <g filter="url(#shCl)" transform="translate(56, 40)">
+    <rect x="0" y="0" width="120" height="72" rx="10" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1.2"/>
+    <text x="60" y="30" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="18" font-weight="700" fill="#F7931A">Plan</text>
+    <text x="60" y="50" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="9" fill="#94a3b8">Define tasks</text>
+    <text x="60" y="62" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="9" fill="#94a3b8">in Plans.md</text>
+  </g>
+
+  <!-- Arrow 1 -->
+  <g transform="translate(190, 72)">
+    <path d="M0 4 L36 4" stroke="#F7931A" stroke-width="1.5" opacity="0.4"/>
+    <polygon points="34,0 42,4 34,8" fill="#F7931A" opacity="0.5"/>
+  </g>
+
+  <!-- Work -->
+  <g filter="url(#shCl)" transform="translate(220, 40)">
+    <rect x="0" y="0" width="120" height="72" rx="10" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1.2"/>
+    <text x="60" y="30" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="18" font-weight="700" fill="#F7931A">Work</text>
+    <text x="60" y="50" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="9" fill="#94a3b8">Parallel agents</text>
+    <text x="60" y="62" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="9" fill="#94a3b8">implement + TDD</text>
+  </g>
+
+  <!-- Arrow 2 -->
+  <g transform="translate(354, 72)">
+    <path d="M0 4 L36 4" stroke="#F7931A" stroke-width="1.5" opacity="0.4"/>
+    <polygon points="34,0 42,4 34,8" fill="#F7931A" opacity="0.5"/>
+  </g>
+
+  <!-- Review -->
+  <g filter="url(#shCl)" transform="translate(384, 40)">
+    <rect x="0" y="0" width="120" height="72" rx="10" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1.2"/>
+    <text x="60" y="30" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="18" font-weight="700" fill="#F7931A">Review</text>
+    <text x="60" y="50" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="9" fill="#94a3b8">Quality gate</text>
+    <text x="60" y="62" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="9" fill="#94a3b8">auto-commit</text>
+  </g>
+
+  <!-- Return arrow (curved, below) -->
+  <path d="M444 120 Q444 160 280 164 Q116 160 116 120" fill="none" stroke="#F7931A" stroke-width="1" stroke-dasharray="4 3" opacity="0.25"/>
+  <polygon points="113,122 116,114 119,122" fill="#F7931A" opacity="0.3"/>
+
+  <!-- Ship label -->
+  <g transform="translate(240, 156)">
+    <rect x="0" y="0" width="80" height="24" rx="12" fill="#FFF7ED" stroke="#FDBA74" stroke-width="0.8"/>
+    <text x="40" y="16" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="10" font-weight="600" fill="#F7931A">Ship It</text>
+  </g>
+
+  <!-- Bottom -->
+  <text x="280" y="192" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="9" fill="#94a3b8">Continuous cycle. Every iteration improves quality.</text>
+</svg>

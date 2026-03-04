@@ -26,7 +26,7 @@
 Claude Code is powerful—but without structure, it can be unpredictable.
 
 <p align="center">
-  <img src="assets/readme-visuals-en/generated/hero-comparison.png" alt="Without vs With Harness" width="720">
+  <img src="assets/readme-visuals-en/generated/hero-comparison.svg" alt="Without vs With Harness" width="720">
 </p>
 
 <table>
@@ -130,7 +130,7 @@ graph LR
 ## The Core Loop
 
 <p align="center">
-  <img src="assets/readme-visuals-en/generated/core-loop.png" alt="Plan → Work → Review cycle" width="560">
+  <img src="assets/readme-visuals-en/generated/core-loop.svg" alt="Plan → Work → Review cycle" width="560">
 </p>
 
 ### 1. Plan
@@ -174,7 +174,7 @@ Each worker implements, self-reviews, and reports.
 ## Safety First
 
 <p align="center">
-  <img src="assets/readme-visuals-en/generated/safety-guardrails.png" alt="Safety Protection System" width="640">
+  <img src="assets/readme-visuals-en/generated/safety-guardrails.svg" alt="Safety Protection System" width="640">
 </p>
 
 Harness v3 protects your codebase with a **TypeScript guardrail engine** (`core/`) — 9 declarative rules (R01–R09), compiled and type-checked:

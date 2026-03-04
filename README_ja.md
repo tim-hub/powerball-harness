@@ -26,7 +26,7 @@
 Claude Code は強力だが、時に構造が必要になる。
 
 <p align="center">
-  <img src="assets/readme-visuals-en/generated/hero-comparison.png" alt="ハーネスなし vs ハーネスあり" width="720">
+  <img src="assets/readme-visuals-en/generated/hero-comparison.svg" alt="ハーネスなし vs ハーネスあり" width="720">
 </p>
 
 <table>
@@ -130,7 +130,7 @@ graph LR
 ## コアループ（詳細）
 
 <p align="center">
-  <img src="assets/readme-visuals-en/generated/core-loop.png" alt="Plan → Work → Review サイクル" width="560">
+  <img src="assets/readme-visuals-en/generated/core-loop.svg" alt="Plan → Work → Review サイクル" width="560">
 </p>
 
 ### 1. Plan（計画）
@@ -174,7 +174,7 @@ Harness が明確な受入条件付きの `Plans.md` を作成。
 ## セーフティファースト
 
 <p align="center">
-  <img src="assets/readme-visuals-en/generated/safety-guardrails.png" alt="安全保護システム" width="640">
+  <img src="assets/readme-visuals-en/generated/safety-guardrails.svg" alt="安全保護システム" width="640">
 </p>
 
 Harness v3 は **TypeScript ガードレールエンジン**（`core/`）でコードベースを保護 — 9つの宣言的ルール（R01–R09）、コンパイル済み＆型チェック済み:

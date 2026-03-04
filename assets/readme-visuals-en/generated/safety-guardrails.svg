@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 220" fill="none">
+  <defs>
+    <filter id="shSg"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#94a3b8" flood-opacity="0.08"/></filter>
+  </defs>
+  <rect width="640" height="220" rx="12" fill="#ffffff"/>
+  <rect width="640" height="220" rx="12" fill="none" stroke="#e2e8f0" stroke-width="1"/>
+
+  <!-- Shield icon -->
+  <g transform="translate(64, 36)">
+    <path d="M0 -24 L-28 -10 L-28 12 C-28 32 0 48 0 48 C0 48 28 32 28 12 L28 -10 Z" fill="#FFF7ED" stroke="#F7931A" stroke-width="1.5"/>
+    <path d="M-8 4 L-2 10 L10 -2" fill="none" stroke="#F7931A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <text x="64" y="100" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="12" font-weight="700" fill="#1e293b">Safety</text>
+  <text x="64" y="114" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="12" font-weight="700" fill="#1e293b">System</text>
+
+  <!-- Blocked commands -->
+  <g filter="url(#shSg)" transform="translate(148, 20)">
+    <rect x="0" y="0" width="220" height="180" rx="10" fill="#fafafa" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="110" y="24" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="10" font-weight="600" fill="#64748b" letter-spacing="1">BLOCKED</text>
+
+    <g transform="translate(16, 40)" font-family="'SF Mono', monospace" font-size="10">
+      <g transform="translate(0, 0)">
+        <rect x="0" y="-10" width="188" height="24" rx="4" fill="#fef2f2" stroke="#fecaca" stroke-width="0.5"/>
+        <text x="12" y="3" fill="#ef4444">rm -rf /</text>
+        <text x="172" y="3" text-anchor="end" font-family="sans-serif" font-size="8" fill="#f87171">deny</text>
+      </g>
+      <g transform="translate(0, 32)">
+        <rect x="0" y="-10" width="188" height="24" rx="4" fill="#fef2f2" stroke="#fecaca" stroke-width="0.5"/>
+        <text x="12" y="3" fill="#ef4444">git push --force</text>
+        <text x="172" y="3" text-anchor="end" font-family="sans-serif" font-size="8" fill="#f87171">deny</text>
+      </g>
+      <g transform="translate(0, 64)">
+        <rect x="0" y="-10" width="188" height="24" rx="4" fill="#fef2f2" stroke="#fecaca" stroke-width="0.5"/>
+        <text x="12" y="3" fill="#ef4444">it.skip / test.skip</text>
+        <text x="172" y="3" text-anchor="end" font-family="sans-serif" font-size="8" fill="#f87171">deny</text>
+      </g>
+      <g transform="translate(0, 96)">
+        <rect x="0" y="-10" width="188" height="24" rx="4" fill="#fef2f2" stroke="#fecaca" stroke-width="0.5"/>
+        <text x="12" y="3" fill="#ef4444">hardcoded secrets</text>
+        <text x="172" y="3" text-anchor="end" font-family="sans-serif" font-size="8" fill="#f87171">deny</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Allowed -->
+  <g filter="url(#shSg)" transform="translate(396, 20)">
+    <rect x="0" y="0" width="220" height="180" rx="10" fill="#fafafa" stroke="#e2e8f0" stroke-width="1"/>
+    <text x="110" y="24" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="10" font-weight="600" fill="#64748b" letter-spacing="1">ALLOWED</text>
+
+    <g transform="translate(16, 40)" font-family="'SF Mono', monospace" font-size="10">
+      <g transform="translate(0, 0)">
+        <rect x="0" y="-10" width="188" height="24" rx="4" fill="#FFF7ED" stroke="#FDBA74" stroke-width="0.5"/>
+        <text x="12" y="3" fill="#1e293b">git commit</text>
+        <text x="172" y="3" text-anchor="end" font-family="sans-serif" font-size="8" fill="#F7931A">allow</text>
+      </g>
+      <g transform="translate(0, 32)">
+        <rect x="0" y="-10" width="188" height="24" rx="4" fill="#FFF7ED" stroke="#FDBA74" stroke-width="0.5"/>
+        <text x="12" y="3" fill="#1e293b">npm test</text>
+        <text x="172" y="3" text-anchor="end" font-family="sans-serif" font-size="8" fill="#F7931A">allow</text>
+      </g>
+      <g transform="translate(0, 64)">
+        <rect x="0" y="-10" width="188" height="24" rx="4" fill="#FFF7ED" stroke="#FDBA74" stroke-width="0.5"/>
+        <text x="12" y="3" fill="#1e293b">Read, Write, Edit</text>
+        <text x="172" y="3" text-anchor="end" font-family="sans-serif" font-size="8" fill="#F7931A">allow</text>
+      </g>
+      <g transform="translate(0, 96)">
+        <rect x="0" y="-10" width="188" height="24" rx="4" fill="#FFF7ED" stroke="#FDBA74" stroke-width="0.5"/>
+        <text x="12" y="3" fill="#1e293b">git status, git diff</text>
+        <text x="172" y="3" text-anchor="end" font-family="sans-serif" font-size="8" fill="#F7931A">allow</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Bottom -->
+  <text x="320" y="214" text-anchor="middle" font-family="-apple-system, 'Hiragino Sans', sans-serif" font-size="9" fill="#94a3b8">9 guardrail rules + 3 agent hooks. Pre-commit, pre-push, and post-write protection.</text>
+</svg>
