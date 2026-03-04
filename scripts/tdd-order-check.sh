@@ -1,10 +1,11 @@
 #!/bin/bash
 # tdd-order-check.sh
-# TDD 推奨タスクでテスト先行を推奨する警告を出す（ブロックはしない）
+# TDD はデフォルトで有効。テスト先行を推奨する警告を出す（ブロックはしない）
 #
 # 用途: PostToolUse で Write|Edit 後に実行
 # 動作:
-#   - Plans.md に [feature:tdd] マーカーがあるタスクが cc:WIP の場合
+#   - Plans.md に cc:WIP タスクがある場合（TDD はデフォルト有効）
+#   - ただし [skip:tdd] マーカーがある WIP タスクはスキップ
 #   - 本体ファイル（*.ts, *.tsx, *.js, *.jsx）が編集された
 #   - 対応するテストファイル（*.test.*, *.spec.*）がまだ編集されていない
 #   → 警告メッセージを出力（ブロックはしない）
@@ -45,10 +46,19 @@ is_source_file() {
     [[ "$file" =~ \.(ts|tsx|js|jsx)$ ]] && ! is_test_file "$file"
 }
 
-# TDD 推奨タスクが WIP かチェック
-has_tdd_wip_task() {
+# アクティブな WIP タスクがあるかチェック
+has_active_wip_task() {
     if [[ -f "Plans.md" ]]; then
-        grep -q '\[feature:tdd\].*cc:WIP\|cc:WIP.*\[feature:tdd\]' Plans.md 2>/dev/null
+        grep -q 'cc:WIP' Plans.md 2>/dev/null
+        return $?
+    fi
+    return 1
+}
+
+# WIP タスクに [skip:tdd] マーカーがあるかチェック
+is_tdd_skipped() {
+    if [[ -f "Plans.md" ]]; then
+        grep -q '\[skip:tdd\].*cc:WIP\|cc:WIP.*\[skip:tdd\]' Plans.md 2>/dev/null
         return $?
     fi
     return 1
@@ -77,8 +87,13 @@ main() {
         exit 0
     fi
 
-    # TDD 推奨タスクが WIP でなければスキップ
-    if ! has_tdd_wip_task; then
+    # WIP タスクがなければスキップ
+    if ! has_active_wip_task; then
+        exit 0
+    fi
+
+    # [skip:tdd] マーカーがあればスキップ
+    if is_tdd_skipped; then
         exit 0
     fi
 
@@ -92,7 +107,7 @@ main() {
 {
   "decision": "approve",
   "reason": "TDD reminder",
-  "systemMessage": "💡 TDD 推奨タスクです。テストを先に書くことを推奨します。\n\n現在、本体ファイルを編集しましたが、対応するテストファイルがまだ編集されていません。\n\n推奨: テストファイル（*.test.ts, *.spec.ts）を先に作成してから、本体を実装してください。\n\nこれは警告であり、ブロックはしません。"
+  "systemMessage": "💡 TDD はデフォルトで有効です。テストを先に書くことを推奨します。\n\n現在、本体ファイルを編集しましたが、対応するテストファイルがまだ編集されていません。\n\n推奨: テストファイル（*.test.ts, *.spec.ts）を先に作成してから、本体を実装してください。\n\nスキップする場合は Plans.md の該当タスクに [skip:tdd] マーカーを追加してください。\n\nこれは警告であり、ブロックはしません。"
 }
 EOF
 }

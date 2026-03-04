@@ -60,6 +60,7 @@ Harness v3 の統合実行スキル。
 | `--no-commit` | 自動コミット抑制 | false |
 | `--resume <id\|latest>` | 前回セッション再開 | - |
 | `--breezing` | Agent Teams でチーム実行 | false |
+| `--no-tdd` | TDD フェーズスキップ | false |
 | `--no-simplify` | Auto-Refinement スキップ | false |
 
 ## スコープダイアログ（引数なし時）
@@ -82,10 +83,13 @@ Harness v3 の統合実行スキル。
 
 1. Plans.md を読み込み、対象タスクを特定
 2. タスクを `cc:WIP` に更新
-3. コードを実装（Read/Write/Edit/Bash）
-4. `/simplify` で Auto-Refinement（`--no-simplify` で省略可）
-5. `git commit` で自動コミット（`--no-commit` で省略可）
-6. タスクを `cc:完了` に更新
+3. **TDD フェーズ**（`[skip:tdd]` なし & テストFW存在時）:
+   a. テストファイルを先に作成（Red）
+   b. 失敗を確認
+4. コードを実装（Green）（Read/Write/Edit/Bash）
+5. `/simplify` で Auto-Refinement（`--no-simplify` で省略可）
+6. `git commit` で自動コミット（`--no-commit` で省略可）
+7. タスクを `cc:完了` に更新
 
 ### Parallel モード（2〜3 件時の自動選択 / `--parallel N` で強制）
 
