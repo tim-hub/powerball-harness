@@ -12,36 +12,38 @@ Change history for claude-code-harness.
 
 ### 🎯 What's Changed for You
 
-**Claude Code 2.1.68 full compatibility: Opus 4.6 medium effort with ultrathink auto-injection, agent hooks for LLM-powered code quality guards, and worktree lifecycle automation.**
+**Claude Code v2.1.68 introduced effort levels, agent hooks, and more. Harness v3.3.0 puts all of them to work — so you get smarter task execution, LLM-powered code guards, and fully automated worktree lifecycle out of the box.**
 
-| Before | After |
-|--------|-------|
-| All tasks ran at default effort level | Multi-element scoring auto-injects `ultrathink` for complex tasks (≥3 score) |
-| Code quality guards were regex/rule-based only | Agent hooks (type: "agent") use LLM to detect secrets, TODO stubs, security issues |
-| Worktree setup/cleanup was manual | WorktreeCreate/Remove hooks auto-initialize state and clean up temp files |
-| Hook types: command, prompt (Stop only), http | 4 hook types: command, prompt (all events), http, agent |
-| No session environment persistence | CLAUDE_ENV_FILE sets HARNESS_VERSION, EFFORT_DEFAULT, BREEZING_SESSION_ID |
+> Claude Code got new superpowers. Harness makes sure you actually use them.
+
+| What Claude Code added | How Harness uses it |
+|------------------------|---------------------|
+| **Opus 4.6 medium effort default** — Claude now thinks less deeply by default | Harness auto-detects complex tasks (security, architecture, multi-file changes) and injects `ultrathink` to restore full thinking depth exactly when it matters |
+| **Agent hooks (`type: "agent"`)** — hooks can now use LLM intelligence | 3 smart guards deployed: catches hardcoded secrets before commit, blocks session exit with unfinished tasks, runs lightweight code review after every write |
+| **WorktreeCreate/Remove hooks** — lifecycle events for git worktrees | Breezing parallel workers now auto-initialize their workspace and clean up temp files when done. No more orphaned `/tmp` clutter |
+| **`CLAUDE_ENV_FILE`** — session environment persistence | Harness version, effort defaults, and Breezing session IDs persist across hooks. Workers know who they are |
+| **Prompt hooks expanded to all events** — no longer Stop-only | Every hook event can now use LLM judgment (was incorrectly documented as Stop-only) |
 
 ### Added
-- **Effort level control (v2.1.68)**: Multi-element scoring (file count + directory + keywords + failure history) for ultrathink auto-injection
-- **Agent hooks**: 3 LLM-powered hooks — PreToolUse quality guard, Stop WIP guard, PostToolUse async review (model: haiku)
-- **WorktreeCreate/Remove hooks**: Auto-setup `.claude/state/worktree-info.json` and cleanup temp files on worktree lifecycle
-- **session-env-setup.sh**: Persists HARNESS_VERSION, HARNESS_EFFORT_DEFAULT, HARNESS_BREEZING_SESSION_ID via CLAUDE_ENV_FILE
-- **PreCompact agent hook**: Warns when WIP tasks remain in Plans.md before context compaction
-- **PostToolUse HTTP hook**: Metrics collection template (localhost:9090) for external monitoring
-- **D27**: Effort level multi-element scoring decision recorded in decisions.md
+- **Effort level auto-tuning**: Multi-element scoring system (file count + directory criticality + task keywords + past failure history). Score ≥ 3 triggers `ultrathink` — meaning complex tasks get deep thinking, simple tasks stay fast
+- **Agent hooks (3 deployments)**:
+  - *PreToolUse quality guard*: LLM reviews every Write/Edit for secrets, TODO stubs, and security issues before they land
+  - *Stop WIP guard*: Reads Plans.md and warns you if you're about to close a session with unfinished `cc:WIP` tasks
+  - *PostToolUse code review*: Lightweight haiku-powered review runs after every file write
+- **Worktree lifecycle automation**: `worktree-create.sh` sets up `.claude/state/worktree-info.json` with worker identity; `worktree-remove.sh` cleans Codex temp files and logs
+- **Session environment persistence**: `session-env-setup.sh` writes `HARNESS_VERSION`, `HARNESS_EFFORT_DEFAULT=medium`, and `HARNESS_BREEZING_SESSION_ID` to `CLAUDE_ENV_FILE`
+- **PreCompact agent hook**: Catches WIP tasks before context compaction — so important context isn't lost mid-task
+- **HTTP hook template**: Ready-to-use PostToolUse metrics hook for external dashboards (localhost:9090)
 
 ### Changed
-- **hooks-editing.md**: Updated from 3 hook types to 4 (added agent type); prompt type corrected to all-events support
-- **CLAUDE.md Feature Table**: Updated from 2.1.63+ to 2.1.68+ with 3 new feature rows
-- **docs/CLAUDE-feature-table.md**: 3 new features added, 2 "future" items updated to "implemented"
-- **worker.md / reviewer.md / team-composition.md**: Added effort control sections
-- **harness-work SKILL.md**: Added effort level scoring and ultrathink injection logic
-- **opencode PM templates**: Added ultrathink keywords for high-effort task requests
+- **4-type hook system**: Harness now supports all 4 hook types — `command`, `prompt` (all events), `http`, and `agent`
+- **Feature Table**: Updated from v2.1.63+ to v2.1.68+ with 30 tracked features
+- **Worker/Reviewer/Team agents**: Now understand effort levels and when to request deeper thinking
+- **PM templates**: All handoff templates include `ultrathink` with clear intent comments
 
 ### Fixed
-- **hooks-editing.md**: Removed incorrect restriction that prompt hooks were Stop/SubagentStop only (now all events)
-- **Feature Table**: Removed dead reference to `guardrails-inheritance.md`
+- **Prompt hook documentation**: Removed incorrect "Stop/SubagentStop only" restriction (prompt hooks work on all events since v2.1.63)
+- **Dead reference cleanup**: Removed link to deleted `guardrails-inheritance.md` in Feature Table
 
 ---
 

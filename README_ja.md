@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-3.0.0-blue.svg" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-3.3.0-blue.svg" alt="Version"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
   <img src="https://img.shields.io/badge/Skills-5_Verbs-orange.svg" alt="Skills">
@@ -444,9 +444,10 @@ Harness は最新の Claude Code 機能をすぐに活用できます。
 | **Worktree 分離** | breezing | 同一ファイルへの並列書き込みを安全化 |
 | **HTTP hooks** | hooks | Slack・ダッシュボード・メトリクスへの JSON POST |
 | **Effort levels + ultrathink** | harness-work | 複雑なタスクに ultrathink を自動注入 |
+| **Agent hooks** | hooks | LLM によるコード品質ガード（secrets・TODO スタブ・セキュリティ） |
 | **WorktreeCreate/Remove hook** | breezing | Worktree ライフサイクルの自動セットアップ・クリーンアップ |
 
-全機能一覧（29件）: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
+全機能一覧（30件）: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 
 ---
 

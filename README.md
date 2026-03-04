@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-3.0.0-blue.svg" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-3.3.0-blue.svg" alt="Version"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
   <img src="https://img.shields.io/badge/Skills-5_Verbs-orange.svg" alt="Skills">
@@ -440,9 +440,10 @@ Harness leverages the latest Claude Code features out of the box.
 | **Worktree isolation** | breezing | Safe parallel writes to the same file |
 | **HTTP hooks** | hooks | JSON POST to Slack, dashboards, metrics |
 | **Effort levels + ultrathink** | harness-work | Auto-injects ultrathink for complex tasks |
+| **Agent hooks** | hooks | LLM-powered code quality guards (secrets, TODO stubs, security) |
 | **WorktreeCreate/Remove hook** | breezing | Worktree lifecycle auto-setup and cleanup |
 
-Full list (29 features): [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
+Full list (30 features): [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 
 ---
 
