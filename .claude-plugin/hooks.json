@@ -145,6 +145,17 @@
         ]
       }
     ],
+    "InstructionsLoaded": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/instructions-loaded",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "SubagentStop": [
       {
         "hooks": [
@@ -273,17 +284,6 @@
         ]
       },
       {
-        "matcher": "Write|Edit|Bash|Task",
-        "hooks": [
-          {
-            "type": "http",
-            "url": "http://localhost:9090/metrics/hook",
-            "timeout": 5,
-            "headers": { "X-Source": "claude-code-harness", "X-Event": "PostToolUse" }
-          }
-        ]
-      },
-      {
         "matcher": "*",
         "hooks": [
           {
@@ -336,6 +336,17 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" todo-sync",
             "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|Bash|Task",
+        "hooks": [
+          {
+            "type": "http",
+            "url": "http://localhost:9090/metrics/hook",
+            "timeout": 5,
+            "headers": { "X-Source": "claude-code-harness", "X-Event": "PostToolUse" }
           }
         ]
       },

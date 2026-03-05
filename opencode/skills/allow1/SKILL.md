@@ -30,11 +30,11 @@ Quiver AI の API を使って、テキストプロンプトからの SVG 生成
 
 | 機能 | サブコマンド | リファレンス |
 |------|-------------|-------------|
-| **Text-to-SVG 生成** | `generate` | [references/text-to-svg.md](references/text-to-svg.md) |
-| **Image-to-SVG 変換** | `vectorize` | [references/image-to-svg.md](references/image-to-svg.md) |
-| **バッチ生成** | `batch` | [references/batch-workflow.md](references/batch-workflow.md) |
-| **API リファレンス** | — | [references/api-reference.md](references/api-reference.md) |
-| **プロンプトガイド** | — | [references/prompt-guide.md](references/prompt-guide.md) |
+| **Text-to-SVG 生成** | `generate` | [references/text-to-svg.md](${CLAUDE_SKILL_DIR}/references/text-to-svg.md) |
+| **Image-to-SVG 変換** | `vectorize` | [references/image-to-svg.md](${CLAUDE_SKILL_DIR}/references/image-to-svg.md) |
+| **バッチ生成** | `batch` | [references/batch-workflow.md](${CLAUDE_SKILL_DIR}/references/batch-workflow.md) |
+| **API リファレンス** | — | [references/api-reference.md](${CLAUDE_SKILL_DIR}/references/api-reference.md) |
+| **プロンプトガイド** | — | [references/prompt-guide.md](${CLAUDE_SKILL_DIR}/references/prompt-guide.md) |
 
 ---
 

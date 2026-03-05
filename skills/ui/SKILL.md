@@ -13,8 +13,8 @@ UIコンポーネントとフォームの生成を担当するスキル群です
 
 ## 制約の優先順位と適用条件
 
-1. 基本は `references/ui-skills.md` の制約を最優先で適用する。
-2. `references/frontend-design.md` は「尖った/独自/表現強め/ブランド強化」などが**明示**された場合のみ適用する。
+1. 基本は `${CLAUDE_SKILL_DIR}/references/ui-skills.md` の制約を最優先で適用する。
+2. `${CLAUDE_SKILL_DIR}/references/frontend-design.md` は「尖った/独自/表現強め/ブランド強化」などが**明示**された場合のみ適用する。
 3. UI Skills の MUST/NEVER は原則維持。ただし**ユーザーが明示的に要求した場合のみ**以下の例外を許可する:
    - グラデーション、発光、強い装飾
    - アニメーション（追加・拡張）
@@ -24,9 +24,9 @@ UIコンポーネントとフォームの生成を担当するスキル群です
 
 | 機能 | 詳細 |
 |------|------|
-| **制約セット** | See [references/ui-skills.md](references/ui-skills.md) / [references/frontend-design.md](references/frontend-design.md) |
-| **コンポーネント生成** | See [references/component-generation.md](references/component-generation.md) |
-| **フィードバックフォーム** | See [references/feedback-forms.md](references/feedback-forms.md) |
+| **制約セット** | See [references/ui-skills.md](${CLAUDE_SKILL_DIR}/references/ui-skills.md) / [references/frontend-design.md](${CLAUDE_SKILL_DIR}/references/frontend-design.md) |
+| **コンポーネント生成** | See [references/component-generation.md](${CLAUDE_SKILL_DIR}/references/component-generation.md) |
+| **フィードバックフォーム** | See [references/feedback-forms.md](${CLAUDE_SKILL_DIR}/references/feedback-forms.md) |
 
 ## 実行手順
 

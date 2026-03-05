@@ -31,8 +31,8 @@ argument-hint: "[url] [--headless]"
 
 | 機能 | 詳細 |
 |------|------|
-| **ブラウザ自動化** | See [references/browser-automation.md](references/browser-automation.md) |
-| **AI スナップショットワークフロー** | See [references/ai-snapshot-workflow.md](references/ai-snapshot-workflow.md) |
+| **ブラウザ自動化** | See [references/browser-automation.md](${CLAUDE_SKILL_DIR}/references/browser-automation.md) |
+| **AI スナップショットワークフロー** | See [references/ai-snapshot-workflow.md](${CLAUDE_SKILL_DIR}/references/ai-snapshot-workflow.md) |
 
 ## 実行手順
 

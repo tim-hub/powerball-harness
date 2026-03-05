@@ -26,8 +26,8 @@ argument-hint: "[project-path|description]"
 
 | 機能 | 詳細 |
 |------|------|
-| **スライド画像生成** | See [references/slide-generator.md](references/slide-generator.md) |
-| **品質判定** | See [references/slide-quality-check.md](references/slide-quality-check.md) |
+| **スライド画像生成** | See [references/slide-generator.md](${CLAUDE_SKILL_DIR}/references/slide-generator.md) |
+| **品質判定** | See [references/slide-quality-check.md](${CLAUDE_SKILL_DIR}/references/slide-quality-check.md) |
 
 ---
 

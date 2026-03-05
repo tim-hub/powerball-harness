@@ -401,7 +401,7 @@ AI による編集操作を自動追跡：
 
 ---
 
-## Claude Code 2.1.68+ 対応機能
+## Claude Code 2.1.69+ 対応機能
 
 Harness は最新の Claude Code 機能をすぐに活用できます。
 
@@ -413,9 +413,15 @@ Harness は最新の Claude Code 機能をすぐに活用できます。
 | **HTTP hooks** | hooks | Slack・ダッシュボード・メトリクスへの JSON POST |
 | **Effort levels + ultrathink** | harness-work | 複雑なタスクに ultrathink を自動注入 |
 | **Agent hooks** | hooks | LLM によるコード品質ガード（secrets・TODO スタブ・セキュリティ） |
+| **`${CLAUDE_SKILL_DIR}` 変数** | 全スキル | スキル内参照の実行環境依存を排除 |
+| **InstructionsLoaded hook** | hooks | セッション前の instructions 読み込み追跡 |
+| **`agent_id` / `agent_type` フィールド** | hooks, breezing | teammate 識別とロールガードを安定化 |
+| **`{"continue": false}` teammate 応答** | breezing | 担当タスク完了時の自動停止 |
+| **`/reload-plugins`** | 全スキル | スキル/フック編集を即時反映 |
+| **`includeGitInstructions: false`** | work, breezing | git 指示が不要なタスクでトークン削減 |
 | **WorktreeCreate/Remove hook** | breezing | Worktree ライフサイクルの自動セットアップ・クリーンアップ |
 
-全機能一覧（30件）: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
+全機能一覧: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 
 ---
 

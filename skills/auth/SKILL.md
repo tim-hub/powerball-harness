@@ -15,8 +15,8 @@ user-invocable: false
 
 | 機能 | 詳細 |
 |------|------|
-| **認証機能** | See [references/authentication.md](references/authentication.md) |
-| **決済機能** | See [references/payments.md](references/payments.md) |
+| **認証機能** | See [references/authentication.md](${CLAUDE_SKILL_DIR}/references/authentication.md) |
+| **決済機能** | See [references/payments.md](${CLAUDE_SKILL_DIR}/references/payments.md) |
 
 ## 実行手順
 

@@ -1,6 +1,6 @@
-# Claude Code 2.1.68+ 新機能活用ガイド（完全版）
+# Claude Code 2.1.69+ 新機能活用ガイド（完全版）
 
-> **概要**: Harness が活用する Claude Code 2.1.68+ の全機能一覧。
+> **概要**: Harness が活用する Claude Code 2.1.69+ の全機能一覧。
 > CLAUDE.md の Feature Table の完全版（詳細説明付き）。
 
 ## 機能一覧
@@ -41,6 +41,14 @@
 | **Effort levels + ultrathink (v2.1.68)** | harness-work | 多要素スコアリングで複雑タスクに ultrathink 自動注入 |
 | **Agent hooks (v2.1.68)** | hooks | type: "agent" による LLM エージェントコード品質ガード |
 | **Opus 4/4.1 削除（v2.1.68）** | — | first-party API から削除。Opus 4.6 へ自動移行 |
+| **`${CLAUDE_SKILL_DIR}` 変数 (v2.1.69)** | 全スキル | スキル内の参照パスを実行環境非依存で解決 |
+| **InstructionsLoaded hook (v2.1.69)** | hooks | セッション前の instructions 読み込みイベントを追跡 |
+| **`agent_id` / `agent_type` 追加 (v2.1.69)** | hooks, breezing | teammate の識別・ロール判定を安定化 |
+| **`{"continue": false}` teammate 応答 (v2.1.69)** | breezing | 全タスク完了時の自動停止を実現 |
+| **`/reload-plugins` (v2.1.69)** | 全スキル | スキル・フック編集後の即時反映 |
+| **`includeGitInstructions: false` (v2.1.69)** | work, breezing | git 指示が不要な場面のトークン削減 |
+| **`git-subdir` plugin source (v2.1.69)** | setup, release | サブディレクトリ管理された plugin source に対応 |
+| **Auto Mode (Research Preview, 2026-03-12〜)** | breezing, work | `bypassPermissions` の安全な代替。権限判断を Claude が自動実行。プロンプトインジェクション対策付き。トークン・レイテンシ微増 |
 
 ## 機能詳細
 
@@ -153,6 +161,8 @@ init トークン消費を削減し、セキュリティポリシーをセッシ
 最大 1M トークンのコンテキスト窓を持つ Sonnet 4.6 モデル。
 大規模コードベースの分析、長大なドキュメント処理に対応。全スキルで利用可能。
 
+> 補足: 2.1.69 系では旧 Sonnet 4.5 参照は Sonnet 4.6 へ自動マイグレーションされる前提で運用する。
+
 ### メモリリーク修正 (v2.1.50〜v2.1.63)
 
 CC 2.1.50 で LSP 診断データ、大型ツール出力、ファイル履歴、シェル実行に関するメモリリークが修正された。
@@ -243,6 +253,41 @@ CC 2.1.68 で Opus 4.6 が **medium effort** をデフォルトに変更。`ultr
 
 CC 2.1.68 で Opus 4 と Opus 4.1 が first-party API から削除された。Harness が対象エージェントで `model: opus` 相当を指定している場合、Opus 4.6 へ自動移行される。
 Worker/Reviewer エージェントは `model: sonnet` のため影響なし。Lead（Opus 使用時）のみ medium effort がデフォルトになる変更を受ける。
+
+### `${CLAUDE_SKILL_DIR}` 変数 (v2.1.69)
+
+CC 2.1.69 でスキル実行時の基準パス変数 `${CLAUDE_SKILL_DIR}` が導入された。
+Harness では `SKILL.md` から `references/*.md` を参照するリンクを `${CLAUDE_SKILL_DIR}/references/...` へ統一し、ミラー構成（codex/opencode）でも同じ参照を維持する。
+
+### InstructionsLoaded hook (v2.1.69)
+
+CC 2.1.69 で `InstructionsLoaded` イベントが追加された。Harness では
+`scripts/hook-handlers/instructions-loaded.sh` を新設し、instructions 読み込み完了時の軽量トラッキングと事前検証に利用する。
+
+### `agent_id` / `agent_type` 追加 (v2.1.69)
+
+Teammate 系イベントに `agent_id` / `agent_type` が追加された。
+Harness の guardrail は `session_id` 前提から `agent_id` 優先（fallback: `session_id`）へ拡張し、role ガードを安定化した。
+
+### `{"continue": false}` teammate 応答 (v2.1.69)
+
+`TeammateIdle` / `TaskCompleted` で `{"continue": false, "stopReason": "..."}` を返せるようになった。
+Harness では stop リクエスト受信時と全タスク完了時に同レスポンスを返し、breezing の停止判定を明示化した。
+
+### `/reload-plugins` (v2.1.69)
+
+スキル・フック編集後にセッション再起動なしで反映するため、開発フローに `/reload-plugins` を追加。
+編集 → `/reload-plugins` → 再実行、を標準手順とする。
+
+### `includeGitInstructions: false` (v2.1.69)
+
+git 指示を常時埋め込む必要がないタスクでは `includeGitInstructions: false` を適用し、トークン消費を抑制できる。
+Harness では breezing/work の軽量タスク（ドキュメント更新など）での活用を推奨する。
+
+### `git-subdir` plugin source (v2.1.69)
+
+plugin source を monorepo のサブディレクトリで管理する `git-subdir` 方式がサポートされた。
+Harness では現状 `.claude-plugin/plugin.json` に追加フィールドを強制せず、リリース時に `plugin source` を明示して運用する（互換性優先）。
 
 ## 関連ドキュメント
 

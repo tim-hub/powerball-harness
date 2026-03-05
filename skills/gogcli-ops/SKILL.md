@@ -71,5 +71,5 @@ Standardize gogcli usage: verify auth, resolve IDs from URLs, default to read-on
 - If access fails, request the user to share the file with the selected account or provide the correct account.
 
 ## Resources
-- See `references/gogcli-cheatsheet.md` for a compact command list.
+- See `${CLAUDE_SKILL_DIR}/references/gogcli-cheatsheet.md` for a compact command list.
 - Use `scripts/gog_parse_url.py` to normalize URLs into IDs before running commands.

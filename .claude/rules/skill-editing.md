@@ -21,6 +21,10 @@ skills/
         └── ...
 ```
 
+> **CC v2.1.69+ 推奨**: `SKILL.md` から参照ファイルへリンクする場合は、
+> `references/...` の相対パスではなく `${CLAUDE_SKILL_DIR}/references/...` を使用する。
+> これにより、スキル実行場所に依存せず安定して参照できる。
+
 ### 2. YAML Frontmatter Format (Required)
 
 **All SKILL.md files must use this frontmatter**:
@@ -103,8 +107,8 @@ Overview description of the skill.
 
 | Feature | Reference |
 |---------|-----------|
-| **Feature 1** | See [references/feature1.md](references/feature1.md) |
-| **Feature 2** | See [references/feature2.md](references/feature2.md) |
+| **Feature 1** | See [feature1.md](${CLAUDE_SKILL_DIR}/references/feature1.md) |
+| **Feature 2** | See [feature2.md](${CLAUDE_SKILL_DIR}/references/feature2.md) |
 
 ## Execution Flow
 
@@ -159,7 +163,7 @@ When creating or editing skill files:
 - [ ] `name` matches directory name
 - [ ] `description` includes trigger phrases and exclusions
 - [ ] SKILL.md は推奨 500 行以下 (use references for large content; 2% budget scaling applies)
-- [ ] References in `references/` subdirectory
+- [ ] References are under `references/` and linked via `${CLAUDE_SKILL_DIR}/references/...`
 - [ ] Related skills documented
 - [ ] Add entry to CHANGELOG.md (for new skills)
 - [ ] Bump VERSION (automatic or manual)

@@ -71,10 +71,13 @@ CODEX_MODE="false"
 
 # ===== Breezing Role Guard =====
 # Agent Teams Teammate のロールベースアクセス制御
-# session_id でセッションを識別し、ロールに応じて Write/Edit を制限
+# session_id / agent_id でセッションを識別し、ロールに応じて Write/Edit を制限
 BREEZING_ROLE=""
 BREEZING_OWNS=""
 SESSION_ID=""
+AGENT_ID=""
+AGENT_TYPE=""
+BREEZING_ROLE_KEY=""
 
 # ===== Breezing-Codex Mode Detection =====
 # breezing-codex モード (impl_mode: "codex") 時は直接の Write/Edit をブロック
@@ -204,21 +207,33 @@ except:
   [ "$is_codex" = "true" ] && CODEX_MODE="true"
 }
 
-# Breezing ロール検出関数（CWD + SESSION_ID 取得後に呼び出す）
-# .claude/state/breezing-session-roles.json から session_id → role を検索
+# Breezing ロール検出関数（CWD + SESSION_ID/AGENT_ID 取得後に呼び出す）
+# .claude/state/breezing-session-roles.json から role を検索
 check_breezing_role() {
   local cwd_path="$1"
   local roles_file="${cwd_path}/.claude/state/breezing-session-roles.json"
 
-  [ -z "$SESSION_ID" ] && return
+  [ -z "$SESSION_ID" ] && [ -z "$AGENT_ID" ] && return
   [ ! -f "$roles_file" ] && return
 
   if ! command -v jq >/dev/null 2>&1; then
     return
   fi
 
-  BREEZING_ROLE=$(jq -r --arg sid "$SESSION_ID" '.[$sid].role // empty' "$roles_file" 2>/dev/null)
-  BREEZING_OWNS=$(jq -r --arg sid "$SESSION_ID" '.[$sid].owns // empty' "$roles_file" 2>/dev/null)
+  local lookup_key=""
+  local role=""
+  local owns=""
+
+  for lookup_key in "$AGENT_ID" "$SESSION_ID"; do
+    [ -z "$lookup_key" ] && continue
+    role="$(jq -r --arg sid "$lookup_key" '.[$sid].role // empty' "$roles_file" 2>/dev/null)"
+    [ -z "$role" ] && continue
+    owns="$(jq -r --arg sid "$lookup_key" '.[$sid].owns // empty' "$roles_file" 2>/dev/null)"
+    BREEZING_ROLE="$role"
+    BREEZING_OWNS="$owns"
+    BREEZING_ROLE_KEY="$lookup_key"
+    return
+  done
 }
 
 # Breezing-Codex モード検出関数（CWD 取得後に呼び出す）
@@ -255,7 +270,7 @@ except:
 }
 
 # Breezing ロール登録 Write の検出と処理
-# Teammate の最初の Write (breezing-role-*.json) で session_id → role を登録
+# Teammate の最初の Write (breezing-role-*.json) で session_id / agent_id → role を登録
 try_register_breezing_role() {
   local file_path="$1"
   local cwd_path="$2"
@@ -274,7 +289,7 @@ try_register_breezing_role() {
     *) return 1 ;;
   esac
 
-  [ -z "$SESSION_ID" ] && return 1
+  [ -z "$SESSION_ID" ] && [ -z "$AGENT_ID" ] && return 1
 
   if ! command -v jq >/dev/null 2>&1; then
     return 1
@@ -303,8 +318,16 @@ try_register_breezing_role() {
     echo '{}' > "$roles_file"
   fi
 
-  jq --arg sid "$SESSION_ID" --arg role "$role" --argjson owns "$owns" \
-    '.[$sid] = {"role": $role, "owns": $owns}' \
+  jq \
+    --arg sid "$SESSION_ID" \
+    --arg aid "$AGENT_ID" \
+    --arg atype "$AGENT_TYPE" \
+    --arg role "$role" \
+    --argjson owns "$owns" \
+    '
+      (if $sid != "" then .[$sid] = {"role": $role, "owns": $owns, "agent_type": $atype} else . end)
+      | (if $aid != "" then .[$aid] = {"role": $role, "owns": $owns, "agent_type": $atype} else . end)
+    ' \
     "$roles_file" > "${roles_file}.tmp" && mv "${roles_file}.tmp" "$roles_file"
 
   return 0
@@ -367,10 +390,12 @@ if command -v jq >/dev/null 2>&1; then
     (.tool_input.file_path // ""),
     (.tool_input.command // ""),
     (.cwd // ""),
-    (.session_id // "")
+    (.session_id // ""),
+    (.agent_id // ""),
+    (.agent_type // "")
   ] | @tsv' 2>/dev/null)"
   if [ -n "$_jq_parsed" ]; then
-    IFS=$'\t' read -r TOOL_NAME FILE_PATH COMMAND CWD SESSION_ID <<< "$_jq_parsed"
+    IFS=$'\t' read -r TOOL_NAME FILE_PATH COMMAND CWD SESSION_ID AGENT_ID AGENT_TYPE <<< "$_jq_parsed"
   fi
   unset _jq_parsed
 elif command -v python3 >/dev/null 2>&1; then
@@ -388,11 +413,11 @@ def get_nested(d, path):
         else:
             return ''
     return d if isinstance(d, str) else ''
-fields = ['tool_name', 'tool_input.file_path', 'tool_input.command', 'cwd', 'session_id']
+fields = ['tool_name', 'tool_input.file_path', 'tool_input.command', 'cwd', 'session_id', 'agent_id', 'agent_type']
 print('\t'.join(get_nested(data, f) for f in fields))
 " 2>/dev/null)"
   if [ -n "$_py_parsed" ]; then
-    IFS=$'\t' read -r TOOL_NAME FILE_PATH COMMAND CWD SESSION_ID <<< "$_py_parsed"
+    IFS=$'\t' read -r TOOL_NAME FILE_PATH COMMAND CWD SESSION_ID AGENT_ID AGENT_TYPE <<< "$_py_parsed"
   fi
   unset _py_parsed
 fi
@@ -764,7 +789,7 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
   fi
 
   # ===== Breezing Role Guard: Teammate のロールベースアクセス制御 =====
-  if [ -n "$SESSION_ID" ] && [ -n "$CWD" ]; then
+  if { [ -n "$SESSION_ID" ] || [ -n "$AGENT_ID" ]; } && [ -n "$CWD" ]; then
     # ロール登録 Write の検出（breezing-role-*.json への Write は登録処理）
     if try_register_breezing_role "$FILE_PATH" "$CWD" 2>/dev/null; then
       exit 0  # 登録 Write は許可
@@ -799,6 +824,7 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
 
           # jq で owns 配列を取得してマッチング
           if [ -f "${CWD}/.claude/state/breezing-session-roles.json" ]; then
+            ROLE_KEY="${BREEZING_ROLE_KEY:-$SESSION_ID}"
             while IFS= read -r OWNED_PATTERN; do
               [ -z "$OWNED_PATTERN" ] && continue
               # 絶対パスでマッチング
@@ -809,7 +835,7 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
               case "$BREEZING_REL_PATH" in
                 $OWNED_PATTERN*) BREEZING_FILE_ALLOWED="true"; break ;;
               esac
-            done < <(jq -r --arg sid "$SESSION_ID" '.[$sid].owns[]? // empty' \
+            done < <(jq -r --arg sid "$ROLE_KEY" '.[$sid].owns[]? // empty' \
               "${CWD}/.claude/state/breezing-session-roles.json" 2>/dev/null)
           fi
 
@@ -1243,4 +1269,3 @@ if [ "$TOOL_NAME" = "Bash" ]; then
 fi
 
 exit 0
-

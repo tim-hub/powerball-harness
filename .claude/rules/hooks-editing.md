@@ -31,6 +31,8 @@ hooks/hooks.json           ← Source file (for development)
 
 4 つのタイプが利用可能です: `command`（汎用）、`http`（外部連携）、`prompt`（LLM 単一判断）、`agent`（LLM エージェント判断）。後者2つは v2.1.63+ で全イベント対応。
 
+> **CC v2.1.69+**: `InstructionsLoaded` イベント、`agent_id` / `agent_type` フィールド、`{"continue": false, "stopReason": "..."}` レスポンスが追加されました。
+
 ### command Type (General Purpose)
 
 Available for all events:
@@ -219,8 +221,10 @@ Execute command type via `run-script.js`:
 
 | Hook Type | Recommended | Reason |
 |-----------|-------------|--------|
+| InstructionsLoaded | 5-10s | 初期コンテキストの軽量検証のみ |
 | SessionStart | 30s | Initialization may take time |
 | SubagentStart/Stop | 10s | Tracking only, lightweight processing |
+| TeammateIdle / TaskCompleted | 10-20s | チーム進捗と停止判定（必要なら `continue:false`） |
 | PreToolUse | 30s | Guard processing, file validation |
 | PostToolUse | 5-30s | Depends on processing content |
 | Stop | 20s | Ensure completion of termination processing |
@@ -241,15 +245,40 @@ Stop hooks execute at session termination, so:
   "hooks": {
     "PreToolUse": [],      // Before tool execution
     "PostToolUse": [],     // After tool execution
+    "InstructionsLoaded": [], // Instruction load completed (v2.1.69+)
     "SessionStart": [],    // At session start
     "Stop": [],            // At session end
     "SubagentStart": [],   // Subagent start
     "SubagentStop": [],    // Subagent end
+    "TeammateIdle": [],    // Teammate idle event (team mode)
+    "TaskCompleted": [],   // Teammate task completion event (team mode)
+    "WorktreeCreate": [],  // Worktree lifecycle start
+    "WorktreeRemove": [],  // Worktree lifecycle end
     "UserPromptSubmit": [],// On user input
     "PermissionRequest": [] // On permission request
   }
 }
 ```
+
+### Teammate Event Fields (v2.1.69+)
+
+`TeammateIdle` / `TaskCompleted` / 関連イベントでは、次のフィールドを優先して扱う:
+
+- `agent_id`（推奨キー）
+- `agent_type`（worker/reviewer など）
+- `session_id`（後方互換キー）
+
+`session_id` のみを前提にせず、`agent_id` を先に参照して fallback する実装を推奨。
+
+### Stop Response Pattern (v2.1.69+)
+
+チームイベントで処理を停止したい場合は、以下の形式を返す:
+
+```json
+{"continue": false, "stopReason": "all_tasks_completed"}
+```
+
+従来どおり続行する場合は `{"decision":"approve"}` を返してよい。
 
 ### matcher Patterns
 

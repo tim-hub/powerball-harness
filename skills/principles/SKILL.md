@@ -15,10 +15,10 @@ user-invocable: false
 
 | 機能 | 詳細 |
 |------|------|
-| **基本原則** | See [references/general-principles.md](references/general-principles.md) |
-| **差分編集** | See [references/diff-aware-editing.md](references/diff-aware-editing.md) |
-| **コンテキスト読み取り** | See [references/repo-context-reading.md](references/repo-context-reading.md) |
-| **VibeCoder** | See [references/vibecoder-guide.md](references/vibecoder-guide.md) |
+| **基本原則** | See [references/general-principles.md](${CLAUDE_SKILL_DIR}/references/general-principles.md) |
+| **差分編集** | See [references/diff-aware-editing.md](${CLAUDE_SKILL_DIR}/references/diff-aware-editing.md) |
+| **コンテキスト読み取り** | See [references/repo-context-reading.md](${CLAUDE_SKILL_DIR}/references/repo-context-reading.md) |
+| **VibeCoder** | See [references/vibecoder-guide.md](${CLAUDE_SKILL_DIR}/references/vibecoder-guide.md) |
 
 ## 実行手順
 

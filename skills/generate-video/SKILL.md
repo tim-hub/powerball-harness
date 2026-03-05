@@ -24,13 +24,13 @@ context: fork
 
 | 機能 | 詳細 |
 |------|------|
-| **ベストプラクティス** | See [references/best-practices.md](references/best-practices.md) |
-| **コードベース分析** | See [references/analyzer.md](references/analyzer.md) |
-| **シナリオプランニング** | See [references/planner.md](references/planner.md) |
-| **並列シーン生成** | See [references/generator.md](references/generator.md) |
-| **視覚効果ライブラリ** | See [references/visual-effects.md](references/visual-effects.md) |
-| **AI画像生成** | See [references/image-generator.md](references/image-generator.md) |
-| **画像品質判定** | See [references/image-quality-check.md](references/image-quality-check.md) |
+| **ベストプラクティス** | See [references/best-practices.md](${CLAUDE_SKILL_DIR}/references/best-practices.md) |
+| **コードベース分析** | See [references/analyzer.md](${CLAUDE_SKILL_DIR}/references/analyzer.md) |
+| **シナリオプランニング** | See [references/planner.md](${CLAUDE_SKILL_DIR}/references/planner.md) |
+| **並列シーン生成** | See [references/generator.md](${CLAUDE_SKILL_DIR}/references/generator.md) |
+| **視覚効果ライブラリ** | See [references/visual-effects.md](${CLAUDE_SKILL_DIR}/references/visual-effects.md) |
+| **AI画像生成** | See [references/image-generator.md](${CLAUDE_SKILL_DIR}/references/image-generator.md) |
+| **画像品質判定** | See [references/image-quality-check.md](${CLAUDE_SKILL_DIR}/references/image-quality-check.md) |
 
 ## Prerequisites
 
@@ -85,7 +85,7 @@ context: fork
 | **アーキテクチャ解説** | 確信→決裁 | 5-30分 | 大規模構造変更 | 実運用+証拠 |
 | **オンボーディング** | 継続・活用 | 30秒-数分 | 初回セットアップ | Aha体験への最短パス |
 
-> 詳細: [references/best-practices.md](references/best-practices.md)
+> 詳細: [references/best-practices.md](${CLAUDE_SKILL_DIR}/references/best-practices.md)
 
 ## シーンテンプレート
 
@@ -118,7 +118,7 @@ context: fork
 | アーキテクチャ図 | 10-20秒 | Mermaid → アニメーション |
 | CTA | 3-5秒 | URL + 連絡先 |
 
-> 詳細テンプレート: [references/best-practices.md](references/best-practices.md#テンプレート)
+> 詳細テンプレート: [${CLAUDE_SKILL_DIR}/references/best-practices.md](${CLAUDE_SKILL_DIR}/references/best-practices.md#テンプレート)
 
 ## 音声同期ルール（重要）
 
@@ -133,7 +133,7 @@ context: fork
 
 **事前確認**: `ffprobe` で音声長さを確認してからシーン設計
 
-> 詳細: [references/generator.md](references/generator.md#音声同期ルール重要)
+> 詳細: [${CLAUDE_SKILL_DIR}/references/generator.md](${CLAUDE_SKILL_DIR}/references/generator.md#音声同期ルール重要)
 
 ## BGM サポート
 
@@ -143,7 +143,7 @@ context: fork
 | ナレーションなし | bgmVolume: 0.50 - 0.80 |
 | ファイル配置 | `public/BGM/` |
 
-> 詳細: [references/generator.md](references/generator.md#bgm-サポート)
+> 詳細: [${CLAUDE_SKILL_DIR}/references/generator.md](${CLAUDE_SKILL_DIR}/references/generator.md#bgm-サポート)
 
 ## 字幕サポート
 
@@ -153,7 +153,7 @@ context: fork
 | 字幕duration | 音声長 + 10f |
 | フォント | Base64埋め込み推奨 |
 
-> 詳細: [references/generator.md](references/generator.md#字幕サポート)
+> 詳細: [${CLAUDE_SKILL_DIR}/references/generator.md](${CLAUDE_SKILL_DIR}/references/generator.md#字幕サポート)
 
 ## 視覚効果ライブラリ
 
@@ -167,7 +167,7 @@ context: fork
 | ProgressBar | 並列処理表示 |
 | 3D Parallax | カード表示 |
 
-> 詳細: [references/visual-effects.md](references/visual-effects.md)
+> 詳細: [references/visual-effects.md](${CLAUDE_SKILL_DIR}/references/visual-effects.md)
 
 ## Notes
 

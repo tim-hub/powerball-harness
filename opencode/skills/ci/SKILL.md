@@ -27,8 +27,8 @@ CI/CD パイプラインに関する問題を解決するスキル群です。
 
 | 機能 | 詳細 | トリガー |
 |------|------|----------|
-| **失敗分析** | See [references/analyzing-failures.md](references/analyzing-failures.md) | 「ログを見て」「原因を調べて」 |
-| **テスト修正** | See [references/fixing-tests.md](references/fixing-tests.md) | 「テストを直して」「修正案を出して」 |
+| **失敗分析** | See [references/analyzing-failures.md](${CLAUDE_SKILL_DIR}/references/analyzing-failures.md) | 「ログを見て」「原因を調べて」 |
+| **テスト修正** | See [references/fixing-tests.md](${CLAUDE_SKILL_DIR}/references/fixing-tests.md) | 「テストを直して」「修正案を出して」 |
 
 ---
 

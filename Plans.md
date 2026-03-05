@@ -41,10 +41,10 @@
 | Task | 内容 | Status |
 |------|------|--------|
 | 17.0.1 | v3ブランチ確認（worktree-v3-full-rewrite で作業中） | cc:完了 |
-| 17.0.2 | `core/` ディレクトリ作成。`package.json`（`better-sqlite3`, `tsx`, `vitest` を devDependencies）、`tsconfig.json`（strict, ESM, NodeNext）を配置 | cc:TODO |
-| 17.0.3 | `core/index.ts` エントリポイント作成。stdin JSON → パース → ルーティング → stdout JSON の基本パイプライン | cc:TODO |
-| 17.0.4 | `core/types.ts` 作成。`HookInput`, `HookResult`, `GuardRule`, `Signal`, `TaskFailure` の型定義 | cc:TODO |
-| 17.0.5 | CI（`.github/workflows/`）に `npm test`（vitest）ステップを追加 | cc:TODO |
+| 17.0.2 | `core/` ディレクトリ作成。`package.json`（`better-sqlite3`, `tsx`, `vitest` を devDependencies）、`tsconfig.json`（strict, ESM, NodeNext）を配置 | cc:完了 |
+| 17.0.3 | `core/index.ts` エントリポイント作成。stdin JSON → パース → ルーティング → stdout JSON の基本パイプライン | cc:完了 |
+| 17.0.4 | `core/types.ts` 作成。`HookInput`, `HookResult`, `GuardRule`, `Signal`, `TaskFailure` の型定義 | cc:完了 |
+| 17.0.5 | CI（`.github/workflows/`）に `npm test`（vitest）ステップを追加 | cc:完了 |
 
 ### Phase 17.1: ガードレールエンジン — Bash→TypeScript [P1] [P]
 
@@ -68,7 +68,7 @@
 | 17.2.3 | `core/state/migration.ts` 作成。JSON/JSONL→SQLite移行 | cc:完了 |
 | 17.2.4 | `core/state/__tests__/store.test.ts` 単体テスト | cc:完了 |
 | 17.2.5 | guardrails のJSONスタブをSQLiteストアに差し替え | cc:完了 |
-| 17.2.6 | `hooks/session.sh` + `core/engine/lifecycle.ts` 作成 | cc:TODO |
+| 17.2.6 | `hooks/session.sh` + `core/engine/lifecycle.ts` 作成 | cc:完了 |
 
 ### Phase 17.3: スキル統合 42→5 + 拡張パック分離 [P1]
 
@@ -80,7 +80,7 @@
 | 17.3.4 | `skills-v3/release/SKILL.md` 作成（release-har + x-release-harness + handoff 統合） | cc:完了 |
 | 17.3.5 | `skills-v3/setup/SKILL.md` 作成（setup + harness-init + harness-update + maintenance 統合） | cc:完了 |
 | 17.3.6 | `skills-v3/extensions/` に拡張パック移動（auth, crud, ui 等 11スキル） | cc:完了 |
-| 17.3.7 | `core/engine/lifecycle.ts` 作成（session系5スキル吸収） | cc:TODO |
+| 17.3.7 | `core/engine/lifecycle.ts` 作成（session系5スキル吸収） | cc:完了 |
 | 17.3.8 | `skills-v3/routing-rules.md` 作成（5エントリ） | cc:完了 |
 | 17.3.9 | CLAUDE.md にガイダンス統合（vibecoder-guide, workflow-guide, principles） | cc:完了 |
 
@@ -251,8 +251,8 @@
 | 19.1.2 | agent hook 移行候補の特定と設計（rules.ts 分析） | cc:完了 |
 | 19.1.3 | hooks.json に agent hook プロトタイプ追加（PreToolUse + Stop） | cc:完了 |
 | 19.1.4 | PostToolUse agent hook 追加（軽量自動コードレビュー） | cc:完了 |
-| 19.1.5 | agent hook 動作検証 + コスト実測 | cc:TODO |
-| 19.1.6 | 検証結果に基づく agent hook 最終判断 → D27 記録 | cc:TODO |
+| 19.1.5 | agent hook 動作検証 + コスト実測 | cc:完了 |
+| 19.1.6 | 検証結果に基づく agent hook 最終判断 → D28 記録 | cc:完了 |
 
 ### Phase 19.2: Feature Table「将来対応」実装格上げ + 調査 [P2] [P]
 
@@ -291,3 +291,104 @@
 | 19.5.2 | VERSION バンプ 3.2.0 → 3.3.0 + plugin.json 同期 | cc:完了 |
 | 19.5.3 | CHANGELOG.md に [3.3.0] - 2026-03-05 追記 | cc:完了 |
 | 19.5.4 | GitHub Release 作成 | cc:完了 |
+
+---
+
+## Phase 20: Claude Code v2.1.69 対応 + Codex 0.110.0 統合
+
+作成日: 2026-03-06
+起点: Claude Code v2.1.68→v2.1.69 リリース（多数の新機能・破壊的変更）+ Codex CLI 0.110.0 アップデート
+目的: Harness の全コンポーネントを最新 Claude Code / Codex CLI に最適化し、新機能を即座に活用可能にする
+
+### 背景
+
+**Claude Code v2.1.69 の主要変更**:
+- `${CLAUDE_SKILL_DIR}` 変数導入（スキル内の相対パス参照を公式変数に移行）
+- `InstructionsLoaded` フックイベント新設
+- フックイベントに `agent_id` / `agent_type` フィールド追加
+- `TeammateIdle` / `TaskCompleted` で `{"continue": false, "stopReason": "..."}` をサポート
+- `WorktreeCreate` / `WorktreeRemove` フックの動作修正（以前は silently ignored）
+- `/reload-plugins` コマンド追加
+- `includeGitInstructions: false` 設定でトークン節約
+- `git-subdir` プラグインソース対応
+- Sonnet 4.5 → 4.6 自動マイグレーション
+- nested teammates 防止（teammates が更に teammate を spawn するのをブロック）
+- 複数セキュリティ修正（symlink bypass, nested skill discovery, interactive tools auto-allow）
+
+**Codex CLI 0.110.0 の主要変更**（v3.2.0 で一部対応済み）:
+- `[[skills.config]]` path-based skill loading
+- memory config renames (`no_memories_if_mcp_or_web_search`)
+- workspace-scoped memory writes
+- polluted memories flag
+
+### 3エージェント監査結果（計画前調査）
+
+| Track | 対象 | 発見 |
+|-------|------|------|
+| Hooks | hooks.json, pretooluse-guard.sh | InstructionsLoaded: 参照0件（完全新規）、agent_id/agent_type: 未使用、TeammateIdle/TaskCompleted: teammate_name ベースで agent_id 未活用 |
+| Skills | 17 SKILL.md files | `references/` パスを `${CLAUDE_SKILL_DIR}/references/` に変更必要。description 欠損: 0件 |
+| Docs | 8 files, 17 箇所 | "2.1.68" → "2.1.69" 更新必要。Sonnet 4.5 参照: 0件（対応済み）。includeGitInstructions: 参照0件 |
+
+### 優先度マトリクス
+
+| 優先度 | Phase | 内容 | タスク数 | 依存 |
+|--------|-------|------|---------|------|
+| **Required** | 20.0 | Hooks & ガードレール更新 | 6 | なし |
+| **Required** | 20.1 | Skills `${CLAUDE_SKILL_DIR}` 対応 | 4 | なし |
+| **Required** | 20.2 | ドキュメント・Feature Table 更新 | 5 | なし |
+| **Recommended** | 20.3 | Breezing・Plugin・チーム構成更新 | 5 | 20.0 |
+| **Required** | 20.4 | 統合検証・バージョン・リリース | 4 | 20.0〜20.3 |
+
+合計: **24 タスク**
+
+---
+
+### Phase 20.0: Hooks & ガードレール更新 [P0]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 20.0.1 | `hooks.json` + `.claude-plugin/hooks.json`: TeammateIdle / TaskCompleted ハンドラに `{"continue": false, "stopReason": "..."}` レスポンス形式サポートを追加。現在 teammate_name のみ使用 → agent_id / agent_type も活用 | cc:完了 |
+| 20.0.2 | `hooks.json` + `.claude-plugin/hooks.json`: `InstructionsLoaded` フックイベント登録。用途: Harness ルール注入・セッション環境の事前検証 | cc:完了 |
+| 20.0.3 | `scripts/pretooluse-guard.sh`: `agent_id` / `agent_type` フィールド活用。現在 session_id のみ → エージェント種別に応じたガードレール分岐を追加 | cc:完了 |
+| 20.0.4 | `scripts/hook-handlers/teammate-idle.sh` + `task-completed.sh`: `{"continue": false}` 判定ロジック追加（全タスク完了時やエラー時に自動停止） | cc:完了 |
+| 20.0.5 | WorktreeCreate / WorktreeRemove ハンドラの動作確認。2.1.69 で silently ignored → 正常発火に修正済みのため、既存スクリプトが期待通り動作するか検証 | cc:完了 |
+| 20.0.6 | `.claude/rules/hooks-editing.md` 更新: InstructionsLoaded イベント追加、agent_id/agent_type フィールド仕様追記、`{"continue": false}` パターン追記 | cc:完了 |
+
+### Phase 20.1: Skills `${CLAUDE_SKILL_DIR}` 対応 [P1] [P]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 20.1.1 | 全 17 SKILL.md の `references/` パスを `${CLAUDE_SKILL_DIR}/references/` に変更（対象: skills/ 配下の本体） | cc:完了 |
+| 20.1.2 | symlink 先の skills-v3/ 配下も同様に更新（codex/.codex/skills/, opencode/skills/ は symlink なので自動反映を確認） | cc:完了 |
+| 20.1.3 | 全スキルの `description:` frontmatter に colon 含みの値が正しくクォートされているか確認（2.1.69 のパーサー変更対応） | cc:完了 |
+| 20.1.4 | `.claude/rules/skill-editing.md` 更新: `${CLAUDE_SKILL_DIR}` 変数の使用ガイドライン追記、references パスの標準テンプレート更新 | cc:完了 |
+
+### Phase 20.2: ドキュメント・Feature Table・モデル参照更新 [P2] [P]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 20.2.1 | `CLAUDE.md` の Feature Table を 2.1.69+ に更新。新機能行追加: `${CLAUDE_SKILL_DIR}`, InstructionsLoaded, agent_id/agent_type, continue:false, /reload-plugins, includeGitInstructions, git-subdir source | cc:完了 |
+| 20.2.2 | `docs/CLAUDE-feature-table.md` 統合更新: 8ファイル17箇所の "2.1.68" → "2.1.69" 一括更新 + 新機能行追加 | cc:完了 |
+| 20.2.3 | モデル参照の確認: Sonnet 4.5 → 4.6 自動マイグレーションに関する注記追加（既に参照は更新済みだが、ドキュメント上で明記） | cc:完了 |
+| 20.2.4 | `includeGitInstructions: false` 設定の活用検討・ドキュメント化。Breezing Worker で git instructions 不要なケースを特定 | cc:完了 |
+| 20.2.5 | `.claude/memory/decisions.md` 更新: D29 として 2.1.69 対応の設計判断を記録 | cc:完了 |
+
+### Phase 20.3: Breezing・Plugin・チーム構成更新 [P3]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 20.3.1 | `agents-v3/team-composition.md`: nested teammates 防止の spawn プロンプト更新。2.1.69 で公式にブロックされたため、Harness 側の防止策を公式仕様に合わせて簡素化 | cc:完了 |
+| 20.3.2 | `skills-v3/execute/SKILL.md` (harness-work): Breezing モードの spawn プロンプトから冗長な nested teammate 防止指示を削除（2.1.69 で公式対応済み） | cc:完了 |
+| 20.3.3 | `git-subdir` プラグインソース対応: `.claude-plugin/plugin.json` に source 設定追加の検討・ドキュメント化 | cc:完了 |
+| 20.3.4 | `/reload-plugins` コマンドの Harness 開発ワークフローへの統合: スキル編集後の即時反映手順をドキュメント化 | cc:完了 |
+| 20.3.5 | セキュリティ修正の影響確認: symlink bypass 修正が skills/ → skills-v3/ の symlink 構成に影響ないか検証 | cc:完了 |
+| 20.3.6 | `scripts/ci/check-consistency.sh`: Auto Mode（Research Preview）向けに `defaultMode=autoMode` を許容する互換チェックを追加 | cc:完了 |
+
+### Phase 20.4: 統合検証・バージョン・リリース [P4]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 20.4.1 | `tests/validate-plugin.sh` + `scripts/ci/check-consistency.sh` 全体検証 | cc:完了 |
+| 20.4.2 | VERSION バンプ + plugin.json 同期（3.3.1 → 3.4.0） | cc:完了 |
+| 20.4.3 | CHANGELOG.md に [3.4.0] - 2026-03-06 追記 | cc:完了 |
+| 20.4.4 | GitHub Release 作成 + X 告知文生成（前セッションで作成済みの画像を活用） | cc:TODO |

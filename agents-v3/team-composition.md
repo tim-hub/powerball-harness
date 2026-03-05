@@ -106,6 +106,15 @@ Worker: 修正実装 → コミット
 Reviewer: 再レビュー
 ```
 
+### Nested Teammate Policy（v2.1.69）
+
+CC 2.1.69 で teammates の多重 spawn（nested teammates）はプラットフォーム側でブロックされる。
+Harness 側は冗長な防止文言を最小化し、以下の運用に統一する:
+
+1. Lead のみが teammate を spawn する
+2. Worker/Reviewer プロンプトでは「実装/レビュー責務」に集中させる
+3. nested 防止は hooks 追加ではなく公式ガードに委ねる（運用を簡素化）
+
 ## 権限設定（bypassPermissions）
 
 Teammate は UI なしでバックグラウンド実行されるため、
@@ -116,6 +125,27 @@ Teammate は UI なしでバックグラウンド実行されるため、
 2. spawn prompt で行動範囲を明示
 3. PreToolUse hooks がガードレールを維持
 4. Lead が常に監視
+
+### Auto Mode（Research Preview, 2026-03-12〜）
+
+`bypassPermissions` の安全な代替として Anthropic が提供する新しい権限モード。
+Claude が権限判断を自動で行い、プロンプトインジェクション対策も内蔵する。
+
+| 観点 | bypassPermissions | Auto Mode |
+|------|-------------------|-----------|
+| 権限判断 | 全ツール無条件許可 | Claude が自動判断 |
+| 安全層 | hooks + disallowedTools | 内蔵対策 + hooks + disallowedTools |
+| トークンコスト | 追加なし | 微増 |
+| レイテンシ | 追加なし | 微増 |
+| Teammate 互換 | 検証済み | 要検証（バックグラウンド実行での動作確認が必要） |
+
+**現時点の方針**: Research Preview 期間中はデフォルト `bypassPermissions` を維持。
+Auto Mode は `--safe` オプション等での切り替えとして段階的に導入予定。
+リリース後に以下を検証してから本格採用を判断する:
+
+1. PreToolUse / PostToolUse hooks が Auto Mode でも従来どおり発火するか
+2. Teammate のバックグラウンド spawn で権限プロンプトがブロックされないか
+3. Breezing 並列実行でのトークンコスト増の実測
 
 ## Codex CLI Environment
 

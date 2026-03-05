@@ -16,12 +16,12 @@ context: fork
 
 | 機能 | 詳細 |
 |------|------|
-| **SSOT初期化** | See [references/ssot-initialization.md](references/ssot-initialization.md) |
-| **Plans.mdマージ** | See [references/plans-merging.md](references/plans-merging.md) |
-| **移行処理** | See [references/workflow-migration.md](references/workflow-migration.md) |
-| **プロジェクト仕様同期** | See [references/sync-project-specs.md](references/sync-project-specs.md) |
-| **メモリ→SSOT昇格** | See [references/sync-ssot-from-memory.md](references/sync-ssot-from-memory.md) |
-| **記憶検索（Cursor連携）** | See [references/cursor-mem-search.md](references/cursor-mem-search.md) |
+| **SSOT初期化** | See [references/ssot-initialization.md](${CLAUDE_SKILL_DIR}/references/ssot-initialization.md) |
+| **Plans.mdマージ** | See [references/plans-merging.md](${CLAUDE_SKILL_DIR}/references/plans-merging.md) |
+| **移行処理** | See [references/workflow-migration.md](${CLAUDE_SKILL_DIR}/references/workflow-migration.md) |
+| **プロジェクト仕様同期** | See [references/sync-project-specs.md](${CLAUDE_SKILL_DIR}/references/sync-project-specs.md) |
+| **メモリ→SSOT昇格** | See [references/sync-ssot-from-memory.md](${CLAUDE_SKILL_DIR}/references/sync-ssot-from-memory.md) |
+| **記憶検索（Cursor連携）** | See [references/cursor-mem-search.md](${CLAUDE_SKILL_DIR}/references/cursor-mem-search.md) |
 
 ## Unified Harness Memory（共通DB）
 
@@ -49,12 +49,12 @@ Layer 1 の知見がプロジェクト全体に重要な場合、`/memory ssot` 
 
 メモリシステム（Claude-mem / Serena）から重要な学びをSSOTに永続化します。
 
-- "**Save what we learned**" → [references/sync-ssot-from-memory.md](references/sync-ssot-from-memory.md)
-- "**Promote decisions to SSOT**" → [references/sync-ssot-from-memory.md](references/sync-ssot-from-memory.md)
+- "**Save what we learned**" → [references/sync-ssot-from-memory.md](${CLAUDE_SKILL_DIR}/references/sync-ssot-from-memory.md)
+- "**Promote decisions to SSOT**" → [references/sync-ssot-from-memory.md](${CLAUDE_SKILL_DIR}/references/sync-ssot-from-memory.md)
 
 ## 記憶検索（Cursor連携）
 
 CursorからClaude-memを活用し、セッション間の知識を引き継ぎます。
 
-- "**過去の判断を確認したい**" → [references/cursor-mem-search.md](references/cursor-mem-search.md)
-- "**この実装パターンを記録して**" → [references/cursor-mem-search.md](references/cursor-mem-search.md)
+- "**過去の判断を確認したい**" → [references/cursor-mem-search.md](${CLAUDE_SKILL_DIR}/references/cursor-mem-search.md)
+- "**この実装パターンを記録して**" → [references/cursor-mem-search.md](${CLAUDE_SKILL_DIR}/references/cursor-mem-search.md)

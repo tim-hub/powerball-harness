@@ -23,6 +23,8 @@ PROJECT_ROOT="${PROJECT_ROOT:-$(detect_project_root 2>/dev/null || pwd)}"
 # タイムラインファイル
 STATE_DIR="${PROJECT_ROOT}/.claude/state"
 TIMELINE_FILE="${STATE_DIR}/breezing-timeline.jsonl"
+TOTAL_TASKS=0
+COMPLETED_COUNT=0
 
 # === ユーティリティ関数 ===
 
@@ -63,18 +65,20 @@ TEAMMATE_NAME=""
 TASK_ID=""
 TASK_SUBJECT=""
 TASK_DESCRIPTION=""
+AGENT_ID=""
+AGENT_TYPE=""
+REQUEST_CONTINUE=""
+STOP_REASON=""
 
 if command -v jq >/dev/null 2>&1; then
-  _jq_parsed="$(printf '%s' "${INPUT}" | jq -r '[
-    (.teammate_name // .agent_name // ""),
-    (.task_id // ""),
-    (.task_subject // .subject // ""),
-    ((.task_description // .description // "" | tostring)[0:100])
-  ] | @tsv' 2>/dev/null)"
-  if [ -n "${_jq_parsed}" ]; then
-    IFS=$'\t' read -r TEAMMATE_NAME TASK_ID TASK_SUBJECT TASK_DESCRIPTION <<< "${_jq_parsed}"
-  fi
-  unset _jq_parsed
+  TEAMMATE_NAME="$(printf '%s' "${INPUT}" | jq -r '.teammate_name // .agent_name // ""' 2>/dev/null || true)"
+  TASK_ID="$(printf '%s' "${INPUT}" | jq -r '.task_id // ""' 2>/dev/null || true)"
+  TASK_SUBJECT="$(printf '%s' "${INPUT}" | jq -r '.task_subject // .subject // ""' 2>/dev/null || true)"
+  TASK_DESCRIPTION="$(printf '%s' "${INPUT}" | jq -r '(.task_description // .description // "" | tostring)[0:100]' 2>/dev/null || true)"
+  AGENT_ID="$(printf '%s' "${INPUT}" | jq -r '.agent_id // ""' 2>/dev/null || true)"
+  AGENT_TYPE="$(printf '%s' "${INPUT}" | jq -r '.agent_type // ""' 2>/dev/null || true)"
+  REQUEST_CONTINUE="$(printf '%s' "${INPUT}" | jq -r '(if has("continue") then (.continue | tostring) else "" end)' 2>/dev/null || true)"
+  STOP_REASON="$(printf '%s' "${INPUT}" | jq -r '.stopReason // .stop_reason // ""' 2>/dev/null || true)"
 elif command -v python3 >/dev/null 2>&1; then
   _parsed="$(printf '%s' "${INPUT}" | python3 -c "
 import sys, json
@@ -84,7 +88,16 @@ try:
     print(d.get('task_id', ''))
     print(d.get('task_subject', d.get('subject', '')))
     print(str(d.get('task_description', d.get('description', '')))[:100])
+    print(d.get('agent_id', ''))
+    print(d.get('agent_type', ''))
+    cont = d.get('continue', '')
+    print(str(cont).lower() if isinstance(cont, bool) else str(cont))
+    print(d.get('stopReason', d.get('stop_reason', '')))
 except:
+    print('')
+    print('')
+    print('')
+    print('')
     print('')
     print('')
     print('')
@@ -94,6 +107,10 @@ except:
   TASK_ID="$(echo "${_parsed}" | sed -n '2p')"
   TASK_SUBJECT="$(echo "${_parsed}" | sed -n '3p')"
   TASK_DESCRIPTION="$(echo "${_parsed}" | sed -n '4p')"
+  AGENT_ID="$(echo "${_parsed}" | sed -n '5p')"
+  AGENT_TYPE="$(echo "${_parsed}" | sed -n '6p')"
+  REQUEST_CONTINUE="$(echo "${_parsed}" | sed -n '7p')"
+  STOP_REASON="$(echo "${_parsed}" | sed -n '8p')"
 fi
 
 # === タイムライン記録（jq -nc で安全な JSON 構築） ===
@@ -107,8 +124,10 @@ if command -v jq >/dev/null 2>&1; then
     --arg task_id "${TASK_ID}" \
     --arg subject "${TASK_SUBJECT}" \
     --arg description "${TASK_DESCRIPTION}" \
+    --arg agent_id "${AGENT_ID}" \
+    --arg agent_type "${AGENT_TYPE}" \
     --arg timestamp "${TS}" \
-    '{event:$event, teammate:$teammate, task_id:$task_id, subject:$subject, description:$description, timestamp:$timestamp}')"
+    '{event:$event, teammate:$teammate, task_id:$task_id, subject:$subject, description:$description, agent_id:$agent_id, agent_type:$agent_type, timestamp:$timestamp}')"
 else
   # フォールバック: python3 で安全にエスケープ
   log_entry="$(python3 -c "
@@ -119,9 +138,11 @@ print(json.dumps({
     'task_id': sys.argv[2],
     'subject': sys.argv[3],
     'description': sys.argv[4],
-    'timestamp': sys.argv[5]
+    'agent_id': sys.argv[5],
+    'agent_type': sys.argv[6],
+    'timestamp': sys.argv[7]
 }, ensure_ascii=False))
-" "${TEAMMATE_NAME}" "${TASK_ID}" "${TASK_SUBJECT}" "${TASK_DESCRIPTION}" "${TS}" 2>/dev/null)" || log_entry=""
+" "${TEAMMATE_NAME}" "${TASK_ID}" "${TASK_SUBJECT}" "${TASK_DESCRIPTION}" "${AGENT_ID}" "${AGENT_TYPE}" "${TS}" 2>/dev/null)" || log_entry=""
 fi
 
 if [ -n "${log_entry}" ]; then
@@ -507,5 +528,24 @@ else
 fi
 
 # === レスポンス ===
+if [ "${REQUEST_CONTINUE}" = "false" ] || [ -n "${STOP_REASON}" ]; then
+  FINAL_STOP_REASON="${STOP_REASON:-TaskCompleted requested stop}"
+  if command -v jq >/dev/null 2>&1; then
+    jq -nc --arg reason "${FINAL_STOP_REASON}" '{"continue": false, "stopReason": $reason}'
+  else
+    printf '{"continue": false, "stopReason": "%s"}\n' "${FINAL_STOP_REASON//\"/\\\"}"
+  fi
+  exit 0
+fi
+
+if [ "${TOTAL_TASKS}" -gt 0 ] 2>/dev/null && [ "${COMPLETED_COUNT}" -ge "${TOTAL_TASKS}" ] 2>/dev/null; then
+  if command -v jq >/dev/null 2>&1; then
+    jq -nc --arg reason "all_tasks_completed" '{"continue": false, "stopReason": $reason}'
+  else
+    echo '{"continue": false, "stopReason": "all_tasks_completed"}'
+  fi
+  exit 0
+fi
+
 echo '{"decision":"approve","reason":"TaskCompleted tracked"}'
 exit 0

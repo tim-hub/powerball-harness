@@ -15,8 +15,8 @@ argument-hint: "[yaml|slides]"
 
 | 機能 | 詳細 |
 |------|------|
-| **NotebookLM YAML** | See [references/notebooklm-yaml.md](references/notebooklm-yaml.md) |
-| **スライド YAML** | See [references/notebooklm-slides.md](references/notebooklm-slides.md) |
+| **NotebookLM YAML** | See [references/notebooklm-yaml.md](${CLAUDE_SKILL_DIR}/references/notebooklm-yaml.md) |
+| **スライド YAML** | See [references/notebooklm-slides.md](${CLAUDE_SKILL_DIR}/references/notebooklm-slides.md) |
 
 ## 実行手順
 

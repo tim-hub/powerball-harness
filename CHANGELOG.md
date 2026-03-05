@@ -8,6 +8,36 @@ Change history for claude-code-harness.
 
 ---
 
+## [3.4.0] - 2026-03-06
+
+### 🎯 What's Changed for You
+
+**Claude Code v2.1.69 対応を完了。teammate event 制御、skill reference 解決、開発フロー文書を一気に更新し、チーム実行の停止判定と互換性を強化しました。**
+
+| Before | After |
+|--------|-------|
+| Teammate hooks were session_id-centric and always approve-only | `agent_id`/`agent_type` を活用し、`{"continue": false, "stopReason": "..."}` で停止を返せる |
+| `InstructionsLoaded` event was not handled | Dedicated handler added and wired in both hooks.json files |
+| SKILL references used relative `references/` paths | `${CLAUDE_SKILL_DIR}/references/...` に統一し、実行環境依存を削減 |
+| Docs were centered on 2.1.68+ | Feature docs/README/command docs updated to 2.1.69+ |
+
+### Added
+- **InstructionsLoaded handler**: `scripts/hook-handlers/instructions-loaded.sh` を新規追加
+- **Teammate stop response support**: `teammate-idle.sh` / `task-completed.sh` に `continue:false` 応答ロジックを追加
+- **2.1.69 feature docs**: `${CLAUDE_SKILL_DIR}`, `agent_id/agent_type`, `/reload-plugins`, `includeGitInstructions: false`, `git-subdir` 運用方針を明文化
+
+### Changed
+- **PreToolUse breezing role guard**: role lookup を `agent_id` 優先・`session_id` fallback に拡張
+- **SKILL reference path policy**: skills/codex/opencode の SKILL.md で references 参照を `${CLAUDE_SKILL_DIR}` ベースへ更新
+- **check-consistency**: `defaultMode=autoMode` も許容（Research Preview 対応）
+- **Feature docs**: CLAUDE.md / README / README_ja / docs/CLAUDE-feature-table.md / docs/CLAUDE-commands.md 更新
+
+### Fixed
+- **Plans drift**: Phase 17/19 の未同期タスクマーカーを現実状態へ同期
+- **continue:false parsing**: boolean `false` が落ちるケースを修正し、stopReason を確実に反映
+
+---
+
 ## [3.3.1] - 2026-03-05
 
 ### 🎯 What's Changed for You
@@ -1318,6 +1348,9 @@ Change history for claude-code-harness.
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases).
 
+[3.4.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v3.3.1...v3.4.0
+[3.3.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v3.3.0...v3.3.1
+[3.3.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v3.2.0...v3.3.0
 [2.26.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.26.0...v2.26.1
 [2.26.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.25.0...v2.26.0
 [2.25.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v2.24.0...v2.25.0

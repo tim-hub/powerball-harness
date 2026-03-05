@@ -17,9 +17,9 @@ context: fork
 
 | 機能 | 詳細 |
 |------|------|
-| **デプロイ設定** | See [references/deployment-setup.md](references/deployment-setup.md) |
-| **アナリティクス** | See [references/analytics.md](references/analytics.md) |
-| **環境診断** | See [references/health-checking.md](references/health-checking.md) |
+| **デプロイ設定** | See [references/deployment-setup.md](${CLAUDE_SKILL_DIR}/references/deployment-setup.md) |
+| **アナリティクス** | See [references/analytics.md](${CLAUDE_SKILL_DIR}/references/analytics.md) |
+| **環境診断** | See [references/health-checking.md](${CLAUDE_SKILL_DIR}/references/health-checking.md) |
 
 ## 実行手順
 

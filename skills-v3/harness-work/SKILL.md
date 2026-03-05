@@ -63,6 +63,10 @@ Harness v3 の統合実行スキル。
 | `--no-tdd` | TDD フェーズスキップ | false |
 | `--no-simplify` | Auto-Refinement スキップ | false |
 
+> **Token Optimization (v2.1.69+)**: git 操作を伴わない軽量タスクでは
+> plugin settings の `includeGitInstructions: false` を有効にして
+> プロンプトトークンを削減できる。
+
 ## スコープダイアログ（引数なし時）
 
 ```
@@ -137,6 +141,9 @@ rm -f "$CODEX_PROMPT"
 ### Breezing モード（4 件以上で自動選択 / `--breezing` で強制）
 
 Agent Teams（Worker + Reviewer）でチーム実行。
+
+> **CC v2.1.69+**: nested teammates はプラットフォーム側で禁止されるため、
+> Worker/Reviewer プロンプトには冗長な nested 防止文言を追加しない。
 
 ```
 Lead (this agent)

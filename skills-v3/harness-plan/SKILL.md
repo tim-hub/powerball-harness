@@ -30,7 +30,7 @@ Harness v3 の統合プランニングスキル。
 
 ### create — 計画作成
 
-See [references/create.md](references/create.md)
+See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md)
 
 アイデア・要件をヒアリングし、実行可能な Plans.md を生成する。
 
@@ -78,7 +78,7 @@ Plans.md に新しいタスクを追加する。
 
 実装状況と Plans.md を照合し、差分を検出・更新する。
 
-See [references/sync.md](references/sync.md)
+See [references/sync.md](${CLAUDE_SKILL_DIR}/references/sync.md)
 
 **フロー**:
 1. Plans.md の現状取得

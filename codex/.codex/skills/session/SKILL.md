@@ -64,7 +64,7 @@ Sends a message to all active sessions.
 |---------|-------------|-----------|
 | **Initialization** | Start new session, load context | See [../session-init/SKILL.md](../session-init/SKILL.md) |
 | **Memory** | Persist learnings across sessions | See [../session-memory/SKILL.md](../session-memory/SKILL.md) |
-| **State Control** | Resume/fork session based on flags | See [references/session-control.md](references/session-control.md) |
+| **State Control** | Resume/fork session based on flags | See [references/session-control.md](${CLAUDE_SKILL_DIR}/references/session-control.md) |
 | **Communication** | Cross-session messaging | See [../session-state/SKILL.md](../session-state/SKILL.md) |
 
 ---

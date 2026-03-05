@@ -15,7 +15,7 @@ user-invocable: false
 
 | 機能 | 詳細 |
 |------|------|
-| **セッション再開/分岐** | See [references/session-control.md](references/session-control.md) |
+| **セッション再開/分岐** | See [references/session-control.md](${CLAUDE_SKILL_DIR}/references/session-control.md) |
 
 ## 実行手順
 
