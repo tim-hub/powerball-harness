@@ -1,4 +1,4 @@
-# Codex Team Config template
+# Codex Team Config template (Codex CLI 0.110.0+)
 # Copy to ${CODEX_HOME:-~/.codex}/config.toml (user) or .codex/config.toml (project).
 
 [features]
@@ -38,6 +38,11 @@ sandbox = "workspace-read-only"
 [agents.plan_critic]
 description = "Phase 0 plan critic: red-teaming review of task decomposition. Checks goal coverage, granularity, dependency accuracy, parallelism, and risk. Read-only access."
 sandbox = "workspace-read-only"
+
+[memories]
+# 0.110.0: workspace-write sandbox auto-includes ~/.codex/memories/ as writable root
+# 0.110.0: web search / MCP tool calls mark thread as "polluted" (memories not generated)
+no_memories_if_mcp_or_web_search = false  # harness workers use MCP sparingly; keep memories
 
 [notify]
 # Session end notification: write learnings to harness memory

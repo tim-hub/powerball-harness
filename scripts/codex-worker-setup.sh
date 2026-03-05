@@ -18,7 +18,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # 最小バージョン要件
-MIN_CODEX_VERSION="0.92.0"
+MIN_CODEX_VERSION="0.107.0"
 MIN_GIT_VERSION="2.5.0"
 
 # グローバル変数
