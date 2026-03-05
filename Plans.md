@@ -391,4 +391,4 @@
 | 20.4.1 | `tests/validate-plugin.sh` + `scripts/ci/check-consistency.sh` 全体検証 | cc:完了 |
 | 20.4.2 | VERSION バンプ + plugin.json 同期（3.3.1 → 3.4.0） | cc:完了 |
 | 20.4.3 | CHANGELOG.md に [3.4.0] - 2026-03-06 追記 | cc:完了 |
-| 20.4.4 | GitHub Release 作成 + X 告知文生成（前セッションで作成済みの画像を活用） | cc:TODO |
+| 20.4.4 | GitHub Release 作成 + X 告知文生成（前セッションで作成済みの画像を活用） | cc:完了 |
