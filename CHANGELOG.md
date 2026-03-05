@@ -8,6 +8,32 @@ Change history for claude-code-harness.
 
 ---
 
+## [3.3.1] - 2026-03-05
+
+### 🎯 What's Changed for You
+
+**All README visuals unified to brand-orange palette, logo regenerated with Nano Banana Pro, and duplicate content sections removed for a cleaner reading experience.**
+
+| Before | After |
+|--------|-------|
+| Mixed indigo/blue/teal/purple SVGs | Unified orange palette (#F7931A hierarchy) |
+| Hero comparison shown twice (SVG + table) | Single SVG visualization |
+| /work all flow shown twice (mermaid + SVG) | Single SVG visualization |
+| Review section had no visual | 4-perspective review card SVG added |
+| 47KB logo (old design) | 53KB Nano Banana Pro logo with "Plan → Work → Review" tagline |
+
+### Changed
+- **8 SVGs recolored** (EN/JA): Unified orange brand palette across all README visuals
+- **Logo regenerated**: Nano Banana Pro interlocking-loops icon + "Plan → Work → Review" tagline
+- **README cleanup**: Removed duplicate mermaid/SVG and SVG/table sections in both EN/JA
+
+### Added
+- **Review perspectives SVG** (EN/JA): 4-angle code review visualization (Security, Performance, Quality, Accessibility)
+- **3 JA generated SVGs**: hero-comparison, core-loop, safety-guardrails (Japanese localized versions)
+- **Alternative logo**: `docs/images/claude-harness-logo-alt.png` (carabiner icon + color-split text)
+
+---
+
 ## [3.3.0] - 2026-03-05
 
 ### 🎯 What's Changed for You
