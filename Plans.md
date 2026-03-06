@@ -107,11 +107,11 @@
 
 | Task | 内容 | Status |
 |------|------|--------|
-| 17.6.1 | `commands/` ディレクトリ全体を削除 | cc:完了 |
+| 17.6.1 | `commands/` の実コマンドを廃止し、レガシー導線は `CLAUDE.md` のみ残す形へ整理 | cc:完了 |
 | 17.6.2 | `docs/` を精選（残す4件、アーカイブ、削除） | cc:完了 |
 | 17.6.3 | `CHANGELOG_ja.md` を削除（英語版に一本化） | cc:完了 |
 | 17.6.4 | `benchmarks/evals-v2/`, `evals-v3/` を削除 | cc:完了 |
-| 17.6.5 | プラグイン外コード分離（mcp-server/, profiles/ を削除。workflows/, templates/ は残す） | cc:完了 |
+| 17.6.5 | プラグイン外コードを配布対象から分離（`mcp-server/` は開発用として repo に残置、workflows/templates は維持） | cc:完了 |
 
 ### Phase 17.7: テスト・検証・カットオーバー [P1]
 
@@ -394,3 +394,131 @@
 | 20.4.3 | CHANGELOG.md に [3.4.0] - 2026-03-06 追記 | cc:完了 |
 | 20.4.4 | GitHub Release 作成 + X 告知文生成（前セッションで作成済みの画像を活用） | cc:完了 |
 | 20.4.5 | README/README_ja の 2.1.69+ Skills 表記修正をパッチリリース（3.4.1）として反映（version/changelog/tag/release） | cc:完了 |
+| 20.4.6 | X告知画像（UltraThink復活 + Codex対応）を再生成し、品質チェック付きで採用版を確定 | cc:完了 |
+| 20.4.7 | X告知画像を説明重視版で再生成（UltraThink主役 + Claude/Codex更新内容を高情報量で明示）し、最終採用を確定 | cc:完了 |
+
+---
+
+## Phase 21: 信頼回復 + 競合比較からの改善実装計画
+
+作成日: 2026-03-06
+起点: `claude-code-harness` vs `obra/superpowers` 比較レビュー
+目的: 実装済みの強みを「信頼できる公開成果」として伝わる状態へ揃え、再現可能な証跡を伴って訴求力を上げる
+
+### 背景
+
+- README の version badge が `3.3.1` のままなのに、`.claude-plugin/plugin.json` は `3.4.1`
+- README / README_ja が `docs/CLAUDE_CODE_COMPATIBILITY.md` と `docs/CURSOR_INTEGRATION.md` を参照しているが現物がない
+- `Plans.md` では `commands/` 全削除・`mcp-server/` 削除完了と記録されている一方、現物は repo に残っている
+- `/harness-work all` と `Production-ready code` の主張に対して、公開向けの再現証跡がまだ弱い
+- README の訴求軸が広がりすぎており、`5 verbs + guardrail engine` という主商品がややぼけている
+
+### 完了条件
+
+1. README / README_ja / Plans / docs の公開記述に自己矛盾がない
+2. `/harness-work all` の成功・失敗系を再現できる evidence pack がローカル/CI で取得できる
+3. README の主訴求が `5 verb skills + guardrail engine` に再集中している
+4. `commands/` / `mcp-server/` などの残置物について「削除」「互換維持」「配布除外」のどれかが明文化され、Plans と実物が一致している
+5. 変更後の検証手順が `validate-plugin`, `validate-plugin-v3`, `check-consistency`, `core npm test`, evidence runner まで一貫して通る
+
+### 優先度マトリクス
+
+| 優先度 | Phase | 内容 | タスク数 | 依存 |
+|--------|-------|------|---------|------|
+| **Required** | 21.0 | 公開記述の trust gap 修正 | 5 | なし |
+| **Required** | 21.1 | `/harness-work all` evidence pack 整備 | 6 | なし |
+| **Recommended** | 21.2 | README 訴求軸の再集中 | 4 | 21.0 |
+| **Recommended** | 21.3 | repo 残置物の扱い明確化 | 5 | 21.0 |
+| **Optional** | 21.4 | 競合比較の公開/半公開アセット化 | 4 | 21.1, 21.2 |
+| **Required** | 21.5 | 最終検証とリリース判断 | 4 | 21.0〜21.4 |
+
+合計: **28 タスク**
+
+---
+
+### Phase 21.0: 公開記述の trust gap 修正 [P0]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 21.0.1 | README.md / README_ja.md の version badge を `VERSION` / `.claude-plugin/plugin.json` と同期 | cc:完了 |
+| 21.0.2 | README / README_ja の欠損リンク `docs/CLAUDE_CODE_COMPATIBILITY.md` / `docs/CURSOR_INTEGRATION.md` を「復元」または「参照削除」で解消 | cc:完了 |
+| 21.0.3 | `tests/README.md` など周辺 docs のファイル名・CI 名称ドリフトを一掃 | cc:完了 |
+| 21.0.4 | `README claim drift` を検出する整合性チェックを `scripts/ci/check-consistency.sh` に追加（version / 必須リンク / 代表 claims） | cc:完了 |
+| 21.0.5 | 公開向け claims を棚卸しし、「現在証明済み」「evidence pack 完了後に主張可」に分類した監査メモを残す | cc:完了 |
+
+### Phase 21.1: `/harness-work all` evidence pack 整備 [P1] [bugfix:reproduce-first]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 21.1.1 | `/harness-work all` 検証用の最小 fixture project を新設（入力、期待差分、期待テスト結果を固定） | cc:完了 |
+| 21.1.2 | 成功系 runner を追加し、prompt / diff / test logs / elapsed time を artifact として保存 | cc:完了 |
+| 21.1.3 | 失敗系 runner を追加し、品質ゲートが commit を止めることを再現証明 | cc:完了 |
+| 21.1.4 | evidence pack の取得手順を docs 化し、README の `/harness-work all` 近傍から参照可能にする | cc:完了 |
+| 21.1.5 | CI で回す smoke 版と、ローカルで回す full 版に分割して運用契約を明記 | cc:完了 |
+| 21.1.6 | `Production-ready code` など強い claim を、evidence pack の結果に紐づく文言へ更新 | cc:完了 |
+
+### Phase 21.2: README 訴求軸の再集中 [P2]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 21.2.1 | README hero / TL;DR / Core Loop を `5 verb skills + TypeScript guardrail engine` 中心に再構成 | cc:完了 |
+| 21.2.2 | README / README_ja を「初回導線」と「上級者向け拡張」に二段構成化し、周辺機能を後段へ移す | cc:完了 |
+| 21.2.3 | Codex / Cursor / OpenCode / video / 2-agent など周辺導線の順序を見直し、主商品より後ろへ整理 | cc:完了 |
+| 21.2.4 | README 末尾に「Why Harness vs skill-pack only」短節を追加し、思想ではなく runtime enforcement と verification で差別化 | cc:完了 |
+
+### Phase 21.3: repo 残置物の扱い明確化 [P3]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 21.3.1 | `commands/` を「本当に削除する」か「互換レイヤーとして残す」か決め、決定に合わせて tree / docs / Plans を同期 | cc:完了 |
+| 21.3.2 | `mcp-server/` を「本当に削除する」か「配布外の開発用として残す」か決め、決定に合わせて tree / docs / Plans を同期 | cc:完了 |
+| 21.3.3 | `Plans.md` の完了済み記述を「repo から削除」ではなく「配布対象から除外」等の正確な文言へ補正 | cc:完了 |
+| 21.3.4 | 配布対象 / 非配布対象 / 互換維持対象を 1 枚の scope table に整理し、README か docs に反映 | cc:完了 |
+| 21.3.5 | 完了履歴が肥大化している `Plans.md` のアーカイブ方針を決め、今後の drift を減らすための軽量化手順を追加 | cc:完了 |
+
+### Phase 21.4: 競合比較の公開/半公開アセット化 [P4]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 21.4.1 | 今回の比較結果を再実行可能な rubric に落とした `benchmark rubric` 文書を作成 | cc:完了 |
+| 21.4.2 | `static evidence` と `executed evidence` を分けた比較テンプレートを作成し、今後の競合比較で再利用可能にする | cc:完了 |
+| 21.4.3 | 公開用には攻撃的すぎない形で「Harness の優位点」を短く整理した positioning メモを作成 | cc:完了 |
+| 21.4.4 | 必要なら private docs に「superpowers 比較ノート」を保存し、以後の README / LP 改訂の根拠にする | cc:完了 |
+
+### Phase 21.5: 最終検証とリリース判断 [P5]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 21.5.1 | `./tests/validate-plugin.sh` / `./tests/validate-plugin-v3.sh` / `./scripts/ci/check-consistency.sh` / `core npm test` / evidence runner を通す | cc:完了 |
+| 21.5.2 | README links, version surfaces, scope table, evidence artifacts を release checklist 化 | cc:完了 |
+| 21.5.3 | CHANGELOG / VERSION / plugin metadata 更新要否を判定し、必要時のみ release task へ進める | cc:完了 |
+| 21.5.4 | リリースする場合は「trust repair」「evidence pack」「positioning refresh」を分けて告知文面を準備 | cc:完了 |
+
+---
+
+## Phase 22: README 競合比較リフレッシュ
+
+### 完了条件
+
+1. GitHub で人気のある Claude Code ハーネス系プラグインを対象に、比較対象と比較軸が公開 docs で明示されている
+2. README / README_ja に「人気ツールとの比較」短節が追加され、Harness の優位性が機能差ベースで読める
+3. 比較表は dated snapshot として管理され、星数や評価が永続不変の主張に見えない
+
+### Phase 22.0: GitHub 人気ハーネス比較の公開化 [P0]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 22.0.1 | GitHub で人気のある Claude Code ハーネス系 / workflow plugin を選定し、`superpowers` / `cc-sdd` を主比較対象として固定 | cc:完了 |
+| 22.0.2 | ハーネス視点の比較軸（runtime enforcement / verification / operator clarity / full-loop coverage / packaging）を公開用に確定 | cc:完了 |
+| 22.0.3 | dated snapshot の benchmark docs を追加し、feature matrix と根拠リンクを記録 | cc:完了 |
+| 22.0.4 | README / README_ja に短い比較表と full benchmark へのリンクを追加 | cc:完了 |
+| 22.0.5 | 公開文面が「多機能アピール」ではなく「ハーネスとしての優位性」に寄っているかを見直す | cc:完了 |
+| 22.0.6 | 数値比較中心の表を、ユーザーが機能差を読める `feature matrix` へ更新し、`awesome-claude-code` を比較表から外す | cc:完了 |
+| 22.0.7 | feature matrix を SVG でも可視化し、README / README_ja の比較節から視覚的に理解できるようにする | cc:完了 |
+| 22.0.8 | Claude Code 互換性の見せ方を「baseline + latest verified snapshot」方針で整理し、README から辿れるようにする | cc:完了 |
+| 22.0.9 | README に混ざった内部運用寄りの互換性説明を削り、ユーザー向けの短い案内文へ置き換える | cc:完了 |
+| 22.0.10 | README_ja と比較 docs の日本語表現を磨き、混在英語や不自然な表現を整理する | cc:完了 |
+| 22.0.11 | README の比較訴求を「導入後に標準運用がどう変わるか」へ寄せ、重複説明は SVG 中心へ整理する | cc:完了 |
+| 22.0.12 | README 冒頭の Hero / Why Harness を磨き、導入価値が一目で伝わるコピーと SVG に整理する | cc:完了 |
+| 22.0.13 | README 比較節の凡例ズレを解消し、SVG ベースの見せ方に合わせて導入文を整理する | cc:完了 |
+| 22.0.14 | evidence runner の終了コード取得バグを修正し、failure/success full の判定が実結果と一致するようにする | cc:完了 |

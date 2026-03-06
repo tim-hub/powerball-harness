@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-3.3.1-blue.svg" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-3.4.2-blue.svg" alt="Version"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
   <img src="https://img.shields.io/badge/Skills-5_Verbs-orange.svg" alt="Skills">
@@ -23,23 +23,30 @@
 
 ## Why Harness?
 
-Claude Code is powerful—but without structure, it can be unpredictable.
+Claude Code is powerful. Harness turns that raw capability into a delivery loop that is easier to trust and harder to derail.
 
 <p align="center">
-  <img src="assets/readme-visuals-en/generated/hero-comparison.svg" alt="Without vs With Harness" width="720">
+  <img src="assets/readme-visuals-en/generated/why-harness-pillars.svg" alt="What changes with Claude Harness: shared plan, runtime guardrails, and rerunnable validation" width="860">
 </p>
 
-**Three commands. One workflow. Production-ready code.**
+The 5 verb skills keep setup, plan, work, review, and release on one path. The TypeScript guardrail engine protects execution, and validation can be rerun when you need proof.
 
-```mermaid
-graph LR
-    A[Your Idea] --> B["/harness-plan"]
-    B --> C["Plans.md"]
-    C --> D["/harness-work"]
-    D --> E["Code + Self-Review"]
-    E --> F["/harness-review"]
-    F --> G["Ship It"]
-```
+## Compared With Popular Claude Code Harnesses
+
+What matters here is not the theoretical ceiling of Claude Code. It is what becomes the **default operating model** once you install a harness.
+
+This is a **user-facing workflow** snapshot as of **2026-03-06**, not a popularity contest.
+Full notes and source links: [docs/github-harness-plugin-benchmark.md](docs/github-harness-plugin-benchmark.md)
+
+The card below focuses on what becomes the default operating path after install.
+
+<p align="center">
+  <img src="assets/readme-visuals-en/generated/harness-feature-matrix.svg" alt="How the default workflow changes after installing Claude Harness, Superpowers, or cc-sdd" width="860">
+</p>
+
+Claude Harness is the clearest fit if you want the default path itself to stay planned, guarded, reviewed, and rerunnable.
+
+Supported baseline and latest verified snapshot: see [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md).
 
 ---
 
@@ -68,7 +75,7 @@ That's it. Start with `/harness-plan`.
 
 ---
 
-## 🪄 TL;DR: Work All
+## 🪄 TL;DR: Verified Work All
 
 **Don't want to read all this?** Just type:
 
@@ -76,26 +83,29 @@ That's it. Start with `/harness-plan`.
 /harness-work all
 ```
 
-**One command. Harness does the rest.** Plan → Parallel Implementation → Review → Commit.
+**One command runs the full loop after plan approval.** Plan → Parallel Implementation → Review → Commit.
 
 <p align="center">
   <img src="assets/readme-visuals-en/work-all-flow.svg" alt="/work all pipeline" width="700">
 </p>
 
-| Before | After |
-|--------|-------|
-| `/harness-plan` → `/harness-work` → `/harness-review` → `git commit` | `/harness-work all` |
-| 4 commands | **1** |
-
-> ⚠️ **Experimental**: Once you approve the plan, Claude runs to completion. Quality gate blocks commit if issues found.
+> ⚠️ **Experimental workflow**: Once you approve the plan, Claude runs to completion. Validate the success/failure contract in [docs/evidence/work-all.md](docs/evidence/work-all.md) before depending on it in production.
 
 ---
 
-## The Core Loop
+## The 5 Verb Workflow
 
 <p align="center">
   <img src="assets/readme-visuals-en/generated/core-loop.svg" alt="Plan → Work → Review cycle" width="560">
 </p>
+
+### 0. Setup
+
+```bash
+/harness-setup
+```
+
+Bootstraps project files, rules, and command surfaces so the rest of the loop runs against the same conventions.
 
 ### 1. Plan
 
@@ -137,6 +147,14 @@ Each worker implements, self-reviews, and reports.
 | Quality | Patterns, naming, maintainability |
 | Accessibility | WCAG compliance, screen readers |
 
+### 4. Release
+
+```bash
+/harness-release
+```
+
+Packages the verified result into CHANGELOG, tag, and release handoff steps after implementation and review are complete.
+
 ---
 
 ## Safety First
@@ -161,7 +179,7 @@ Harness v3 protects your codebase with a **TypeScript guardrail engine** (`core/
 
 ## 5 Verb Skills, Zero Config
 
-v3 unifies 42 skills into **5 verb skills**. Auto-load by context. Slash commands or natural language.
+v3 unifies 42 skills into **5 verb skills**. Start with the verbs first, then add Breezing, Codex, or 2-agent flows only when you need them.
 
 <table>
 <tr>
@@ -183,7 +201,7 @@ v3 unifies 42 skills into **5 verb skills**. Auto-load by context. Slash command
 |---------|--------------|-----------------|
 | `/harness-plan` | Ideas → `Plans.md` | `/plan-with-agent`, `/planning` |
 | `/harness-work` | Parallel implementation | `/work`, `/breezing`, `/impl` |
-| `/harness-work all` | Plan → Implement → Review → Commit | `/work all` |
+| `/harness-work all` | Approved plan → implement → review → commit | `/work all` |
 | `/harness-review` | 4-perspective code review | `/harness-review`, `/verify` |
 | `/harness-release` | CHANGELOG, tag, GitHub Release | `/release-har`, `/handoff` |
 | `/harness-setup` | Initialize project | `/harness-init`, `/setup` |
@@ -375,6 +393,16 @@ No setup required—enabled by default.
 
 ---
 
+## Why Harness vs Skill-Pack Only?
+
+Skill packs can teach a prompt. Harness also enforces behavior at runtime.
+
+- **Guardrail engine** blocks destructive writes, secret exposure, and force-push patterns on the actual execution path.
+- **Hooks + review flow** keep quality checks close to the tools that edit your repo.
+- **Validation scripts + evidence pack** give you a rerunnable way to confirm docs, packaging, and `/harness-work all` behavior.
+
+---
+
 ## Troubleshooting
 
 | Issue | Solution |
@@ -427,7 +455,11 @@ Full list: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 |----------|-------------|
 | [Changelog](CHANGELOG.md) | Version history |
 | [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md) | Requirements |
+| [Distribution Scope](docs/distribution-scope.md) | Included vs compatibility vs development-only paths |
+| [Work All Evidence Pack](docs/evidence/work-all.md) | Success/failure verification contract |
 | [Cursor Integration](docs/CURSOR_INTEGRATION.md) | 2-Agent setup |
+| [Benchmark Rubric](docs/benchmark-rubric.md) | Static vs executed evidence scoring |
+| [Positioning Notes](docs/positioning-notes.md) | Public-facing differentiation language |
 
 ---
 

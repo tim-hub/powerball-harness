@@ -14,6 +14,8 @@
 
 ```bash
 ./tests/validate-plugin.sh
+./tests/validate-plugin-v3.sh
+./scripts/ci/check-consistency.sh
 ```
 
 ### Unified Memory 検証
@@ -36,7 +38,7 @@
 ./tests/test-memory-search-quality.sh
 ```
 
-このテストは以下を確認します：
+これらの検証は以下を確認します：
 
 1. **プラグイン構造**: plugin.jsonの存在と妥当性
 2. **コマンド**: 登録されたコマンドファイルの存在
@@ -77,7 +79,14 @@ Claude harness - プラグイン検証テスト
 
 ## CI/CDでの利用
 
-GitHub Actionsで自動的にこのテストが実行されます。詳細は `.github/workflows/validate.yml` を参照してください。
+GitHub Actions では `.github/workflows/validate-plugin.yml` が以下を実行します。
+
+- `./tests/validate-plugin.sh`
+- `./scripts/ci/check-consistency.sh`
+- `./tests/test-codex-package.sh`
+- `cd core && npm test`
+
+`/harness-work all` の success / failure fixture は smoke / full を分けて管理しています。詳細は [docs/evidence/work-all.md](../docs/evidence/work-all.md) を参照してください。
 
 ## トラブルシューティング
 

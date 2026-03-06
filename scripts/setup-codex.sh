@@ -207,13 +207,13 @@ merge_dir_recursive() {
         local dst_path="$dst_dir/$name"
 
         if [ ! -e "$dst_path" ]; then
-            cp -R "$entry" "$dst_dir/"
+            cp -R -L "$entry" "$dst_dir/"
             eval "$_copied_ref=\$((\$$_copied_ref + 1))"
         elif [ -d "$entry" ] && [ -d "$dst_path" ]; then
             merge_dir_recursive "$entry" "$dst_path" "$backup_root" "$_copied_ref" "$_updated_ref"
         else
             backup_path "$dst_path" "$backup_root"
-            cp -R "$entry" "$dst_dir/"
+            cp -R -L "$entry" "$dst_dir/"
             eval "$_updated_ref=\$((\$$_updated_ref + 1))"
         fi
     done
@@ -249,13 +249,13 @@ sync_named_children() {
         local dst_path="$dst_dir/$name"
 
         if [ ! -e "$dst_path" ]; then
-            cp -R "$entry" "$dst_dir/"
+            cp -R -L "$entry" "$dst_dir/"
             copied=$((copied + 1))
         elif [ -d "$entry" ] && [ -d "$dst_path" ]; then
             merge_dir_recursive "$entry" "$dst_path" "$backup_root" "copied" "updated"
         else
             backup_path "$dst_path" "$backup_root"
-            cp -R "$entry" "$dst_dir/"
+            cp -R -L "$entry" "$dst_dir/"
             updated=$((updated + 1))
         fi
     done

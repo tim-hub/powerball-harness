@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 340" fill="none">
+  <defs>
+    <linearGradient id="bgWhyEn" x1="0" y1="0" x2="980" y2="340" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fffaf5"/>
+      <stop offset="1" stop-color="#fff7ed"/>
+    </linearGradient>
+    <filter id="shadowWhyEn">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#0f172a" flood-opacity="0.08"/>
+    </filter>
+    <style>
+      .title { font: 700 24px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .subtitle { font: 500 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #64748b; }
+      .cardTitle { font: 700 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .cardBody { font: 500 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #475569; }
+      .cardKicker { font: 700 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #ea580c; letter-spacing: 0.06em; }
+      .footer { font: 600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #64748b; }
+    </style>
+  </defs>
+
+  <rect width="980" height="340" rx="28" fill="url(#bgWhyEn)"/>
+  <rect x="1" y="1" width="978" height="338" rx="27" stroke="#fed7aa" stroke-width="2"/>
+
+  <text x="36" y="44" class="title">What Harness changes first</text>
+  <text x="36" y="66" class="subtitle">Not smarter prompts. A steadier operating model for shipping with Claude Code.</text>
+
+  <g transform="translate(36 92)" filter="url(#shadowWhyEn)">
+    <rect width="284" height="190" rx="22" fill="#ffffff"/>
+    <rect x="1" y="1" width="282" height="188" rx="21" stroke="#e2e8f0"/>
+    <text x="28" y="36" class="cardKicker">BEFORE CODE</text>
+    <circle cx="50" cy="78" r="22" fill="#fff7ed" stroke="#fdba74"/>
+    <path d="M41 78 L48 85 L61 70" fill="none" stroke="#f7931a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="84" y="76" class="cardTitle">Shared plan in repo</text>
+    <text x="84" y="94" class="cardBody">Plans stop living in chat only.</text>
+    <text x="28" y="132" class="cardBody">Harness writes the working plan into</text>
+    <text x="28" y="149" class="cardBody">`Plans.md`, so decisions, scope, and</text>
+    <text x="28" y="166" class="cardBody">acceptance criteria survive the session.</text>
+  </g>
+
+  <g transform="translate(348 92)" filter="url(#shadowWhyEn)">
+    <rect width="284" height="190" rx="22" fill="#ffffff"/>
+    <rect x="1" y="1" width="282" height="188" rx="21" stroke="#e2e8f0"/>
+    <text x="28" y="36" class="cardKicker">DURING WORK</text>
+    <circle cx="50" cy="78" r="22" fill="#fff7ed" stroke="#fdba74"/>
+    <path d="M39 82 L39 73 C39 67 44 62 50 62 C56 62 61 67 61 73 L61 82" fill="none" stroke="#f7931a" stroke-width="3" stroke-linecap="round"/>
+    <rect x="42" y="80" width="16" height="14" rx="4" fill="none" stroke="#f7931a" stroke-width="3"/>
+    <text x="84" y="76" class="cardTitle">Runtime guardrails</text>
+    <text x="84" y="94" class="cardBody">Risky actions are checked on the path.</text>
+    <text x="28" y="132" class="cardBody">The flow is not protected by reminders</text>
+    <text x="28" y="149" class="cardBody">alone. TypeScript hooks and rules guard</text>
+    <text x="28" y="166" class="cardBody">the actual execution path.</text>
+  </g>
+
+  <g transform="translate(660 92)" filter="url(#shadowWhyEn)">
+    <rect width="284" height="190" rx="22" fill="#ffffff"/>
+    <rect x="1" y="1" width="282" height="188" rx="21" stroke="#e2e8f0"/>
+    <text x="28" y="36" class="cardKicker">AFTER CHANGES</text>
+    <circle cx="50" cy="78" r="22" fill="#fff7ed" stroke="#fdba74"/>
+    <path d="M42 74 L58 74" stroke="#f7931a" stroke-width="3" stroke-linecap="round"/>
+    <path d="M42 82 L54 82" stroke="#f7931a" stroke-width="3" stroke-linecap="round"/>
+    <path d="M42 90 L58 90" stroke="#f7931a" stroke-width="3" stroke-linecap="round"/>
+    <text x="84" y="76" class="cardTitle">Proof you can rerun</text>
+    <text x="84" y="94" class="cardBody">Validation is not a one-off promise.</text>
+    <text x="28" y="132" class="cardBody">Checks, evidence scripts, and review</text>
+    <text x="28" y="149" class="cardBody">steps can be rerun later when you need</text>
+    <text x="28" y="166" class="cardBody">to verify what really happened.</text>
+  </g>
+
+  <text x="490" y="314" text-anchor="middle" class="footer">Setup, plan, work, review, and release stay on one operating path.</text>
+</svg>

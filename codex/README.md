@@ -100,6 +100,7 @@ cp claude-code-harness/codex/.codex/config.toml "$CODEX_HOME/config.toml"
 
 ## Runtime Behavior
 
+- `$harness-work` and `$harness-review` are the primary Codex-facing workflow surfaces.
 - `$work` / `$breezing` default to Codex native multi-agent orchestration.
 - Native flow uses `spawn_agent`, `wait`, `send_input`, `resume_agent`, `close_agent`.
 - `--claude` switches both implementation and review to Claude delegation.

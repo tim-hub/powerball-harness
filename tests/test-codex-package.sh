@@ -137,69 +137,35 @@ else
   log_pass "Rules examples check skipped"
 fi
 
-# Test 1.6: codex multi-agent migration guardrails
-log_test "Codex multi-agent migration vocabulary checks"
-targets=(
+# Test 1.6: path-based skill bundle is present
+log_test "Codex path-based core skills exist"
+required_skill_dirs=(
+  "codex/.codex/skills/harness-plan"
+  "codex/.codex/skills/harness-work"
+  "codex/.codex/skills/harness-review"
+  "codex/.codex/skills/harness-release"
+  "codex/.codex/skills/harness-setup"
   "codex/.codex/skills/breezing"
-  "codex/.codex/skills/work"
 )
-forbidden=(
-  "delegate mode"
-  "TaskCreate"
-  "subagent_type"
-  "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS"
-  ".claude/state"
-)
-
-forbidden_hit=false
-for pat in "${forbidden[@]}"; do
-  if rg -n --fixed-strings "$pat" "${targets[@]}" >/tmp/codex-forbidden.$$ 2>/dev/null; then
-    echo "  forbidden pattern found: $pat"
-    head -5 /tmp/codex-forbidden.$$ | sed 's/^/    /'
-    forbidden_hit=true
-  fi
-done
-rm -f /tmp/codex-forbidden.$$ || true
-
-if $forbidden_hit; then
-  log_fail "Forbidden legacy vocabulary remains in Codex skills"
-else
-  log_pass "No forbidden legacy vocabulary in Codex skills"
-fi
-
-log_test "Codex native multi-agent keywords present"
-required_keywords=(
-  "spawn_agent"
-  "wait"
-  "send_input"
-  "resume_agent"
-  "close_agent"
-)
-missing_keyword=false
-for kw in "${required_keywords[@]}"; do
-  if rg -q --fixed-strings "$kw" "${targets[@]}"; then
-    echo "  ok: $kw"
+skills_ok=true
+for dir in "${required_skill_dirs[@]}"; do
+  if [ -e "$dir" ]; then
+    echo "  ok: $dir"
   else
-    echo "  missing: $kw"
-    missing_keyword=true
+    echo "  missing: $dir"
+    skills_ok=false
   fi
 done
-if $missing_keyword; then
-  log_fail "Missing codex native multi-agent keywords"
+if $skills_ok; then
+  log_pass "Path-based core skills are present"
 else
-  log_pass "Codex native multi-agent keywords present"
+  log_fail "Missing path-based core skills"
 fi
 
 log_test "Non-breezing Codex skills are CLI-only"
 cli_only_targets=(
-  "codex/.codex/skills/work/SKILL.md"
+  "codex/.codex/skills/harness-work/SKILL.md"
   "codex/.codex/skills/harness-review/SKILL.md"
-  "codex/.codex/skills/harness-review/references/codex-integration.md"
-  "codex/.codex/skills/harness-review/references/determine-review-mode.md"
-  "codex/.codex/skills/codex-review/SKILL.md"
-  "codex/.codex/skills/codex-review/references/codex-mcp-setup.md"
-  "codex/.codex/skills/codex-review/references/codex-mode.md"
-  "codex/.codex/skills/codex-review/references/codex-parallel-review.md"
   "codex/.codex/skills/routing-rules.md"
 )
 forbidden_cli_terms=(
@@ -225,24 +191,28 @@ else
   log_fail "CLI-only vocabulary check failed for non-breezing Codex skills"
 fi
 
-log_test "--claude review routing is fixed to Claude"
-claude_review_check=true
-if ! rg -q --fixed-strings '| `review_engine` | `codex` | `claude` |' "codex/.codex/skills/breezing/SKILL.md"; then
-  echo "  missing review_engine matrix in breezing/SKILL.md"
-  claude_review_check=false
+log_test "Codex docs point at harness-* workflow surfaces"
+workflow_surface_ok=true
+if ! rg -q --fixed-strings '$harness-work' "codex/README.md"; then
+  echo "  missing: \$harness-work in codex/README.md"
+  workflow_surface_ok=false
 fi
-if ! rg -q --fixed-strings '| `review_engine` | `codex` | `claude` |' "codex/.codex/skills/work/SKILL.md"; then
-  echo "  missing review_engine matrix in work/SKILL.md"
-  claude_review_check=false
+if ! rg -q --fixed-strings '$harness-review' "codex/README.md"; then
+  echo "  missing: \$harness-review in codex/README.md"
+  workflow_surface_ok=false
 fi
-if ! rg -q --fixed-strings -- "--claude + --codex-review" "codex/.codex/skills/breezing" "codex/.codex/skills/work"; then
-  echo "  missing conflict rule: --claude + --codex-review"
-  claude_review_check=false
+if ! rg -q --fixed-strings -- '--codex' "codex/.codex/skills/harness-work/SKILL.md"; then
+  echo "  missing: --codex in harness-work/SKILL.md"
+  workflow_surface_ok=false
 fi
-if $claude_review_check; then
-  log_pass "--claude review routing checks passed"
+if ! rg -q --fixed-strings '/harness-work' "codex/.codex/skills/breezing/SKILL.md"; then
+  echo "  missing: /harness-work alias note in breezing/SKILL.md"
+  workflow_surface_ok=false
+fi
+if $workflow_surface_ok; then
+  log_pass "Harness workflow surfaces are documented for Codex"
 else
-  log_fail "--claude review routing checks failed"
+  log_fail "Harness workflow surface checks failed"
 fi
 
 log_test "codex/.codex/config.toml has multi_agent + harness roles"
@@ -308,8 +278,8 @@ else
   log_fail "Setup script duplicate-skill guards are missing"
 fi
 
-# Test 1.8: codex-setup-local should cleanup legacy renamed skill aliases
-log_test "codex-setup-local cleans legacy renamed skill aliases"
+# Test 1.8: codex-setup-local should cleanup duplicate frontmatter names
+log_test "codex-setup-local cleans duplicate frontmatter skill aliases"
 if PROJECT_ROOT="$PROJECT_ROOT" bash -lc '
 set -euo pipefail
 project_root="$PROJECT_ROOT"
@@ -318,30 +288,30 @@ trap "rm -rf \"$tmp_home\"" EXIT
 
 export HOME="$tmp_home"
 export CODEX_HOME="$tmp_home/.codex"
-mkdir -p "$CODEX_HOME/skills/plan-with-agent/references"
-cat > "$CODEX_HOME/skills/plan-with-agent/SKILL.md" <<'"'"'EOF'"'"'
+mkdir -p "$CODEX_HOME/skills/legacy-harness-plan/references"
+cat > "$CODEX_HOME/skills/legacy-harness-plan/SKILL.md" <<'"'"'EOF'"'"'
 ---
-name: plan-with-agent
-description: legacy alias for migration test
+name: harness-plan
+description: duplicate frontmatter name for migration test
 allowed-tools: ["Read"]
 ---
 EOF
 
 CLAUDE_PLUGIN_ROOT="$project_root" bash "$project_root/scripts/codex-setup-local.sh" --user >/dev/null
 
-test -f "$CODEX_HOME/skills/planning/SKILL.md"
-if [ -d "$CODEX_HOME/skills/plan-with-agent" ]; then
-  echo "  legacy alias directory still exists"
+test -f "$CODEX_HOME/skills/harness-plan/SKILL.md"
+if [ -d "$CODEX_HOME/skills/legacy-harness-plan" ]; then
+  echo "  duplicate alias directory still exists"
   exit 1
 fi
-if ! find "$CODEX_HOME/backups/codex-setup-local" -type d -name "plan-with-agent.*" | grep -q .; then
-  echo "  legacy alias backup not found"
+if ! find "$CODEX_HOME/backups/codex-setup-local" -type d -name "legacy-harness-plan.*" | grep -q .; then
+  echo "  duplicate alias backup not found"
   exit 1
 fi
 '; then
-  log_pass "Legacy renamed alias cleanup works"
+  log_pass "Duplicate frontmatter alias cleanup works"
 else
-  log_fail "Legacy renamed alias cleanup failed"
+  log_fail "Duplicate frontmatter alias cleanup failed"
 fi
 
 # Test 2: skills directory parity
