@@ -540,3 +540,41 @@
 | 23.0.1 | 公開 5 skill の配布形を symlink 依存から外し、Windows checkout でも command 一覧に出る mirror 構成へ移行 | cc:完了 |
 | 23.0.2 | `check-consistency` / `validate-plugin-v3` / 必要な package tests を mirror 内容一致前提へ更新 | cc:完了 |
 | 23.0.3 | README / compatibility docs に Windows 向けの短い説明と復旧不要になった点を反映 | cc:完了 |
+
+---
+
+## Phase 24: Claude Code v2.1.70〜v2.1.71 対応
+
+作成日: 2026-03-07
+起点: Claude Code v2.1.70〜v2.1.71 リリース（新 Hook イベント、/loop、Background Agent 修正等）
+目的: Harness の Feature Table・Hook・スキル・エージェントを最新 CC に最適化
+
+### Phase 24.0: Feature Table + ドキュメント更新 [P0] [P]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 24.0.1 | `docs/CLAUDE-feature-table.md` に v2.1.70〜71 の全項目追加（/loop, SubagentStart/Stop, PostToolUseFailure, PreCompact, Background Agent 出力修正, Compaction 画像保持, サブエージェント簡潔レポート, --resume スキルリスト廃止, Plugin hooks 修正, --print hang 修正, Plugin 並列インストール修正, Teammate ネスト防止, Marketplace 改善） | cc:完了 |
+| 24.0.2 | `CLAUDE.md` Feature Table に v2.1.70〜71 の主要行追加（/loop + Cron, PostToolUseFailure hook, Background Agent 出力修正） | cc:完了 |
+
+### Phase 24.1: 新 Hook イベントハンドラ実装 [P1]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 24.1.1 | `scripts/hook-handlers/post-tool-failure.sh` 新規作成（連続失敗 3 回で escalation） | cc:完了 |
+| 24.1.2 | `hooks/hooks.json` + `.claude-plugin/hooks.json` に PostToolUseFailure イベント登録 | cc:完了 |
+
+### Phase 24.2: スキル・エージェント更新 [P2] [P]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 24.2.1 | `/loop` 活用ガイドを Breezing スキルに追加（`/loop 5m /sync-status` による能動的ポーリング監視） | cc:完了 |
+| 24.2.2 | Background agent 積極利用ガイド更新（`skills/breezing/SKILL.md`） | cc:完了 |
+| 24.2.3 | Worker/Reviewer spawn prompt 軽量化（簡潔レポート指示削除 — CC 側で自動対応済み） | cc:完了（該当指示なし） |
+| 24.2.4 | `skills/harness-setup/SKILL.md` に Marketplace `@ref` 方式を推奨として反映 | cc:完了 |
+
+### Phase 24.3: 統合検証・バージョン・リリース [P3]
+
+| Task | 内容 | Status |
+|------|------|--------|
+| 24.3.1 | `./tests/validate-plugin.sh` + `./scripts/ci/check-consistency.sh` 全体検証 | cc:完了 |
+| 24.3.2 | VERSION バンプ 3.4.2 → 3.5.0 + plugin.json 同期 + CHANGELOG 追記 | cc:完了 |

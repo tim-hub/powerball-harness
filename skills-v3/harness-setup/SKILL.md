@@ -150,6 +150,35 @@ cat >> .claude/rules/project-rules.md << 'EOF'
 EOF
 ```
 
+## Plugin インストール (v2.1.71+ Marketplace)
+
+v2.1.71 で Marketplace の安定性が大幅に改善された。
+
+### 推奨インストール方式
+
+```bash
+# @ref 形式でバージョン固定（推奨）
+claude plugin install owner/repo@v3.5.0
+
+# 最新版
+claude plugin install owner/repo
+```
+
+`owner/repo@vX.X.X` 形式を推奨。`@ref` パーサー修正により、タグ・ブランチ・コミットハッシュいずれも正確に解決される。
+
+### アップデート
+
+```bash
+claude plugin update owner/repo
+```
+
+v2.1.71 で update 時の merge conflict が修正され、安定したアップデートが可能になった。
+
+### その他の改善点
+
+- MCP server 重複排除: 同一 MCP サーバーの多重登録を自動防止
+- `/plugin uninstall` が `settings.local.json` を使用: ユーザーローカル設定に正確に反映
+
 ## Maintenance — ファイル整理
 
 定期メンテナンスタスク:

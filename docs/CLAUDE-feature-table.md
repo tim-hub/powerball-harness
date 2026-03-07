@@ -1,6 +1,6 @@
-# Claude Code 2.1.69+ 新機能活用ガイド（完全版）
+# Claude Code 2.1.71+ 新機能活用ガイド（完全版）
 
-> **概要**: Harness が活用する Claude Code 2.1.69+ の全機能一覧。
+> **概要**: Harness が活用する Claude Code 2.1.71+ の全機能一覧。
 > CLAUDE.md の Feature Table の完全版（詳細説明付き）。
 
 ## 機能一覧
@@ -49,6 +49,17 @@
 | **`includeGitInstructions: false` (v2.1.69)** | work, breezing | git 指示が不要な場面のトークン削減 |
 | **`git-subdir` plugin source (v2.1.69)** | setup, release | サブディレクトリ管理された plugin source に対応 |
 | **Auto Mode (Research Preview, 2026-03-12〜)** | breezing, work | `bypassPermissions` の安全な代替。権限判断を Claude が自動実行。プロンプトインジェクション対策付き。トークン・レイテンシ微増 |
+| **Compaction 画像保持 (v2.1.70)** | notebookLM, harness-review | サマリーリクエストで画像を保持。プロンプトキャッシュ再利用改善 |
+| **サブエージェント最終レポート簡潔化 (v2.1.70)** | breezing, harness-work | サブエージェント完了レポートのトークン消費削減 |
+| **`--resume` スキルリスト再注入廃止 (v2.1.70)** | session | セッション再開時に ~600 tokens 節約 |
+| **Plugin hooks 修正 (v2.1.70)** | hooks | Stop/SessionEnd が /plugin 後に発火、テンプレート衝突解消、WorktreeCreate/Remove 正常動作 |
+| **Teammate ネスト防止追加修正 (v2.1.70)** | breezing | v2.1.69 対応に加え、追加のネスト防止修正 |
+| **PostToolUseFailure hook (v2.1.70)** | hooks | ツール呼び出し失敗時に発火する新フックイベント |
+| **`/loop` + Cron スケジューリング (v2.1.71)** | breezing, harness-work | `/loop 5m <prompt>` で定期実行。タスク進捗の自動監視に活用 |
+| **Background Agent 出力パス修正 (v2.1.71)** | breezing, parallel-workflows | 完了通知に出力ファイルパスを含む。圧縮後も結果回収可能 |
+| **`--print` チームエージェント hang 修正 (v2.1.71)** | CI 連携 | `--print` モードでのチームエージェント hang を修正 |
+| **Plugin インストール並列実行修正 (v2.1.71)** | breezing | 複数インスタンス時のプラグイン状態安定化 |
+| **Marketplace 改善 (v2.1.71)** | setup | @ref パーサー修正、update merge conflict 修正、MCP server 重複排除、/plugin uninstall が settings.local.json 使用 |
 
 ## 機能詳細
 
@@ -288,6 +299,79 @@ Harness では breezing/work の軽量タスク（ドキュメント更新など
 
 plugin source を monorepo のサブディレクトリで管理する `git-subdir` 方式がサポートされた。
 Harness では現状 `.claude-plugin/plugin.json` に追加フィールドを強制せず、リリース時に `plugin source` を明示して運用する（互換性優先）。
+
+### Compaction 画像保持 (v2.1.70)
+
+CC 2.1.70 でコンテキスト圧縮（Compaction）時にサマリーリクエストが画像を保持するようになった。
+これにより、スクリーンショットや図表を含むセッションで Compaction 後も画像コンテキストが維持される。
+プロンプトキャッシュの再利用率も改善され、画像を扱うスキル全般で効率が向上。
+
+### サブエージェント最終レポート簡潔化 (v2.1.70)
+
+サブエージェント完了時の最終レポートが簡潔化され、トークン消費が削減された。
+`breezing` や `harness-work` で多数のサブエージェントを起動する場合、累積的なトークン節約効果が大きい。
+
+### `--resume` スキルリスト再注入廃止 (v2.1.70)
+
+`--resume` でセッション再開する際、スキルリストの再注入が廃止された。
+これにより約 600 tokens が節約され、`session` スキルでの再開フローが軽量化。
+
+### Plugin hooks 修正 (v2.1.70)
+
+v2.1.70 で複数の Plugin hooks 関連バグが修正された:
+- `Stop` / `SessionEnd` フックが `/plugin` コマンド実行後にも正常に発火
+- 同一テンプレートを持つフック間の衝突が解消
+- `WorktreeCreate` / `WorktreeRemove` フックの正常動作が確認
+
+### Teammate ネスト防止追加修正 (v2.1.70)
+
+v2.1.69 で対応済みの Teammate ネスト防止に追加修正が入った。
+エージェントが別のエージェントを無限に spawn するカスケード問題の防止が強化された。
+
+### PostToolUseFailure hook (v2.1.70)
+
+CC 2.1.70 で `PostToolUseFailure` イベントが追加された。ツール呼び出しが失敗した時に発火する新しいフックイベント。
+Harness では `hooks` スキルと `error-recovery` で活用し、連続失敗時の自動エスカレーション（3回連続失敗で停止）に使用。
+
+```json
+"PostToolUseFailure": [{
+  "hooks": [{
+    "type": "command",
+    "command": "...post-tool-failure.sh",
+    "timeout": 10
+  }]
+}]
+```
+
+### `/loop` + Cron スケジューリング (v2.1.71)
+
+CC 2.1.71 で `/loop` コマンドが追加された。`/loop 5m <prompt>` のように間隔とプロンプトを指定すると、定期的にコマンドを実行する Cron 風スケジューリングが可能。
+`breezing` では `/loop 5m /sync-status` でタスク進捗の定期チェックに活用。
+既存の `TeammateIdle`（受動的・イベント駆動）と異なり、能動的に定期監視を行える。
+
+### Background Agent 出力パス修正 (v2.1.71)
+
+CC 2.1.71 で Background Agent の完了通知に出力ファイルパスが含まれるようになった。
+これにより、圧縮後でもバックグラウンドエージェントの結果を安全に回収可能。
+`breezing` や `parallel-workflows` での `run_in_background: true` が実用的に。
+
+### `--print` チームエージェント hang 修正 (v2.1.71)
+
+`--print` モードでチームエージェントが hang する問題が修正された。
+CI パイプラインでの `claude --print` 実行時のチームエージェント安定性が向上。
+
+### Plugin インストール並列実行修正 (v2.1.71)
+
+複数の Claude Code インスタンスが同時にプラグインをインストールする際の状態競合が修正された。
+`breezing` で複数 Teammate が同時に起動する際のプラグイン読み込み安定性が向上。
+
+### Marketplace 改善 (v2.1.71)
+
+CC 2.1.71 で Marketplace 周りに複数の改善が入った:
+- `@ref` パーサー修正: `owner/repo@vX.X.X` 形式の参照解決が正確に
+- update 時の merge conflict 修正: プラグイン更新がより安定に
+- MCP server 重複排除: 同一 MCP サーバーの多重登録を防止
+- `/plugin uninstall` が `settings.local.json` を使用: ユーザーローカル設定への正確な反映
 
 ## 関連ドキュメント
 

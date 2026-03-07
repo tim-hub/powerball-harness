@@ -167,6 +167,17 @@
         ]
       }
     ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/post-tool-failure",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "TeammateIdle": [
       {
         "hooks": [

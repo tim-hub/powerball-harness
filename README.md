@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-3.4.2-blue.svg" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-3.5.0-blue.svg" alt="Version"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
   <img src="https://img.shields.io/badge/Skills-5_Verbs-orange.svg" alt="Skills">
@@ -426,7 +426,7 @@ Project files (Plans.md, SSOT files) remain unchanged.
 
 ---
 
-## Claude Code 2.1.69+ Features
+## Claude Code 2.1.71+ Features
 
 Harness leverages the latest Claude Code features out of the box.
 
@@ -439,11 +439,13 @@ Harness leverages the latest Claude Code features out of the box.
 | **Effort levels + ultrathink** | harness-work | Auto-injects ultrathink for complex tasks |
 | **Agent hooks** | hooks | LLM-powered code quality guards (secrets, TODO stubs, security) |
 | **`${CLAUDE_SKILL_DIR}` variable** | all harness-* skills | Stable references to skill-local docs |
-| **InstructionsLoaded hook** | hooks | Pre-session instruction-load tracking |
 | **`agent_id` / `agent_type` fields** | hooks, breezing | Robust teammate identity and role guard |
 | **`{"continue": false}` teammate response** | breezing | Auto-stop when all assigned tasks are complete |
 | **`/reload-plugins`** | all harness-* skills | Apply skill/hook edits immediately |
-| **`includeGitInstructions: false`** | harness-work, breezing | Lower token cost on git-light tasks |
+| **`/loop` + Cron scheduling** | breezing, harness-work | Active polling with `/loop 5m /sync-status` |
+| **PostToolUseFailure hook** | hooks | Auto-escalation after 3 consecutive tool failures |
+| **Background Agent output fix** | breezing | Safe `run_in_background` with output path in completion |
+| **Compaction image retention** | all harness-* skills | Images preserved during context compaction |
 | **WorktreeCreate/Remove hook** | breezing | Worktree lifecycle auto-setup and cleanup |
 
 Full list: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
