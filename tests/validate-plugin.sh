@@ -200,6 +200,26 @@ else
     warn_test "hooks.json が見つかりません"
 fi
 
+POST_TOOL_FAILURE="$PLUGIN_ROOT/scripts/hook-handlers/post-tool-failure.sh"
+if [ -f "$POST_TOOL_FAILURE" ]; then
+    tmp_dir="$(mktemp -d)"
+    target_file="$tmp_dir/target.txt"
+    mkdir -p "$tmp_dir/.claude/state"
+    printf 'SAFE\n' > "$target_file"
+    ln -s "$target_file" "$tmp_dir/.claude/state/tool-failure-counter.txt"
+
+    hook_output="$(printf '{"tool_name":"Bash","error":"boom"}' | PROJECT_ROOT="$tmp_dir" bash "$POST_TOOL_FAILURE" 2>/dev/null || true)"
+    target_after="$(cat "$target_file" 2>/dev/null || true)"
+
+    if [ "$hook_output" = "{}" ] && [ "$target_after" = "SAFE" ]; then
+        pass_test "post-tool-failure.sh は symlink state file を上書きしません"
+    else
+        fail_test "post-tool-failure.sh の symlink 防御が不足しています"
+    fi
+
+    rm -rf "$tmp_dir"
+fi
+
 echo ""
 echo "6. スクリプトの検証"
 echo "----------------------------------------"

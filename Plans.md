@@ -578,3 +578,5 @@
 |------|------|--------|
 | 24.3.1 | `./tests/validate-plugin.sh` + `./scripts/ci/check-consistency.sh` 全体検証 | cc:完了 |
 | 24.3.2 | VERSION バンプ 3.4.2 → 3.5.0 + plugin.json 同期 + CHANGELOG 追記 | cc:完了 |
+| 24.3.R1 | `post-tool-failure.sh` に `.claude/state` symlink 防御を追加（Reviewer 指摘） | cc:完了 |
+| 24.3.R2 | `CHANGELOG.md` の非標準見出しを Keep a Changelog 形式へ正規化（Reviewer 指摘） | cc:完了 |

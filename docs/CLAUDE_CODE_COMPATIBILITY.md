@@ -1,12 +1,12 @@
 # Claude Code Compatibility
 
-Last updated: 2026-03-06
+Last updated: 2026-03-07
 
 ## Supported Baseline
 
 - Claude Code: `v2.1+`
 - Node.js: `18+`
-- Plugin version: `3.4.2`
+- Plugin version: `3.5.0`
 
 ## Latest Verified Snapshot
 

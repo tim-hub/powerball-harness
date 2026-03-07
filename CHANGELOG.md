@@ -24,74 +24,24 @@ Change history for claude-code-harness.
 
 ---
 
-### New Features (actively leveraged by Harness)
-
-#### `/loop` Command + Cron Scheduling (v2.1.71)
-
-| Item | Detail |
-|------|--------|
-| **CC Feature** | `/loop 5m <prompt>` runs prompts on a recurring interval. Session-scoped cron tool also added |
-| **Harness Improvement** | Added "Active Monitoring with /loop (v2.1.71+)" section to Breezing skill with TeammateIdle (passive) vs `/loop` (active) comparison table |
-| **Files** | `skills/breezing/SKILL.md`, `docs/CLAUDE-feature-table.md`, `CLAUDE.md` |
-
-#### PostToolUseFailure Hook (v2.1.70)
-
-| Item | Detail |
-|------|--------|
-| **CC Feature** | New event fires on tool call failure |
-| **Harness Improvement** | `scripts/hook-handlers/post-tool-failure.sh` — timestamp-based consecutive failure counter (60s window). Escalates with `systemMessage` warning after 3 failures. 3-tier fallback: jq → python3 → printf |
-| **Files** | `scripts/hook-handlers/post-tool-failure.sh` (new), `hooks/hooks.json`, `.claude-plugin/hooks.json` |
-
-#### Background Agent Output Fix (v2.1.71)
-
-| Item | Detail |
-|------|--------|
-| **CC Feature** | Background agent completion notification now includes output file path. Results recoverable after compaction |
-| **Harness Improvement** | Added "Background Agent (v2.1.71+)" section to Breezing skill with `run_in_background: true` usage guide and caveats |
-| **Files** | `skills/breezing/SKILL.md`, `docs/CLAUDE-feature-table.md` |
-
-#### Compaction Image Retention (v2.1.70)
-
-| Item | Detail |
-|------|--------|
-| **CC Feature** | Images preserved during compaction summary requests. Prompt cache reuse improved |
-| **Harness Improvement** | Documented in Feature Table. Long-running sessions with image context now reliable |
-| **Files** | `docs/CLAUDE-feature-table.md`, `CLAUDE.md` |
-
-#### Marketplace Improvements (v2.1.71)
-
-| Item | Detail |
-|------|--------|
-| **CC Feature** | `@ref` parser fix, `update` merge conflict fix, MCP server deduplication, `/plugin uninstall` uses `settings.local.json` |
-| **Harness Improvement** | Added "Plugin Install (v2.1.71+ Marketplace)" section to setup skill. `owner/repo@vX.X.X` ref pinning recommended |
-| **Files** | `skills/harness-setup/SKILL.md` + 3 mirrors (skills-v3, codex, opencode) |
-
----
-
-### Stability Fixes (documented in Feature Table)
-
-| CC Fix | Harness Impact |
-|--------|----------------|
-| Plugin hooks: Stop/SessionEnd now fire after `/plugin` ops | Harness Stop hook (WIP task guard) works reliably |
-| Plugin hooks: same-template collision resolved | Multi-plugin hook conflicts eliminated |
-| WorktreeCreate/Remove hooks no longer silently ignored | Breezing worktree lifecycle hooks work as designed |
-| `--print` team agent hang fixed (v2.1.71) | CI integration with `claude -p` is safe |
-| Parallel plugin install race condition fixed (v2.1.71) | Breezing parallel teammate startup is stable |
-| Subagent final reports auto-brevity (v2.1.70) | No Harness changes needed — CC handles report brevity automatically |
-| `--resume` skill list re-injection removed (v2.1.70) | ~600 tokens saved per resume. No Harness changes needed |
-
----
-
 ### Added
-- **`PostToolUseFailure` hook handler**: Timestamp-based consecutive failure tracking (60s window), auto-escalation at 3 failures
-- **Feature Table v2.1.70–v2.1.71**: 12 items added to `docs/CLAUDE-feature-table.md`
-- **CLAUDE.md Feature Table**: 4 new rows (`/loop`, PostToolUseFailure, Background Agent output fix, compaction image retention)
-- **Breezing `/loop` guide**: Active monitoring vs passive TeammateIdle comparison
-- **Breezing Background Agent guide**: Safe `run_in_background` usage after v2.1.71 fix
-- **Marketplace `@ref` install**: `owner/repo@vX.X.X` recommendation in setup skill
+- **`PostToolUseFailure` hook handler**: 60秒ウィンドウの連続失敗カウンターと 3 回失敗時の自動エスカレーションを追加
+- **Feature Table v2.1.70–v2.1.71**: `docs/CLAUDE-feature-table.md` に 12 項目を追加
+- **Breezing `/loop` guide**: `TeammateIdle` と `/loop` の役割分担を説明する active monitoring ガイドを追加
+- **Breezing Background Agent guide**: v2.1.71 の出力パス修正を踏まえた `run_in_background` 運用ガイドを追加
+- **Marketplace `@ref` install guidance**: `owner/repo@vX.X.X` を推奨するセットアップ手順を追加
+
+### Changed
+- **CLAUDE.md Feature Table**: `/loop`、`PostToolUseFailure`、Background Agent 出力修正、Compaction 画像保持を反映
+- **Feature adoption notes**: Plugin hooks 修正、`--print` hang 修正、並列 plugin install 修正、`--resume` スキル再注入廃止を Feature Table に整理
+- **README version badges**: `3.5.0` に同期
+- **Compatibility doc**: plugin version を `3.5.0` に更新
 
 ### Fixed
 - Windows checkout with `core.symlinks=false` no longer hides `harness-*` command skills before SessionStart runs
+
+### Security
+- **Symlink-safe failure counter writes**: `post-tool-failure.sh` は `.claude` 親ディレクトリ、`.claude/state`、`tool-failure-counter.txt` の symlink を検出した場合に state 書き込みをスキップ
 
 ---
 
@@ -1481,6 +1431,7 @@ For v2.9.x and earlier, see [GitHub Releases](https://github.com/Chachamaru127/c
 
 [3.4.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v3.4.0...v3.4.1
 [3.4.2]: https://github.com/Chachamaru127/claude-code-harness/compare/v3.4.1...v3.4.2
+[3.5.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v3.4.2...v3.5.0
 [3.4.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v3.3.1...v3.4.0
 [3.3.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v3.3.0...v3.3.1
 [3.3.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v3.2.0...v3.3.0

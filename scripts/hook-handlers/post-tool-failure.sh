@@ -26,8 +26,32 @@ STATE_DIR="${PROJECT_ROOT}/.claude/state"
 # === ユーティリティ関数 ===
 
 ensure_state_dir() {
+  local state_parent
+  state_parent="$(dirname "${STATE_DIR}")"
+
+  # Security: refuse symlinked state paths to avoid overwriting arbitrary files.
+  if [ -L "${state_parent}" ] || [ -L "${STATE_DIR}" ]; then
+    return 1
+  fi
+
   mkdir -p "${STATE_DIR}" 2>/dev/null || true
   chmod 700 "${STATE_DIR}" 2>/dev/null || true
+
+  [ -d "${STATE_DIR}" ] || return 1
+  [ ! -L "${STATE_DIR}" ] || return 1
+  return 0
+}
+
+write_counter_file() {
+  local count="$1"
+  local timestamp="$2"
+
+  if [ -L "${COUNTER_FILE}" ]; then
+    return 1
+  fi
+
+  printf '%s %s\n' "${count}" "${timestamp}" > "${COUNTER_FILE}"
+  return 0
 }
 
 # === stdin から JSON ペイロードを読み取り ===
@@ -66,9 +90,17 @@ except:
 fi
 
 # === 連続失敗カウンター（タイムスタンプ付き） ===
-ensure_state_dir
+if ! ensure_state_dir; then
+  echo '{}'
+  exit 0
+fi
 COUNTER_FILE="${STATE_DIR}/tool-failure-counter.txt"
 STALENESS_THRESHOLD=60  # 秒。前回失敗から60秒以上経過したらリセット
+
+if [ -L "${COUNTER_FILE}" ]; then
+  echo '{}'
+  exit 0
+fi
 
 CURRENT_COUNT=0
 LAST_TIMESTAMP=0
@@ -93,7 +125,10 @@ if [ -f "${COUNTER_FILE}" ]; then
   fi
 fi
 CURRENT_COUNT=$((CURRENT_COUNT + 1))
-echo "${CURRENT_COUNT} ${NOW}" > "${COUNTER_FILE}"
+if ! write_counter_file "${CURRENT_COUNT}" "${NOW}"; then
+  echo '{}'
+  exit 0
+fi
 
 # === 3回連続失敗で escalation ===
 if [ "${CURRENT_COUNT}" -ge 3 ]; then
@@ -115,7 +150,7 @@ print(json.dumps({'systemMessage': msg}, ensure_ascii=False))
     printf '{"systemMessage":"WARNING: %s consecutive tool failures detected (tool: %s). Stop retrying the same approach."}\n' "${CURRENT_COUNT}" "${TOOL_NAME}"
   fi
   # カウンターリセット
-  echo "0" > "${COUNTER_FILE}"
+  write_counter_file "0" "0" || true
 else
   if command -v jq >/dev/null 2>&1; then
     jq -nc \
