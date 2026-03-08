@@ -6,6 +6,30 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### 🎯 What's Changed for You
+
+**Auto Mode preparation and agent definition modernization for CC 2.1.71+. Worker/Reviewer agents now use per-agent hooks and worktree isolation, and `--auto-mode` flag prepares for the safer permission model launching March 12.**
+
+| Before | After |
+|--------|-------|
+| Agent type mismatch: breezing used `general-purpose`, team-composition used `claude-code-harness:worker` | Unified to `claude-code-harness:worker` / `claude-code-harness:reviewer` everywhere |
+| No way to opt into Auto Mode | `--auto-mode` flag on `/breezing` and `/harness-work --breezing` |
+| Worker/Reviewer had no per-agent hooks | Worker: PreToolUse guard, Reviewer: Stop log via frontmatter hooks |
+| Worker had no worktree isolation in definition | `isolation: worktree` added for automatic parallel write safety |
+
+---
+
+### Added
+- **`--auto-mode` flag**: Opt-in to Auto Mode for `/breezing` and `/harness-work --breezing`. 3-phase migration plan (Phase 0→1→2)
+- **Per-agent hooks in agents-v3**: Worker gets `PreToolUse` Write/Edit guard, Reviewer gets `Stop` completion log
+- **`isolation: worktree` in Worker**: Automatic git worktree creation for parallel Worker instances
+- **Feature Table entries**: Per-agent hooks, Agent `isolation: worktree`, Auto Mode migration plan documented
+
+### Changed
+- **breezing SKILL.md**: Team Composition table uses `claude-code-harness:worker`/`reviewer` instead of `general-purpose`
+- **team-composition.md**: Auto Mode section expanded with activation method, migration phases, and Phase 1 verification items
+- **CLAUDE.md / Feature Table**: 3 new entries added to Feature Table
+
 ---
 
 ## [3.7.0] - 2026-03-08

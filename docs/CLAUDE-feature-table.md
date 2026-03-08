@@ -48,7 +48,9 @@
 | **`/reload-plugins` (v2.1.69)** | 全スキル | スキル・フック編集後の即時反映 |
 | **`includeGitInstructions: false` (v2.1.69)** | work, breezing | git 指示が不要な場面のトークン削減 |
 | **`git-subdir` plugin source (v2.1.69)** | setup, release | サブディレクトリ管理された plugin source に対応 |
-| **Auto Mode (Research Preview, 2026-03-12〜)** | breezing, work | `bypassPermissions` の安全な代替。権限判断を Claude が自動実行。プロンプトインジェクション対策付き。トークン・レイテンシ微増 |
+| **Auto Mode (Research Preview, 2026-03-12〜)** | breezing, work | `bypassPermissions` の安全な代替。`--auto-mode` フラグで有効化。3 フェーズ移行計画で段階導入 |
+| **Per-agent hooks (v2.1.69+)** | agents-v3/ | エージェント定義の frontmatter に `hooks` フィールドを追加。Worker に PreToolUse ガード、Reviewer に Stop ログを設定 |
+| **Agent `isolation: worktree` (v2.1.50+)** | agents-v3/worker | Worker エージェント定義に `isolation: worktree` を追加。並列書き込み時の自動 worktree 分離 |
 | **Compaction 画像保持 (v2.1.70)** | notebookLM, harness-review | サマリーリクエストで画像を保持。プロンプトキャッシュ再利用改善 |
 | **サブエージェント最終レポート簡潔化 (v2.1.70)** | breezing, harness-work | サブエージェント完了レポートのトークン消費削減 |
 | **`--resume` スキルリスト再注入廃止 (v2.1.70)** | session | セッション再開時に ~600 tokens 節約 |
@@ -372,6 +374,43 @@ CC 2.1.71 で Marketplace 周りに複数の改善が入った:
 - update 時の merge conflict 修正: プラグイン更新がより安定に
 - MCP server 重複排除: 同一 MCP サーバーの多重登録を防止
 - `/plugin uninstall` が `settings.local.json` を使用: ユーザーローカル設定への正確な反映
+
+### Per-agent hooks (v2.1.69+)
+
+CC 2.1.69 でエージェント定義の frontmatter に `hooks` フィールドが追加された。
+グローバル hooks.json とは別に、エージェント固有のフックを定義できる。
+
+Harness での活用:
+- **Worker**: `PreToolUse` で Write/Edit 時の `pre-tool.sh` ガードレールを適用
+- **Reviewer**: `Stop` でレビューセッション完了をログ出力
+
+エージェント定義内フックはそのエージェントのライフサイクル中のみ有効で、終了時に自動クリーンアップされる。
+
+### Agent `isolation: worktree` (v2.1.50+)
+
+エージェント定義の frontmatter に `isolation: worktree` を追加すると、
+そのエージェントが起動時に自動で git worktree を作成し、独立したリポジトリコピーで作業する。
+変更がない場合は worktree が自動クリーンアップされる。
+
+Harness では Worker エージェントに `isolation: worktree` を追加。
+`memory: project` と組み合わせることで、worktree 間で Agent Memory（MEMORY.md）が共有され、
+並列 Worker が同一の学習内容を参照・更新可能。
+
+### Auto Mode 段階移行計画
+
+Auto Mode は CC Research Preview として 2026-03-12 に開始予定。
+Harness は 3 フェーズで段階的に移行する:
+
+| フェーズ | 期間 | デフォルト | `--auto-mode` |
+|---------|------|-----------|---------------|
+| Phase 0 (現在) | 〜2026-03-12 | `bypassPermissions` | フラグ無視 |
+| Phase 1 (RP 開始) | 2026-03-12〜 | `bypassPermissions` | `autoMode` に切替 |
+| Phase 2 (検証完了後) | TBD | `autoMode` | — |
+
+Phase 1 検証項目:
+1. PreToolUse / PostToolUse hooks が Auto Mode でも発火するか
+2. Teammate のバックグラウンド spawn で権限プロンプトがブロックされないか
+3. トークンコスト増の実測
 
 ## 関連ドキュメント
 

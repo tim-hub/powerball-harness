@@ -6,9 +6,17 @@ disallowedTools: [Task]
 model: sonnet
 color: yellow
 memory: project
+isolation: worktree
 skills:
   - execute
   - review
+hooks:
+  PreToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool.sh\""
+          timeout: 15
 ---
 
 ## Effort 制御（v2.1.68+）

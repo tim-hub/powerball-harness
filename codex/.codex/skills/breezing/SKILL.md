@@ -33,6 +33,7 @@ user-invocable: true
 | `--parallel N` | Implementer 並列数 | auto |
 | `--no-commit` | 自動コミット抑制 | false |
 | `--no-discuss` | 計画議論スキップ | false |
+| `--auto-mode` | Auto Mode で権限判断（bypassPermissions の代替） | false |
 
 ## Execution
 
@@ -56,8 +57,10 @@ user-invocable: true
 | Role | Agent Type | Mode | 責務 |
 |------|-----------|------|------|
 | Lead | (self) | - | 調整・指揮・タスク分配 |
-| Worker ×N | `general-purpose` | `bypassPermissions` | 実装 |
-| Reviewer | `general-purpose` | `bypassPermissions` | 独立レビュー |
+| Worker ×N | `claude-code-harness:worker` | `bypassPermissions` / `autoMode`* | 実装 |
+| Reviewer | `claude-code-harness:reviewer` | `bypassPermissions` / `autoMode`* | 独立レビュー |
+
+> *`--auto-mode` 指定時は `autoMode` を使用。デフォルトは `bypassPermissions`。
 
 ### Codex Mode (`--codex`)
 

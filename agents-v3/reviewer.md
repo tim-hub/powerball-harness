@@ -8,6 +8,12 @@ color: blue
 memory: project
 skills:
   - review
+hooks:
+  Stop:
+    - hooks:
+        - type: command
+          command: "echo 'Reviewer session completed' >&2"
+          timeout: 5
 ---
 
 ## Effort 制御（v2.1.68+）

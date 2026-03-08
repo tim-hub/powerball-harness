@@ -62,6 +62,7 @@ Harness v3 の統合実行スキル。
 | `--breezing` | Agent Teams でチーム実行 | false |
 | `--no-tdd` | TDD フェーズスキップ | false |
 | `--no-simplify` | Auto-Refinement スキップ | false |
+| `--auto-mode` | Auto Mode で権限判断（Breezing 時のみ有効） | false |
 
 > **Token Optimization (v2.1.69+)**: git 操作を伴わない軽量タスクでは
 > plugin settings の `includeGitInstructions: false` を有効にして
