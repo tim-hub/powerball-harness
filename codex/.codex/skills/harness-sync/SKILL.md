@@ -1,9 +1,9 @@
 ---
 name: harness-sync
-description: "Progress sync between Plans.md and actual implementation. Detects drift, updates markers, runs retrospective. Use when user mentions: /harness-sync, /sync-status, sync progress, where am I, check progress, what's done. Do NOT load for: planning, implementation, review, or release."
-description-ja: "Plans.md と実装の進捗同期。差分検出・マーカー更新・レトロスペクティブを実行。以下で起動: /harness-sync、/sync-status、進捗確認、今どこ、どこまで終わった。プランニング・実装・レビュー・リリースには使わない。"
+description: "Progress sync between Plans.md and actual implementation. Detects drift, updates markers, runs retrospective. Use when user mentions: /harness-sync, /sync-status, sync progress, where am I, check progress, what's done. Supports --snapshot for progress snapshots. Do NOT load for: planning, implementation, review, or release."
+description-ja: "Plans.md と実装の進捗同期。差分検出・マーカー更新・レトロスペクティブを実行。以下で起動: /harness-sync、/sync-status、進捗確認、今どこ、どこまで終わった。--snapshot で進捗スナップショット保存にも対応。プランニング・実装・レビュー・リリースには使わない。"
 allowed-tools: ["Read", "Edit", "Bash", "Grep", "Glob"]
-argument-hint: "[--no-retro]"
+argument-hint: "[--snapshot|--no-retro]"
 ---
 
 # Harness Sync
@@ -17,12 +17,14 @@ Plans.md と実装状況を照合し、差分を検出・更新する。
 |------------|------|
 | `/harness-sync` | 進捗同期 + レトロスペクティブ（デフォルト ON） |
 | `/harness-sync --no-retro` | 進捗同期のみ（レトロスキップ） |
+| `/harness-sync --snapshot` | スナップショット保存（進捗の時点記録） |
 | "今どこ？" / "進捗確認" | 同上 |
 
 ## オプション
 
 | オプション | 説明 | デフォルト |
 |----------|------|----------|
+| `--snapshot` | 現在の進捗をスナップショットとして保存 | false |
 | `--no-retro` | レトロスペクティブをスキップ | false（デフォルトで実行） |
 
 ## Step 0: Plans.md 検証
@@ -117,6 +119,57 @@ Plans.md 更新が必要です
 - {{file1}}
 - {{file2}}
 ```
+
+## Step 4.5: スナップショット保存（`--snapshot` 指定時）
+
+`--snapshot` が指定された場合、現在の進捗状態を時刻付きスナップショットとして保存する。
+
+### 保存先
+
+`.claude/state/snapshots/` ディレクトリに JSON 形式で保存:
+
+```bash
+SNAPSHOT_DIR="${PROJECT_ROOT}/.claude/state/snapshots"
+mkdir -p "${SNAPSHOT_DIR}"
+SNAPSHOT_FILE="${SNAPSHOT_DIR}/progress-$(date -u +%Y%m%dT%H%M%SZ).json"
+```
+
+### スナップショット内容
+
+```json
+{
+  "timestamp": "2026-03-08T10:30:00Z",
+  "phase": "Phase 26",
+  "progress": {
+    "total": 16,
+    "todo": 5,
+    "wip": 3,
+    "done": 6,
+    "confirmed": 2
+  },
+  "progress_rate": 50,
+  "recent_commits": ["abc1234 feat: ...", "def5678 fix: ..."],
+  "recent_files": ["skills/harness-work/SKILL.md", "..."],
+  "notes": ""
+}
+```
+
+### 差分比較
+
+前回スナップショットが存在する場合、差分を表示:
+
+```markdown
+## スナップショット差分
+
+| 指標 | 前回 ({{prev_time}}) | 今回 | 変化 |
+|------|---------------------|------|------|
+| 進捗率 | {{prev}}% | {{current}}% | +{{diff}}%pt |
+| 完了タスク | {{prev_done}} | {{current_done}} | +{{diff_done}} |
+| WIP タスク | {{prev_wip}} | {{current_wip}} | {{diff_wip}} |
+```
+
+> **設計意図**: snapshot はユーザーが「今の状態を記録しておきたい」と思った時に手動で使う。
+> breezing 中の自動的なプログレスフィード（26.2.3）とは別の機能。
 
 ## Step 5: 次のアクション提案
 

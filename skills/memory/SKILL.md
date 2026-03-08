@@ -1,9 +1,9 @@
 ---
 name: memory
-description: "Manage SSOT, memory, and cross-tool memory search. Guardian of decisions.md and patterns.md. Use when user mentions memory, SSOT, decisions.md, patterns.md, merging, migration, SSOT promotion, sync memory, save learnings, memory search, claude-mem, past decisions, record this, or cursor-mem integration. Do NOT load for: implementation work, reviews, ad-hoc notes, or in-session logging."
-description-en: "Manage SSOT, memory, and cross-tool memory search. Guardian of decisions.md and patterns.md. Use when user mentions memory, SSOT, decisions.md, patterns.md, merging, migration, SSOT promotion, sync memory, save learnings, memory search, claude-mem, past decisions, record this, or cursor-mem integration. Do NOT load for: implementation work, reviews, ad-hoc notes, or in-session logging."
-description-ja: "SSOTと記憶を管理し、ツール横断の記憶検索を提供。decisions.mdとpatterns.mdの守護者です。Use when user mentions memory, SSOT, decisions.md, patterns.md, merging, migration, SSOT promotion, sync memory, save learnings, memory search, claude-mem, past decisions, record this, or cursor-mem integration. Do NOT load for: implementation work, reviews, ad-hoc notes, or in-session logging."
-allowed-tools: ["Read", "Write", "Edit", "Bash", "mcp__harness__harness_mem_*", "mcp__claude-mem__*"]
+description: "Manage SSOT, memory, and cross-tool memory search. Guardian of decisions.md and patterns.md. Use when user mentions memory, SSOT, decisions.md, patterns.md, merging, migration, SSOT promotion, sync memory, save learnings, memory search, claude-mem, past decisions, or record this. Do NOT load for: implementation work, reviews, ad-hoc notes, or in-session logging."
+description-en: "Manage SSOT, memory, and cross-tool memory search. Guardian of decisions.md and patterns.md. Use when user mentions memory, SSOT, decisions.md, patterns.md, merging, migration, SSOT promotion, sync memory, save learnings, memory search, claude-mem, past decisions, or record this. Do NOT load for: implementation work, reviews, ad-hoc notes, or in-session logging."
+description-ja: "SSOTと記憶を管理し、ツール横断の記憶検索を提供。decisions.mdとpatterns.mdの守護者です。Use when user mentions memory, SSOT, decisions.md, patterns.md, merging, migration, SSOT promotion, sync memory, save learnings, memory search, claude-mem, past decisions, or record this. Do NOT load for: implementation work, reviews, ad-hoc notes, or in-session logging."
+allowed-tools: ["Read", "Write", "Edit", "Bash", "mcp__harness__harness_mem_*"]
 argument-hint: "[ssot|sync|migrate|search|record]"
 context: fork
 ---
@@ -21,7 +21,6 @@ context: fork
 | **移行処理** | See [references/workflow-migration.md](${CLAUDE_SKILL_DIR}/references/workflow-migration.md) |
 | **プロジェクト仕様同期** | See [references/sync-project-specs.md](${CLAUDE_SKILL_DIR}/references/sync-project-specs.md) |
 | **メモリ→SSOT昇格** | See [references/sync-ssot-from-memory.md](${CLAUDE_SKILL_DIR}/references/sync-ssot-from-memory.md) |
-| **記憶検索（Cursor連携）** | See [references/cursor-mem-search.md](${CLAUDE_SKILL_DIR}/references/cursor-mem-search.md) |
 
 ## Unified Harness Memory（共通DB）
 
@@ -51,10 +50,3 @@ Layer 1 の知見がプロジェクト全体に重要な場合、`/memory ssot` 
 
 - "**Save what we learned**" → [references/sync-ssot-from-memory.md](${CLAUDE_SKILL_DIR}/references/sync-ssot-from-memory.md)
 - "**Promote decisions to SSOT**" → [references/sync-ssot-from-memory.md](${CLAUDE_SKILL_DIR}/references/sync-ssot-from-memory.md)
-
-## 記憶検索（Cursor連携）
-
-CursorからClaude-memを活用し、セッション間の知識を引き継ぎます。
-
-- "**過去の判断を確認したい**" → [references/cursor-mem-search.md](${CLAUDE_SKILL_DIR}/references/cursor-mem-search.md)
-- "**この実装パターンを記録して**" → [references/cursor-mem-search.md](${CLAUDE_SKILL_DIR}/references/cursor-mem-search.md)

@@ -59,6 +59,17 @@ PROJECT=$(tail -1 .claude/state/agent-trace.jsonl 2>/dev/null | \
 | 着手済みなのに `cc:TODO` | 変更ファイル vs マーカー |
 | `cc:完了` なのに未コミット | git status vs マーカー |
 
+### Artifact Hash 後方互換
+
+`cc:完了 [a1b2c3d]` 形式（commit hash 付き）と `cc:完了`（hash なし）の両方を認識する。
+
+**マッチングルール**:
+- `cc:完了` → hash なし完了として扱う
+- `cc:完了 [xxxxxxx]` → hash 付き完了として扱う。7 文字の短縮 hash を保持
+- hash 付きの場合、`git log --oneline` と照合してコミットの存在を確認可能
+
+> **後方互換**: hash なし形式も引き続き有効。既存の Plans.md を破壊しない。
+
 ## Step 3: Plans.md 更新提案
 
 差分が検出された場合、提案して実行する:

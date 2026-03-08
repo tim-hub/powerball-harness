@@ -547,5 +547,20 @@ if [ "${TOTAL_TASKS}" -gt 0 ] 2>/dev/null && [ "${COMPLETED_COUNT}" -ge "${TOTAL
   exit 0
 fi
 
-echo '{"decision":"approve","reason":"TaskCompleted tracked"}'
+# プログレスサマリー付きレスポンス
+if [ "${TOTAL_TASKS}" -gt 0 ] 2>/dev/null && [ -n "${TASK_SUBJECT:-}" ]; then
+  PROGRESS_MSG="📊 Progress: Task ${COMPLETED_COUNT}/${TOTAL_TASKS} 完了 — \"${TASK_SUBJECT}\""
+  if command -v jq >/dev/null 2>&1; then
+    jq -nc \
+      --arg reason "TaskCompleted tracked" \
+      --arg msg "${PROGRESS_MSG}" \
+      '{"decision":"approve","reason":$reason,"systemMessage":$msg}'
+  else
+    # jq がない場合のフォールバック（特殊文字をエスケープ）
+    _escaped_msg="${PROGRESS_MSG//\"/\\\"}"
+    printf '{"decision":"approve","reason":"TaskCompleted tracked","systemMessage":"%s"}\n' "${_escaped_msg}"
+  fi
+else
+  echo '{"decision":"approve","reason":"TaskCompleted tracked"}'
+fi
 exit 0

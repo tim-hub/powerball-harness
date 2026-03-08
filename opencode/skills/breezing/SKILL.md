@@ -84,6 +84,25 @@ Phase B: Delegate（Worker 実装 + Reviewer レビュー）
 Phase C: Post-delegate（統合検証 + Plans.md 更新 + commit）
 ```
 
+### Progress Feed（Phase B 中の進捗通知）
+
+Lead は Worker のタスク完了ごとに、以下のフォーマットで進捗を出力する:
+
+```
+📊 Progress: Task {completed}/{total} 完了 — "{task_subject}"
+```
+
+**出力例**:
+```
+📊 Progress: Task 1/5 完了 — "harness-work に失敗再チケット化を追加"
+📊 Progress: Task 2/5 完了 — "harness-sync に --snapshot を追加"
+📊 Progress: Task 3/5 完了 — "breezing にプログレスフィードを追加"
+```
+
+> **設計意図**: breezing は長時間実行になることが多い。
+> ユーザーがターミナルをチラ見した時に「今どこまで進んでいるか」が一目で分かるようにする。
+> task-completed.sh フックが systemMessage で同等の情報を出力するため、Lead の出力と補完し合う。
+
 ### Phase 0: Planning Discussion（構造化 3 問チェック）
 
 全タスク実行前に、以下の 3 問で計画の健全性を確認する。

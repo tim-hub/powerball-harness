@@ -8,6 +8,41 @@ Change history for claude-code-harness.
 
 ---
 
+## [3.7.0] - 2026-03-08
+
+### 🎯 What's Changed for You
+
+**State-centric architecture shift inspired by masao theory. Failed tasks auto-generate fix tickets, snapshots capture session state, artifact hashes link commits to Plans.md, and progress feeds keep you informed during breezing.**
+
+| Before | After |
+|--------|-------|
+| Failed CI/test after `cc:完了` required manual re-planning | Auto-generates fix task in Plans.md (semi-auto: approve/reject) |
+| No way to capture session state for later resumption | `/harness-sync --snapshot` saves progress to `.claude/state/snapshots/` |
+| Task completion had no commit traceability | `cc:完了 [a1b2c3d]` links tasks to commit hashes |
+| Breezing ran silently — no progress visibility | `📊 Progress: Task N/M 完了` displayed per task completion |
+| Plans.md phases had no stated purpose | Optional `Purpose:` line per phase in v3 format |
+
+---
+
+### Added
+- **Failure auto-re-ticketing**: When tests/CI fail after `cc:完了`, auto-generates `.fix` task in Plans.md with failure category and DoD (D30)
+- **`/harness-sync --snapshot`**: Captures progress state (task counts, recent commits, recent files) as timestamped JSON; diff comparison with previous snapshot
+- **Artifact hash**: `cc:完了 [a1b2c3d]` format auto-links task completion to commit hash in harness-work Solo Step 7
+- **Progress Feed**: Breezing Lead outputs `📊 Progress: Task N/M 完了 — "subject"` per Worker task completion
+- **TaskCompleted hook progress**: `task-completed.sh` outputs progress summary via systemMessage
+- **Plans.md v3 format**: Optional `Purpose:` line per Phase + standardized Artifact hash notation (D31)
+
+### Changed
+- **harness-work Solo flow**: Step 7 now includes commit hash retrieval; Step 8 added for failure auto-re-planning
+- **harness-work Breezing flow**: Worker completion format updated to `cc:完了 [hash]`
+- **harness-sync**: Added `--snapshot` option and argument-hint updated
+- **harness-plan create**: Step 5.7 added with v3 format spec; Step 6 template includes optional Purpose line
+- **harness-plan sync**: Diff detection supports `cc:完了 [hash]` format with backward compatibility
+- **breezing SKILL.md**: Progress Feed section added after Flow Summary
+- **decisions.md**: D30 (failure auto-re-ticketing), D31 (Plans.md v3 format design) recorded
+
+---
+
 ## [3.6.0] - 2026-03-08
 
 ### 🎯 What's Changed for You
