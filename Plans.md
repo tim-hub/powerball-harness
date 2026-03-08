@@ -186,4 +186,4 @@ Purpose: 将来の KPI/Story/Artifact カラム追加を一括設計し、競合
 |------|------|-----|---------|--------|
 | 26.4.1 | `./tests/validate-plugin.sh` + `./scripts/ci/check-consistency.sh` 全体検証 | 全検証パス | 26.0〜26.3 | cc:完了 |
 | 26.4.2 | VERSION バンプ + plugin.json 同期 + CHANGELOG 追記 | バージョンが同期されている | 26.4.1 | cc:完了 |
-| 26.4.3 | GitHub Release 作成 | リリースが公開されている | 26.4.2 | cc:TODO |
+| 26.4.3 | GitHub Release 作成 | リリースが公開されている | 26.4.2 | cc:完了 [56cdd77] |
