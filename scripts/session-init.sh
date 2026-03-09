@@ -14,6 +14,11 @@ set -euo pipefail
 
 # スクリプトディレクトリを取得
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROGRESS_SNAPSHOT_LIB="${SCRIPT_DIR}/lib/progress-snapshot.sh"
+if [ -f "${PROGRESS_SNAPSHOT_LIB}" ]; then
+  # shellcheck source=/dev/null
+  source "${PROGRESS_SNAPSHOT_LIB}"
+fi
 
 # ===== バナー表示（stderr でターミナルに表示） =====
 VERSION=$(cat "$SCRIPT_DIR/../VERSION" 2>/dev/null || echo "unknown")
@@ -211,6 +216,11 @@ else
   PLANS_INFO="📄 Plans.md: 未検出"
 fi
 
+SNAPSHOT_INFO=""
+if declare -F progress_snapshot_summary >/dev/null 2>&1; then
+  SNAPSHOT_INFO="$(progress_snapshot_summary "${STATE_DIR}" 2>/dev/null || true)"
+fi
+
 # ===== Step 4: テンプレート更新チェック =====
 TEMPLATE_INFO=""
 TEMPLATE_TRACKER="$SCRIPT_DIR/template-tracker.sh"
@@ -321,6 +331,10 @@ if [ "$SIMPLE_MODE" = "true" ]; then
 fi
 
 add_line "${PLANS_INFO}"
+
+if [ -n "${SNAPSHOT_INFO}" ]; then
+  add_line "${SNAPSHOT_INFO}"
+fi
 
 if [ -n "$SKILLS_INFO" ]; then
   add_line "${SKILLS_INFO}"

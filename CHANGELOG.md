@@ -57,7 +57,7 @@ Change history for claude-code-harness.
 
 **今まで**: タスク実装後にテスト/CI が失敗すると、最大3回リトライして止まるだけでした。止まった後は「何が原因だったか」を自分で調べ、Plans.md に手動で修正タスクを追加し、再度 `/work` を実行する必要がありました。
 
-**今後**: 3回失敗で止まるとき、Harness が失敗原因を分類（`assertion_error`、`import_error` 等）し、修正タスク案を自動生成します。承認すると Plans.md に `.fix` タスクとして自動追加されます。
+**今後**: 3回失敗で止まるとき、Harness が失敗原因を分類（`assertion_error`、`import_error` 等）し、修正タスク案を state に保存します。`approve fix <task_id>` で承認すると Plans.md に `.fix` タスクとして追加されます。
 
 ```
 失敗原因分析:
@@ -65,7 +65,8 @@ Change history for claude-code-harness.
   修正タスク案: 26.1.1.fix — getByStatus の戻り値を修正
   DoD: npm test が全パスすること
 
-Plans.md に追加しますか？ [yes/no]
+承認: approve fix 26.1.1
+却下: reject fix 26.1.1
 ```
 
 将来的には、提案採用率80%以上で全自動化に昇格する計画です（D30）。
@@ -74,7 +75,7 @@ Plans.md に追加しますか？ [yes/no]
 
 **今まで**: セッションが切れた後の再開時、Plans.md を読み、git log を見て、自分で状況を把握する必要がありました。この「状況把握」に毎回時間がかかり、WIP タスクの進捗は Plans.md からは読み取れませんでした。
 
-**今後**: `/harness-sync --snapshot` で、その瞬間の進捗を JSON に保存できます。次のセッション開始時に前回のスナップショットと自動比較されます。
+**今後**: `/harness-sync --snapshot` で、その瞬間の進捗を JSON に保存できます。次の SessionStart または `/resume` で最新スナップショット要約と前回比が自動表示されます。
 
 ```
 スナップショット差分:

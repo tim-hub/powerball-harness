@@ -11,6 +11,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROGRESS_SNAPSHOT_LIB="${SCRIPT_DIR}/lib/progress-snapshot.sh"
+if [ -f "${PROGRESS_SNAPSHOT_LIB}" ]; then
+  # shellcheck source=/dev/null
+  source "${PROGRESS_SNAPSHOT_LIB}"
+fi
 
 # ===== バナー表示 =====
 VERSION=$(cat "$SCRIPT_DIR/../VERSION" 2>/dev/null || echo "unknown")
@@ -181,6 +186,11 @@ else
   PLANS_INFO="📄 Plans.md: 未検出"
 fi
 
+SNAPSHOT_INFO=""
+if declare -F progress_snapshot_summary >/dev/null 2>&1; then
+  SNAPSHOT_INFO="$(progress_snapshot_summary "${STATE_DIR}" 2>/dev/null || true)"
+fi
+
 # ===== active_skill 検出（スキル再起動が必要かチェック） =====
 ACTIVE_SKILL_INFO=""
 if [ -f "$SESSION_FILE" ] && command -v jq >/dev/null 2>&1; then
@@ -251,6 +261,10 @@ esac
 
 add_line ""
 add_line "${PLANS_INFO}"
+
+if [ -n "${SNAPSHOT_INFO}" ]; then
+  add_line "${SNAPSHOT_INFO}"
+fi
 
 # active_skill 再起動指示を追加（最優先で表示）
 if [ -n "$ACTIVE_SKILL_INFO" ]; then

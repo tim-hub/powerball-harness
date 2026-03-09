@@ -23,6 +23,7 @@ PROJECT_ROOT="${PROJECT_ROOT:-$(detect_project_root 2>/dev/null || pwd)}"
 # タイムラインファイル
 STATE_DIR="${PROJECT_ROOT}/.claude/state"
 TIMELINE_FILE="${STATE_DIR}/breezing-timeline.jsonl"
+PENDING_FIX_PROPOSALS_FILE="${STATE_DIR}/pending-fix-proposals.jsonl"
 TOTAL_TASKS=0
 COMPLETED_COUNT=0
 
@@ -46,6 +47,89 @@ rotate_jsonl() {
 
 get_timestamp() {
   date -u +"%Y-%m-%dT%H:%M:%SZ"
+}
+
+sanitize_inline_text() {
+  local input="${1:-}"
+  input="${input//$'\n'/ }"
+  input="${input//|/ /}"
+  input="${input//  / }"
+  printf '%s' "${input}"
+}
+
+path_has_symlink_component_within_root() {
+  local path="${1:-}"
+  local root="${2:-}"
+  [ -z "${path}" ] && return 1
+  [ -z "${root}" ] && return 1
+
+  path="${path%/}"
+  root="${root%/}"
+
+  while [ -n "${path}" ]; do
+    if [ -L "${path}" ]; then
+      return 0
+    fi
+    [ "${path}" = "${root}" ] && break
+    path="$(dirname "${path}")"
+    [ "${path}" = "." ] && break
+  done
+
+  [ -L "${root}" ]
+}
+
+build_fix_task_id() {
+  local source_task_id="${1:-}"
+  if [[ "${source_task_id}" =~ ^(.+)\.fix([0-9]+)$ ]]; then
+    printf '%s.fix%d' "${BASH_REMATCH[1]}" "$((BASH_REMATCH[2] + 1))"
+  elif [[ "${source_task_id}" =~ ^(.+)\.fix$ ]]; then
+    printf '%s.fix2' "${BASH_REMATCH[1]}"
+  else
+    printf '%s.fix' "${source_task_id}"
+  fi
+}
+
+upsert_fix_proposal() {
+  local proposal_json="${1:-}"
+  [ -z "${proposal_json}" ] && return 1
+
+  if path_has_symlink_component_within_root "${STATE_DIR}" "${PROJECT_ROOT}" || [ -L "${PENDING_FIX_PROPOSALS_FILE}" ]; then
+    return 1
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    FIX_PROPOSAL_JSON="${proposal_json}" python3 - "${PENDING_FIX_PROPOSALS_FILE}" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+proposal = json.loads(os.environ["FIX_PROPOSAL_JSON"])
+if path.is_symlink():
+    sys.exit(1)
+rows = []
+if path.exists():
+    for raw in path.read_text().splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            row = json.loads(raw)
+        except Exception:
+            continue
+        if row.get("source_task_id") != proposal.get("source_task_id"):
+            rows.append(row)
+rows.append(proposal)
+path.parent.mkdir(parents=True, exist_ok=True)
+with path.open("w", encoding="utf-8") as fh:
+    for row in rows:
+        fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+PY
+    return $?
+  fi
+
+  return 1
 }
 
 # === stdin から JSON ペイロードを読み取り ===
@@ -513,8 +597,69 @@ except Exception as e:
       echo "${ESC_ENTRY}" >> "${TIMELINE_FILE}" 2>/dev/null || true
     fi
 
-    # exit 0 でフックを承認（自動修正ループを止めた後の復旧は手動）
-    echo '{"decision":"approve","reason":"TaskCompleted: 3-strike escalation triggered - manual intervention required"}'
+    _fix_task_id="$(build_fix_task_id "${TASK_ID}")"
+    _fix_subject="$(sanitize_inline_text "fix: ${TASK_SUBJECT} - ${_failure_category}")"
+    _fix_dod="$(sanitize_inline_text "失敗カテゴリ (${_failure_category}) を解消し、直近のテスト/CI が通ること")"
+    _proposal_json=""
+    if command -v jq >/dev/null 2>&1; then
+      _proposal_json="$(jq -nc \
+        --arg source_task_id "${TASK_ID}" \
+        --arg fix_task_id "${_fix_task_id}" \
+        --arg task_subject "${TASK_SUBJECT}" \
+        --arg proposal_subject "${_fix_subject}" \
+        --arg failure_category "${_failure_category}" \
+        --arg recommended_action "${_recommended_action}" \
+        --arg dod "${_fix_dod}" \
+        --arg depends "${TASK_ID}" \
+        --arg created_at "${TS}" \
+        '{source_task_id:$source_task_id, fix_task_id:$fix_task_id, task_subject:$task_subject, proposal_subject:$proposal_subject, failure_category:$failure_category, recommended_action:$recommended_action, dod:$dod, depends:$depends, created_at:$created_at, status:"pending"}')"
+    elif command -v python3 >/dev/null 2>&1; then
+      _proposal_json="$(python3 - "${TASK_ID}" "${_fix_task_id}" "${TASK_SUBJECT}" "${_fix_subject}" "${_failure_category}" "${_recommended_action}" "${_fix_dod}" "${TS}" <<'PY'
+import json
+import sys
+
+print(json.dumps({
+    "source_task_id": sys.argv[1],
+    "fix_task_id": sys.argv[2],
+    "task_subject": sys.argv[3],
+    "proposal_subject": sys.argv[4],
+    "failure_category": sys.argv[5],
+    "recommended_action": sys.argv[6],
+    "dod": sys.argv[7],
+    "depends": sys.argv[1],
+    "created_at": sys.argv[8],
+    "status": "pending",
+}, ensure_ascii=False))
+PY
+)"
+    fi
+
+    _proposal_saved="false"
+    if [ -n "${_proposal_json}" ] && upsert_fix_proposal "${_proposal_json}"; then
+      _proposal_saved="true"
+    fi
+
+    _fix_message="[FIX PROPOSAL] タスク ${TASK_ID} が3回連続で失敗しました。
+提案: ${_fix_task_id} — ${_fix_subject}
+DoD: ${_fix_dod}
+承認: approve fix ${TASK_ID}
+却下: reject fix ${TASK_ID}"
+    if [ "${_proposal_saved}" != "true" ]; then
+      _fix_message="${_fix_message}
+警告: proposal 保存に失敗しました。手動で Plans.md に追加してください。"
+    fi
+
+    # exit 0 でフックを承認しつつ、次ターンで承認可能な proposal を案内
+    if command -v jq >/dev/null 2>&1; then
+      jq -nc \
+        --arg reason "TaskCompleted: 3-strike escalation triggered - fix proposal queued" \
+        --arg msg "${_fix_message}" \
+        '{"decision":"approve","reason":$reason,"systemMessage":$msg}'
+    else
+      _escaped_fix_message="${_fix_message//\\/\\\\}"
+      _escaped_fix_message="${_escaped_fix_message//\"/\\\"}"
+      printf '{"decision":"approve","reason":"TaskCompleted: 3-strike escalation triggered - fix proposal queued","systemMessage":"%s"}\n' "${_escaped_fix_message}"
+    fi
     exit 0
   fi
 
