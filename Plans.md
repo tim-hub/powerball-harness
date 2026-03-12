@@ -4,6 +4,28 @@
 
 ---
 
+## Maintenance: v3.10.2 release closeout
+
+作成日: 2026-03-12
+目的: TaskCompleted finalize hardening と Claude Code 2.1.74 docs 追従を README / CHANGELOG / version metadata まで揃えて正式 release する
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| M9 | `VERSION` / `plugin.json` / README 英日 / CHANGELOG / 互換性 docs を 3.10.2 と最新検証結果に同期し、commit・push・tag・GitHub Release まで完了する | `check-consistency.sh` と関連テストが通り、`v3.10.2` の tag / GitHub Release / main push が確認できる | M8 | cc:完了 |
+
+---
+
+## Maintenance: TaskCompleted finalize hardening
+
+作成日: 2026-03-12
+目的: 全タスク完了時に harness-mem finalize を安全に前倒しし、Stop 前クラッシュ時の記録取りこぼしを減らす
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| M8 | `task-completed.sh` に idempotent な finalize 呼び出しを追加し、専用回帰テストで「最後のタスクだけ finalize」「重複 finalize しない」「session_id 未解決時は skip」を検証する | `tests/test-task-completed-finalize.sh` と既存関連テストが通り、TaskCompleted ベース finalize の挙動と安全条件を説明できる | - | cc:完了 |
+
+---
+
 ## Maintenance: Auto Mode review follow-up
 
 作成日: 2026-03-12

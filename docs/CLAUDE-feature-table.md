@@ -1,6 +1,6 @@
-# Claude Code 2.1.72+ 新機能活用ガイド（完全版）
+# Claude Code 2.1.74+ 新機能活用ガイド（完全版）
 
-> **概要**: Harness が活用する Claude Code 2.1.72+ の全機能一覧。
+> **概要**: Harness が活用する Claude Code 2.1.74+ の全機能一覧。
 > CLAUDE.md の Feature Table の完全版（詳細説明付き）。
 
 ## 機能一覧
@@ -106,6 +106,13 @@
 | **Plugin CLI コマンド群 (v2.1.72+)** | setup | `claude plugin install/uninstall/enable/disable/update` + `--scope` フラグ。スクリプトによる自動化対応 |
 | **Remote Control 強化 (v2.1.72+)** | 調査済み・将来対応 | `/remote-control` (`/rc`) でセッション内から有効化。`--name`, `--sandbox`, `--verbose` フラグ。`/mobile` で QR コード表示。自動再接続対応 |
 | **`skills` フィールド in agent frontmatter (v2.1.72+)** | agents-v3/ | サブエージェントにスキルをプリロード。Worker に `harness-work`+`harness-review`、Reviewer に `harness-review`、Scaffolder に `harness-setup`+`harness-plan` を注入（実装済み） |
+| **`modelOverrides` 設定 (v2.1.73)** | setup, breezing | モデルピッカーのエントリを Bedrock ARN 等のカスタムプロバイダモデル ID にマッピング |
+| **`/output-style` 非推奨化 (v2.1.73)** | 全スキル | `/config` に移行。出力スタイル選択はコンフィグメニューに統合 |
+| **Bedrock/Vertex Opus 4.6 デフォルト化 (v2.1.73)** | breezing | クラウドプロバイダのデフォルト Opus が 4.1 → 4.6 に更新 |
+| **`autoMemoryDirectory` 設定 (v2.1.74)** | session-memory, setup | 自動メモリの保存パスをカスタマイズ。プロジェクト固有のメモリ分離に対応 |
+| **`CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS` (v2.1.74)** | hooks | SessionEnd フックのタイムアウトを設定可能に（従来は 1.5 秒固定で kill） |
+| **Full model ID 修正 (v2.1.74)** | agents-v3/, breezing | `claude-opus-4-6` 等の完全モデル ID がエージェント frontmatter・JSON config で認識されるように |
+| **Streaming API メモリリーク修正 (v2.1.74)** | breezing, harness-work | ストリーミングレスポンスバッファの無制限 RSS 増大を修正 |
 
 ## 機能詳細
 
@@ -1016,6 +1023,102 @@ claude plugin update <plugin> [--scope user|project|local|managed]
 - Scaffolder: `skills: [harness-setup, harness-plan]` — セットアップと計画スキルをプリロード
 
 > `skills` in skill (`context: fork`) の逆パターン。skill が agent を制御するのではなく、agent が skill を読み込む。
+
+### `modelOverrides` 設定 (v2.1.73)
+
+CC 2.1.73 で追加された設定。モデルピッカー（`/model` メニュー）のエントリを、カスタムプロバイダのモデル ID にマッピングできる。
+Bedrock ARN や Vertex AI のモデル ID など、プロバイダ固有の識別子を指定可能。
+
+**Harness での活用**:
+- エンタープライズ環境で Bedrock/Vertex 経由の Anthropic モデルを使用する場合、`modelOverrides` でモデルピッカーの表示名と実際のプロバイダモデル ID を対応付け
+- Worker/Reviewer の `model: sonnet` がプロバイダ固有の ARN に自動解決される
+- `availableModels` と組み合わせて、チーム全体のモデル体験を統制可能
+
+```json
+// settings.json
+{
+  "modelOverrides": {
+    "sonnet": "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-sonnet-4-6-20250514-v1:0",
+    "opus": "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-opus-4-6-20250610-v1:0"
+  }
+}
+```
+
+### `/output-style` 非推奨化 (v2.1.73)
+
+CC 2.1.73 で `/output-style` コマンドが非推奨となり、出力スタイルの選択は `/config` メニューに統合された。
+既存の `/output-style harness-ops` 等は引き続き動作するが、公式には `/config` 経由の選択が推奨される。
+
+**Harness への影響**:
+- ドキュメント上の `/output-style harness-ops` への言及を `/config` 経由に更新推奨
+- `.claude/output-styles/harness-ops.md` 自体は引き続き有効（設定ファイルの配置場所に変更なし）
+- スキル内で `/output-style` を実行している箇所があれば `/config` に切り替え検討
+
+### Bedrock/Vertex Opus 4.6 デフォルト化 (v2.1.73)
+
+CC 2.1.73 でクラウドプロバイダ（Amazon Bedrock / Google Vertex AI）上のデフォルト Opus モデルが 4.1 から 4.6 に更新された。
+first-party API では v2.1.68 時点で Opus 4.6 がデフォルトだったが、クラウドプロバイダ経由でも統一された。
+
+**Harness への影響**:
+- Bedrock/Vertex 環境でも Lead（Opus 使用時）が medium effort デフォルトで動作
+- `opusplan` エイリアスが Bedrock/Vertex 環境でも Opus 4.6 を参照
+- `ANTHROPIC_DEFAULT_OPUS_MODEL` 環境変数による上書きは引き続き有効
+
+### `autoMemoryDirectory` 設定 (v2.1.74)
+
+CC 2.1.74 で追加された設定。自動メモリ（auto-memory）の保存ディレクトリをカスタマイズ可能。
+デフォルトの `~/.claude/` 配下からプロジェクト固有のパスに変更できる。
+
+**Harness での活用**:
+- 複数プロジェクトで Harness を使用する場合、プロジェクトごとに自動メモリを分離
+- CI 環境で一時ディレクトリにメモリを保存し、セッション終了時にクリーンアップ
+- Agent Memory（`memory: project`）とは異なるレイヤー（自動メモリはユーザーレベルの学習）
+
+```json
+// settings.json (プロジェクトレベル)
+{
+  "autoMemoryDirectory": ".claude/auto-memory"
+}
+```
+
+### `CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS` (v2.1.74)
+
+CC 2.1.74 で追加された環境変数。`SessionEnd` フックのタイムアウトをミリ秒単位で指定可能。
+従来は固定 1.5 秒で kill されていたため、重いクリーンアップ処理が完了前に中断される問題があった。
+
+**Harness での活用**:
+- `SessionEnd` フックで `harness-mem` のセッション記録や JSONL ローテーションを実行する場合、十分なタイムアウトを確保
+- 推奨値: `5000`（5秒）。複雑なクリーンアップが必要な場合は `10000`（10秒）まで
+
+```bash
+export CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS=5000
+```
+
+### Full model ID 修正 (v2.1.74)
+
+CC 2.1.74 で `claude-opus-4-6`、`claude-sonnet-4-6` 等の完全なモデル ID（ハイフン区切り形式）がエージェント frontmatter および JSON config で正しく認識されるようになった。
+従来はエイリアス（`opus`, `sonnet`）のみが安定して動作していた。
+
+**Harness への影響**:
+- エージェント定義の `model` フィールドに完全モデル ID を指定可能に（例: `model: claude-sonnet-4-6`）
+- `--agents` CLI フラグの JSON 内でも完全モデル ID が使用可能
+- 現状 Harness はエイリアス（`sonnet`, `opus`）を使用しており即時影響なし。Bedrock/Vertex 環境でフル ID 指定が必要な場合に有用
+
+```yaml
+# agents-v3/worker.md frontmatter（完全モデル ID 使用例）
+model: claude-sonnet-4-6
+```
+
+### Streaming API メモリリーク修正 (v2.1.74)
+
+CC 2.1.74 でストリーミング API レスポンスバッファの無制限 RSS（Resident Set Size）増大が修正された。
+長時間のストリーミングセッションで Node.js プロセスのメモリ使用量が際限なく増加する問題が解消。
+
+**Harness への影響**:
+- `breezing` の長時間チームセッションでの安定性が向上
+- `harness-work` で大量のファイル読み書きを含む長時間 Worker セッションのメモリ消費が安定化
+- v2.1.50〜v2.1.63 のメモリリーク修正シリーズ（LSP 診断、ツール出力、ファイル履歴等）に続く追加修正
+- Harness 側の JSONL ローテーション対策（独自のメモリ管理）と組み合わせて、二重の安定性確保
 
 ## 関連ドキュメント
 

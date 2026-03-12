@@ -1,19 +1,21 @@
 # Claude Code Compatibility
 
-Last updated: 2026-03-07
+Last updated: 2026-03-12
 
 ## Supported Baseline
 
 - Claude Code: `v2.1+`
 - Node.js: `18+`
-- Plugin version: `3.6.0`
+- Plugin version: `3.10.2`
 
 ## Latest Verified Snapshot
 
 The most recent local verification snapshot for this repository was:
 
-- Claude Code `2.1.69`
+- Claude Code `2.1.74`
 - Node.js `v24.10.0`
+- `./tests/test-task-completed-finalize.sh`
+- `./tests/test-fix-proposal-flow.sh`
 - `./tests/validate-plugin.sh`
 - `./tests/validate-plugin-v3.sh`
 - `./scripts/ci/check-consistency.sh`

@@ -24,6 +24,7 @@ PROJECT_ROOT="${PROJECT_ROOT:-$(detect_project_root 2>/dev/null || pwd)}"
 STATE_DIR="${PROJECT_ROOT}/.claude/state"
 TIMELINE_FILE="${STATE_DIR}/breezing-timeline.jsonl"
 PENDING_FIX_PROPOSALS_FILE="${STATE_DIR}/pending-fix-proposals.jsonl"
+FINALIZE_MARKER_FILE="${STATE_DIR}/harness-mem-finalize-work-completed.json"
 TOTAL_TASKS=0
 COMPLETED_COUNT=0
 
@@ -130,6 +131,191 @@ PY
   fi
 
   return 1
+}
+
+resolve_session_state_field() {
+  local field="${1:-}"
+  [ -z "${field}" ] && return 1
+  [ -f "${STATE_DIR}/session.json" ] || return 1
+
+  if command -v jq >/dev/null 2>&1; then
+    jq -r --arg field "${field}" '.[$field] // empty' "${STATE_DIR}/session.json" 2>/dev/null
+    return $?
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "${STATE_DIR}/session.json" "${field}" <<'PY'
+import json
+import sys
+
+try:
+    data = json.load(open(sys.argv[1], encoding="utf-8"))
+    value = data.get(sys.argv[2], "")
+    if value is None:
+        value = ""
+    print(value)
+except Exception:
+    print("")
+PY
+    return $?
+  fi
+
+  return 1
+}
+
+resolve_finalize_session_id() {
+  if [ -n "${SESSION_ID:-}" ]; then
+    printf '%s' "${SESSION_ID}"
+    return 0
+  fi
+
+  resolve_session_state_field "session_id"
+}
+
+resolve_finalize_project_name() {
+  if [ -n "${PROJECT_NAME:-}" ]; then
+    printf '%s' "${PROJECT_NAME}"
+    return 0
+  fi
+
+  local session_project=""
+  session_project="$(resolve_session_state_field "project_name" 2>/dev/null || true)"
+  if [ -n "${session_project}" ]; then
+    printf '%s' "${session_project}"
+    return 0
+  fi
+
+  basename "${PROJECT_ROOT}"
+}
+
+finalize_marker_exists_for_session() {
+  local session_id="${1:-}"
+  [ -n "${session_id}" ] || return 1
+  [ -f "${FINALIZE_MARKER_FILE}" ] || return 1
+
+  if path_has_symlink_component_within_root "${STATE_DIR}" "${PROJECT_ROOT}" || [ -L "${FINALIZE_MARKER_FILE}" ]; then
+    return 1
+  fi
+
+  if command -v jq >/dev/null 2>&1; then
+    jq -e --arg sid "${session_id}" \
+      '.session_id == $sid and .summary_mode == "work_completed" and .status == "success"' \
+      "${FINALIZE_MARKER_FILE}" >/dev/null 2>&1
+    return $?
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "${FINALIZE_MARKER_FILE}" "${session_id}" <<'PY'
+import json
+import sys
+
+try:
+    data = json.load(open(sys.argv[1], encoding="utf-8"))
+except Exception:
+    sys.exit(1)
+
+ok = (
+    data.get("session_id") == sys.argv[2]
+    and data.get("summary_mode") == "work_completed"
+    and data.get("status") == "success"
+)
+sys.exit(0 if ok else 1)
+PY
+    return $?
+  fi
+
+  return 1
+}
+
+write_finalize_marker() {
+  local session_id="${1:-}"
+  local project_name="${2:-}"
+  local finalized_at="${3:-}"
+  [ -n "${session_id}" ] || return 0
+
+  if path_has_symlink_component_within_root "${STATE_DIR}" "${PROJECT_ROOT}" || [ -L "${FINALIZE_MARKER_FILE}" ]; then
+    return 0
+  fi
+
+  local marker_json=""
+  if command -v jq >/dev/null 2>&1; then
+    marker_json="$(jq -nc \
+      --arg session_id "${session_id}" \
+      --arg project "${project_name}" \
+      --arg finalized_at "${finalized_at}" \
+      '{session_id:$session_id, project:$project, summary_mode:"work_completed", finalized_at:$finalized_at, status:"success"}')"
+  elif command -v python3 >/dev/null 2>&1; then
+    marker_json="$(python3 - "${session_id}" "${project_name}" "${finalized_at}" <<'PY'
+import json
+import sys
+
+print(json.dumps({
+    "session_id": sys.argv[1],
+    "project": sys.argv[2],
+    "summary_mode": "work_completed",
+    "finalized_at": sys.argv[3],
+    "status": "success",
+}, ensure_ascii=False))
+PY
+)"
+  fi
+
+  [ -n "${marker_json}" ] || return 0
+
+  printf '%s\n' "${marker_json}" > "${FINALIZE_MARKER_FILE}.tmp" 2>/dev/null && \
+    mv "${FINALIZE_MARKER_FILE}.tmp" "${FINALIZE_MARKER_FILE}" 2>/dev/null || \
+    rm -f "${FINALIZE_MARKER_FILE}.tmp" 2>/dev/null || true
+}
+
+maybe_finalize_harness_mem_on_completion() {
+  [ "${TOTAL_TASKS}" -gt 0 ] 2>/dev/null || return 0
+  [ "${COMPLETED_COUNT}" -ge "${TOTAL_TASKS}" ] 2>/dev/null || return 0
+  command -v curl >/dev/null 2>&1 || return 0
+
+  local session_id=""
+  session_id="$(resolve_finalize_session_id 2>/dev/null || true)"
+  [ -n "${session_id}" ] || return 0
+
+  if finalize_marker_exists_for_session "${session_id}"; then
+    return 0
+  fi
+
+  local project_name=""
+  project_name="$(resolve_finalize_project_name 2>/dev/null || true)"
+  [ -n "${project_name}" ] || project_name="$(basename "${PROJECT_ROOT}")"
+
+  local payload=""
+  if command -v jq >/dev/null 2>&1; then
+    payload="$(jq -nc \
+      --arg project "${project_name}" \
+      --arg session_id "${session_id}" \
+      --arg summary_mode "work_completed" \
+      '{project:$project, session_id:$session_id, summary_mode:$summary_mode}')"
+  elif command -v python3 >/dev/null 2>&1; then
+    payload="$(python3 - "${project_name}" "${session_id}" <<'PY'
+import json
+import sys
+
+print(json.dumps({
+    "project": sys.argv[1],
+    "session_id": sys.argv[2],
+    "summary_mode": "work_completed",
+}, ensure_ascii=False))
+PY
+)"
+  fi
+
+  [ -n "${payload}" ] || return 0
+
+  local base_url="${HARNESS_MEM_BASE_URL:-http://localhost:${HARNESS_MEM_PORT:-37888}}"
+  if curl -sf -X POST "${base_url}/v1/sessions/finalize" \
+    -H "Content-Type: application/json" \
+    -d "${payload}" \
+    --connect-timeout 3 \
+    --max-time 5 \
+    >/dev/null 2>&1; then
+    write_finalize_marker "${session_id}" "${project_name}" "${TS}"
+  fi
 }
 
 # === stdin から JSON ペイロードを読み取り ===
@@ -684,6 +870,7 @@ if [ "${REQUEST_CONTINUE}" = "false" ] || [ -n "${STOP_REASON}" ]; then
 fi
 
 if [ "${TOTAL_TASKS}" -gt 0 ] 2>/dev/null && [ "${COMPLETED_COUNT}" -ge "${TOTAL_TASKS}" ] 2>/dev/null; then
+  maybe_finalize_harness_mem_on_completion
   if command -v jq >/dev/null 2>&1; then
     jq -nc --arg reason "all_tasks_completed" '{"continue": false, "stopReason": $reason}'
   else

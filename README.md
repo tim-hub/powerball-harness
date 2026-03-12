@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <a href="VERSION"><img src="https://img.shields.io/badge/version-3.10.1-blue.svg" alt="Version"></a>
+  <a href="VERSION"><img src="https://img.shields.io/badge/version-3.10.2-blue.svg" alt="Version"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
   <img src="https://img.shields.io/badge/Skills-5_Verbs-orange.svg" alt="Skills">
@@ -426,7 +426,7 @@ Project files (Plans.md, SSOT files) remain unchanged.
 
 ---
 
-## Claude Code 2.1.71+ Features
+## Claude Code 2.1.74+ Features
 
 Harness leverages the latest Claude Code features out of the box.
 
@@ -447,6 +447,10 @@ Harness leverages the latest Claude Code features out of the box.
 | **Background Agent output fix** | breezing | Safe `run_in_background` with output path in completion |
 | **Compaction image retention** | all harness-* skills | Images preserved during context compaction |
 | **WorktreeCreate/Remove hook** | breezing | Worktree lifecycle auto-setup and cleanup |
+| **`modelOverrides` setting** | harness-setup, breezing | Map model picker aliases to Bedrock, Vertex, or other provider-specific model IDs |
+| **`autoMemoryDirectory` setting** | session-memory, harness-setup | Store Claude auto-memory in a project-specific path when needed |
+| **`CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS`** | hooks | Give SessionEnd hooks enough time for cleanup and finalize work |
+| **Full model ID support** | agents-v3, breezing | Use `claude-sonnet-4-6` style IDs in agent frontmatter and JSON config |
 
 Full list: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 
