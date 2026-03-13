@@ -33,7 +33,8 @@
 ### バージョン管理
 
 バージョンは `VERSION` がソース・オブ・トゥルース。
-変更時は `./scripts/sync-version.sh bump` を使用。
+通常の機能追加・docs 更新・CI 修正では `VERSION` と `.claude-plugin/plugin.json` を変更しない。
+変更履歴は `CHANGELOG.md` の `[Unreleased]` に追記し、release を切るときだけ `./scripts/sync-version.sh bump` を使用する。
 
 ### CHANGELOG 記載ルール（必須）
 
@@ -206,7 +207,7 @@ skills/
 
 - **自己参照に注意**: このリポジトリで `$work` を実行すると、自分自身のコードを編集することになる
 - **Hooks は未対応**: Codex では `.codex/rules/` で暫定ガードを行う
-- **VERSION 同期**: コード変更時は必ずバージョンを更新
+- **VERSION 同期**: 通常 PR では VERSION を触らず、release 時だけ更新
 
 ## 主要コマンド（開発時に使用）
 

@@ -1,17 +1,15 @@
 #!/bin/bash
-# sync-version.sh - VERSION と plugin.json のバージョンを同期
+# sync-version.sh - release metadata の VERSION / plugin.json を同期
 #
 # 使い方:
 #   ./scripts/sync-version.sh check    # 不一致をチェック
 #   ./scripts/sync-version.sh sync     # plugin.json を VERSION に合わせる
-#   ./scripts/sync-version.sh bump     # パッチバージョンを上げる
+#   ./scripts/sync-version.sh bump     # release 用に patch version を上げる
 
 set -euo pipefail
 
 VERSION_FILE="VERSION"
 PLUGIN_JSON=".claude-plugin/plugin.json"
-MARKETPLACE_JSON=".claude-plugin/marketplace.json"
-README_FILES=("README.md" "README_ja.md")
 
 # 現在のバージョンを取得
 get_version() {
@@ -56,34 +54,6 @@ sync_version() {
     fi
 
     echo "✅ plugin.json を更新: $current → $version"
-
-    # Optional: marketplace.json / README badge also follow VERSION
-    sync_optional_files "$version"
-}
-
-# Optional sync for marketplace + README badge
-sync_optional_files() {
-    local version="$1"
-
-    # marketplace.json
-    if [ -f "$MARKETPLACE_JSON" ]; then
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            sed -i '' -E "s/\"version\": \"[0-9]+\.[0-9]+\.[0-9]+\"/\"version\": \"$version\"/g" "$MARKETPLACE_JSON"
-        else
-            sed -i -E "s/\"version\": \"[0-9]+\.[0-9]+\.[0-9]+\"/\"version\": \"$version\"/g" "$MARKETPLACE_JSON"
-        fi
-    fi
-
-    # README badge (README.md + README_ja.md)
-    for readme in "${README_FILES[@]}"; do
-        if [ -f "$readme" ]; then
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-                sed -i '' -E "s|https://img\\.shields\\.io/badge/version-[0-9]+\\.[0-9]+\\.[0-9]+-blue\\.svg|https://img.shields.io/badge/version-${version}-blue.svg|g" "$readme" || true
-            else
-                sed -i -E "s|https://img\\.shields\\.io/badge/version-[0-9]+\\.[0-9]+\\.[0-9]+-blue\\.svg|https://img.shields.io/badge/version-${version}-blue.svg|g" "$readme" || true
-            fi
-        fi
-    done
 }
 
 # パッチバージョンを上げる

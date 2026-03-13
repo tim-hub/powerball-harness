@@ -27,6 +27,12 @@ Harness v3 の統合リリーススキル。
 /release --announce # Slack 等への告知も実行
 ```
 
+## Release-only policy
+
+- 通常 PR: `VERSION` / `.claude-plugin/plugin.json` / versioned `CHANGELOG.md` entry は触らない
+- 通常 PR の変更履歴: `CHANGELOG.md` の `[Unreleased]` に追記する
+- `/release` 実行時だけ version bump、versioned CHANGELOG entry、tag / GitHub Release をまとめて更新する
+
 ## ブランチポリシー
 
 - **単独開発**: main への直接 push を許容（CI が品質ゲートとして機能）
@@ -65,6 +71,8 @@ CURRENT=$(cat VERSION 2>/dev/null || jq -r '.version' package.json 2>/dev/null)
 - `major`: X.y.z → (X+1).0.0（破壊的変更）
 
 ### Step 3: CHANGELOG 更新
+
+release entry は、通常 PR で溜めた `[Unreleased]` の変更を versioned section へ確定するつもりで整理する。
 
 **詳細 Before/After フォーマット**（日本語）で記述する。
 各機能を番号付きセクションに分け、「今まで」と「今後」を具体例付きで説明する。

@@ -98,6 +98,9 @@ if [ -f "$VERSION_FILE" ] && [ -f "$PLUGIN_JSON" ]; then
   fi
 fi
 
+LATEST_RELEASE_URL="https://github.com/Chachamaru127/claude-code-harness/releases/latest"
+LATEST_RELEASE_BADGE="https://img.shields.io/github/v/release/Chachamaru127/claude-code-harness?display_name=tag&sort=semver"
+
 # ================================
 # 4. スキルの期待ファイル構成
 # ================================
@@ -515,11 +518,10 @@ check_exists() {
   fi
 }
 
-if [ -n "${FILE_VERSION:-}" ]; then
-  VERSION_BADGE="https://img.shields.io/badge/version-${FILE_VERSION}-blue.svg"
-  check_fixed_string "$README_EN" "$VERSION_BADGE" "README.md version badge"
-  check_fixed_string "$README_JA" "$VERSION_BADGE" "README_ja.md version badge"
-fi
+check_fixed_string "$README_EN" "$LATEST_RELEASE_URL" "README.md latest release link"
+check_fixed_string "$README_JA" "$LATEST_RELEASE_URL" "README_ja.md latest release link"
+check_fixed_string "$README_EN" "$LATEST_RELEASE_BADGE" "README.md latest release badge"
+check_fixed_string "$README_JA" "$LATEST_RELEASE_BADGE" "README_ja.md latest release badge"
 
 check_exists "$SCOPE_DOC" "distribution-scope.md"
 check_exists "$RUBRIC_DOC" "benchmark-rubric.md"

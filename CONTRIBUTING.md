@@ -85,6 +85,9 @@ Version is defined in two places that must stay in sync:
 - `VERSION` - Source of truth
 - `.claude-plugin/plugin.json` - Used by plugin system
 
+Normal feature/docs PRs should leave both files unchanged and record user-facing changes in `CHANGELOG.md` under `[Unreleased]`.
+Use a version bump only when you are intentionally cutting a release.
+
 ### Version Scripts
 
 ```bash
@@ -94,9 +97,15 @@ Version is defined in two places that must stay in sync:
 # Sync plugin.json to VERSION
 ./scripts/sync-version.sh sync
 
-# Bump patch version (e.g., 2.0.0 → 2.0.1)
+# Bump patch version for a release (e.g., 2.0.0 → 2.0.1)
 ./scripts/sync-version.sh bump
 ```
+
+### Release-only Versioning Policy
+
+- Normal PRs: do not edit `VERSION` or `.claude-plugin/plugin.json`; add notes under `[Unreleased]`
+- Release work: run `./scripts/sync-version.sh bump`, add a versioned `CHANGELOG.md` entry, then create the tag / GitHub Release
+- The repo pre-commit hook only syncs `plugin.json` to `VERSION` when you intentionally edit release metadata; it does not auto-bump patch versions
 
 ### Version Consistency Checks
 
@@ -165,7 +174,7 @@ Before submitting:
    ./scripts/ci/check-consistency.sh
    ```
 
-2. (Recommended) Enable pre-commit hooks (auto bump patch version when code changes):
+2. (Recommended) Enable pre-commit hooks (keep release metadata in sync without auto-bumping):
 
    ```bash
    ./scripts/install-git-hooks.sh

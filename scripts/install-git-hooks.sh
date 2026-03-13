@@ -36,8 +36,8 @@ echo ""
 echo "  core.hooksPath = .githooks"
 echo ""
 echo "  pre-commit:"
-echo "    - コード変更時に VERSION を自動更新"
-echo "    - VERSION と plugin.json を同期"
+echo "    - release metadata を編集したときに VERSION と plugin.json を同期"
+echo "    - 通常のコード変更では version を自動 bump しない"
 echo ""
 
 # Windows 向け注意事項

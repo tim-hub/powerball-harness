@@ -146,55 +146,39 @@ check_hooks() {
 }
 
 # ================================
-# 5. バージョン変更チェック
+# 5. リリースメタデータチェック
 # ================================
 check_version_bump() {
   echo ""
-  echo "📋 [5/5] バージョン変更チェック..."
+  echo "📋 [5/5] リリースメタデータチェック..."
 
-  # origin/main と比較
-  if ! git rev-parse origin/main >/dev/null 2>&1; then
-    echo "  ⚠️ origin/main が見つかりません。スキップ。"
+  local check_log
+  check_log="$(mktemp)"
+
+  if bash ./scripts/ci/check-version-bump.sh >"$check_log" 2>&1; then
+    sed 's/^/  /' "$check_log"
+    rm -f "$check_log"
     return
   fi
 
-  local code_changed=$(git diff --name-only origin/main HEAD -- commands/ skills/ templates/ scripts/ hooks/ agents/ 2>/dev/null | grep -v "^$" || true)
+  sed 's/^/  /' "$check_log"
+  rm -f "$check_log"
 
-  if [ -z "$code_changed" ]; then
-    echo "  ✅ コード変更なし"
-    return
-  fi
+  if [ "$AUTO_FIX" = true ] && ! bash ./scripts/sync-version.sh check >/dev/null 2>&1; then
+    echo "  🔧 修正中: plugin.json を VERSION に同期..."
+    bash ./scripts/sync-version.sh sync
+    FIXES_APPLIED=$((FIXES_APPLIED + 1))
 
-  local current_version=$(cat VERSION | tr -d '[:space:]')
-  local base_version=$(git show origin/main:VERSION 2>/dev/null | tr -d '[:space:]' || echo "")
-
-  if [ "$current_version" = "$base_version" ]; then
-    echo "  ❌ コード変更があるのにバージョンが同じ ($current_version)"
-    ISSUES_FOUND=$((ISSUES_FOUND + 1))
-
-    # 次のパッチバージョンを計算
-    local major=$(echo "$current_version" | cut -d. -f1)
-    local minor=$(echo "$current_version" | cut -d. -f2)
-    local patch=$(echo "$current_version" | cut -d. -f3)
-    local next_version="$major.$minor.$((patch + 1))"
-
-    if [ "$AUTO_FIX" = true ]; then
-      echo "  🔧 修正中: バージョンを $next_version に更新..."
-      echo "$next_version" > VERSION
-      sed -i.bak "s/\"version\": \"$current_version\"/\"version\": \"$next_version\"/" .claude-plugin/plugin.json
-      rm -f .claude-plugin/plugin.json.bak
-      FIXES_APPLIED=$((FIXES_APPLIED + 1))
-      echo "  ✅ 修正完了"
-      echo "  ⚠️ CHANGELOG.md への追記が必要です"
-    else
-      echo "  💡 修正案:"
-      echo "     1. VERSION を $next_version に更新"
-      echo "     2. plugin.json も同じバージョンに"
-      echo "     3. CHANGELOG.md に変更内容を追記"
+    if bash ./scripts/ci/check-version-bump.sh >/dev/null 2>&1; then
+      echo "  ✅ plugin.json 同期で release metadata 整合を回復"
+      return
     fi
-  else
-    echo "  ✅ バージョン更新済み ($base_version → $current_version)"
   fi
+
+  ISSUES_FOUND=$((ISSUES_FOUND + 1))
+  echo "  💡 修正方針:"
+  echo "     - 通常 PR では VERSION を変更しない"
+  echo "     - release 時だけ VERSION / plugin.json / CHANGELOG release entry を一緒に更新する"
 }
 
 # ================================

@@ -11,6 +11,7 @@ Change history for claude-code-harness.
 - release metadata updates are now release-only: normal PRs should leave `VERSION` and `.claude-plugin/plugin.json` untouched and record changes under `[Unreleased]`
 - pre-commit and CI now validate release metadata consistency without auto-bumping patch versions on ordinary code changes
 - README and README_ja now use the GitHub latest release badge instead of hardcoded per-version badge URLs
+- `.claude/rules/hooks-editing.md` now documents `SessionEnd` timeout guidance and `CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS` so the PR61 docs fix can be merged without carrying release metadata drift
 
 ### Added
 

@@ -7,7 +7,7 @@
 ## Surfaces
 
 - [ ] `VERSION` と `.claude-plugin/plugin.json` が一致している
-- [ ] README / README_ja の version badge が一致している
+- [ ] README / README_ja が latest release badge を使っている
 - [ ] README / README_ja のリンク切れがない
 - [ ] `docs/distribution-scope.md` と `Plans.md` の記述が一致している
 - [ ] `docs/claims-audit.md` の分類が今回の文言と矛盾していない
@@ -31,7 +31,7 @@
 
 ## Release Decision
 
-- [ ] 今回の変更で version bump が必要か判定した
+- [ ] 今回の変更が release metadata 更新を伴うか判定した
 - [ ] GitHub Release / tag 作成の明示承認を得た
 - [ ] 告知文面で `trust repair`, `evidence pack`, `positioning refresh` を混ぜずに整理した
 

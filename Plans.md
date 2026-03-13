@@ -4,6 +4,28 @@
 
 ---
 
+## Maintenance: PR61 selective merge rescue
+
+作成日: 2026-03-13
+目的: PR #61 を release metadata ごと取り込まず、現行 `main` に不足している実質差分だけを救済して merge-ready にする
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| M11 | PR61 の docs 差分を現行 release-only policy に沿って取り込み、不要な version bump / release entry を排除したうえで回帰確認を通す | `check-version-bump.sh` / `check-consistency.sh` / `validate-plugin.sh` / `validate-plugin-v3.sh` / `test-codex-package.sh` が通り、PR61 の rescue 方針を説明できる | M10 | cc:完了 |
+
+---
+
+## Maintenance: release-only versioning workflow
+
+作成日: 2026-03-13
+目的: feature PR で version / version badge / versioned CHANGELOG が先行して競合・赤CIを生まないよう、release 時だけ metadata を更新する運用へ切り替える
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| M10 | pre-commit / CI / ドキュメント / release skill を「通常PRでは VERSION を触らず、release 時だけ bump する」方針に統一し、PR61 のような drift を再発防止する | `validate-plugin.sh` / `check-consistency.sh` / `test-codex-package.sh` / 必要な追加回帰テストが通り、運用手順と merge 方針を説明できる | - | cc:完了 |
+
+---
+
 ## Maintenance: v3.10.2 release closeout
 
 作成日: 2026-03-12

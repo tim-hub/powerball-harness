@@ -59,7 +59,8 @@ Harness は Claude Code 2.1.49 の新機能をフル活用しています。
 - `VERSION` - ソース・オブ・トゥルース
 - `.claude-plugin/plugin.json` - プラグインシステム用
 
-変更時は `./scripts/sync-version.sh bump` を使用。
+通常の機能追加・docs 更新・CI 修正ではこの 2 ファイルを変更しない。
+変更履歴は `CHANGELOG.md` の `[Unreleased]` に追記し、release を切るときだけ `./scripts/sync-version.sh bump` を使用する。
 
 ### CHANGELOG 記載ルール
 
@@ -196,7 +197,7 @@ claude --plugin-dir /path/to/claude-code-harness
 
 - **自己参照に注意**: このプラグインの `/work` を実行すると、自分自身のコードを編集することになる
 - **Hooks は自動実行**: PreToolUse/PostToolUse で自動ガードが働く
-- **VERSION 同期**: コード変更時は必ずバージョンを更新
+- **VERSION 同期**: 通常 PR では VERSION を触らず、release 時だけ更新
 
 ## 主要コマンド（開発時に使用）
 

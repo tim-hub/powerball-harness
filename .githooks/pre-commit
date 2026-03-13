@@ -3,8 +3,8 @@
 # pre-commit hook (repo-managed)
 #
 # Purpose:
-# - If "code paths" are modified but VERSION isn't bumped, auto-bump patch version and stage it.
-# - Keep VERSION and .claude-plugin/plugin.json in sync.
+# - Keep VERSION and .claude-plugin/plugin.json in sync when release metadata is edited.
+# - Never auto-bump versions for ordinary code/docs commits.
 #
 # Install:
 #   ./scripts/install-git-hooks.sh
@@ -19,47 +19,29 @@ fi
 
 cd "$ROOT"
 
-CODE_PATHS=(commands/ skills/ templates/ scripts/ hooks/ agents/ workflows/)
+METADATA_FILES=(VERSION .claude-plugin/plugin.json)
+CHANGED_METADATA="$(git diff --cached --name-only -- "${METADATA_FILES[@]}" 2>/dev/null | grep -v '^$' || true)"
 
-# Staged code changes?
-CHANGED_CODE="$(git diff --cached --name-only -- "${CODE_PATHS[@]}" 2>/dev/null | grep -v '^$' || true)"
-if [ -z "$CHANGED_CODE" ]; then
-  # Even if no code changes, keep VERSION/plugin.json consistent when those files are staged.
-  if [ -f "./scripts/sync-version.sh" ]; then
-    if ! bash ./scripts/sync-version.sh check >/dev/null 2>&1; then
-      echo "[pre-commit] VERSION and plugin.json mismatch. Syncing..."
-      bash ./scripts/sync-version.sh sync
-      git add VERSION .claude-plugin/plugin.json 2>/dev/null || true
-    fi
-  fi
+if [ -z "$CHANGED_METADATA" ]; then
   exit 0
 fi
 
-# If we have code changes staged, require version bump (auto-fix by bumping patch).
-BASE_VERSION="$(git show HEAD:VERSION 2>/dev/null | tr -d '[:space:]' || echo "")"
-INDEX_VERSION="$(git show :VERSION 2>/dev/null | tr -d '[:space:]' || echo "")"
-
-if [ -z "$INDEX_VERSION" ] && [ -f VERSION ]; then
-  INDEX_VERSION="$(cat VERSION | tr -d '[:space:]')"
-fi
-
-if [ -z "$BASE_VERSION" ] || [ -z "$INDEX_VERSION" ]; then
-  # Initial commit or missing VERSION; don't block.
+if [ ! -f "./scripts/sync-version.sh" ]; then
   exit 0
 fi
 
-if [ "$BASE_VERSION" = "$INDEX_VERSION" ]; then
-  echo "[pre-commit] Code changes staged but VERSION not bumped ($INDEX_VERSION)."
-  echo "             -> Auto-bumping patch version..."
-
-  bash ./scripts/sync-version.sh bump
-
-  # Stage version files (and optional synced files if updated by scripts)
-  git add VERSION .claude-plugin/plugin.json 2>/dev/null || true
-  git add .claude-plugin/marketplace.json README.md 2>/dev/null || true
-
-  NEW_VERSION="$(cat VERSION | tr -d '[:space:]')"
-  echo "[pre-commit] VERSION updated: $BASE_VERSION -> $NEW_VERSION"
+if bash ./scripts/sync-version.sh check >/dev/null 2>&1; then
+  exit 0
 fi
+
+echo "[pre-commit] Release metadata mismatch detected."
+echo "             VERSION is the source of truth; syncing plugin.json to match."
+
+bash ./scripts/sync-version.sh sync
+
+git add VERSION .claude-plugin/plugin.json 2>/dev/null || true
+
+SYNCED_VERSION="$(tr -d '[:space:]' < VERSION)"
+echo "[pre-commit] Version metadata synced to $SYNCED_VERSION"
 
 exit 0
