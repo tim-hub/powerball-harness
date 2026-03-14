@@ -6,6 +6,26 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Added
+
+#### 1. エージェント暴走防止の `maxTurns` 安全制限
+
+**今まで**: Worker / Reviewer / Scaffolder の 3 エージェントにターン上限が設定されていなかった。エージェントが無限ループや過剰な探索に陥った場合、コンテキスト窓を使い切るまで停止せず、トークンコストが制御不能になる恐れがあった。
+
+**今後**: CC 公式ドキュメントで推奨されている `maxTurns` フィールドを全エージェントの frontmatter に追加。Worker: 100（複雑な実装タスク向け）、Reviewer: 50（Read-only 分析に特化）、Scaffolder: 75（中間的な複雑度）。上限到達時は Lead が途中結果を回収して判断できる。`bypassPermissions` と組み合わせることで、暴走時の安全弁として機能する。
+
+#### 2. `Notification` フックハンドラの実装
+
+**今まで**: hooks-editing.md と Feature Table に `Notification` イベントが記載されていたが、hooks.json にハンドラが登録されていなかった。26 フックイベント中、唯一の「ドキュメントあり・実装なし」の乖離状態だった。
+
+**今後**: `notification-handler.sh` を新規作成し、hooks.json の両ファイル（source + distribution）に登録。`permission_prompt` / `idle_prompt` / `auth_success` 等の通知イベントを `.claude/state/notification-events.jsonl` にログ記録。特に Breezing のバックグラウンド Worker で発生した permission_prompt の事後分析が可能に。
+
+#### 3. `/context` コマンドを Feature Table に追加
+
+**今まで**: CC v2.1.74 で追加された `/context` コマンド（コンテキスト消費の可視化と最適化提案）が Feature Table に未記載だった。
+
+**今後**: CLAUDE.md の概要テーブルと docs/CLAUDE-feature-table.md の詳細セクションに追加。長時間 Breezing セッションでのコンパクション頻発の原因特定に有用。
+
 ## [3.10.3] - 2026-03-14
 
 ### Changed
