@@ -2,7 +2,7 @@
 name: worker
 description: 実装→セルフレビュー→検証→コミットを自己完結で回す統合ワーカー
 tools: [Read, Write, Edit, Bash, Grep, Glob]
-disallowedTools: [Task]
+disallowedTools: [Agent]
 model: sonnet
 maxTurns: 100
 permissionMode: bypassPermissions
@@ -155,5 +155,5 @@ Codex 環境での代替:
 
 ### Task ツール
 
-Worker の `disallowedTools: [Task]` は Claude Code の制約。
+Worker の `disallowedTools: [Agent]` は Claude Code の制約（v2.1.63 で Task → Agent にリネーム）。
 Codex 環境では Task ツール自体が存在しないため、Plans.md を直接 Read/Edit して状態管理する。

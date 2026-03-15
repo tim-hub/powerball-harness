@@ -141,11 +141,20 @@ if [ -n "${log_entry}" ]; then
   rotate_jsonl "${LOG_FILE}"
 fi
 
-# === Breezing 中の permission_prompt 検出 ===
-# Breezing のバックグラウンド Worker では permission prompt に応答不能
+# === Breezing 中の重要通知検出 ===
+# Breezing のバックグラウンド Worker では UI 操作が不能
 # ログに記録することで事後分析を可能にする
+
+# permission_prompt: Worker が権限ダイアログに応答できない
 if [ "${NOTIFICATION_TYPE}" = "permission_prompt" ] && [ -n "${AGENT_TYPE}" ]; then
   echo "Notification: permission_prompt for agent_type=${AGENT_TYPE}" >&2
+fi
+
+# elicitation_dialog: MCP サーバーからの入力要求（v2.1.76+）
+# バックグラウンド Worker では Elicitation フォームに応答不能
+# Elicitation フックで自動スキップ済みだが、通知ログにも残す
+if [ "${NOTIFICATION_TYPE}" = "elicitation_dialog" ] && [ -n "${AGENT_TYPE}" ]; then
+  echo "Notification: elicitation_dialog for agent_type=${AGENT_TYPE} (auto-skipped in background)" >&2
 fi
 
 exit 0

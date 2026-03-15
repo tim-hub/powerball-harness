@@ -6,6 +6,28 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Changed
+
+#### 1. エージェント `disallowedTools` を公式名称に統一
+
+**今まで**: Worker / Reviewer / Scaffolder の `disallowedTools` に旧名称 `[Task]` を使用していた。CC v2.1.63 で Task ツールは Agent にリネーム済みで、`Task` はエイリアスとして動作するものの、公式ドキュメントは一貫して `Agent` を使用している。
+
+**今後**: 全エージェント定義の `disallowedTools` を `[Agent]` に更新。公式ドキュメントとの一貫性を確保し、将来のエイリアス廃止に備える。
+
+### Added
+
+#### 2. Notification ハンドラーに `elicitation_dialog` 対応を追加
+
+**今まで**: CC v2.1.76 で追加された MCP Elicitation の通知タイプ `elicitation_dialog` が Notification ハンドラーで個別検出されていなかった。`Elicitation` フックで自動スキップは実装済みだが、Notification 側のログ検出が不足していた。
+
+**今後**: `notification-handler.sh` に `elicitation_dialog` の検出を追加。Breezing のバックグラウンド Worker で MCP Elicitation が発生した場合、`permission_prompt` と同様にログ記録される。事後分析での Elicitation 発生状況の追跡が可能になった。
+
+#### 3. `harness-ops` Output Style をプラグインコンポーネントとして追加
+
+**今まで**: Feature Table で `harness-ops` 出力スタイルに言及していたが、実際のスタイルファイルが存在しなかった。また plugin.json に `outputStyles` フィールドが未設定で、プラグイン経由での配布ができなかった。
+
+**今後**: `output-styles/harness-ops.md` を作成し、Plan/Work/Review フェーズに応じた構造化出力スタイルを定義。plugin.json に `outputStyles: "./output-styles/"` を追加し、プラグインインストール時に自動配布される。ユーザーは `/config` → Output style から `Harness Ops` を選択可能。
+
 ## [3.10.5] - 2026-03-15
 
 ### テーマ: set-locale.sh の skills-v3 対応

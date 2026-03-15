@@ -15,5 +15,6 @@
     "vibecoder",
     "workflow",
     "plan-work-review"
-  ]
+  ],
+  "outputStyles": "./output-styles/"
 }

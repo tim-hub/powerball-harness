@@ -2,7 +2,7 @@
 name: scaffolder
 description: プロジェクト分析・足場構築・状態更新を担う統合スキャフォールダー
 tools: [Read, Write, Edit, Bash, Grep, Glob]
-disallowedTools: [Task]
+disallowedTools: [Agent]
 model: sonnet
 maxTurns: 75
 permissionMode: bypassPermissions

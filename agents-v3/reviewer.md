@@ -2,7 +2,7 @@
 name: reviewer
 description: セキュリティ/性能/品質/計画を多角的にレビューする統合レビュアー
 tools: [Read, Grep, Glob]
-disallowedTools: [Write, Edit, Bash, Task]
+disallowedTools: [Write, Edit, Bash, Agent]
 model: sonnet
 maxTurns: 50
 permissionMode: bypassPermissions
