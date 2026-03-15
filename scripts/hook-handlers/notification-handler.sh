@@ -29,13 +29,31 @@ LOG_FILE="${STATE_DIR}/notification-events.jsonl"
 # === ユーティリティ関数 ===
 
 ensure_state_dir() {
+  local state_parent
+  state_parent="$(dirname "${STATE_DIR}")"
+
+  # Security: refuse symlinked state paths to avoid overwriting arbitrary files.
+  if [ -L "${state_parent}" ] || [ -L "${STATE_DIR}" ]; then
+    return 1
+  fi
+
   mkdir -p "${STATE_DIR}" 2>/dev/null || true
   chmod 700 "${STATE_DIR}" 2>/dev/null || true
+
+  [ -d "${STATE_DIR}" ] || return 1
+  [ ! -L "${STATE_DIR}" ] || return 1
+  return 0
 }
 
 # JSONL ローテーション（500 行超過時に 400 行に切り詰め）
 rotate_jsonl() {
   local file="$1"
+
+  # Security: refuse symlinked log or tmp files
+  if [ -L "${file}" ] || [ -L "${file}.tmp" ]; then
+    return 1
+  fi
+
   local _lines
   _lines="$(wc -l < "${file}" 2>/dev/null)" || _lines=0
   if [ "${_lines}" -gt 500 ] 2>/dev/null; then
@@ -87,7 +105,9 @@ except:
 fi
 
 # === ログ記録 ===
-ensure_state_dir
+if ! ensure_state_dir; then
+  exit 0
+fi
 TS="$(get_timestamp)"
 
 log_entry=""
@@ -113,6 +133,10 @@ print(json.dumps({
 fi
 
 if [ -n "${log_entry}" ]; then
+  # Security: refuse symlinked log file
+  if [ -L "${LOG_FILE}" ]; then
+    exit 0
+  fi
   echo "${log_entry}" >> "${LOG_FILE}" 2>/dev/null || true
   rotate_jsonl "${LOG_FILE}"
 fi
