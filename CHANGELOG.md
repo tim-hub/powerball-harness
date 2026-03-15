@@ -6,6 +6,14 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [3.10.4] - 2026-03-15
+
+### テーマ: エージェント安全制限と Notification フック実装
+
+**エージェントの暴走を防止する `maxTurns` 安全弁を全サブエージェントに導入し、ドキュメントのみだった Notification フックの実装を完了。**
+
+---
+
 ### Added
 
 #### 1. エージェント暴走防止の `maxTurns` 安全制限
