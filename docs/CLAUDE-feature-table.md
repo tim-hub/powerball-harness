@@ -121,7 +121,9 @@
 | **Server-managed settings (public beta)** | setup | サーバー配信による一括設定管理。Teams/Enterprise 向け |
 | **Microsoft Foundry** | setup, breezing | 新クラウドプロバイダとして追加 |
 | **`PreCompact` hook** | hooks | コンテキスト圧縮前の状態保存と WIP タスク警告（実装済み） |
-| **`Notification` hook event** | hooks | 通知発火時のカスタムハンドラ |
+| **`Notification` hook event** | hooks | 通知発火時のカスタムハンドラ（実装済み） |
+| **`/context` コマンド (v2.1.74)** | all skills | コンテキスト消費の可視化と最適化提案 |
+| **`maxTurns` エージェント安全制限** | agents-v3/ | ターン上限による暴走防止。Worker: 100, Reviewer: 50, Scaffolder: 75 |
 
 ## 機能詳細
 
@@ -1359,6 +1361,46 @@ claude -n "breezing-$(date +%Y%m%d-%H%M%S)"
 **Harness での活用**:
 - 長時間セッションでの ToolSearch 経由ツールの安定性が向上
 - Breezing のコンパクション後もMCPツールが正常に動作
+
+### `/context` コマンド (v2.1.74)
+
+**動作概要**: コンテキスト窓の消費状況を分析し、コンテキストを圧迫しているツールやメモリを特定する。アクション可能な最適化提案（不要な MCP サーバーの切断、肥大化したメモリの整理等）を表示する。
+
+**Harness での活用**:
+- 長時間 Breezing セッションでの「なぜコンパクションが頻繁に起きるのか」の原因特定
+- 大量の hooks や MCP サーバーが接続された環境でのコンテキスト最適化
+- セッション中に `/context` を実行するだけで即座に分析結果が得られる
+
+**制約事項**:
+- セッション中のみ利用可能（バッチモードでは非対応）
+- サブエージェント内では利用不可
+
+### `maxTurns` エージェント安全制限
+
+**動作概要**: サブエージェントの最大ターン数を制限する frontmatter フィールド。設定ターン数に到達すると、エージェントは自動的に停止して結果を返す。CC 公式ドキュメントで推奨されている安全機構。
+
+**Harness での活用**:
+- Worker: `maxTurns: 100` — 複雑な実装タスク向け。十分な余裕を持ちつつ暴走を防止
+- Reviewer: `maxTurns: 50` — Read-only 分析に特化。50 ターンで完了しない場合は問題あり
+- Scaffolder: `maxTurns: 75` — 足場構築と状態更新の中間的な複雑度
+
+**設計判断**:
+- 上限に達した場合、Lead が途中結果を回収して判断可能
+- `bypassPermissions` と組み合わせることで、暴走時の安全弁として機能
+
+### `Notification` フック実装
+
+**動作概要**: Claude Code が通知を発行する際に発火するフックイベント。`permission_prompt`（権限確認）、`idle_prompt`（アイドル通知）、`auth_success`（認証成功）等のイベントをインターセプトする。
+
+**Harness での活用**:
+- `notification-handler.sh` で全通知イベントを `.claude/state/notification-events.jsonl` にログ記録
+- Breezing のバックグラウンド Worker で発生した `permission_prompt` を追跡（事後分析用）
+- hooks-editing.md では v3.10.3 からドキュメント化済みだったが、hooks.json への実装が今回完了
+
+**ログ形式**:
+```json
+{"event":"notification","notification_type":"permission_prompt","session_id":"...","agent_type":"worker","timestamp":"2026-03-15T..."}
+```
 
 ## 関連ドキュメント
 
