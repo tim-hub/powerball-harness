@@ -1,6 +1,6 @@
 ---
 name: breezing
-description: "Team execution mode — backward-compatible alias for harness-work with team orchestration. Trigger: breezing, team run, run with team, 全部やって. Do NOT load for: single task, harness-work without team."
+description: "チーム実行モード — harness-work のチーム協調エイリアス。breezing, チーム実行, 全部やって でトリガー。"
 description-ja: "チーム実行モード — harness-work のチーム協調エイリアス。breezing, チーム実行, 全部やって でトリガー。"
 description-en: "Team execution mode — backward-compatible alias for harness-work with team orchestration."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Task", "WebSearch"]
