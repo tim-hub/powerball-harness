@@ -188,9 +188,10 @@ Lead (this agent)
 
 **フロー**:
 1. Lead: タスク分割と subagent への割り当て
-2. Worker: 実装 → `cc:完了 [hash]`（直近 commit hash 付与）
-3. Reviewer: コードレビュー → APPROVE / REQUEST_CHANGES
-4. REQUEST_CHANGES の場合: 修正タスクを作成 → 再実装
+2. Worker: 実装完了（コミット前）
+3. レビューループ: Codex exec（優先）/ Reviewer agent（フォールバック）→ APPROVE / REQUEST_CHANGES
+4. REQUEST_CHANGES の場合: Worker に修正を指示（SendMessage）→ 再レビュー（最大 3 回）
+5. APPROVE → `git commit` → `cc:完了 [hash]`
 
 ## CI 失敗時の対応
 

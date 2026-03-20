@@ -72,7 +72,7 @@ Codex CLI にすべての実装を委託するモード:
 # プロンプトは stdin パイプで渡す（ARG_MAX 対策）
 CODEX_PROMPT=$(mktemp /tmp/codex-prompt-XXXXXX.md)
 # タスク内容を書き出し
-cat "$CODEX_PROMPT" | $TIMEOUT 120 codex exec - --sandbox workspace-write --full-auto 2>>/tmp/harness-codex-$$.log
+cat "$CODEX_PROMPT" | ${TIMEOUT:+$TIMEOUT 120} codex exec - --sandbox workspace-write --full-auto 2>>/tmp/harness-codex-$$.log
 rm -f "$CODEX_PROMPT"
 ```
 

@@ -42,8 +42,9 @@ Harness v3 の統合レビュースキル。
 ### Step 1: 変更差分を収集
 
 ```bash
-git diff HEAD~1 --stat
-git diff HEAD~1 -- <changed_files>
+# BASE_REF が harness-work から渡された場合はそれを使用、なければ HEAD~1 にフォールバック
+git diff ${BASE_REF:-HEAD~1} --stat
+git diff ${BASE_REF:-HEAD~1} -- <changed_files>
 ```
 
 ### Step 2: 4観点でレビュー

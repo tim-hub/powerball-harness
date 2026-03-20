@@ -86,7 +86,7 @@ TIMEOUT=$(command -v timeout || command -v gtimeout || echo "")
 
 **使用パターン**:
 ```bash
-$TIMEOUT 120 codex exec "$(cat /tmp/prompt.md)" 2>/dev/null
+${TIMEOUT:+$TIMEOUT 120} codex exec "$(cat /tmp/prompt.md)" 2>/dev/null
 ```
 
 ### harness-mem — メモリ設定
