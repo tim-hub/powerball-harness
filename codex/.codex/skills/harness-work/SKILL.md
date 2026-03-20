@@ -368,13 +368,13 @@ if review_count >= MAX_REVIEWS and verdict != "APPROVE":
 
 ### Breezing モードでの適用
 
-Breezing モードでは、従来の独立 Reviewer spawn に**加えて** Codex exec 優先ロジックを適用:
+Breezing モードでは **Lead** がレビューループを実行する（上記 Phase B 参照）:
 
-1. Worker が実装完了
-2. **Codex exec でレビュー**（優先）/ 内部 Reviewer agent（フォールバック）
-3. REQUEST_CHANGES → Worker に修正を指示（SendMessage）
+1. Worker が worktree 内で実装・commit → Lead に結果返却
+2. Lead が Codex exec でレビュー（優先）/ Reviewer agent（フォールバック）
+3. REQUEST_CHANGES → Lead が SendMessage で Worker に修正指示 → Worker が amend
 4. 修正後、再レビュー（最大 3 回）
-5. APPROVE → `cc:完了` + commit
+5. APPROVE → Lead が main に cherry-pick → Plans.md を `cc:完了 [{hash}]` に更新
 
 ## 完了報告フォーマット
 

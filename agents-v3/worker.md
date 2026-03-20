@@ -165,6 +165,8 @@ Task tool で subagent_type="worker" を指定
   "task": "完了したタスク",
   "files_changed": ["変更ファイルリスト"],
   "commit": "コミットハッシュ",
+  "worktreePath": "worktree のパス（mode: breezing 時のみ）",
+  "summary": "変更内容の 1 行サマリ（mode: breezing 時のみ）",
   "memory_updates": ["メモリに追記した内容"],
   "escalation_reason": "エスカレーション理由（失敗時のみ）"
 }
