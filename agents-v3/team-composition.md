@@ -282,7 +282,7 @@ Agent Teams の代わりに `codex exec` を逐次呼び出す:
 echo "タスク内容" | codex exec - --sandbox workspace-write --full-auto
 
 # Reviewer 相当（Read-only レビュー）
-echo "レビュー内容" | codex exec - --sandbox read-only --full-auto
+echo "レビュー内容" | codex exec - --sandbox read-only
 ```
 
 ### 並列実行（Bash レベル）
@@ -311,7 +311,7 @@ Codex 0.110+ は `codex fork` / `/fork` でスレッドを分岐できるが、
 | フラグ | 短縮形 | 説明 |
 |---|---|---|
 | `--sandbox` | `-s` | `read-only` / `workspace-write` / `danger-full-access` |
-| `--full-auto` | - | `--sandbox workspace-write` のエイリアス（承認不要） |
+| `--full-auto` | - | `-a on-request` + `--sandbox workspace-write` のエイリアス（低摩擦自動実行） |
 | `--dangerously-bypass-approvals-and-sandbox` | - | 全サンドボックス・承認をバイパス（極度危険） |
 
 > **注意**: 旧フラグ `-a never` / `--ask-for-approval` は 0.115.0 で廃止。`--full-auto` または `--sandbox` を使用。
