@@ -301,8 +301,8 @@ native subagent API（`spawn_agent`, `send_input` 等）で代替する。
 
 | Claude Code | Codex CLI | 備考 |
 |------------|-----------|------|
-| `Agent(subagent_type=...)` | `spawn_agent(...)` | native subagent |
-| `SendMessage(to, message)` | `send_input(agent_id, message)` | 修正ループで使用 |
+| `Agent(subagent_type=...)` | `spawn_agent(...)` | native subagent。戻り値に agentId を含む |
+| `SendMessage(to, message)` | `resume_agent(agent_id)` + `send_input(agent_id, message)` | 修正ループで使用。Codex では resume が先に必要 |
 | `bypassPermissions` | `--full-auto` | codex exec は非対話 |
 | Task ツール | Plans.md 直接編集 | |
 | PreToolUse hooks | config.toml sandbox | |

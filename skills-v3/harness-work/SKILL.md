@@ -201,33 +201,38 @@ Lead (this agent)
 
 ```
 for task in execution_order:
-    # B-1. Worker spawn
+    # B-1. Worker spawn（フォアグラウンド、worktree 分離）
+    # Agent tool の戻り値に agentId が含まれる — 修正ループで SendMessage に使用
     worker_result = Agent(
         subagent_type="claude-code-harness:worker",
         prompt="タスク: {task.内容}\nDoD: {task.DoD}\nmode: breezing",
-        isolation="worktree"
+        isolation="worktree",
+        run_in_background=false  # フォアグラウンドで実行 → Worker 完了まで待機
     )
+    worker_id = worker_result.agentId  # SendMessage 用に保持
     # worker_result には {commit, worktreePath, files_changed, summary} が含まれる
 
     # B-2. Lead がレビュー実行（Codex exec 優先）
-    REVIEW_PROMPT = """
-    判定基準: critical/major → REQUEST_CHANGES、minor/recommendation → APPROVE
-    diff: $(git -C {worktreePath} show {worker_result.commit})
-    """
-    verdict = codex_exec(REVIEW_PROMPT) or reviewer_agent(REVIEW_PROMPT)
+    diff_text = git("-C", worker_result.worktreePath, "show", worker_result.commit)
+    verdict = codex_exec_review(diff_text) or reviewer_agent_review(diff_text)
 
     # B-3. 修正ループ（REQUEST_CHANGES 時、最大 3 回）
+    # Worker はフォアグラウンドで完了済みだが、SendMessage で再開可能
+    # （CC: SendMessage(to: agentId) / Codex: resume_agent(agent_id) + send_input）
     review_count = 0
+    latest_commit = worker_result.commit
     while verdict == "REQUEST_CHANGES" and review_count < 3:
         SendMessage(to=worker_id, message="指摘内容: {issues}\n修正して amend してください")
-        updated_result = wait_for_worker()
-        verdict = codex_exec(updated_diff) or reviewer_agent(updated_diff)
+        # Worker が修正 → amend → 更新された commit hash を返す
+        updated_result = wait_for_response(worker_id)
+        latest_commit = updated_result.commit
+        diff_text = git("-C", worker_result.worktreePath, "show", latest_commit)
+        verdict = codex_exec_review(diff_text) or reviewer_agent_review(diff_text)
         review_count++
 
-    # B-4. APPROVE → main に cherry-pick（最新の commit hash を使用）
+    # B-4. APPROVE → main に cherry-pick
     if verdict == "APPROVE":
-        latest_commit = updated_result.commit if review_count > 0 else worker_result.commit
-        git cherry-pick --no-commit {latest_commit}  # worktree から main へ
+        git cherry-pick --no-commit {latest_commit}  # worktree → main
         git commit -m "{task.内容}"
         Plans.md: task.status = "cc:完了 [{hash}]"
     else:
