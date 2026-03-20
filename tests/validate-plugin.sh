@@ -265,6 +265,26 @@ else
 fi
 
 echo ""
+echo "7. Claude Code プラグイン検証（v2.1.77+）"
+echo "----------------------------------------"
+
+# claude コマンドが利用可能な場合のみ実行
+if command -v claude > /dev/null 2>&1; then
+    # サブコマンドの存在を確認（v2.1.77 未満では plugin validate が無い）
+    if claude plugin validate --help > /dev/null 2>&1; then
+        if claude plugin validate "$PLUGIN_ROOT/.claude-plugin/plugin.json" > /dev/null 2>&1; then
+            pass_test "claude plugin validate に合格"
+        else
+            fail_test "claude plugin validate でエラー検出（CC v2.1.77+ 必須）"
+        fi
+    else
+        warn_test "claude plugin validate が未サポート（CC v2.1.77+ にアップデート推奨）"
+    fi
+else
+    warn_test "claude コマンドが未インストール（claude plugin validate をスキップ）"
+fi
+
+echo ""
 echo "=========================================="
 echo "テスト結果サマリー"
 echo "=========================================="

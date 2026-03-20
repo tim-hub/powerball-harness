@@ -47,7 +47,7 @@ export interface GuardRule {
     evaluate: (ctx: RuleContext) => HookResult | null;
 }
 /** エージェント間で交換するシグナルの種類 */
-export type SignalType = "task_completed" | "task_failed" | "teammate_idle" | "session_start" | "session_end" | "request_review";
+export type SignalType = "task_completed" | "task_failed" | "teammate_idle" | "session_start" | "session_end" | "stop_failure" | "request_review";
 /** エージェント間シグナル */
 export interface Signal {
     type: SignalType;

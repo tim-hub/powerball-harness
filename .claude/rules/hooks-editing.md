@@ -36,6 +36,12 @@ hooks/hooks.json           ← Source file (for development)
 > **CC v2.1.76+**: `Elicitation`、`ElicitationResult`、`PostCompact` イベントが追加されました。
 > MCP Elicitation はバックグラウンドエージェントでは UI 対話不能なため、フックで自動処理が必要です。
 > PostCompact は PreCompact と対になり、コンパクション後のコンテキスト再注入に使用します。
+>
+> **CC v2.1.77+**: PreToolUse フックが `"allow"` を返しても、settings.json の `deny` ルールが優先されるようになりました。
+> フック内で allow しても deny 設定があれば拒否されます。guardrail 設計時はこの優先順位に注意してください。
+>
+> **CC v2.1.78+**: `StopFailure` イベントが追加されました。API エラー（レート制限、認証失敗等）で
+> セッション停止が失敗した際に発火します。エラーログと復旧処理に使用します。
 
 ### command Type (General Purpose)
 
@@ -237,6 +243,8 @@ Execute command type via `run-script.js`:
 | Elicitation | 10s | MCP elicitation のインターセプト。Breezing では自動スキップ |
 | ElicitationResult | 5s | 結果のログ記録のみ、軽量処理 |
 | PostCompact | 15s | コンテキスト再注入。WIP タスク状態の復元を含む |
+| StopFailure | 10s | API エラーログ記録のみ。復旧処理は不要（v2.1.78+） |
+| ConfigChange | 10s | 設定変更の監査記録 |
 
 ### Special Considerations for Stop Hooks
 
@@ -281,7 +289,9 @@ export CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS=45000
     "PostCompact": [],     // After context compaction (v2.1.76+)
     "Elicitation": [],     // MCP elicitation request (v2.1.76+)
     "ElicitationResult": [], // MCP elicitation result (v2.1.76+)
-    "Notification": []     // On notification dispatch
+    "Notification": [],    // On notification dispatch
+    "StopFailure": [],     // API error during session stop (v2.1.78+)
+    "ConfigChange": []     // Settings change event
   }
 }
 ```

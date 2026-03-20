@@ -45,7 +45,7 @@ function normalizeSignalType(type) {
     // 有効な SignalType 一覧（types.ts の SignalType と同期）
     const valid = [
         "task_completed", "task_failed", "teammate_idle",
-        "session_start", "session_end", "request_review",
+        "session_start", "session_end", "stop_failure", "request_review",
     ];
     if (type && valid.includes(type))
         return type;

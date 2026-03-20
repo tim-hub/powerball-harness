@@ -124,6 +124,26 @@
 | **`Notification` hook event** | hooks | 通知発火時のカスタムハンドラ（実装済み） |
 | **`/context` コマンド (v2.1.74)** | all skills | コンテキスト消費の可視化と最適化提案 |
 | **`maxTurns` エージェント安全制限** | agents-v3/ | ターン上限による暴走防止。Worker: 100, Reviewer: 50, Scaffolder: 75 |
+| **Output token limits 64k/128k (v2.1.77)** | all skills | Opus 4.6 / Sonnet 4.6 デフォルト 64k、上限 128k トークン |
+| **`allowRead` sandbox 設定 (v2.1.77)** | harness-review | `denyRead` 内で特定パスの読み取りを再許可 |
+| **PreToolUse `allow` が `deny` を尊重 (v2.1.77)** | guardrails | フック `allow` が settings.json `deny` を上書きしない |
+| **Agent `resume` → `SendMessage` (v2.1.77)** | breezing | Agent tool `resume` 廃止、`SendMessage({to: agentId})` に移行 |
+| **`/branch` (旧 `/fork`) (v2.1.77)** | session | `/fork` → `/branch` リネーム。エイリアス存続 |
+| **`claude plugin validate` 強化 (v2.1.77)** | setup | frontmatter + hooks.json 構文検証追加 |
+| **`--resume` 45% 高速化 (v2.1.77)** | session | fork-heavy セッション再開の高速化・メモリ削減 |
+| **Stale worktree 競合修正 (v2.1.77)** | breezing | アクティブ worktree 誤削除の防止 |
+| **`StopFailure` hook event (v2.1.78)** | hooks | API エラーでのセッション停止失敗をキャプチャ |
+| **`${CLAUDE_PLUGIN_DATA}` 変数 (v2.1.78)** | hooks, setup | プラグイン更新でも永続するステートディレクトリ |
+| **Agent `effort`/`maxTurns`/`disallowedTools` frontmatter (v2.1.78)** | agents-v3/ | プラグインエージェントの宣言的制御 |
+| **`deny: ["mcp__*"]` 修正 (v2.1.78)** | setup | settings.json deny で MCP ツールを正しくブロック |
+| **`ANTHROPIC_CUSTOM_MODEL_OPTION` (v2.1.78)** | setup | カスタムモデルピッカーエントリ |
+| **`--worktree` skills/hooks 読込修正 (v2.1.78)** | breezing | worktree フラグ時のスキル・フック正常ロード |
+| **Large session truncation 修正 (v2.1.78)** | session | 5MB 超セッションの切り詰め修正 |
+| **`--console` auth フラグ (v2.1.79)** | setup | Anthropic Console API 課金認証 |
+| **Turn duration 表示 (v2.1.79)** | all skills | `/config` でターン実行時間の表示切替 |
+| **`CLAUDE_CODE_PLUGIN_SEED_DIR` 複数対応 (v2.1.79)** | setup | 複数シードディレクトリ指定 |
+| **SessionEnd hooks `/resume` 修正 (v2.1.79)** | hooks | 対話的セッション切替時の SessionEnd 正常発火 |
+| **18MB startup memory 削減 (v2.1.79)** | all skills | 起動時メモリ使用量削減 |
 
 ## 機能詳細
 
@@ -1401,6 +1421,95 @@ claude -n "breezing-$(date +%Y%m%d-%H%M%S)"
 ```json
 {"event":"notification","notification_type":"permission_prompt","session_id":"...","agent_type":"worker","timestamp":"2026-03-15T..."}
 ```
+
+### Output token limits 64k/128k (v2.1.77)
+
+CC 2.1.77 で Opus 4.6 と Sonnet 4.6 のデフォルト最大出力トークンが 64k に引き上げられ、上限が 128k トークンまで拡張された。
+
+**Harness への影響**:
+- 長い実装コードや大規模リファクタリングの出力がトランケートされにくくなった
+- Worker エージェントが大量のファイル変更を一度に出力する場合の信頼性が向上
+- 128k 出力はコスト増大につながるため、コスト管理にも留意が必要
+
+### `allowRead` sandbox 設定 (v2.1.77)
+
+`sandbox.filesystem.denyRead` で広範囲をブロックしつつ、`allowRead` で特定パスの読み取りを再許可できるようになった。
+
+**Harness での活用**:
+- Reviewer エージェントのサンドボックスで `/etc/` を denyRead しつつ、特定の設定ファイルだけ allowRead する
+- セキュリティレビュー時に機密ディレクトリの制限付き読み取りアクセスを提供
+
+### PreToolUse `allow` が `deny` を尊重 (v2.1.77)
+
+CC 2.1.77 で PreToolUse フックが `"allow"` を返しても、settings.json の `deny` パーミッションルールが引き続き適用されるようになった。以前はフックの `allow` がグローバル `deny` を上書きしていた。
+
+**Harness への影響**:
+- guardrails のセキュリティモデルが強化された
+- `deny: ["mcp__codex__*"]` を settings.json に設定すれば、PreToolUse フックの判断に関わらず確実にブロック
+- `.claude/rules/codex-cli-only.md` のフックベース MCP ブロックに加え、settings.json deny が推奨パターンに
+
+### Agent `resume` → `SendMessage` (v2.1.77)
+
+CC 2.1.77 で Agent tool の `resume` パラメータが廃止された。停止中のエージェントを再開するには `SendMessage({to: agentId})` を使用する。`SendMessage` は停止中のエージェントを自動でバックグラウンド再開する。
+
+**Harness での影響**:
+- `breezing` スキルの Lead が Worker/Reviewer と通信する際は `SendMessage` を使用
+- `team-composition.md` の Lead Phase B で `SendMessage` が正式なコミュニケーション手段として記載
+
+### `/branch` (旧 `/fork`) (v2.1.77)
+
+CC 2.1.77 で `/fork` コマンドが `/branch` にリネームされた。`/fork` はエイリアスとして引き続き機能する。
+
+### `claude plugin validate` 強化 (v2.1.77)
+
+CC 2.1.77 で `claude plugin validate` がスキル・エージェント・コマンドの YAML frontmatter と hooks.json の構文を検証するようになった。
+
+**Harness での活用**:
+- CI パイプラインに `claude plugin validate` を追加し、frontmatter エラーを早期検出
+- `tests/validate-plugin.sh` の補完として活用可能
+
+### `StopFailure` hook event (v2.1.78)
+
+CC 2.1.78 で `StopFailure` イベントが追加された。API エラー（レート制限 429、認証失敗 401 等）でセッション停止が失敗した際に発火する。
+
+**Harness での活用**:
+- `stop-failure.sh` ハンドラーでエラー情報を `.claude/state/stop-failures.jsonl` にログ記録
+- Breezing の Worker がレート制限で停止失敗した場合の事後分析に使用
+- 10 秒タイムアウトの軽量ハンドラーとして実装（復旧処理は不要）
+
+### `${CLAUDE_PLUGIN_DATA}` 変数 (v2.1.78)
+
+CC 2.1.78 で `${CLAUDE_PLUGIN_DATA}` ディレクトリ変数が追加された。プラグイン更新でも永続するステートストレージとして使用できる。
+
+**Harness での活用余地**:
+- 現在は `${CLAUDE_PLUGIN_ROOT}/.claude/state/` を使用しているが、プラグイン更新で消える可能性
+- 長期的にはメトリクス・通知ログ等の永続データを `${CLAUDE_PLUGIN_DATA}` に移行を検討
+- 移行パターン: `STATE_DIR="${CLAUDE_PLUGIN_DATA:-${CLAUDE_PLUGIN_ROOT}/.claude/state}"`
+
+### Agent frontmatter: `effort`/`maxTurns`/`disallowedTools` (v2.1.78)
+
+CC 2.1.78 でプラグインエージェント定義の frontmatter に `effort`, `maxTurns`, `disallowedTools` が公式サポートされた。
+
+**Harness での現状**:
+- `maxTurns`: v3.10.4 で既に実装済み（Worker: 100, Reviewer: 50, Scaffolder: 75）
+- `disallowedTools`: Worker は `[Agent]`、Reviewer は `[Write, Edit, Bash, Agent]` で実装済み
+- `effort`: 未使用。Worker/Reviewer 定義に `effort` フィールドを追加して、デフォルト thinking レベルを宣言的に制御可能
+
+### `deny: ["mcp__*"]` 修正 (v2.1.78)
+
+CC 2.1.78 で settings.json の `deny` パーミッションルールが MCP サーバーツールに対して正しく機能するように修正された。
+
+**Harness での活用**:
+- `.claude/rules/codex-cli-only.md` で推奨している Codex MCP ブロックを、フックベースから settings.json `deny` に移行可能
+- `"permissions": { "deny": ["mcp__codex__*"] }` がクリーンなパターン
+
+### `--console` auth フラグ (v2.1.79)
+
+CC 2.1.79 で `claude auth login --console` フラグが追加され、Anthropic Console API 課金での認証に対応。
+
+### SessionEnd hooks `/resume` 修正 (v2.1.79)
+
+CC 2.1.79 で対話的 `/resume` セッション切替時に `SessionEnd` フックが正常に発火するようになった。以前はセッション切替時に SessionEnd が発火しなかったため、cleanup 処理が実行されないケースがあった。
 
 ## 関連ドキュメント
 

@@ -22,8 +22,14 @@ fi
 # プロジェクトルートを検出
 PROJECT_ROOT="${PROJECT_ROOT:-$(detect_project_root 2>/dev/null || pwd)}"
 
-# ログファイル
-STATE_DIR="${PROJECT_ROOT}/.claude/state"
+# ログファイル（CLAUDE_PLUGIN_DATA 使用時はプロジェクト別にスコープ）
+if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
+  _project_hash="$(printf '%s' "${PROJECT_ROOT}" | { shasum -a 256 2>/dev/null || sha256sum 2>/dev/null || echo "default  -"; } | cut -c1-12)"
+  [ -z "${_project_hash}" ] && _project_hash="default"
+  STATE_DIR="${CLAUDE_PLUGIN_DATA}/projects/${_project_hash}"
+else
+  STATE_DIR="${PROJECT_ROOT}/.claude/state"
+fi
 LOG_FILE="${STATE_DIR}/notification-events.jsonl"
 
 # === ユーティリティ関数 ===

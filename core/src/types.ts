@@ -71,6 +71,7 @@ export type SignalType =
   | "teammate_idle"
   | "session_start"
   | "session_end"
+  | "stop_failure"
   | "request_review";
 
 /** エージェント間シグナル */

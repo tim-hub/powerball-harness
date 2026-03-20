@@ -8,9 +8,9 @@ This file provides guidance for Claude Code when working in this repository.
 
 **Special note**: This project is self-referential — it uses the harness itself to improve the harness.
 
-## Claude Code 2.1.76+ Feature Utilization Guide
+## Claude Code 2.1.79+ Feature Utilization Guide
 
-Harness makes full use of new features introduced in Claude Code 2.1.76.
+Harness makes full use of new features introduced in Claude Code 2.1.79.
 
 | Feature | Skill | Purpose |
 |---------|-------|---------|
@@ -106,6 +106,26 @@ Harness makes full use of new features introduced in Claude Code 2.1.76.
 | **`/context` コマンド (v2.1.74)** | all skills | コンテキスト消費の可視化と最適化提案。長時間セッションの肥大化防止 |
 | **`maxTurns` エージェント安全制限** | agents-v3/ | Worker: 100, Reviewer: 50, Scaffolder: 75。暴走防止の安全弁 |
 | **`Notification` フック実装** | hooks | 通知イベント（permission_prompt, idle_prompt 等）のログ記録。Breezing 観測性向上 |
+| **Output token limits 64k/128k (v2.1.77)** | all skills | Opus 4.6 / Sonnet 4.6 のデフォルト出力 64k、上限 128k トークン |
+| **`allowRead` sandbox setting (v2.1.77)** | harness-review | `denyRead` 領域内で特定パスの読み取りを再許可 |
+| **PreToolUse `allow` respects `deny` (v2.1.77)** | guardrails | フック `allow` が settings.json の `deny` ルールを上書きしない（セキュリティ強化） |
+| **Agent `resume` → `SendMessage` (v2.1.77)** | breezing | Agent tool の `resume` パラメータ廃止。`SendMessage({to: agentId})` に移行 |
+| **`/branch` (was `/fork`) (v2.1.77)** | session | `/fork` を `/branch` にリネーム（`/fork` はエイリアスとして存続） |
+| **`claude plugin validate` enhanced (v2.1.77)** | setup | frontmatter + hooks.json の構文検証を追加 |
+| **`--resume` 45% faster (v2.1.77)** | session | fork-heavy セッション再開が最大 45% 高速化、100-150MB メモリ削減 |
+| **Stale worktree race fix (v2.1.77)** | breezing | アクティブエージェントの worktree が誤削除される競合を修正 |
+| **`StopFailure` hook event (v2.1.78)** | hooks | API エラー（レート制限、認証失敗）でのセッション停止失敗をキャプチャ |
+| **`${CLAUDE_PLUGIN_DATA}` variable (v2.1.78)** | hooks, setup | プラグイン更新でも永続するステートディレクトリ変数 |
+| **Agent `effort`/`maxTurns`/`disallowedTools` frontmatter (v2.1.78)** | agents-v3/ | プラグインエージェント定義で effort・ターン制限・ツール禁止を宣言的に設定 |
+| **`deny: ["mcp__*"]` permission fix (v2.1.78)** | setup | settings.json の deny ルールで MCP ツールを正しくブロック |
+| **`ANTHROPIC_CUSTOM_MODEL_OPTION` env var (v2.1.78)** | setup | `/model` ピッカーにカスタムモデルエントリを追加 |
+| **`--worktree` skills/hooks loading fix (v2.1.78)** | breezing | worktree フラグ使用時もスキル・フックが正しくロードされる |
+| **Large session truncation fix (v2.1.78)** | session | `cc log` / `--resume` で 5MB 超セッションが切り詰められる問題を修正 |
+| **`--console` auth flag (v2.1.79)** | setup | Anthropic Console API 課金認証用の `claude auth login --console` |
+| **Turn duration toggle (v2.1.79)** | all skills | `/config` でターン実行時間の表示を切替 |
+| **`CLAUDE_CODE_PLUGIN_SEED_DIR` multiple dirs (v2.1.79)** | setup | 複数シードディレクトリをプラットフォーム区切り文字で指定 |
+| **SessionEnd hooks fix in `/resume` (v2.1.79)** | hooks | 対話的 `/resume` セッション切替時に SessionEnd フックが正常発火 |
+| **18MB startup memory reduction (v2.1.79)** | all skills | 起動時メモリ使用量を約 18MB 削減 |
 
 Full details: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 

@@ -8,6 +8,21 @@ Codex の呼び出しには **必ず `codex exec` (Bash)** を使用すること
 - ToolSearch で Codex MCP を検索する行為
 - `claude mcp add codex` による MCP サーバー再登録
 
+## 推奨ブロック方法（v2.1.78+）
+
+settings.json の `deny` ルールで MCP ツールを直接ブロックするのが最もクリーンな方法:
+
+```json
+{
+  "permissions": {
+    "deny": ["mcp__codex__*"]
+  }
+}
+```
+
+v2.1.77 以降、PreToolUse フックの `allow` 応答は settings.json の `deny` を上書きできないため、
+`deny` ルールは最も確実なブロック手段となる。Harness の `.claude-plugin/settings.json` には設定済み。
+
 ## 正しい呼び出し方
 
 ```bash

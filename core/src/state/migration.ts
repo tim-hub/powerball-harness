@@ -85,7 +85,7 @@ function normalizeSignalType(type: string | undefined): SignalType {
   // 有効な SignalType 一覧（types.ts の SignalType と同期）
   const valid: SignalType[] = [
     "task_completed", "task_failed", "teammate_idle",
-    "session_start", "session_end", "request_review",
+    "session_start", "session_end", "stop_failure", "request_review",
   ];
   if (type && (valid as string[]).includes(type)) return type as SignalType;
   return "task_completed"; // 不明な型はフォールバック

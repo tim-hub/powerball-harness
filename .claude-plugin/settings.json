@@ -9,6 +9,7 @@
       "Bash(mysql:*)",
       "Bash(mongod:*)",
       "Bash(mongo:*)",
+      "mcp__codex__*",
       "Read(./.env)",
       "Read(./.env.*)",
       "Read(./secrets/**)",
@@ -37,5 +38,27 @@
       "Bash(bun install:*)",
       "Bash(pnpm install:*)"
     ]
+  },
+  "sandbox": {
+    "filesystem": {
+      "denyRead": [
+        ".env",
+        ".env.*",
+        "!.env.example",
+        "secrets/**",
+        "**/*.pem",
+        "**/*.key",
+        "**/*id_rsa*",
+        "**/*id_ed25519*",
+        "**/.aws/**",
+        "**/.ssh/**"
+      ],
+      "allowRead": [
+        ".env.example",
+        ".env.sample",
+        "config/public-*",
+        "docs/**"
+      ]
+    }
   }
 }

@@ -6,6 +6,83 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [3.11.0] - 2026-03-20
+
+### テーマ: Claude Code v2.1.77〜v2.1.79 統合 + 「書いただけ禁止」品質革命
+
+**CC 最新版を統合し、セルフレビューで判明した「書いただけ問題」を構造的に解決。StopFailure ログ記録・通知の仕組みを追加し、Effort 動的注入・Sandbox 自動設定の設計方針を SKILL.md・エージェント定義に追加。**
+
+---
+
+#### 1. Claude Code v2.1.77〜v2.1.79 統合
+
+21 件の新機能・修正を Feature Table に追加し、Harness での活用方法を文書化。
+
+##### 1-1. `StopFailure` フックイベント対応
+
+**CC のアプデ**: v2.1.78 で API エラー（レート制限 429、認証失敗 401 等）によるセッション停止失敗を捕捉する `StopFailure` イベントが追加された。
+
+**Harness での活用**: `stop-failure.sh` ハンドラーを新設し、エラー情報をログに記録（`${CLAUDE_PLUGIN_DATA}` 設定時はプロジェクト別スコープ、未設定時は `.claude/state/stop-failures.jsonl`）。Breezing Worker のレート制限による停止失敗の事後分析に活用可能。
+
+##### 1-2. PreToolUse `allow` / `deny` 優先順位の明文化
+
+**CC のアプデ**: v2.1.77 で PreToolUse フックが `allow` を返しても settings.json の `deny` ルールが優先されるセキュリティ修正が入った。
+
+**Harness での活用**: hooks-editing.md にバージョン注記を追加し、guardrail 設計時の優先順位を明文化。`deny: ["mcp__*"]` パターンが推奨に。
+
+##### 1-3. Feature Table v2.1.77〜v2.1.79 追加（21 項目）
+
+**CC のアプデ**: Output token 64k/128k 拡大、`allowRead` sandbox、Agent `resume` 廃止 → `SendMessage`、`/branch` リネーム、`${CLAUDE_PLUGIN_DATA}` 変数、Agent `effort` frontmatter 等。
+
+**Harness での活用**: CLAUDE.md Feature Table と docs/CLAUDE-feature-table.md の両方に全項目を追加。各機能の Harness での活用方法・影響を詳細記載。
+
+### Changed
+
+- session-control スキルの description を `/fork` → `/branch` に更新（v2.1.77 リネーム対応）
+- hooks-editing.md のイベント型一覧に `StopFailure`, `ConfigChange` を追加
+- hooks-editing.md に v2.1.77+ PreToolUse 優先順位と v2.1.78+ StopFailure の注記を追加
+- core/src/types.ts の `SignalType` に `stop_failure` を追加
+- `.claude-plugin/settings.json` に `mcp__codex__*` の deny ルールを追加（v2.1.78 推奨パターン）
+- `codex-cli-only.md` に settings.json deny パターンの推奨セクションを追加
+- `stop-failure.sh`, `notification-handler.sh` のステート保存パスを `${CLAUDE_PLUGIN_DATA}` 対応（フォールバック付き）
+- Worker/Reviewer エージェント定義に `effort: medium` フィールドを追加（v2.1.78 公式対応）
+- `harness-setup/SKILL.md` に環境変数リファレンス（`CLAUDE_PLUGIN_DATA`, `ANTHROPIC_CUSTOM_MODEL_OPTION` 等）を追加
+
+### Added
+
+#### Phase 28.0: 「書いただけ禁止」ガードレールスキル
+
+**今まで**: CC のアプデがあると Feature Table に転記するだけで「Harness の付加価値」にならないことがあった。3エージェント並列レビューで21項目中14項目が「書いただけ」と判明。
+
+**今後**: `skills/cc-update-review/`（非配布・内部専用スキル）が CC アプデ統合時に全 Feature Table 項目を A/B/C に自動分類。カテゴリ B（書いただけ）が検出されると、実装案の提示を強制する。`.claude/rules/cc-update-policy.md` でルール化。
+
+#### Phase 28.1: StopFailure 自動復旧の設計追加
+
+**今まで**: Breezing で Worker がレート制限（429）で死ぬと、ログに記録されるだけ。Lead も人間も気づかず、Worker が静かに消えていた。
+
+**今後**: `breezing/SKILL.md` に StopFailure 自動復旧フローの設計を追加。429 → 指数バックオフ（30s/60s/120s）+ `SendMessage` で Worker 自動再開。401 → ユーザー通知。500 → Plans.md にブロッカー記録。`stop-failure.sh` が 429 検出時に `systemMessage` で Lead に通知する仕組みを実装済み。
+
+#### Phase 28.2: Effort 動的注入の設計追加
+
+**今まで**: Worker/Reviewer の `effort: medium` は固定値。harness-work のスコアリング（≥3 で ultrathink）と Agent frontmatter の `effort` フィールドが接続されていなかった。
+
+**今後**: `harness-work/SKILL.md` にスコアリング → effort 注入のフロー設計を追記。`agents-v3/worker.md` に動的 effort 受け取りと事後記録の手順を追加。Worker はタスク完了時に `effort_applied`, `effort_sufficient`, `turns_used` を agent memory に記録し、次回のスコアリング精度向上に活用する方針。
+
+#### Phase 28.3: ログ可視化 + Sandbox テンプレート追加
+
+**今まで**: `stop-failures.jsonl` にログが溜まるが見る手段がない。Reviewer の sandbox 設定がなく、`.env.example` すら読めない環境もあった。
+
+**今後**: `scripts/show-failures.sh` でエラーコード別・時間帯別のサマリーを表示可能に（実装済み）。`.claude-plugin/settings.json` に `sandbox.allowRead` テンプレートを追加済み（`.env.example`, `docs/**` 等）。`harness-setup init` でプロジェクト種別に応じた sandbox 自動生成の手順を SKILL.md に追記。
+
+---
+
+- `scripts/hook-handlers/stop-failure.sh` — StopFailure フックハンドラー（429 時の systemMessage 通知付き）
+- `skills/cc-update-review/SKILL.md` — CC アプデ統合の品質ガードレールスキル（非配布）
+- `.claude/rules/cc-update-policy.md` — Feature Table 追加時の品質ポリシー
+- hooks.json (両ファイル) に `StopFailure` イベント定義
+- `tests/validate-plugin.sh` に `claude plugin validate` ステップ（v2.1.77+ 利用可能時のみ実行）
+- `.claude-plugin/settings.json` に `sandbox.allowRead` テンプレート
+
 ## [3.10.6] - 2026-03-19
 
 ### テーマ: プラグイン利用者向け品質改善

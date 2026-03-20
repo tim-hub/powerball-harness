@@ -4,6 +4,155 @@
 
 ---
 
+## Maintenance: Claude Code v2.1.77〜v2.1.79 統合
+
+作成日: 2026-03-20
+目的: CC v2.1.77〜v2.1.79 の新機能・修正を Harness に統合し、Feature Table・hooks・guardrail docs を最新化する
+
+### Phase M-CC79.0: ドキュメント・フック基盤統合 [P0]
+
+Purpose: Feature Table 更新と StopFailure フック新設で基盤を整える
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| CC79.0.1 | CLAUDE.md Feature Table に v2.1.77〜v2.1.79 の全新機能（21項目）を追加、バージョン表記を 2.1.79+ に更新 | Feature Table に 21 行追加、表記が 2.1.79+ | - | cc:完了 |
+| CC79.0.2 | docs/CLAUDE-feature-table.md に詳細セクション追加（各機能の動作概要・Harness 活用方法） | 詳細セクションが存在し、既存フォーマットと一致 | CC79.0.1 | cc:完了 |
+| CC79.0.3 | hooks.json (×2) に `StopFailure` イベント定義を追加 + `stop-failure.sh` ハンドラーを新設 | `StopFailure` が hooks.json に存在、ハンドラーが実行可能 | - | cc:完了 |
+| CC79.0.4 | hooks-editing.md のイベント型一覧・タイムアウト表・バージョン注記を更新 | `StopFailure`, `ConfigChange` が一覧に存在、v2.1.77/78 注記あり | CC79.0.3 | cc:完了 |
+| CC79.0.5 | core/src/types.ts の `SignalType` に `stop_failure` を追加 | 型定義が存在 | CC79.0.3 | cc:完了 |
+| CC79.0.6 | session-control スキルの description を `/fork` → `/branch` に更新 | description に `/branch` が記載 | - | cc:完了 |
+| CC79.0.7 | CHANGELOG.md [Unreleased] に統合変更を記録 | 変更点が Before/After 形式で記載 | CC79.0.1〜CC79.0.6 | cc:完了 |
+
+### Phase M-CC79.1: settings.json deny パターン移行 [P1]
+
+Purpose: フックベースの MCP ブロックから settings.json deny に移行し、v2.1.77 の allow/deny 優先順位を活用
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| CC79.1.1 | `.claude/settings.json` に `deny: ["mcp__codex__*"]` のコメント付きテンプレートを追加 | settings.json に deny テンプレートが存在 | - | cc:完了 |
+| CC79.1.2 | `codex-cli-only.md` に v2.1.78 の settings.json deny パターンを推奨として追記 | ルールファイルに deny パターンの説明がある | CC79.1.1 | cc:完了 |
+
+### Phase M-CC79.2: プラグイン永続ステート移行準備 [P1]
+
+Purpose: `${CLAUDE_PLUGIN_DATA}` 変数を活用し、プラグイン更新でのステート消失を防止
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| CC79.2.1 | hook handler のステート保存パスを `${CLAUDE_PLUGIN_DATA}` 対応に段階移行（フォールバック付き） | `CLAUDE_PLUGIN_DATA` 設定時はそちらに保存、未設定時は旧パス | - | cc:完了 |
+| CC79.2.2 | harness-setup スキルに `${CLAUDE_PLUGIN_DATA}` と `ANTHROPIC_CUSTOM_MODEL_OPTION` の説明を追記 | SKILL.md に両変数の説明がある | - | cc:完了 |
+
+### Phase M-CC79.3: CI 検証強化 + Agent effort 宣言 [P2]
+
+Purpose: `claude plugin validate` の CI 統合と Agent frontmatter の effort フィールド活用
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| CC79.3.1 | `tests/validate-plugin.sh` に `claude plugin validate` を追加（v2.1.77+ 必要） | CI で frontmatter + hooks.json の構文検証が実行される | - | cc:完了 |
+| CC79.3.2 | Worker/Reviewer エージェント定義に `effort` フィールドを検討・追加（Worker: medium, Reviewer: medium, セキュリティレビュー時は high） | agent frontmatter に effort が記載 | - | cc:完了 |
+
+---
+
+## Phase 28: CC アプデ追従の品質革命 — 「書いただけ禁止」+ 付加価値実装
+
+作成日: 2026-03-20
+起点: CC v2.1.77〜v2.1.79 統合のセルフレビューで「21項目中、Harness ならではの付加価値は3件のみ」と判明
+目的: (1) 今後の CC アプデ追従で「書いただけ」を構造的に防止するガードレールスキルを作る (2) 既存の「書いただけ」項目に本当の付加価値を実装する
+
+### 背景
+
+- 3エージェント並列レビュー（悪魔の代弁者 / プロダクト価値アーキテクト / UX アナリスト）の結論が一致
+- Feature Table 21項目のうち14項目が「CC の恩恵を記載しただけ」
+- ペルソナ別の改善実感: ソロ開発者 4/10、Breezing ユーザー 7/10、VibeCoder 1/10
+- Harness の本当の価値は「セッション間・プロジェクト間の統治」にある
+- CC が 1 セッション内の自動化を極めるほど、Harness は「メタレイヤー」に徹すべき
+
+### 設計原則
+
+1. **「CC 機能の転記」は付加価値ではない** — Feature Table に載せるなら「Harness がどう活用するか」の実装が必須
+2. **自動で体験が変わること** — ユーザーが Feature Table を読まなくても恩恵を受ける設計
+3. **CC にできないことだけ実装する** — 1 セッション完結の機能は CC に委譲。Harness は複数セッション・複数タスクの統治
+
+### 優先度マトリクス
+
+| 優先度 | Phase | 内容 | タスク数 | 依存 |
+|--------|-------|------|---------|------|
+| **Required** | 28.0 | 「書いただけ禁止」ガードレールスキル | 3 | なし |
+| **Required** | 28.1 | StopFailure → 自動復旧（Breezing 信頼性の根本改善） | 3 | なし |
+| **Required** | 28.2 | Effort 動的注入（既存スコアリングとの接続） | 2 | なし |
+| **Recommended** | 28.3 | StopFailure ログ可視化 + allowRead sandbox 自動設定 | 3 | 28.1 |
+| **Required** | 28.4 | 統合検証・CHANGELOG | 2 | 28.0〜28.3 |
+
+合計: **13 タスク**
+
+---
+
+### Phase 28.0: 「書いただけ禁止」ガードレールスキル [P0]
+
+Purpose: 今後の CC アプデ追従で「Feature Table に書いただけ」を構造的に防止する。非配布の内部専用スキル。
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 28.0.1 | `skills/cc-update-review/` を新設（`user-invocable: false`）。CC アプデ統合 PR を対象に「各 Feature Table 項目に対応する実装変更があるか」を検証するチェックリストスキルを作成 | スキルが存在し、frontmatter に `user-invocable: false` が設定されている | - | cc:完了 |
+| 28.0.2 | スキル内に 3 分類の判定基準を定義: (A) 実装あり = hooks/scripts/agents/skills に変更がある (B) 書いただけ = Feature Table のみ変更 (C) CC 自動継承 = Harness 側の変更不要（パフォーマンス改善・バグ修正等）。B は「付加価値の実装案」を必須出力にする | 判定基準が SKILL.md に記載され、B 判定時に実装案が出力される | 28.0.1 | cc:完了 |
+| 28.0.3 | `.claude/rules/cc-update-policy.md` を新設。「Feature Table への追加は、対応する実装変更またはカテゴリ C（CC 自動継承）の明示的な分類を伴うこと」をルール化 | ルールファイルが存在し、CLAUDE.md からリンクされている | 28.0.2 | cc:完了 |
+
+### Phase 28.1: StopFailure → 自動復旧 [P0]
+
+Purpose: Breezing で Worker がレート制限で死んだ時、Lead が自動検出・バックオフ・再開する。CC 単体にはない「チーム統治」の付加価値。
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 28.1.1 | `breezing/SKILL.md` の Lead Phase B に StopFailure 検出ロジックを追加。`.claude/state/stop-failures.jsonl` を定期 scan し、429 エラーの Worker を特定 | Lead が StopFailure ログから失敗 Worker を特定する手順が SKILL.md に記載 | - | cc:完了 |
+| 28.1.2 | `breezing/SKILL.md` にエラーコード別の自動アクションを定義: 429 → 指数バックオフ（30s/60s/120s）後に `SendMessage` で Worker に再開指示、401 → Lead が systemMessage でユーザーに通知、500 → Plans.md にブロッカー記録 | エラーコード別のアクション表が SKILL.md に存在 | 28.1.1 | cc:完了 |
+| 28.1.3 | `scripts/hook-handlers/stop-failure.sh` に `systemMessage` 出力を追加。429 検出時に Lead へ「Worker X がレート制限で停止。30 秒後に自動再開します」を通知 | stop-failure.sh が 429 時に systemMessage JSON を出力する | 28.1.1 | cc:完了 |
+
+### Phase 28.2: Effort 動的注入 [P0]
+
+Purpose: harness-work の既存スコアリング（閾値 ≥ 3 で ultrathink）と Agent frontmatter の `effort` フィールドを接続する。
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 28.2.1 | `harness-work/SKILL.md` のスコアリングセクションを拡張。スコア ≥ 3 の場合、spawn prompt への `ultrathink` 注入に加えて Agent tool の `model` パラメータ経由での effort 指定を明記（注: Agent frontmatter の `effort: medium` はデフォルト値、spawn 時の指定が上書き） | スコアリング → effort 注入のフローが SKILL.md に明記 | - | cc:完了 |
+| 28.2.2 | `agents-v3/worker.md` の Effort 制御セクションに「Lead からの動的 effort 上書き」の説明を追加。完了後に「effort: high で足りたか」を agent memory に記録する指示を追記 | worker.md に動的 effort の受け取りと事後記録の手順が記載 | 28.2.1 | cc:完了 |
+
+### Phase 28.3: ログ可視化 + Sandbox 自動設定 [P1]
+
+Purpose: 「記録するだけ」から「見える・使える」へ。CC 単体にはないプロジェクト横串の可視化。
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 28.3.1 | `harness-sync/SKILL.md` に `--show-failures` サブコマンドを追加。`.claude/state/stop-failures.jsonl` を集計し、エラーコード別・時間帯別のサマリーを表示 | `/harness-sync --show-failures` で直近のエラーサマリーが表示される | 28.1 | cc:完了 |
+| 28.3.2 | `.claude-plugin/settings.json` に `allowRead` sandbox テンプレートを追加。Reviewer が `.env.example`、`config/public-*`、`docs/` を読めるが `.env`、秘密鍵は読めない設定 | settings.json に sandbox.allowRead が存在し、Reviewer のセキュリティレビュー精度が向上する設計 | - | cc:完了 |
+| 28.3.3 | `harness-setup/SKILL.md` の `init` サブコマンドに sandbox 自動設定ステップを追加。プロジェクト種別に応じて allowRead/denyRead を自動生成 | `harness-setup init` で sandbox 設定が自動生成される手順が記載 | 28.3.2 | cc:完了 |
+
+### Phase 28.4: 統合検証・CHANGELOG [P2]
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 28.4.1 | `validate-plugin.sh` + `check-consistency.sh` 全体検証 | 全検証パス | 28.0〜28.3 | cc:完了 |
+| 28.4.2 | CHANGELOG.md [Unreleased] に Phase 28 の変更を記録 | 変更点が Before/After 形式で記載 | 28.4.1 | cc:完了 |
+
+### Phase 28.5: ランタイム確実性の強化 [P0]
+
+Purpose: SKILL.md の指示（LLM 判断依存）ではなく、hooks/scripts で確定的に動く仕組みに昇格すべきものだけを実装する
+
+**スクリプト化する基準**:
+- hooks で自動発火し、LLM の判断なしに確定出力するもの → スクリプト化
+- Lead の文脈判断が必要なもの（バックオフ待機時間、effort の妥当性判断）→ SKILL.md のまま
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 28.5.1 | `scripts/show-failures.sh` を新設。`stop-failures.jsonl` を読み込み、エラーコード別集計・直近5件・推奨アクションを stdout に出力するスタンドアロンスクリプト | `bash scripts/show-failures.sh` で集計サマリーが表示される。JSONL が空でもエラーなし | - | cc:完了 |
+| 28.5.2 | `harness-sync/SKILL.md` の `--show-failures` セクションを更新。LLM が手動集計するのではなく `scripts/show-failures.sh` を Bash 実行する手順に変更 | SKILL.md が `Bash("scripts/show-failures.sh")` を指示している | 28.5.1 | cc:完了 |
+| 28.5.3 | `validate-plugin.sh` + `check-consistency.sh` で回帰確認 | 全検証パス | 28.5.1〜28.5.2 | cc:完了 |
+
+**スクリプト化しないもの（理由付き）**:
+- Lead のバックオフ+再開 → 待機時間は Worker の状況次第で変わる。固定スクリプトより Lead の判断が適切
+- Effort 動的注入 → スコアリングは spawn prompt のコンテキスト（タスク内容、影響範囲）に依存。hooks では入力情報が足りない
+- Sandbox 自動設定 → `settings.json` に既にテンプレート適用済み。init 時の自動生成は `harness-setup` スキルの責務
+
+---
+
 ## Fix: プラグイン利用者向け品質改善（Issue #64, #65）
 
 作成日: 2026-03-19
