@@ -29,14 +29,14 @@ v2.1.77 以降、PreToolUse フックの `allow` 応答は settings.json の `de
 # 基本（stdin 方式 + 一意テンポラリファイル）
 CODEX_PROMPT=$(mktemp /tmp/codex-prompt-XXXXXX.md)
 # タスク内容を書き出し
-cat "$CODEX_PROMPT" | $TIMEOUT 120 codex exec - -a never -s workspace-write 2>>/tmp/harness-codex-$$.log
+cat "$CODEX_PROMPT" | $TIMEOUT 120 codex exec - --sandbox workspace-write --full-auto 2>>/tmp/harness-codex-$$.log
 rm -f "$CODEX_PROMPT"
 
 # 並列実行
 PROMPT1=$(mktemp /tmp/codex-prompt-XXXXXX.md)
 PROMPT2=$(mktemp /tmp/codex-prompt-XXXXXX.md)
-cat "$PROMPT1" | $TIMEOUT 120 codex exec - -a never -s workspace-write > /tmp/out1-$$.txt 2>>/tmp/harness-codex-$$.log &
-cat "$PROMPT2" | $TIMEOUT 120 codex exec - -a never -s workspace-write > /tmp/out2-$$.txt 2>>/tmp/harness-codex-$$.log &
+cat "$PROMPT1" | $TIMEOUT 120 codex exec - --sandbox workspace-write --full-auto > /tmp/out1-$$.txt 2>>/tmp/harness-codex-$$.log &
+cat "$PROMPT2" | $TIMEOUT 120 codex exec - --sandbox workspace-write --full-auto > /tmp/out2-$$.txt 2>>/tmp/harness-codex-$$.log &
 wait
 rm -f "$PROMPT1" "$PROMPT2"
 ```

@@ -148,7 +148,7 @@ TIMEOUT=$(command -v timeout || command -v gtimeout || echo "")
 CODEX_PROMPT=$(mktemp /tmp/codex-prompt-XXXXXX.md)
 # タスク内容を一意なテンポラリファイルに書き出し
 # stdin 経由で渡す（"-" は公式 stdin 指定。ARG_MAX 超過を回避）
-cat "$CODEX_PROMPT" | $TIMEOUT 120 codex exec - -a never -s workspace-write 2>>/tmp/harness-codex-$$.log
+cat "$CODEX_PROMPT" | $TIMEOUT 120 codex exec - --sandbox workspace-write --full-auto 2>>/tmp/harness-codex-$$.log
 rm -f "$CODEX_PROMPT"
 ```
 

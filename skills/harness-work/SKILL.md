@@ -157,7 +157,7 @@ TIMEOUT=$(command -v timeout || command -v gtimeout || echo "")
 CODEX_PROMPT=$(mktemp /tmp/codex-prompt-XXXXXX.md)
 # タスク内容を一意なテンポラリファイルに書き出し
 # stdin 経由で渡す（"-" は公式 stdin 指定。ARG_MAX 超過を回避）
-cat "$CODEX_PROMPT" | ${TIMEOUT:+$TIMEOUT 120} codex exec - -a never -s workspace-write 2>>/tmp/harness-codex-$$.log
+cat "$CODEX_PROMPT" | ${TIMEOUT:+$TIMEOUT 120} codex exec - --sandbox workspace-write --full-auto 2>>/tmp/harness-codex-$$.log
 rm -f "$CODEX_PROMPT"
 ```
 
@@ -250,7 +250,7 @@ JSON 形式で verdict（APPROVE / REQUEST_CHANGES）を返してください。
 ## diff
 REVIEW_EOF
 git diff HEAD~1 >> "$REVIEW_PROMPT"
-cat "$REVIEW_PROMPT" | ${TIMEOUT:+$TIMEOUT 120} codex exec - -a never -s workspace-write 2>>/tmp/harness-review-$$.log
+cat "$REVIEW_PROMPT" | ${TIMEOUT:+$TIMEOUT 120} codex exec - --sandbox workspace-write --full-auto 2>>/tmp/harness-review-$$.log
 REVIEW_EXIT=$?
 rm -f "$REVIEW_PROMPT"
 ```

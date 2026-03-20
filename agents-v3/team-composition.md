@@ -279,17 +279,17 @@ Agent Teams の代わりに `codex exec` を逐次呼び出す:
 
 ```bash
 # Worker 相当（実装タスク）
-echo "タスク内容" | codex exec - -a never -s workspace-write
+echo "タスク内容" | codex exec - --sandbox workspace-write --full-auto
 
 # Reviewer 相当（Read-only レビュー）
-echo "レビュー内容" | codex exec - -a never -s read-only
+echo "レビュー内容" | codex exec - --sandbox read-only --full-auto
 ```
 
 ### 並列実行（Bash レベル）
 
 ```bash
-echo "タスク A" | codex exec - -a never -s workspace-write > /tmp/out-a.txt 2>>/tmp/harness-codex-$$.log &
-echo "タスク B" | codex exec - -a never -s workspace-write > /tmp/out-b.txt 2>>/tmp/harness-codex-$$.log &
+echo "タスク A" | codex exec - --sandbox workspace-write --full-auto > /tmp/out-a.txt 2>>/tmp/harness-codex-$$.log &
+echo "タスク B" | codex exec - --sandbox workspace-write --full-auto > /tmp/out-b.txt 2>>/tmp/harness-codex-$$.log &
 wait
 ```
 
@@ -306,14 +306,15 @@ Codex 0.110+ は `codex fork` / `/fork` でスレッドを分岐できるが、
 - **結論**: breezing ワーカーの fork-thread 方式への移行は**時期尚早**。
   `codex exec fork` が安定リリースされるまでは現行の独立プロセス方式を維持する。
 
-### codex exec フラグ正式名称
+### codex exec フラグ正式名称（codex-cli 0.115.0+）
 
-| Harness 旧記法 | 正式フラグ | 値 |
+| フラグ | 短縮形 | 説明 |
 |---|---|---|
-| `--approval-policy never` | `--ask-for-approval never` (`-a never`) | `untrusted` / `on-request` / `never` |
-| `--sandbox workspace-write` | `--sandbox workspace-write` (`-s`) | `read-only` / `workspace-write` / `danger-full-access` |
+| `--sandbox` | `-s` | `read-only` / `workspace-write` / `danger-full-access` |
+| `--full-auto` | - | `--sandbox workspace-write` のエイリアス（承認不要） |
+| `--dangerously-bypass-approvals-and-sandbox` | - | 全サンドボックス・承認をバイパス（極度危険） |
 
-> **注意**: `--approval-policy` は非公式エイリアス。公式ドキュメントでは `--ask-for-approval` (`-a`)。
+> **注意**: 旧フラグ `-a never` / `--ask-for-approval` は 0.115.0 で廃止。`--full-auto` または `--sandbox` を使用。
 
 ### プロンプト渡し方式
 

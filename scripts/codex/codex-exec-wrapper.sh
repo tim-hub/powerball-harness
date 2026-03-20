@@ -52,9 +52,9 @@ EXIT_CODE=0
 # stdin 経由でプロンプトを渡す（ARG_MAX 超過を回避）
 # "-" は codex exec の公式 stdin 入力指定
 if [ -n "${TIMEOUT}" ]; then
-  cat "${PROMPT_FILE}" | ${TIMEOUT} "${TIMEOUT_SEC}" codex exec - -a never -s workspace-write > "${TMP_OUT}" 2>>/tmp/harness-codex-$$.log || EXIT_CODE=$?
+  cat "${PROMPT_FILE}" | ${TIMEOUT} "${TIMEOUT_SEC}" codex exec - --sandbox workspace-write --full-auto > "${TMP_OUT}" 2>>/tmp/harness-codex-$$.log || EXIT_CODE=$?
 else
-  cat "${PROMPT_FILE}" | codex exec - -a never -s workspace-write > "${TMP_OUT}" 2>>/tmp/harness-codex-$$.log || EXIT_CODE=$?
+  cat "${PROMPT_FILE}" | codex exec - --sandbox workspace-write --full-auto > "${TMP_OUT}" 2>>/tmp/harness-codex-$$.log || EXIT_CODE=$?
 fi
 
 # タイムアウト（exit 124）の場合もログを出力
