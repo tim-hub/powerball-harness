@@ -6,6 +6,62 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [3.13.0] - 2026-03-25
+
+### テーマ: Codex ネイティブ対応 + レビュー品質強化 + メモリ永続化
+
+**Codex CLI からも Harness のチーム実行（breezing）が使えるようになり、AI 残骸の自動検出でレビュー品質を向上。セッション間の記憶が harness-mem に永続化され、再開時に前回の文脈を自動復元。**
+
+---
+
+#### 1. Codex ネイティブ版スキル（skills-v3-codex/）
+
+**今まで**: Codex CLI で `/harness-work` や `/breezing` を使うと、Claude Code 固有の API（`Agent()`, `SendMessage()`）が擬似コードに含まれており、Codex の LLM が正しく解釈できませんでした。「Codex では読み替えてね」という注釈があるだけで、実行時にエラーになるリスクがありました。
+
+**今後**: `skills-v3-codex/` に Codex ネイティブ版を新設。`spawn_agent` / `wait_agent` / `send_input` / `close_agent` の正しい API シグネチャで書き直し、`git worktree add` による Worker 分離、`codex exec -C/-o` による作業ディレクトリ指定と verdict 取得を実装。Codex 自身によるレビュー5ラウンドで APPROVE を取得済み。
+
+ユーザースコープ（`~/.codex/skills/`）に展開することで、どのプロジェクトからでも利用可能です。
+
+```
+~/.codex/skills/
+├── harness-work → skills-v3-codex/  [CODEX NATIVE]
+├── breezing     → skills-v3-codex/  [CODEX NATIVE]
+├── harness-plan → skills-v3/        [shared]
+└── ...他5件     → skills-v3/        [shared]
+```
+
+**Claude Code 版との主な差分**:
+
+| 項目 | Claude Code | Codex ネイティブ |
+|------|-------------|-----------------|
+| Worker spawn | `Agent(subagent_type="worker")` | `spawn_agent({message, fork_context})` |
+| 修正指示 | `SendMessage(to: agentId)` | `send_input({id, message})` |
+| Worktree 分離 | `isolation="worktree"` 自動 | `git worktree add` 手動 |
+| レビュー | Codex exec → Reviewer agent fallback | `codex exec -o <file>` のみ |
+| モード昇格 | タスク4件以上で自動 | `--breezing` 明示のみ |
+
+#### 2. AI Residuals レビューゲート（Phase 29.0）
+
+**今まで**: AI が生成した mockData, dummy, localhost, TODO などの残骸がレビューをすり抜け、「動くが出荷できない」状態のコードがマージされることがありました。
+
+**今後**: `harness-review` に 5つ目の観点「AI Residuals」を追加。`scripts/review-ai-residuals.sh` が差分を静的走査し、残骸を severity（minor/major）で分類します。テスト fixture も追加済み。
+
+```bash
+# 検出対象の例
+mockData, dummyUser, localhost:3000, TODO:, FIXME,
+test.skip, describe.skip, hardcoded API keys
+```
+
+#### 3. harness-mem セッション記憶の永続化（Phase 27.1.4-5）
+
+**今まで**: Claude のセッションを閉じると、そのセッションで学んだ文脈や決定事項が失われ、次のセッションでは一からやり直しでした。
+
+**今後**: Claude の SessionStart / UserPromptSubmit / Stop フックを harness-mem runtime に接続。セッション開始時に前回の記憶から「Continuity Briefing」を自動表示し、停止時に記憶を永続化します。
+
+- `scripts/lib/harness-mem-bridge.sh` で harness-mem API 呼び出しを抽象化
+- `session-init.sh` / `session-resume.sh` に continuity briefing 統合
+- memory lifecycle 回帰テスト（wiring, bridge, integration）を追加
+
 ## [3.12.0] - 2026-03-21
 
 ### テーマ: work/Breezing 一連フロー自動化
