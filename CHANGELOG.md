@@ -6,25 +6,35 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
-### Added
+## [3.14.0] - 2026-03-25
 
-- `docs/hardening-parity.md` to define a shared hardening policy matrix for Claude Code hooks and Codex CLI quality gates.
+### テーマ: クロスランタイム品質強化 + Marketplace 修正
 
-### Changed
+**Claude Code と Codex の品質ガードレールを統一し、Marketplace インストール時のメモリフック欠損を修正。**
 
-- `README.md`, `tests/validate-plugin.sh`, and `tests/validate-plugin-v3.sh` now surface cross-runtime hardening parity and verify that the Claude Code and Codex enforcement paths are both wired.
+---
 
-### Security
+#### 1. クロスランタイム品質ガードレール統一
 
-- Guardrails now cover `--no-verify` / `--no-gpg-sign`, protected branch `git reset --hard`, direct push warnings for `main` / `master`, and protected file edit warnings.
-- Codex parity hardening now injects a runtime contract into `codex exec` flows and verifies bypass flags, protected file edits, and secret-like additions before merge.
+**今まで**: Claude Code 側のガードレール（`--no-verify` 検出、保護ブランチの `reset --hard` 警告等）が Codex 側には存在せず、ランタイムによって品質基準にばらつきがありました。
+
+**今後**: `docs/hardening-parity.md` でポリシーマトリクスを定義し、Claude Code hooks と Codex CLI quality gate の両方で同じルールを適用。`validate-plugin.sh` / `validate-plugin-v3.sh` でクロスランタイムの検証を自動化。
+
+- Guardrails: `--no-verify` / `--no-gpg-sign`、保護ブランチ `git reset --hard`、`main`/`master` への直接 push 警告、保護ファイル編集警告
+- Codex parity: `codex exec` フローにランタイム契約を注入し、bypass フラグ・保護ファイル編集・シークレット混入をマージ前に検証
+
+#### 2. Codex AGENTS.md ルール詳細追加
+
+**今まで**: Codex 側の `AGENTS.md` に `.claude/rules/` の詳細が記載されておらず、CC アプデポリシーや v3 アーキテクチャへの参照が欠けていました。
+
+**今後**: `cc-update-policy.md`、`v3-architecture.md`、`versioning.md` の内容を Codex AGENTS.md に統合。Codex ユーザーもルール詳細を直接参照可能に。
 
 ### Fixed
 
-- Restored tracked distribution of `scripts/hook-handlers/memory-*.sh` so marketplace installs no longer reference missing harness-mem bridge wrappers during `SessionStart`, `UserPromptSubmit`, `PostToolUse`, and `Stop` hooks.
-- Switched memory lifecycle hooks to a single `memory-bridge.sh` entrypoint so hook wiring no longer depends on each individual wrapper path existing in the plugin payload.
-- Fixed `sync-plugin-cache.sh` source detection so `CLAUDE_PLUGIN_ROOT` is treated as the plugin root itself when that is what Claude Code provides.
-- Added regression coverage for memory hook wiring and marketplace cache synchronization so the missing-wrapper failure is caught in CI before release.
+- Marketplace インストール時に `scripts/hook-handlers/memory-*.sh` が欠損し、SessionStart / UserPromptSubmit / PostToolUse / Stop フックがエラーになる問題を修正
+- メモリライフサイクルフックを単一 `memory-bridge.sh` エントリポイントに統合し、個別ラッパーパスへの依存を解消
+- `sync-plugin-cache.sh` のソース検出で `CLAUDE_PLUGIN_ROOT` がプラグインルート自体を指す場合のパス解決を修正
+- メモリフック配線と Marketplace キャッシュ同期の回帰テストを追加
 
 ## [3.13.0] - 2026-03-25
 
