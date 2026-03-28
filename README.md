@@ -475,6 +475,7 @@ Full list: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 | [Cursor Integration](docs/CURSOR_INTEGRATION.md) | 2-Agent setup |
 | [Benchmark Rubric](docs/benchmark-rubric.md) | Static vs executed evidence scoring |
 | [Positioning Notes](docs/positioning-notes.md) | Public-facing differentiation language |
+| [Content Layout](docs/content-layout.md) | Source docs vs generated outputs convention |
 
 ---
 

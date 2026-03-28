@@ -471,6 +471,7 @@ Harness は最新の Claude Code 機能をすぐに活用できます。
 | [Cursor 連携](docs/CURSOR_INTEGRATION.md) | 2-Agent セットアップ |
 | [Benchmark Rubric](docs/benchmark-rubric.md) | static evidence と executed evidence の採点軸 |
 | [Positioning Notes](docs/positioning-notes.md) | 公開向けの差別化メモ |
+| [Content Layout](docs/content-layout.md) | docs と out の使い分けルール |
 
 ---
 
