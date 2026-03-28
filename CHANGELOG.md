@@ -6,22 +6,62 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
-### Added
+## [3.15.0] - 2026-03-28
 
-- Claude Code `TaskCreated` / `FileChanged` / `CwdChanged` hook に対応し、`scripts/hook-handlers/runtime-reactive.sh` で background task 作成・Plans 更新・worktree / repo 切替を記録できるようにした
+### テーマ: Claude 2.1.80-2.1.86 統合 + Codex/OpenCode mirror 整合
 
-### Changed
+**Claude からは「軽さ」と「安全性」が一段上がり、Codex からは重いワークフローの初動品質と配布 mirror の整合性が安定。アップデート追従を、そのままではなく実運用の強さに変えたリリース。**
 
-- `skills-v3/` と Codex native skill に `effort` frontmatter を追加し、`harness-work` / `harness-review` / `harness-release` などの高負荷フローで思考量を明示的に引き上げられるようにした
-- `agents-v3/worker.md`, `reviewer.md`, `scaffolder.md` に `initialPrompt` を追加し、サブエージェントの初動を Plans / verdict / setup 目的に即した形で安定化した
-- rules template と `scripts/localize-rules.sh` の `paths:` を YAML list 形式へ移行し、Claude Code v2.1.84 の複数 glob 対応を使って適用範囲を壊れにくくした
-- Claude Code v2.1.85 の hooks conditional `if` field を `PermissionRequest` に取り込み、Bash の安全コマンド候補だけに permission hook を起動するようにして不要なフック評価を減らした
-- `PermissionRequest` の編集系 matcher を `Edit|Write|MultiEdit` にそろえ、`MultiEdit` でも core guardrail と同じ自動承認導線が使えるようにした
+---
 
-### Security
+#### 1. Claude の reactive hooks で、前提の変化を見失いにくくした
 
-- `.claude-plugin/settings.json` に `sandbox.failIfUnavailable: true` を追加し、sandbox 起動失敗時に unsandboxed で継続しないようにした
-- `.claude-plugin/settings.json` に `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` を設定し、Bash / hooks / MCP stdio subprocess へ Anthropic / cloud 認証情報を引き継がないようにした
+**今まで**: `Plans.md` を更新したあとや、別 worktree に移ったあとでも、前の前提のまま作業を続けやすい状態でした。background task が作られても、その記録や再確認のきっかけは弱く、長い作業ほど文脈ずれが起きやすくなっていました。
+
+**今後**: Claude Code の `TaskCreated` / `FileChanged` / `CwdChanged` hooks を Harness に取り込み、`runtime-reactive.sh` が task 作成、Plans 更新、ルール変更、worktree 切替を拾って補助文脈を返します。作業の途中で前提が変わっても、次の一手で気づきやすくなります。
+
+```json
+{"hook_event_name":"FileChanged","file_path":"Plans.md"}
+→ "Plans.md が更新されました。次の実装やレビュー前に最新のタスク状態を読み直してください。"
+```
+
+#### 2. Claude 側の権限フローを、速さを落とさず安全寄りに調整した
+
+**今まで**: `PermissionRequest` は広めに hook が走りやすく、最終的には問題ない Bash でも毎回評価コストやノイズが乗りやすい状態でした。さらに sandbox 起動失敗時の継続や、subprocess への認証情報伝播は利用者が意識しないと見落としやすいポイントでした。
+
+**今後**: Claude Code 2.1.85 の conditional `if` field を使い、`git status`、`git diff`、`pytest`、`npm run lint` など安全寄りの Bash だけに permission hook を限定しました。あわせて `Edit|Write|MultiEdit` をそろえ、`.claude-plugin/settings.json` へ `sandbox.failIfUnavailable: true` と `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` を追加し、軽さと安全性を両立しています。
+
+```text
+Bash(git status*) | Bash(pytest*) | Bash(npm run lint*)
+→ permission hook 対象
+
+Bash(危険コマンド)
+→ 無条件に広く hook を起こさず、既存ガードレール側で扱う
+```
+
+#### 3. Codex / Claude の重いフローで、最初から深く考えやすくした
+
+**今まで**: `harness-work`、`harness-review`、`harness-release` のような重い作業でも、最初の 1 ターンで何を優先すべきかがぶれやすく、毎回の指示の書き方によって品質が揺れやすい面がありました。
+
+**今後**: `skills-v3/`、Codex native mirror、OpenCode mirror に `effort` frontmatter を加え、`agents-v3/worker.md`、`reviewer.md`、`scaffolder.md` に `initialPrompt` を追加しました。これにより、レビューは verdict 基準から入り、実装は DoD と検証方針から入り、setup は既存資産を壊さない前提から始めやすくなります。
+
+```yaml
+effort: high
+initialPrompt: |
+  最初に対象タスク・DoD・変更候補ファイル・検証方針を短く整理し…
+```
+
+#### 4. ルール適用範囲と配布 mirror を、壊れにくく保ちやすくした
+
+**今まで**: rules の `paths:` が 1 行文字列ベースで読みにくく、複数 glob の追加時に壊れやすい形でした。また Codex/OpenCode mirror は source とずれていても、修正時の判断基準が部分的に食い違い、CI が落ちたあとに原因を追い直す必要がありました。
+
+**今後**: rules template と `scripts/localize-rules.sh` を YAML list 形式に移し、複数 glob を構造化して扱えるようにしました。さらに OpenCode build と Codex package チェックの公開スキル方針をそろえ、内部専用スキルを distribution mirror に混ぜない形で CI が green になるよう整えています。
+
+```yaml
+paths:
+  - "**/*.{test,spec}.{ts,tsx,js,jsx}"
+  - "**/tests/**/*.*"
+```
 
 ## [3.14.0] - 2026-03-25
 
