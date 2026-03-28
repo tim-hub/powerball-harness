@@ -306,6 +306,15 @@ function copySkills() {
   const entries = fs.readdirSync(SKILLS_DIR, { withFileTypes: true });
   let copiedCount = 0;
 
+  const skipSkills = new Set([
+    'allow1',
+    'breezing',
+    'cc-update-review',
+    'claude-codex-upstream-update',
+    'zz-review-empty',
+    'zz-review-escape',
+  ]);
+
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
 
@@ -314,8 +323,7 @@ function copySkills() {
     const destSkillDir = path.join(OPENCODE_SKILLS_DIR, skillName);
 
     // テスト用・開発用・opencode 非対応スキルはスキップ
-    const skipSkills = ['breezing'];
-    if (skillName.startsWith('test-') || skillName.startsWith('x-') || skipSkills.includes(skillName)) {
+    if (skillName.startsWith('test-') || skillName.startsWith('x-') || skipSkills.has(skillName)) {
       console.log(`  ⏭ ${skillName}/ (dev/test/unsupported skill, skipped)`);
       continue;
     }
