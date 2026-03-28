@@ -47,10 +47,15 @@ jobs:
       - name: Check codex mirror sync
         run: |
           if [ -d "codex/.codex/skills" ] && [ -d "skills" ]; then
-            DIFF=$(diff -rq skills/ codex/.codex/skills/ 2>/dev/null | grep -v ".DS_Store" || true)
+            DIFF=$(
+              diff -rq skills/ codex/.codex/skills/ 2>/dev/null \
+                | grep -v ".DS_Store" \
+                | grep -v "^Only in skills: cc-update-review$" \
+                || true
+            )
             if [ -n "$DIFF" ]; then
               echo "::error::codex/.codex/skills/ is out of sync with skills/"
-              echo "Run 'rsync -av --delete skills/ codex/.codex/skills/' and commit the changes."
+              echo "Run 'rsync -av --delete skills/ codex/.codex/skills/' (excluding internal-only skills) and commit the changes."
               echo "$DIFF" | head -20
               exit 1
             fi
