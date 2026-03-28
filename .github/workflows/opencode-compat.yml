@@ -50,7 +50,7 @@ jobs:
             DIFF=$(
               diff -rq skills/ codex/.codex/skills/ 2>/dev/null \
                 | grep -v ".DS_Store" \
-                | grep -v "^Only in skills: cc-update-review$" \
+                | grep -v "^Only in skills/: cc-update-review$" \
                 || true
             )
             if [ -n "$DIFF" ]; then
