@@ -10,6 +10,9 @@ permissionMode: bypassPermissions
 color: yellow
 memory: project
 isolation: worktree
+initialPrompt: |
+  最初に対象タスク・DoD・変更候補ファイル・検証方針を短く整理し、
+  TDD → 実装 → セルフレビュー → 検証の順で進める。
 skills:
   - harness-work
   - harness-review

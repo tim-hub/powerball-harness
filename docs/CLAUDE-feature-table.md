@@ -138,6 +138,13 @@
 | **`deny: ["mcp__*"]` 修正 (v2.1.78)** | setup | settings.json deny で MCP ツールを正しくブロック |
 | **`ANTHROPIC_CUSTOM_MODEL_OPTION` (v2.1.78)** | setup | カスタムモデルピッカーエントリ |
 | **`--worktree` skills/hooks 読込修正 (v2.1.78)** | breezing | worktree フラグ時のスキル・フック正常ロード |
+| **Skill `effort` frontmatter (v2.1.80)** | harness-work, harness-review, harness-plan, harness-release | 5動詞スキル自体に思考量を持たせ、重いフローの初動品質を引き上げる |
+| **Agent `initialPrompt` frontmatter (v2.1.83)** | agents-v3/ | Worker / Reviewer / Scaffolder の最初の1ターンを役割ごとに安定化 |
+| **`sandbox.failIfUnavailable` (v2.1.83)** | setup, guardrails | sandbox 起動失敗時に unsandboxed へ silently fallback しない |
+| **`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` (v2.1.83)** | hooks, setup | hook / Bash / MCP stdio subprocess への資格情報流出面を縮小 |
+| **`TaskCreated` / `CwdChanged` / `FileChanged` hooks (v2.1.83-2.1.84)** | hooks, session | reactive state tracking と Plans / ルール再読リマインドを追加 |
+| **Rules / skills `paths:` YAML list (v2.1.84)** | setup, localize-rules | 複数 glob を構造化して保持し、ルールの適用範囲を読みやすく壊れにくくする |
+| **Hooks conditional `if` field (v2.1.85)** | hooks, guardrails | `PermissionRequest` を安全な Bash と編集系だけに絞り、不要な hook 起動と誤警告を減らす |
 | **Large session truncation 修正 (v2.1.78)** | session | 5MB 超セッションの切り詰め修正 |
 | **`--console` auth フラグ (v2.1.79)** | setup | Anthropic Console API 課金認証 |
 | **Turn duration 表示 (v2.1.79)** | all skills | `/config` でターン実行時間の表示切替 |
@@ -1476,6 +1483,19 @@ CC 2.1.78 で `StopFailure` イベントが追加された。API エラー（レ
 - `stop-failure.sh` ハンドラーでエラー情報を `.claude/state/stop-failures.jsonl` にログ記録
 - Breezing の Worker がレート制限で停止失敗した場合の事後分析に使用
 - 10 秒タイムアウトの軽量ハンドラーとして実装（復旧処理は不要）
+
+### Hooks conditional `if` field (v2.1.85)
+
+CC 2.1.85 で、hooks 定義に `if` 条件を付けて「どんな入力のときだけ hook を走らせるか」を細かく絞れるようになった。Permission rule syntax を使うので、`Bash(git status*)` のようにツール名と入力パターンをまとめて指定できる。
+
+**Harness での活用**:
+- `PermissionRequest` を 2 系統に分割し、`Edit|Write|MultiEdit` は常時評価、`Bash` は安全コマンド候補だけを `if` で事前フィルタする
+- `hooks/permission.sh` 自体の安全判定は残しつつ、そもそも不要な Bash permission hook の起動数を減らす
+- `MultiEdit` も matcher に含め、core guardrail では対応済みだった自動承認の取りこぼしを hooks 側でもなくした
+
+**ユーザー体験の改善**:
+- 今まで: Bash の権限確認は広く hook が走り、最終的にスルーされるケースでも起動コストがかかっていた
+- 今後: safe-read / test 系の Bash だけに hook が走るため、応答ノイズと無駄な評価を減らしつつ、自動承認の精度は維持できる
 
 ### `${CLAUDE_PLUGIN_DATA}` 変数 (v2.1.78)
 

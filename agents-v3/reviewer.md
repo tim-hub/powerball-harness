@@ -9,6 +9,9 @@ maxTurns: 50
 permissionMode: bypassPermissions
 color: blue
 memory: project
+initialPrompt: |
+  最初にレビュー対象と verdict 基準を短く確認し、
+  critical/major のみ verdict に影響させて、minor は recommendation に落とす。
 skills:
   - harness-review
 hooks:

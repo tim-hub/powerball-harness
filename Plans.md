@@ -4,6 +4,43 @@
 
 ---
 
+## Phase 31: Claude 2.1.80-2.1.86 / Codex 0.117 upstream update integration
+
+作成日: 2026-03-28
+目的: Claude Code と Codex の最新アップデートを「書いただけ」で終わらせず、Claude 側は Harness の既存フック・設定・エージェント・ルール生成に実効改善として取り込み、Codex 側は次に伸ばす価値軸を整理する
+
+### 設計方針
+
+- 公式 changelog / releases を先に確認し、一次情報ベースで候補を絞る
+- Claude 側は「Harness で 2 倍以上の価値に変換できるもの」だけを実装対象にする
+- Codex 側は比較軸と将来タスクを残し、今回の主実装は Claude 優先で進める
+- 非配布の内部スキルとして、次回以降も同じ流れで再実行できる形に保存する
+
+### Phase 31.0: 調査と即時実装 [P0]
+
+Purpose: 最新更新の中から今すぐ効くものを選び、Harness の体験改善までつなげる
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 31.0.1 | Claude changelog (`2.1.80`〜`2.1.86`) と Codex releases (`0.117.0`) を調査し、Harness で意味がある候補を整理する | Claude / Codex の候補が「実装対象」「比較軸」「将来対応」に分かれている | - | cc:完了 |
+| 31.0.2 | Claude Code `hooks conditional if field` を `PermissionRequest` に取り込み、Bash の安全コマンドだけに permission hook を起動するようにする | `.claude-plugin/hooks.json` と `hooks/hooks.json` で Bash `PermissionRequest` に `if` が入り、`claude plugin validate` を通る | 31.0.1 | cc:完了 |
+| 31.0.3 | `PermissionRequest` の編集系 matcher を `Edit|Write|MultiEdit` にそろえ、hooks と core の自動承認面を一致させる | `MultiEdit` が hooks 側でも取りこぼしなく permission flow に乗る | 31.0.2 | cc:完了 |
+| 31.0.4 | `sandbox.failIfUnavailable` と `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` を `.claude-plugin/settings.json` に取り込み、sandbox 失敗時の unsandboxed 継続と subprocess への認証情報引き継ぎを抑える | settings に両項目があり、validate / integration test で確認できる | 31.0.1 | cc:完了 |
+| 31.0.5 | `TaskCreated` / `CwdChanged` / `FileChanged` hook と `runtime-reactive.sh` を追加し、バックグラウンド task・Plans 更新・worktree 切替を記録できるようにする | hooks wiring と handler が存在し、runtime reactive test が通る | 31.0.1 | cc:完了 |
+| 31.0.6 | rules template と `scripts/localize-rules.sh` の `paths:` を YAML list 形式へ移行し、複数 glob を壊れにくくする | template / generated rule の paths が YAML list になり、validate で壊れていない | 31.0.1 | cc:完了 |
+| 31.0.7 | skill `effort` frontmatter と agent `initialPrompt` を `skills-v3` / `agents-v3` / mirror に追加し、重いフローの初動品質を安定化する | skill / agent frontmatter が更新され、integration test と validate が通る | 31.0.1 | cc:完了 |
+| 31.0.8 | Feature Table / CHANGELOG / upstream integration test を更新し、「追従した」ではなく「Harness でどう強くなったか」を記録する | docs / changelog / tests で 2.1.80〜2.1.86 反映が確認できる | 31.0.2, 31.0.3, 31.0.4, 31.0.5, 31.0.6, 31.0.7 | cc:完了 |
+
+### Phase 31.1: 将来拡張の保存 [P1]
+
+Purpose: 今回実装しないが価値の高い更新を、次回すぐ取り込める形で残す
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 31.1.1 | Claude Code `PreToolUse updatedInput` を使った AskUserQuestion 自動補完・入力正規化の実装方針を内部スキルへ残す | 次回着手時に対象 surface と実装案が追える | 31.0.1 | cc:TODO |
+| 31.1.2 | Codex の `plugin-first workflow` と `resume-aware effort continuity` を比較軸として Plans に残す | Claude / Codex の差分を埋める次フェーズ候補が明文化されている | 31.0.1 | cc:TODO |
+| 31.1.3 | この一連の調査・実装フローを非配布の内部スキルとして保存する | `skills/claude-codex-upstream-update/SKILL.md` が存在し、ローカル専用運用が書かれている | 31.0.1 | cc:完了 |
+
 ## Phase 30: Claude Code / Codex 両対応 hardening parity
 
 作成日: 2026-03-25

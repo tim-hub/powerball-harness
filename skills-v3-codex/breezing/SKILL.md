@@ -5,6 +5,7 @@ description-en: "Team execution mode (Codex native) — backward-compatible alia
 description-ja: "チーム実行モード（Codex ネイティブ版）— harness-work のチーム協調エイリアス。breezing, チーム実行, 全部やって でトリガー。"
 argument-hint: "[all|N-M|--max-workers N|--no-discuss]"
 user-invocable: true
+effort: high
 ---
 
 # Breezing — Team Execution Mode (Codex Native)

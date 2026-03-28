@@ -142,8 +142,10 @@ sync_critical_files() {
     "scripts/hook-handlers/memory-post-tool-use.sh"
     "scripts/hook-handlers/memory-stop.sh"
     "scripts/hook-handlers/memory-codex-notify.sh"
+    "scripts/hook-handlers/runtime-reactive.sh"
     "hooks/hooks.json"
     ".claude-plugin/hooks.json"
+    ".claude-plugin/settings.json"
     ".claude-plugin/plugin.json"
     "VERSION"
   )
@@ -206,7 +208,9 @@ main() {
       "scripts/hook-handlers/memory-user-prompt.sh" \
       "scripts/hook-handlers/memory-post-tool-use.sh" \
       "scripts/hook-handlers/memory-stop.sh" \
-      "scripts/hook-handlers/memory-codex-notify.sh"
+      "scripts/hook-handlers/memory-codex-notify.sh" \
+      "scripts/hook-handlers/runtime-reactive.sh" \
+      ".claude-plugin/settings.json"
     do
       if files_differ "$PLUGIN_SOURCE/$rel_path" "$CACHE_DIR/$rel_path"; then
         needs_sync=true

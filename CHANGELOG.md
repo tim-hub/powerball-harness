@@ -6,6 +6,23 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Added
+
+- Claude Code `TaskCreated` / `FileChanged` / `CwdChanged` hook に対応し、`scripts/hook-handlers/runtime-reactive.sh` で background task 作成・Plans 更新・worktree / repo 切替を記録できるようにした
+
+### Changed
+
+- `skills-v3/` と Codex native skill に `effort` frontmatter を追加し、`harness-work` / `harness-review` / `harness-release` などの高負荷フローで思考量を明示的に引き上げられるようにした
+- `agents-v3/worker.md`, `reviewer.md`, `scaffolder.md` に `initialPrompt` を追加し、サブエージェントの初動を Plans / verdict / setup 目的に即した形で安定化した
+- rules template と `scripts/localize-rules.sh` の `paths:` を YAML list 形式へ移行し、Claude Code v2.1.84 の複数 glob 対応を使って適用範囲を壊れにくくした
+- Claude Code v2.1.85 の hooks conditional `if` field を `PermissionRequest` に取り込み、Bash の安全コマンド候補だけに permission hook を起動するようにして不要なフック評価を減らした
+- `PermissionRequest` の編集系 matcher を `Edit|Write|MultiEdit` にそろえ、`MultiEdit` でも core guardrail と同じ自動承認導線が使えるようにした
+
+### Security
+
+- `.claude-plugin/settings.json` に `sandbox.failIfUnavailable: true` を追加し、sandbox 起動失敗時に unsandboxed で継続しないようにした
+- `.claude-plugin/settings.json` に `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` を設定し、Bash / hooks / MCP stdio subprocess へ Anthropic / cloud 認証情報を引き継がないようにした
+
 ## [3.14.0] - 2026-03-25
 
 ### テーマ: クロスランタイム品質強化 + Marketplace 修正

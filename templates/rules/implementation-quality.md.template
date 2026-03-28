@@ -1,6 +1,7 @@
 ---
 description: 実装品質ルール - 形骸化実装を禁止し、本質的な実装を促す
-paths: "**/*.{ts,tsx,js,jsx,py,rb,go,rs,java,kt,swift,c,cpp,h,hpp,cs,php}"
+paths:
+  - "**/*.{ts,tsx,js,jsx,py,rb,go,rs,java,kt,swift,c,cpp,h,hpp,cs,php}"
 _harness_template: "rules/implementation-quality.md.template"
 _harness_version: "{{VERSION}}"
 ---

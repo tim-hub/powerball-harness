@@ -249,6 +249,18 @@ else
     fail_test "sync-plugin-cache が memory wrapper を配布キャッシュへ同期できません"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-runtime-reactive-hooks.sh" >/dev/null 2>&1; then
+    pass_test "reactive hook runtime (TaskCreated/FileChanged/CwdChanged) が動作します"
+else
+    fail_test "reactive hook runtime (TaskCreated/FileChanged/CwdChanged) に問題があります"
+fi
+
+if bash "$PLUGIN_ROOT/tests/test-claude-upstream-integration.sh" >/dev/null 2>&1; then
+    pass_test "Claude Code 2.1.80-2.1.86 の統合ポイントが配線されています"
+else
+    fail_test "Claude Code 2.1.80-2.1.86 の統合ポイントに欠落があります"
+fi
+
 echo ""
 echo "6. スクリプトの検証"
 echo "----------------------------------------"

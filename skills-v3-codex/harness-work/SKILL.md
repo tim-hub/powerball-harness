@@ -4,6 +4,7 @@ description: "Harness v3 統合実行スキル（Codex ネイティブ版）。P
 description-en: "Unified execution skill for Harness v3 (Codex native). Implements Plans.md tasks from single task to full parallel team runs."
 description-ja: "Harness v3 統合実行スキル（Codex ネイティブ版）。Plans.md タスクを1件から全並列チーム実行まで担当。"
 argument-hint: "[all] [task-number|range] [--parallel N] [--no-commit] [--breezing]"
+effort: high
 ---
 
 # Harness Work (v3) — Codex Native

@@ -45,7 +45,7 @@ echo "  ソースディレクトリ: $SOURCE_DIRS"
 # paths パターン生成
 # ================================
 generate_code_paths() {
-  local paths=""
+  local -a paths=()
   local src_dirs=($SOURCE_DIRS)
 
   # 言語に応じた拡張子
@@ -71,57 +71,80 @@ generate_code_paths() {
   # ソースディレクトリごとにパターン生成
   for dir in "${src_dirs[@]}"; do
     if [ "$dir" = "." ]; then
-      paths+="**/*.{$extensions}, "
+      paths+=("**/*.{$extensions}")
     else
-      paths+="$dir/**/*.{$extensions}, "
+      paths+=("$dir/**/*.{$extensions}")
     fi
   done
 
-  # 末尾のカンマとスペースを削除
-  echo "${paths%, }"
+  printf '%s\n' "${paths[@]}"
 }
 
 generate_test_paths() {
-  local paths=""
+  local -a paths=()
   local test_dirs_arr=($TEST_DIRS)
 
   # 検出されたテストディレクトリ
   if [ ${#test_dirs_arr[@]} -gt 0 ]; then
     for dir in "${test_dirs_arr[@]}"; do
-      paths+="$dir/**/*.*, "
+      paths+=("$dir/**/*.*")
     done
   else
     # デフォルトのテストディレクトリをチェック
     for dir in tests test __tests__ spec e2e; do
       if [ -d "$dir" ]; then
-        paths+="$dir/**/*.*, "
+        paths+=("$dir/**/*.*")
       fi
     done
   fi
 
   # colocated tests
   if [ "$HAS_COLOCATED_TESTS" = "true" ]; then
-    paths+="**/*.{test,spec}.{ts,tsx,js,jsx,py}, "
+    paths+=("**/*.{test,spec}.{ts,tsx,js,jsx,py}")
   fi
 
   # デフォルト
-  if [ -z "$paths" ]; then
-    paths="**/*.{test,spec}.*, tests/**/*.*, test/**/*.*"
+  if [ ${#paths[@]} -eq 0 ]; then
+    paths=(
+      "**/*.{test,spec}.*"
+      "tests/**/*.*"
+      "test/**/*.*"
+    )
   fi
 
-  echo "${paths%, }"
+  printf '%s\n' "${paths[@]}"
+}
+
+render_paths_block() {
+  local label="$1"
+  shift
+
+  printf '%s\n' "${label}"
+  for path_pattern in "$@"; do
+    printf '  - "%s"\n' "$path_pattern"
+  done
 }
 
 # ================================
 # ルールファイル生成
 # ================================
-CODE_PATHS=$(generate_code_paths)
-TEST_PATHS=$(generate_test_paths)
+CODE_PATHS=()
+while IFS= read -r line; do
+  [ -n "$line" ] && CODE_PATHS+=("$line")
+done < <(generate_code_paths)
+
+TEST_PATHS=()
+while IFS= read -r line; do
+  [ -n "$line" ] && TEST_PATHS+=("$line")
+done < <(generate_test_paths)
+
+CODE_PATHS_BLOCK="$(render_paths_block "paths:" "${CODE_PATHS[@]}")"
+TEST_PATHS_BLOCK="$(render_paths_block "paths:" "${TEST_PATHS[@]}")"
 
 echo ""
 echo "📝 生成される paths:"
-echo "  コード: $CODE_PATHS"
-echo "  テスト: $TEST_PATHS"
+printf '  コード:\n%s\n' "$(printf '    - %s\n' "${CODE_PATHS[@]}")"
+printf '  テスト:\n%s\n' "$(printf '    - %s\n' "${TEST_PATHS[@]}")"
 
 if [ "$DRY_RUN" = true ]; then
   echo ""
@@ -177,7 +200,7 @@ fi
 cat > "$CODING_STANDARDS" << EOF
 ---
 description: コーディング規約（コードファイル編集時のみ適用）
-paths: "$CODE_PATHS"
+${CODE_PATHS_BLOCK}
 ---
 
 # Coding Standards
@@ -218,7 +241,7 @@ TESTING_RULES=".claude/rules/testing.md"
 cat > "$TESTING_RULES" << EOF
 ---
 description: テストファイル作成・編集時のルール
-paths: "$TEST_PATHS"
+${TEST_PATHS_BLOCK}
 ---
 
 # Testing Rules
@@ -256,5 +279,5 @@ echo ""
 echo "✅ ルールのローカライズが完了しました"
 echo ""
 echo "📋 生成されたルール:"
-echo "  - .claude/rules/coding-standards.md (paths: $CODE_PATHS)"
-echo "  - .claude/rules/testing.md (paths: $TEST_PATHS)"
+echo "  - .claude/rules/coding-standards.md (paths: YAML list)"
+echo "  - .claude/rules/testing.md (paths: YAML list)"

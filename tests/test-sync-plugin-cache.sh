@@ -22,8 +22,10 @@ required_cached_files=(
   "${CACHE_DIR}/scripts/hook-handlers/memory-user-prompt.sh"
   "${CACHE_DIR}/scripts/hook-handlers/memory-post-tool-use.sh"
   "${CACHE_DIR}/scripts/hook-handlers/memory-stop.sh"
+  "${CACHE_DIR}/scripts/hook-handlers/runtime-reactive.sh"
   "${CACHE_DIR}/hooks/hooks.json"
   "${CACHE_DIR}/.claude-plugin/hooks.json"
+  "${CACHE_DIR}/.claude-plugin/settings.json"
 )
 
 for file in "${required_cached_files[@]}"; do
