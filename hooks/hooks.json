@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" pretooluse-inbox-check",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" pretooluse-inbox-check",
             "timeout": 10
           },
           {
@@ -33,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" pretooluse-browser-guide",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" pretooluse-browser-guide",
             "timeout": 10
           }
         ]
@@ -68,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" setup-hook init",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" setup-hook init",
             "timeout": 60,
             "once": true
           }
@@ -79,7 +79,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" setup-hook init",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" setup-hook init",
             "timeout": 60,
             "once": true
           }
@@ -90,7 +90,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" setup-hook maintenance",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" setup-hook maintenance",
             "timeout": 60,
             "once": true
           }
@@ -109,19 +109,19 @@
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/memory-bridge session-start",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge session-start",
             "timeout": 30,
             "once": true
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" session-init",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" session-init",
             "timeout": 30,
             "once": true
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" session-monitor",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" session-monitor",
             "timeout": 30,
             "once": true
           }
@@ -138,19 +138,19 @@
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/memory-bridge session-start",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge session-start",
             "timeout": 30,
             "once": true
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" session-resume",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" session-resume",
             "timeout": 30,
             "once": true
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" session-monitor",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" session-monitor",
             "timeout": 30,
             "once": true
           }
@@ -163,7 +163,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" subagent-tracker start",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker start",
             "timeout": 10
           }
         ]
@@ -173,7 +173,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" subagent-tracker start",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker start",
             "timeout": 10
           }
         ]
@@ -183,7 +183,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" subagent-tracker start",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker start",
             "timeout": 10
           }
         ]
@@ -193,7 +193,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" subagent-tracker start",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker start",
             "timeout": 10
           }
         ]
@@ -204,7 +204,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/instructions-loaded",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/instructions-loaded",
             "timeout": 10
           }
         ]
@@ -216,7 +216,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" subagent-tracker stop",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker stop",
             "timeout": 10
           }
         ]
@@ -226,7 +226,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" subagent-tracker stop",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker stop",
             "timeout": 10
           }
         ]
@@ -236,7 +236,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" subagent-tracker stop",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker stop",
             "timeout": 10
           }
         ]
@@ -246,7 +246,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" subagent-tracker stop",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker stop",
             "timeout": 10
           }
         ]
@@ -257,7 +257,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/post-tool-failure",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/post-tool-failure",
             "timeout": 10
           }
         ]
@@ -268,7 +268,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/teammate-idle",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/teammate-idle",
             "timeout": 10
           }
         ]
@@ -279,7 +279,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/task-completed",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/task-completed",
             "timeout": 10
           }
         ]
@@ -290,7 +290,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/runtime-reactive",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/runtime-reactive",
             "timeout": 10
           }
         ]
@@ -301,7 +301,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/worktree-create",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/worktree-create",
             "timeout": 10
           }
         ]
@@ -312,7 +312,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/worktree-remove",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/worktree-remove",
             "timeout": 10
           }
         ]
@@ -323,7 +323,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-handlers/pre-compact-save.js\"",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/pre-compact-save.js",
             "timeout": 30
           },
           {
@@ -376,7 +376,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" session-cleanup",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" session-cleanup",
             "timeout": 30
           }
         ]
@@ -388,27 +388,27 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/memory-bridge user-prompt",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge user-prompt",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" userprompt-inject-policy",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" userprompt-inject-policy",
             "timeout": 30
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" userprompt-track-command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" userprompt-track-command",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/fix-proposal-injector",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/fix-proposal-injector",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/breezing-signal-injector",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/breezing-signal-injector",
             "timeout": 10
           }
         ]
@@ -441,12 +441,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/memory-bridge post-tool-use",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge post-tool-use",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" posttooluse-log-toolname",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" posttooluse-log-toolname",
             "timeout": 30
           }
         ]
@@ -456,12 +456,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" posttooluse-commit-cleanup",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" posttooluse-commit-cleanup",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/ci-status-checker",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/ci-status-checker",
             "timeout": 30,
             "async": true
           }
@@ -472,7 +472,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" usage-tracker",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" usage-tracker",
             "timeout": 30
           }
         ]
@@ -482,7 +482,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" posttooluse-clear-pending",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" posttooluse-clear-pending",
             "timeout": 5
           }
         ]
@@ -492,7 +492,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" todo-sync",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" todo-sync",
             "timeout": 30
           }
         ]
@@ -502,43 +502,43 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/emit-agent-trace.js\"",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" emit-agent-trace.js",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" auto-cleanup-hook",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" auto-cleanup-hook",
             "timeout": 60
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" track-changes",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" track-changes",
             "timeout": 30
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" auto-test-runner",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" auto-test-runner",
             "timeout": 120,
             "async": true
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" posttooluse-quality-pack",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" posttooluse-quality-pack",
             "timeout": 60
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" plans-watcher",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" plans-watcher",
             "timeout": 30
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" tdd-order-check",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" tdd-order-check",
             "timeout": 30
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" session-auto-broadcast",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" session-auto-broadcast",
             "timeout": 10
           }
         ]
@@ -560,7 +560,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/config-change",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/config-change",
             "timeout": 10
           }
         ]
@@ -571,7 +571,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/runtime-reactive",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/runtime-reactive",
             "timeout": 10
           }
         ]
@@ -582,7 +582,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/runtime-reactive",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/runtime-reactive",
             "timeout": 10
           }
         ]
@@ -593,17 +593,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" session-summary",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" session-summary",
             "timeout": 60
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/memory-bridge stop",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge stop",
             "timeout": 30
           },
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js\" hook-handlers/stop-session-evaluator",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/stop-session-evaluator",
             "timeout": 30
           },
           {
