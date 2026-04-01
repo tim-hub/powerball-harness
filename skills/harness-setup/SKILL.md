@@ -85,9 +85,11 @@ TIMEOUT=$(command -v timeout || command -v gtimeout || echo "")
 # macOS の場合: brew install coreutils
 ```
 
-**使用パターン**:
+**使用パターン**（公式プラグイン経由）:
 ```bash
-${TIMEOUT:+$TIMEOUT 120} codex exec "$(cat /tmp/prompt.md)" 2>/dev/null
+bash scripts/codex-companion.sh task --write "タスク内容"
+# または stdin 経由
+cat /tmp/prompt.md | bash scripts/codex-companion.sh task --write
 ```
 
 ### harness-mem — メモリ設定

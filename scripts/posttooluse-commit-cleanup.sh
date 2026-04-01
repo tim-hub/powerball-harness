@@ -30,17 +30,19 @@ fi
 # Check if this was a git commit command
 if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+commit([[:space:]]|$)'; then
   REVIEW_STATE_FILE=".claude/state/review-approved.json"
+  REVIEW_RESULT_FILE=".claude/state/review-result.json"
 
   # Only clear if the commit was successful (no error in result)
   # Check for common success patterns
-  if [ -f "$REVIEW_STATE_FILE" ]; then
+  if [ -f "$REVIEW_STATE_FILE" ] || [ -f "$REVIEW_RESULT_FILE" ]; then
     # Check if result contains error indicators
     if ! echo "$TOOL_RESULT" | grep -Eiq 'error|fatal|failed|nothing to commit'; then
       # Commit was successful, clear the approval state
       rm -f "$REVIEW_STATE_FILE" 2>/dev/null
+      rm -f "$REVIEW_RESULT_FILE" 2>/dev/null
 
       # Log the cleanup
-      echo "[Commit Guard] レビュー承認状態をクリアしました。次回のコミット前に再度 /harness-review を実行してください。" >&2
+      echo "[Commit Guard] レビュー承認状態をクリアしました。次回のコミット前に再度独立レビューを実行してください。" >&2
     fi
   fi
 fi

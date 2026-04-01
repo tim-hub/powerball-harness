@@ -1115,6 +1115,7 @@ if [ "$TOOL_NAME" = "Bash" ]; then
   # ===== Commit Guard: レビュー完了前のコミットをブロック =====
   if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+commit([[:space:]]|$)'; then
     REVIEW_STATE_FILE=".claude/state/review-approved.json"
+    REVIEW_RESULT_FILE=".claude/state/review-result.json"
     COMMIT_GUARD_ENABLED="true"
 
     # 設定ファイルで無効化されているかチェック
@@ -1128,8 +1129,15 @@ if [ "$TOOL_NAME" = "Bash" ]; then
     if [ "$COMMIT_GUARD_ENABLED" = "true" ]; then
       # レビュー承認状態をチェック
       REVIEW_APPROVED="false"
-      if [ -f "$REVIEW_STATE_FILE" ]; then
-        if command -v jq >/dev/null 2>&1; then
+      if command -v jq >/dev/null 2>&1; then
+        if [ -f "$REVIEW_RESULT_FILE" ]; then
+          RESULT_VERDICT=$(jq -r '.verdict // empty' "$REVIEW_RESULT_FILE" 2>/dev/null)
+          if [ "$RESULT_VERDICT" = "APPROVE" ]; then
+            REVIEW_APPROVED="true"
+          fi
+        fi
+
+        if [ "$REVIEW_APPROVED" = "false" ] && [ -f "$REVIEW_STATE_FILE" ]; then
           APPROVED_AT=$(jq -r '.approved_at // empty' "$REVIEW_STATE_FILE" 2>/dev/null)
           JUDGMENT=$(jq -r '.judgment // empty' "$REVIEW_STATE_FILE" 2>/dev/null)
           if [ -n "$APPROVED_AT" ] && [ "$JUDGMENT" = "APPROVE" ]; then

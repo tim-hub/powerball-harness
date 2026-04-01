@@ -49,6 +49,8 @@ RESUME_CONTEXT_FILE="${STATE_DIR}/memory-resume-context.md"
 RESUME_PENDING_FLAG="${STATE_DIR}/.memory-resume-pending"
 RESUME_PROCESSING_FLAG="${STATE_DIR}/.memory-resume-processing"
 RESUME_MAX_BYTES="${HARNESS_MEM_RESUME_MAX_BYTES:-32768}"
+HANDOFF_ARTIFACT_FILE="${STATE_DIR}/handoff-artifact.json"
+LEGACY_PRECOMPACT_SNAPSHOT_FILE="${STATE_DIR}/precompact-snapshot.json"
 
 case "$RESUME_MAX_BYTES" in
   ''|*[!0-9]*) RESUME_MAX_BYTES=32768 ;;
@@ -101,6 +103,197 @@ consume_memory_resume_context() {
 
   rm -f "$RESUME_PENDING_FLAG" "$RESUME_PROCESSING_FLAG" "$RESUME_CONTEXT_FILE" 2>/dev/null || true
   printf '%s' "$out"
+}
+
+get_handoff_artifact_path() {
+  if [ -f "$HANDOFF_ARTIFACT_FILE" ]; then
+    printf '%s' "$HANDOFF_ARTIFACT_FILE"
+    return 0
+  fi
+
+  if [ -f "$LEGACY_PRECOMPACT_SNAPSHOT_FILE" ]; then
+    printf '%s' "$LEGACY_PRECOMPACT_SNAPSHOT_FILE"
+    return 0
+  fi
+
+  return 0
+}
+
+render_handoff_context() {
+  local artifact_path="$1"
+  if [ -z "$artifact_path" ] || [ ! -f "$artifact_path" ]; then
+    return 0
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$artifact_path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+try:
+    data = json.loads(path.read_text(encoding='utf-8'))
+except Exception:
+    sys.exit(0)
+
+def normalize_text(value):
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return " ".join(value.split())
+    if isinstance(value, dict):
+        for key in ("summary", "task", "title", "detail", "message", "reason", "status"):
+            candidate = value.get(key)
+            if isinstance(candidate, str) and candidate.strip():
+                return " ".join(candidate.split())
+        return ""
+    if isinstance(value, list):
+        parts = []
+        for item in value:
+            text = normalize_text(item)
+            if text:
+                parts.append(text)
+            if len(parts) >= 3:
+                break
+        return "; ".join(parts)
+    return str(value)
+
+def format_list(items, limit=4):
+    parts = []
+    for item in items or []:
+        text = normalize_text(item)
+        if text:
+            parts.append(text)
+        if len(parts) >= limit:
+            break
+    return "; ".join(parts)
+
+previous = data.get("previous_state") or {}
+next_action = data.get("next_action") or {}
+open_risks = data.get("open_risks") or []
+failed_checks = data.get("failed_checks") or []
+decision_log = data.get("decision_log") or []
+context_reset = data.get("context_reset") or {}
+continuity = data.get("continuity") or {}
+wip_tasks = data.get("wipTasks") or []
+recent_edits = data.get("recentEdits") or []
+
+lines = ["## Structured Handoff"]
+
+previous_summary = normalize_text(previous.get("summary"))
+if previous_summary:
+    lines.append(f"- Previous state: {previous_summary}")
+
+session_state = previous.get("session_state") or {}
+if isinstance(session_state, dict):
+    session_bits = []
+    for key in ("state", "review_status", "active_skill", "resumed_at"):
+        candidate = session_state.get(key)
+        if isinstance(candidate, str) and candidate.strip():
+            session_bits.append(f"{key}={candidate.strip()}")
+    if session_bits:
+        lines.append(f"- Session state: {', '.join(session_bits)}")
+
+plan_counts = previous.get("plan_counts") or {}
+if isinstance(plan_counts, dict):
+    count_bits = []
+    for key in ("total", "wip", "blocked", "recent_edits"):
+        candidate = plan_counts.get(key)
+        if isinstance(candidate, (int, float)) and int(candidate) > 0:
+            count_bits.append(f"{key}={int(candidate)}")
+    if count_bits:
+        lines.append(f"- Plan counts: {', '.join(count_bits)}")
+
+next_bits = []
+next_summary = normalize_text(next_action.get("summary"))
+if next_summary:
+    next_bits.append(next_summary)
+task_id = normalize_text(next_action.get("taskId"))
+task = normalize_text(next_action.get("task"))
+if task_id or task:
+    next_bits.append(" ".join(part for part in [task_id, task] if part).strip())
+depends = normalize_text(next_action.get("depends"))
+dod = normalize_text(next_action.get("dod"))
+if depends:
+    next_bits.append(f"depends={depends}")
+if dod:
+    next_bits.append(f"DoD={dod}")
+if next_bits:
+    lines.append(f"- Next action: {' | '.join(next_bits)}")
+
+if open_risks:
+    lines.append(f"- Open risks: {format_list(open_risks)}")
+if failed_checks:
+    lines.append(f"- Failed checks: {format_list(failed_checks)}")
+if decision_log:
+    lines.append(f"- Decision log: {format_list(decision_log, 2)}")
+context_reset_summary = normalize_text(context_reset.get("summary"))
+if context_reset_summary:
+    lines.append(f"- Context reset: {context_reset_summary}")
+continuity_summary = normalize_text(continuity.get("summary"))
+if continuity_summary:
+    lines.append(f"- Continuity: {continuity_summary}")
+if wip_tasks:
+    lines.append(f"- WIP tasks: {format_list(wip_tasks, 5)}")
+if recent_edits:
+    lines.append(f"- Recent edits: {format_list(recent_edits, 5)}")
+
+print("\n".join(lines))
+PY
+    return 0
+  fi
+
+  return 0
+}
+
+sync_handoff_session_metadata() {
+  local artifact_path="$1"
+  local session_file="$2"
+  [ -n "$artifact_path" ] || return 0
+  [ -f "$artifact_path" ] || return 0
+  [ -n "$session_file" ] || return 0
+  [ -f "$session_file" ] || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+
+  local context_reset_summary
+  local context_reset_recommended
+  local continuity_summary
+  local continuity_effort
+  local continuity_plugin_first
+  local continuity_resume_aware
+  local tmp_file
+
+  context_reset_summary="$(jq -r '.context_reset.summary // empty' "$artifact_path" 2>/dev/null || true)"
+  context_reset_recommended="$(jq -r '.context_reset.recommended // false' "$artifact_path" 2>/dev/null || echo false)"
+  continuity_summary="$(jq -r '.continuity.summary // empty' "$artifact_path" 2>/dev/null || true)"
+  continuity_effort="$(jq -r '.continuity.effort_hint // empty' "$artifact_path" 2>/dev/null || true)"
+  continuity_plugin_first="$(jq -r '.continuity.plugin_first_workflow // false' "$artifact_path" 2>/dev/null || echo false)"
+  continuity_resume_aware="$(jq -r '.continuity.resume_aware_effort_continuity // false' "$artifact_path" 2>/dev/null || echo false)"
+
+  tmp_file="$(mktemp)"
+  jq \
+    --arg artifact_path "$artifact_path" \
+    --arg context_reset_summary "$context_reset_summary" \
+    --arg continuity_summary "$continuity_summary" \
+    --arg continuity_effort "$continuity_effort" \
+    --argjson context_reset_recommended "$context_reset_recommended" \
+    --argjson continuity_plugin_first "$continuity_plugin_first" \
+    --argjson continuity_resume_aware "$continuity_resume_aware" \
+    '
+    .harness = (.harness // {}) |
+    .harness.last_handoff_artifact = $artifact_path |
+    .harness.context_reset = {
+      summary: $context_reset_summary,
+      recommended: $context_reset_recommended
+    } |
+    .harness.continuity = {
+      summary: $continuity_summary,
+      effort_hint: $continuity_effort,
+      plugin_first_workflow: $continuity_plugin_first,
+      resume_aware_effort_continuity: $continuity_resume_aware
+    }
+    ' "$session_file" > "$tmp_file" && mv "$tmp_file" "$session_file"
 }
 
 # ===== セッション復元ロジック =====
@@ -326,6 +519,30 @@ if [ -n "$MEMORY_CONTEXT" ]; then
   esac
   add_line ""
 fi
+
+HANDOFF_CONTEXT=""
+HANDOFF_ARTIFACT_PATH="$(get_handoff_artifact_path)"
+if [ -n "$HANDOFF_ARTIFACT_PATH" ] && [ -f "$HANDOFF_ARTIFACT_PATH" ]; then
+  # stale handoff を拒否: 24時間以上前の artifact は無視（session-init.sh と同じポリシー）
+  HANDOFF_AGE_LIMIT=86400
+  HANDOFF_MTIME="$(stat -f %m "$HANDOFF_ARTIFACT_PATH" 2>/dev/null || stat -c %Y "$HANDOFF_ARTIFACT_PATH" 2>/dev/null || echo 0)"
+  NOW="$(date +%s)"
+  HANDOFF_AGE=$(( NOW - HANDOFF_MTIME ))
+  if [ "$HANDOFF_AGE" -lt "$HANDOFF_AGE_LIMIT" ]; then
+    HANDOFF_CONTEXT="$(render_handoff_context "$HANDOFF_ARTIFACT_PATH")"
+  fi
+fi
+
+if [ -n "$HANDOFF_CONTEXT" ]; then
+  OUTPUT="${OUTPUT}${HANDOFF_CONTEXT}"
+  case "$HANDOFF_CONTEXT" in
+    *$'\n') ;;
+    *) OUTPUT="${OUTPUT}\n" ;;
+  esac
+  add_line ""
+fi
+
+sync_handoff_session_metadata "$HANDOFF_ARTIFACT_PATH" "$SESSION_FILE"
 
 add_line "${PLANS_INFO}"
 

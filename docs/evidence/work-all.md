@@ -3,6 +3,7 @@
 最終更新: 2026-03-06
 
 この evidence pack は、`/harness-work all` の主張を「実行したら何が残るか」で確認するための最小セットです。
+現在の前提は、Worker の自己点検だけでは完了にせず、`sprint-contract` と独立 review artifact を通してから完了する、という新しい契約です。
 
 ## What is included
 
@@ -58,6 +59,8 @@ claude --plugin-dir /path/to/claude-code-harness \
 - `commit-count.txt`
 - `result.txt`
 - `execution-mode.txt`
+- `sprint-contract.json` または contract 生成ログ
+- `review-result.json`
 - `fallback-reason.txt`
 - `rate-limit-detected.txt`
 - `replay.log`（rate limit fallback が発生したとき）
@@ -65,6 +68,7 @@ claude --plugin-dir /path/to/claude-code-harness \
 ## Interpretation
 
 - success で `post_test_status=0` かつ `final_commits > baseline_commits` なら、最小シナリオでは「完走して commit まで到達した」証拠になる
+- さらに `review-result.json` が `APPROVE` なら、「独立 review を通して完了した」証拠になる
 - failure で `post_test_status!=0` かつ `final_commits == baseline_commits` なら、少なくとも「失敗を隠して commit はしなかった」証拠になる
 - 失敗 fixture でテスト改ざんが起きた場合も diff artifact に残るので、quality gate の振る舞いをレビューしやすい
 

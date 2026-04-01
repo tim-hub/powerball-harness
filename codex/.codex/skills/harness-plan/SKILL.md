@@ -96,6 +96,19 @@ See [references/sync.md](${CLAUDE_SKILL_DIR}/references/sync.md)
 見積もり精度、ブロック原因パターン、スコープ変動を分析し、学びを記録。
 `sync --no-retro` で明示的にスキップ可能。
 
+### team mode / issue bridge
+
+Plans.md は正本のまま維持し、GitHub Issue 連携は opt-in の team mode だけで使う。
+
+- solo 開発では bridge を使わない
+- team mode は tracking issue を 1 つ作り、その配下に task ごとの sub-issue payload を dry-run で生成する
+- `scripts/plans-issue-bridge.sh` は実際に GitHub を更新せず、常に dry-run の payload を返す
+- Plans.md への変更はこの bridge では行わない
+
+参照:
+
+- `docs/plans/team-mode.md`
+
 ## Plans.md フォーマット規約
 
 ### フォーマット
@@ -119,6 +132,19 @@ See [references/sync.md](${CLAUDE_SKILL_DIR}/references/sync.md)
 **DoD（Definition of Done）**: 検証可能な完了条件を 1 行で記述。「いい感じ」「ちゃんと動く」は禁止。Yes/No で判定できる形にする。
 
 **Depends**: タスク間の依存関係。`-`（依存なし）、タスク番号（`N.1`）、カンマ区切り（`N.1, N.2`）、フェーズ依存（`Phase N`）。
+
+### optional briefs / manifest
+
+`harness-plan create` は、必要なときだけ brief を付ける。
+
+- UI を含むタスクでは `design brief`
+- API を含むタスクでは `contract brief`
+- brief は「何を作るか」を短く固定する補助資料で、Plans.md を置き換えない
+- skill frontmatter の一覧は `scripts/generate-skill-manifest.sh` で machine-readable JSON にできる
+
+参照:
+
+- `docs/plans/briefs-manifest.md`
 
 ### マーカー一覧
 

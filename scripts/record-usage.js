@@ -37,6 +37,26 @@ function createEmptyUsage() {
 }
 
 /**
+ * Normalize an agent key to a harness role.
+ */
+function normalizeAgentRole(name) {
+  const value = String(name || '').trim().toLowerCase();
+  if (!value) {
+    return 'unknown';
+  }
+  if (value.includes('review')) {
+    return 'reviewer';
+  }
+  if (value.includes('lead') || value.includes('planner')) {
+    return 'lead';
+  }
+  if (value.includes('worker') || value.includes('impl')) {
+    return 'worker';
+  }
+  return value;
+}
+
+/**
  * Load usage data from file
  */
 function loadUsage() {
@@ -187,6 +207,27 @@ function getUsageReport() {
 
   // Sort by usage count (descending)
   const sortByCount = (a, b) => (b[1].count || b[1].triggered || 0) - (a[1].count || a[1].triggered || 0);
+  const roleSummary = {};
+
+  for (const [name, data] of Object.entries(usage.agents)) {
+    const role = normalizeAgentRole(name);
+    if (!roleSummary[role]) {
+      roleSummary[role] = {
+        count: 0,
+        retryCount: 0,
+        lastUsed: null,
+        agentNames: []
+      };
+    }
+
+    const count = data.count || 0;
+    roleSummary[role].count += count;
+    roleSummary[role].retryCount += data.retryCount || 0;
+    if (!roleSummary[role].lastUsed || (data.lastUsed && new Date(data.lastUsed) > new Date(roleSummary[role].lastUsed))) {
+      roleSummary[role].lastUsed = data.lastUsed || roleSummary[role].lastUsed;
+    }
+    roleSummary[role].agentNames.push(name);
+  }
 
   return {
     version: usage.version,
@@ -194,6 +235,9 @@ function getUsageReport() {
     skills: Object.entries(usage.skills).sort(sortByCount),
     commands: Object.entries(usage.commands).sort(sortByCount),
     agents: Object.entries(usage.agents).sort(sortByCount),
+    roles: Object.entries(roleSummary)
+      .map(([role, summary]) => [role, summary])
+      .sort((a, b) => (b[1].count || 0) - (a[1].count || 0)),
     hooks: Object.entries(usage.hooks).sort(sortByCount),
     cleanup: getCleanupSuggestions()
   };

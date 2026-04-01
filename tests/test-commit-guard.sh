@@ -79,8 +79,8 @@ test_pretooluse_has_commit_guard() {
     return 1
   fi
 
-  if ! grep -q "review-approved.json" "$script" 2>/dev/null; then
-    echo "    Error: review-approved.json check not found in pretooluse-guard.sh"
+  if ! grep -Eq "review-approved.json|review-result.json" "$script" 2>/dev/null; then
+    echo "    Error: review artifact check not found in pretooluse-guard.sh"
     return 1
   fi
 
@@ -128,8 +128,8 @@ test_cleanup_removes_state_file() {
   fi
 
   # 状態ファイルパスの定義も確認
-  if ! grep -q "review-approved.json" "$script" 2>/dev/null; then
-    echo "    Error: review-approved.json path definition not found"
+  if ! grep -Eq "review-approved.json|review-result.json" "$script" 2>/dev/null; then
+    echo "    Error: review artifact path definition not found"
     return 1
   fi
 

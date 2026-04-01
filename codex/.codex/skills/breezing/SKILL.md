@@ -66,13 +66,16 @@ breezing --auto-mode all        # 互換な親セッションで Auto Mode rollo
 
 ### Codex Mode (`--codex`)
 
-Codex CLI にすべての実装を委託するモード:
+公式プラグイン `codex-plugin-cc` 経由で Codex CLI にすべての実装を委託するモード:
 
 ```bash
-# プロンプトは stdin パイプで渡す（ARG_MAX 対策）
+# タスク委託（書き込み可能）
+bash scripts/codex-companion.sh task --write "タスク内容"
+
+# stdin 経由（大きなプロンプト向け）
 CODEX_PROMPT=$(mktemp /tmp/codex-prompt-XXXXXX.md)
 # タスク内容を書き出し
-cat "$CODEX_PROMPT" | ${TIMEOUT:+$TIMEOUT 120} codex exec - --sandbox workspace-write --full-auto 2>>/tmp/harness-codex-$$.log
+cat "$CODEX_PROMPT" | bash scripts/codex-companion.sh task --write
 rm -f "$CODEX_PROMPT"
 ```
 

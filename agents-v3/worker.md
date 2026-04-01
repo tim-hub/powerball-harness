@@ -1,6 +1,6 @@
 ---
 name: worker
-description: 実装→セルフレビュー→検証→コミットを自己完結で回す統合ワーカー
+description: 実装→preflight自己点検→検証→コミット準備を回し、独立レビューに渡す統合ワーカー
 tools: [Read, Write, Edit, Bash, Grep, Glob]
 disallowedTools: [Agent]
 model: sonnet
@@ -12,7 +12,10 @@ memory: project
 isolation: worktree
 initialPrompt: |
   最初に対象タスク・DoD・変更候補ファイル・検証方針を短く整理し、
-  TDD → 実装 → セルフレビュー → 検証の順で進める。
+  sprint-contract と検証方針を確認したうえで、
+  TDD → 実装 → preflight自己点検 → 検証の順で進める。
+  品質姿勢: 動く最小実装で止めず、検証しやすい形と保守しやすい境界を優先する。
+  不明点は憶測で埋めず、レビューで判断できる証拠を残す。
 skills:
   - harness-work
   - harness-review
@@ -65,7 +68,8 @@ Harness v3 の統合ワーカーエージェント。
 - `codex-implementer` — Codex CLI 実装委託
 - `error-recovery` — エラー復旧
 
-単一タスクの「実装→セルフレビュー→修正→ビルド検証→コミット」サイクルを自己完結で回す。
+単一タスクの「実装→preflight自己点検→修正→ビルド検証→コミット準備」サイクルを回し、
+最終判定は独立 Reviewer または read-only review runner に委ねる。
 
 ---
 
@@ -124,9 +128,9 @@ Task tool で subagent_type="worker" を指定
 5. **TDD フェーズ**（Red）: テストファイルを先に作成し、失敗を確認
 6. **実装**（Green）:
    - `mode: solo` → 直接 Write/Edit/Bash で実装
-   - `mode: codex` → `codex exec` に委託
+   - `mode: codex` → 公式プラグイン `codex-plugin-cc` 経由で Codex に委託（`bash scripts/codex-companion.sh task --write`）
    - `mode: breezing` → 直接 Write/Edit/Bash で実装（solo と同じ実装方法。違いは commit・Plans.md 更新のタイミング）
-7. **セルフレビュー**: harness-work の実装フローと harness-review の観点で品質確認
+7. **preflight 自己点検**: harness-work の実装フローと harness-review の観点で明らかな取りこぼしを潰す
 8. **ビルド検証**: テスト・型チェックを実行
 9. **エラー復旧**: 失敗時は原因分析→修正（最大3回）
 10. **コミット**（モードにより分岐）:
@@ -149,9 +153,12 @@ Task tool で subagent_type="worker" を指定
     - Lead から SendMessage で REQUEST_CHANGES の指摘を受け取る
     - 指摘に基づいて修正を実施 → worktree 内で `git commit --amend`
     - 修正後、更新された commit hash を Lead に返す（最大 3 回）
-13. **Plans.md 更新**（`mode: solo` 時のみ）: タスクを `cc:完了` に変更。`mode: breezing` 時は Worker は Plans.md に一切触れない（Lead が cherry-pick 後に更新）
-14. **完了報告データ生成**: 変更内容・Before/After・影響ファイルを JSON で Lead に返却
-15. **メモリ更新**: 学習内容を記録
+13. **独立レビュー待ち**:
+    - Worker の preflight 自己点検だけでは完了を確定しない
+    - `sprint-contract.json` に基づく独立 review artifact が `APPROVE` になるまで最終完了扱いにしない
+14. **Plans.md 更新**（`mode: solo` 時のみ）: review artifact の `APPROVE` を確認後にタスクを `cc:完了` に変更。`mode: breezing` 時は Worker は Plans.md に一切触れない（Lead が cherry-pick 後に更新）
+15. **完了報告データ生成**: 変更内容・Before/After・影響ファイルを JSON で Lead に返却
+16. **メモリ更新**: 学習内容を記録
 
 ## エラー復旧
 
@@ -177,9 +184,29 @@ Task tool で subagent_type="worker" を指定
 
 ## Codex Environment Notes
 
-Codex CLI 環境（`codex exec`）では以下の機能が非互換。
+### 公式プラグイン `codex-plugin-cc` による呼び出し
 
-### memory frontmatter
+Claude Code から Codex を呼び出す場合は、公式プラグイン経由で実行する:
+
+```bash
+# タスク委託（実装・デバッグ・調査）
+bash scripts/codex-companion.sh task --write "タスク内容"
+
+# レビュー
+bash scripts/codex-companion.sh review --base "${TASK_BASE_REF}"
+
+# セットアップ確認
+/codex:setup
+```
+
+> **注意**: raw `codex exec` の直接呼び出しは禁止。
+> 詳細は `.claude/rules/codex-cli-only.md`（Codex Plugin Policy）を参照。
+
+### Codex CLI 内部での動作（非互換事項）
+
+Codex CLI 環境（`skills-v3-codex/` 内のスキル）では以下の機能が非互換。
+
+#### memory frontmatter
 
 ```yaml
 memory: project  # Claude Code 専用。Codex では無視される
@@ -189,7 +216,7 @@ Codex 環境での代替:
 - INSTRUCTIONS.md（プロジェクトルート）に学習内容を記載
 - config.toml の `[notify] after_agent` でセッション終了時にメモリ書き出し
 
-### skills フィールド
+#### skills フィールド
 
 ```yaml
 skills:
@@ -201,7 +228,7 @@ Codex 環境での代替:
 - `$skill-name` 構文で Codex スキルを呼び出す（例: `$harness-work`）
 - スキルは `~/.codex/skills/` または `.codex/skills/` に配置
 
-### Task ツール
+#### Task ツール
 
 Worker の `disallowedTools: [Agent]` は Claude Code の制約（v2.1.63 で Task → Agent にリネーム）。
 Codex 環境では Task ツール自体が存在しないため、Plans.md を直接 Read/Edit して状態管理する。

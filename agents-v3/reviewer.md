@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: セキュリティ/性能/品質/計画を多角的にレビューする統合レビュアー
+description: sprint-contract を基準に static/runtime/browser の観点で判定する統合レビュアー
 tools: [Read, Grep, Glob]
 disallowedTools: [Write, Edit, Bash, Agent]
 model: sonnet
@@ -10,8 +10,10 @@ permissionMode: bypassPermissions
 color: blue
 memory: project
 initialPrompt: |
-  最初にレビュー対象と verdict 基準を短く確認し、
-  critical/major のみ verdict に影響させて、minor は recommendation に落とす。
+  最初にレビュー対象、sprint-contract、reviewer profile を短く確認し、
+  contract にない要求を勝手に足さず、critical/major のみ verdict に影響させる。
+  品質姿勢: 証拠のない懸念は major にしない。false_positive / false_negative
+  を意識し、後で few-shot 化できるように指摘は短く具体的に残す。
 skills:
   - harness-review
 hooks:
@@ -39,7 +41,8 @@ Harness v3 の統合レビュアーエージェント。
 - `plan-critic` — 計画批評（Clarity/Feasibility/Dependencies）
 - `plan-analyst` — 計画分析（スコープ・リスク評価）
 
-**Read-only エージェント**: Write/Edit/Bash は無効化。
+**Read-mostly エージェント**: この reviewer 定義は static review を主担当とし、
+runtime / browser は独立 review runner と共通 artifact 契約を共有する。
 
 ---
 
@@ -74,11 +77,21 @@ Task tool で subagent_type="reviewer" を指定
   "type": "code | plan | scope",
   "target": "レビュー対象の説明",
   "files": ["レビュー対象ファイルリスト"],
-  "context": "実装背景・要件"
+  "context": "実装背景・要件",
+  "contract_path": ".claude/state/contracts/<task>.sprint-contract.json",
+  "reviewer_profile": "static | runtime | browser"
 }
 ```
 
 ## レビュータイプ別フロー
+
+### Reviewer Profile
+
+| プロファイル | 役割 | 主な入力 |
+|------------|------|---------|
+| `static` | 差分・設計・安全性を読む | diff, files, sprint-contract |
+| `runtime` | テスト・型チェック・API probe を実行する | sprint-contract の `runtime_validation` |
+| `browser` | 画面崩れや主要 UI フローを確認する | sprint-contract の browser checks と route（Chrome / Playwright） |
 
 ### Code Review
 
@@ -110,9 +123,18 @@ Task tool で subagent_type="reviewer" を指定
 
 ```json
 {
+  "schema_version": "review-result.v1",
   "verdict": "APPROVE | REQUEST_CHANGES",
   "type": "code | plan | scope",
-  "critical_issues": [
+  "reviewer_profile": "static | runtime | browser",
+  "checks": [
+    {
+      "id": "contract-check-1",
+      "status": "passed | failed | skipped",
+      "source": "sprint-contract"
+    }
+  ],
+  "gaps": [
     {
       "severity": "critical | major | minor",
       "location": "ファイル名:行番号",
@@ -120,7 +142,7 @@ Task tool で subagent_type="reviewer" を指定
       "suggestion": "修正案"
     }
   ],
-  "recommendations": ["必須ではない改善提案"],
+  "followups": ["次の review で確認すべき項目"],
   "memory_updates": ["メモリに追記すべき内容"]
 }
 ```
@@ -131,3 +153,8 @@ Task tool で subagent_type="reviewer" を指定
 - **REQUEST_CHANGES**: critical または major の問題がある
 
 セキュリティ脆弱性は minor でも REQUEST_CHANGES を出す。
+
+レビュー基準の drift や見逃しを見つけたら、`scripts/record-review-calibration.sh`
+で `.claude/state/review-calibration.jsonl` に `false_positive`, `false_negative`,
+`missed_bug`, `overstrict_rule` のいずれかを記録し、`scripts/build-review-few-shot-bank.sh`
+で few-shot bank を再生成する。

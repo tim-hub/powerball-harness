@@ -100,7 +100,16 @@ bash scripts/review-ai-residuals.sh path/to/file.ts path/to/config.sh
 
 ```json
 {
+  "schema_version": "review-result.v1",
   "verdict": "APPROVE | REQUEST_CHANGES",
+  "reviewer_profile": "static | runtime | browser",
+  "calibration": {
+    "label": "false_positive | false_negative | missed_bug | overstrict_rule",
+    "source": "manual | post-review | retrospective",
+    "notes": "観察メモ",
+    "prompt_hint": "few-shot に使う要点",
+    "few_shot_ready": true
+  },
   "critical_issues": [],
   "major_issues": [],
   "observations": [
@@ -115,6 +124,12 @@ bash scripts/review-ai-residuals.sh path/to/file.ts path/to/config.sh
   "recommendations": ["必須ではない改善提案"]
 }
 ```
+
+browser review の場合は `scripts/generate-browser-review-artifact.sh` が `browser_mode` と route / required artifacts を決め、その後に `scripts/write-review-result.sh` で `.claude/state/review-result.json` に正規化して保存する。
+このファイルは commit guard と後続フローの共通入力になる。
+`calibration` が付くレビュー結果は `scripts/record-review-calibration.sh` で
+`.claude/state/review-calibration.jsonl` に追記し、`scripts/build-review-few-shot-bank.sh`
+で few-shot bank を更新する。
 
 ### Step 4: コミット判定
 

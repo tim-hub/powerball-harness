@@ -53,6 +53,34 @@ WebSearch:
 - メール通知
 - 決済機能
 
+## Step 4.5: optional brief 生成
+
+必要なときだけ brief を添える。brief は Plans.md を置き換えず、実装の前提を短く固定する補助資料。
+
+- UI を含むタスクでは `design brief`
+- API を含むタスクでは `contract brief`
+- UI と API が混在する場合は brief を分ける
+
+### design brief
+
+UI タスク向けの brief には、最低限次を入れる:
+
+- 何を達成したいか
+- 誰が使うか
+- 重要な画面状態
+- 見た目や操作感の制約
+- 完了条件
+
+### contract brief
+
+API タスク向けの brief には、最低限次を入れる:
+
+- 何を受け取るか / 返すか
+- 入力検証の条件
+- 失敗時の振る舞い
+- 外部依存
+- 完了条件
+
 ## Step 5: 優先度マトリクス作成（2 軸評価）
 
 各機能を **Impact（影響度）× Risk（リスク/不確実性）** の 2 軸で評価する:
@@ -220,6 +248,15 @@ Purpose: [フェーズの目的（省略可）]
 - 単一依存: タスク番号（例: `1.1`）
 - 複数依存: カンマ区切り（例: `1.1, 1.2`）
 - フェーズ依存: フェーズ番号（例: `Phase 1`）
+
+### Team mode output
+
+ユーザーが team mode を明示した場合だけ、Plans.md と別に issue bridge の dry-run も案内する。
+
+- tracking issue は 1 つだけ
+- task ごとの sub-issue payload を並べる
+- Plans.md は正本のまま維持する
+- `scripts/plans-issue-bridge.sh --team-mode` の dry-run をそのまま使える形で案内する
 
 ## Step 7: 次のアクション案内
 

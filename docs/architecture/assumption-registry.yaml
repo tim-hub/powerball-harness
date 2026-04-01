@@ -1,0 +1,38 @@
+version: 1
+updated_at: "2026-03-30"
+entries:
+  - id: independent-review-before-complete
+    component: harness-work
+    kind: workflow-contract
+    assumption: "実装した本人は、自分の変更の抜け漏れを安定して見つけきれない。"
+    model_limit_addressed: "自己評価バイアス"
+    retirement_signal: "単独モデル実行でも、独立レビューありと同等の不具合検出率を複数ラウンドで維持できる。"
+    validation: "Solo と Breezing の defect escape rate を比較する。"
+  - id: sprint-contract-before-worker
+    component: sprint-contract
+    kind: artifact
+    assumption: "Plans.md の DoD だけでは成功条件が粗く、実装とレビューが別の基準で動きやすい。"
+    model_limit_addressed: "ゴールの解像度不足"
+    retirement_signal: "DoD だけでも contract ありと同等の再作業率に下がる。"
+    validation: "contract あり/なしで修正ループ回数を比較する。"
+  - id: structured-handoff-artifact
+    component: context-reset
+    kind: state-transfer
+    assumption: "長時間実行では、要約だけの引き継ぎでは次の行動と失敗理由が抜ける。"
+    model_limit_addressed: "context anxiety と handoff 劣化"
+    retirement_signal: "compaction 後の resume でも未完了率と再説明コストが増えない。"
+    validation: "resume 後の first-action latency と handoff 不足件数を追う。"
+  - id: runtime-review-profile
+    component: reviewer-profile-runtime
+    kind: evaluator
+    assumption: "静的レビューだけでは、実行すると壊れる変更を十分に捕まえられない。"
+    model_limit_addressed: "静的解析の見逃し"
+    retirement_signal: "runtime 実行なしでも defect escape rate が十分低い。"
+    validation: "runtime profile 実行有無でテスト起因の見逃し件数を比較する。"
+  - id: browser-review-profile
+    component: reviewer-profile-browser
+    kind: evaluator
+    assumption: "ユーザー画面の崩れや操作不良は、コード差分だけでは判断しにくい。"
+    model_limit_addressed: "視覚・操作品質の盲点"
+    retirement_signal: "静的 + runtime だけで UI バグの流出率が許容範囲に収まる。"
+    validation: "browser evaluator 導入前後で UI 不具合の後追い件数を測る。"

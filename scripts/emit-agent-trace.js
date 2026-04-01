@@ -300,6 +300,26 @@ function extractTaskMetrics(toolResult) {
 }
 
 /**
+ * Normalize an agent/subagent name to a harness role.
+ */
+function normalizeAgentRole(name) {
+  const value = String(name || '').trim().toLowerCase();
+  if (!value) {
+    return 'unknown';
+  }
+  if (value.includes('review')) {
+    return 'reviewer';
+  }
+  if (value.includes('lead') || value.includes('planner')) {
+    return 'lead';
+  }
+  if (value.includes('worker') || value.includes('impl')) {
+    return 'worker';
+  }
+  return value;
+}
+
+/**
  * Validate that a path is within the repository
  * Security: Prevents recording paths outside the repo
  * Handles both existing and non-existing paths safely
@@ -534,6 +554,12 @@ function main() {
       const input = typeof toolInput === 'string' ? JSON.parse(toolInput) : toolInput;
       if (input.task_id) {
         record.metadata.taskId = input.task_id;
+      }
+      if (input.subagent_type) {
+        record.metadata.subagentType = input.subagent_type;
+        record.metadata.agentRole = normalizeAgentRole(input.subagent_type);
+      } else if (input.agent_name) {
+        record.metadata.agentRole = normalizeAgentRole(input.agent_name);
       }
     } catch {
       // Ignore parsing errors

@@ -19,6 +19,35 @@ DURATION_MS=$(echo "$input" | jq -r '.cost.total_duration_ms // 0')
 STYLE=$(echo "$input" | jq -r '.output_style.name // ""')
 AGENT_NAME=$(echo "$input" | jq -r '.agent.name // ""')
 WT_NAME=$(echo "$input" | jq -r '.worktree.name // ""')
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+STATE_DIR="${REPO_ROOT}/.claude/state"
+
+mkdir -p "$STATE_DIR" 2>/dev/null || true
+
+if command -v jq >/dev/null 2>&1; then
+    STATUS_TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    STATUSLINE_TELEMETRY="$(jq -nc \
+      --arg ts "$STATUS_TS" \
+      --arg model "$MODEL" \
+      --arg agent_name "$AGENT_NAME" \
+      --arg worktree "$WT_NAME" \
+      --arg style "$STYLE" \
+      --arg cost "$COST" \
+      --arg duration "$DURATION_MS" \
+      --arg pct "$PCT" \
+      '{
+        version: 1,
+        timestamp: $ts,
+        model: $model,
+        agent_name: $agent_name,
+        worktree: $worktree,
+        output_style: $style,
+        context_used_percentage: ($pct | tonumber),
+        cost_usd: ($cost | tonumber),
+        duration_ms: ($duration | tonumber)
+      }')"
+    printf '%s\n' "$STATUSLINE_TELEMETRY" >> "${STATE_DIR}/statusline-telemetry.jsonl"
+fi
 
 # Colors
 CYAN='\033[36m'

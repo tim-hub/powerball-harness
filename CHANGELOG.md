@@ -6,6 +6,25 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Added
+
+- opt-in の team mode と `scripts/plans-issue-bridge.sh` を追加し、`Plans.md` を正本のまま tracking issue / sub-issue の dry-run payload を生成できるようにした
+- `scripts/release-preflight.sh` と release preflight docs / tests を追加し、`/harness-release --dry-run` でも vendor-neutral な公開前チェックを通せるようにした
+- `harness-plan create` の optional brief ルールと `scripts/generate-skill-manifest.sh` を追加し、UI/API brief と skill surface の machine-readable manifest を生成できるようにした
+
+### Changed
+
+- `skills-v3` の planning / release skill を更新し、team mode, pre-release verification, brief/manifest の導線を既存ワークフローへ統合した
+- 公開 skill mirror を同期し、Claude / Codex / OpenCode の各配布面で同じ planning / release surface を使える状態にそろえた
+
+#### Before/After
+
+| Before | After |
+|--------|-------|
+| `Plans.md` のタスクをチームで共有したいときも、Issue 化のルールや payload を毎回その場で考える必要があった | opt-in の team mode で、`Plans.md` から tracking issue / sub-issue の dry-run payload を安定生成できるようになった |
+| `/harness-release --dry-run` は公開前に何を確認すべきかが人依存で、repo ごとの healthcheck や CI 状態も統一的に見づらかった | vendor-neutral な preflight script が working tree, CHANGELOG, env parity, healthcheck, CI, shipped surface residual をまとめて確認するようになった |
+| UI/API タスクの brief や skill surface 一覧を機械可読で出す導線がなく、比較・監査・自動 docs 生成の入力を毎回手で作っていた | `design brief` / `contract brief` のルールと `skill-manifest.v1` の生成導線を追加し、軽量な補助資料と manifest を再利用できるようになった |
+
 ## [3.15.0] - 2026-03-28
 
 ### テーマ: Claude 2.1.80-2.1.86 統合 + Codex/OpenCode mirror 整合

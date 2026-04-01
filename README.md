@@ -124,7 +124,7 @@ Harness creates `Plans.md` with clear acceptance criteria.
 /harness-work --parallel 5 # 5 workers simultaneously
 ```
 
-Each worker implements, self-reviews, and reports.
+Each worker implements, runs a preflight self-check, and waits for an independent review verdict before completion.
 
 <p align="center">
   <img src="assets/readme-visuals-en/parallel-workers.svg" alt="Parallel workers" width="640">

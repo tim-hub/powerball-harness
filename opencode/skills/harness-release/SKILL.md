@@ -34,6 +34,7 @@ Harness v3 の統合リリーススキル。
 - 通常 PR: `VERSION` / `.claude-plugin/plugin.json` / versioned `CHANGELOG.md` entry は触らない
 - 通常 PR の変更履歴: `CHANGELOG.md` の `[Unreleased]` に追記する
 - `/release` 実行時だけ version bump、versioned CHANGELOG entry、tag / GitHub Release をまとめて更新する
+- `/release --dry-run` でも本番実行と同じ preflight を通し、公開前の危険信号を先に止める
 
 ## ブランチポリシー
 
@@ -58,6 +59,28 @@ git diff --quiet && git diff --cached --quiet || {
 # 3. CI 状態確認
 gh run list --branch main --limit 3 --json status,conclusion
 ```
+
+### Vendor-neutral pre-release verification
+
+`scripts/release-preflight.sh` は、公開前に最低限見るべき状態を vendor-neutral にまとめた read-only チェックです。
+`/release` の本実行前だけでなく、`/release --dry-run` でも同じ検証を通します。
+
+主なチェック:
+
+- working tree が clean か
+- `CHANGELOG.md` に `[Unreleased]` があるか
+- `.env.example` と `.env` の差分が大きくないか（managed secrets 前提で `.env` がない場合は warning に留める）
+- `healthcheck` / `preflight` コマンドがあれば通るか
+- `agents/` / `core/` / `hooks/` / `scripts/` の shipped surface に debug / mock / placeholder 残骸が残っていないかを警告する
+- CI 状態を取得できる環境では最新 run が成功しているか
+
+必要に応じて次の環境変数で repo ごとに調整できる。
+
+- `HARNESS_RELEASE_PROJECT_ROOT`
+- `HARNESS_RELEASE_HEALTHCHECK_CMD`
+- `HARNESS_RELEASE_CI_STATUS_CMD`
+
+詳細な使い方は [docs/release-preflight.md](${CLAUDE_SKILL_DIR}/../../docs/release-preflight.md) を参照する。
 
 ### Step 1: 現在バージョン取得
 

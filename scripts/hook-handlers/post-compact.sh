@@ -3,6 +3,7 @@
 # PostCompact フックハンドラ
 # コンテキストコンパクション完了後に発火（PreCompact の対）
 # WIP タスクがある場合は Plans.md の現在状態をサマリーとして additionalContext に注入
+# structured handoff artifact があれば、そちらを優先して高信号の要点を再注入する
 #
 # Input: stdin JSON from Claude Code hooks
 # Output: JSON with optional additionalContext for context re-injection
@@ -26,6 +27,7 @@ PROJECT_ROOT="${PROJECT_ROOT:-$(detect_project_root 2>/dev/null || pwd)}"
 STATE_DIR="${PROJECT_ROOT}/.claude/state"
 COMPACTION_LOG="${STATE_DIR}/compaction-events.jsonl"
 PLANS_FILE="${PROJECT_ROOT}/Plans.md"
+HANDOFF_ARTIFACT="${STATE_DIR}/handoff-artifact.json"
 PRECOMPACT_SNAPSHOT="${STATE_DIR}/precompact-snapshot.json"
 
 # === ユーティリティ関数 ===
@@ -85,6 +87,148 @@ except Exception:
 }
 
 # PreCompact スナップショットからコンテキストを復元
+get_handoff_artifact_path() {
+  if [ -f "${HANDOFF_ARTIFACT}" ]; then
+    printf '%s' "${HANDOFF_ARTIFACT}"
+    return 0
+  fi
+
+  if [ -f "${PRECOMPACT_SNAPSHOT}" ]; then
+    printf '%s' "${PRECOMPACT_SNAPSHOT}"
+    return 0
+  fi
+
+  return 0
+}
+
+get_structured_handoff_context() {
+  local artifact_path="$1"
+  if [ -z "${artifact_path}" ] || [ ! -f "${artifact_path}" ]; then
+    return 0
+  fi
+
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "${artifact_path}" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+try:
+    data = json.loads(path.read_text(encoding='utf-8'))
+except Exception:
+    sys.exit(0)
+
+def normalize_text(value):
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return " ".join(value.split())
+    if isinstance(value, dict):
+        for key in ("summary", "task", "title", "detail", "message", "reason", "status"):
+            candidate = value.get(key)
+            if isinstance(candidate, str) and candidate.strip():
+                return " ".join(candidate.split())
+        return ""
+    if isinstance(value, list):
+        parts = []
+        for item in value:
+            text = normalize_text(item)
+            if text:
+                parts.append(text)
+            if len(parts) >= 3:
+                break
+        return "; ".join(parts)
+    return str(value)
+
+def format_list(items, limit=4):
+    parts = []
+    for item in items or []:
+        text = normalize_text(item)
+        if text:
+            parts.append(text)
+        if len(parts) >= limit:
+            break
+    return "; ".join(parts)
+
+previous = data.get("previous_state") or {}
+next_action = data.get("next_action") or {}
+open_risks = data.get("open_risks") or []
+failed_checks = data.get("failed_checks") or []
+decision_log = data.get("decision_log") or []
+context_reset = data.get("context_reset") or {}
+continuity = data.get("continuity") or {}
+wip_tasks = data.get("wipTasks") or []
+recent_edits = data.get("recentEdits") or []
+
+lines = ["## Structured Handoff"]
+
+previous_summary = normalize_text(previous.get("summary"))
+if previous_summary:
+    lines.append(f"- Previous state: {previous_summary}")
+
+session_state = previous.get("session_state") or {}
+if isinstance(session_state, dict):
+    session_bits = []
+    for key in ("state", "review_status", "active_skill", "resumed_at"):
+        candidate = session_state.get(key)
+        if isinstance(candidate, str) and candidate.strip():
+            session_bits.append(f"{key}={candidate.strip()}")
+    if session_bits:
+        lines.append(f"- Session state: {', '.join(session_bits)}")
+
+plan_counts = previous.get("plan_counts") or {}
+if isinstance(plan_counts, dict):
+    count_bits = []
+    for key in ("total", "wip", "blocked", "recent_edits"):
+        candidate = plan_counts.get(key)
+        if isinstance(candidate, (int, float)) and int(candidate) > 0:
+            count_bits.append(f"{key}={int(candidate)}")
+    if count_bits:
+        lines.append(f"- Plan counts: {', '.join(count_bits)}")
+
+next_bits = []
+next_summary = normalize_text(next_action.get("summary"))
+if next_summary:
+    next_bits.append(next_summary)
+task_id = normalize_text(next_action.get("taskId"))
+task = normalize_text(next_action.get("task"))
+if task_id or task:
+    next_bits.append(" ".join(part for part in [task_id, task] if part).strip())
+depends = normalize_text(next_action.get("depends"))
+dod = normalize_text(next_action.get("dod"))
+if depends:
+    next_bits.append(f"depends={depends}")
+if dod:
+    next_bits.append(f"DoD={dod}")
+if next_bits:
+    lines.append(f"- Next action: {' | '.join(next_bits)}")
+
+if open_risks:
+    lines.append(f"- Open risks: {format_list(open_risks)}")
+if failed_checks:
+    lines.append(f"- Failed checks: {format_list(failed_checks)}")
+if decision_log:
+    lines.append(f"- Decision log: {format_list(decision_log, 2)}")
+context_reset_summary = normalize_text(context_reset.get("summary"))
+if context_reset_summary:
+    lines.append(f"- Context reset: {context_reset_summary}")
+continuity_summary = normalize_text(continuity.get("summary"))
+if continuity_summary:
+    lines.append(f"- Continuity: {continuity_summary}")
+if wip_tasks:
+    lines.append(f"- WIP tasks: {format_list(wip_tasks, 5)}")
+if recent_edits:
+    lines.append(f"- Recent edits: {format_list(recent_edits, 5)}")
+
+print("\n".join(lines))
+PY
+    return 0
+  fi
+
+  return 0
+}
+
 get_precompact_context() {
   if [ ! -f "${PRECOMPACT_SNAPSHOT}" ]; then
     return 0
@@ -148,7 +292,11 @@ TS="$(get_timestamp)"
 # WIP タスクサマリーを取得
 WIP_SUMMARY="$(get_wip_summary)"
 
-# PreCompact スナップショットからコンテキストを復元
+# structured handoff artifact を優先して復元
+HANDOFF_ARTIFACT_PATH="$(get_handoff_artifact_path)"
+STRUCTURED_HANDOFF_CONTEXT="$(get_structured_handoff_context "${HANDOFF_ARTIFACT_PATH}")"
+
+# 互換用の薄いスナップショット復元
 PRECOMPACT_CONTEXT="$(get_precompact_context)"
 
 # === イベント記録 ===
@@ -158,8 +306,9 @@ if command -v jq >/dev/null 2>&1; then
     --arg event "post_compact" \
     --arg has_wip "$([ -n "${WIP_SUMMARY}" ] && echo "true" || echo "false")" \
     --arg has_snapshot "$([ -f "${PRECOMPACT_SNAPSHOT}" ] && echo "true" || echo "false")" \
+    --arg has_handoff "$([ -f "${HANDOFF_ARTIFACT}" ] && echo "true" || echo "false")" \
     --arg timestamp "${TS}" \
-    '{event:$event, has_wip:$has_wip, has_snapshot:$has_snapshot, timestamp:$timestamp}')"
+    '{event:$event, has_wip:$has_wip, has_snapshot:$has_snapshot, has_handoff:$has_handoff, timestamp:$timestamp}')"
 elif command -v python3 >/dev/null 2>&1; then
   log_entry="$(python3 -c "
 import json, sys
@@ -167,9 +316,10 @@ print(json.dumps({
     'event': 'post_compact',
     'has_wip': sys.argv[1],
     'has_snapshot': sys.argv[2],
-    'timestamp': sys.argv[3]
+    'has_handoff': sys.argv[3],
+    'timestamp': sys.argv[4]
 }, ensure_ascii=False))
-" "$([ -n "${WIP_SUMMARY}" ] && echo "true" || echo "false")" "$([ -f "${PRECOMPACT_SNAPSHOT}" ] && echo "true" || echo "false")" "${TS}" 2>/dev/null)" || log_entry=""
+" "$([ -n "${WIP_SUMMARY}" ] && echo "true" || echo "false")" "$([ -f "${PRECOMPACT_SNAPSHOT}" ] && echo "true" || echo "false")" "$([ -f "${HANDOFF_ARTIFACT}" ] && echo "true" || echo "false")" "${TS}" 2>/dev/null)" || log_entry=""
 fi
 
 if [ -n "${log_entry}" ]; then
@@ -182,12 +332,23 @@ fi
 # additionalContext を構築
 ADDITIONAL_CONTEXT=""
 
-if [ -n "${WIP_SUMMARY}" ]; then
+if [ -z "${STRUCTURED_HANDOFF_CONTEXT}" ] && [ -n "${WIP_SUMMARY}" ]; then
   ADDITIONAL_CONTEXT="[PostCompact Re-injection] Context was just compacted. The following WIP/TODO tasks are active in Plans.md:
 ${WIP_SUMMARY}"
 fi
 
-if [ -n "${PRECOMPACT_CONTEXT}" ]; then
+if [ -n "${STRUCTURED_HANDOFF_CONTEXT}" ]; then
+  if [ -n "${ADDITIONAL_CONTEXT}" ]; then
+    ADDITIONAL_CONTEXT="${ADDITIONAL_CONTEXT}
+
+${STRUCTURED_HANDOFF_CONTEXT}"
+  else
+    ADDITIONAL_CONTEXT="[PostCompact Re-injection] Context was just compacted.
+${STRUCTURED_HANDOFF_CONTEXT}"
+  fi
+fi
+
+if [ -z "${STRUCTURED_HANDOFF_CONTEXT}" ] && [ -n "${PRECOMPACT_CONTEXT}" ]; then
   if [ -n "${ADDITIONAL_CONTEXT}" ]; then
     ADDITIONAL_CONTEXT="${ADDITIONAL_CONTEXT}
 
