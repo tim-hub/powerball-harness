@@ -101,33 +101,45 @@ review (security/dual) はスキル側のプロンプト指示で完結するた
 ## Core Design: Single Binary, Subcommand Routing
 
 ```
-bin/harness hook pretool          # PreToolUse
-bin/harness hook posttool         # PostToolUse
-bin/harness hook permission       # PermissionRequest
-bin/harness hook session-start    # SessionStart
-bin/harness hook session-end      # SessionEnd
-bin/harness hook stop             # Stop
-bin/harness hook pre-compact      # PreCompact
-bin/harness hook post-compact     # PostCompact
-bin/harness hook task-completed   # TaskCompleted
-bin/harness hook task-created     # TaskCreated
-bin/harness hook permission-denied # PermissionDenied
-bin/harness hook teammate-idle    # TeammateIdle
-bin/harness hook notification     # Notification
-bin/harness hook config-change    # ConfigChange
-bin/harness hook elicitation      # Elicitation
-bin/harness hook stop-failure     # StopFailure
-bin/harness hook user-prompt      # UserPromptSubmit
+# === Hook events (全 20 event を網羅。現行 hooks.json の全 command hook に対応) ===
+bin/harness hook pretool            # PreToolUse
+bin/harness hook pretool --browser  # PreToolUse (browser MCP tools)
+bin/harness hook posttool           # PostToolUse
+bin/harness hook permission         # PermissionRequest
+bin/harness hook session-start      # SessionStart (startup + resume)
+bin/harness hook session-end        # SessionEnd
+bin/harness hook stop               # Stop
+bin/harness hook pre-compact        # PreCompact
+bin/harness hook post-compact       # PostCompact
+bin/harness hook task-completed     # TaskCompleted
+bin/harness hook task-created       # TaskCreated (runtime-reactive)
+bin/harness hook permission-denied  # PermissionDenied
+bin/harness hook teammate-idle      # TeammateIdle
+bin/harness hook notification       # Notification
+bin/harness hook config-change      # ConfigChange
+bin/harness hook elicitation        # Elicitation
+bin/harness hook elicitation-result # ElicitationResult
+bin/harness hook stop-failure       # StopFailure
+bin/harness hook user-prompt        # UserPromptSubmit
+bin/harness hook subagent-start     # SubagentStart
+bin/harness hook subagent-stop      # SubagentStop
+bin/harness hook setup              # Setup (init / init-only / maintenance)
+bin/harness hook instructions-loaded # InstructionsLoaded
+bin/harness hook worktree-create    # WorktreeCreate
+bin/harness hook worktree-remove    # WorktreeRemove
+bin/harness hook cwd-changed        # CwdChanged (runtime-reactive)
+bin/harness hook file-changed       # FileChanged (runtime-reactive)
+bin/harness hook post-tool-failure  # PostToolUseFailure
 
-bin/harness effort <task-desc>    # Effort scoring
-bin/harness plans sync            # Plans.md sync
+# === Utilities ===
+bin/harness effort <task-desc>      # Effort scoring
+bin/harness plans sync              # Plans.md sync
 bin/harness plans update <id> <status>  # Marker update
-
-bin/harness mcp serve             # MCP server mode (harness-mem)
-bin/harness version               # Version info
+bin/harness version                 # Version info
 ```
 
-**40+ shell scripts → 1 binary, ~20 subcommands.**
+**40+ shell scripts → 1 binary, ~28 subcommands。現行 hooks.json の全 command hook を漏れなくカバー。**
+**MCP subcommand は削除（D3: 分離プロセス維持）。**
 
 ## hooks.json (Simplified)
 
@@ -158,7 +170,7 @@ bin/harness version               # Version info
       }]
     }, {
       "matcher": "Bash",
-      "if": "Bash(git status*)|Bash(git diff*)|Bash(pytest*)|Bash(npm run lint*)",
+      "if": "Bash(git status*)|Bash(git diff*)|Bash(git log*)|Bash(git branch*)|Bash(git rev-parse*)|Bash(git show*)|Bash(git ls-files*)|Bash(npm test*)|Bash(npm run test*)|Bash(npm run lint*)|Bash(npm run typecheck*)|Bash(npm run build*)|Bash(npm run validate*)|Bash(pnpm test*)|Bash(pnpm run test*)|Bash(pnpm run lint*)|Bash(pnpm run typecheck*)|Bash(pnpm run build*)|Bash(pnpm run validate*)|Bash(yarn test*)|Bash(yarn run test*)|Bash(yarn run lint*)|Bash(yarn run typecheck*)|Bash(yarn run build*)|Bash(yarn run validate*)|Bash(pytest*)|Bash(python -m pytest*)|Bash(go test*)|Bash(cargo test*)",
       "hooks": [{
         "type": "command",
         "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook permission",
@@ -269,12 +281,79 @@ bin/harness version               # Version info
         "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook session-end",
         "timeout": 15
       }]
+    }],
+    "Setup": [{
+      "matcher": "init|init-only",
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook setup --mode init",
+        "timeout": 60,
+        "once": true
+      }]
+    }, {
+      "matcher": "maintenance",
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook setup --mode maintenance",
+        "timeout": 60,
+        "once": true
+      }]
+    }],
+    "InstructionsLoaded": [{
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook instructions-loaded",
+        "timeout": 10
+      }]
+    }],
+    "WorktreeCreate": [{
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook worktree-create",
+        "timeout": 10
+      }]
+    }],
+    "WorktreeRemove": [{
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook worktree-remove",
+        "timeout": 10
+      }]
+    }],
+    "CwdChanged": [{
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook cwd-changed",
+        "timeout": 10
+      }]
+    }],
+    "FileChanged": [{
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook file-changed",
+        "timeout": 10
+      }]
+    }],
+    "ElicitationResult": [{
+      "matcher": "*",
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook elicitation-result",
+        "timeout": 5
+      }]
+    }],
+    "PostToolUseFailure": [{
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook post-tool-failure",
+        "timeout": 10
+      }]
     }]
   }
 }
 ```
 
-**630 行 → 120 行。** 同じ機能、1/5 のサイズ。
+**現行 hooks.json の全 command hook event を網羅。** agent hooks (type: "agent") は PreToolUse/PostToolUse 内にそのまま残る。
 
 ## Guardrail Engine Design
 
