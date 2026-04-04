@@ -4,6 +4,74 @@
 
 ---
 
+## Phase 35: Harness Go Rewrite
+
+作成日: 2026-04-04
+目的: Harness を Go で 0 ベース書き直し。40+ shell scripts + TypeScript を単一バイナリに統合。20x 高速化。
+設計: docs/architecture/harness-go-design.md
+
+### 設計方針
+
+- 0 ベース。後方互換性・段階的導入は不要
+- 単一バイナリ（`bin/harness`）に全 hook handler を統合
+- Skills / Agents / Rules は Markdown のまま（CC がプロンプトとして読む）
+- Go stdlib 完結。外部依存ゼロ
+- セキュリティ（symlink 拒否、secret mask）はライブラリレベルで強制
+- harness-mem を MCP server mode として内蔵
+
+### Phase 35.0: Foundation [P0]
+
+Purpose: Go プロジェクト基盤。ビルド・型定義・ユーティリティ・設定を確立
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 35.0.1 | Go module 初期化 + cmd/harness/main.go + subcommand routing (hook, effort, plans, mcp, version) | `go build` が通り、`bin/harness version` が動作 | - | cc:TODO |
+| 35.0.2 | pkg/hookproto: HookInput/HookOutput の型定義 + stdin JSON パース + response builder | hook protocol の全フィールドが Go struct で定義され、テストが通る | 35.0.1 | cc:TODO |
+| 35.0.3 | pkg/jsonl: symlink-safe な JSONL writer/reader + rotation (500行) | JSONL の書込・読取・ローテーションのテストが通る | 35.0.1 | cc:TODO |
+| 35.0.4 | internal/config: env detection (CLAUDE_PLUGIN_ROOT, CLAUDE_PLUGIN_DATA, PROJECT_ROOT) + state dir + paths | 環境変数の検出とパス解決のテストが通る | 35.0.1 | cc:TODO |
+
+### Phase 35.1: Guardrail Engine [P0]
+
+Purpose: ホットパス。毎回のツール呼び出しで評価される保護ルール
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 35.1.1 | internal/guardrail/engine.go: ルール評価ループ + rules.go: R01-R13 の宣言的ルールテーブル | 全ルールのユニットテストが通り、deny/allow/warn の判定が正確 | 35.0.2 | cc:TODO |
+| 35.1.2 | internal/guardrail/pretool.go: PreToolUse handler (secrets, tampering, protected paths, dangerous ops) | 現行 pre-tool.sh と同等の保護が Go で動作 | 35.1.1 | cc:TODO |
+| 35.1.3 | internal/guardrail/posttool.go + permission.go: PostToolUse advisory + PermissionRequest conditional eval | 現行 post-tool.sh, permission.sh と同等 | 35.1.1 | cc:TODO |
+
+### Phase 35.2: Session Lifecycle [P1]
+
+Purpose: セッション開始〜終了〜圧縮の状態管理
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 35.2.1 | internal/session: start (env setup, memory bridge init), stop (summary, WIP check), session-end (cleanup) | SessionStart/Stop/SessionEnd が 1 binary で完結 | 35.0.4 | cc:TODO |
+| 35.2.2 | internal/session/compact.go: PreCompact save + PostCompact WIP restore (systemMessage) | コンテキスト圧縮前後で WIP 状態が保持される | 35.2.1 | cc:TODO |
+| 35.2.3 | internal/agent/tracker.go: SubagentStart/Stop tracking + trace.go: JSONL + OTel span | エージェントの開始/停止が記録され、OTel endpoint 設定時にスパンが送信される | 35.0.3, 35.0.4 | cc:TODO |
+
+### Phase 35.3: Notifications + Plans [P1]
+
+Purpose: 外部通知・Plans.md 操作・残り全 hook event
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 35.3.1 | internal/notify: webhook (HARNESS_WEBHOOK_URL) + otel (OTLP HTTP) + broadcast (inter-session) | webhook 通知が非同期で送信され、未設定時はスキップ | 35.0.4 | cc:TODO |
+| 35.3.2 | internal/plans: parser (5-column table) + marker (status update) + effort scoring | Plans.md のパースとタスク状態管理が Go で動作 | 35.0.1 | cc:TODO |
+| 35.3.3 | UserPromptSubmit + TaskCreated/Completed + PermissionDenied + Notification handlers | 残りの全 hook event が 1 binary で処理される | 35.2.1, 35.3.1 | cc:TODO |
+
+### Phase 35.4: Integration + Build + Test [P2]
+
+Purpose: hooks.json 簡略版・ビルド配布・統合テスト（review は skill prompt で完結のため除外、MCP は分離プロセス維持）
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 35.4.1 | .claude-plugin/hooks.json の簡略版（630行→120行）: 全 command hooks を `bin/harness hook <event>` に統一。agent hooks はそのまま残す | hooks.json が 120 行以下で、agent hooks が保持されている | 35.3.3 | cc:TODO |
+| 35.4.2 | Makefile: build (local) + release (5 platform cross-compile) + test + lint | `make release` で 5 バイナリが生成される | 35.0.1 | cc:TODO |
+| 35.4.3 | 統合テスト: 全 hook event の stdin→stdout 検証 + guardrail rule テスト + safefile テストを Go test で実装 | `go test ./...` で全テストが通る | 35.4.1 | cc:TODO |
+
+---
+
 ## Phase 34: Feature Table 整合性回復 + 未活用 upstream 機能の実装
 
 作成日: 2026-04-02
