@@ -408,7 +408,19 @@ bin/harness version                 # Version info
 }
 ```
 
-**現行 hooks.json の全 command hook event を網羅。** agent hooks (type: "agent") は PreToolUse/PostToolUse 内にそのまま残る。
+**現行 hooks.json の全 command hook event を網羅。** agent hooks (type: "agent") は PreToolUse/PostToolUse/Stop/PreCompact 内にそのまま残る。
+
+### Memory Bridge の内蔵
+
+現行は `memory-bridge.sh` が SessionStart / UserPromptSubmit / PostToolUse / Stop の 4 箇所で呼ばれ、
+harness-mem にファイルベースで通知している。Go binary ではこれを各 hook handler の内部に統合する:
+
+- `hook session-start` → `session/start.go` 内で memory bridge init
+- `hook user-prompt` → `event/prompt.go` 内で memory bridge user-prompt
+- `hook posttool` → `session/posttool.go` 内で memory bridge post-tool-use（ツール名・結果サマリーを記録）
+- `hook stop` → `session/stop.go` 内で memory bridge stop
+
+外部の `memory-bridge.sh` は不要になるが、harness-mem プロセスとのファイルベース通知プロトコルは維持する。
 
 ## Guardrail Engine Design
 
@@ -660,7 +672,7 @@ Worst case total:    5ms
 | scripts/run-hook.sh routing | 0 | Go の subcommand routing |
 | jq dependency | 0 | Go encoding/json |
 | scripts/path-utils.sh | 0 | Go internal/config/paths.go |
-| scripts/sync-plugin-cache.sh | 0 | バイナリ 1 つで同期不要 |
+| scripts/sync-plugin-cache.sh | Go 版に更新 | hooks.json + bin/* を .claude-plugin/ にコピー。二重管理は維持（テスト互換） |
 
 ## Build & Distribution
 
@@ -697,7 +709,8 @@ This is a **zero-base rewrite**, not a migration. Both versions coexist:
 - `main` branch: Current bash+TS version (production)
 - `feat/harness-go-rewrite` branch: Go version (development)
 
-Switch is atomic: replace `.claude-plugin/` and `bin/` in one commit.
+Switch is atomic: replace `hooks/hooks.json` + `.claude-plugin/hooks.json` + `.claude-plugin/` metadata + `bin/` in one commit.
+`hooks/hooks.json` と `.claude-plugin/hooks.json` の二重管理は維持（test-hooks-sync.sh 互換）。
 
 ## Design Decisions (formerly Open Questions)
 
