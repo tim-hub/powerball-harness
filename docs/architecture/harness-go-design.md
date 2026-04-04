@@ -191,7 +191,10 @@ bin/harness version                 # Version info
         "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness worker auto-test",
         "timeout": 120,
         "async": true
-      }, {
+      }]
+    }, {
+      "matcher": "Bash",
+      "hooks": [{
         "type": "command",
         "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness worker ci-check",
         "timeout": 30,
@@ -212,6 +215,11 @@ bin/harness version                 # Version info
         "type": "command",
         "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook stop",
         "timeout": 20
+      }, {
+        "type": "agent",
+        "prompt": "Check if there are incomplete tasks before allowing session to stop. Read the Plans.md file and look for tasks with status 'cc:WIP'. If any WIP tasks exist, return JSON: {\"decision\": \"block\", \"reason\": \"WIP tasks remain: [list task numbers]. Consider completing them or marking as blocked before stopping.\"}. If no WIP tasks, return nothing (allow stop). Input: $ARGUMENTS",
+        "model": "haiku",
+        "timeout": 30
       }]
     }],
     "PreCompact": [{
@@ -219,6 +227,11 @@ bin/harness version                 # Version info
         "type": "command",
         "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook pre-compact",
         "timeout": 15
+      }, {
+        "type": "agent",
+        "prompt": "Check Plans.md for tasks with status 'cc:WIP' before the context window is compacted. If any WIP tasks exist, include a warning in systemMessage: 'Warning: Compacting context with WIP tasks in progress: [list task IDs and titles]. Key context about these tasks may be lost after compaction. Consider completing or checkpointing them first.' If no WIP tasks, return nothing. Input: $ARGUMENTS",
+        "model": "haiku",
+        "timeout": 30
       }]
     }],
     "PostCompact": [{
@@ -358,6 +371,14 @@ bin/harness version                 # Version info
       "hooks": [{
         "type": "command",
         "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook file-changed",
+        "timeout": 10
+      }]
+    }],
+    "Elicitation": [{
+      "matcher": "*",
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook elicitation",
         "timeout": 10
       }]
     }],
@@ -516,7 +537,10 @@ bin/harness hook task-completed
     "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness worker auto-test",
     "timeout": 120,
     "async": true
-  }, {
+  }]
+}, {
+  "matcher": "Bash",
+  "hooks": [{
     "type": "command",
     "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness worker ci-check",
     "timeout": 30,
