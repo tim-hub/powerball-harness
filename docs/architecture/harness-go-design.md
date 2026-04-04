@@ -154,7 +154,15 @@ bin/harness version                 # Version info
         "timeout": 10
       }]
     }, {
-      "matcher": "mcp__chrome-devtools__.*|mcp__playwright__.*",
+      "matcher": "Write|Edit",
+      "hooks": [{
+        "type": "agent",
+        "prompt": "Review the following code change for quality issues. Check if the change: (1) introduces hardcoded secrets or credentials, (2) leaves TODO/FIXME stubs without implementation, (3) has obvious security vulnerabilities (SQL injection, XSS, command injection). If any issue is found, return JSON with permissionDecision: 'deny' and permissionDecisionReason explaining the issue. If the change looks acceptable, return nothing (exit 0). Input: $ARGUMENTS",
+        "model": "haiku",
+        "timeout": 30
+      }]
+    }, {
+      "matcher": "mcp__chrome-devtools__.*|mcp__playwright__.*|mcp__plugin_playwright_playwright__.*",
       "hooks": [{
         "type": "command",
         "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook pretool --browser",
@@ -178,11 +186,19 @@ bin/harness version                 # Version info
       }]
     }],
     "PostToolUse": [{
-      "matcher": "Write|Edit|MultiEdit|Bash",
+      "matcher": "*",
       "hooks": [{
         "type": "command",
         "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook posttool",
         "timeout": 10
+      }]
+    }, {
+      "matcher": "Write|Edit",
+      "hooks": [{
+        "type": "agent",
+        "prompt": "Perform a lightweight code review on the file that was just written/edited. Check for: (1) hardcoded secrets or API keys, (2) TODO/FIXME stubs left without implementation, (3) obvious security issues. This is a non-blocking advisory check. If issues found, include them in systemMessage. Input: $ARGUMENTS",
+        "model": "haiku",
+        "timeout": 30
       }]
     }, {
       "matcher": "Write|Edit|Task",
