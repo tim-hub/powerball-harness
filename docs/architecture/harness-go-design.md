@@ -201,6 +201,14 @@ bin/harness version                 # Version info
         "async": true
       }]
     }],
+    }, {
+      "matcher": "TodoWrite",
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook todo-sync",
+        "timeout": 30
+      }]
+    }],
     "SessionStart": [{
       "matcher": "startup|resume",
       "hooks": [{

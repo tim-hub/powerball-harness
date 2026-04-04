@@ -46,7 +46,7 @@ Purpose: セッション開始〜終了〜圧縮の状態管理
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.2.1 | internal/session: start (env setup, memory bridge init), stop (summary, WIP check), session-end (cleanup) | SessionStart/Stop/SessionEnd が 1 binary で完結 | 35.0.4 | cc:TODO |
+| 35.2.1 | internal/session: start (env setup, memory bridge init, resume 時は session.json/events.jsonl 復元 + recovery warning 再注入), stop (summary, WIP check), session-end (cleanup) | SessionStart（startup + resume 分岐）/Stop/SessionEnd が 1 binary で完結し、resume で既存復元フローが維持される | 35.0.4 | cc:TODO |
 | 35.2.2 | internal/session/compact.go: PreCompact save + PostCompact WIP restore (systemMessage) | コンテキスト圧縮前後で WIP 状態が保持される | 35.2.1 | cc:TODO |
 | 35.2.3 | internal/agent/tracker.go: SubagentStart/Stop tracking + trace.go: JSONL + OTel span | エージェントの開始/停止が記録され、OTel endpoint 設定時にスパンが送信される | 35.0.3, 35.0.4 | cc:TODO |
 
@@ -66,7 +66,7 @@ Purpose: hooks.json 簡略版・ビルド配布・統合テスト（review は s
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.4.1 | hooks.json（`hooks/` と `.claude-plugin/` の両方）を簡略版に統一。全 command hooks を `bin/harness hook|worker <event>` に統一。agent hooks はそのまま残す。二重管理は維持（sync-plugin-cache 互換） | 両 hooks.json が簡略化・同期済みで、全 event handler が動作し、agent hooks が保持されている | 35.1.2, 35.1.3, 35.2.1, 35.2.2, 35.2.3, 35.3.3 | cc:TODO |
+| 35.4.1 | hooks.json（`hooks/` と `.claude-plugin/` の両方）を簡略版に統一。全 command hooks を `bin/harness hook|worker <event>` に統一。agent hooks はそのまま残す。sync-plugin-cache.sh を更新して `bin/harness*` バイナリもキャッシュ同期対象に追加 | 両 hooks.json が簡略化・同期済み、バイナリがキャッシュに含まれ、全 event handler が動作し、agent hooks が保持されている | 35.1.2, 35.1.3, 35.2.1, 35.2.2, 35.2.3, 35.3.3 | cc:TODO |
 | 35.4.2 | Makefile: build (local) + release (5 platform cross-compile) + test + lint | `make release` で 5 バイナリが生成される | 35.0.1 | cc:TODO |
 | 35.4.3 | 統合テスト: 全 hook event の stdin→stdout 検証 + guardrail rule テスト + safefile テストを Go test で実装 | `go test ./...` で全テストが通る | 35.4.1 | cc:TODO |
 
