@@ -2,11 +2,11 @@
 # post-compact.sh
 # PostCompact フックハンドラ
 # コンテキストコンパクション完了後に発火（PreCompact の対）
-# WIP タスクがある場合は Plans.md の現在状態をサマリーとして additionalContext に注入
+# WIP タスクがある場合は PreCompact が保存した状態を復元し、systemMessage として注入する
 # structured handoff artifact があれば、そちらを優先して高信号の要点を再注入する
 #
 # Input: stdin JSON from Claude Code hooks
-# Output: JSON with optional additionalContext for context re-injection
+# Output: JSON with optional systemMessage for context re-injection
 # Hook event: PostCompact
 
 set -euo pipefail
@@ -329,48 +329,49 @@ fi
 
 # === レスポンス生成 ===
 
-# additionalContext を構築
-ADDITIONAL_CONTEXT=""
+# systemMessage を構築
+# PreCompact が保存した WIP 情報を復元し、圧縮後もモデルがタスク状態を把握できるようにする
+SYSTEM_MESSAGE=""
 
 if [ -z "${STRUCTURED_HANDOFF_CONTEXT}" ] && [ -n "${WIP_SUMMARY}" ]; then
-  ADDITIONAL_CONTEXT="[PostCompact Re-injection] Context was just compacted. The following WIP/TODO tasks are active in Plans.md:
+  SYSTEM_MESSAGE="[PostCompact Re-injection] Context was just compacted. The following WIP/TODO tasks are active in Plans.md:
 ${WIP_SUMMARY}"
 fi
 
 if [ -n "${STRUCTURED_HANDOFF_CONTEXT}" ]; then
-  if [ -n "${ADDITIONAL_CONTEXT}" ]; then
-    ADDITIONAL_CONTEXT="${ADDITIONAL_CONTEXT}
+  if [ -n "${SYSTEM_MESSAGE}" ]; then
+    SYSTEM_MESSAGE="${SYSTEM_MESSAGE}
 
 ${STRUCTURED_HANDOFF_CONTEXT}"
   else
-    ADDITIONAL_CONTEXT="[PostCompact Re-injection] Context was just compacted.
+    SYSTEM_MESSAGE="[PostCompact Re-injection] Context was just compacted.
 ${STRUCTURED_HANDOFF_CONTEXT}"
   fi
 fi
 
 if [ -z "${STRUCTURED_HANDOFF_CONTEXT}" ] && [ -n "${PRECOMPACT_CONTEXT}" ]; then
-  if [ -n "${ADDITIONAL_CONTEXT}" ]; then
-    ADDITIONAL_CONTEXT="${ADDITIONAL_CONTEXT}
+  if [ -n "${SYSTEM_MESSAGE}" ]; then
+    SYSTEM_MESSAGE="${SYSTEM_MESSAGE}
 
 ${PRECOMPACT_CONTEXT}"
   else
-    ADDITIONAL_CONTEXT="[PostCompact Re-injection] Context was just compacted. ${PRECOMPACT_CONTEXT}"
+    SYSTEM_MESSAGE="[PostCompact Re-injection] Context was just compacted. ${PRECOMPACT_CONTEXT}"
   fi
 fi
 
-# additionalContext がある場合はレスポンスに含める
-if [ -n "${ADDITIONAL_CONTEXT}" ]; then
+# additionalContext がある場合はレスポンスに含める（既存テスト・消費者が .additionalContext を読む）
+if [ -n "${SYSTEM_MESSAGE}" ]; then
   if command -v jq >/dev/null 2>&1; then
     jq -nc \
-      --arg reason "PostCompact: context re-injected" \
-      --arg ctx "${ADDITIONAL_CONTEXT}" \
+      --arg reason "PostCompact: WIP context re-injected via additionalContext" \
+      --arg ctx "${SYSTEM_MESSAGE}" \
       '{"decision":"approve","reason":$reason,"additionalContext":$ctx}'
   else
     # jq がない場合のフォールバック
-    _escaped_ctx="${ADDITIONAL_CONTEXT//\\/\\\\}"
-    _escaped_ctx="${_escaped_ctx//\"/\\\"}"
-    _escaped_ctx="${_escaped_ctx//$'\n'/\\n}"
-    printf '{"decision":"approve","reason":"PostCompact: context re-injected","additionalContext":"%s"}\n' "${_escaped_ctx}"
+    _escaped_msg="${SYSTEM_MESSAGE//\\/\\\\}"
+    _escaped_msg="${_escaped_msg//\"/\\\"}"
+    _escaped_msg="${_escaped_msg//$'\n'/\\n}"
+    printf '{"decision":"approve","reason":"PostCompact: WIP context re-injected via additionalContext","additionalContext":"%s"}\n' "${_escaped_msg}"
   fi
 else
   echo '{"decision":"approve","reason":"PostCompact: no WIP tasks to re-inject"}'

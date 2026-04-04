@@ -34,7 +34,7 @@
 | **`/simplify` (v2.1.63)** | work | Phase 3.5 Auto-Refinement: 実装後の自動コード洗練 |
 | **`/batch` (v2.1.63)** | breezing | 横展開タスクの並列マイグレーション委任 |
 | **`code-simplifier` プラグイン** | work | `--deep-simplify` 時の深いリファクタリング |
-| **HTTP hooks (v2.1.63)** | hooks | JSON POST による外部サービス連携フック（実装済み） |
+| **HTTP hooks (v2.1.63)** | hooks | JSON POST テンプレート提供。`HARNESS_WEBHOOK_URL` 設定時に TaskCompleted 通知が有効化 |
 | **Auto-memory worktree 共有 (v2.1.63)** | breezing | worktree エージェント間のメモリ共有 |
 | **`/clear` スキルキャッシュリセット (v2.1.63)** | troubleshoot | スキル開発時のキャッシュ問題診断 |
 | **`ENABLE_CLAUDEAI_MCP_SERVERS` (v2.1.63)** | setup | claude.ai MCP サーバーの無効化オプション |
@@ -48,7 +48,7 @@
 | **`/reload-plugins` (v2.1.69)** | 全スキル | スキル・フック編集後の即時反映 |
 | **`includeGitInstructions: false` (v2.1.69)** | work, breezing | git 指示が不要な場面のトークン削減 |
 | **`git-subdir` plugin source (v2.1.69)** | setup, release | サブディレクトリ管理された plugin source に対応 |
-| **Auto Mode rollout prep** | breezing, work | `bypassPermissions` からの移行候補。現行 shipped default は `bypassPermissions`、`--auto-mode` は互換な親セッション向け opt-in marker |
+| **Auto Mode (RP Phase 1)** | breezing, work | CC native 機能。Harness 側は PermissionDenied 追跡のみ。判断ロジック未実装。現行 default は `bypassPermissions` |
 | **Per-agent hooks (v2.1.69+)** | agents-v3/ | エージェント定義の frontmatter に `hooks` フィールドを追加。Worker に PreToolUse ガード、Reviewer に Stop ログを設定 |
 | **Agent `isolation: worktree` (v2.1.50+)** | agents-v3/worker | Worker エージェント定義に `isolation: worktree` を追加。並列書き込み時の自動 worktree 分離 |
 | **Compaction 画像保持 (v2.1.70)** | notebookLM, harness-review | サマリーリクエストで画像を保持。プロンプトキャッシュ再利用改善 |
@@ -66,7 +66,7 @@
 | **Subagent `local` メモリスコープ (v2.1.71+)** | agents-v3/ | `memory: local` で `.claude/agent-memory-local/` に保存。VCS にコミットしない機密性の高い学習を分離 |
 | **Agent Teams 実験フラグ (v2.1.71+)** | breezing | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 環境変数で Agent Teams を有効化。公式ドキュメント化済み |
 | **`/agents` コマンド (v2.1.71+)** | troubleshoot, setup | エージェントの対話的管理UI。作成・編集・削除・一覧を GUI で操作 |
-| **Desktop Scheduled Tasks (v2.1.71+)** | harness-work | `~/.claude/scheduled-tasks/<task-name>/SKILL.md` 形式で定期タスクを定義。Desktop アプリから管理 |
+| **Desktop Scheduled Tasks (v2.1.71+)** | harness-work | CC native 機能。Harness 側のデフォルト設定なし（CronCreate ツールは利用可） |
 | **`CronCreate/CronList/CronDelete` ツール (v2.1.71+)** | breezing, harness-work | `/loop` の内部ツール。セッション内での定期タスク作成・管理 |
 | **`CLAUDE_CODE_DISABLE_CRON` 環境変数 (v2.1.71+)** | setup | `=1` で Cron スケジューラを無効化。セキュリティポリシーで定期実行を制限する環境向け |
 | **`--agents` CLI フラグ (v2.1.71+)** | breezing, CI | JSON でセッションレベルのエージェント定義を渡す。ディスクに保存されない一時的なエージェント構成 |
@@ -95,7 +95,7 @@
 | **Per-model Prompt Caching Control** | 全スキル | `DISABLE_PROMPT_CACHING_*` でモデル別にキャッシュ制御。デバッグ・コスト最適化 |
 | **`CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING`** | harness-work | Adaptive Reasoning 無効化で固定 thinking budget に復帰。予測可能なコスト制御 |
 | **Chrome Integration (`--chrome`, beta)** | harness-work, harness-review | ブラウザ自動化でUI テスト・フォーム入力・コンソールデバッグ。`/chrome` でセッション内切替 |
-| **LSP サーバー統合 (`.lsp.json`)** | setup | Language Server Protocol で型情報・診断・参照検索をリアルタイム提供。`pyright-lsp`, `typescript-lsp`, `rust-lsp` 利用可能 |
+| **LSP サーバー統合 (`.lsp.json`)** | setup | CC native 機能。Harness 側の `.lsp.json` デフォルト設定なし（`/setup lsp` で個別設定可） |
 | **`SubagentStart`/`SubagentStop` matcher (v2.1.72+)** | breezing, hooks | settings.json レベルで agent type 別にサブエージェントライフサイクルを監視。Worker/Reviewer/Scaffolder/Video Generator を個別トラッキング |
 | **Agent Teams: Task Dependencies** | breezing | タスク間依存の自動管理。依存完了で blocked タスクが自動 unblock。ファイルロックで claiming 競合防止 |
 | **`--teammate-mode` CLI フラグ (v2.1.72+)** | breezing | セッション単位で `in-process`/`tmux` 表示モードを切替。`claude --teammate-mode in-process` |
@@ -117,7 +117,7 @@
 | **`/teleport` (`/tp`)** | session | クラウドセッションをローカルターミナルに取り込み |
 | **`CLAUDE_CODE_REMOTE` 環境変数** | hooks, session-env-setup | クラウド vs ローカル実行の検出。フックの条件分岐に活用 |
 | **`CLAUDE_ENV_FILE` SessionStart 永続化** | hooks, session-env-setup | SessionStart フックから後続 Bash コマンドへ環境変数を永続化 |
-| **Slack Integration (`@Claude`)** | harness-work (将来対応) | Slack チャネルからコーディングタスクをルーティング。HTTP hooks で連携可能 |
+| **Slack Integration (`@Claude`)** | — | 将来対応（Teams/Enterprise 前提）。Harness 側の実装なし |
 | **Server-managed settings (public beta)** | setup | サーバー配信による一括設定管理。Teams/Enterprise 向け |
 | **Microsoft Foundry** | setup, breezing | 新クラウドプロバイダとして追加 |
 | **`PreCompact` hook** | hooks | コンテキスト圧縮前の状態保存と WIP タスク警告（実装済み） |
@@ -151,6 +151,24 @@
 | **`CLAUDE_CODE_PLUGIN_SEED_DIR` 複数対応 (v2.1.79)** | setup | 複数シードディレクトリ指定 |
 | **SessionEnd hooks `/resume` 修正 (v2.1.79)** | hooks | 対話的セッション切替時の SessionEnd 正常発火 |
 | **18MB startup memory 削減 (v2.1.79)** | all skills | 起動時メモリ使用量削減 |
+| **MCP tool description cap 2KB (v2.1.84)** | all skills | OpenAPI 由来の巨大 MCP スキーマによるコンテキスト肥大化を防止。CC 自動継承 |
+| **`TaskCreated` hook blocking (v2.1.84)** | hooks | TaskCreate 時にフックが同期ブロックで発火。runtime-reactive で state tracking に活用 |
+| **Idle-return prompt 75min (v2.1.84)** | session | 75 分以上離席後に `/clear` を提案。stale セッションのトークン浪費防止。CC 自動継承 |
+| **`X-Claude-Code-Session-Id` header (v2.1.86)** | setup | API リクエストにセッション ID ヘッダ追加。プロキシ側の集計に利用可能。CC 自動継承 |
+| **Cowork Dispatch 修正 (v2.1.87)** | breezing | Cowork Dispatch のメッセージ配信修正。CC 自動継承 |
+| **`PermissionDenied` hook event (v2.1.89)** | hooks, breezing | auto mode classifier 拒否時に発火。`{retry:true}` でリトライ誘導。Breezing Worker の拒否追跡・Lead 通知に実装 |
+| **`"defer"` permission decision (v2.1.89)** | hooks, breezing | PreToolUse から `"defer"` を返すとヘッドレスセッションを一時停止→resume で再評価。Breezing の安全弁 |
+| **`updatedInput` + `AskUserQuestion` (v2.1.89)** | hooks | ヘッドレス環境で外部 UI が質問を収集し `allow` + 回答を注入。将来の対話型フロー正規化に活用予定 |
+| **Hook output >50K disk save (v2.1.89)** | hooks | 大出力フックをディスク保存＋プレビュー。コンテキスト肥大化防止 |
+| **Hooks `if` compound command fix (v2.1.89)** | hooks | `ls && git push` や `FOO=bar git push` のような複合コマンドが `if` 条件にマッチするよう修正。CC 自動継承 |
+| **Autocompact thrash loop fix (v2.1.89)** | all skills | 3 回連続 compact→即再充填で actionable error を出して停止。CC 自動継承 |
+| **Nested CLAUDE.md re-injection fix (v2.1.89)** | all skills | 長セッションで CLAUDE.md が数十回再注入されるバグを修正。CC 自動継承 |
+| **Thinking summaries default off (v2.1.89)** | all skills | thinking summaries のデフォルト生成を停止。`showThinkingSummaries:true` で復元。CC 自動継承 |
+| **PreToolUse exit 2 JSON fix (v2.1.90)** | hooks, guardrails | JSON stdout + exit 2 でのブロック動作を修正。pre-tool.sh の deny がより確実に動作 |
+| **PostToolUse format-on-save fix (v2.1.90)** | hooks | PostToolUse フックがファイルを書き換えた後の Edit/Write 失敗を修正。CC 自動継承 |
+| **`--resume` prompt-cache miss fix (v2.1.90)** | session | v2.1.69 以降の回帰バグ修正。deferred tools/MCP/agents 使用時の resume キャッシュミス。CC 自動継承 |
+| **SSE/transcript performance (v2.1.90)** | all skills | SSE フレーム O(n²)→O(n)、transcript writes 二次関数→線形。CC 自動継承 |
+| **`/powerup` interactive lessons (v2.1.90)** | — | Claude Code 機能学習のアニメーションデモ。CC 自動継承 |
 
 ## 機能詳細
 
@@ -1530,6 +1548,44 @@ CC 2.1.79 で `claude auth login --console` フラグが追加され、Anthropic
 ### SessionEnd hooks `/resume` 修正 (v2.1.79)
 
 CC 2.1.79 で対話的 `/resume` セッション切替時に `SessionEnd` フックが正常に発火するようになった。以前はセッション切替時に SessionEnd が発火しなかったため、cleanup 処理が実行されないケースがあった。
+
+### `PermissionDenied` hook event (v2.1.89)
+
+CC 2.1.89 で auto mode classifier がコマンドを拒否した際に `PermissionDenied` フックが発火するようになった。`{retry: true}` を返すとモデルにリトライ可能であることを伝えられる。拒否されたコマンドは `/permissions` → Recent タブにも表示される。
+
+**Harness での活用**:
+- `permission-denied-handler.sh` を新規実装し、拒否イベントを `permission-denied.jsonl` に telemetry 記録
+- Breezing Worker が拒否された場合、Lead に `systemMessage` で通知し代替アプローチの検討を促す
+- `agent_id` / `agent_type` フィールドを活用して、どのエージェントが何を拒否されたかを追跡
+
+**ユーザー体験の改善**:
+- 今まで: auto mode の拒否は通知だけで記録に残らず、同じ拒否が繰り返されやすかった
+- 今後: 拒否パターンが蓄積され、Breezing では Lead が即座に認知して対応できる
+
+### `"defer"` permission decision (v2.1.89)
+
+CC 2.1.89 で PreToolUse フックから `"defer"` permission decision を返せるようになった。ヘッドレスセッション（`-p` モード）でフックが defer を返すとセッションが一時停止し、`claude -p --resume` で再開時にフックが再評価される。
+
+**Harness での活用余地**:
+- Breezing Worker が本番環境への書き込みや外部サービスへのリクエストなど、判断困難な操作に遭遇した際の安全弁
+- `pre-tool.sh` の guardrail に「defer 条件」を追加し、特定パターンで Worker を一時停止→Lead が判断
+- 現時点では機能の文書化のみ。具体的な defer ルールは運用パターンの蓄積後に設計
+
+### Hook output >50K disk save (v2.1.89)
+
+CC 2.1.89 でフック出力が 50K 文字を超える場合、コンテキストへの直接注入ではなくディスクに保存され、ファイルパス＋プレビューとして参照される。
+
+**Harness への影響**:
+- 大量の出力を返す可能性のあるフック（quality-pack, ci-status-checker 等）はこの挙動を前提に設計
+- 現状の Harness フックは出力が軽量のため直接影響は小さいが、将来の拡張時の設計制約として文書化
+
+### PreToolUse exit 2 JSON fix (v2.1.90)
+
+CC 2.1.90 で PreToolUse フックが JSON を stdout に出力して exit code 2 で終了する際のブロック動作が修正された。以前はこのパターンでブロックが正しく機能しないバグがあった。
+
+**Harness への影響**:
+- `pre-tool.sh` は deny 時に JSON + exit 2 パターンを使用しており、v2.1.90 以降で guardrail の deny がより確実に動作
+- 既存のガードレールが「deny を出したのにツールが実行された」ケースがあった場合、このバグが原因だった可能性
 
 ## 関連ドキュメント
 

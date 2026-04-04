@@ -615,6 +615,17 @@
         ]
       }
     ],
+    "PermissionDenied": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-handlers/permission-denied-handler.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "StopFailure": [
       {
         "hooks": [

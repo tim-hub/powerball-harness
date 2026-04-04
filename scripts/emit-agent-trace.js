@@ -11,13 +11,20 @@
  *   CLAUDE_TOOL_INPUT - JSON string of tool input
  *   CLAUDE_SESSION_ID - Current session ID
  *
+ * OTel environment variables (optional):
+ *   OTEL_EXPORTER_OTLP_ENDPOINT - If set, emit OTel Span JSON via HTTP POST to this endpoint
+ *     Example: http://localhost:4318 (OTLP HTTP receiver default)
+ *     The spans are posted to ${OTEL_EXPORTER_OTLP_ENDPOINT}/v1/traces
+ *
  * Output:
  *   Appends JSONL record to .claude/state/agent-trace.jsonl
+ *   When OTEL_EXPORTER_OTLP_ENDPOINT is set: also POSTs OTel Span JSON (non-blocking, 3s timeout)
  */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { execFileSync, spawn } = require('child_process');
 const crypto = require('crypto');
 
 // Configuration
@@ -494,6 +501,154 @@ function rotateIfNeeded(tracePath) {
 }
 
 /**
+ * Convert a JSONL trace record to OTel Span JSON (OTLP HTTP format).
+ *
+ * Time handling:
+ *   - record.timestamp is ISO8601 (end of the tool call)
+ *   - OTel requires startTimeUnixNano / endTimeUnixNano in nanoseconds (as strings to avoid
+ *     JS integer precision loss on 64-bit values).
+ *   - We use record.timestamp as both start and end time (single-point span) because the
+ *     hook only fires at PostToolUse and we don't have a reliable start time.
+ *
+ * traceId / spanId:
+ *   - OTel traceId: 32 hex chars (128-bit), spanId: 16 hex chars (64-bit).
+ *   - We derive them from record.id (UUID v4) to keep them deterministic per record.
+ */
+function buildOtelSpanJson(record, serviceVersion) {
+  const endMs = new Date(record.timestamp).getTime();
+  const endNano = String(endMs) + '000000'; // ms → ns as string
+
+  // Derive traceId (32 hex) and spanId (16 hex) from record UUID
+  const uuidHex = record.id.replace(/-/g, '');              // 32 hex chars
+  const traceId = uuidHex;                                   // 32 hex = 128-bit trace ID
+  const spanId = uuidHex.slice(0, 16);                       // first 16 hex = 64-bit span ID
+
+  // Build span attributes from available record fields
+  const attributes = [];
+
+  const taskId = record.metadata && record.metadata.taskId;
+  if (taskId) {
+    attributes.push({ key: 'task.id', value: { stringValue: String(taskId) } });
+  }
+
+  const agentRole = record.metadata && record.metadata.agentRole;
+  if (agentRole) {
+    attributes.push({ key: 'agent.type', value: { stringValue: String(agentRole) } });
+  }
+
+  const effort = record.metadata && record.metadata.effort;
+  if (effort) {
+    attributes.push({ key: 'effort', value: { stringValue: String(effort) } });
+  }
+
+  // tool name is always present
+  attributes.push({ key: 'tool.name', value: { stringValue: record.tool } });
+
+  if (record.vcs && record.vcs.branch) {
+    attributes.push({ key: 'vcs.branch', value: { stringValue: record.vcs.branch } });
+  }
+
+  if (record.metadata && record.metadata.sessionId) {
+    attributes.push({ key: 'session.id', value: { stringValue: record.metadata.sessionId } });
+  }
+
+  const spanName = agentRole
+    ? `harness.${agentRole}`
+    : `harness.${record.tool.toLowerCase()}`;
+
+  return {
+    resourceSpans: [{
+      resource: {
+        attributes: [
+          { key: 'service.name',    value: { stringValue: 'claude-code-harness' } },
+          { key: 'service.version', value: { stringValue: serviceVersion } }
+        ]
+      },
+      scopeSpans: [{
+        scope: { name: 'harness.agent' },
+        spans: [{
+          traceId,
+          spanId,
+          name: spanName,
+          kind: 1,              // SPAN_KIND_INTERNAL
+          startTimeUnixNano: endNano,
+          endTimeUnixNano:   endNano,
+          attributes
+        }]
+      }]
+    }]
+  };
+}
+
+/**
+ * Emit OTel Span JSON to OTLP HTTP endpoint via curl (non-blocking, 3s timeout).
+ * Fires and forgets: failures are logged to stderr but do not block the hook.
+ *
+ * @param {string} otlpEndpoint - Base URL, e.g. "http://localhost:4318"
+ * @param {object} record       - JSONL trace record
+ * @param {string} serviceVersion
+ */
+function emitOtelSpan(otlpEndpoint, record, serviceVersion) {
+  try {
+    const spanJson = buildOtelSpanJson(record, serviceVersion);
+    const body = JSON.stringify(spanJson);
+
+    // POST to /v1/traces (OTLP HTTP traces endpoint)
+    const url = otlpEndpoint.replace(/\/$/, '') + '/v1/traces';
+
+    // Spawn curl as a fully detached fire-and-forget child process.
+    // All stdio is ignored so no pipe listeners keep the Node event loop alive.
+    // --silent --max-time 3: hard timeout of 3 seconds, no progress output.
+    // --fail: return exit code 22 on HTTP errors (4xx/5xx).
+    // --write-out: append status to a log file so failures are diagnosable.
+    const otelLogFile = path.join(os.tmpdir(), 'harness-otel-export.log');
+    const child = spawn('sh', [
+      '-c',
+      `HTTP_CODE=$(curl --silent --output /dev/null --write-out "%{http_code}" --max-time 3 --request POST --header "Content-Type: application/json" --data @- "${url}" <<'EOFBODY'\n${body}\nEOFBODY\n); ` +
+      `if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ] 2>/dev/null; then ` +
+      `printf "[%s] otel export failed: HTTP %s -> %s\\n" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$HTTP_CODE" "${url}" >> "${otelLogFile}"; fi`
+    ], {
+      stdio: ['ignore', 'ignore', 'ignore'],
+      detached: true
+    });
+
+    child.on('error', (err) => {
+      // sh/curl not found or spawn failed — log to stderr (non-blocking)
+      process.stderr.write(`[agent-trace] otel spawn failed: ${err.message}\n`);
+    });
+
+    // Unref so this process can exit immediately without waiting for curl
+    child.unref();
+  } catch (err) {
+    logError('emitOtelSpan', err);
+  }
+}
+
+/**
+ * Read service version from plugin.json (or VERSION file as fallback).
+ * Returns '0.0.0' on failure.
+ */
+function readServiceVersion() {
+  try {
+    const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
+    if (pluginRoot) {
+      const pluginJsonPath = path.join(pluginRoot, 'plugin.json');
+      if (fs.existsSync(pluginJsonPath)) {
+        const pkg = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
+        if (pkg.version) return String(pkg.version);
+      }
+      const versionPath = path.join(pluginRoot, 'VERSION');
+      if (fs.existsSync(versionPath)) {
+        return fs.readFileSync(versionPath, 'utf8').trim();
+      }
+    }
+  } catch {
+    // fall through to default
+  }
+  return '0.0.0';
+}
+
+/**
  * Main function
  */
 function main() {
@@ -636,6 +791,15 @@ function main() {
     fs.closeSync(fd);
   } catch (err) {
     logError('main', err);
+  }
+
+  // OTel Span JSON export (optional, non-blocking).
+  // Only fires when OTEL_EXPORTER_OTLP_ENDPOINT is configured.
+  // Failures are silently logged to stderr; they never block the hook.
+  const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+  if (otlpEndpoint) {
+    const serviceVersion = readServiceVersion();
+    emitOtelSpan(otlpEndpoint, record, serviceVersion);
   }
 
   process.exit(0);

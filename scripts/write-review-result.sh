@@ -127,7 +127,8 @@ jq -n \
         + as_array($in.recommendations)
         + (as_array($in.observations) | map(select((.severity // "minor") | IN("minor","recommendation"))))
         + findings_to_followups($in)
-      )
+      ),
+      dual_review: ($in.dual_review // null)
     }' > "$OUTPUT_FILE"
 
 # blocking gaps がある場合は verdict を REQUEST_CHANGES に強制

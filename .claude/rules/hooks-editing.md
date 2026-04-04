@@ -42,6 +42,23 @@ hooks/hooks.json           ← Source file (for development)
 >
 > **CC v2.1.78+**: `StopFailure` イベントが追加されました。API エラー（レート制限、認証失敗等）で
 > セッション停止が失敗した際に発火します。エラーログと復旧処理に使用します。
+>
+> **CC v2.1.89+**: `PermissionDenied` イベントが追加されました。auto mode classifier がコマンドを拒否した際に発火します。
+> `{retry: true}` を返すとモデルにリトライ可能であることを伝えられます。Breezing Worker の拒否追跡に使用。
+>
+> **CC v2.1.89+**: PreToolUse フックの `permissionDecision` に `"defer"` が追加されました。
+> ヘッドレスセッション（`-p` モード）でフックが `"defer"` を返すとセッションが一時停止し、
+> `claude -p --resume` で再開時にフックが再評価されます。Breezing Worker が判断困難な操作に遭遇した際の安全弁に活用できます。
+>
+> **CC v2.1.89+**: PreToolUse の `updatedInput` を `AskUserQuestion` と組み合わせると、
+> ヘッドレスセッションが質問を外部 UI で収集して `permissionDecision: "allow"` と一緒に回答を注入できます。
+>
+> **CC v2.1.89+**: フック出力が 50K 文字を超える場合、ディスクに保存されてファイルパス＋プレビューとしてコンテキストに注入されます。
+> 大量の出力を返すフックを設計する際はこの挙動を前提にしてください。
+>
+> **CC v2.1.90+**: PreToolUse フックが JSON を stdout に出力して exit code 2 で終了する際のブロック動作が修正されました。
+> 以前はこのパターンでブロックが正しく機能しないバグがありました。Harness の pre-tool.sh は exit 2 パターンを使用しているため、
+> v2.1.90 以降でガードレールの deny がより確実に動作します。
 
 ### command Type (General Purpose)
 
@@ -243,6 +260,7 @@ Execute command type via `run-script.js`:
 | Elicitation | 10s | MCP elicitation のインターセプト。Breezing では自動スキップ |
 | ElicitationResult | 5s | 結果のログ記録のみ、軽量処理 |
 | PostCompact | 15s | コンテキスト再注入。WIP タスク状態の復元を含む |
+| PermissionDenied | 10s | auto mode 拒否の記録・通知。軽量処理（v2.1.89+） |
 | StopFailure | 10s | API エラーログ記録のみ。復旧処理は不要（v2.1.78+） |
 | ConfigChange | 10s | 設定変更の監査記録 |
 
@@ -290,6 +308,7 @@ export CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS=45000
     "Elicitation": [],     // MCP elicitation request (v2.1.76+)
     "ElicitationResult": [], // MCP elicitation result (v2.1.76+)
     "Notification": [],    // On notification dispatch
+    "PermissionDenied": [], // Auto mode permission denial (v2.1.89+)
     "StopFailure": [],     // API error during session stop (v2.1.78+)
     "ConfigChange": []     // Settings change event
   }

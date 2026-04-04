@@ -143,6 +143,9 @@ sync_critical_files() {
     "scripts/hook-handlers/memory-stop.sh"
     "scripts/hook-handlers/memory-codex-notify.sh"
     "scripts/hook-handlers/runtime-reactive.sh"
+    "scripts/hook-handlers/webhook-notify.sh"
+    "scripts/hook-handlers/permission-denied-handler.sh"
+    "scripts/calculate-effort.sh"
     "hooks/hooks.json"
     ".claude-plugin/hooks.json"
     ".claude-plugin/settings.json"
@@ -210,6 +213,9 @@ main() {
       "scripts/hook-handlers/memory-stop.sh" \
       "scripts/hook-handlers/memory-codex-notify.sh" \
       "scripts/hook-handlers/runtime-reactive.sh" \
+      "scripts/hook-handlers/webhook-notify.sh" \
+      "scripts/hook-handlers/permission-denied-handler.sh" \
+      "scripts/calculate-effort.sh" \
       ".claude-plugin/settings.json"
     do
       if files_differ "$PLUGIN_SOURCE/$rel_path" "$CACHE_DIR/$rel_path"; then

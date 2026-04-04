@@ -10,6 +10,11 @@
 - alt テキスト
 - 投稿メモ
 
+補足:
+- `x-article` の生成途中 package は `out/social/<slug>/` にまとまる
+- その中には `article.md`、画像、品質レポート、API 応答が入る
+- `docs/social/` は公開用に昇格させた正本を置く場所として使う
+
 ## 置かないもの
 
 - 生成済み画像

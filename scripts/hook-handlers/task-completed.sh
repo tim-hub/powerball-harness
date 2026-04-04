@@ -858,9 +858,20 @@ else
   fi
 fi
 
+# === Webhook 通知ヘルパー（全 exit パスで呼ばれるよう関数化） ===
+_fire_webhook() {
+  if [ -n "${HARNESS_WEBHOOK_URL:-}" ]; then
+    local _wh_script="${SCRIPT_DIR}/webhook-notify.sh"
+    if [ -x "${_wh_script}" ]; then
+      echo "${INPUT:-"{}"}" | bash "${_wh_script}" task-completed >/dev/null 2>&1 &
+    fi
+  fi
+}
+
 # === レスポンス ===
 if [ "${REQUEST_CONTINUE}" = "false" ] || [ -n "${STOP_REASON}" ]; then
   FINAL_STOP_REASON="${STOP_REASON:-TaskCompleted requested stop}"
+  _fire_webhook
   if command -v jq >/dev/null 2>&1; then
     jq -nc --arg reason "${FINAL_STOP_REASON}" '{"continue": false, "stopReason": $reason}'
   else
@@ -871,6 +882,7 @@ fi
 
 if [ "${TOTAL_TASKS}" -gt 0 ] 2>/dev/null && [ "${COMPLETED_COUNT}" -ge "${TOTAL_TASKS}" ] 2>/dev/null; then
   maybe_finalize_harness_mem_on_completion
+  _fire_webhook
   if command -v jq >/dev/null 2>&1; then
     jq -nc --arg reason "all_tasks_completed" '{"continue": false, "stopReason": $reason}'
   else
@@ -880,6 +892,7 @@ if [ "${TOTAL_TASKS}" -gt 0 ] 2>/dev/null && [ "${COMPLETED_COUNT}" -ge "${TOTAL
 fi
 
 # プログレスサマリー付きレスポンス
+_fire_webhook
 if [ "${TOTAL_TASKS}" -gt 0 ] 2>/dev/null && [ -n "${TASK_SUBJECT:-}" ]; then
   PROGRESS_MSG="📊 Progress: Task ${COMPLETED_COUNT}/${TOTAL_TASKS} 完了 — \"${TASK_SUBJECT}\""
   if command -v jq >/dev/null 2>&1; then

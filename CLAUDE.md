@@ -20,7 +20,7 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **Fast mode (Opus 4.6)** | All skills | High-speed output mode |
 | **Worktree isolation** | breezing, parallel-workflows | Safe parallel writes to the same file |
 | **`/simplify` Auto-Refinement** | work | Automatic code simplification after implementation |
-| **HTTP hooks** | hooks | JSON POST to external services (Slack, dashboards, metrics) |
+| **HTTP hooks (v2.1.63)** | hooks | JSON POST テンプレート提供。実用例は `HARNESS_WEBHOOK_URL` 設定時に有効化 |
 | **Effort levels + ultrathink (v2.1.68)** | harness-work | Multi-factor scoring injects ultrathink for complex tasks |
 | **Agent hooks (v2.1.68)** | hooks | LLM-based code quality guard (type: "agent") |
 | **`${CLAUDE_SKILL_DIR}` variable (v2.1.69)** | all skills | Stable skill-local reference path resolution |
@@ -32,7 +32,7 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **`git-subdir` plugin source (v2.1.69)** | setup, release | Support plugin source managed from repository subdirectories |
 | **Sonnet 4.5 → 4.6 auto-migration** | all skills | Legacy Sonnet references migrate to 4.6 behavior automatically |
 | **WorktreeCreate/Remove hook (v2.1.50)** | breezing | Worktree lifecycle auto-setup and cleanup |
-| **Auto Mode (Research Preview, Phase 1 active)** | breezing, work | `--auto-mode` flag for safer bypassPermissions alternative. Phase 1: RP started 2026-03-12 |
+| **Auto Mode (RP Phase 1)** | breezing, work | CC native 機能。Harness 側は PermissionDenied 追跡のみ。判断ロジック未実装 |
 | **Per-agent hooks (v2.1.69+)** | agents-v3/ | Worker PreToolUse guard + Reviewer Stop log in agent frontmatter |
 | **Agent `isolation: worktree` (v2.1.50+)** | agents-v3/worker | Auto worktree isolation for parallel writes with shared Agent Memory |
 | **`/loop` + Cron scheduling (v2.1.71)** | breezing, harness-work | Periodic task monitoring with `/loop 5m /sync-status` |
@@ -43,7 +43,7 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **Subagent `local` memory scope (v2.1.71+)** | agents-v3/ | Non-VCS agent memory in `.claude/agent-memory-local/` |
 | **Agent Teams experimental flag (v2.1.71+)** | breezing | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env var for official Agent Teams |
 | **`/agents` command (v2.1.71+)** | setup, troubleshoot | Interactive agent management UI (create/edit/delete) |
-| **Desktop Scheduled Tasks (v2.1.71+)** | harness-work | `~/.claude/scheduled-tasks/` SKILL.md-based recurring tasks |
+| **Desktop Scheduled Tasks (v2.1.71+)** | harness-work | CC native 機能。Harness 側のデフォルト設定なし（CronCreate ツールは利用可） |
 | **`--agents` CLI flag (v2.1.71+)** | breezing, CI | Session-level JSON agent definitions without disk persistence |
 | **`ExitWorktree` tool (v2.1.72)** | breezing, work | Programmatic worktree exit for agent workflows |
 | **Effort levels simplified (v2.1.72)** | harness-work | 永続レベルは `low/medium/high`（`○ ◐ ●`）。`max` は Opus 4.6 のセッション専用オプションとして存続 |
@@ -69,7 +69,7 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **`CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS` (v2.1.74)** | hooks | Configurable SessionEnd hooks timeout (was fixed 1.5s kill) |
 | **Full model ID fix (v2.1.74)** | agents-v3/, breezing | `claude-opus-4-6` etc. now recognized in agent frontmatter and JSON config |
 | **Streaming API memory leak fix (v2.1.74)** | breezing, work | Unbounded RSS growth in streaming response buffers fixed |
-| **LSP server integration (`.lsp.json`)** | setup | Real-time diagnostics, code navigation via Language Server Protocol |
+| **LSP server integration (`.lsp.json`)** | setup | CC native 機能。Harness 側の `.lsp.json` デフォルト設定なし |
 | **`SubagentStart`/`SubagentStop` matcher** | breezing, hooks | Agent type-specific lifecycle monitoring with matcher filtering |
 | **Agent Teams: Task Dependencies** | breezing | Auto-unblocking dependent tasks with file-lock claiming |
 | **`--teammate-mode` CLI flag** | breezing | Per-session display mode override (`in-process`/`tmux`) |
@@ -77,9 +77,9 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **`--remote` / Cloud Sessions** | breezing, harness-work | Terminal-to-cloud async task execution with `/teleport` retrieval |
 | **`CLAUDE_ENV_FILE` SessionStart persistence** | hooks | Persist env vars from SessionStart hooks to subsequent Bash commands |
 | **`PreCompact` hook** | hooks | Pre-compaction state save + WIP task warning (implemented) |
-| **Slack Integration (`@Claude`)** | harness-work (future) | Route coding tasks from Slack channels via cloud sessions |
-| **Analytics Dashboard** | setup, harness-review | PR attribution (`claude-code-assisted` label), usage/contribution metrics, leaderboard |
-| **OpenTelemetry Monitoring** | hooks, breezing | OTel metrics/events export (sessions, tokens, cost, tool results, active time) |
+| **Slack Integration (`@Claude`)** | — | 将来対応（Teams/Enterprise 前提）。Harness 側の実装なし |
+| **Analytics Dashboard** | — | 計画中（未実装）。PR attribution・metrics・leaderboard は将来対応 |
+| **OpenTelemetry Monitoring** | hooks, breezing | 独自 JSONL トレース出力。OTel 形式変換は `OTEL_EXPORTER_OTLP_ENDPOINT` 設定時のみ（実装予定） |
 | **`/security-review` command** | harness-review | Analyze pending changes for security vulnerabilities (injection, auth, data exposure) |
 | **`/insights` command** | session-memory | Session analysis report: project areas, interaction patterns, friction points |
 | **`/stats` command** | session | Daily usage visualization, session history, streaks, model preferences |
@@ -126,6 +126,20 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **`CLAUDE_CODE_PLUGIN_SEED_DIR` multiple dirs (v2.1.79)** | setup | 複数シードディレクトリをプラットフォーム区切り文字で指定 |
 | **SessionEnd hooks fix in `/resume` (v2.1.79)** | hooks | 対話的 `/resume` セッション切替時に SessionEnd フックが正常発火 |
 | **18MB startup memory reduction (v2.1.79)** | all skills | 起動時メモリ使用量を約 18MB 削減 |
+| **Hooks conditional `if` field (v2.1.85)** | hooks, guardrails | `PermissionRequest` を安全な Bash と編集系だけに絞り、不要な hook 起動を削減 |
+| **`TaskCreated` hook blocking (v2.1.84)** | hooks | `TaskCreate` 時に hook が同期ブロックで発火。runtime-reactive で活用 |
+| **Rules `paths:` YAML list (v2.1.84)** | setup | ルール定義の `paths:` が YAML リスト形式に対応。複数 glob を構造化 |
+| **MCP tool description cap 2KB (v2.1.84)** | all skills | OpenAPI 由来の巨大 MCP スキーマによるコンテキスト肥大化を防止 |
+| **`PermissionDenied` hook event (v2.1.89)** | hooks, breezing | auto mode 拒否を追跡・Breezing Lead に通知。`{retry:true}` でリトライ誘導 |
+| **`"defer"` permission decision (v2.1.89)** | hooks, breezing | ヘッドレスセッションの一時停止→Lead 判断→resume で再評価 |
+| **Hook output >50K disk save (v2.1.89)** | hooks | 大出力フックがコンテキスト直注入からディスク保存＋プレビューに変更 |
+| **Hooks `if` compound command fix (v2.1.89)** | hooks | `ls && git push` のような複合コマンドが `if` 条件にマッチするよう修正 |
+| **Autocompact thrash loop fix (v2.1.89)** | all skills | 3回連続 compact→再充填で停止。CC 自動継承 |
+| **Nested CLAUDE.md re-injection fix (v2.1.89)** | all skills | 長セッションでの CLAUDE.md 重複注入を修正。CC 自動継承 |
+| **PreToolUse exit 2 JSON fix (v2.1.90)** | hooks, guardrails | JSON stdout + exit 2 のブロック動作が修正。pre-tool.sh の deny がより確実に |
+| **PostToolUse format-on-save fix (v2.1.90)** | hooks | フック後のファイル書換で Edit/Write が失敗するバグを修正。CC 自動継承 |
+| **`--resume` prompt-cache miss fix (v2.1.90)** | session | v2.1.69 以降の回帰バグ。resume 時のキャッシュミスを修正。CC 自動継承 |
+| **SSE/transcript performance (v2.1.90)** | all skills | SSE フレーム処理 O(n²)→O(n)、transcript 書込高速化。CC 自動継承 |
 
 Full details: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 

@@ -6,6 +6,123 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [3.17.0] - 2026-04-04
+
+### テーマ: Feature Table 整合性回復 + upstream 統合 + Claude/Codex parity 強化
+
+**Feature Table の「書いてあるが動かない」を全て解消し、CC 2.1.87-2.1.90 の新機能を取り込み、Claude/Codex 両文脈で Harness の信頼性と活用度を引き上げたリリース。**
+
+---
+
+### harness-review に --dual フラグを追加
+
+**Claude Reviewer と Codex Reviewer を並行実行し、異なるモデル視点でレビュー品質を向上させる `--dual` フラグを追加した。**
+
+#### 1. --dual フラグによる dual review
+
+**今まで**: `/harness-review` は Claude の Reviewer エージェントのみで実行しており、
+単一モデルの視点に限られていた。Codex のセカンドオピニオンが欲しい場合は手動で
+`scripts/codex-companion.sh review` を別途実行する必要があった。
+
+**今後**: `harness-review --dual` を実行すると、Claude Reviewer と Codex Reviewer が並行して動き、
+両方の verdict を自動マージした結果が返る。どちらかが REQUEST_CHANGES を出せば全体が REQUEST_CHANGES になる。
+Codex が利用不可の環境では Claude 単独実行に自動フォールバックするため、
+Codex のセットアップがないプロジェクトでも安全に使える。
+
+```bash
+# Claude + Codex 並行レビュー
+harness-review --dual
+
+# 既存の single-model フローは変わらない
+harness-review
+harness-review code
+```
+
+出力の `dual_review` フィールドで各モデルの判定と、判定が分かれた場合の理由を確認できる。
+
+---
+
+### Claude Code 2.1.87-2.1.90 / Codex 0.118 統合
+
+（auto mode 拒否追跡と Breezing 安全弁の追加。CC 側のフック修正を活かしてガードレール信頼性を向上）
+
+#### 1. PermissionDenied hook による auto mode 拒否追跡
+
+**CC のアプデ**: auto mode classifier がコマンドを拒否した際に `PermissionDenied` フックが発火するようになった（v2.1.89）。
+`{retry: true}` を返すとモデルにリトライ可能であることを伝えられる。
+
+**Harness での活用**: `permission-denied-handler.sh` を新規実装し、拒否イベントを `permission-denied.jsonl` に telemetry 記録。
+Breezing Worker が拒否された場合は Lead に `systemMessage` で通知し、代替アプローチの検討を促す。
+`agent_id` / `agent_type` を活用して「どのエージェントが何を拒否されたか」を追跡できる。
+
+#### 2. defer permission decision のドキュメント整備
+
+**CC のアプデ**: PreToolUse フックから `"defer"` を返すとヘッドレスセッションが一時停止し、
+`claude -p --resume` で再開時にフックが再評価される（v2.1.89）。
+
+**Harness での活用**: hooks-editing.md に defer decision の設計指針を追記。
+Breezing Worker が判断困難な操作に遭遇した際の安全弁として文書化。
+具体的な defer ルール（本番 DB 書込、destructive git 等）は運用パターン蓄積後に設計予定。
+
+#### 3. PreToolUse exit 2 修正による guardrail 信頼性向上
+
+**CC のアプデ**: PreToolUse フックが JSON stdout + exit code 2 でブロックを返す際の動作が修正された（v2.1.90）。
+以前はこのパターンでブロックが正しく機能しないバグがあった。
+
+**Harness での活用**: `pre-tool.sh` は deny 時にこのパターンを使用しており、v2.1.90 以降でガードレールの deny がより確実に動作する。
+追加の実装変更は不要（CC 自動継承＋既存コードがそのまま恩恵を受ける）。
+
+#### 4. CC 自動継承の主要修正
+
+- `--resume` prompt-cache miss 修正（v2.1.90）: セッション resume 高速化
+- autocompact thrash loop 修正（v2.1.89）: 3 回連続で停止→actionable error
+- Nested CLAUDE.md 再注入修正（v2.1.89）: コンテキスト効率向上
+- SSE/transcript パフォーマンス（v2.1.90）: O(n²)→O(n) 高速化
+- PostToolUse format-on-save 修正（v2.1.90）: フック後の Edit/Write 失敗解消
+- Cowork Dispatch 修正（v2.1.87）: チーム通信安定化
+
+---
+
+### Feature Table 整合性回復 + 未活用機能の実装
+
+#### 5. Feature Table の誇張修正（7 件）
+
+Feature Table で「実装済み」と誤読される記載を実態に合わせて修正。HTTP hooks→テンプレートのみ、OTel→独自 JSONL、Analytics Dashboard→計画中、LSP→CC native、Auto Mode→RP Phase 1、Slack→将来対応、Desktop Scheduled Tasks→CC native。
+
+#### 6. PostCompact WIP 復元
+
+**今まで**: コンテキスト圧縮の前に「WIP タスクがあります」と警告するが、圧縮後に復元しない。警告だけで助けない状態。
+
+**今後**: PostCompact が PreCompact で保存した WIP 情報を `systemMessage` として復元し、圧縮後もタスク状態を保持する。
+
+#### 7. Webhook 通知（TaskCompleted HTTP hook）
+
+**今まで**: Feature Table に「HTTP hooks 実装済み」と書いてあるが、hooks.json に `type: "http"` が 0 件。
+
+**今後**: `HARNESS_WEBHOOK_URL` を設定するとタスク完了時に Slack / Discord / 任意 URL に通知が飛ぶ。未設定ならサイレントスキップ（opt-in）。
+
+#### 8. セキュリティレビュー（--security）
+
+**今まで**: `/security-review` が Feature Table に記載されているが独立機能がない。
+
+**今後**: `harness-review --security` で OWASP Top 10 + 認証/認可 + データ露出に特化したレビューが起動。security-specific な verdict 判定基準で通常より厳格にチェック。
+
+#### 9. Codex Worker への effort 伝播
+
+**今まで**: Claude 側では Lead がタスク複雑度を計算して ultrathink を自動注入するが、Codex Worker は常に medium effort。
+
+**今後**: `calculate-effort.sh` がファイル数・依存関係・キーワード・DoD 条件からスコアを計算し、Codex Worker に effort を伝播。複雑なタスクで自動的に高 effort が適用される。
+
+#### 10. OTel Span 送信
+
+**今まで**: `emit-agent-trace.js` は独自 JSONL 形式。Datadog や Grafana に直接送れない。
+
+**今後**: `OTEL_EXPORTER_OTLP_ENDPOINT` を設定すると OTel Span JSON 形式で HTTP POST 送信。未設定なら既存 JSONL にフォールバック。
+
+#### 11. harness-release スキル全面改訂
+
+デグレチェックリスト、NPM 非配布の明示、日本語 i18n 対応、mirror 同期フロー、SemVer 判定基準統合、`--dry-run` / `--complete` / `--announce` モード詳細化を含む全面リライト。
+
 ## [3.16.0] - 2026-04-01
 
 ### テーマ: Long-running harness hardening + team/release planning surfaces

@@ -80,4 +80,23 @@ for agent_file in "${AGENT_FILES[@]}"; do
   }
 done
 
+# v2.1.89: PermissionDenied hook wiring check
+for hooks_file in "${HOOK_FILES[@]}"; do
+  jq -e '.hooks.PermissionDenied[]?.hooks[]? | select(.command | contains("permission-denied-handler"))' "${hooks_file}" >/dev/null || {
+    echo "${hooks_file} is missing PermissionDenied -> permission-denied-handler wiring"
+    exit 1
+  }
+done
+
+# v2.1.89: PermissionDenied handler script exists and is executable
+PERM_DENIED_HANDLER="${ROOT_DIR}/scripts/hook-handlers/permission-denied-handler.sh"
+[ -f "${PERM_DENIED_HANDLER}" ] || {
+  echo "permission-denied-handler.sh does not exist"
+  exit 1
+}
+[ -x "${PERM_DENIED_HANDLER}" ] || {
+  echo "permission-denied-handler.sh is not executable"
+  exit 1
+}
+
 echo "OK"

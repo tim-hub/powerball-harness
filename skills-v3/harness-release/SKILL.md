@@ -1,10 +1,10 @@
 ---
 name: harness-release
-description: "Harness v3 統合リリーススキル。CHANGELOG・バージョンバンプ・タグ・GitHub Release を自動化。以下で起動: リリース、バージョンバンプ、タグ作成、公開、/harness-release。実装・コードレビュー・プランニング・セットアップには使わない。"
-description-en: "Unified release skill for Harness v3. CHANGELOG, version bump, tag, GitHub Release automation. Use when user mentions: release, version bump, create tag, publish, /harness-release. Do NOT load for: implementation, code review, planning, or setup."
-description-ja: "Harness v3 統合リリーススキル。CHANGELOG・バージョンバンプ・タグ・GitHub Release を自動化。以下で起動: リリース、バージョンバンプ、タグ作成、公開、/harness-release。実装・コードレビュー・プランニング・セットアップには使わない。"
+description: "Harness v3 統合リリーススキル。CHANGELOG・バージョンバンプ・タグ・GitHub Release・mirror同期・検証を自動化。以下で起動: リリース、バージョンバンプ、タグ作成、公開、/harness-release。実装・コードレビュー・プランニング・セットアップには使わない。"
+description-en: "Unified release skill for Harness v3. CHANGELOG, version bump, tag, GitHub Release, mirror sync, and validation automation. Use when user mentions: release, version bump, create tag, publish, /harness-release. Do NOT load for: implementation, code review, planning, or setup."
+description-ja: "Harness v3 統合リリーススキル。CHANGELOG・バージョンバンプ・タグ・GitHub Release・mirror同期・検証を自動化。以下で起動: リリース、バージョンバンプ、タグ作成、公開、/harness-release。実装・コードレビュー・プランニング・セットアップには使わない。"
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
-argument-hint: "[patch|minor|major|--dry-run|--announce]"
+argument-hint: "[patch|minor|major|--dry-run|--announce|--complete]"
 context: fork
 effort: high
 ---
@@ -14,9 +14,9 @@ effort: high
 Harness v3 の統合リリーススキル。
 以下の旧スキルを統合:
 
-- `release-har` — 汎用リリース自動化
-- `x-release-harness` — Harness 専用リリース自動化
-- `handoff` — PM へのハンドオフ・完了報告
+- `release-har` -- 汎用リリース自動化
+- `x-release-harness` -- Harness 専用リリース自動化
+- `handoff` -- PM へのハンドオフ・完了報告
 
 ## Quick Reference
 
@@ -25,8 +25,9 @@ Harness v3 の統合リリーススキル。
 /release patch    # パッチバージョンバンプ（バグ修正）
 /release minor    # マイナーバージョンバンプ（新機能）
 /release major    # メジャーバージョンバンプ（破壊的変更）
-/release --dry-run  # プレビューのみ（実行しない）
-/release --announce # Slack 等への告知も実行
+/release --dry-run   # プレビューのみ（実行しない）
+/release --announce  # X (Twitter) 告知も実行
+/release --complete  # リリース完了マーキング（タグ後の仕上げ）
 ```
 
 ## Release-only policy
@@ -42,62 +43,148 @@ Harness v3 の統合リリーススキル。
 - **共同開発**: PR 経由のマージが必須
 - force push（`--force` / `--force-with-lease`）は常に禁止
 
-## 実行フロー
+## バージョン判定基準（SemVer）
 
-### Pre-flight チェック（必須）
+`.claude/rules/versioning.md` に基づく判定フローチャート:
 
-```bash
-# 1. gh コマンド確認
-command -v gh &>/dev/null || echo "⚠️ gh なし: GitHub Release はスキップ"
-
-# 2. 未コミット変更確認
-git diff --quiet && git diff --cached --quiet || {
-  echo "⚠️ 未コミット変更あり。先にコミットしてください。"
-  exit 1
-}
-
-# 3. CI 状態確認
-gh run list --branch main --limit 3 --json status,conclusion
+```
+既存の動作が壊れる？
+├─ Yes → major
+└─ No → ユーザーが新しいことをできるようになる？
+    ├─ Yes → minor
+    └─ No → patch
 ```
 
-### Vendor-neutral pre-release verification
+| 変更の種類 | バージョン | 例 |
+|-----------|----------|-----|
+| スキル定義の文言修正・追記 | **patch** | テンプレート微修正 |
+| hooks/scripts のバグ修正 | **patch** | エスケープ修正 |
+| 新スキル/フラグ/エージェント追加 | **minor** | `--dual`、新スキル |
+| CC 新バージョン互換対応 | **minor** | CC v2.1.90 対応 |
+| 破壊的変更（旧スキル廃止、フォーマット非互換） | **major** | Plans.md v1 削除 |
 
-`scripts/release-preflight.sh` は、公開前に最低限見るべき状態を vendor-neutral にまとめた read-only チェックです。
-`/release` の本実行前だけでなく、`/release --dry-run` でも同じ検証を通します。
+**バッチリリースの推奨**: 同日に複数変更がある場合は 1 つの minor にまとめる。同日 2 回以上の minor バンプは禁止。
 
-主なチェック:
+## NPM 配布について
+
+このプロジェクトは Claude Code プラグインであり、npm パッケージとしては配布しない。
+ルートに `package.json` は存在しない（`core/package.json` は内部 TypeScript ビルド用）。
+バージョン管理の対象は以下の 2 ファイルのみ:
+
+- `VERSION` -- 正本
+- `.claude-plugin/plugin.json` -- プラグインマニフェスト
+
+## 配布面と Mirror 同期
+
+`skills-v3/` が SSOT（Single Source of Truth）。以下の 3 配布面が mirror として同期される:
+
+| 配布面 | パス | 対象ユーザー |
+|--------|------|------------|
+| Claude | `skills/harness-release/` | Claude Code ユーザー |
+| Codex | `codex/.codex/skills/harness-release/` | Codex CLI ユーザー |
+| OpenCode | `opencode/skills/harness-release/` | OpenCode ユーザー |
+
+**重要**: `skills-v3/` を編集したら、リリース前に必ず mirror を同期する:
+
+```bash
+./scripts/sync-v3-skill-mirrors.sh
+```
+
+検証のみ（書き換えなし）:
+
+```bash
+./scripts/sync-v3-skill-mirrors.sh --check
+```
+
+## 日本語対応（i18n）
+
+スキルの description フィールドを日英切替できる。リリース前にロケール設定が意図通りか確認する:
+
+```bash
+# 日本語に設定（description-ja → description）
+./scripts/i18n/set-locale.sh ja
+
+# 英語に設定（description-en → description）
+./scripts/i18n/set-locale.sh en
+```
+
+現在のデフォルト: description は日本語（`description-ja` と同一）。`description-en` は英語バックアップとして常に保持する。
+
+## 実行フロー
+
+### Phase 0: Pre-flight チェック（必須）
+
+```bash
+# 1. 必須ツール確認
+command -v gh &>/dev/null || echo "gh なし: GitHub Release はスキップ"
+command -v jq &>/dev/null || echo "jq なし: plugin.json 更新に必要"
+
+# 2. vendor-neutral preflight（本実行 / dry-run 共通）
+bash scripts/release-preflight.sh
+
+# 3. プラグイン構造検証
+bash tests/validate-plugin.sh
+
+# 4. 整合性チェック
+bash scripts/ci/check-consistency.sh
+
+# 5. mirror 同期状態の確認
+bash scripts/sync-v3-skill-mirrors.sh --check
+```
+
+`scripts/release-preflight.sh` は以下を検証する:
 
 - working tree が clean か
 - `CHANGELOG.md` に `[Unreleased]` があるか
-- `.env.example` と `.env` の差分が大きくないか（managed secrets 前提で `.env` がない場合は warning に留める）
-- `healthcheck` / `preflight` コマンドがあれば通るか
-- `agents/` / `core/` / `hooks/` / `scripts/` の shipped surface に debug / mock / placeholder 残骸が残っていないかを警告する
-- CI 状態を取得できる環境では最新 run が成功しているか
+- `.env.example` と `.env` の差分（managed secrets 前提では warning 止まり）
+- `healthcheck` / `preflight` コマンド（あれば実行）
+- `agents/` / `core/` / `hooks/` / `scripts/` の shipped surface に debug / mock / placeholder 残骸がないか
+- CI 状態（取得可能な場合）
 
-必要に応じて次の環境変数で repo ごとに調整できる。
+環境変数でリポジトリごとに調整可能:
 
 - `HARNESS_RELEASE_PROJECT_ROOT`
 - `HARNESS_RELEASE_HEALTHCHECK_CMD`
 - `HARNESS_RELEASE_CI_STATUS_CMD`
 
-詳細な使い方は [docs/release-preflight.md](${CLAUDE_SKILL_DIR}/../../docs/release-preflight.md) を参照する。
+詳細: [docs/release-preflight.md](${CLAUDE_SKILL_DIR}/../../docs/release-preflight.md)
 
-### Step 1: 現在バージョン取得
+### Phase 1: 現在バージョン取得
 
 ```bash
-CURRENT=$(cat VERSION 2>/dev/null || jq -r '.version' package.json 2>/dev/null)
+CURRENT=$(cat VERSION 2>/dev/null)
+echo "現在のバージョン: $CURRENT"
 ```
 
-### Step 2: 新バージョン算出
+### Phase 2: 新バージョン算出
 
-セマンティックバージョニング（SemVer）に従う:
-- `patch`: x.y.Z → x.y.(Z+1)（バグ修正）
-- `minor`: x.Y.z → x.(Y+1).0（新機能・後方互換）
-- `major`: X.y.z → (X+1).0.0（破壊的変更）
+`scripts/sync-version.sh` は patch bump のみ対応。minor / major は手動で VERSION を書き換える:
 
-### Step 3: CHANGELOG 更新
+```bash
+# patch バンプ（x.y.Z → x.y.(Z+1)）
+./scripts/sync-version.sh bump
 
-release entry は、通常 PR で溜めた `[Unreleased]` の変更を versioned section へ確定するつもりで整理する。
+# minor バンプ（手動: x.Y.z → x.(Y+1).0）
+CURRENT=$(cat VERSION)
+MAJOR=$(echo "$CURRENT" | cut -d. -f1)
+MINOR=$(echo "$CURRENT" | cut -d. -f2)
+NEW_VERSION="$MAJOR.$((MINOR + 1)).0"
+echo "$NEW_VERSION" > VERSION
+./scripts/sync-version.sh sync
+
+# major バンプ（手動: X.y.z → (X+1).0.0）
+CURRENT=$(cat VERSION)
+MAJOR=$(echo "$CURRENT" | cut -d. -f1)
+NEW_VERSION="$((MAJOR + 1)).0.0"
+echo "$NEW_VERSION" > VERSION
+./scripts/sync-version.sh sync
+```
+
+`sync-version.sh sync` は `VERSION` の値を `.claude-plugin/plugin.json` に反映する。
+
+### Phase 3: CHANGELOG 更新
+
+release entry は、通常 PR で溜めた `[Unreleased]` の変更を versioned section へ確定する。
 
 **詳細 Before/After フォーマット**（日本語）で記述する。
 各機能を番号付きセクションに分け、「今まで」と「今後」を具体例付きで説明する。
@@ -128,6 +215,9 @@ release entry は、通常 PR で溜めた `[Unreleased]` の変更を versioned
 **今後**: ...
 ```
 
+**CC バージョン統合時のパターン**: 通常の「今まで / 今後」ではなく「CC のアプデ → Harness での活用」形式を使う。
+詳細は `.claude/rules/github-release.md` の「CC バージョン統合時の CHANGELOG パターン」を参照。
+
 **書き方のルール**:
 
 | ルール | 説明 |
@@ -140,40 +230,88 @@ release entry は、通常 PR で溜めた `[Unreleased]` の変更を versioned
 | テクニカル詳細は最小限に | ファイル名やステップ番号は「今後」の補足として |
 | 長くてOK | 各機能3〜10行。読みやすさが最優先 |
 
-### Step 4: バージョンファイル更新
+`[Unreleased]` セクションは空にせず、次のリリースに向けて残す:
 
-```bash
-echo "$NEW_VERSION" > VERSION
-# package.json がある場合
-jq --arg v "$NEW_VERSION" '.version = $v' package.json > tmp && mv tmp package.json
-# .claude-plugin/plugin.json がある場合
-jq --arg v "$NEW_VERSION" '.version = $v' .claude-plugin/plugin.json > tmp && mv tmp .claude-plugin/plugin.json
+```markdown
+## [Unreleased]
+
+## [X.Y.Z] - YYYY-MM-DD
+...
 ```
 
-### Step 5: コミット & タグ
+### Phase 4: バージョンファイル更新
 
 ```bash
-git add CHANGELOG.md VERSION package.json .claude-plugin/plugin.json
+# VERSION は Phase 2 で更新済み
+# plugin.json を同期
+./scripts/sync-version.sh sync
+
+# 同期確認
+./scripts/sync-version.sh check
+```
+
+### Phase 5: Mirror 同期
+
+```bash
+# skills-v3 → skills, codex, opencode への mirror 同期
+./scripts/sync-v3-skill-mirrors.sh
+
+# 同期確認
+./scripts/sync-v3-skill-mirrors.sh --check
+```
+
+### Phase 6: コミット & タグ
+
+```bash
+NEW_VERSION=$(cat VERSION)
+
+# ステージング（対象ファイルを明示的に指定）
+git add VERSION .claude-plugin/plugin.json CHANGELOG.md
+git add skills/ codex/.codex/skills/ opencode/skills/
+
 git commit -m "chore: release v$NEW_VERSION"
 git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
+```
+
+### Phase 7: プッシュ
+
+```bash
 git push origin main --tags
 ```
 
-### Step 6: GitHub Release 作成
+**注意**: `.github/workflows/release.yml` がタグプッシュを検知し、GitHub Release が未作成の場合は CHANGELOG から自動生成するセーフティネットが動く。手動で GitHub Release を先に作成すれば、ワークフローは自動スキップする。
+
+### Phase 8: GitHub Release 作成
 
 ```bash
+NEW_VERSION=$(cat VERSION)
+
 gh release create "v$NEW_VERSION" \
-  --title "v$NEW_VERSION - $(head -n 2 CHANGELOG.md | tail -n 1)" \
+  --title "v$NEW_VERSION - タイトル" \
   --notes "$(cat <<'EOF'
 ## What's Changed
 
-**[変更の概要]**
+**[変更の概要（英語）]**
 
 ### Before / After
 
 | Before | After |
 |--------|-------|
-| 旧状態 | 新状態 |
+| Previous state | New state |
+
+---
+
+## Added
+
+- **Feature**: Description
+
+## Changed
+
+- **Change**: Description
+
+## Fixed
+
+- **Fix**: Description
 
 ---
 
@@ -182,14 +320,86 @@ EOF
 )"
 ```
 
-## GitHub Release Notes フォーマット
+GitHub Release Notes のルール:
+- 言語: **英語**（公開リポジトリのため）
+- 必須: `## What's Changed`、太字サマリー、Before / After テーブル、フッター
+- 詳細フォーマット: `.claude/rules/github-release.md` を参照
 
-必須要素:
-- `## What's Changed` セクション
-- **太字**の1行サマリー
-- Before / After テーブル
-- `Generated with [Claude Code](...)` フッター
-- 言語: **英語**（日本語禁止）
+リリースノートの検証:
+
+```bash
+./scripts/validate-release-notes.sh "v$NEW_VERSION"
+```
+
+### Phase 9: リリース完了マーキング
+
+```bash
+git commit --allow-empty -m "chore: mark v$NEW_VERSION release complete"
+git push origin main
+```
+
+この空コミットは「リリース作業が全て完了した」ことを明示するマーカー。
+
+### Phase 10: 告知（`--announce` 指定時のみ）
+
+`/x-announce` スキルを呼び出して X (Twitter) への告知スレッドを生成する:
+
+```
+Skill: x-announce
+Args: v$NEW_VERSION
+```
+
+投稿テキスト 5 本 + Gemini 画像 5 枚を 1 発出力する。
+
+## `--dry-run` モード
+
+`--dry-run` は以下を実行し、実際の変更はしない:
+
+1. Pre-flight チェック（Phase 0）を**全て実行**する
+2. バージョン算出を表示する（書き込まない）
+3. CHANGELOG のドラフトを表示する（書き込まない）
+4. GitHub Release Notes のドラフトを表示する（作成しない）
+5. mirror 同期の差分を表示する（書き込まない）
+
+スキップされるもの: VERSION/plugin.json 書き換え、git commit/tag/push、GitHub Release 作成、告知
+
+## `--complete` モード
+
+タグ作成後に「リリース完了」のマーキングだけを行う:
+
+```bash
+/release --complete
+```
+
+Phase 9 のみを実行する。GitHub Release の作成漏れがないか確認したうえで、完了コミットを打つ。
+
+## デグレチェックリスト
+
+リリース前に以下のデグレを確認する:
+
+| チェック項目 | 確認方法 | 備考 |
+|------------|---------|------|
+| プラグイン構造 | `tests/validate-plugin.sh` | plugin.json、スキル、フック、スクリプトの検証 |
+| 整合性 | `scripts/ci/check-consistency.sh` | テンプレート、バージョン、mirror、CHANGELOG |
+| Mirror 同期 | `scripts/sync-v3-skill-mirrors.sh --check` | skills-v3 と 3 配布面の一致 |
+| Preflight | `scripts/release-preflight.sh` | working tree、CHANGELOG、CI、残骸 |
+| リリースノート | `scripts/validate-release-notes.sh vX.Y.Z` | GitHub Release のフォーマット検証 |
+| VERSION 同期 | `scripts/sync-version.sh check` | VERSION と plugin.json の一致 |
+| ガードレール | `core/src/guardrails/rules.ts` の R01-R13 | TypeScript ルールの健全性 |
+| タグ連続性 | `git tag --sort=-version:refname \| head -5` | 欠番がないこと |
+| ロケール | description と description-ja の一致 | `set-locale.sh` で切替可能 |
+
+## CI セーフティネット
+
+`.github/workflows/release.yml` はタグプッシュ時に自動実行される:
+
+1. `v*` タグのプッシュを検知
+2. 同名の GitHub Release が既に存在するか確認
+3. 存在しなければ CHANGELOG から自動生成（セーフティネット）
+4. 存在すれば何もしない
+
+手動で GitHub Release を作成してからプッシュするのが推奨フロー。
+セーフティネットは「Release 作成忘れ」のみを救う。
 
 ## PM ハンドオフ
 
@@ -212,8 +422,24 @@ EOF
 - 本番環境へのデプロイ（該当する場合）
 ```
 
+## 禁止事項
+
+- タグの削除・巻き戻し（公開済みバージョンは不変）
+- 同日に 2 回以上の minor バンプ
+- patch レベルの変更での minor バンプ
+- `--force` / `--force-with-lease` による force push
+- リリースコミットに VERSION / plugin.json / CHANGELOG 以外の実装変更を混入
+
 ## 関連スキル
 
-- `review` — リリース前にコードレビューを実施
-- `execute` — リリース後の次のタスクを実装
-- `plan` — 次バージョンの計画を作成
+- `harness-review` -- リリース前にコードレビューを実施
+- `harness-work` -- リリース後の次のタスクを実装
+- `harness-plan` -- 次バージョンの計画を作成
+- `x-announce` -- X (Twitter) へのリリース告知スレッド生成
+- `harness-setup` -- mirror 同期やプラグイン設定のセットアップ
+
+## 関連ルール
+
+- `.claude/rules/versioning.md` -- SemVer 判定基準とバッチリリース推奨
+- `.claude/rules/github-release.md` -- GitHub Release Notes フォーマット（英語）
+- `.claude/rules/cc-update-policy.md` -- CC アプデ追従時の Feature Table 品質基準
