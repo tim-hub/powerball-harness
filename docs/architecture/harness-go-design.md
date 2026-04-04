@@ -491,7 +491,7 @@ func SafeAppend(path string, data []byte) error {
 | **Symlink traversal** | `safefile.go` で全 I/O 前に `os.Lstat` チェック。symlink は即拒否 | config/safefile.go |
 | **Path traversal (../)** | `filepath.Clean` + `filepath.Rel` で state dir 外への書込を拒否 | config/paths.go |
 | **Secret leak (logs)** | `mask.go` で URL、トークン、API キーを `***` にマスク。webhook URL も対象 | config/mask.go |
-| **Command injection** | Go binary は shell を経由しない。exec.Command は使わず、全て内部処理 | 設計全体 |
+| **Command injection** | guardrail ホットパス（pretool/posttool/permission）は shell・exec.Command を使わず全て内部処理。worker サブコマンド（auto-test, ci-check）は exec.Command でプロジェクトの test/CI コマンドを実行する（現行 shell 版と同等） | guardrail/*, session/* は内部処理。event/worker.go は exec.Command 許可 |
 | **TOCTOU** | ファイル存在チェックせず直接操作 → エラーハンドリング | config/safefile.go |
 | **Unbounded growth** | JSONL rotation (500行超 → 400行に切詰) を safefile.Append に内蔵 | config/safefile.go |
 | **Secret in hook output** | PreToolUse deny 理由にユーザー入力を含める際はサニタイズ | guardrail/pretool.go |

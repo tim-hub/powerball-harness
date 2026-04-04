@@ -15,7 +15,7 @@
 - 0 ベース。後方互換性・段階的導入は不要
 - 単一バイナリ（`bin/harness`）に全 hook handler を統合
 - Skills / Agents / Rules は Markdown のまま（CC がプロンプトとして読む）
-- Go stdlib 完結。外部依存ゼロ
+- Go stdlib 中心。許容依存: `google/uuid` のみ（D7 決定）
 - セキュリティ（symlink 拒否、secret mask、path traversal 防止）はライブラリレベルで強制
 - harness-mem は分離プロセス維持（D3 決定）。Go binary はファイルベースの memory bridge のみ
 
@@ -56,7 +56,7 @@ Purpose: 外部通知・Plans.md 操作・残り全 hook event
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.3.1 | internal/notify: webhook (HARNESS_WEBHOOK_URL) + otel (OTLP HTTP) + broadcast (inter-session) | webhook 通知が非同期で送信され、未設定時はスキップ | 35.0.4 | cc:TODO |
+| 35.3.1 | internal/notify: webhook (HARNESS_WEBHOOK_URL) + otel (OTLP HTTP) + broadcast (inter-session) | webhook/OTel が sync with timeout で送信され、未設定時はスキップ。短命プロセスで配送保証 | 35.0.4 | cc:TODO |
 | 35.3.2 | internal/plans: parser (5-column table) + marker (status update) + effort scoring | Plans.md のパースとタスク状態管理が Go で動作 | 35.0.1 | cc:TODO |
 | 35.3.3 | UserPromptSubmit + TaskCreated/Completed + PermissionDenied + Notification handlers | 残りの全 hook event が 1 binary で処理される | 35.2.1, 35.3.1 | cc:TODO |
 
