@@ -613,7 +613,7 @@ bin/harness hook stop → bridge.go → harness-mem にセッション終了を�
 ### Worst Case Analysis (PreToolUse)
 
 ```
-stdin JSON read:     0.1ms  (bufio.Scanner, <1KB payload)
+stdin JSON read:     0.1ms  (io.ReadAll, unbounded — large Write/Edit payloads safe)
 json.Unmarshal:      0.3ms  (encoding/json, typed struct)
 Rule matching loop:  0.5ms  (13 rules × Match func, short-circuit on first deny)
 State dir access:    0.5ms  (single os.Stat for CLAUDE_PLUGIN_DATA resolution)
@@ -672,7 +672,7 @@ release:
 		GOOS=$(word 1,$(subst /, ,$(platform))) \
 		GOARCH=$(word 2,$(subst /, ,$(platform))) \
 		go build -ldflags="-s -w" \
-		-o bin/harness-$(subst /,-,$(platform)) ./cmd/harness ;)
+		-o bin/harness-$(subst /,-,$(platform))$(if $(findstring windows,$(platform)),.exe) ./cmd/harness ;)
 
 .PHONY: test
 test:
