@@ -432,8 +432,8 @@ bin/harness version                 # Version info
 harness-mem にファイルベースで通知している。Go binary ではこれを各 hook handler の内部に統合する:
 
 - `hook session-start` → `session/start.go` 内で memory bridge init
-- `hook user-prompt` → `event/prompt.go` 内で memory bridge user-prompt
-- `hook posttool` → `session/posttool.go` 内で memory bridge post-tool-use（ツール名・結果サマリーを記録）
+- `hook user-prompt` → `event/prompt.go` 内で memory bridge user-prompt + policy injection + fix-proposal-injector（pending-fix-proposals.jsonl 再提示）
+- `hook posttool` → `event/posttool.go` 内で memory bridge post-tool-use（ツール名・結果サマリーを記録）+ track-changes（review_status リセット）
 - `hook stop` → `session/stop.go` 内で memory bridge stop
 
 外部の `memory-bridge.sh` は不要になるが、harness-mem プロセスとのファイルベース通知プロトコルは維持する。
