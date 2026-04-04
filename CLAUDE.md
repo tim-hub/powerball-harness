@@ -141,6 +141,13 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **`--resume` prompt-cache miss fix (v2.1.90)** | session | v2.1.69 以降の回帰バグ。resume 時のキャッシュミスを修正。CC 自動継承 |
 | **SSE/transcript performance (v2.1.90)** | all skills | SSE フレーム処理 O(n²)→O(n)、transcript 書込高速化。CC 自動継承 |
 
+| **`disableSkillShellExecution` setting (v2.1.91)** | setup, guardrails | スキル内の shell 実行を無効化。**現行 Harness は shell 依存のため非対応**。Go rewrite 後に有効化可能 |
+| **Plugin `bin/` directory (v2.1.91)** | setup | プラグインがコンパイル済みバイナリを `bin/` に同梱可能。将来の配布形態拡張候補 |
+| **MCP `maxResultSizeChars` 500K (v2.1.91)** | hooks, setup | MCP ツール結果の最大サイズを `_meta` で 500K まで拡張可能 |
+| **Subagent spawning fix (v2.1.92)** | breezing | 「Could not determine pane count」修正。Breezing 安定性向上。CC 自動継承 |
+| **`/cost` per-model breakdown (v2.1.92)** | all skills | モデル別・キャッシュヒット別のコスト内訳表示。CC 自動継承 |
+| **Linux seccomp helper (v2.1.92)** | setup | sandbox の unix-socket ブロッキング強化。CC 自動継承 |
+
 Full details: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 
 ## Development Rules

@@ -200,7 +200,6 @@ bin/harness version                 # Version info
         "timeout": 30,
         "async": true
       }]
-    }],
     }, {
       "matcher": "TodoWrite",
       "hooks": [{
