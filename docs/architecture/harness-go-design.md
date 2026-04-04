@@ -60,8 +60,8 @@ harness-go/
 │   │   └── effort.go            # Task complexity scoring
 │   │
 │   ├── notify/                  # External notifications (webhook + OTel + broadcast)
-│   │   ├── webhook.go           # HARNESS_WEBHOOK_URL → HTTP POST (async, secret mask)
-│   │   ├── otel.go              # OTLP HTTP span export (async, fallback JSONL)
+│   │   ├── webhook.go           # HARNESS_WEBHOOK_URL → HTTP POST (sync with timeout, secret mask)
+│   │   ├── otel.go              # OTLP HTTP span export (sync with timeout, fallback JSONL)
 │   │   └── broadcast.go         # Inter-session file-based broadcast
 │   │
 │   └── config/                  # Configuration + security utilities
@@ -170,7 +170,7 @@ bin/harness version                 # Version info
       }]
     }, {
       "matcher": "Bash",
-      "if": "Bash(git status*)|Bash(git diff*)|Bash(git log*)|Bash(git branch*)|Bash(git rev-parse*)|Bash(git show*)|Bash(git ls-files*)|Bash(npm test*)|Bash(npm run test*)|Bash(npm run lint*)|Bash(npm run typecheck*)|Bash(npm run build*)|Bash(npm run validate*)|Bash(pnpm test*)|Bash(pnpm run test*)|Bash(pnpm run lint*)|Bash(pnpm run typecheck*)|Bash(pnpm run build*)|Bash(pnpm run validate*)|Bash(yarn test*)|Bash(yarn run test*)|Bash(yarn run lint*)|Bash(yarn run typecheck*)|Bash(yarn run build*)|Bash(yarn run validate*)|Bash(pytest*)|Bash(python -m pytest*)|Bash(go test*)|Bash(cargo test*)",
+      "if": "Bash(git status*)|Bash(git diff*)|Bash(git log*)|Bash(git branch*)|Bash(git rev-parse*)|Bash(git show*)|Bash(git ls-files*)|Bash(npm test*)|Bash(npm run test*)|Bash(npm run lint*)|Bash(npm run typecheck*)|Bash(npm run build*)|Bash(npm run validate*)|Bash(npm lint*)|Bash(npm typecheck*)|Bash(npm build*)|Bash(pnpm test*)|Bash(pnpm run test*)|Bash(pnpm run lint*)|Bash(pnpm run typecheck*)|Bash(pnpm run build*)|Bash(pnpm run validate*)|Bash(pnpm lint*)|Bash(pnpm typecheck*)|Bash(pnpm build*)|Bash(yarn test*)|Bash(yarn run test*)|Bash(yarn run lint*)|Bash(yarn run typecheck*)|Bash(yarn run build*)|Bash(yarn run validate*)|Bash(yarn lint*)|Bash(yarn typecheck*)|Bash(yarn build*)|Bash(pytest*)|Bash(python -m pytest*)|Bash(go test*)|Bash(cargo test*)",
       "hooks": [{
         "type": "command",
         "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook permission",
@@ -183,6 +183,19 @@ bin/harness version                 # Version info
         "type": "command",
         "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook posttool",
         "timeout": 10
+      }]
+    }, {
+      "matcher": "Write|Edit|Task",
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness worker auto-test",
+        "timeout": 120,
+        "async": true
+      }, {
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness worker ci-check",
+        "timeout": 30,
+        "async": true
       }]
     }],
     "SessionStart": [{
@@ -238,7 +251,7 @@ bin/harness version                 # Version info
       }]
     }],
     "SubagentStart": [{
-      "matcher": "worker|reviewer|scaffolder",
+      "matcher": "worker|reviewer|scaffolder|video-scene-generator",
       "hooks": [{
         "type": "command",
         "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook subagent-start",
@@ -246,11 +259,25 @@ bin/harness version                 # Version info
       }]
     }],
     "SubagentStop": [{
-      "matcher": "worker|reviewer|scaffolder",
+      "matcher": "worker|reviewer|scaffolder|video-scene-generator",
       "hooks": [{
         "type": "command",
         "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook subagent-stop",
         "timeout": 5
+      }]
+    }],
+    "TeammateIdle": [{
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook teammate-idle",
+        "timeout": 10
+      }]
+    }],
+    "ConfigChange": [{
+      "hooks": [{
+        "type": "command",
+        "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook config-change",
+        "timeout": 10
       }]
     }],
     "UserPromptSubmit": [{
@@ -447,6 +474,59 @@ func SafeAppend(path string, data []byte) error {
 | **TOCTOU** | ファイル存在チェックせず直接操作 → エラーハンドリング | config/safefile.go |
 | **Unbounded growth** | JSONL rotation (500行超 → 400行に切詰) を safefile.Append に内蔵 | config/safefile.go |
 | **Secret in hook output** | PreToolUse deny 理由にユーザー入力を含める際はサニタイズ | guardrail/pretool.go |
+
+## Delivery Model: Short-Lived Process での通知保証
+
+Go binary は都度起動→即終了の短命プロセス。async goroutine はプロセス終了で消える。
+
+**設計方針**: webhook と OTel は **sync with timeout** で送信。
+
+```
+bin/harness hook task-completed
+  → guardrail check (1ms)
+  → JSONL append (0.5ms)
+  → webhook POST (timeout 3s, sync)  ← プロセス内で完了を待つ
+  → OTel POST (timeout 2s, sync)     ← 同上
+  → stdout JSON response
+  → exit
+```
+
+- 送信成功/タイムアウト/接続拒否のいずれかが確定してから exit
+- 送信失敗は stderr ログのみ。リトライしない（次回の hook 起動時に新イベントを送る）
+- webhook + OTel で最大 5 秒追加。ただしタイムアウトは稀なので通常は数十 ms
+
+**長時間系 hook (PostToolUse) の扱い**:
+
+現行の `auto-test-runner` (120s, async) や `ci-status-checker` (30s, async) は
+短命プロセスに収まらない。これらは **分離ワーカー** として扱う:
+
+```json
+// hooks.json で Go binary と分離ワーカーを並列配置
+"PostToolUse": [{
+  "matcher": "Write|Edit|MultiEdit|Bash",
+  "hooks": [{
+    "type": "command",
+    "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness hook posttool",
+    "timeout": 10
+  }]
+}, {
+  "matcher": "Write|Edit|Task",
+  "hooks": [{
+    "type": "command",
+    "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness worker auto-test",
+    "timeout": 120,
+    "async": true
+  }, {
+    "type": "command",
+    "command": "${CLAUDE_PLUGIN_ROOT}/bin/harness worker ci-check",
+    "timeout": 30,
+    "async": true
+  }]
+}]
+```
+
+`bin/harness worker <name>` は長時間実行用のサブコマンド。
+`bin/harness hook posttool` は高速判定 (10s) のみ担当し、重い処理は worker に分離。
 
 ## Agent Hooks (type: "agent") の扱い
 
