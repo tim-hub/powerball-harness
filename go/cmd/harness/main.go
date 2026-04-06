@@ -14,6 +14,8 @@
 //	harness hook session-cleanup   — SessionEnd: temp file cleanup
 //	harness hook session-monitor   — SessionStart: project state collection + session.json
 //	harness hook session-summary   — Stop: session summary to session-log.md
+//	harness hook ci-status         — PostToolUse: CI status check after push/PR
+//	harness evidence collect       — Collect evidence (test results, build logs)
 //	harness version                — Print version
 //
 // Usage in hooks.json:
@@ -27,6 +29,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Chachamaru127/claude-code-harness/go/internal/ci"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/event"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/guard"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/hook"
@@ -50,6 +53,12 @@ func main() {
 			os.Exit(1)
 		}
 		runHook(os.Args[2])
+	case "evidence":
+		if len(os.Args) < 3 {
+			fmt.Fprintln(os.Stderr, "Usage: harness evidence <collect>")
+			os.Exit(1)
+		}
+		runEvidence(os.Args[2:])
 	case "init":
 		runInit(os.Args[2:])
 	case "sync":
@@ -87,11 +96,76 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  hook session-cleanup    SessionEnd: temp file cleanup")
 	fmt.Fprintln(os.Stderr, "  hook session-monitor    SessionStart: project state collection + session.json")
 	fmt.Fprintln(os.Stderr, "  hook session-summary    Stop: session summary to session-log.md")
+	fmt.Fprintln(os.Stderr, "  hook ci-status          PostToolUse: CI status check after push/PR")
+	fmt.Fprintln(os.Stderr, "  evidence collect        Collect evidence (test results, build logs) from stdin")
+	fmt.Fprintln(os.Stderr, "    --label <label>       Evidence label (default: general)")
+	fmt.Fprintln(os.Stderr, "    --file <path>         Read content from file instead of stdin")
 	fmt.Fprintln(os.Stderr, "  init [root]             Create harness.toml template in project root")
 	fmt.Fprintln(os.Stderr, "  sync [root]             Generate CC files from harness.toml")
 	fmt.Fprintln(os.Stderr, "  validate [skills|agents|all] [root]  Validate SKILL.md / agent frontmatter")
 	fmt.Fprintln(os.Stderr, "  doctor [--migration] [root]          Health check; --migration shows hook migration status")
 	fmt.Fprintln(os.Stderr, "  version                 Print version")
+}
+
+// runEvidence は evidence サブコマンドを実行する。
+func runEvidence(args []string) {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "Usage: harness evidence <collect>")
+		os.Exit(1)
+	}
+
+	switch args[0] {
+	case "collect":
+		runEvidenceCollect(args[1:])
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown evidence subcommand: %s\n", args[0])
+		os.Exit(1)
+	}
+}
+
+// runEvidenceCollect は evidence collect サブコマンドを実行する。
+// stdin からコンテンツを読み取って .claude/state/evidence/{label}/ に保存する。
+func runEvidenceCollect(args []string) {
+	var label string
+	var contentFile string
+
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--label":
+			if i+1 < len(args) {
+				i++
+				label = args[i]
+			}
+		case "--file":
+			if i+1 < len(args) {
+				i++
+				contentFile = args[i]
+			}
+		}
+	}
+
+	c := &ci.EvidenceCollector{}
+	opts := ci.CollectOptions{
+		Label:       label,
+		ContentFile: contentFile,
+	}
+
+	if contentFile != "" {
+		// ファイルから収集する場合
+		result := c.Collect(opts)
+		if result.Error != "" {
+			fmt.Fprintln(os.Stderr, "evidence collect error:", result.Error)
+			os.Exit(1)
+		}
+		fmt.Println(result.SavedPath)
+		return
+	}
+
+	// stdin から収集する場合
+	if err := c.CollectFromStdin(os.Stdin, os.Stdout, opts); err != nil {
+		fmt.Fprintln(os.Stderr, "evidence collect error:", err)
+		os.Exit(1)
+	}
 }
 
 func runHook(hookType string) {
@@ -121,6 +195,12 @@ func runHook(hookType string) {
 		h := &event.PermissionDeniedHandler{}
 		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "permission-denied handler error: %v\n", err)
+		}
+	// --- CI ハンドラ ---
+	case "ci-status":
+		h := &ci.CIStatusHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "ci-status handler error: %v\n", err)
 		}
 	// --- session handlers ---
 	case "session-init":
