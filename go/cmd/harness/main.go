@@ -39,8 +39,12 @@ func main() {
 			os.Exit(1)
 		}
 		runHook(os.Args[2])
+	case "init":
+		runInit(os.Args[2:])
 	case "sync":
 		runSync(os.Args[2:])
+	case "validate":
+		runValidate(os.Args[2:])
 	case "version":
 		fmt.Println(version)
 	case "--version", "-v":
@@ -61,7 +65,9 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  hook pre-tool      Evaluate PreToolUse guardrails")
 	fmt.Fprintln(os.Stderr, "  hook post-tool     Evaluate PostToolUse checks")
 	fmt.Fprintln(os.Stderr, "  hook permission    Evaluate PermissionRequest")
+	fmt.Fprintln(os.Stderr, "  init [root]        Create harness.toml template in project root")
 	fmt.Fprintln(os.Stderr, "  sync [root]        Generate CC files from harness.toml")
+	fmt.Fprintln(os.Stderr, "  validate [skills|agents|all] [root]  Validate SKILL.md / agent frontmatter")
 	fmt.Fprintln(os.Stderr, "  version            Print version")
 }
 
