@@ -90,8 +90,8 @@ Purpose: `harness.toml` → CC 必須ファイル自動生成で dual hooks.json
 |------|------|-----|---------|--------|
 | 35.2.1 | `pkg/config/toml.go` — harness.toml パーサー ([project], [safety], [agent], [env], [hooks], [telemetry] セクション)。Mapping Table は SPEC.md §5 に準拠 | TOML パース + バリデーション + unsupported key rejection | 35.0.3 | cc:完了 |
 | 35.2.2 | `harness sync` — harness.toml → hooks.json + settings.json (permissions/sandbox/env/agent) + plugin.json 自動生成 | 生成ファイルと現行ファイルが機能等価 | 35.2.1 | cc:完了 |
-| 35.2.3 | `harness init` サブコマンド — プロジェクト初期化 (harness.toml テンプレート生成) | 新規プロジェクトで `harness init && harness sync` が動作 | 35.2.2 | cc:未着手 |
-| 35.2.4 | dual hooks.json 同期スクリプト (`sync-plugin-cache.sh`) を `harness sync` に統合 | `sync-plugin-cache.sh` が `harness sync` のラッパーになる | 35.2.2 | cc:未着手 |
+| 35.2.3 | `harness init` サブコマンド — プロジェクト初期化 (harness.toml テンプレート生成) | 新規プロジェクトで `harness init && harness sync` が動作 | 35.2.2 | cc:完了 |
+| 35.2.4 | dual hooks.json 同期スクリプト (`sync-plugin-cache.sh`) を `harness sync` に統合 | `sync-plugin-cache.sh` が `harness sync` のラッパーになる | 35.2.2 | cc:完了 |
 
 ---
 
@@ -127,7 +127,7 @@ Purpose: SKILL.md frontmatter の型安全バリデーション
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.5.1 | `harness validate skills` — 全 SKILL.md の frontmatter を公式スキーマに照合 | name, description, allowed-tools 等の必須フィールド検証 | 35.2.1 | cc:未着手 |
+| 35.5.1 | `harness validate skills` — 全 SKILL.md の frontmatter を公式スキーマに照合。正規表現ベース (外部 YAML 依存なし) | name, description 必須フィールド + オプション型検証 | 35.2.1 | cc:完了 |
 | 35.5.2 | `harness validate agents` — agents/*.md の frontmatter 検証 | model, effort, maxTurns 等の型チェック | 35.5.1 | cc:未着手 |
 
 ---
