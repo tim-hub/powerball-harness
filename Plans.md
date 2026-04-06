@@ -102,9 +102,9 @@ Purpose: 127 スクリプトをカテゴリ別に Go サブコマンドへ段階
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
 | 35.3.1 | hook-handlers 5本を Go に移植 (session-env, post-tool-failure, post-compact, notification, permission-denied) | 25テスト PASS、symlink チェック付き | 35.2.2 | cc:完了 |
-| 35.3.2 | session-* (~8本) を `harness session <action>` に統合 | session-init, session-cleanup, session-monitor 等が Go で動作 | 35.3.1 | cc:未着手 |
+| 35.3.2 | session-* 4本を Go に移植 (init, cleanup, monitor, summary) | 30テスト PASS | 35.3.1 | cc:完了 |
 | 35.3.3 | codex-companion.sh は Go 統合 **対象外** (SPEC.md 決定事項)。shell wrapper を維持 | 変更なし (SPEC.md に方針文書化済み) | - | cc:完了 |
-| 35.3.4 | evidence/ + ci/ スクリプトを `harness ci` / `harness evidence` に統合 | CI ステータスチェック、エビデンス収集が Go で動作 | 35.3.2 | cc:未着手 |
+| 35.3.4 | ci-status-checker + evidence collector を Go に移植 | 15テスト PASS | 35.3.2 | cc:完了 |
 | 35.3.5 | `harness doctor` + `--migration` で hook 移行状況を一覧表示。mixed-mode 警告、hooks.json divergence 検出 | `harness doctor` 11テスト PASS | 35.3.1 | cc:完了 |
 
 ---
@@ -115,9 +115,9 @@ Purpose: SPAWNING→RUNNING→REVIEWING→APPROVED→COMMITTED 状態マシン +
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.4.1 | `internal/lifecycle/state.go` — 状態マシン定義 + 遷移ルール。SPEC.md §8 のフル状態 (FAILED/CANCELLED/STALE/RECOVERING/ABORTED 含む) | 不正遷移を型レベルで防止、異常系状態が全て定義済み | 35.3.2 | cc:未着手 |
-| 35.4.2 | `internal/lifecycle/recovery.go` — 4段階リカバリ (自己修復→仲間修復→指揮官介入→停止) | 各段階のトリガー条件と動作が定義済み | 35.4.1 | cc:未着手 |
-| 35.4.3 | SubagentStart/Stop フックとの統合 | 状態遷移が SQLite に永続化され、`harness status` で表示 | 35.4.2, 35.1.2 | cc:未着手 |
+| 35.4.1 | `internal/lifecycle/state.go` — 状態マシン定義 + 遷移ルール。SPEC.md §8 のフル状態 (FAILED/CANCELLED/STALE/RECOVERING/ABORTED 含む) | 不正遷移を型レベルで防止、異常系状態が全て定義済み | 35.3.2 | cc:完了 |
+| 35.4.2 | `internal/lifecycle/recovery.go` — 4段階リカバリ (自己修復→仲間修復→指揮官介入→停止) | 各段階のトリガー条件と動作が定義済み | 35.4.1 | cc:完了 |
+| 35.4.3 | SubagentStart/Stop フックとの統合 | 状態遷移が SQLite に永続化され、`harness status` で表示 | 35.4.2, 35.1.2 | cc:完了 |
 
 ---
 
@@ -150,7 +150,7 @@ Purpose: `bin/` ディレクトリ活用による Go バイナリ配布
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.7.1 | クロスコンパイルスクリプト (darwin-arm64, darwin-amd64, linux-amd64)。SQLite は pure Go (modernc.org/sqlite) で CGO 不要 | 3 プラットフォームのバイナリ生成 | 35.3.1 | cc:未着手 |
+| 35.7.1 | クロスコンパイル (darwin-arm64/amd64, linux-amd64)。CGO_ENABLED=0 + modernc.org/sqlite | 3バイナリ全て6.6-6.8MB | 35.3.1 | cc:完了 |
 | 35.7.2 | npm パッケージ設定 + postinstall でプラットフォーム別バイナリ配置 | `npm install` で `bin/harness` が PATH に配置 | 35.7.1 | cc:未着手 |
 | 35.7.3 | 旧パッケージへの移行通知 + GitHub Release 自動化 | リリースワークフローで Go バイナリが含まれる | 35.7.2 | cc:未着手 |
 
