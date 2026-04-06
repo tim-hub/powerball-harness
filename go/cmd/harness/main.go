@@ -10,6 +10,10 @@
 //	harness hook post-compact      — PostCompact WIP context re-injection
 //	harness hook notification      — Notification event logging
 //	harness hook permission-denied — PermissionDenied event logging
+//	harness hook session-init      — SessionStart: session initialization + Plans.md summary
+//	harness hook session-cleanup   — SessionEnd: temp file cleanup
+//	harness hook session-monitor   — SessionStart: project state collection + session.json
+//	harness hook session-summary   — Stop: session summary to session-log.md
 //	harness version                — Print version
 //
 // Usage in hooks.json:
@@ -26,6 +30,7 @@ import (
 	"github.com/Chachamaru127/claude-code-harness/go/internal/event"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/guard"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/hook"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/session"
 	"github.com/Chachamaru127/claude-code-harness/go/pkg/protocol"
 )
 
@@ -78,6 +83,10 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  hook post-compact       PostCompact WIP context re-injection")
 	fmt.Fprintln(os.Stderr, "  hook notification       Notification event logging")
 	fmt.Fprintln(os.Stderr, "  hook permission-denied  PermissionDenied event logging + Worker retry")
+	fmt.Fprintln(os.Stderr, "  hook session-init       SessionStart: session initialization + Plans.md summary")
+	fmt.Fprintln(os.Stderr, "  hook session-cleanup    SessionEnd: temp file cleanup")
+	fmt.Fprintln(os.Stderr, "  hook session-monitor    SessionStart: project state collection + session.json")
+	fmt.Fprintln(os.Stderr, "  hook session-summary    Stop: session summary to session-log.md")
 	fmt.Fprintln(os.Stderr, "  init [root]             Create harness.toml template in project root")
 	fmt.Fprintln(os.Stderr, "  sync [root]             Generate CC files from harness.toml")
 	fmt.Fprintln(os.Stderr, "  validate [skills|agents|all] [root]  Validate SKILL.md / agent frontmatter")
@@ -112,6 +121,27 @@ func runHook(hookType string) {
 		h := &event.PermissionDeniedHandler{}
 		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "permission-denied handler error: %v\n", err)
+		}
+	// --- session handlers ---
+	case "session-init":
+		h := &session.InitHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "session-init handler error: %v\n", err)
+		}
+	case "session-cleanup":
+		h := &session.CleanupHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "session-cleanup handler error: %v\n", err)
+		}
+	case "session-monitor":
+		h := &session.MonitorHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "session-monitor handler error: %v\n", err)
+		}
+	case "session-summary":
+		h := &session.SummaryHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "session-summary handler error: %v\n", err)
 		}
 	default:
 		// guard-fastpath handlers require tool_name validation
