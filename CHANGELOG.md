@@ -6,7 +6,35 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
-### CC 2.1.91-2.1.92 Feature Table 追加
+## [3.17.1] - 2026-04-06
+
+### テーマ: harness-mem 接続修復
+
+**標準インストール環境で harness-mem が見つからず、SessionStart 時の resume pack 生成が動かなかった問題を修正。**
+
+---
+
+#### 1. harness-mem-bridge.sh の探索パス修正
+
+**今まで**: `harness-mem` を標準セットアップ（`~/.harness-mem/runtime/harness-mem`）でインストールした環境で、
+`harness-mem-bridge.sh` がリポジトリを発見できなかった。
+探索パスに標準インストール先が含まれておらず、`memory-bridge.sh` → `harness-mem-bridge.sh` が
+`exit 0` で無言終了していた。その結果、SessionStart 時の resume pack 生成が動作せず、
+セッション再開時にコンテキストが復元されない状態になっていた。
+
+**今後**: 探索パスの最優先位置に `~/.harness-mem/runtime/harness-mem` を追加。
+標準インストール環境で harness-mem が正しく検出され、resume pack が生成される。
+
+探索順序:
+1. `$HARNESS_MEM_ROOT`（明示的オーバーライド）
+2. `~/.harness-mem/runtime/harness-mem`（標準インストール）← **追加**
+3. `../harness-mem`（開発用 sibling repo）
+4. `~/LocalWork/Code/CC-harness/harness-mem`（レガシー開発パス）
+5. `~/Desktop/Code/CC-harness/harness-mem`（レガシー開発パス）
+
+---
+
+#### 2. CC 2.1.91-2.1.92 Feature Table 追加
 
 - Feature Table に CC 2.1.91〜2.1.92 の 9 エントリを追加（`disableSkillShellExecution`、Plugin `bin/`、MCP `maxResultSizeChars` 500K、subagent spawning 修正 等）
 - 全て A（ドキュメント/将来活用）または C（CC 自動継承）。B（書いただけ）は 0 件
