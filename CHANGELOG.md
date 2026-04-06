@@ -6,6 +6,11 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### CC 2.1.91-2.1.92 Feature Table 追加
+
+- Feature Table に CC 2.1.91〜2.1.92 の 9 エントリを追加（`disableSkillShellExecution`、Plugin `bin/`、MCP `maxResultSizeChars` 500K、subagent spawning 修正 等）
+- 全て A（ドキュメント/将来活用）または C（CC 自動継承）。B（書いただけ）は 0 件
+
 ## [3.17.0] - 2026-04-04
 
 ### テーマ: Feature Table 整合性回復 + upstream 統合 + Claude/Codex parity 強化

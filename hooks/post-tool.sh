@@ -1,4 +1,10 @@
 #!/bin/bash
-# post-tool.sh — Harness v3 PostToolUse 薄いシム（5行以内）
-# stdin JSON → core エンジン → stdout JSON
-node "${CLAUDE_PLUGIN_ROOT}/core/dist/index.js" post-tool
+# post-tool.sh — Harness PostToolUse hook shim
+if command -v harness >/dev/null 2>&1; then
+  harness hook post-tool
+elif [ -x "${CLAUDE_PLUGIN_ROOT}/bin/harness" ]; then
+  "${CLAUDE_PLUGIN_ROOT}/bin/harness" hook post-tool
+else
+  echo '{"decision":"approve","reason":"harness binary not found"}' >&2
+  exit 1
+fi

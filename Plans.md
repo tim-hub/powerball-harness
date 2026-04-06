@@ -4,71 +4,155 @@
 
 ---
 
-## Phase 35: Harness Go Rewrite
+## Phase 35: Harness v4 — Go ゼロベース再構築
 
-作成日: 2026-04-04
-目的: Harness を Go で 0 ベース書き直し。40+ shell scripts + TypeScript を単一バイナリに統合。20x 高速化。
-設計: docs/architecture/harness-go-design.md
+作成日: 2026-04-05
+目的: 127 本のシェルスクリプト + TypeScript コアを単一 Go バイナリに統合し、フック応答を 5ms 以下に短縮、設定ファイルの二重管理を解消する
+
+設計詳細: [go/DESIGN.md](go/DESIGN.md)
 
 ### 設計方針
 
-- 0 ベース。後方互換性・段階的導入は不要
-- 単一バイナリ（`bin/harness`）に全 hook handler を統合
-- Skills / Agents / Rules は Markdown のまま（CC がプロンプトとして読む）
-- Go stdlib 中心。許容依存: `google/uuid` のみ（D7 決定）
-- セキュリティ（symlink 拒否、secret mask、path traversal 防止）はライブラリレベルで強制
-- harness-mem は分離プロセス維持（D3 決定）。Go binary はファイルベースの memory bridge のみ
+- CC プラグインプロトコル準拠を最優先。`plugin.json`, `hooks.json`, `settings.json`, `agents/*.md`, `skills/*/SKILL.md` の公式形式を維持
+- `harness.toml` はユーザーが編集する唯一のファイル。CC 必須ファイルは `harness sync` で自動生成
+- Phase ごとに E2E 検証を通し、未移行スクリプトは既存シムで動作継続
+- `bin/harness` を CC プラグインの PATH 経由で解決
 
-### Phase 35.0: Foundation [P0]
+### 優先度マトリクス
 
-Purpose: Go プロジェクト基盤。ビルド・型定義・ユーティリティ・設定を確立
+| 優先度 | Phase | 内容 | タスク数 | 依存 |
+|--------|-------|------|---------|------|
+| **Required** | 35.0 | プロトコル + ガードレール（最小 MVP） | 4 | なし |
+| **Required** | 35.1 | SQLite 状態層 | 3 | 35.0 |
+| **Required** | 35.2 | 統合設定 (harness.toml → CC ファイル生成) | 4 | 35.1 |
+| **Recommended** | 35.3 | ハンドラ統合 (127 スクリプト段階的吸収) | 5 | 35.2 |
+| **Recommended** | 35.4 | エージェントライフサイクル状態マシン | 3 | 35.3 |
+| **Recommended** | 35.5 | スキル検証 + SKILL.md バリデータ | 2 | 35.2 |
+| **Optional** | 35.6 | Breezing 並行処理 (goroutine/worktree) | 3 | 35.4 |
+| **Optional** | 35.7 | npm 配布 + クロスコンパイル | 3 | 35.6 |
 
-| Task | 内容 | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 35.0.1 | Go module 初期化 + cmd/harness/main.go + subcommand routing (hook, worker, effort, plans, version) | `go build` が通り、`bin/harness version` が動作 | - | cc:TODO |
-| 35.0.2 | pkg/hookproto: HookInput/HookOutput の型定義 + stdin JSON パース + response builder | hook protocol の全フィールドが Go struct で定義され、テストが通る | 35.0.1 | cc:TODO |
-| 35.0.3 | internal/config/safefile.go: symlink-safe な JSONL append + rotation (500行) + safe mkdir/read | JSONL の書込・ローテーションのテストが通る | 35.0.1 | cc:TODO |
-| 35.0.4 | internal/config: env detection (CLAUDE_PLUGIN_ROOT, CLAUDE_PLUGIN_DATA, PROJECT_ROOT) + state dir + paths | 環境変数の検出とパス解決のテストが通る | 35.0.1 | cc:TODO |
+合計: **27 タスク**
 
-### Phase 35.1: Guardrail Engine [P0]
+### 完成基準 (Definition of Done — Phase 35 全体)
 
-Purpose: ホットパス。毎回のツール呼び出しで評価される保護ルール
+Phase 35 は以下の **全項目** を満たした時点で完成とする。
 
-| Task | 内容 | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 35.1.1 | internal/guardrail/engine.go: ルール評価ループ + rules.go: R01-R13 の宣言的ルールテーブル | 全ルールのユニットテストが通り、deny/allow/warn の判定が正確 | 35.0.2 | cc:TODO |
-| 35.1.2 | internal/guardrail/pretool.go: PreToolUse handler (secrets, tampering, protected paths, dangerous ops, skills gate, inbox check) | 現行 pre-tool.sh + pretooluse-guard.sh + pretooluse-inbox-check.sh と同等の保護が Go で動作 | 35.1.1, 35.0.3, 35.0.4 | cc:TODO |
-| 35.1.3 | internal/guardrail/posttool.go + permission.go: PostToolUse advisory + PermissionRequest conditional eval | 現行 post-tool.sh, permission.sh と同等 | 35.1.1, 35.0.3, 35.0.4 | cc:TODO |
+| # | 基準 | 検証方法 | 必須/推奨 |
+|---|------|---------|----------|
+| 1 | **Node.js ランタイム依存ゼロ**: Go 正本 hook から `node`/`core/dist` 参照なし。allowlist: codex-companion.sh, 未移行 scripts/*.js | `grep -rE "node\|core/dist" hooks/` + allowlist 照合 | 必須 |
+| 2 | **フック応答 p99 < 10ms**: PreToolUse の最も重い経路 (SQLite 参照あり) | `hyperfine` 100 回 (空DB/肥大化DB/競合DB) | 必須 |
+| 3 | **ガードレールパリティ**: R01-R13 の全テストケースが Go テストで PASS | `go test ./internal/guard/...` | 必須 |
+| 4 | **公式プロトコル準拠**: Protocol Truth Table (SPEC.md §2) の documented フィールドが動作。experimental は未実装、unknown は無視 | E2E テストで各フィールド検証 | 必須 |
+| 5 | **設定一元化**: `harness.toml` → `harness sync` → CC 正常動作 | `harness sync && validate-plugin.sh` PASS | 必須 |
+| 6 | **dual hooks.json 解消**: `harness sync` で hooks.json + .claude-plugin/hooks.json 自動同期 | `check-consistency.sh` PASS | 必須 |
+| 7 | **既存スキル・エージェント動作**: 全 30+ スキル + 3 エージェントが Go 環境で正常動作 | hook event matrix による E2E (全 hook event カバー) | 必須 |
+| 8 | **State 移行整合性**: 旧 state.db → 新パス移行が可逆。export/import + rollback toggle | `harness doctor --migration` PASS | 必須 |
+| 9 | **スクリプト移行率 80%+**: 127 本中 100 本以上が Go サブコマンドに吸収 | `harness doctor` 移行レポート | 推奨 |
+| 10 | **クロスプラットフォームビルド**: darwin-arm64, darwin-amd64, linux-amd64 | CI クロスコンパイル成功 | 推奨 |
+| 11 | **バイナリサイズ < 10MB**: strip + 最適化済み | `ls -lh bin/harness` | 推奨 |
 
-### Phase 35.2: Session Lifecycle [P1]
+**最小完成条件**: 基準 1-8 (必須 8 項目) を全て満たせば v4.0.0 リリース可能。基準 9-11 は v4.1.0 以降で達成可。
 
-Purpose: セッション開始〜終了〜圧縮の状態管理
+詳細仕様: [go/SPEC.md](go/SPEC.md)
 
-| Task | 内容 | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 35.2.1 | internal/session: start (env setup, memory bridge init, skills gate state 初期化, resume 時は session.json/events.jsonl 復元 + recovery warning 再注入), stop (summary, WIP check), session-end (cleanup) | SessionStart（startup + resume 分岐）/Stop/SessionEnd が 1 binary で完結し、skills gate と resume 復元フローが維持される | 35.0.4 | cc:TODO |
-| 35.2.2 | internal/session/compact.go: PreCompact save + PostCompact WIP restore (systemMessage) | コンテキスト圧縮前後で WIP 状態が保持される | 35.2.1 | cc:TODO |
-| 35.2.3 | internal/agent/tracker.go: SubagentStart/Stop tracking + trace.go: JSONL + OTel span | エージェントの開始/停止が記録され、OTel endpoint 設定時にスパンが送信される | 35.0.3, 35.0.4 | cc:TODO |
+---
 
-### Phase 35.3: Notifications + Plans [P1]
+### Phase 35.0: プロトコル + ガードレール [P0]
 
-Purpose: 外部通知・Plans.md 操作・残り全 hook event
-
-| Task | 内容 | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 35.3.1 | internal/notify: webhook (HARNESS_WEBHOOK_URL) + otel (OTLP HTTP) + broadcast (inter-session) | webhook/OTel が sync with timeout で送信され、未設定時はスキップ。短命プロセスで配送保証 | 35.0.4 | cc:TODO |
-| 35.3.2 | internal/plans: parser (5-column table) + marker (status update) + effort scoring | Plans.md のパースとタスク状態管理が Go で動作 | 35.0.1 | cc:TODO |
-| 35.3.3 | UserPromptSubmit + TaskCreated/Completed + PermissionDenied + Notification handlers | 残りの全 hook event が 1 binary で処理される | 35.2.1, 35.3.1 | cc:TODO |
-
-### Phase 35.4: Integration + Build + Test [P2]
-
-Purpose: hooks.json 簡略版・ビルド配布・統合テスト（review は skill prompt で完結のため除外、MCP は分離プロセス維持）
+Purpose: `pre-tool.sh` → `node core/dist/index.js` の呼び出しチェーンを `harness hook pre-tool` 単一バイナリに置換し、p99 < 10ms を達成する
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.4.1 | hooks.json（`hooks/` と `.claude-plugin/` の両方）を簡略版に統一。全 command hooks を `bin/harness hook` または `worker` サブコマンドに統一。agent hooks はそのまま残す。sync-plugin-cache.sh を更新して `bin/harness*` バイナリもキャッシュ同期対象に追加 | 両 hooks.json が簡略化・同期済み、バイナリがキャッシュに含まれ、全 event handler が動作し、agent hooks が保持されている | 35.1.2, 35.1.3, 35.2.1, 35.2.2, 35.2.3, 35.3.3 | cc:TODO |
-| 35.4.2 | Makefile: build (local) + release (5 platform cross-compile) + test + lint | `make release` で 5 バイナリが生成される | 35.0.1 | cc:TODO |
-| 35.4.3 | 統合テスト: 全 hook event の stdin→stdout 検証 + guardrail rule テスト + safefile テストを Go test で実装 | `go test ./...` で全テストが通る | 35.4.1 | cc:TODO |
+| 35.0.1 | Go モジュール初期化 + `pkg/protocol/types.go` で公式 stdin/stdout JSON スキーマに完全準拠した型定義 | `transcript_path`, `permission_mode`, `hook_event_name`, `defer`, `updatedInput`, `additionalContext` が型に含まれる | - | cc:完了 |
+| 35.0.2 | `internal/guard/rules.go` に R01-R13 全ルールを 1:1 移植 + `internal/hook/codec.go` で stdin パーサー実装 | 58 テスト全 PASS | 35.0.1 | cc:完了 |
+| 35.0.3 | `cmd/harness/main.go` CLI + PreToolUse/PostToolUse/PermissionRequest ハンドラ + `bin/harness` ビルド | E2E 8 シナリオ PASS、p99 5ms | 35.0.2 | cc:完了 |
+| 35.0.4 | hook shim 3 本 (`pre-tool.sh`, `post-tool.sh`, `permission.sh`) を Go バイナリ直呼びに書き換え | Node.js フォールバック削除、バイナリ未発見時は明確なエラー | 35.0.3 | cc:完了 |
+
+---
+
+### Phase 35.1: SQLite 状態層 [P0]
+
+Purpose: `core/src/state/` の Go 移植 + `${CLAUDE_PLUGIN_DATA}` 永続ストレージ活用
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 35.1.1 | `internal/state/schema.go` — 既存 DDL (sessions, signals, task_failures, work_states, schema_meta) + assumptions テーブル追加 | マイグレーション付きスキーマ初期化が動作 | 35.0.3 | cc:未着手 |
+| 35.1.2 | `internal/state/store.go` — HarnessStore の Go 移植 (WAL mode, busy timeout 5s) | 3 goroutine 並列 INSERT/SELECT でデッドロックなし | 35.1.1 | cc:未着手 |
+| 35.1.3 | `pre_tool.go` の BuildContext に SQLite work_states 参照を統合 | session_id 付き入力で DB から codexMode/workMode を取得 | 35.1.2 | cc:未着手 |
+
+---
+
+### Phase 35.2: 統合設定 [P0]
+
+Purpose: `harness.toml` → CC 必須ファイル自動生成で dual hooks.json sync 問題を根本解決
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 35.2.1 | `pkg/config/toml.go` — harness.toml パーサー ([project], [safety], [agent], [env], [hooks], [telemetry] セクション)。Mapping Table は SPEC.md §5 に準拠 | TOML パース + バリデーション + unsupported key rejection | 35.0.3 | cc:未着手 |
+| 35.2.2 | `harness sync` — harness.toml → hooks.json + settings.json (permissions/sandbox/env/agent) + plugin.json 自動生成 | 生成ファイルと現行ファイルが機能等価 | 35.2.1 | cc:未着手 |
+| 35.2.3 | `harness init` サブコマンド — プロジェクト初期化 (harness.toml テンプレート生成) | 新規プロジェクトで `harness init && harness sync` が動作 | 35.2.2 | cc:未着手 |
+| 35.2.4 | dual hooks.json 同期スクリプト (`sync-plugin-cache.sh`) を `harness sync` に統合 | `sync-plugin-cache.sh` が `harness sync` のラッパーになる | 35.2.2 | cc:未着手 |
+
+---
+
+### Phase 35.3: ハンドラ統合 [P1]
+
+Purpose: 127 スクリプトをカテゴリ別に Go サブコマンドへ段階的に吸収
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 35.3.1 | hook-handlers/ (~20本) を `harness hook <event>` サブコマンドに統合 | session-env-setup, memory-bridge, post-tool-failure 等が Go で動作 | 35.2.2 | cc:未着手 |
+| 35.3.2 | session-* (~8本) を `harness session <action>` に統合 | session-init, session-cleanup, session-monitor 等が Go で動作 | 35.3.1 | cc:未着手 |
+| 35.3.3 | codex-companion.sh は Go 統合 **対象外** (SPEC.md 決定事項)。shell wrapper を維持 | 変更なし (SPEC.md に方針文書化済み) | - | cc:完了 |
+| 35.3.4 | evidence/ + ci/ スクリプトを `harness ci` / `harness evidence` に統合 | CI ステータスチェック、エビデンス収集が Go で動作 | 35.3.2 | cc:未着手 |
+| 35.3.5 | 未移行スクリプトの `run-hook.sh` フォールバック維持 + 移行進捗ダッシュボード | `harness doctor` で移行状況を一覧表示 | 35.3.1 | cc:未着手 |
+
+---
+
+### Phase 35.4: エージェントライフサイクル [P1]
+
+Purpose: SPAWNING→RUNNING→REVIEWING→APPROVED→COMMITTED 状態マシン + 4段階リカバリ
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 35.4.1 | `internal/lifecycle/state.go` — 状態マシン定義 + 遷移ルール。SPEC.md §8 のフル状態 (FAILED/CANCELLED/STALE/RECOVERING/ABORTED 含む) | 不正遷移を型レベルで防止、異常系状態が全て定義済み | 35.3.2 | cc:未着手 |
+| 35.4.2 | `internal/lifecycle/recovery.go` — 4段階リカバリ (自己修復→仲間修復→指揮官介入→停止) | 各段階のトリガー条件と動作が定義済み | 35.4.1 | cc:未着手 |
+| 35.4.3 | SubagentStart/Stop フックとの統合 | 状態遷移が SQLite に永続化され、`harness status` で表示 | 35.4.2, 35.1.2 | cc:未着手 |
+
+---
+
+### Phase 35.5: スキル検証 [P1]
+
+Purpose: SKILL.md frontmatter の型安全バリデーション
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 35.5.1 | `harness validate skills` — 全 SKILL.md の frontmatter を公式スキーマに照合 | name, description, allowed-tools 等の必須フィールド検証 | 35.2.1 | cc:未着手 |
+| 35.5.2 | `harness validate agents` — agents/*.md の frontmatter 検証 | model, effort, maxTurns 等の型チェック | 35.5.1 | cc:未着手 |
+
+---
+
+### Phase 35.6: Breezing 並行処理 [P2]
+
+Purpose: goroutine + worktree による安全な並列タスク実行
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 35.6.1 | `internal/breezing/orchestrator.go` — Worker/Reviewer の goroutine 管理 | 最大並列数制御、graceful shutdown | 35.4.3 | cc:未着手 |
+| 35.6.2 | worktree 自動作成/クリーンアップの Go 実装 | CC の WorktreeCreate/Remove フックと連携 | 35.6.1 | cc:未着手 |
+| 35.6.3 | タスク依存関係の自動解決 + file-lock claiming | 依存タスクの自動 unblock が動作 | 35.6.2 | cc:未着手 |
+
+---
+
+### Phase 35.7: npm 配布 + クロスコンパイル [P2]
+
+Purpose: `bin/` ディレクトリ活用による Go バイナリ配布
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 35.7.1 | クロスコンパイルスクリプト (darwin-arm64, darwin-amd64, linux-amd64)。SQLite は pure Go (modernc.org/sqlite) で CGO 不要 | 3 プラットフォームのバイナリ生成 | 35.3.1 | cc:未着手 |
+| 35.7.2 | npm パッケージ設定 + postinstall でプラットフォーム別バイナリ配置 | `npm install` で `bin/harness` が PATH に配置 | 35.7.1 | cc:未着手 |
+| 35.7.3 | 旧パッケージへの移行通知 + GitHub Release 自動化 | リリースワークフローで Go バイナリが含まれる | 35.7.2 | cc:未着手 |
 
 ---
 

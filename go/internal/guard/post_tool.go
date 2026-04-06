@@ -1,0 +1,225 @@
+package guard
+
+import (
+	"fmt"
+	"regexp"
+	"strings"
+
+	"github.com/Chachamaru127/claude-code-harness/go/pkg/protocol"
+)
+
+// ---------------------------------------------------------------------------
+// Security risk patterns (ported from post-tool.ts detectSecurityRisks)
+// ---------------------------------------------------------------------------
+
+type securityPattern struct {
+	Pattern *regexp.Regexp
+	Message string
+}
+
+var securityPatterns = []securityPattern{
+	{
+		Pattern: regexp.MustCompile(`(?i)process\.env\.[A-Z_]+.*(?:password|secret|key|token)`),
+		Message: "機密情報を環境変数から直接文字列に埋め込んでいる可能性があります",
+	},
+	{
+		Pattern: regexp.MustCompile(`(?i)eval\s*\(\s*(?:request|req|input|param|query)`),
+		Message: "ユーザー入力を eval() に渡すコードを検出しました（RCE リスク）",
+	},
+	{
+		Pattern: regexp.MustCompile(`exec\s*\(\s*` + "`" + `[^` + "`" + `]*\$\{`),
+		Message: "テンプレートリテラルを exec() に渡すコードを検出しました（コマンドインジェクションリスク）",
+	},
+	{
+		Pattern: regexp.MustCompile(`innerHTML\s*=\s*(?:.*\+.*|` + "`" + `[^` + "`" + `]*\$\{)`),
+		Message: "ユーザー入力を innerHTML に設定しているコードを検出しました（XSS リスク）",
+	},
+	{
+		Pattern: regexp.MustCompile(`(?i)(?:password|passwd|secret|api_key|apikey)\s*=\s*["'][^"']{8,}["']`),
+		Message: "ハードコードされた機密情報（パスワード/APIキー）を検出しました",
+	},
+}
+
+func detectSecurityRisks(content string) []string {
+	var warnings []string
+	for _, sp := range securityPatterns {
+		if sp.Pattern.MatchString(content) {
+			warnings = append(warnings, sp.Message)
+		}
+	}
+	return warnings
+}
+
+// ---------------------------------------------------------------------------
+// Test tampering patterns (ported from tampering.ts)
+// ---------------------------------------------------------------------------
+
+type tamperingPattern struct {
+	ID           string
+	Description  string
+	Pattern      *regexp.Regexp
+	TestFileOnly bool
+}
+
+var tamperingPatterns = []tamperingPattern{
+	{ID: "T01:it-skip", Description: "it.skip / describe.skip によるテストスキップ",
+		Pattern: regexp.MustCompile(`(?:it|test|describe|context)\.skip\s*\(`), TestFileOnly: true},
+	{ID: "T02:xit-xdescribe", Description: "xit / xdescribe によるテスト無効化",
+		Pattern: regexp.MustCompile(`\b(?:xit|xtest|xdescribe)\s*\(`), TestFileOnly: true},
+	{ID: "T03:pytest-skip", Description: "pytest.mark.skip によるテストスキップ",
+		Pattern: regexp.MustCompile(`@pytest\.mark\.(?:skip|xfail)\b`), TestFileOnly: true},
+	{ID: "T04:go-skip", Description: "t.Skip() によるテストスキップ",
+		Pattern: regexp.MustCompile(`\bt\.Skip(?:f|Now)?\s*\(`), TestFileOnly: true},
+	{ID: "T05:expect-removed", Description: "expect / assert が削除された可能性（コメントアウト）",
+		Pattern: regexp.MustCompile(`//\s*expect\s*\(`), TestFileOnly: true},
+	{ID: "T06:assert-commented", Description: "assert 呼び出しがコメントアウトされた",
+		Pattern: regexp.MustCompile(`//\s*assert(?:Equal|NotEqual|True|False|Nil|Error)?\s*\(`), TestFileOnly: true},
+	{ID: "T07:todo-assert", Description: "TODO コメントによってアサーションが置き換えられた",
+		Pattern: regexp.MustCompile(`(?i)//\s*TODO.*assert|//\s*TODO.*expect`), TestFileOnly: true},
+	{ID: "T08:eslint-disable", Description: "eslint-disable による lint ルール無効化",
+		Pattern: regexp.MustCompile(`(?m)(?://\s*eslint-disable(?:-next-line|-line)?(?:\s+[^\n]+)?$|/\*\s*eslint-disable\b[^*]*\*/)`), TestFileOnly: false},
+	{ID: "T09:ci-continue-on-error", Description: "continue-on-error: true による CI 失敗無視",
+		Pattern: regexp.MustCompile(`continue-on-error\s*:\s*true`), TestFileOnly: false},
+	{ID: "T10:ci-if-always", Description: "if: always() による CI ステップ強制実行",
+		Pattern: regexp.MustCompile(`if\s*:\s*always\s*\(\s*\)`), TestFileOnly: false},
+	{ID: "T11:hardcoded-answer", Description: "テスト期待値のハードコード（辞書返し）",
+		Pattern: regexp.MustCompile(`answers?_for_tests?\s*=\s*\{`), TestFileOnly: true},
+	{ID: "T12:return-hardcoded", Description: "テストケース値を直接 return するパターン",
+		Pattern: regexp.MustCompile(`(?i)return\s+(?:"[^"]*"|'[^']*'|\d+)\s*;\s*//.*(?:test|spec|expect)`), TestFileOnly: true},
+}
+
+var testFilePatterns = []*regexp.Regexp{
+	regexp.MustCompile(`\.test\.[jt]sx?$`),
+	regexp.MustCompile(`\.spec\.[jt]sx?$`),
+	regexp.MustCompile(`\.test\.py$`),
+	regexp.MustCompile(`test_[^/]+\.py$`),
+	regexp.MustCompile(`[^/]+_test\.py$`),
+	regexp.MustCompile(`\.test\.go$`),
+	regexp.MustCompile(`[^/]+_test\.go$`),
+	regexp.MustCompile(`/__tests__/`),
+	regexp.MustCompile(`/tests/`),
+}
+
+var configFilePatterns = []*regexp.Regexp{
+	regexp.MustCompile(`(?:^|/)\.eslintrc(?:\.[^/]+)?$`),
+	regexp.MustCompile(`(?:^|/)eslint\.config\.[^/]+$`),
+	regexp.MustCompile(`(?:^|/)\.prettierrc(?:\.[^/]+)?$`),
+	regexp.MustCompile(`(?:^|/)prettier\.config\.[^/]+$`),
+	regexp.MustCompile(`(?:^|/)tsconfig(?:\.[^/]+)?\.json$`),
+	regexp.MustCompile(`(?:^|/)biome\.json$`),
+	regexp.MustCompile(`(?:^|/)\.stylelintrc(?:\.[^/]+)?$`),
+	regexp.MustCompile(`(?:^|/)(?:jest|vitest)\.config\.[^/]+$`),
+	regexp.MustCompile(`\.github/workflows/[^/]+\.ya?ml$`),
+	regexp.MustCompile(`(?:^|/)\.gitlab-ci\.ya?ml$`),
+	regexp.MustCompile(`(?:^|/)Jenkinsfile$`),
+}
+
+func isTestFile(filePath string) bool {
+	for _, p := range testFilePatterns {
+		if p.MatchString(filePath) {
+			return true
+		}
+	}
+	return false
+}
+
+func isConfigFile(filePath string) bool {
+	for _, p := range configFilePatterns {
+		if p.MatchString(filePath) {
+			return true
+		}
+	}
+	return false
+}
+
+type tamperingWarning struct {
+	PatternID   string
+	Description string
+	MatchedText string
+}
+
+func detectTampering(text string, isTest bool) []tamperingWarning {
+	var warnings []tamperingWarning
+	for _, tp := range tamperingPatterns {
+		if tp.TestFileOnly && !isTest {
+			continue
+		}
+		loc := tp.Pattern.FindStringIndex(text)
+		if loc != nil {
+			matched := text[loc[0]:loc[1]]
+			if len(matched) > 120 {
+				matched = matched[:120]
+			}
+			warnings = append(warnings, tamperingWarning{
+				PatternID:   tp.ID,
+				Description: tp.Description,
+				MatchedText: matched,
+			})
+		}
+	}
+	return warnings
+}
+
+// ---------------------------------------------------------------------------
+// EvaluatePostTool — PostToolUse hook entry point
+// ---------------------------------------------------------------------------
+
+// EvaluatePostTool evaluates post-tool checks (tampering detection + security review).
+// Only Write/Edit/MultiEdit are inspected; all other tools get immediate approve.
+func EvaluatePostTool(input protocol.HookInput) protocol.HookResult {
+	if !matchesWriteEditMultiEdit(input.ToolName) {
+		return protocol.HookResult{Decision: protocol.DecisionApprove}
+	}
+
+	var systemMessages []string
+
+	// Tampering detection
+	filePath, _ := getStringField(input.ToolInput, "file_path")
+	if filePath != "" {
+		isTest := isTestFile(filePath)
+		isConfig := isConfigFile(filePath)
+
+		if isTest || isConfig {
+			content := getChangedContent(input.ToolInput)
+			if content != "" {
+				warnings := detectTampering(content, isTest)
+				if len(warnings) > 0 {
+					fileType := "テストファイル"
+					if !isTest {
+						fileType = "CI/設定ファイル"
+					}
+					var lines []string
+					for _, w := range warnings {
+						lines = append(lines, fmt.Sprintf("- [%s] %s\n  検出箇所: %s", w.PatternID, w.Description, w.MatchedText))
+					}
+					msg := fmt.Sprintf("[Harness v3] テスト改ざん検出警告\n\n%s `%s` に疑わしいパターンが検出されました:\n\n%s\n\n【確認してください】\nこの変更がテストを意図的に無効化したり、実装品質を下げるものでないかを確認してください。\n改ざんと判断した場合は変更を元に戻してください。",
+						fileType, filePath, strings.Join(lines, "\n"))
+					systemMessages = append(systemMessages, msg)
+				}
+			}
+		}
+	}
+
+	// Security risk detection
+	content := getChangedContent(input.ToolInput)
+	if content != "" {
+		secWarnings := detectSecurityRisks(content)
+		if len(secWarnings) > 0 {
+			var lines []string
+			for _, w := range secWarnings {
+				lines = append(lines, fmt.Sprintf("- %s", w))
+			}
+			msg := fmt.Sprintf("[Harness v3] セキュリティリスク検出:\n%s", strings.Join(lines, "\n"))
+			systemMessages = append(systemMessages, msg)
+		}
+	}
+
+	if len(systemMessages) == 0 {
+		return protocol.HookResult{Decision: protocol.DecisionApprove}
+	}
+
+	return protocol.HookResult{
+		Decision:      protocol.DecisionApprove,
+		SystemMessage: strings.Join(systemMessages, "\n\n---\n\n"),
+	}
+}

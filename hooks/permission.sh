@@ -1,4 +1,10 @@
 #!/bin/bash
-# permission.sh — Harness v3 PermissionRequest 薄いシム
-# stdin JSON → core エンジン → stdout JSON
-node "${CLAUDE_PLUGIN_ROOT}/core/dist/index.js" permission
+# permission.sh — Harness PermissionRequest hook shim
+if command -v harness >/dev/null 2>&1; then
+  harness hook permission
+elif [ -x "${CLAUDE_PLUGIN_ROOT}/bin/harness" ]; then
+  "${CLAUDE_PLUGIN_ROOT}/bin/harness" hook permission
+else
+  echo '{"decision":"approve","reason":"harness binary not found"}' >&2
+  exit 1
+fi

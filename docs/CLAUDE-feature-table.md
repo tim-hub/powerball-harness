@@ -169,6 +169,14 @@
 | **`--resume` prompt-cache miss fix (v2.1.90)** | session | v2.1.69 以降の回帰バグ修正。deferred tools/MCP/agents 使用時の resume キャッシュミス。CC 自動継承 |
 | **SSE/transcript performance (v2.1.90)** | all skills | SSE フレーム O(n²)→O(n)、transcript writes 二次関数→線形。CC 自動継承 |
 | **`/powerup` interactive lessons (v2.1.90)** | — | Claude Code 機能学習のアニメーションデモ。CC 自動継承 |
+| **MCP `maxResultSizeChars` 500K (v2.1.91)** | hooks, setup | MCP ツール結果の最大サイズを `_meta["anthropic/maxResultSizeChars"]` で 500K まで拡張。大きな harness-mem 結果等で活用可能 |
+| **`disableSkillShellExecution` setting (v2.1.91)** | setup, guardrails | スキル内の shell 実行を無効化。セキュリティ要件が高い環境向け設定 |
+| **Plugin `bin/` directory (v2.1.91)** | setup | プラグインが `bin/` ディレクトリにコンパイル済みバイナリを同梱可能。将来の配布形態拡張候補 |
+| **Transcript chain breaks fix (v2.1.91)** | session | `--resume` 時の transcript 途切れを修正。CC 自動継承 |
+| **Subagent spawning fix (v2.1.92)** | breezing | 「Could not determine pane count」修正。Breezing 安定性向上。CC 自動継承 |
+| **`forceRemoteSettingsRefresh` (v2.1.92)** | — | Teams/Enterprise 向け fail-closed remote settings。CC 自動継承 |
+| **`/cost` per-model breakdown (v2.1.92)** | all skills | モデル別・キャッシュヒット別コスト内訳。CC 自動継承 |
+| **Linux `apply-seccomp` helper (v2.1.92)** | setup | sandbox unix-socket ブロッキング強化。CC 自動継承 |
 
 ## 機能詳細
 
