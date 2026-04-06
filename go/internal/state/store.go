@@ -707,6 +707,153 @@ func (s *HarnessStore) GetAssumptions(sessionID string) ([]Assumption, error) {
 }
 
 // ============================================================
+// agent_states 管理
+// ============================================================
+
+// AgentStateRecord は agent_states テーブルの 1 行を表す。
+type AgentStateRecord struct {
+	AgentID          string  `json:"agent_id"`
+	AgentType        string  `json:"agent_type"`
+	SessionID        string  `json:"session_id"`
+	State            string  `json:"state"`
+	StartedAt        string  `json:"started_at"`         // ISO 8601
+	StoppedAt        *string `json:"stopped_at,omitempty"` // ISO 8601
+	RecoveryAttempts int     `json:"recovery_attempts"`
+}
+
+// UpsertAgentState はエージェント状態を登録または更新する。
+// 既存の agent_id がある場合は state, stopped_at, recovery_attempts を更新する。
+func (s *HarnessStore) UpsertAgentState(rec AgentStateRecord) error {
+	startedAt, err := parseISOToUnix(rec.StartedAt)
+	if err != nil {
+		return fmt.Errorf("parse started_at: %w", err)
+	}
+
+	var stoppedAt interface{}
+	if rec.StoppedAt != nil {
+		t, tErr := parseISOToUnix(*rec.StoppedAt)
+		if tErr != nil {
+			return fmt.Errorf("parse stopped_at: %w", tErr)
+		}
+		stoppedAt = t
+	}
+
+	_, err = s.db.Exec(
+		`INSERT INTO agent_states(agent_id, agent_type, session_id, state, started_at, stopped_at, recovery_attempts)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(agent_id) DO UPDATE SET
+           state             = excluded.state,
+           stopped_at        = excluded.stopped_at,
+           recovery_attempts = excluded.recovery_attempts`,
+		rec.AgentID,
+		rec.AgentType,
+		rec.SessionID,
+		rec.State,
+		startedAt,
+		stoppedAt,
+		rec.RecoveryAttempts,
+	)
+	return err
+}
+
+// GetAgentState は指定した agent_id のエージェント状態を取得する。
+// 存在しない場合は nil を返す。
+func (s *HarnessStore) GetAgentState(agentID string) (*AgentStateRecord, error) {
+	var (
+		agentIDOut       string
+		agentType        string
+		sessionID        string
+		state            string
+		startedAt        int64
+		stoppedAt        sql.NullInt64
+		recoveryAttempts int
+	)
+
+	err := s.db.QueryRow(
+		`SELECT agent_id, agent_type, session_id, state, started_at, stopped_at, recovery_attempts
+         FROM agent_states WHERE agent_id = ?`,
+		agentID,
+	).Scan(&agentIDOut, &agentType, &sessionID, &state, &startedAt, &stoppedAt, &recoveryAttempts)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("query agent_state: %w", err)
+	}
+
+	rec := &AgentStateRecord{
+		AgentID:          agentIDOut,
+		AgentType:        agentType,
+		SessionID:        sessionID,
+		State:            state,
+		StartedAt:        unixToISO(startedAt),
+		RecoveryAttempts: recoveryAttempts,
+	}
+	if stoppedAt.Valid {
+		s := unixToISO(stoppedAt.Int64)
+		rec.StoppedAt = &s
+	}
+
+	return rec, nil
+}
+
+// ListAgentStates は全エージェント状態を started_at 昇順で返す。
+// onlyActive が true の場合、stopped_at が NULL のレコードのみを返す。
+func (s *HarnessStore) ListAgentStates(onlyActive bool) ([]AgentStateRecord, error) {
+	query := `SELECT agent_id, agent_type, session_id, state, started_at, stopped_at, recovery_attempts
+              FROM agent_states`
+	if onlyActive {
+		query += ` WHERE stopped_at IS NULL`
+	}
+	query += ` ORDER BY started_at ASC`
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("query agent_states: %w", err)
+	}
+	defer rows.Close()
+
+	var result []AgentStateRecord
+	for rows.Next() {
+		var (
+			agentID          string
+			agentType        string
+			sessionID        string
+			state            string
+			startedAt        int64
+			stoppedAt        sql.NullInt64
+			recoveryAttempts int
+		)
+		if scanErr := rows.Scan(&agentID, &agentType, &sessionID, &state, &startedAt, &stoppedAt, &recoveryAttempts); scanErr != nil {
+			return nil, fmt.Errorf("scan agent_state row: %w", scanErr)
+		}
+
+		rec := AgentStateRecord{
+			AgentID:          agentID,
+			AgentType:        agentType,
+			SessionID:        sessionID,
+			State:            state,
+			StartedAt:        unixToISO(startedAt),
+			RecoveryAttempts: recoveryAttempts,
+		}
+		if stoppedAt.Valid {
+			st := unixToISO(stoppedAt.Int64)
+			rec.StoppedAt = &st
+		}
+		result = append(result, rec)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate agent_state rows: %w", err)
+	}
+
+	if result == nil {
+		return []AgentStateRecord{}, nil
+	}
+	return result, nil
+}
+
+// ============================================================
 // ユーティリティ
 // ============================================================
 

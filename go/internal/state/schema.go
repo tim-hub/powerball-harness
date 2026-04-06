@@ -114,6 +114,27 @@ CREATE TABLE IF NOT EXISTS assumptions (
   validated_at INTEGER
 )`
 
+// createAgentStates はエージェントのライフサイクル状態を永続化するテーブルの DDL。
+// SubagentStart/Stop フックで記録され、harness status で表示される。
+// agent_id: CC が発行するエージェント識別子（PK）
+// agent_type: worker | reviewer | scaffolder 等
+// session_id: 親セッション識別子
+// state: SPAWNING | RUNNING | REVIEWING | APPROVED | COMMITTED | FAILED |
+//         CANCELLED | STALE | RECOVERING | ABORTED
+// started_at: 開始時刻（Unix タイムスタンプ秒）
+// stopped_at: 停止時刻（NULL = 実行中）
+// recovery_attempts: リカバリ試行回数
+const createAgentStates = `
+CREATE TABLE IF NOT EXISTS agent_states (
+  agent_id          TEXT    NOT NULL PRIMARY KEY,
+  agent_type        TEXT    NOT NULL DEFAULT '',
+  session_id        TEXT    NOT NULL DEFAULT '',
+  state             TEXT    NOT NULL DEFAULT 'SPAWNING',
+  started_at        INTEGER NOT NULL,
+  stopped_at        INTEGER,
+  recovery_attempts INTEGER NOT NULL DEFAULT 0 CHECK(recovery_attempts >= 0)
+)`
+
 // ============================================================
 // インデックス定義
 // ============================================================
@@ -132,6 +153,10 @@ var createIndexes = []string{
      ON assumptions(session_id, created_at)`,
 	`CREATE INDEX IF NOT EXISTS idx_assumptions_task
      ON assumptions(task_id, created_at)`,
+	`CREATE INDEX IF NOT EXISTS idx_agent_states_session
+     ON agent_states(session_id, started_at)`,
+	`CREATE INDEX IF NOT EXISTS idx_agent_states_state
+     ON agent_states(state, started_at)`,
 }
 
 // ============================================================
@@ -150,6 +175,7 @@ func init() {
 		createTaskFailures,
 		createWorkStates,
 		createAssumptions,
+		createAgentStates,
 	)
 	allDDL = append(allDDL, createIndexes...)
 }
