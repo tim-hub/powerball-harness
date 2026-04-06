@@ -138,9 +138,9 @@ Purpose: goroutine + worktree による安全な並列タスク実行
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.6.1 | `internal/breezing/orchestrator.go` — Worker/Reviewer の goroutine 管理 | 最大並列数制御、graceful shutdown | 35.4.3 | cc:未着手 |
-| 35.6.2 | worktree 自動作成/クリーンアップの Go 実装 | CC の WorktreeCreate/Remove フックと連携 | 35.6.1 | cc:未着手 |
-| 35.6.3 | タスク依存関係の自動解決 + file-lock claiming | 依存タスクの自動 unblock が動作 | 35.6.2 | cc:未着手 |
+| 35.6.1 | `internal/breezing/orchestrator.go` — Worker/Reviewer の goroutine 管理 | 最大並列数制御、graceful shutdown | 35.4.3 | cc:完了 |
+| 35.6.2 | worktree 自動作成/クリーンアップの Go 実装 | CC の WorktreeCreate/Remove フックと連携 | 35.6.1 | cc:完了 |
+| 35.6.3 | タスク依存関係の自動解決 + file-lock claiming | 依存タスクの自動 unblock が動作 | 35.6.2 | cc:完了 |
 
 ---
 
