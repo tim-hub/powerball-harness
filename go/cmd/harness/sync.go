@@ -91,26 +91,40 @@ func resolveProjectRoot(args []string) (string, error) {
 // pluginJSON is the schema for .claude-plugin/plugin.json.
 // Fields that are not set in harness.toml are omitted from the output.
 type pluginJSON struct {
-	Name        string            `json:"name,omitempty"`
-	Version     string            `json:"version,omitempty"`
-	Description string            `json:"description,omitempty"`
-	Author      pluginAuthorField `json:"author,omitempty"`
-	Homepage    string            `json:"homepage,omitempty"`
+	Name         string       `json:"name,omitempty"`
+	Version      string       `json:"version,omitempty"`
+	Description  string       `json:"description,omitempty"`
+	Author       interface{}  `json:"author,omitempty"`
+	Homepage     string       `json:"homepage,omitempty"`
+	Repository   string       `json:"repository,omitempty"`
+	License      string       `json:"license,omitempty"`
+	Keywords     []string     `json:"keywords,omitempty"`
+	OutputStyles string       `json:"outputStyles,omitempty"`
 }
 
-// pluginAuthorField represents the author field. When the value is a plain
-// string (as in harness.toml) we write it as a string in the JSON.
-// plugin.json allows either a string or an object; we use the string form
-// to keep harness.toml simple.
-type pluginAuthorField = string
-
 func generatePluginJSON(projectRoot string, cfg *config.Config) error {
+	// Author: preserve object form if URL is set, otherwise use string
+	var author interface{}
+	name := cfg.Project.AuthorName()
+	url := cfg.Project.AuthorURL()
+	if name != "" {
+		if url != "" {
+			author = map[string]string{"name": name, "url": url}
+		} else {
+			author = name
+		}
+	}
+
 	p := pluginJSON{
-		Name:        cfg.Project.Name,
-		Version:     cfg.Project.Version,
-		Description: cfg.Project.Description,
-		Author:      cfg.Project.Author,
-		Homepage:    cfg.Project.Homepage,
+		Name:         cfg.Project.Name,
+		Version:      cfg.Project.Version,
+		Description:  cfg.Project.Description,
+		Author:       author,
+		Homepage:     cfg.Project.Homepage,
+		Repository:   cfg.Project.Repository,
+		License:      cfg.Project.License,
+		Keywords:     cfg.Project.Keywords,
+		OutputStyles: cfg.Project.OutputStyles,
 	}
 
 	data, err := marshalPretty(p)

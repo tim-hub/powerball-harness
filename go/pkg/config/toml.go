@@ -35,11 +35,38 @@ type Config struct {
 // ProjectConfig maps to [project] in harness.toml.
 // These fields are reflected to .claude-plugin/plugin.json.
 type ProjectConfig struct {
-	Name        string `toml:"name"`
-	Version     string `toml:"version"`
-	Description string `toml:"description"`
-	Author      string `toml:"author"`
-	Homepage    string `toml:"homepage"`
+	Name         string      `toml:"name"`
+	Version      string      `toml:"version"`
+	Description  string      `toml:"description"`
+	Author       interface{} `toml:"author"`
+	Homepage     string      `toml:"homepage"`
+	Repository   string      `toml:"repository"`
+	License      string      `toml:"license"`
+	Keywords     []string    `toml:"keywords"`
+	OutputStyles string      `toml:"outputStyles"`
+}
+
+// AuthorName returns the author name regardless of format (string or object).
+func (c *ProjectConfig) AuthorName() string {
+	switch v := c.Author.(type) {
+	case string:
+		return v
+	case map[string]interface{}:
+		if name, ok := v["name"].(string); ok {
+			return name
+		}
+	}
+	return ""
+}
+
+// AuthorURL returns the author URL if the author is an object form.
+func (c *ProjectConfig) AuthorURL() string {
+	if m, ok := c.Author.(map[string]interface{}); ok {
+		if url, ok := m["url"].(string); ok {
+			return url
+		}
+	}
+	return ""
 }
 
 // AgentConfig maps to [agent] in harness.toml.
