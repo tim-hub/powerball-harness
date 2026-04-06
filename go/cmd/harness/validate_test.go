@@ -412,6 +412,127 @@ description: "A real agent"
 	}
 }
 
+func TestValidateAgents_ValidWithFullFields(t *testing.T) {
+	dir := t.TempDir()
+	writeAgentFile(t, dir, "full-agent", `---
+name: full-agent
+description: "An agent with all optional fields set"
+model: claude-opus-4-6
+effort: low
+maxTurns: 100
+tools: ["Read", "Write", "Edit"]
+disallowedTools: ["Bash"]
+skills: ["harness-review"]
+background: true
+isolation: worktree
+---
+
+# Full Agent
+`)
+
+	errs, count := validateAgentsDir(filepath.Join(dir, "agents"))
+	if count != 1 {
+		t.Errorf("expected 1 agent checked, got %d", count)
+	}
+	if len(errs) != 0 {
+		t.Errorf("expected no errors for valid full-field agent, got: %v", errs)
+	}
+}
+
+func TestValidateAgents_InvalidModel(t *testing.T) {
+	dir := t.TempDir()
+	writeAgentFile(t, dir, "bad-model-agent", `---
+name: bad-model-agent
+model: gpt-4-turbo
+---
+`)
+
+	errs, _ := validateAgentsDir(filepath.Join(dir, "agents"))
+	if !containsError(errs, "model") {
+		t.Errorf("expected model validation error, got: %v", errs)
+	}
+}
+
+func TestValidateAgents_InvalidIsolation(t *testing.T) {
+	dir := t.TempDir()
+	writeAgentFile(t, dir, "bad-isolation", `---
+name: bad-isolation
+isolation: sandbox
+---
+`)
+
+	errs, _ := validateAgentsDir(filepath.Join(dir, "agents"))
+	if !containsError(errs, "isolation") {
+		t.Errorf("expected isolation validation error, got: %v", errs)
+	}
+}
+
+func TestValidateAgents_ValidIsolationWorktree(t *testing.T) {
+	dir := t.TempDir()
+	writeAgentFile(t, dir, "worktree-agent", `---
+name: worktree-agent
+isolation: worktree
+---
+`)
+
+	errs, _ := validateAgentsDir(filepath.Join(dir, "agents"))
+	if len(errs) != 0 {
+		t.Errorf("expected no errors for isolation: worktree, got: %v", errs)
+	}
+}
+
+func TestValidateAgents_InvalidDisallowedToolsNotList(t *testing.T) {
+	dir := t.TempDir()
+	writeAgentFile(t, dir, "bad-disallowed", `---
+name: bad-disallowed
+disallowedTools: "Bash"
+---
+`)
+
+	errs, _ := validateAgentsDir(filepath.Join(dir, "agents"))
+	if !containsError(errs, "disallowedTools") {
+		t.Errorf("expected disallowedTools parse error, got: %v", errs)
+	}
+}
+
+func TestValidateAgents_InvalidBackground(t *testing.T) {
+	dir := t.TempDir()
+	writeAgentFile(t, dir, "bad-background", `---
+name: bad-background
+background: yes
+---
+`)
+
+	errs, _ := validateAgentsDir(filepath.Join(dir, "agents"))
+	if !containsError(errs, "background") {
+		t.Errorf("expected background validation error, got: %v", errs)
+	}
+}
+
+func TestValidateAgents_MaxTurnsNotInteger(t *testing.T) {
+	dir := t.TempDir()
+	writeAgentFile(t, dir, "nan-turns", `---
+name: nan-turns
+maxTurns: many
+---
+`)
+
+	errs, _ := validateAgentsDir(filepath.Join(dir, "agents"))
+	if !containsError(errs, "maxTurns") {
+		t.Errorf("expected maxTurns parse error, got: %v", errs)
+	}
+}
+
+func TestValidateAgents_NonexistentDir(t *testing.T) {
+	errs, count := validateAgentsDir("/tmp/harness-test-nonexistent-agents-dir-xyz")
+	if count != 0 {
+		t.Errorf("expected count 0 for missing dir, got %d", count)
+	}
+	if len(errs) != 0 {
+		t.Errorf("expected no errors for missing dir, got: %v", errs)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // validateSkillsDir: nonexistent directory
 // ---------------------------------------------------------------------------

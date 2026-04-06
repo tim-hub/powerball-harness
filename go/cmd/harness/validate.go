@@ -39,11 +39,16 @@ type skillFrontmatter struct {
 
 // agentFrontmatter holds parsed agent *.md frontmatter fields.
 type agentFrontmatter struct {
-	name        string
-	description string
-	model       string
-	effort      string
-	maxTurns    *int
+	name            string
+	description     string
+	model           string
+	effort          string
+	maxTurns        *int
+	tools           []string
+	disallowedTools []string
+	skills          []string
+	background      *bool
+	isolation       string
 }
 
 // validModelNames is the set of recognized Claude model identifiers.
@@ -343,6 +348,7 @@ func parseAgentFrontmatter(path string) (agentFrontmatter, []validationError) {
 	fm.description = kv["description"]
 	fm.model = kv["model"]
 	fm.effort = kv["effort"]
+	fm.isolation = kv["isolation"]
 
 	if v, ok := kv["maxTurns"]; ok {
 		n, parseErr := strconv.Atoi(strings.TrimSpace(v))
@@ -350,6 +356,42 @@ func parseAgentFrontmatter(path string) (agentFrontmatter, []validationError) {
 			errs = append(errs, validationError{file: path, message: fmt.Sprintf("maxTurns: must be an integer, got %q", v)})
 		} else {
 			fm.maxTurns = &n
+		}
+	}
+
+	if v, ok := kv["tools"]; ok && v != "" {
+		tools, parseErr := parseStringSlice(v)
+		if parseErr != nil {
+			errs = append(errs, validationError{file: path, message: fmt.Sprintf("tools: %v", parseErr)})
+		} else {
+			fm.tools = tools
+		}
+	}
+
+	if v, ok := kv["disallowedTools"]; ok && v != "" {
+		tools, parseErr := parseStringSlice(v)
+		if parseErr != nil {
+			errs = append(errs, validationError{file: path, message: fmt.Sprintf("disallowedTools: %v", parseErr)})
+		} else {
+			fm.disallowedTools = tools
+		}
+	}
+
+	if v, ok := kv["skills"]; ok && v != "" {
+		skills, parseErr := parseStringSlice(v)
+		if parseErr != nil {
+			errs = append(errs, validationError{file: path, message: fmt.Sprintf("skills: %v", parseErr)})
+		} else {
+			fm.skills = skills
+		}
+	}
+
+	if v, ok := kv["background"]; ok && v != "" {
+		b, parseErr := parseBool(v)
+		if parseErr != nil {
+			errs = append(errs, validationError{file: path, message: fmt.Sprintf("background: %v", parseErr)})
+		} else {
+			fm.background = &b
 		}
 	}
 
@@ -381,6 +423,14 @@ func validateAgentFields(path string, fm agentFrontmatter) []validationError {
 		errs = append(errs, validationError{
 			file:    path,
 			message: fmt.Sprintf(`maxTurns must be a positive integer, got %d`, *fm.maxTurns),
+		})
+	}
+
+	// isolation must be "worktree" if set
+	if fm.isolation != "" && fm.isolation != "worktree" {
+		errs = append(errs, validationError{
+			file:    path,
+			message: fmt.Sprintf(`isolation %q is invalid; only "worktree" is accepted`, fm.isolation),
 		})
 	}
 
