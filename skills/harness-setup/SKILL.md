@@ -1,8 +1,8 @@
 ---
 name: harness-setup
-description: "Harness v3 統合セットアップスキル。プロジェクト初期化・ツール設定・2エージェント構成・メモリ設定・公開 skill mirror 同期を担当。以下で起動: セットアップ、初期化、新規プロジェクト、CIセットアップ、codex CLIセットアップ、harness-mem、エージェント設定、symlink、mirror、harness-setup。実装・レビュー・リリース・プランニングには使わない。"
-description-en: "Unified setup skill for Harness v3. Project init, tool setup, 2-agent config, memory setup, and public skill mirror sync. Use when user mentions: setup, initialization, new project, CI setup, codex CLI setup, harness-mem, agent setup, symlinks, mirrors, harness-setup. Do NOT load for: implementation, code review, release, or planning."
-description-ja: "Harness v3 統合セットアップスキル。プロジェクト初期化・ツール設定・2エージェント構成・メモリ設定・公開 skill mirror 同期を担当。以下で起動: セットアップ、初期化、新規プロジェクト、CIセットアップ、codex CLIセットアップ、harness-mem、エージェント設定、symlink、mirror、harness-setup。実装・レビュー・リリース・プランニングには使わない。"
+description: "v4 統合セットアップスキル。プロジェクト初期化・ツール設定・2エージェント構成・メモリ設定・公開 skill mirror 同期を担当。以下で起動: セットアップ、初期化、新規プロジェクト、CIセットアップ、codex CLIセットアップ、harness-mem、エージェント設定、symlink、mirror、harness-setup。実装・レビュー・リリース・プランニングには使わない。"
+description-en: "Unified setup skill for Harness v4. Project init, tool setup, 2-agent config, memory setup, and public skill mirror sync. Use when user mentions: setup, initialization, new project, CI setup, codex CLI setup, harness-mem, agent setup, symlinks, mirrors, harness-setup. Do NOT load for: implementation, code review, release, or planning."
+description-ja: "v4 統合セットアップスキル。プロジェクト初期化・ツール設定・2エージェント構成・メモリ設定・公開 skill mirror 同期を担当。以下で起動: セットアップ、初期化、新規プロジェクト、CIセットアップ、codex CLIセットアップ、harness-mem、エージェント設定、symlink、mirror、harness-setup。実装・レビュー・リリース・プランニングには使わない。"
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
 argument-hint: "[init|ci|codex|harness-mem|mirrors|agents|localize]"
 effort: medium
@@ -10,7 +10,7 @@ effort: medium
 
 # Harness Setup (v3)
 
-Harness v3 の統合セットアップスキル。
+v4 統合セットアップスキル。
 以下の旧スキルを統合:
 
 - `setup` — 統合セットアップハブ
@@ -34,7 +34,7 @@ Harness v3 の統合セットアップスキル。
 
 ### init — プロジェクト初期化
 
-新規プロジェクトに Harness v3 を導入する。
+新規プロジェクトに Harness を導入する。
 
 **生成ファイル**:
 ```

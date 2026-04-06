@@ -1,8 +1,8 @@
 ---
 name: harness-release
-description: "Harness v3 統合リリーススキル。CHANGELOG・バージョンバンプ・タグ・GitHub Release・mirror同期・検証を自動化。以下で起動: リリース、バージョンバンプ、タグ作成、公開、/harness-release。実装・コードレビュー・プランニング・セットアップには使わない。"
-description-en: "Unified release skill for Harness v3. CHANGELOG, version bump, tag, GitHub Release, mirror sync, and validation automation. Use when user mentions: release, version bump, create tag, publish, /harness-release. Do NOT load for: implementation, code review, planning, or setup."
-description-ja: "Harness v3 統合リリーススキル。CHANGELOG・バージョンバンプ・タグ・GitHub Release・mirror同期・検証を自動化。以下で起動: リリース、バージョンバンプ、タグ作成、公開、/harness-release。実装・コードレビュー・プランニング・セットアップには使わない。"
+description: "v4 統合リリーススキル。CHANGELOG・バージョンバンプ・タグ・GitHub Release・mirror同期・検証を自動化。以下で起動: リリース、バージョンバンプ、タグ作成、公開、/harness-release。実装・コードレビュー・プランニング・セットアップには使わない。"
+description-en: "Unified release skill for Harness v4. CHANGELOG, version bump, tag, GitHub Release, mirror sync, and validation automation. Use when user mentions: release, version bump, create tag, publish, /harness-release. Do NOT load for: implementation, code review, planning, or setup."
+description-ja: "v4 統合リリーススキル。CHANGELOG・バージョンバンプ・タグ・GitHub Release・mirror同期・検証を自動化。以下で起動: リリース、バージョンバンプ、タグ作成、公開、/harness-release。実装・コードレビュー・プランニング・セットアップには使わない。"
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[patch|minor|major|--dry-run|--announce|--complete]"
 context: fork
@@ -11,7 +11,7 @@ effort: high
 
 # Harness Release (v3)
 
-Harness v3 の統合リリーススキル。
+v4 統合リリーススキル。
 以下の旧スキルを統合:
 
 - `release-har` -- 汎用リリース自動化
