@@ -135,7 +135,9 @@ func (wm *WorktreeManager) CleanupStale() []string {
 
 	var cleaned []string
 	for _, path := range stale {
-		if err := wm.Remove(path, true); err == nil {
+		if err := wm.Remove(path, true); err != nil {
+			fmt.Fprintf(os.Stderr, "worktree cleanup: %s: %v\n", path, err)
+		} else {
 			cleaned = append(cleaned, path)
 		}
 	}

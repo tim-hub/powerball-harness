@@ -125,7 +125,11 @@ func (dg *DependencyGraph) MarkFailed(taskID string) []string {
 func (dg *DependencyGraph) DetectCycle() []string {
 	dg.mu.RLock()
 	defer dg.mu.RUnlock()
+	return dg.detectCycleLocked()
+}
 
+// detectCycleLocked はロック取得済み前提の cycle 検出。
+func (dg *DependencyGraph) detectCycleLocked() []string {
 	visited := make(map[string]bool)
 	inStack := make(map[string]bool)
 	var cyclePath []string
@@ -169,14 +173,15 @@ func (dg *DependencyGraph) DetectCycle() []string {
 
 // TopologicalOrder は依存関係に基づくトポロジカルソート順を返す。
 // 循環がある場合はエラーを返す。
+// 単一ロック内で cycle 検出 + ソートを行い TOCTOU を防ぐ。
 func (dg *DependencyGraph) TopologicalOrder() ([]string, error) {
-	cycle := dg.DetectCycle()
-	if len(cycle) > 0 {
-		return nil, fmt.Errorf("circular dependency detected: %s", strings.Join(cycle, " → "))
-	}
-
 	dg.mu.RLock()
 	defer dg.mu.RUnlock()
+
+	// inline cycle detection
+	if cycle := dg.detectCycleLocked(); len(cycle) > 0 {
+		return nil, fmt.Errorf("circular dependency detected: %s", strings.Join(cycle, " → "))
+	}
 
 	inDegree := make(map[string]int)
 	for id := range dg.tasks {
@@ -264,6 +269,7 @@ func NewFileLock(lockDir string) *FileLock {
 // Claim はファイルに対するロックを取得する。
 // 既に他のオーナーがロックしている場合はエラーを返す。
 func (fl *FileLock) Claim(filePath, ownerID string) error {
+	filePath = filepath.Clean(filePath)
 	fl.mu.Lock()
 	defer fl.mu.Unlock()
 
@@ -289,6 +295,7 @@ func (fl *FileLock) Claim(filePath, ownerID string) error {
 // Release はファイルのロックを解放する。
 // ownerID が一致しない場合はエラーを返す。
 func (fl *FileLock) Release(filePath, ownerID string) error {
+	filePath = filepath.Clean(filePath)
 	fl.mu.Lock()
 	defer fl.mu.Unlock()
 
@@ -317,6 +324,7 @@ func (fl *FileLock) ReleaseAll(ownerID string) {
 
 // Owner はファイルのロックオーナーを返す。ロックされていない場合は空文字列。
 func (fl *FileLock) Owner(filePath string) string {
+	filePath = filepath.Clean(filePath)
 	fl.mu.Lock()
 	defer fl.mu.Unlock()
 	return fl.locks[filePath]

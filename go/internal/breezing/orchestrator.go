@@ -78,8 +78,11 @@ type Orchestrator struct {
 	// maxParallel は最大並列実行数。
 	maxParallel int
 	// tracker はエージェントライフサイクル追跡。
+	// workerFn 内で tracker.HandleStart/HandleStop を呼ぶ想定。
+	// Orchestrator 自身は tracker を直接操作しない（workerFn に委譲）。
 	tracker *lifecycle.AgentTracker
 	// store は SQLite 永続化ストア（nil 許容）。
+	// workerFn 内で state 永続化に使用する想定。
 	store *state.HarnessStore
 
 	// workerFn は各タスクの実行関数。
