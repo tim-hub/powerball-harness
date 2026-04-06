@@ -2,10 +2,15 @@
 //
 // Phase 0 implements the hook subcommands:
 //
-//	harness hook pre-tool     — PreToolUse guardrail evaluation
-//	harness hook post-tool    — PostToolUse tampering/security checks
-//	harness hook permission   — PermissionRequest auto-approval
-//	harness version           — Print version
+//	harness hook pre-tool          — PreToolUse guardrail evaluation
+//	harness hook post-tool         — PostToolUse tampering/security checks
+//	harness hook permission        — PermissionRequest auto-approval
+//	harness hook session-start     — SessionStart env setup
+//	harness hook post-tool-failure — PostToolUseFailure counter & escalation
+//	harness hook post-compact      — PostCompact WIP context re-injection
+//	harness hook notification      — Notification event logging
+//	harness hook permission-denied — PermissionDenied event logging
+//	harness version                — Print version
 //
 // Usage in hooks.json:
 //
@@ -18,6 +23,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Chachamaru127/claude-code-harness/go/internal/event"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/guard"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/hook"
 	"github.com/Chachamaru127/claude-code-harness/go/pkg/protocol"
@@ -64,25 +70,63 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "Usage: harness <command>")
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Commands:")
-	fmt.Fprintln(os.Stderr, "  hook pre-tool      Evaluate PreToolUse guardrails")
-	fmt.Fprintln(os.Stderr, "  hook post-tool     Evaluate PostToolUse checks")
-	fmt.Fprintln(os.Stderr, "  hook permission    Evaluate PermissionRequest")
-	fmt.Fprintln(os.Stderr, "  init [root]        Create harness.toml template in project root")
-	fmt.Fprintln(os.Stderr, "  sync [root]        Generate CC files from harness.toml")
+	fmt.Fprintln(os.Stderr, "  hook pre-tool           Evaluate PreToolUse guardrails")
+	fmt.Fprintln(os.Stderr, "  hook post-tool          Evaluate PostToolUse checks")
+	fmt.Fprintln(os.Stderr, "  hook permission         Evaluate PermissionRequest")
+	fmt.Fprintln(os.Stderr, "  hook session-start      SessionStart env setup (writes CLAUDE_ENV_FILE)")
+	fmt.Fprintln(os.Stderr, "  hook post-tool-failure  PostToolUseFailure counter & escalation")
+	fmt.Fprintln(os.Stderr, "  hook post-compact       PostCompact WIP context re-injection")
+	fmt.Fprintln(os.Stderr, "  hook notification       Notification event logging")
+	fmt.Fprintln(os.Stderr, "  hook permission-denied  PermissionDenied event logging + Worker retry")
+	fmt.Fprintln(os.Stderr, "  init [root]             Create harness.toml template in project root")
+	fmt.Fprintln(os.Stderr, "  sync [root]             Generate CC files from harness.toml")
 	fmt.Fprintln(os.Stderr, "  validate [skills|agents|all] [root]  Validate SKILL.md / agent frontmatter")
 	fmt.Fprintln(os.Stderr, "  doctor [--migration] [root]          Health check; --migration shows hook migration status")
-	fmt.Fprintln(os.Stderr, "  version            Print version")
+	fmt.Fprintln(os.Stderr, "  version                 Print version")
 }
 
 func runHook(hookType string) {
-	input, err := hook.ReadInput(os.Stdin)
-	if err != nil {
-		// Empty input or parse error → safe approve
-		result := hook.SafeResult(err)
-		hook.WriteResult(os.Stdout, result)
-		return
+	switch hookType {
+	// --- event handlers (no tool_name validation) ---
+	case "session-start":
+		h := &event.SessionEnvHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "session-start handler error: %v\n", err)
+		}
+	case "post-tool-failure":
+		h := &event.PostToolFailureHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "post-tool-failure handler error: %v\n", err)
+		}
+	case "post-compact":
+		h := &event.PostCompactHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "post-compact handler error: %v\n", err)
+		}
+	case "notification":
+		h := &event.NotificationHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "notification handler error: %v\n", err)
+		}
+	case "permission-denied":
+		h := &event.PermissionDeniedHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "permission-denied handler error: %v\n", err)
+		}
+	default:
+		// guard-fastpath handlers require tool_name validation
+		input, err := hook.ReadInput(os.Stdin)
+		if err != nil {
+			// Empty input or parse error → safe approve
+			result := hook.SafeResult(err)
+			hook.WriteResult(os.Stdout, result)
+			return
+		}
+		runGuardHook(hookType, input)
 	}
+}
 
+func runGuardHook(hookType string, input protocol.HookInput) {
 	switch hookType {
 	case "pre-tool":
 		runPreTool(input)
