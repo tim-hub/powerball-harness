@@ -14,6 +14,7 @@ resolve_harness_mem_root() {
   repo_parent="$(cd "${repo_root}/.." && pwd)"
 
   for candidate in \
+    "${HOME}/.harness-mem/runtime/harness-mem" \
     "${repo_parent}/harness-mem" \
     "${HOME}/LocalWork/Code/CC-harness/harness-mem" \
     "${HOME}/Desktop/Code/CC-harness/harness-mem"
