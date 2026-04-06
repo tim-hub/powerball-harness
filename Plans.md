@@ -151,8 +151,8 @@ Purpose: `bin/` ディレクトリ活用による Go バイナリ配布
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
 | 35.7.1 | クロスコンパイル (darwin-arm64/amd64, linux-amd64)。CGO_ENABLED=0 + modernc.org/sqlite | 3バイナリ全て6.6-6.8MB | 35.3.1 | cc:完了 |
-| 35.7.2 | npm パッケージ設定 + postinstall でプラットフォーム別バイナリ配置 | `npm install` で `bin/harness` が PATH に配置 | 35.7.1 | cc:未着手 |
-| 35.7.3 | 旧パッケージへの移行通知 + GitHub Release 自動化 | リリースワークフローで Go バイナリが含まれる | 35.7.2 | cc:未着手 |
+| 35.7.2 | npm パッケージ設定 + postinstall でプラットフォーム別バイナリ配置 | `npm install` で `bin/harness` が PATH に配置 | 35.7.1 | cc:完了 |
+| 35.7.3 | 旧パッケージへの移行通知 + GitHub Release 自動化 | リリースワークフローで Go バイナリが含まれる | 35.7.2 | cc:完了 |
 
 ---
 

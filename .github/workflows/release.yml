@@ -57,6 +57,15 @@ jobs:
           # Write to file to preserve newlines
           echo "$BODY" > /tmp/release-body.md
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Build Go binaries
+        run: |
+          cd go && bash scripts/build-all.sh
+
       - name: Create GitHub Release
         if: steps.check.outputs.exists == 'false'
         env:
@@ -68,6 +77,23 @@ jobs:
           gh release create "$TAG" \
             --title "$TAG" \
             --notes-file /tmp/release-body.md \
-            --verify-tag
+            --verify-tag \
+            bin/harness-darwin-arm64 \
+            bin/harness-darwin-amd64 \
+            bin/harness-linux-amd64
 
-          echo "✅ Safety-net release created for $TAG"
+          echo "✅ Release created for $TAG with Go binaries"
+
+      - name: Upload Go binaries to existing release
+        if: steps.check.outputs.exists == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+
+          # Upload binaries if not already attached
+          for bin in bin/harness-darwin-arm64 bin/harness-darwin-amd64 bin/harness-linux-amd64; do
+            gh release upload "$TAG" "$bin" --clobber 2>/dev/null || true
+          done
+
+          echo "✅ Go binaries uploaded to $TAG"
