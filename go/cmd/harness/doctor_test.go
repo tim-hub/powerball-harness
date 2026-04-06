@@ -1,0 +1,492 @@
+package main
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// ---------------------------------------------------------------------------
+// helpers
+// ---------------------------------------------------------------------------
+
+// writeHooksJSON writes a hooks.json file at relPath under dir.
+func writeHooksJSON(t *testing.T, dir, relPath string, schema hooksJSONSchema) {
+	t.Helper()
+	data, err := json.MarshalIndent(schema, "", "  ")
+	if err != nil {
+		t.Fatalf("marshal hooks.json: %v", err)
+	}
+	full := filepath.Join(dir, relPath)
+	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+		t.Fatalf("mkdir %s: %v", filepath.Dir(full), err)
+	}
+	if err := os.WriteFile(full, data, 0o644); err != nil {
+		t.Fatalf("write %s: %v", full, err)
+	}
+}
+
+// makeHooksSchema is a convenience builder for test schemas.
+func makeHooksSchema(events map[string][]hookGroup) hooksJSONSchema {
+	return hooksJSONSchema{Hooks: events}
+}
+
+// ---------------------------------------------------------------------------
+// TestDoctor_ClassifyCommand
+// ---------------------------------------------------------------------------
+
+// TestDoctor_ClassifyCommand verifies that command strings are classified
+// correctly as "go" or "shell".
+func TestDoctor_ClassifyCommand(t *testing.T) {
+	tests := []struct {
+		cmd  string
+		want string
+	}{
+		// Go binary invocations
+		{"harness hook pre-tool", "go"},
+		{"harness hook post-tool", "go"},
+		{"harness hook permission", "go"},
+		{"/usr/local/bin/harness hook pre-tool", "go"},
+		{"./bin/harness hook pre-tool", "go"},
+		// Shell invocations
+		{`bash "${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool.sh"`, "shell"},
+		{`bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh" session-init`, "shell"},
+		{`node "${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js" script-name`, "shell"},
+		// Edge cases
+		{"", "shell"},
+	}
+
+	for _, tc := range tests {
+		got := classifyCommand(tc.cmd)
+		if got != tc.want {
+			t.Errorf("classifyCommand(%q) = %q, want %q", tc.cmd, got, tc.want)
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TestDoctor_MigrationStatus_AllShell
+// ---------------------------------------------------------------------------
+
+// TestDoctor_MigrationStatus_AllShell verifies that a hooks.json containing
+// only shell commands shows 0% migration and no mixed-mode warnings.
+func TestDoctor_MigrationStatus_AllShell(t *testing.T) {
+	dir := t.TempDir()
+
+	schema := makeHooksSchema(map[string][]hookGroup{
+		"PreToolUse": {
+			{Hooks: []hookEntry{
+				{Type: "command", Command: `bash "${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool.sh"`},
+				{Type: "command", Command: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh" pretooluse-inbox-check`},
+			}},
+		},
+		"SessionStart": {
+			{Hooks: []hookEntry{
+				{Type: "command", Command: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh" session-init`},
+			}},
+		},
+	})
+	writeHooksJSON(t, dir, "hooks/hooks.json", schema)
+
+	// Build per-event results using the same logic as runMigrationCheck.
+	events := schema.Hooks
+	eventNames := sortedKeys(events)
+
+	totalEntries := 0
+	totalGo := 0
+	var mixedEvents []string
+
+	for _, event := range eventNames {
+		groups := events[event]
+		goCount := 0
+		shellCount := 0
+		for _, g := range groups {
+			for _, e := range g.Hooks {
+				if e.Type != "command" {
+					continue
+				}
+				totalEntries++
+				if classifyCommand(e.Command) == "go" {
+					goCount++
+					totalGo++
+				} else {
+					shellCount++
+				}
+			}
+		}
+		r := hooksMigrationResult{event: event, total: goCount + shellCount, goCount: goCount, shell: shellCount}
+		if r.status() == "partial" {
+			mixedEvents = append(mixedEvents, event)
+		}
+	}
+
+	if totalGo != 0 {
+		t.Errorf("expected 0 Go entries, got %d", totalGo)
+	}
+	if totalEntries != 3 {
+		t.Errorf("expected 3 total entries, got %d", totalEntries)
+	}
+	if len(mixedEvents) != 0 {
+		t.Errorf("expected no mixed events, got %v", mixedEvents)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TestDoctor_MigrationStatus_Mixed
+// ---------------------------------------------------------------------------
+
+// TestDoctor_MigrationStatus_Mixed verifies that an event containing both Go
+// and shell commands is detected as "partial" and triggers a mixed warning.
+func TestDoctor_MigrationStatus_Mixed(t *testing.T) {
+	dir := t.TempDir()
+
+	schema := makeHooksSchema(map[string][]hookGroup{
+		"PreToolUse": {
+			{Hooks: []hookEntry{
+				{Type: "command", Command: "harness hook pre-tool"},                                            // Go
+				{Type: "command", Command: `bash "${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool.sh"`},                  // shell
+				{Type: "command", Command: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh" inbox-check`},   // shell
+			}},
+		},
+	})
+	writeHooksJSON(t, dir, "hooks/hooks.json", schema)
+
+	events := schema.Hooks
+	eventNames := sortedKeys(events)
+
+	var mixedEvents []string
+	for _, event := range eventNames {
+		groups := events[event]
+		goCount := 0
+		shellCount := 0
+		for _, g := range groups {
+			for _, e := range g.Hooks {
+				if e.Type != "command" {
+					continue
+				}
+				if classifyCommand(e.Command) == "go" {
+					goCount++
+				} else {
+					shellCount++
+				}
+			}
+		}
+		r := hooksMigrationResult{event: event, total: goCount + shellCount, goCount: goCount, shell: shellCount}
+		if r.status() == "partial" {
+			mixedEvents = append(mixedEvents, event)
+		}
+	}
+
+	if len(mixedEvents) == 0 {
+		t.Error("expected mixed-mode warning for PreToolUse, got none")
+	}
+	found := false
+	for _, ev := range mixedEvents {
+		if ev == "PreToolUse" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected PreToolUse in mixed events, got %v", mixedEvents)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TestDoctor_MigrationStatus_FullyMigrated
+// ---------------------------------------------------------------------------
+
+// TestDoctor_MigrationStatus_FullyMigrated verifies that when all command
+// hooks use the harness binary, the status is "go" and no warnings are issued.
+func TestDoctor_MigrationStatus_FullyMigrated(t *testing.T) {
+	dir := t.TempDir()
+
+	schema := makeHooksSchema(map[string][]hookGroup{
+		"PreToolUse": {
+			{Hooks: []hookEntry{
+				{Type: "command", Command: "harness hook pre-tool"},
+			}},
+		},
+		"PostToolUse": {
+			{Hooks: []hookEntry{
+				{Type: "command", Command: "harness hook post-tool"},
+			}},
+		},
+		"PermissionRequest": {
+			{Hooks: []hookEntry{
+				{Type: "command", Command: "harness hook permission"},
+			}},
+		},
+	})
+	writeHooksJSON(t, dir, "hooks/hooks.json", schema)
+
+	events := schema.Hooks
+	eventNames := sortedKeys(events)
+
+	totalGo := 0
+	totalEntries := 0
+	var mixedEvents []string
+
+	for _, event := range eventNames {
+		groups := events[event]
+		goCount := 0
+		shellCount := 0
+		for _, g := range groups {
+			for _, e := range g.Hooks {
+				if e.Type != "command" {
+					continue
+				}
+				totalEntries++
+				if classifyCommand(e.Command) == "go" {
+					goCount++
+					totalGo++
+				} else {
+					shellCount++
+				}
+			}
+		}
+		r := hooksMigrationResult{event: event, total: goCount + shellCount, goCount: goCount, shell: shellCount}
+		if r.status() == "partial" {
+			mixedEvents = append(mixedEvents, event)
+		}
+	}
+
+	if totalGo != 3 || totalEntries != 3 {
+		t.Errorf("expected 3/3 Go entries, got %d/%d", totalGo, totalEntries)
+	}
+	if len(mixedEvents) != 0 {
+		t.Errorf("expected no mixed events, got %v", mixedEvents)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TestDoctor_HooksMigrationResult_Status
+// ---------------------------------------------------------------------------
+
+// TestDoctor_HooksMigrationResult_Status tests the status() method of
+// hooksMigrationResult with various Go/shell combinations.
+func TestDoctor_HooksMigrationResult_Status(t *testing.T) {
+	tests := []struct {
+		name    string
+		total   int
+		goCount int
+		shell   int
+		want    string
+	}{
+		{"empty", 0, 0, 0, "empty"},
+		{"all shell", 3, 0, 3, "shell"},
+		{"all go", 3, 3, 0, "go"},
+		{"partial", 4, 1, 3, "partial"},
+		{"partial equal", 2, 1, 1, "partial"},
+	}
+
+	for _, tc := range tests {
+		r := hooksMigrationResult{
+			event:   "TestEvent",
+			total:   tc.total,
+			goCount: tc.goCount,
+			shell:   tc.shell,
+		}
+		got := r.status()
+		if got != tc.want {
+			t.Errorf("[%s] status() = %q, want %q", tc.name, got, tc.want)
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TestDoctor_DetectHooksDivergence
+// ---------------------------------------------------------------------------
+
+// TestDoctor_DetectHooksDivergence verifies that divergence is detected
+// when hooks/hooks.json and .claude-plugin/hooks.json differ.
+func TestDoctor_DetectHooksDivergence(t *testing.T) {
+	dir := t.TempDir()
+
+	schemaA := makeHooksSchema(map[string][]hookGroup{
+		"PreToolUse": {{Hooks: []hookEntry{{Type: "command", Command: "harness hook pre-tool"}}}},
+	})
+	schemaB := makeHooksSchema(map[string][]hookGroup{
+		"PreToolUse": {{Hooks: []hookEntry{{Type: "command", Command: `bash "${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool.sh"`}}}},
+	})
+
+	writeHooksJSON(t, dir, "hooks/hooks.json", schemaA)
+	writeHooksJSON(t, dir, ".claude-plugin/hooks.json", schemaB)
+
+	paths := []string{
+		filepath.Join(dir, "hooks/hooks.json"),
+		filepath.Join(dir, ".claude-plugin/hooks.json"),
+	}
+
+	if !detectHooksDivergence(paths) {
+		t.Error("expected divergence detected, got false")
+	}
+}
+
+// TestDoctor_DetectHooksDivergence_Identical verifies no divergence is
+// reported when both copies are identical.
+func TestDoctor_DetectHooksDivergence_Identical(t *testing.T) {
+	dir := t.TempDir()
+
+	schema := makeHooksSchema(map[string][]hookGroup{
+		"PreToolUse": {{Hooks: []hookEntry{{Type: "command", Command: `bash "${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool.sh"`}}}},
+	})
+
+	writeHooksJSON(t, dir, "hooks/hooks.json", schema)
+	writeHooksJSON(t, dir, ".claude-plugin/hooks.json", schema)
+
+	paths := []string{
+		filepath.Join(dir, "hooks/hooks.json"),
+		filepath.Join(dir, ".claude-plugin/hooks.json"),
+	}
+
+	if detectHooksDivergence(paths) {
+		t.Error("expected no divergence for identical files, got true")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TestDoctor_CheckJSONFile
+// ---------------------------------------------------------------------------
+
+// TestDoctor_CheckJSONFile verifies that checkJSONFile correctly handles
+// missing files, invalid JSON, and valid JSON.
+func TestDoctor_CheckJSONFile(t *testing.T) {
+	dir := t.TempDir()
+
+	// Missing file
+	r := checkJSONFile(dir, "missing.json")
+	if r.ok {
+		t.Error("expected ok=false for missing file")
+	}
+	if !strings.Contains(r.detail, "not found") {
+		t.Errorf("expected 'not found' in detail, got %q", r.detail)
+	}
+
+	// Invalid JSON
+	invalidPath := filepath.Join(dir, "invalid.json")
+	if err := os.WriteFile(invalidPath, []byte("{bad json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r = checkJSONFile(dir, "invalid.json")
+	if r.ok {
+		t.Error("expected ok=false for invalid JSON")
+	}
+	if !strings.Contains(r.detail, "invalid JSON") {
+		t.Errorf("expected 'invalid JSON' in detail, got %q", r.detail)
+	}
+
+	// Valid JSON
+	validPath := filepath.Join(dir, "valid.json")
+	if err := os.WriteFile(validPath, []byte(`{"key": "value"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r = checkJSONFile(dir, "valid.json")
+	if !r.ok {
+		t.Errorf("expected ok=true for valid JSON, got false (detail: %s)", r.detail)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TestDoctor_CheckStateDB
+// ---------------------------------------------------------------------------
+
+// TestDoctor_CheckStateDB verifies state.db discovery via CLAUDE_PLUGIN_DATA
+// and the fallback .harness/ directory.
+func TestDoctor_CheckStateDB(t *testing.T) {
+	dir := t.TempDir()
+
+	// No state.db anywhere — should still be ok=true (optional)
+	r := checkStateDB(dir)
+	if !r.ok {
+		t.Errorf("expected ok=true when state.db is absent (optional), got false")
+	}
+	if !strings.Contains(r.detail, "not found") {
+		t.Errorf("expected 'not found' in detail, got %q", r.detail)
+	}
+
+	// Create .harness/state.db
+	harnessDir := filepath.Join(dir, ".harness")
+	if err := os.MkdirAll(harnessDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	dbPath := filepath.Join(harnessDir, "state.db")
+	if err := os.WriteFile(dbPath, []byte(""), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	r = checkStateDB(dir)
+	if !r.ok {
+		t.Errorf("expected ok=true when .harness/state.db exists, got false")
+	}
+	if r.detail != dbPath {
+		t.Errorf("expected detail=%q, got %q", dbPath, r.detail)
+	}
+}
+
+// TestDoctor_CheckStateDB_ViaEnv verifies that CLAUDE_PLUGIN_DATA env var
+// is respected when locating state.db.
+func TestDoctor_CheckStateDB_ViaEnv(t *testing.T) {
+	pluginDataDir := t.TempDir()
+
+	// Set the env var for this test
+	t.Setenv("CLAUDE_PLUGIN_DATA", pluginDataDir)
+
+	dbPath := filepath.Join(pluginDataDir, "state.db")
+	if err := os.WriteFile(dbPath, []byte(""), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	projectDir := t.TempDir()
+	r := checkStateDB(projectDir)
+	if !r.ok {
+		t.Errorf("expected ok=true when CLAUDE_PLUGIN_DATA/state.db exists, got false")
+	}
+	if r.detail != dbPath {
+		t.Errorf("expected detail=%q, got %q", dbPath, r.detail)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TestDoctor_NonCommandHooksSkipped
+// ---------------------------------------------------------------------------
+
+// TestDoctor_NonCommandHooksSkipped verifies that agent/prompt/http hooks
+// are not counted in the migration statistics.
+func TestDoctor_NonCommandHooksSkipped(t *testing.T) {
+	schema := makeHooksSchema(map[string][]hookGroup{
+		"PreToolUse": {
+			{Hooks: []hookEntry{
+				{Type: "agent", Command: ""},   // not counted
+				{Type: "prompt", Command: ""},  // not counted
+				{Type: "command", Command: `bash "${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool.sh"`}, // shell
+			}},
+		},
+	})
+
+	events := schema.Hooks
+	totalEntries := 0
+	totalGo := 0
+
+	for _, groups := range events {
+		for _, g := range groups {
+			for _, e := range g.Hooks {
+				if e.Type != "command" {
+					continue
+				}
+				totalEntries++
+				if classifyCommand(e.Command) == "go" {
+					totalGo++
+				}
+			}
+		}
+	}
+
+	if totalEntries != 1 {
+		t.Errorf("expected 1 command entry (agent/prompt skipped), got %d", totalEntries)
+	}
+	if totalGo != 0 {
+		t.Errorf("expected 0 Go entries, got %d", totalGo)
+	}
+}

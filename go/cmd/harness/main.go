@@ -45,6 +45,8 @@ func main() {
 		runSync(os.Args[2:])
 	case "validate":
 		runValidate(os.Args[2:])
+	case "doctor":
+		runDoctor(os.Args[2:])
 	case "version":
 		fmt.Println(version)
 	case "--version", "-v":
@@ -68,6 +70,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  init [root]        Create harness.toml template in project root")
 	fmt.Fprintln(os.Stderr, "  sync [root]        Generate CC files from harness.toml")
 	fmt.Fprintln(os.Stderr, "  validate [skills|agents|all] [root]  Validate SKILL.md / agent frontmatter")
+	fmt.Fprintln(os.Stderr, "  doctor [--migration] [root]          Health check; --migration shows hook migration status")
 	fmt.Fprintln(os.Stderr, "  version            Print version")
 }
 
