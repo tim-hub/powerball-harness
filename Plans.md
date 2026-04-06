@@ -101,11 +101,11 @@ Purpose: 127 スクリプトをカテゴリ別に Go サブコマンドへ段階
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.3.1 | hook-handlers/ (~20本) を `harness hook <event>` サブコマンドに統合 | session-env-setup, memory-bridge, post-tool-failure 等が Go で動作 | 35.2.2 | cc:未着手 |
+| 35.3.1 | hook-handlers 5本を Go に移植 (session-env, post-tool-failure, post-compact, notification, permission-denied) | 25テスト PASS、symlink チェック付き | 35.2.2 | cc:完了 |
 | 35.3.2 | session-* (~8本) を `harness session <action>` に統合 | session-init, session-cleanup, session-monitor 等が Go で動作 | 35.3.1 | cc:未着手 |
 | 35.3.3 | codex-companion.sh は Go 統合 **対象外** (SPEC.md 決定事項)。shell wrapper を維持 | 変更なし (SPEC.md に方針文書化済み) | - | cc:完了 |
 | 35.3.4 | evidence/ + ci/ スクリプトを `harness ci` / `harness evidence` に統合 | CI ステータスチェック、エビデンス収集が Go で動作 | 35.3.2 | cc:未着手 |
-| 35.3.5 | 未移行スクリプトの `run-hook.sh` フォールバック維持 + 移行進捗ダッシュボード | `harness doctor` で移行状況を一覧表示 | 35.3.1 | cc:未着手 |
+| 35.3.5 | `harness doctor` + `--migration` で hook 移行状況を一覧表示。mixed-mode 警告、hooks.json divergence 検出 | `harness doctor` 11テスト PASS | 35.3.1 | cc:完了 |
 
 ---
 
@@ -128,7 +128,7 @@ Purpose: SKILL.md frontmatter の型安全バリデーション
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
 | 35.5.1 | `harness validate skills` — 全 SKILL.md の frontmatter を公式スキーマに照合。正規表現ベース (外部 YAML 依存なし) | name, description 必須フィールド + オプション型検証 | 35.2.1 | cc:完了 |
-| 35.5.2 | `harness validate agents` — agents/*.md の frontmatter 検証 | model, effort, maxTurns 等の型チェック | 35.5.1 | cc:未着手 |
+| 35.5.2 | `harness validate agents` — agents/*.md の frontmatter 検証 (tools, disallowedTools, isolation, background, maxTurns) | 22テスト PASS | 35.5.1 | cc:完了 |
 
 ---
 
