@@ -3,6 +3,7 @@ package guard
 import (
 	"os"
 
+	"github.com/Chachamaru127/claude-code-harness/go/internal/state"
 	"github.com/Chachamaru127/claude-code-harness/go/pkg/protocol"
 )
 
@@ -12,7 +13,13 @@ func isTruthy(value string) bool {
 }
 
 // BuildContext constructs a RuleContext from a HookInput and environment variables.
-// Priority: environment variables (SQLite integration deferred to Phase 1).
+// Priority:
+//  1. Environment variables (explicit overrides)
+//  2. SQLite state DB (session-level state: codex_mode, work_mode)
+//  3. Defaults (false / empty)
+//
+// The SQLite lookup is best-effort: any DB error is silently ignored so that
+// the hook fast-path remains available even when the DB is unreachable.
 func BuildContext(input protocol.HookInput) protocol.RuleContext {
 	projectRoot := input.CWD
 	if projectRoot == "" {
@@ -25,10 +32,25 @@ func BuildContext(input protocol.HookInput) protocol.RuleContext {
 		projectRoot, _ = os.Getwd()
 	}
 
+	// 環境変数ベースの値（明示的なオーバーライド）
 	workMode := isTruthy(os.Getenv("HARNESS_WORK_MODE")) ||
 		isTruthy(os.Getenv("ULTRAWORK_MODE"))
 	codexMode := isTruthy(os.Getenv("HARNESS_CODEX_MODE"))
 	breezingRole := os.Getenv("HARNESS_BREEZING_ROLE")
+
+	// SQLite から work_states を補完する（セッション ID がある場合のみ）
+	// フック高速パスの制約（SPEC.md §12）に従い、I/O エラーは無視する。
+	if input.SessionID != "" && !workMode && !codexMode {
+		dbPath := state.ResolveStatePath(projectRoot)
+		if ws, err := loadWorkStateFromDB(dbPath, input.SessionID); err == nil && ws != nil {
+			if ws.CodexMode {
+				codexMode = true
+			}
+			if ws.WorkMode {
+				workMode = true
+			}
+		}
+	}
 
 	return protocol.RuleContext{
 		Input:        input,
@@ -37,6 +59,29 @@ func BuildContext(input protocol.HookInput) protocol.RuleContext {
 		CodexMode:    codexMode,
 		BreezingRole: breezingRole,
 	}
+}
+
+// loadWorkStateFromDB は指定した DB パスから work_state を取得する。
+// DB が存在しない・読み取れない場合は (nil, nil) を返す（エラーを伝播させない）。
+// これにより hooks の fast-path がファイルシステムの問題で止まることを防ぐ。
+func loadWorkStateFromDB(dbPath, sessionID string) (*state.WorkState, error) {
+	// DB ファイルが存在しない場合は開かない（スロースタートの防止）
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		return nil, nil
+	}
+
+	store, err := state.NewHarnessStore(dbPath)
+	if err != nil {
+		return nil, nil //nolint:nilerr // best-effort: DB エラーを伝播させない
+	}
+	defer store.Close()
+
+	ws, err := store.GetWorkState(sessionID)
+	if err != nil {
+		return nil, nil //nolint:nilerr // best-effort
+	}
+
+	return ws, nil
 }
 
 // EvaluatePreTool is the PreToolUse hook entry point.
