@@ -1,4 +1,4 @@
-// Package guard implements the Harness v3 declarative guardrail rules engine.
+// Package guard implements the Harness v4 declarative guardrail rules engine.
 //
 // All 13 rules (R01–R13) are ported 1:1 from core/src/guardrails/rules.ts.
 // Each rule is a (toolPattern, evaluate) pair evaluated in order;

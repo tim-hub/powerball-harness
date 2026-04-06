@@ -192,7 +192,7 @@ func EvaluatePostTool(input protocol.HookInput) protocol.HookResult {
 					for _, w := range warnings {
 						lines = append(lines, fmt.Sprintf("- [%s] %s\n  検出箇所: %s", w.PatternID, w.Description, w.MatchedText))
 					}
-					msg := fmt.Sprintf("[Harness v3] テスト改ざん検出警告\n\n%s `%s` に疑わしいパターンが検出されました:\n\n%s\n\n【確認してください】\nこの変更がテストを意図的に無効化したり、実装品質を下げるものでないかを確認してください。\n改ざんと判断した場合は変更を元に戻してください。",
+					msg := fmt.Sprintf("[v4] テスト改ざん検出警告\n\n%s `%s` に疑わしいパターンが検出されました:\n\n%s\n\n【確認してください】\nこの変更がテストを意図的に無効化したり、実装品質を下げるものでないかを確認してください。\n改ざんと判断した場合は変更を元に戻してください。",
 						fileType, filePath, strings.Join(lines, "\n"))
 					systemMessages = append(systemMessages, msg)
 				}
@@ -209,7 +209,7 @@ func EvaluatePostTool(input protocol.HookInput) protocol.HookResult {
 			for _, w := range secWarnings {
 				lines = append(lines, fmt.Sprintf("- %s", w))
 			}
-			msg := fmt.Sprintf("[Harness v3] セキュリティリスク検出:\n%s", strings.Join(lines, "\n"))
+			msg := fmt.Sprintf("[v4] セキュリティリスク検出:\n%s", strings.Join(lines, "\n"))
 			systemMessages = append(systemMessages, msg)
 		}
 	}
