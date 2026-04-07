@@ -1,7 +1,0 @@
-{
-  "timestamp": "2026-04-06T03:16:32Z",
-  "changed_file": "cmd/harness/sync.go",
-  "test_command": "go test ./...",
-  "related_test": "",
-  "recommendation": "テストの実行を推奨します"
-}

@@ -276,3 +276,11 @@ out/
 !/mcp-server/src/tools/
 /mcp-server/src/tools/*
 !/mcp-server/src/tools/memory.ts
+
+# Go build artifacts and internal state
+go/.claude/
+go/harness
+bin/harness-*
+
+# Hook output artifacts (broken directory names from JSON responses)
+{*}
