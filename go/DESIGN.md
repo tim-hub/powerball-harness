@@ -33,12 +33,12 @@ harness-go/
 │
 ├── internal/
 │   ├── guardrail/               # Guardrail engine (hot path, PreToolUse/PostToolUse/Permission)
-│   │   ├── engine.go            # Rule evaluation loop
-│   │   ├── rules.go             # Declarative rule table (R01-R13+)
-│   │   ├── pretool.go           # PreToolUse: deny/allow/defer
-│   │   ├── posttool.go          # PostToolUse: advisory checks
+│   │   ├── rules.go             # Declarative rule table (R01-R13+) + evaluation loop
+│   │   ├── helpers.go           # Protected path detection, rm -rf, git push --force, etc.
+│   │   ├── pre_tool.go          # PreToolUse: context build + deny/allow/defer
+│   │   ├── post_tool.go         # PostToolUse: security risk detection + advisory checks
 │   │   ├── permission.go        # PermissionRequest: conditional eval
-│   │   └── tampering.go         # Test/config tampering detection
+│   │   └── tampering.go         # Test/config tampering detection (T01-T12)
 │   │
 │   ├── session/                 # Session lifecycle + agent tracking
 │   │   ├── start.go             # SessionStart: env + memory bridge + init (parallel)
@@ -72,12 +72,11 @@ harness-go/
 │       └── mask.go              # Secret masking for logs/webhook URLs
 │
 ├── pkg/
-│   └── hookproto/               # Hook protocol types (public API)
-│       ├── input.go             # HookInput struct (all fields)
-│       └── output.go            # HookOutput, SystemMessage, Decision, etc.
+│   ├── hookproto/               # Hook protocol types (public API)
+│   │   └── types.go             # HookInput, HookResult, Decision constants, output structs
 │
-├── skills-v3/                   # Skills (Markdown, unchanged)
-├── agents-v3/                   # Agents (Markdown, unchanged)
+├── skills/                   # Skills (Markdown, unchanged)
+├── agents/                   # Agents (Markdown, unchanged)
 ├── .claude-plugin/
 │   ├── plugin.json
 │   ├── hooks.json               # Simplified: all → bin/harness hook <event>
@@ -673,8 +672,8 @@ Worst case total:    5ms
 
 | Component | Format | Reason |
 |-----------|--------|--------|
-| skills-v3/*.md | Markdown | CC がプロンプトとして読む。コンパイル不要 |
-| agents-v3/*.md | Markdown | CC がプロンプトとして読む |
+| skills/*.md | Markdown | CC がプロンプトとして読む。コンパイル不要 |
+| agents/*.md | Markdown | CC がプロンプトとして読む |
 | .claude/rules/*.md | Markdown | CC がルールとして読む |
 | CLAUDE.md | Markdown | CC が instructions として読む |
 | Plans.md | Markdown | Go がパースするが、人間も読む |

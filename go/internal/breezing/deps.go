@@ -273,51 +273,98 @@ func (fl *FileLock) Claim(filePath, ownerID string) error {
 	fl.mu.Lock()
 	defer fl.mu.Unlock()
 
+	// メモリ上で他オーナーが保持していれば即エラー
 	if existing, exists := fl.locks[filePath]; exists && existing != ownerID {
 		return fmt.Errorf("file %q is locked by %q", filePath, existing)
 	}
 
-	fl.locks[filePath] = ownerID
-
-	// ファイルシステムにもロックファイルを書く（プロセス間可視性のため）
+	// ファイルシステムで原子的排他（O_CREATE|O_EXCL）
 	lockFile := fl.lockFilePath(filePath)
 	if err := os.MkdirAll(filepath.Dir(lockFile), 0o755); err != nil {
 		return fmt.Errorf("create lock dir: %w", err)
 	}
 	content := fmt.Sprintf("%s\n%s\n", ownerID, fl.now().UTC().Format(time.RFC3339))
-	if err := os.WriteFile(lockFile, []byte(content), 0o644); err != nil {
+	f, err := os.OpenFile(lockFile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	if err != nil {
+		if os.IsExist(err) {
+			// ロックファイルが既存 — 同一オーナーの再 claim か確認
+			existing, readErr := os.ReadFile(lockFile)
+			if readErr == nil {
+				lines := strings.SplitN(string(existing), "\n", 2)
+				if len(lines) > 0 && strings.TrimSpace(lines[0]) == ownerID {
+					// 同一オーナー — ロックファイルを更新して再 claim を許可
+					_ = os.WriteFile(lockFile, []byte(content), 0o644)
+					fl.locks[filePath] = ownerID
+					return nil
+				}
+			}
+			return fmt.Errorf("file %q is locked by another process: %s", filePath, strings.TrimSpace(string(existing)))
+		}
+		return fmt.Errorf("create lock file: %w", err)
+	}
+	if _, err := f.WriteString(content); err != nil {
+		f.Close()
+		os.Remove(lockFile) // ロールバック: 不完全なロックファイルを削除
 		return fmt.Errorf("write lock file: %w", err)
 	}
+	if err := f.Close(); err != nil {
+		os.Remove(lockFile)
+		return fmt.Errorf("close lock file: %w", err)
+	}
 
+	// ファイルロック成功後にメモリ状態を更新（失敗時はここに到達しない）
+	fl.locks[filePath] = ownerID
 	return nil
 }
 
 // Release はファイルのロックを解放する。
-// ownerID が一致しない場合はエラーを返す。
+// メモリとディスク両方でオーナーを検証し、一致しない場合はエラーを返す。
 func (fl *FileLock) Release(filePath, ownerID string) error {
 	filePath = filepath.Clean(filePath)
 	fl.mu.Lock()
 	defer fl.mu.Unlock()
 
+	// メモリ上のオーナーチェック
 	if existing, exists := fl.locks[filePath]; exists && existing != ownerID {
 		return fmt.Errorf("file %q is locked by %q, not %q", filePath, existing, ownerID)
 	}
 
+	// ディスク上のロックファイルのオーナーも検証（プロセス間安全性）
+	lockFile := fl.lockFilePath(filePath)
+	if data, err := os.ReadFile(lockFile); err == nil {
+		lines := strings.SplitN(string(data), "\n", 2)
+		if len(lines) > 0 {
+			diskOwner := strings.TrimSpace(lines[0])
+			if diskOwner != ownerID {
+				return fmt.Errorf("file %q is locked on disk by %q, not %q", filePath, diskOwner, ownerID)
+			}
+		}
+	}
+
 	delete(fl.locks, filePath)
-	_ = os.Remove(fl.lockFilePath(filePath))
+	_ = os.Remove(lockFile)
 
 	return nil
 }
 
 // ReleaseAll は指定オーナーの全ロックを解放する。
+// メモリ上の所有分のみ解放し、ディスク上のオーナーも検証する。
 func (fl *FileLock) ReleaseAll(ownerID string) {
 	fl.mu.Lock()
 	defer fl.mu.Unlock()
 
 	for filePath, owner := range fl.locks {
 		if owner == ownerID {
+			lockFile := fl.lockFilePath(filePath)
+			// ディスク上のオーナーも検証してから削除
+			if data, err := os.ReadFile(lockFile); err == nil {
+				lines := strings.SplitN(string(data), "\n", 2)
+				if len(lines) > 0 && strings.TrimSpace(lines[0]) != ownerID {
+					continue // ディスク上のオーナーが異なる — 削除しない
+				}
+			}
 			delete(fl.locks, filePath)
-			_ = os.Remove(fl.lockFilePath(filePath))
+			_ = os.Remove(lockFile)
 		}
 	}
 }
@@ -332,7 +379,7 @@ func (fl *FileLock) Owner(filePath string) string {
 
 // lockFilePath はロックファイルのパスを返す。
 func (fl *FileLock) lockFilePath(filePath string) string {
-	// ファイルパスをフラットなファイル���に変換
+	// ファイルパスをフラットなファイル名に変換
 	safe := strings.NewReplacer("/", "__", "\\", "__", ":", "_").Replace(filePath)
 	return filepath.Join(fl.lockDir, safe+".lock")
 }

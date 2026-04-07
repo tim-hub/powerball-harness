@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/state"
-	"github.com/Chachamaru127/claude-code-harness/go/pkg/protocol"
+	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
 )
 
 // TrackedAgent は追跡中の個々のエージェントを表す。
@@ -65,7 +65,7 @@ func NewAgentTracker(store *state.HarnessStore) *AgentTracker {
 // HandleStart は SubagentStart イベントを処理する。
 // 新しい TrackedAgent を登録し、SPAWNING → RUNNING へ遷移する。
 // agent_id が既に登録済みの場合は何もしない（冪等）。
-func (t *AgentTracker) HandleStart(input protocol.HookInput) error {
+func (t *AgentTracker) HandleStart(input hookproto.HookInput) error {
 	agentID := extractAgentID(input)
 	agentType := extractAgentType(input)
 	sessionID := input.SessionID
@@ -121,7 +121,7 @@ func (t *AgentTracker) HandleStart(input protocol.HookInput) error {
 // エージェントを RUNNING → REVIEWING へ遷移し、停止時刻を記録する。
 // インメモリに未登録でも SQLite に記録があれば DB ベースで状態を更新する。
 // agent_id が未登録かつ DB にも存在しない場合はエラーを返す。
-func (t *AgentTracker) HandleStop(input protocol.HookInput) error {
+func (t *AgentTracker) HandleStop(input hookproto.HookInput) error {
 	agentID := extractAgentID(input)
 
 	if agentID == "" {
@@ -262,7 +262,7 @@ func (t *AgentTracker) Get(agentID string) *TrackedAgent {
 
 // extractAgentID は HookInput から agent_id を取り出す。
 // CC v2.1.69+ では tool_input["agent_id"] として渡される。
-func extractAgentID(input protocol.HookInput) string {
+func extractAgentID(input hookproto.HookInput) string {
 	if input.ToolInput == nil {
 		return ""
 	}
@@ -276,7 +276,7 @@ func extractAgentID(input protocol.HookInput) string {
 
 // extractAgentType は HookInput から agent_type を取り出す。
 // CC v2.1.69+ では tool_input["agent_type"] として渡される。
-func extractAgentType(input protocol.HookInput) string {
+func extractAgentType(input hookproto.HookInput) string {
 	if input.ToolInput == nil {
 		return ""
 	}

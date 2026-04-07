@@ -1,0 +1,6 @@
+{
+  "timestamp": "2026-04-06T02:59:39Z",
+  "trigger_command": "cd /Users/tachibanashuuta/LocalWork/Code/CC-harness/claude-code-harness && git add go/internal/ci/ go/cmd/harness/main.go && git commit -m \"$(cat <<'EOF'\\nfeat: 35.3.4 — ci/evidence handlers migrated to Go\\n\\n- harness hook ci-status: async CI polling after git push/gh pr\\n- harness evidence collect: test results + build log archiver\\n- Symlink guard, 0600 permissions, async goroutine for CI check\\n- 15 ci tests, all packages PASS\\n\\nCo-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>\\nEOF\\n)\"",
+  "status": "completed",
+  "conclusion": "success"
+}

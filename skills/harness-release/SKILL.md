@@ -1,8 +1,8 @@
 ---
 name: harness-release
-description: "v4 統合リリーススキル。CHANGELOG・バージョンバンプ・タグ・GitHub Release・mirror同期・検証を自動化。以下で起動: リリース、バージョンバンプ、タグ作成、公開、/harness-release。実装・コードレビュー・プランニング・セットアップには使わない。"
-description-en: "Unified release skill for Harness v4. CHANGELOG, version bump, tag, GitHub Release, mirror sync, and validation automation. Use when user mentions: release, version bump, create tag, publish, /harness-release. Do NOT load for: implementation, code review, planning, or setup."
-description-ja: "v4 統合リリーススキル。CHANGELOG・バージョンバンプ・タグ・GitHub Release・mirror同期・検証を自動化。以下で起動: リリース、バージョンバンプ、タグ作成、公開、/harness-release。実装・コードレビュー・プランニング・セットアップには使わない。"
+description: "Harness v3 統合リリーススキル。CHANGELOG・バージョンバンプ・タグ・GitHub Release・mirror同期・検証を自動化。以下で起動: リリース、バージョンバンプ、タグ作成、公開、/harness-release。実装・コードレビュー・プランニング・セットアップには使わない。"
+description-en: "Unified release skill for Harness v3. CHANGELOG, version bump, tag, GitHub Release, mirror sync, and validation automation. Use when user mentions: release, version bump, create tag, publish, /harness-release. Do NOT load for: implementation, code review, planning, or setup."
+description-ja: "Harness v3 統合リリーススキル。CHANGELOG・バージョンバンプ・タグ・GitHub Release・mirror同期・検証を自動化。以下で起動: リリース、バージョンバンプ、タグ作成、公開、/harness-release。実装・コードレビュー・プランニング・セットアップには使わない。"
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[patch|minor|major|--dry-run|--announce|--complete]"
 context: fork
@@ -11,7 +11,7 @@ effort: high
 
 # Harness Release (v3)
 
-v4 統合リリーススキル。
+Harness v3 の統合リリーススキル。
 以下の旧スキルを統合:
 
 - `release-har` -- 汎用リリース自動化
@@ -76,7 +76,7 @@ v4 統合リリーススキル。
 
 ## 配布面と Mirror 同期
 
-`skills-v3/` が SSOT（Single Source of Truth）。以下の 3 配布面が mirror として同期される:
+`skills/` が SSOT（Single Source of Truth）。以下の 2 配布面が mirror として同期される:
 
 | 配布面 | パス | 対象ユーザー |
 |--------|------|------------|
@@ -84,16 +84,16 @@ v4 統合リリーススキル。
 | Codex | `codex/.codex/skills/harness-release/` | Codex CLI ユーザー |
 | OpenCode | `opencode/skills/harness-release/` | OpenCode ユーザー |
 
-**重要**: `skills-v3/` を編集したら、リリース前に必ず mirror を同期する:
+**重要**: `skills/` を編集したら、リリース前に必ず mirror を同期する:
 
 ```bash
-./scripts/sync-v3-skill-mirrors.sh
+./scripts/sync-skill-mirrors.sh
 ```
 
 検証のみ（書き換えなし）:
 
 ```bash
-./scripts/sync-v3-skill-mirrors.sh --check
+./scripts/sync-skill-mirrors.sh --check
 ```
 
 ## 日本語対応（i18n）
@@ -129,7 +129,7 @@ bash tests/validate-plugin.sh
 bash scripts/ci/check-consistency.sh
 
 # 5. mirror 同期状態の確認
-bash scripts/sync-v3-skill-mirrors.sh --check
+bash scripts/sync-skill-mirrors.sh --check
 ```
 
 `scripts/release-preflight.sh` は以下を検証する:
@@ -253,11 +253,11 @@ release entry は、通常 PR で溜めた `[Unreleased]` の変更を versioned
 ### Phase 5: Mirror 同期
 
 ```bash
-# skills-v3 → skills, codex, opencode への mirror 同期
-./scripts/sync-v3-skill-mirrors.sh
+# skills → codex, opencode への mirror 同期
+./scripts/sync-skill-mirrors.sh
 
 # 同期確認
-./scripts/sync-v3-skill-mirrors.sh --check
+./scripts/sync-skill-mirrors.sh --check
 ```
 
 ### Phase 6: コミット & タグ
@@ -381,7 +381,7 @@ Phase 9 のみを実行する。GitHub Release の作成漏れがないか確認
 |------------|---------|------|
 | プラグイン構造 | `tests/validate-plugin.sh` | plugin.json、スキル、フック、スクリプトの検証 |
 | 整合性 | `scripts/ci/check-consistency.sh` | テンプレート、バージョン、mirror、CHANGELOG |
-| Mirror 同期 | `scripts/sync-v3-skill-mirrors.sh --check` | skills-v3 と 3 配布面の一致 |
+| Mirror 同期 | `scripts/sync-skill-mirrors.sh --check` | skills と 2 配布面の一致 |
 | Preflight | `scripts/release-preflight.sh` | working tree、CHANGELOG、CI、残骸 |
 | リリースノート | `scripts/validate-release-notes.sh vX.Y.Z` | GitHub Release のフォーマット検証 |
 | VERSION 同期 | `scripts/sync-version.sh check` | VERSION と plugin.json の一致 |

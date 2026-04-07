@@ -107,13 +107,13 @@ LATEST_RELEASE_BADGE="https://img.shields.io/github/v/release/Chachamaru127/clau
 echo ""
 echo "📋 [4/12] スキル定義の期待ファイル構成..."
 
-# 2agent 設定は harness-setup (v3) に統合済み
-# skills-v3/harness-setup/SKILL.md の存在を確認
-SETUP_V3="$PLUGIN_ROOT/skills-v3/harness-setup/SKILL.md"
-if [ -f "$SETUP_V3" ]; then
-  echo "  ✅ skills-v3/harness-setup/SKILL.md が存在（2agent 設定を包含）"
+# 2agent 設定は harness-setup に統合済み
+# skills/harness-setup/SKILL.md の存在を確認
+SETUP_SKILL="$PLUGIN_ROOT/skills/harness-setup/SKILL.md"
+if [ -f "$SETUP_SKILL" ]; then
+  echo "  ✅ skills/harness-setup/SKILL.md が存在（2agent 設定を包含）"
 else
-  echo "  ❌ skills-v3/harness-setup/SKILL.md が見つかりません"
+  echo "  ❌ skills/harness-setup/SKILL.md が見つかりません"
   ERRORS=$((ERRORS + 1))
 fi
 
@@ -326,122 +326,84 @@ else
 fi
 
 # ================================
-# 10. v3 スキル Mirror チェック
+# 10. スキル Mirror チェック
 # ================================
 echo ""
-echo "📦 [10/12] v3 スキル Mirror チェック..."
+echo "📦 [10/12] スキル Mirror チェック..."
 
-V3_SKILLS_DIR="$PLUGIN_ROOT/skills-v3"
-CLAUDE_MIRROR="$PLUGIN_ROOT/skills"
+SKILLS_DIR="$PLUGIN_ROOT/skills"
 CODEX_MIRROR="$PLUGIN_ROOT/codex/.codex/skills"
 OPENCODE_MIRROR="$PLUGIN_ROOT/opencode/skills"
 MIRROR_ISSUES=0
 
-# v3 コアスキル（5動詞 harness- prefix）の mirror チェック
-V3_CORE_SKILLS="harness-plan harness-work harness-review harness-release harness-setup"
-V3_AUX_SKILLS="harness-sync"
+# コアスキル（5動詞 harness- prefix + aux）の mirror チェック
+# SSOT: skills/ → ミラー先: codex/.codex/skills/, opencode/skills/
+HARNESS_SKILLS="harness-plan harness-work harness-review harness-release harness-setup harness-sync"
 
-if [ -d "$V3_SKILLS_DIR" ]; then
-  for skill in $V3_CORE_SKILLS; do
-    src="$V3_SKILLS_DIR/$skill"
-    for mirror_name in claude codex opencode; do
-      case "$mirror_name" in
-        claude) mirror_root="$CLAUDE_MIRROR" ;;
-        codex) mirror_root="$CODEX_MIRROR" ;;
-        opencode) mirror_root="$OPENCODE_MIRROR" ;;
-      esac
+for skill in $HARNESS_SKILLS; do
+  src="$SKILLS_DIR/$skill"
+  if [ ! -d "$src" ]; then
+    echo "  ❌ skills/$skill が存在しません（SSOT 欠落）"
+    MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
+    continue
+  fi
 
-      if [ ! -d "$mirror_root" ]; then
-        continue
-      fi
+  for mirror_name in codex opencode; do
+    case "$mirror_name" in
+      codex) mirror_root="$CODEX_MIRROR" ;;
+      opencode) mirror_root="$OPENCODE_MIRROR" ;;
+    esac
 
-      mirror_path="$mirror_root/$skill"
-      if [ ! -d "$mirror_path" ]; then
-        echo "  ❌ $mirror_name: $skill がディレクトリとして存在しません"
-        MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
-        continue
-      fi
+    if [ ! -d "$mirror_root" ]; then
+      continue
+    fi
 
-      if [ -L "$mirror_path" ]; then
-        echo "  ❌ $mirror_name: $skill が symlink のままです"
-        MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
-        continue
-      fi
+    mirror_path="$mirror_root/$skill"
+    if [ ! -d "$mirror_path" ]; then
+      echo "  ❌ $mirror_name: $skill がディレクトリとして存在しません"
+      MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
+      continue
+    fi
 
-      if diff -qr "$src" "$mirror_path" >/dev/null 2>&1; then
-        echo "  ✅ $mirror_name: $skill mirror is in sync"
-      else
-        echo "  ❌ $mirror_name: $skill mirror が skills-v3 と不一致"
-        MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
-      fi
-    done
+    if [ -L "$mirror_path" ]; then
+      echo "  ❌ $mirror_name: $skill が symlink のままです"
+      MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
+      continue
+    fi
+
+    if diff -qr "$src" "$mirror_path" >/dev/null 2>&1; then
+      echo "  ✅ $mirror_name: $skill mirror is in sync"
+    else
+      echo "  ❌ $mirror_name: $skill mirror が skills/ と不一致"
+      MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
+    fi
   done
-
-  for skill in $V3_AUX_SKILLS; do
-    src="$V3_SKILLS_DIR/$skill"
-    for mirror_name in claude codex opencode; do
-      case "$mirror_name" in
-        claude) mirror_root="$CLAUDE_MIRROR" ;;
-        codex) mirror_root="$CODEX_MIRROR" ;;
-        opencode) mirror_root="$OPENCODE_MIRROR" ;;
-      esac
-
-      if [ ! -d "$mirror_root" ]; then
-        continue
-      fi
-
-      mirror_path="$mirror_root/$skill"
-      if [ ! -d "$mirror_path" ]; then
-        echo "  ❌ $mirror_name: $skill がディレクトリとして存在しません"
-        MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
-        continue
-      fi
-
-      if [ -L "$mirror_path" ]; then
-        echo "  ❌ $mirror_name: $skill が symlink のままです"
-        MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
-        continue
-      fi
-
-      if diff -qr "$src" "$mirror_path" >/dev/null 2>&1; then
-        echo "  ✅ $mirror_name: $skill mirror is in sync"
-      else
-        echo "  ❌ $mirror_name: $skill mirror drifted from skills-v3/$skill"
-        MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
-      fi
-    done
-  done
-else
-  echo "  ⚠️ skills-v3/ が存在しません（スキップ）"
-fi
+done
 
 if [ $MIRROR_ISSUES -gt 0 ]; then
   ERRORS=$((ERRORS + MIRROR_ISSUES))
 fi
 
-# breezing alias は public mirror と codex mirror の両方で skills-v3 と一致すること
-for mirror_entry in "claude:$CLAUDE_MIRROR/breezing" "codex:$CODEX_MIRROR/breezing"; do
-  mirror_name="${mirror_entry%%:*}"
-  mirror_path="${mirror_entry#*:}"
-  if [ ! -d "$mirror_path" ]; then
-    echo "  ❌ $mirror_name: breezing がディレクトリとして存在しません"
+# breezing alias は codex mirror のみ（skills/ に SSOT あり）
+BREEZING_SRC="$SKILLS_DIR/breezing"
+if [ -d "$BREEZING_SRC" ]; then
+  BREEZING_CODEX="$CODEX_MIRROR/breezing"
+  if [ ! -d "$BREEZING_CODEX" ]; then
+    echo "  ❌ codex: breezing がディレクトリとして存在しません"
     ERRORS=$((ERRORS + 1))
-    continue
-  fi
-
-  if [ -L "$mirror_path" ]; then
-    echo "  ❌ $mirror_name: breezing が symlink のままです"
+  elif [ -L "$BREEZING_CODEX" ]; then
+    echo "  ❌ codex: breezing が symlink のままです"
     ERRORS=$((ERRORS + 1))
-    continue
-  fi
-
-  if diff -qr "$V3_SKILLS_DIR/breezing" "$mirror_path" >/dev/null 2>&1; then
-    echo "  ✅ $mirror_name: breezing mirror is in sync"
+  elif diff -qr "$BREEZING_SRC" "$BREEZING_CODEX" >/dev/null 2>&1; then
+    echo "  ✅ codex: breezing mirror is in sync"
   else
-    echo "  ❌ $mirror_name: breezing mirror が skills-v3 と不一致"
+    echo "  ❌ codex: breezing mirror が skills/ と不一致"
     ERRORS=$((ERRORS + 1))
   fi
-done
+else
+  echo "  ❌ skills/breezing が存在しません（SSOT 欠落）"
+  ERRORS=$((ERRORS + 1))
+fi
 
 # ================================
 # 11. CHANGELOG フォーマット検証

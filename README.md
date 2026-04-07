@@ -235,8 +235,8 @@ v3 unifies 42 skills into **5 verb skills**. Start with the verbs first, then ad
 claude-code-harness/
 ├── core/           # TypeScript guardrail engine (strict ESM, NodeNext)
 │   └── src/        #   guardrails/ state/ engine/
-├── skills-v3/      # 5 verb skills (plan/execute/review/release/setup)
-├── agents-v3/      # 3 agents (worker/reviewer/scaffolder)
+├── skills/         # 5 verb skills (plan/execute/review/release/setup)
+├── agents/      # 3 agents (worker/reviewer/scaffolder)
 ├── hooks/          # Thin shims → core/ engine
 ├── skills/         # 41 legacy skills (retained for compatibility)
 ├── agents/         # 11 legacy agents (retained for compatibility)
@@ -458,7 +458,7 @@ Harness leverages the latest Claude Code features out of the box.
 | **`modelOverrides` setting** | harness-setup, breezing | Map model picker aliases to Bedrock, Vertex, or other provider-specific model IDs |
 | **`autoMemoryDirectory` setting** | session-memory, harness-setup | Store Claude auto-memory in a project-specific path when needed |
 | **`CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS`** | hooks | Give SessionEnd hooks enough time for cleanup and finalize work |
-| **Full model ID support** | agents-v3, breezing | Use `claude-sonnet-4-6` style IDs in agent frontmatter and JSON config |
+| **Full model ID support** | agents, breezing | Use `claude-sonnet-4-6` style IDs in agent frontmatter and JSON config |
 
 Full list: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 

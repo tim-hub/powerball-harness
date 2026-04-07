@@ -25,7 +25,7 @@
     "bin/",
     "hooks/",
     "skills/",
-    "agents-v3/",
+    "agents/",
     ".claude-plugin/",
     "scripts/postinstall.js",
     "VERSION",

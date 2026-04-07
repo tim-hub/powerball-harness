@@ -11,7 +11,7 @@ raw `codex exec` の直接呼び出しは禁止。以下の 2 つの方法で Co
 
 ## 禁止事項
 
-- `codex exec` の直接呼び出し（`skills-v3-codex/` 内を除く。後述の例外参照）
+- `codex exec` の直接呼び出し（`skills-codex/` 内を除く。後述の例外参照）
 - `mcp__codex__codex` の使用（MCP サーバーは廃止済み）
 - ToolSearch で Codex MCP を検索する行為
 - `claude mcp add codex` による MCP サーバー再登録
@@ -98,7 +98,7 @@ bash scripts/codex-companion.sh cancel <job-id>
 
 ## 例外: Codex ネイティブスキル
 
-`skills-v3-codex/` 内のスキルは **Codex CLI 内部で動作する**ため、
+`skills-codex/` 内のスキルは **Codex CLI 内部で動作する**ため、
 `spawn_agent` / `wait_agent` / `send_input` / `close_agent` 等の
 Codex ネイティブ API は引き続き使用可。ただしレビュー呼び出しは
 companion 経由を推奨。

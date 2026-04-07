@@ -35,12 +35,12 @@ import (
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/ci"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/event"
-	"github.com/Chachamaru127/claude-code-harness/go/internal/guard"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/guardrail"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/hook"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/lifecycle"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/session"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/state"
-	"github.com/Chachamaru127/claude-code-harness/go/pkg/protocol"
+	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
 )
 
 // version is set at build time via -ldflags.
@@ -252,7 +252,7 @@ func runHook(hookType string) {
 	}
 }
 
-func runGuardHook(hookType string, input protocol.HookInput) {
+func runGuardHook(hookType string, input hookproto.HookInput) {
 	switch hookType {
 	case "pre-tool":
 		runPreTool(input)
@@ -267,9 +267,9 @@ func runGuardHook(hookType string, input protocol.HookInput) {
 	}
 }
 
-func runPreTool(input protocol.HookInput) {
-	result := guard.EvaluatePreTool(input)
-	output, exitCode := guard.FormatPreToolResult(result)
+func runPreTool(input hookproto.HookInput) {
+	result := guardrail.EvaluatePreTool(input)
+	output, exitCode := guardrail.FormatPreToolResult(result)
 
 	if output != nil {
 		hook.WriteJSON(os.Stdout, output)
@@ -278,14 +278,16 @@ func runPreTool(input protocol.HookInput) {
 	os.Exit(exitCode)
 }
 
-func runPostTool(input protocol.HookInput) {
-	result := guard.EvaluatePostTool(input)
+func runPostTool(input hookproto.HookInput) {
+	result := guardrail.EvaluatePostTool(input)
 
 	// PostToolUse: if there's a systemMessage, wrap in hookSpecificOutput
 	if result.SystemMessage != "" {
-		out := protocol.PostToolOutput{
-			HookEventName:    "PostToolUse",
-			AdditionalContext: result.SystemMessage,
+		out := hookproto.PostToolOutput{
+			HookSpecificOutput: hookproto.PostToolHookSpecific{
+				HookEventName:    "PostToolUse",
+				AdditionalContext: result.SystemMessage,
+			},
 		}
 		hook.WriteJSON(os.Stdout, out)
 		return
@@ -294,8 +296,8 @@ func runPostTool(input protocol.HookInput) {
 	// No output for pure approve
 }
 
-func runPermission(input protocol.HookInput) {
-	_, permOutput := guard.EvaluatePermission(input)
+func runPermission(input hookproto.HookInput) {
+	_, permOutput := guardrail.EvaluatePermission(input)
 
 	if permOutput != nil {
 		hook.WriteJSON(os.Stdout, permOutput)

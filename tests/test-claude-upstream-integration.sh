@@ -14,14 +14,14 @@ TEMPLATE_FILES=(
   "${ROOT_DIR}/templates/rules/plans-management.md.template"
 )
 SKILL_FILES=(
-  "${ROOT_DIR}/skills-v3/harness-work/SKILL.md"
-  "${ROOT_DIR}/skills-v3/harness-review/SKILL.md"
-  "${ROOT_DIR}/skills-v3/harness-plan/SKILL.md"
+  "${ROOT_DIR}/skills/harness-work/SKILL.md"
+  "${ROOT_DIR}/skills/harness-review/SKILL.md"
+  "${ROOT_DIR}/skills/harness-plan/SKILL.md"
 )
 AGENT_FILES=(
-  "${ROOT_DIR}/agents-v3/worker.md"
-  "${ROOT_DIR}/agents-v3/reviewer.md"
-  "${ROOT_DIR}/agents-v3/scaffolder.md"
+  "${ROOT_DIR}/agents/worker.md"
+  "${ROOT_DIR}/agents/reviewer.md"
+  "${ROOT_DIR}/agents/scaffolder.md"
 )
 
 jq -e '.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB == "1"' "${SETTINGS_FILE}" >/dev/null || {

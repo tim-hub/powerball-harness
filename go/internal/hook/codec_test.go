@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Chachamaru127/claude-code-harness/go/pkg/protocol"
+	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
 )
 
 func TestReadInput_Valid(t *testing.T) {
@@ -90,8 +90,8 @@ func TestReadInput_NilToolInput(t *testing.T) {
 
 func TestWriteResult(t *testing.T) {
 	var buf bytes.Buffer
-	result := protocol.HookResult{
-		Decision: protocol.DecisionDeny,
+	result := hookproto.HookResult{
+		Decision: hookproto.DecisionDeny,
 		Reason:   "blocked",
 	}
 	err := WriteResult(&buf, result)
@@ -112,7 +112,7 @@ func TestWriteResult(t *testing.T) {
 
 func TestSafeResult(t *testing.T) {
 	result := SafeResult(fmt.Errorf("test error"))
-	if result.Decision != protocol.DecisionApprove {
+	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve (safe fallback), got %s", result.Decision)
 	}
 	if !strings.Contains(result.Reason, "test error") {

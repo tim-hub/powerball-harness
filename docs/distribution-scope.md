@@ -10,8 +10,8 @@
 | Path | Status | Why it exists | Enforcement signal |
 |------|--------|---------------|--------------------|
 | `core/` | Distribution-included | TypeScript guardrail engine の本体 | `core npm test`, README architecture |
-| `skills-v3/` | Distribution-included | 現行の 5 verb skills | README, mirror sync checks |
-| `agents-v3/` | Distribution-included | 現行の worker / reviewer / scaffolder | README, validate-plugin-v3 |
+| `skills/` | Distribution-included | 現行の 5 verb skills (SSOT) | README, mirror sync checks |
+| `agents/` | Distribution-included | 現行の worker / reviewer / scaffolder | README, validate-plugin |
 | `hooks/` | Distribution-included | 実行時 guardrail と lifecycle hook | `hooks/hooks.json`, validate-plugin |
 | `scripts/hook-handlers/memory-bridge.sh`, `scripts/hook-handlers/memory-*.sh` | Distribution-included | harness-mem 連携用の bridge と wrapper。hook は安定した bridge を参照し、wrapper は互換とテストに使う | `validate-plugin`, `test-memory-hook-wiring.sh` |
 | `templates/` | Distribution-included | project init と rules 配布の正本 | `check-consistency.sh` |

@@ -44,7 +44,7 @@ Feature Table に追加された各項目を、以下の 3 カテゴリに分類
 |-------------------|----------------|------|
 | `PostCompact フック` | `hooks/post-compact-handler.sh` 新規作成 | A |
 | `MCP Elicitation 対応` | `hooks.json` に Elicitation イベント追加 + `elicitation-handler.sh` 作成 | A |
-| `Worker maxTurns 制限` | `agents-v3/worker.md` に maxTurns フィールド追加 | A |
+| `Worker maxTurns 制限` | `agents/worker.md` に maxTurns フィールド追加 | A |
 
 **結果**: OK。追加のアクション不要。
 

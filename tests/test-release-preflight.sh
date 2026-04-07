@@ -71,9 +71,9 @@ EOF
 }
 
 test_skill_mentions_preflight() {
-  assert_contains "$PROJECT_ROOT/skills-v3/harness-release/SKILL.md" "release-preflight.sh"
-  assert_contains "$PROJECT_ROOT/skills-v3/harness-release/SKILL.md" "HARNESS_RELEASE_HEALTHCHECK_CMD"
-  assert_contains "$PROJECT_ROOT/skills-v3/harness-release/SKILL.md" "dry-run"
+  assert_contains "$PROJECT_ROOT/skills/harness-release/SKILL.md" "release-preflight.sh"
+  assert_contains "$PROJECT_ROOT/skills/harness-release/SKILL.md" "HARNESS_RELEASE_HEALTHCHECK_CMD"
+  assert_contains "$PROJECT_ROOT/skills/harness-release/SKILL.md" "dry-run"
 }
 
 test_doc_mentions_overrides() {

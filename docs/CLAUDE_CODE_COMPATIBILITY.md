@@ -41,7 +41,7 @@ We do **not** maintain a full version-by-version support matrix in the README. T
 
 ## Windows Checkout Note
 
-On Windows, Git often defaults to `core.symlinks=false`. Public `harness-*` command skills are therefore shipped as real directories in `skills/`, `codex/.codex/skills/`, and `opencode/skills/` so they still appear in command lists after checkout. Session start repair still handles broken extension links inside `skills-v3/extensions/`.
+On Windows, Git often defaults to `core.symlinks=false`. Public `harness-*` command skills are therefore shipped as real directories in `skills/`, `codex/.codex/skills/`, and `opencode/skills/` so they still appear in command lists after checkout. Session start repair still handles broken extension links inside `skills/extensions/`.
 
 ## What Requires Extra Validation
 

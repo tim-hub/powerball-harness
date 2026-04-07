@@ -23,6 +23,6 @@
 ## Proof Points
 
 - TypeScript guardrail engine (`core/`)
-- 5 verb skills (`skills-v3/`)
+- 5 verb skills (`skills/`)
 - consistency check と plugin validation
 - `/harness-work all` evidence pack

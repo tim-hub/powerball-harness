@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"path/filepath"
 	"time"
 )
@@ -197,9 +198,5 @@ func splitLines(data []byte) []string {
 
 // joinLines は行のスライスを改行で結合する（末尾に改行付き）。
 func joinLines(lines []string) string {
-	result := ""
-	for _, l := range lines {
-		result += l + "\n"
-	}
-	return result
+	return strings.Join(lines, "\n") + "\n"
 }

@@ -5,12 +5,12 @@ import (
 	"time"
 
 	"github.com/Chachamaru127/claude-code-harness/go/internal/lifecycle"
-	"github.com/Chachamaru127/claude-code-harness/go/pkg/protocol"
+	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
 )
 
 // makeInput は指定した agent_id / agent_type を持つ HookInput を生成するヘルパー。
-func makeInput(agentID, agentType, sessionID string) protocol.HookInput {
-	return protocol.HookInput{
+func makeInput(agentID, agentType, sessionID string) hookproto.HookInput {
+	return hookproto.HookInput{
 		SessionID: sessionID,
 		ToolInput: map[string]interface{}{
 			"agent_id":   agentID,
@@ -85,7 +85,7 @@ func TestHandleStart_IsIdempotent(t *testing.T) {
 func TestHandleStart_EmptyAgentID_ReturnsError(t *testing.T) {
 	tracker := lifecycle.NewAgentTracker(nil)
 
-	input := protocol.HookInput{
+	input := hookproto.HookInput{
 		SessionID: "sess-x",
 		ToolInput: map[string]interface{}{
 			"agent_type": "worker",
@@ -134,7 +134,7 @@ func TestHandleStop_UnknownAgentID_ReturnsError(t *testing.T) {
 func TestHandleStop_EmptyAgentID_ReturnsError(t *testing.T) {
 	tracker := lifecycle.NewAgentTracker(nil)
 
-	input := protocol.HookInput{
+	input := hookproto.HookInput{
 		ToolInput: map[string]interface{}{},
 	}
 	if err := tracker.HandleStop(input); err == nil {

@@ -231,8 +231,8 @@ v3 で42スキルを **5つの動詞スキル**に統合。まずは動詞から
 claude-code-harness/
 ├── core/           # TypeScript ガードレールエンジン（strict ESM, NodeNext）
 │   └── src/        #   guardrails/ state/ engine/
-├── skills-v3/      # 5動詞スキル（plan/execute/review/release/setup）
-├── agents-v3/      # 3エージェント（worker/reviewer/scaffolder）
+├── skills/         # 5動詞スキル（plan/execute/review/release/setup）
+├── agents/      # 3エージェント（worker/reviewer/scaffolder）
 ├── hooks/          # 薄いシム → core/ エンジン
 ├── skills/         # 旧41スキル（互換性のため保持）
 ├── agents/         # 旧11エージェント（互換性のため保持）
@@ -454,7 +454,7 @@ Harness は最新の Claude Code 機能をすぐに活用できます。
 | **`modelOverrides` 設定** | harness-setup, breezing | モデルピッカーの別名を Bedrock / Vertex などの実モデル ID にマッピング |
 | **`autoMemoryDirectory` 設定** | session-memory, harness-setup | Claude の auto-memory 保存先をプロジェクト単位で分離可能 |
 | **`CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS`** | hooks | SessionEnd hook に cleanup / finalize 用の十分な時間を与える |
-| **完全な model ID 対応** | agents-v3, breezing | `claude-sonnet-4-6` 形式の model ID を frontmatter / JSON config で利用可能 |
+| **完全な model ID 対応** | agents, breezing | `claude-sonnet-4-6` 形式の model ID を frontmatter / JSON config で利用可能 |
 
 全機能一覧: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 
