@@ -8,12 +8,16 @@ claude-code-harness/
 │   ├── src/
 │   │   ├── index.ts          # stdin → route → stdout パイプライン
 │   │   ├── types.ts          # 型定義（HookInput, HookResult 等）
-│   │   └── guardrails/       # ガードレールエンジン
-│   │       ├── rules.ts      # 宣言的ルールテーブル (R01-R09)
-│   │       ├── pre-tool.ts   # PreToolUse フック
-│   │       ├── post-tool.ts  # PostToolUse フック
-│   │       ├── permission.ts # PermissionRequest フック
-│   │       └── tampering.ts  # 改ざん検出
+│   │   ├── guardrails/       # ガードレールエンジン
+│   │   │   ├── rules.ts      # 宣言的ルールテーブル (R01-R13)
+│   │   │   ├── pre-tool.ts   # PreToolUse フック
+│   │   │   ├── post-tool.ts  # PostToolUse フック
+│   │   │   ├── permission.ts # PermissionRequest フック
+│   │   │   └── tampering.ts  # 改ざん検出
+│   │   └── state/            # セッション・タスク状態管理
+│   │       ├── schema.ts     # DB スキーマ定義
+│   │       ├── store.ts      # HarnessStore (SQLite)
+│   │       └── migration.ts  # マイグレーション
 │   ├── package.json          # standalone TypeScript package
 │   └── tsconfig.json         # strict, NodeNext ESM
 ├── skills/         # 5動詞スキル（SSOT）
