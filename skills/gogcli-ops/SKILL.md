@@ -4,6 +4,8 @@ description: "gogcli でGoogle Workspace操作（Drive/Sheets/Docs/Slides）。�
 description-en: "Use gogcli for Google Workspace CLI operations (Drive/Sheets/Docs/Slides). Trigger when a user asks to check, list, search, export, read, or update Google files via gogcli; when a Google URL/ID needs parsing; when auth/account selection or safe read-only workflows are needed; or when troubleshooting gogcli access/errors. Do NOT load for: general file operations, non-Google cloud storage, or standard shell commands."
 description-ja: "gogcli でGoogle Workspace操作（Drive/Sheets/Docs/Slides）。ユーザーがGoogleファイルの確認・検索・エクスポート・読み取り・更新をgogcliで依頼する時に使用。Trigger when a user asks to check, list, search, export, read, or update Google files via gogcli; when a Google URL/ID needs parsing; when auth/account selection or safe read-only workflows are needed; or when troubleshooting gogcli access/errors. Do NOT load for: general file operations, non-Google cloud storage, or standard shell commands."
 allowed-tools: ["Read", "Bash", "Grep", "Glob"]
+disable-model-invocation: true
+user-invocable: false
 ---
 
 # Gogcli Ops
