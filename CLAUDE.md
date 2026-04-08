@@ -23,7 +23,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/): `feat:` / `
 
 ### Version Management
 
-Keep `VERSION` and `.claude-plugin/plugin.json` in sync.
+Keep `VERSION`, `.claude-plugin/plugin.json`, and `harness.toml` in sync.
 Normal feature/docs PRs must leave both files unchanged and record changes under `CHANGELOG.md`'s `[Unreleased]` section.
 Use `./scripts/sync-version.sh bump` only when cutting a release.
 
@@ -43,7 +43,7 @@ All responses must be in **Japanese** (including `context: fork` skills).
 
 ## Repository Structure
 
-`.claude-plugin/` Plugin manifest / `agents/` Sub-agents (Worker, Reviewer, Scaffolder) / `skills/` Skills (5-verb skills) / `hooks/` Hooks / `scripts/` Shell scripts / `docs/` Documentation / `tests/` Validation / `go/` Harness v4 Go rewrite ([SPEC.md](go/SPEC.md) — 詳細仕様, [DESIGN.md](go/DESIGN.md) — 設計) / `bin/` Go バイナリ出力 / `core/` TypeScript guardrail engine
+`.claude-plugin/` Plugin manifest / `agents/` Sub-agents (Worker, Reviewer, Scaffolder) / `skills/` Skills (5-verb skills) / `hooks/` Hooks / `scripts/` Shell scripts / `docs/` Documentation / `tests/` Validation / `go/` Harness v4 Go rewrite ([SPEC.md](go/SPEC.md) — 詳細仕様, [DESIGN.md](go/DESIGN.md) — 設計) / `bin/` Go バイナリ出力 / `core/` TypeScript engine (guardrails + state management)
 
 ## Using Skills (Important)
 
