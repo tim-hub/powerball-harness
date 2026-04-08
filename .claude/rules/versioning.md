@@ -51,7 +51,7 @@ v3.6.1 (03/09) — Auto Mode 準備         ← prep は patch
 1. **前回リリースからの変更を一覧化**
 2. **判定基準に照らしてバージョン種別を決定**
 3. **同日の複数変更はバッチ化を検討**
-4. **VERSION / plugin.json / CHANGELOG の3点同期を確認**
+4. **VERSION / plugin.json / harness.toml / CHANGELOG の4点同期を確認**
 5. **git tag が欠番なく連続していることを確認**
 
 ## 禁止事項
