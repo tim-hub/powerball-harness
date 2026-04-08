@@ -352,15 +352,15 @@ export const GUARD_RULES: readonly GuardRule[] = [
   // R12: protected branch への direct push 警告
   // ------------------------------------------------------------------
   {
-    id: "R12:warn-direct-push-protected-branch",
+    id: "R12:deny-direct-push-protected-branch",
     toolPattern: /^Bash$/,
     evaluate(ctx: RuleContext): HookResult | null {
       const command = ctx.input.tool_input["command"];
       if (typeof command !== "string") return null;
       if (!hasDirectPushToProtectedBranch(command)) return null;
       return {
-        decision: "approve",
-        systemMessage: "警告: main/master への直接 push を検出しました。feature branch 経由の運用を推奨します。",
+        decision: "deny",
+        reason: "main/master への直接 push は禁止されています。feature branch 経由で PR を作成してください。",
       };
     },
   },

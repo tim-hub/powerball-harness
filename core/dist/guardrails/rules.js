@@ -53,6 +53,61 @@ function hasForcePush(command) {
 function hasSudo(command) {
     return /(?:^|\s)sudo\s/.test(command);
 }
+/** Bash token の前後クォートを除去する */
+function normalizeGitToken(token) {
+    return token.replace(/^['"]|['"]$/g, "");
+}
+/** `--no-verify` / `--no-gpg-sign` の使用を検出 */
+function hasDangerousGitBypassFlag(command) {
+    return /(?:^|\s)--no-verify(?:\s|$)/.test(command) ||
+        /(?:^|\s)--no-gpg-sign(?:\s|$)/.test(command);
+}
+/** protected branch への `git reset --hard` を検出 */
+function hasProtectedBranchResetHard(command) {
+    const tokens = command.trim().split(/\s+/).map(normalizeGitToken);
+    const resetIndex = tokens.indexOf("reset");
+    if (resetIndex === -1)
+        return false;
+    if (!tokens.includes("--hard"))
+        return false;
+    const isProtectedBranchRef = (ref) => /^(?:origin\/|upstream\/)?(?:refs\/heads\/)?(?:main|master)(?:[~^]\d+)?$/.test(normalizeGitToken(ref));
+    return tokens.slice(resetIndex + 1).some((token) => !token.startsWith("-") && isProtectedBranchRef(token));
+}
+/** protected branch への direct push を検出 */
+function hasDirectPushToProtectedBranch(command) {
+    if (!/\bgit\s+push\b/.test(command))
+        return false;
+    const tokens = command.trim().split(/\s+/);
+    const pushIndex = tokens.indexOf("push");
+    if (pushIndex === -1)
+        return false;
+    const args = tokens.slice(pushIndex + 1).filter((token) => !token.startsWith("-"));
+    if (args.length === 0)
+        return false;
+    const isProtectedBranchRef = (ref) => /^(?:origin\/|upstream\/)?(?:refs\/heads\/)?(?:main|master)(?:[~^]\d+)?$/.test(normalizeGitToken(ref));
+    for (const arg of args) {
+        if (isProtectedBranchRef(arg))
+            return true;
+        const refspecParts = arg.split(":");
+        if (refspecParts.length === 2 && typeof refspecParts[1] === "string" && isProtectedBranchRef(refspecParts[1])) {
+            return true;
+        }
+    }
+    return false;
+}
+/** 重要ファイルへの書き込みを警告対象として検出 */
+function isProtectedReviewPath(filePath) {
+    const protected_patterns = [
+        /(?:^|\/)package\.json$/,
+        /(?:^|\/)Dockerfile$/,
+        /(?:^|\/)docker-compose\.yml$/,
+        /(?:^|\/)\.github\/workflows\/[^/]+$/,
+        /(?:^|\/)schema\.prisma$/,
+        /(?:^|\/)wrangler\.toml$/,
+        /(?:^|\/)index\.html$/,
+    ];
+    return protected_patterns.some((p) => p.test(filePath));
+}
 // ============================================================
 // ガードルールテーブル
 // ============================================================
@@ -251,6 +306,78 @@ export const GUARD_RULES = [
             return {
                 decision: "approve",
                 systemMessage: `警告: 機密情報が含まれる可能性のあるファイルを読み取っています: ${filePath}`,
+            };
+        },
+    },
+    // ------------------------------------------------------------------
+    // R10: Bash での `--no-verify` / `--no-gpg-sign` ブロック
+    // ------------------------------------------------------------------
+    {
+        id: "R10:no-git-bypass-flags",
+        toolPattern: /^Bash$/,
+        evaluate(ctx) {
+            const command = ctx.input.tool_input["command"];
+            if (typeof command !== "string")
+                return null;
+            if (!hasDangerousGitBypassFlag(command))
+                return null;
+            return {
+                decision: "deny",
+                reason: "--no-verify / --no-gpg-sign の使用は禁止されています。フックや署名検証を迂回しないでください。",
+            };
+        },
+    },
+    // ------------------------------------------------------------------
+    // R11: protected branch への `git reset --hard` ブロック
+    // ------------------------------------------------------------------
+    {
+        id: "R11:no-reset-hard-protected-branch",
+        toolPattern: /^Bash$/,
+        evaluate(ctx) {
+            const command = ctx.input.tool_input["command"];
+            if (typeof command !== "string")
+                return null;
+            if (!hasProtectedBranchResetHard(command))
+                return null;
+            return {
+                decision: "deny",
+                reason: "protected branch への git reset --hard は禁止されています。履歴を壊さない方法を使ってください。",
+            };
+        },
+    },
+    // ------------------------------------------------------------------
+    // R12: protected branch への direct push 警告
+    // ------------------------------------------------------------------
+    {
+        id: "R12:deny-direct-push-protected-branch",
+        toolPattern: /^Bash$/,
+        evaluate(ctx) {
+            const command = ctx.input.tool_input["command"];
+            if (typeof command !== "string")
+                return null;
+            if (!hasDirectPushToProtectedBranch(command))
+                return null;
+            return {
+                decision: "deny",
+                reason: "main/master への直接 push は禁止されています。feature branch 経由で PR を作成してください。",
+            };
+        },
+    },
+    // ------------------------------------------------------------------
+    // R13: 重要ファイルの変更警告（Write / Edit / MultiEdit）
+    // ------------------------------------------------------------------
+    {
+        id: "R13:warn-protected-review-paths",
+        toolPattern: /^(?:Write|Edit|MultiEdit)$/,
+        evaluate(ctx) {
+            const filePath = ctx.input.tool_input["file_path"];
+            if (typeof filePath !== "string")
+                return null;
+            if (!isProtectedReviewPath(filePath))
+                return null;
+            return {
+                decision: "approve",
+                systemMessage: `警告: 重要ファイルへの変更を検出しました: ${filePath}`,
             };
         },
     },

@@ -10,6 +10,7 @@ set -euo pipefail
 
 VERSION_FILE="VERSION"
 PLUGIN_JSON=".claude-plugin/plugin.json"
+HARNESS_TOML="harness.toml"
 
 # 現在のバージョンを取得
 get_version() {
@@ -20,40 +21,68 @@ get_plugin_version() {
     grep '"version"' "$PLUGIN_JSON" | sed 's/.*"version": "\([^"]*\)".*/\1/'
 }
 
+get_toml_version() {
+    grep '^version' "$HARNESS_TOML" | sed 's/.*= "\([^"]*\)".*/\1/'
+}
+
 # バージョン不一致チェック
 check_version() {
     local v1=$(get_version)
     local v2=$(get_plugin_version)
+    local v3=""
+    if [ -f "$HARNESS_TOML" ]; then
+        v3=$(get_toml_version)
+    fi
 
+    local ok=true
     if [ "$v1" != "$v2" ]; then
         echo "❌ バージョン不一致:"
-        echo "   VERSION:     $v1"
-        echo "   plugin.json: $v2"
-        return 1
-    else
+        echo "   VERSION:      $v1"
+        echo "   plugin.json:  $v2"
+        ok=false
+    fi
+    if [ -n "$v3" ] && [ "$v1" != "$v3" ]; then
+        echo "❌ バージョン不一致:"
+        echo "   VERSION:      $v1"
+        echo "   harness.toml: $v3"
+        ok=false
+    fi
+
+    if [ "$ok" = true ]; then
         echo "✅ バージョン一致: $v1"
         return 0
     fi
+    return 1
 }
 
-# plugin.json を VERSION に同期
+# plugin.json + harness.toml を VERSION に同期
 sync_version() {
     local version=$(get_version)
     local current=$(get_plugin_version)
 
-    if [ "$version" = "$current" ]; then
-        echo "✅ 既に同期済み: $version"
-        return 0
+    if [ "$version" != "$current" ]; then
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            sed -i '' "s/\"version\": \"$current\"/\"version\": \"$version\"/" "$PLUGIN_JSON"
+        else
+            sed -i "s/\"version\": \"$current\"/\"version\": \"$version\"/" "$PLUGIN_JSON"
+        fi
+        echo "✅ plugin.json を更新: $current → $version"
     fi
 
-    # macOS と Linux 両対応
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        sed -i '' "s/\"version\": \"$current\"/\"version\": \"$version\"/" "$PLUGIN_JSON"
-    else
-        sed -i "s/\"version\": \"$current\"/\"version\": \"$version\"/" "$PLUGIN_JSON"
+    # harness.toml の同期
+    if [ -f "$HARNESS_TOML" ]; then
+        local toml_ver=$(get_toml_version)
+        if [ "$version" != "$toml_ver" ]; then
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                sed -i '' "s/^version = \"$toml_ver\"/version = \"$version\"/" "$HARNESS_TOML"
+            else
+                sed -i "s/^version = \"$toml_ver\"/version = \"$version\"/" "$HARNESS_TOML"
+            fi
+            echo "✅ harness.toml を更新: $toml_ver → $version"
+        fi
     fi
 
-    echo "✅ plugin.json を更新: $current → $version"
+    echo "✅ 同期完了: $version"
 }
 
 # パッチバージョンを上げる
