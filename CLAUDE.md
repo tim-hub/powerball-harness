@@ -96,15 +96,17 @@ Details: [docs/CLAUDE-commands.md](docs/CLAUDE-commands.md)
 
 ## Permission Boundaries
 
-以下は `.claude-plugin/settings.json` の deny により**ハードブロック**。迂回不可。
+以下は settings.json の deny/ask + ガードレールエンジン (R01-R13) による**多層防御**。
 
-| Deny Rule | 理由 |
-|-----------|------|
-| `.claude-plugin/settings*`, `.claude/settings*` | 自己書き換え防止 |
-| `.eslintrc*`, `eslint.config.*`, `biome.json`, `tsconfig*.json` | 品質基準の保護 |
-| `.github/workflows/*` | CI パイプラインの保護 |
-| `git push --force`, `git reset --hard` | 不可逆操作の防止 |
-| `mcp__codex__*` | Codex MCP 直接使用の防止 |
+| Rule | 防御層 | 理由 |
+|------|--------|------|
+| `.claude-plugin/settings*`, `.claude/settings*` | deny | 自己書き換え防止 |
+| `.eslintrc*`, `eslint.config.*`, `biome.json`, `tsconfig*.json` | deny | 品質基準の保護 |
+| `.github/workflows/*` | deny | CI パイプラインの保護 |
+| `git push --force` | ask + R06 deny | 不可逆操作の防止 |
+| `git push origin main/master` | R12 deny | protected branch 保護 |
+| `git reset --hard` | ask + R11 deny | 不可逆操作の防止 |
+| `mcp__codex__*` | deny | Codex MCP 直接使用の防止 |
 
 変更が必要な場合はユーザーに手動操作を依頼すること。
 
