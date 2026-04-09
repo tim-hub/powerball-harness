@@ -76,9 +76,9 @@ func main() {
 	case "doctor":
 		runDoctor(os.Args[2:])
 	case "version":
-		fmt.Println(version)
+		fmt.Printf("%s (Hokage)\n", version)
 	case "--version", "-v":
-		fmt.Println(version)
+		fmt.Printf("%s (Hokage)\n", version)
 	case "help", "--help", "-h":
 		usage()
 	default:

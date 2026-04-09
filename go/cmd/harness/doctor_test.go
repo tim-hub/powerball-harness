@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -445,6 +446,225 @@ func TestDoctor_CheckStateDB_ViaEnv(t *testing.T) {
 	}
 	if r.detail != dbPath {
 		t.Errorf("expected detail=%q, got %q", dbPath, r.detail)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TestDoctor_NonCommandHooksSkipped
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// TestDoctor_CheckVersionMatch
+// ---------------------------------------------------------------------------
+
+// TestDoctor_CheckVersionMatch_Match verifies that matching binary/VERSION is ok.
+func TestDoctor_CheckVersionMatch_Match(t *testing.T) {
+	dir := t.TempDir()
+
+	// Write a VERSION file matching the binary version variable.
+	versionFile := filepath.Join(dir, "VERSION")
+	if err := os.WriteFile(versionFile, []byte("3.17.1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Temporarily override the global version variable.
+	orig := version
+	version = "3.17.1"
+	defer func() { version = orig }()
+
+	r := checkVersionMatch(dir)
+	if !r.ok {
+		t.Errorf("expected ok=true for matching versions, got false")
+	}
+	if strings.Contains(r.detail, "mismatch") {
+		t.Errorf("expected no mismatch warning, got %q", r.detail)
+	}
+}
+
+// TestDoctor_CheckVersionMatch_Mismatch verifies that a mismatch produces a warning detail.
+func TestDoctor_CheckVersionMatch_Mismatch(t *testing.T) {
+	dir := t.TempDir()
+
+	versionFile := filepath.Join(dir, "VERSION")
+	if err := os.WriteFile(versionFile, []byte("4.0.0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	orig := version
+	version = "3.17.1"
+	defer func() { version = orig }()
+
+	r := checkVersionMatch(dir)
+	if !r.ok {
+		t.Errorf("expected ok=true (advisory), got false")
+	}
+	if !strings.Contains(r.detail, "mismatch") {
+		t.Errorf("expected 'mismatch' in detail, got %q", r.detail)
+	}
+	if !strings.Contains(r.detail, "make install") {
+		t.Errorf("expected remediation hint 'make install' in detail, got %q", r.detail)
+	}
+}
+
+// TestDoctor_CheckVersionMatch_DevBuild verifies that "dev" binary version is always ok.
+func TestDoctor_CheckVersionMatch_DevBuild(t *testing.T) {
+	dir := t.TempDir()
+
+	versionFile := filepath.Join(dir, "VERSION")
+	if err := os.WriteFile(versionFile, []byte("4.0.0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	orig := version
+	version = "dev"
+	defer func() { version = orig }()
+
+	r := checkVersionMatch(dir)
+	if !r.ok {
+		t.Errorf("expected ok=true for dev build, got false")
+	}
+	if strings.Contains(r.detail, "mismatch") {
+		t.Errorf("expected no mismatch for dev build, got %q", r.detail)
+	}
+}
+
+// TestDoctor_CheckVersionMatch_MissingFile verifies graceful handling when VERSION is absent.
+func TestDoctor_CheckVersionMatch_MissingFile(t *testing.T) {
+	dir := t.TempDir() // no VERSION file
+
+	r := checkVersionMatch(dir)
+	if !r.ok {
+		t.Errorf("expected ok=true when VERSION file is missing, got false")
+	}
+	if !strings.Contains(r.detail, "not found") {
+		t.Errorf("expected 'not found' in detail, got %q", r.detail)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TestDoctor_CheckHooksGoPattern
+// ---------------------------------------------------------------------------
+
+// TestDoctor_CheckHooksGoPattern_LegacyBash verifies that bash hooks are detected.
+func TestDoctor_CheckHooksGoPattern_LegacyBash(t *testing.T) {
+	dir := t.TempDir()
+
+	schema := makeHooksSchema(map[string][]hookGroup{
+		"PreToolUse": {
+			{Hooks: []hookEntry{
+				{Type: "command", Command: `bash "${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool.sh"`},
+			}},
+		},
+	})
+	writeHooksJSON(t, dir, "hooks/hooks.json", schema)
+
+	r := checkHooksGoPattern(dir)
+	if !r.ok {
+		t.Errorf("expected ok=true (advisory only), got false")
+	}
+	if !strings.Contains(r.detail, "Legacy bash hook") {
+		t.Errorf("expected 'Legacy bash hook' in detail, got %q", r.detail)
+	}
+	if !strings.Contains(r.detail, "harness sync") {
+		t.Errorf("expected 'harness sync' remediation hint, got %q", r.detail)
+	}
+}
+
+// TestDoctor_CheckHooksGoPattern_GoOnly verifies that Go-pattern hooks pass cleanly.
+func TestDoctor_CheckHooksGoPattern_GoOnly(t *testing.T) {
+	dir := t.TempDir()
+
+	schema := makeHooksSchema(map[string][]hookGroup{
+		"PreToolUse": {
+			{Hooks: []hookEntry{
+				{Type: "command", Command: "harness hook pre-tool"},
+			}},
+		},
+	})
+	writeHooksJSON(t, dir, "hooks/hooks.json", schema)
+
+	r := checkHooksGoPattern(dir)
+	if !r.ok {
+		t.Errorf("expected ok=true for Go-pattern hooks, got false")
+	}
+	if strings.Contains(r.detail, "Legacy") {
+		t.Errorf("expected no legacy warning for Go-only hooks, got %q", r.detail)
+	}
+}
+
+// TestDoctor_CheckHooksGoPattern_MissingFile verifies graceful handling when hooks.json is absent.
+func TestDoctor_CheckHooksGoPattern_MissingFile(t *testing.T) {
+	dir := t.TempDir() // no hooks.json
+
+	r := checkHooksGoPattern(dir)
+	if !r.ok {
+		t.Errorf("expected ok=true when hooks.json is missing, got false")
+	}
+	if !strings.Contains(r.detail, "skipped") {
+		t.Errorf("expected 'skipped' in detail, got %q", r.detail)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TestDoctor_CheckPlatformBinary
+// ---------------------------------------------------------------------------
+
+// TestDoctor_CheckPlatformBinary_Present verifies ok when the binary exists.
+func TestDoctor_CheckPlatformBinary_Present(t *testing.T) {
+	dir := t.TempDir()
+
+	goos := runtime.GOOS
+	goarch := runtime.GOARCH
+	binaryName := "harness-" + goos + "-" + goarch
+	binDir := filepath.Join(dir, "bin")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(binDir, binaryName), []byte(""), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	r := checkPlatformBinary(dir)
+	if !r.ok {
+		t.Errorf("expected ok=true when platform binary exists, got false")
+	}
+	if strings.Contains(r.detail, "No binary") {
+		t.Errorf("expected no 'No binary' warning, got %q", r.detail)
+	}
+}
+
+// TestDoctor_CheckPlatformBinary_Absent verifies advisory detail when binary is missing.
+func TestDoctor_CheckPlatformBinary_Absent(t *testing.T) {
+	dir := t.TempDir() // no bin/ directory
+
+	r := checkPlatformBinary(dir)
+	if !r.ok {
+		t.Errorf("expected ok=true (advisory), got false")
+	}
+	if !strings.Contains(r.detail, "No binary") {
+		t.Errorf("expected 'No binary' in detail, got %q", r.detail)
+	}
+	if !strings.Contains(r.detail, "go build") {
+		t.Errorf("expected 'go build' remediation hint, got %q", r.detail)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// TestDoctor_CheckNodeNotRequired
+// ---------------------------------------------------------------------------
+
+// TestDoctor_CheckNodeNotRequired verifies that the check always passes and
+// contains the expected message.
+func TestDoctor_CheckNodeNotRequired(t *testing.T) {
+	r := checkNodeNotRequired()
+	if !r.ok {
+		t.Errorf("expected ok=true for Node.js check, got false")
+	}
+	if !strings.Contains(r.detail, "Node.js is no longer required") {
+		t.Errorf("expected Node.js message, got %q", r.detail)
+	}
+	if !strings.Contains(r.detail, "v4.0 Hokage") {
+		t.Errorf("expected 'v4.0 Hokage' in detail, got %q", r.detail)
 	}
 }
 

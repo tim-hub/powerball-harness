@@ -22,7 +22,7 @@ Harness v3 の統合セットアップスキル。
 
 | サブコマンド | 動作 |
 |------------|------|
-| `harness-setup init` | 新規プロジェクト初期化（CLAUDE.md + Plans.md + hooks）|
+| `harness-setup init` | 新規プロジェクト初期化（CLAUDE.md + Plans.md + hooks + sync + doctor）|
 | `harness-setup ci` | CI/CD パイプライン設定 |
 | `harness-setup codex` | Codex CLI インストール・設定 |
 | `harness-setup harness-mem` | harness-mem 統合・メモリ設定 |
@@ -54,6 +54,52 @@ project/
 2. 最小限の CLAUDE.md を生成
 3. Plans.md テンプレートを生成
 4. hooks.json を配置
+5. **Go バイナリ検証**: `harness version` でバイナリが利用可能か確認（v4.0 以降 Node.js 不要）
+6. **プラグインファイル同期**: `harness sync` で `.claude-plugin/` 配下のファイルを最新に同期
+7. **ヘルスチェック**: `harness doctor` で全チェック項目をパス。問題があれば修正案を提示
+
+### Go バイナリ検証
+
+```bash
+# バイナリの存在と動作を確認
+harness version
+# 例: harness v4.0.0 (go1.22.0, darwin/arm64)
+```
+
+v4.0 以降、Harness のコアエンジンは Go バイナリに移行した。
+Node.js は不要。バイナリは `bin/harness`（または PATH 上の `harness`）を使用する。
+
+### プラグインファイル同期
+
+```bash
+# .claude-plugin/ 配下のファイルを最新に同期
+harness sync
+
+# 同期内容の確認のみ（変更なし）
+harness sync --dry-run
+```
+
+`harness sync` は skills/ の SSOT から各 mirror（codex/.codex/skills/、opencode/skills/）へ
+変更を伝播させる。init 後に必ず実行すること。
+
+### ヘルスチェック
+
+```bash
+# 全チェック項目を実行
+harness doctor
+```
+
+`harness doctor` は以下を確認する:
+
+| チェック項目 | 内容 |
+|------------|------|
+| バイナリ | `harness version` が正常に返るか |
+| プラグイン設定 | `.claude-plugin/plugin.json` の形式が正しいか |
+| hooks 配置 | hooks が正しいパスに存在するか |
+| mirror 同期 | skills/ と mirror の内容が一致しているか |
+| CLAUDE.md | 必須セクションが存在するか |
+
+問題が検出された場合は修正コマンドを提示する。
 
 ### ci — CI/CD 設定
 
@@ -77,13 +123,16 @@ jobs:
 ### codex — Codex CLI 設定
 
 ```bash
-# インストール確認
+# インストール確認（Codex CLI は Node.js ベース。Harness 本体とは別物）
 which codex || npm install -g @openai/codex
 
 # タイムアウトコマンド確認（macOS）
 TIMEOUT=$(command -v timeout || command -v gtimeout || echo "")
 # macOS の場合: brew install coreutils
 ```
+
+> **注意**: Harness v4.0 本体（`harness` コマンド）は Node.js 不要の Go バイナリ。
+> Codex CLI（`codex` コマンド）は別ツールであり、引き続き Node.js が必要。
 
 **使用パターン**（公式プラグイン経由）:
 ```bash

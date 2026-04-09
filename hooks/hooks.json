@@ -7,8 +7,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool.sh\"",
-            "timeout": 30
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook pre-tool",
+            "timeout": 10
           }
         ]
       },
@@ -45,8 +45,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/permission.sh\"",
-            "timeout": 30
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook permission",
+            "timeout": 10
           }
         ]
       },
@@ -56,8 +56,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/permission.sh\"",
-            "timeout": 30
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook permission",
+            "timeout": 10
           }
         ]
       }
@@ -99,58 +99,17 @@
     ],
     "SessionStart": [
       {
-        "matcher": "startup",
+        "matcher": "startup|resume",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-handlers/session-env-setup.sh\"",
-            "timeout": 10,
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook session-start",
+            "timeout": 15,
             "once": true
           },
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge session-start",
-            "timeout": 30,
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" session-init",
-            "timeout": 30,
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" session-monitor",
-            "timeout": 30,
-            "once": true
-          }
-        ]
-      },
-      {
-        "matcher": "resume",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-handlers/session-env-setup.sh\"",
-            "timeout": 10,
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge session-start",
-            "timeout": 30,
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" session-resume",
-            "timeout": 30,
-            "once": true
-          },
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" session-monitor",
             "timeout": 30,
             "once": true
           }
@@ -159,41 +118,11 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "worker",
+        "matcher": "worker|reviewer|scaffolder|video-scene-generator",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker start",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "reviewer",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker start",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "scaffolder",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker start",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "video-scene-generator",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker start",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook subagent-start",
             "timeout": 10
           }
         ]
@@ -212,41 +141,11 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "worker",
+        "matcher": "worker|reviewer|scaffolder|video-scene-generator",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker stop",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "reviewer",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker stop",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "scaffolder",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker stop",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "video-scene-generator",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" subagent-tracker stop",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook subagent-stop",
             "timeout": 10
           }
         ]
@@ -257,8 +156,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/post-tool-failure",
-            "timeout": 10
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook post-tool-failure",
+            "timeout": 5
           }
         ]
       }
@@ -341,8 +240,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-handlers/post-compact.sh\"",
-            "timeout": 15
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook post-compact",
+            "timeout": 10
           }
         ]
       }
@@ -376,8 +275,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" session-cleanup",
-            "timeout": 30
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook session-cleanup",
+            "timeout": 10
           }
         ]
       }
@@ -420,8 +319,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/post-tool.sh\"",
-            "timeout": 30
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook post-tool",
+            "timeout": 10
           }
         ]
       },
@@ -461,7 +360,7 @@
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/ci-status-checker",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook ci-status",
             "timeout": 30,
             "async": true
           }
@@ -549,8 +448,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-handlers/notification-handler.sh\"",
-            "timeout": 10
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook notification",
+            "timeout": 5
           }
         ]
       }
@@ -593,8 +492,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" session-summary",
-            "timeout": 60
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook session-summary",
+            "timeout": 30
           },
           {
             "type": "command",
@@ -620,8 +519,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-handlers/permission-denied-handler.sh\"",
-            "timeout": 10
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook permission-denied",
+            "timeout": 5
           }
         ]
       }

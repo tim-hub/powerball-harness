@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 )
@@ -83,6 +84,11 @@ func runBasicChecks(projectRoot string) bool {
 		checkJSONFile(projectRoot, ".claude-plugin/plugin.json"),
 		checkStateDB(projectRoot),
 		checkBinaryInPath(),
+		// v4.0 Hokage — new checks
+		checkVersionMatch(projectRoot),
+		checkHooksGoPattern(projectRoot),
+		checkPlatformBinary(projectRoot),
+		checkNodeNotRequired(),
 	}
 
 	allOK := true
@@ -174,6 +180,120 @@ func checkBinaryInPath() checkResult {
 		}
 	}
 	return checkResult{label: label, ok: false, detail: "harness not found in PATH — run 'go install' or add bin/ to PATH"}
+}
+
+// ---------------------------------------------------------------------------
+// v4.0 Hokage — additional checks
+// ---------------------------------------------------------------------------
+
+// checkVersionMatch verifies that the binary version matches the VERSION file.
+// A mismatch typically means the binary was not rebuilt after a version bump.
+func checkVersionMatch(projectRoot string) checkResult {
+	label := "binary version matches VERSION file"
+
+	versionFilePath := filepath.Join(projectRoot, "VERSION")
+	data, err := os.ReadFile(versionFilePath)
+	if err != nil {
+		// VERSION file not found — skip rather than fail
+		return checkResult{label: label, ok: true, detail: "VERSION file not found (skipped)"}
+	}
+
+	fileVersion := strings.TrimSpace(string(data))
+	if fileVersion == "" {
+		return checkResult{label: label, ok: true, detail: "VERSION file is empty (skipped)"}
+	}
+
+	// version is the binary variable set via -ldflags (may be "dev" in local builds)
+	if version == "dev" {
+		return checkResult{label: label, ok: true, detail: fmt.Sprintf("binary version is 'dev' (local build), VERSION=%s", fileVersion)}
+	}
+
+	if version != fileVersion {
+		return checkResult{
+			label:  label,
+			ok:     true, // advisory only
+			detail: fmt.Sprintf("⚠️ Binary version mismatch: binary=%s, VERSION=%s. Run: cd go && make install", version, fileVersion),
+		}
+	}
+	return checkResult{label: label, ok: true, detail: fmt.Sprintf("%s", fileVersion)}
+}
+
+// reBashHook matches hook command strings that invoke bash explicitly.
+var reBashHook = regexp.MustCompile(`\bbash\b`)
+
+// checkHooksGoPattern inspects hooks.json for legacy bash hooks.
+// Command-type hooks should use "bin/harness hook" in v4; bash invocations are legacy.
+func checkHooksGoPattern(projectRoot string) checkResult {
+	label := "hooks.json uses Go binary pattern"
+
+	hooksPath := filepath.Join(projectRoot, "hooks", "hooks.json")
+	data, err := os.ReadFile(hooksPath)
+	if err != nil {
+		// Fallback to .claude-plugin/hooks.json
+		hooksPath = filepath.Join(projectRoot, ".claude-plugin", "hooks.json")
+		data, err = os.ReadFile(hooksPath)
+		if err != nil {
+			return checkResult{label: label, ok: true, detail: "hooks.json not found (skipped)"}
+		}
+	}
+
+	var schema hooksJSONSchema
+	if err := json.Unmarshal(data, &schema); err != nil {
+		return checkResult{label: label, ok: true, detail: "hooks.json parse error (skipped)"}
+	}
+
+	var legacyCommands []string
+	for _, groups := range schema.Hooks {
+		for _, group := range groups {
+			for _, entry := range group.Hooks {
+				if entry.Type != "command" {
+					continue
+				}
+				if reBashHook.MatchString(entry.Command) {
+					legacyCommands = append(legacyCommands, entry.Command)
+				}
+			}
+		}
+	}
+
+	if len(legacyCommands) > 0 {
+		// Report only the first legacy command to keep output concise
+		return checkResult{
+			label:  label,
+			ok:     true, // advisory only
+			detail: fmt.Sprintf("⚠️ Legacy bash hook detected: %s. Run: harness sync", legacyCommands[0]),
+		}
+	}
+	return checkResult{label: label, ok: true, detail: "all command hooks use Go binary pattern"}
+}
+
+// checkPlatformBinary verifies that a pre-built binary for the current
+// OS/architecture exists under bin/ (e.g. bin/harness-darwin-arm64).
+func checkPlatformBinary(projectRoot string) checkResult {
+	goos := runtime.GOOS
+	goarch := runtime.GOARCH
+	label := "platform binary exists"
+	binaryName := fmt.Sprintf("harness-%s-%s", goos, goarch)
+	binaryPath := filepath.Join(projectRoot, "bin", binaryName)
+
+	if _, err := os.Stat(binaryPath); err == nil {
+		return checkResult{label: label, ok: true, detail: binaryPath}
+	}
+	return checkResult{
+		label:  label,
+		ok:     true, // advisory only
+		detail: fmt.Sprintf("⚠️ No binary for %s-%s. Build: cd go && GOOS=%s GOARCH=%s go build -o bin/%s ./cmd/harness/", goos, goarch, goos, goarch, binaryName),
+	}
+}
+
+// checkNodeNotRequired informs the user that Node.js is no longer required
+// starting with v4.0 Hokage. This check always passes and is informational only.
+func checkNodeNotRequired() checkResult {
+	return checkResult{
+		label:  "Node.js dependency",
+		ok:     true,
+		detail: "✅ Node.js is no longer required (v4.0 Hokage)",
+	}
 }
 
 // printCheck prints a single check result.
