@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -506,5 +507,57 @@ func TestIsPlansFile_CustomPath(t *testing.T) {
 			t.Errorf("[%s] isPlansFileWithRoot(%q, %q, %q) = %v, want %v",
 				tc.desc, tc.changedFile, tc.plansFile, projectRoot, got, tc.want)
 		}
+	}
+}
+
+// TestHandlePlansWatcher_CWDFromInput は input.CWD が存在する場合に
+// resolveProjectRoot() の代わりに input.CWD が projectRoot として使用されることを確認する。
+// フックプロセスの CWD が input.CWD と異なる場合に Plans.md を正しく検出できることを検証。
+func TestHandlePlansWatcher_CWDFromInput(t *testing.T) {
+	// プロジェクトディレクトリ（Plans.md が存在する）
+	projectDir := t.TempDir()
+	// フックプロセスの CWD（プロジェクトとは異なるディレクトリ）
+	hookCWD := t.TempDir()
+
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// フックプロセスは hookCWD にいる（プロジェクトルートではない）
+	if err := os.Chdir(hookCWD); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	// projectDir に Plans.md を作成
+	plansContent := "| Task 1 | 実装A | DoD | - | cc:完了 |\n"
+	plansPath := filepath.Join(projectDir, "Plans.md")
+	if err := os.WriteFile(plansPath, []byte(plansContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// projectDir に .claude/state を作成
+	stateDir := filepath.Join(projectDir, ".claude", "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	// input に cwd フィールドを含める（projectDir を指定）
+	inputJSON := `{"tool_name":"Edit","cwd":"` + projectDir + `","tool_input":{"file_path":"Plans.md"}}`
+	var out bytes.Buffer
+	if err := HandlePlansWatcher(strings.NewReader(inputJSON), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// hookCWD に Plans.md がないにもかかわらず、projectDir の Plans.md が検出されること
+	// エラーなく処理されることを確認（Plans.md が見つかって状態集計まで進む）
+	var result postToolOutput
+	if jsonErr := json.Unmarshal(out.Bytes(), &result); jsonErr != nil {
+		t.Fatalf("invalid JSON output: %v, raw: %s", jsonErr, out.String())
+	}
+	// 正常に処理されること（hookCWD に Plans.md がない場合は emptyPostToolOutput のはずだが
+	// input.CWD を使えば projectDir の Plans.md が見つかる）
+	if out.Len() == 0 {
+		t.Error("expected non-empty output when input.CWD points to project with Plans.md")
 	}
 }

@@ -133,9 +133,14 @@ func TestEmitAgentTrace_WriteTool_CreateAction(t *testing.T) {
 	}
 }
 
-func TestEmitAgentTrace_WriteTool_ModifyAction(t *testing.T) {
+// TestEmitAgentTrace_WriteTool_AlwaysCreate は Write ツールが既存ファイルに対しても
+// action=create を返すことを確認する。
+// PostToolUse 時点ではファイルが既に書き込まれているため os.Stat では新規/既存を
+// 区別できない。tool_name ベースで判定するため Write は常に "create" とする。
+func TestEmitAgentTrace_WriteTool_AlwaysCreate(t *testing.T) {
 	dir := t.TempDir()
 
+	// 既存ファイルを事前に作成
 	existingFile := filepath.Join(dir, "existing.go")
 	if err := os.WriteFile(existingFile, []byte("package main\n"), 0600); err != nil {
 		t.Fatal(err)
@@ -173,8 +178,9 @@ func TestEmitAgentTrace_WriteTool_ModifyAction(t *testing.T) {
 	if len(rec.Files) == 0 {
 		t.Fatal("expected file entries")
 	}
-	if rec.Files[0].Action != "modify" {
-		t.Errorf("expected action=modify for existing file, got: %s", rec.Files[0].Action)
+	// Write は tool_name ベース判定のため既存ファイルでも "create"
+	if rec.Files[0].Action != "create" {
+		t.Errorf("expected action=create for Write tool (even existing file), got: %s", rec.Files[0].Action)
 	}
 }
 
@@ -561,6 +567,53 @@ func TestEmitAgentTrace_MultipleAppends(t *testing.T) {
 	}
 	if lineCount != 3 {
 		t.Errorf("expected 3 trace lines, got: %d", lineCount)
+	}
+}
+
+// TestEmitAgentTrace_MultiEditTool_ModifyAction は MultiEdit ツールが
+// action=modify を返すことを確認する。
+func TestEmitAgentTrace_MultiEditTool_ModifyAction(t *testing.T) {
+	dir := t.TempDir()
+
+	existingFile := filepath.Join(dir, "main.go")
+	if err := os.WriteFile(existingFile, []byte("package main\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	input, _ := json.Marshal(map[string]interface{}{
+		"file_path": existingFile,
+		"edits":     []interface{}{},
+	})
+
+	t.Setenv("CLAUDE_TOOL_NAME", "MultiEdit")
+	t.Setenv("CLAUDE_TOOL_INPUT", string(input))
+
+	stateDir := filepath.Join(dir, "state")
+	e := &EmitAgentTrace{
+		RepoRoot: dir,
+		StateDir: stateDir,
+	}
+
+	if err := e.Handle(strings.NewReader(""), nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	tracePath := filepath.Join(stateDir, "agent-trace.jsonl")
+	data, err := os.ReadFile(tracePath)
+	if err != nil {
+		t.Fatalf("trace file not found: %v", err)
+	}
+
+	var rec traceRecord
+	if err := json.Unmarshal(bytes.TrimSpace(data), &rec); err != nil {
+		t.Fatalf("invalid trace JSON: %v", err)
+	}
+
+	if len(rec.Files) == 0 {
+		t.Fatal("expected file entries in trace")
+	}
+	if rec.Files[0].Action != "modify" {
+		t.Errorf("expected action=modify for MultiEdit tool, got: %s", rec.Files[0].Action)
 	}
 }
 

@@ -195,20 +195,15 @@ func (e *EmitAgentTrace) Handle(r io.Reader, w io.Writer) error {
 		_, _ = fmt.Fprintf(os.Stderr, "[agent-trace] %v\n", err)
 	}
 
-	// OTel エクスポート。
-	// hooks.json の timeout は 5 秒（async: true ではない）なので、
-	// goroutine のまま return するとプロセス終了時に POST が途中で kill される。
-	// WaitGroup で完了を待ち、確実にエクスポートする。
-	// OTel collector が遅延している場合でも emitOtelSpan 内の 3 秒タイムアウトで
-	// ブロックを防ぐ。
+	// OTel エクスポート（fire-and-forget）。
+	// wg.Wait() で完了を待つと collector が遅い場合に 3 秒ブロックする問題があった。
+	// JSONL 書き込み（本来の目的）は上記の appendTrace で同期的に完了済みなので、
+	// OTel POST はベストエフォートで goroutine に任せる。
+	// OTel がない環境（大多数）は影響なし。
+	// OTel がある環境ではプロセス終了時に goroutine が kill される可能性があるが、
+	// これは JS 版の detached child process と同等の「ベストエフォート」動作。
 	if endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"); endpoint != "" {
-		var wg sync.WaitGroup
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			e.emitOtelSpan(endpoint, &rec)
-		}()
-		wg.Wait()
+		go e.emitOtelSpan(endpoint, &rec)
 	}
 
 	return nil
@@ -341,17 +336,18 @@ func (e *EmitAgentTrace) parseToolInput(toolName, toolInput, repoRoot string) []
 			}
 		}
 	case "Write":
+		// PostToolUse 時点ではファイルが既に書き込まれているため os.Stat は常に成功し
+		// create/modify を区別できない。tool_name ベースで判定する。
+		// Write = 新規作成、Edit/MultiEdit = 既存ファイルの修正。
 		if fp, ok := input["file_path"].(string); ok && fp != "" {
 			if eatIsPathWithinRepo(fp, repoRoot) {
-				absPath := fp
-				if !filepath.IsAbs(fp) {
-					absPath = filepath.Join(repoRoot, fp)
-				}
-				action := "create"
-				if _, err := os.Stat(absPath); err == nil {
-					action = "modify"
-				}
-				files = append(files, traceFile{Path: fp, Action: action, Range: "unknown"})
+				files = append(files, traceFile{Path: fp, Action: "create", Range: "unknown"})
+			}
+		}
+	case "MultiEdit":
+		if fp, ok := input["file_path"].(string); ok && fp != "" {
+			if eatIsPathWithinRepo(fp, repoRoot) {
+				files = append(files, traceFile{Path: fp, Action: "modify", Range: "unknown"})
 			}
 		}
 	}
@@ -759,7 +755,7 @@ func eatIsPathWithinRepo(filePath, repoRoot string) bool {
 
 // eatIsSupportedTool はトレース対象ツールかどうかを返す。
 func eatIsSupportedTool(toolName string) bool {
-	return toolName == "Edit" || toolName == "Write" || toolName == "Task"
+	return toolName == "Edit" || toolName == "Write" || toolName == "MultiEdit" || toolName == "Task"
 }
 
 // eatGenerateUUID は UUID v4 を生成する。

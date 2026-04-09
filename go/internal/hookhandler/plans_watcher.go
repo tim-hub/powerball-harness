@@ -85,7 +85,12 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 	}
 
 	// Plans.md ファイルを探す（設定ファイルの plansDirectory 対応）
-	projectRoot := resolveProjectRoot()
+	// input.CWD が存在する場合はそれを projectRoot として使用する。
+	// フックプロセスの CWD が input.CWD と異なる場合に誤った Plans.md を参照する問題を修正。
+	projectRoot := input.CWD
+	if projectRoot == "" {
+		projectRoot = resolveProjectRoot()
+	}
 	plansFile := resolvePlansPath(projectRoot)
 	if plansFile == "" {
 		return emptyPostToolOutput(out)
