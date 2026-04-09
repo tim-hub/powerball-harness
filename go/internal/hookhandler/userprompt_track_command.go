@@ -153,15 +153,6 @@ func (h *TrackCommandHandler) createPendingMarker(pendingDir, commandName, promp
 	return os.WriteFile(pendingFile, entryData, 0600)
 }
 
-// isSymlink はパスがシンボリックリンクかどうかを返す（存在しない場合は false）。
-func isSymlink(path string) bool {
-	fi, err := os.Lstat(path)
-	if err != nil {
-		return false
-	}
-	return fi.Mode()&os.ModeSymlink != 0
-}
-
 // writeTrackJSON は v を JSON として w に書き出す。
 func writeTrackJSON(w io.Writer, v interface{}) error {
 	data, err := json.Marshal(v)

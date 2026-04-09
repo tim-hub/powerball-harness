@@ -130,7 +130,7 @@ func TestRotateJSONLFile(t *testing.T) {
 	}
 	f.Close()
 
-	rotateJSONLFile(path, 500, 400)
+	_ = rotateJSONL(path, 500, 400)
 
 	content, _ := os.ReadFile(path)
 	lines := strings.Split(strings.TrimSpace(string(content)), "\n")
@@ -157,7 +157,7 @@ func TestRotateJSONLFile_NoRotationNeeded(t *testing.T) {
 	}
 	f.Close()
 
-	rotateJSONLFile(path, 500, 400)
+	_ = rotateJSONL(path, 500, 400)
 
 	content, _ := os.ReadFile(path)
 	lines := strings.Split(strings.TrimSpace(string(content)), "\n")

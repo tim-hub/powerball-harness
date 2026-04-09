@@ -120,9 +120,3 @@ func HandleInstructionsLoaded(in io.Reader, out io.Writer) error {
 		Reason:   "InstructionsLoaded tracked",
 	})
 }
-
-// fileExists はファイルが存在するかを確認する。
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
-}

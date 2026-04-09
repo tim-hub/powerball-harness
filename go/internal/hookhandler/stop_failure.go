@@ -128,7 +128,7 @@ func (h *StopFailureHandler) Handle(in io.Reader, out io.Writer) error {
 		if ferr == nil {
 			fmt.Fprintf(f, "%s\n", lineData)
 			f.Close()
-			rotateJSONL(logFile, 500, 400)
+			_ = rotateJSONL(logFile, 500, 400)
 		}
 	}
 

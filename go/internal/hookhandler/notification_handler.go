@@ -128,7 +128,7 @@ func ensureNotificationStateDir(stateDir string) error {
 	parent := filepath.Dir(stateDir)
 
 	// シンボリックリンクチェック（セキュリティ）
-	if isSymlinkNotification(parent) || isSymlinkNotification(stateDir) {
+	if isSymlink(parent) || isSymlink(stateDir) {
 		return fmt.Errorf("symlinked state path refused: %s", stateDir)
 	}
 
@@ -150,7 +150,7 @@ func ensureNotificationStateDir(stateDir string) error {
 // appendNotificationLog は JSONL ファイルに1エントリ追記し、ローテーションする。
 func appendNotificationLog(logFile string, entry notificationLogEntry) error {
 	// シンボリックリンクチェック
-	if isSymlinkNotification(logFile) {
+	if isSymlink(logFile) {
 		return fmt.Errorf("symlinked log file refused: %s", logFile)
 	}
 
@@ -170,48 +170,7 @@ func appendNotificationLog(logFile string, entry notificationLogEntry) error {
 	}
 
 	// ローテーション: 500行超なら400行に切り詰め
-	return rotateJSONLNotification(logFile, 500, 400)
-}
-
-// rotateJSONLNotification は JSONL ファイルが maxLines を超えたら keepLines に切り詰める。
-// notification_handler.go のローカル実装（パッケージ内の重複を避けるため _Notification サフィックスを付与）。
-func rotateJSONLNotification(path string, maxLines, keepLines int) error {
-	// シンボリックリンクチェック
-	if isSymlinkNotification(path) || isSymlinkNotification(path+".tmp") {
-		return fmt.Errorf("symlinked file refused for rotation")
-	}
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil // ファイルが存在しない場合は無視
-	}
-
-	lines := strings.Split(strings.TrimRight(string(data), "\n"), "\n")
-	if len(lines) <= maxLines {
-		return nil
-	}
-
-	// 末尾 keepLines 行を残す
-	start := len(lines) - keepLines
-	if start < 0 {
-		start = 0
-	}
-	trimmed := strings.Join(lines[start:], "\n") + "\n"
-
-	tmpPath := path + ".tmp"
-	if writeErr := os.WriteFile(tmpPath, []byte(trimmed), 0o644); writeErr != nil {
-		return fmt.Errorf("write tmp file: %w", writeErr)
-	}
-	return os.Rename(tmpPath, path)
-}
-
-// isSymlinkNotification はパスがシンボリックリンクかどうかを返す（存在しない場合は false）。
-func isSymlinkNotification(path string) bool {
-	info, err := os.Lstat(path)
-	if err != nil {
-		return false
-	}
-	return info.Mode()&os.ModeSymlink != 0
+	return rotateJSONL(logFile, 500, 400)
 }
 
 // shortHashNotification はプロジェクトルートパスの短縮ハッシュ（12文字）を返す。

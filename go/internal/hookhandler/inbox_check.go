@@ -142,15 +142,3 @@ func readUnreadMessages(path string, maxCount int) ([]string, error) {
 	return msgs, scanner.Err()
 }
 
-// resolveProjectRoot returns the project root directory following the same
-// priority order used by the bash scripts: CWD env → PROJECT_ROOT env → pwd.
-func resolveProjectRoot() string {
-	if v := os.Getenv("HARNESS_PROJECT_ROOT"); v != "" {
-		return v
-	}
-	if v := os.Getenv("PROJECT_ROOT"); v != "" {
-		return v
-	}
-	cwd, _ := os.Getwd()
-	return cwd
-}

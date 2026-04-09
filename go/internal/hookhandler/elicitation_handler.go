@@ -95,7 +95,7 @@ func (h *ElicitationHandler) Handle(in io.Reader, out io.Writer) error {
 			if ferr == nil {
 				fmt.Fprintf(f, "%s\n", lineData)
 				f.Close()
-				rotateJSONL(logFile, 500, 400)
+				_ = rotateJSONL(logFile, 500, 400)
 			}
 		}
 	}
@@ -118,15 +118,4 @@ func (h *ElicitationHandler) Handle(in io.Reader, out io.Writer) error {
 		Decision: "approve",
 		Reason:   "Elicitation: forwarding to user",
 	})
-}
-
-// firstNonEmpty は引数の中で最初の空でない文字列を返す。
-// いずれも空の場合は "" を返す。
-func firstNonEmpty(vals ...string) string {
-	for _, v := range vals {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
 }

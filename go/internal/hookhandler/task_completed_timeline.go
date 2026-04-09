@@ -77,46 +77,7 @@ func (h *taskCompletedHandler) appendTimeline(entry timelineEntry) {
 	fmt.Fprintf(f, "%s\n", data)
 	f.Close()
 
-	rotateJSONLFile(h.timelineFile, 500, 400)
-}
-
-// rotateJSONLFile は JSONL ファイルが maxLines を超えた場合、keepLines 行に切り詰める。
-func rotateJSONLFile(path string, maxLines, keepLines int) {
-	f, err := os.Open(path)
-	if err != nil {
-		return
-	}
-	var lines []string
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line != "" {
-			lines = append(lines, line)
-		}
-	}
-	f.Close()
-
-	if len(lines) <= maxLines {
-		return
-	}
-
-	lines = lines[len(lines)-keepLines:]
-	tmpPath := path + ".tmp"
-	tmp, err := os.Create(tmpPath)
-	if err != nil {
-		return
-	}
-	w := bufio.NewWriter(tmp)
-	for _, line := range lines {
-		fmt.Fprintln(w, line)
-	}
-	if err := w.Flush(); err != nil {
-		tmp.Close()
-		os.Remove(tmpPath)
-		return
-	}
-	tmp.Close()
-	os.Rename(tmpPath, path) //nolint:errcheck
+	_ = rotateJSONL(h.timelineFile, 500, 400)
 }
 
 // updateBreezingSignals は Breezing セッションのシグナル（50%/60%/完了）を管理する。

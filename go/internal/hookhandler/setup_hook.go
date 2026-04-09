@@ -179,7 +179,7 @@ func runSetupInit(out io.Writer, scriptDir string, simpleMode bool) error {
 
 	// 3. デフォルト設定ファイルの生成
 	configFile := ".claude-code-harness.config.yaml"
-	if !fileExistsSetup(configFile) {
+	if !fileExists(configFile) {
 		templatePath := filepath.Join(scriptDir, "..", "templates", ".claude-code-harness.config.yaml.template")
 		if _, err := os.Stat(templatePath); err == nil {
 			if err := copyFile(templatePath, configFile); err == nil {
@@ -189,7 +189,7 @@ func runSetupInit(out io.Writer, scriptDir string, simpleMode bool) error {
 	}
 
 	// 4. CLAUDE.md の生成
-	if !fileExistsSetup("CLAUDE.md") {
+	if !fileExists("CLAUDE.md") {
 		templatePath := filepath.Join(scriptDir, "..", "templates", "CLAUDE.md.template")
 		if _, err := os.Stat(templatePath); err == nil {
 			if err := copyFile(templatePath, "CLAUDE.md"); err == nil {
@@ -200,7 +200,7 @@ func runSetupInit(out io.Writer, scriptDir string, simpleMode bool) error {
 
 	// 5. Plans.md の生成（plansDirectory 設定を考慮）
 	plansPath := getPlansFilePath(scriptDir)
-	if !fileExistsSetup(plansPath) {
+	if !fileExists(plansPath) {
 		plansDir := filepath.Dir(plansPath)
 		if plansDir != "." {
 			_ = os.MkdirAll(plansDir, 0o755)
@@ -290,7 +290,7 @@ func runSetupMaintenance(out io.Writer, scriptDir string, simpleMode bool) error
 
 	// 6. 設定ファイルの YAML 構文チェック（python3 が利用可能な場合）
 	configFile := ".claude-code-harness.config.yaml"
-	if fileExistsSetup(configFile) {
+	if fileExists(configFile) {
 		if err := validateYAMLConfig(configFile); err != nil {
 			messages = append(messages, "警告: 設定ファイルの構文エラー")
 		}
@@ -300,12 +300,6 @@ func runSetupMaintenance(out io.Writer, scriptDir string, simpleMode bool) error
 		return writeSetupOutput(out, "[Setup:maintenance] メンテナンス完了（変更なし）")
 	}
 	return writeSetupOutput(out, "[Setup:maintenance] "+strings.Join(messages, ", "))
-}
-
-// fileExistsSetup はファイルが存在するかチェックする。
-func fileExistsSetup(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
 }
 
 // copyFile はファイルをコピーする。

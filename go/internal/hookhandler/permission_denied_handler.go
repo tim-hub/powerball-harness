@@ -178,8 +178,8 @@ func writePermissionDeniedApprove(out io.Writer, reason string) error {
 
 // appendPermissionDeniedLog は JSONL ファイルに1エントリ追記し、ローテーションする。
 func appendPermissionDeniedLog(logFile string, entry permissionDeniedLogEntry) error {
-	// シンボリックリンクチェック（notification_handler.go の isSymlinkNotification を使用）
-	if isSymlinkNotification(logFile) {
+	// シンボリックリンクチェック
+	if isSymlink(logFile) {
 		return fmt.Errorf("symlinked log file refused: %s", logFile)
 	}
 
@@ -198,6 +198,6 @@ func appendPermissionDeniedLog(logFile string, entry permissionDeniedLogEntry) e
 		return fmt.Errorf("write log entry: %w", writeErr)
 	}
 
-	// ローテーション: 500行超なら400行に切り詰め（notification_handler.go の rotateJSONLNotification を使用）
-	return rotateJSONLNotification(logFile, 500, 400)
+	// ローテーション: 500行超なら400行に切り詰め
+	return rotateJSONL(logFile, 500, 400)
 }

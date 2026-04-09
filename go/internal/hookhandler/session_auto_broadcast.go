@@ -175,12 +175,3 @@ func writeBroadcastNotification(filePath, matchedPattern string) error {
 	return nil
 }
 
-// writeJSON は任意の値を JSON として w に書き込む。
-func writeJSON(w io.Writer, v interface{}) error {
-	data, err := json.Marshal(v)
-	if err != nil {
-		return fmt.Errorf("marshal JSON: %w", err)
-	}
-	_, err = fmt.Fprintf(w, "%s\n", data)
-	return err
-}

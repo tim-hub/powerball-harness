@@ -77,9 +77,9 @@ func HandleTaskCompleted(in io.Reader, out io.Writer) error {
 
 func (h *taskCompletedHandler) handle(input taskCompletedInput, out io.Writer) error {
 	// フィールド正規化
-	teammateName := coalesce(input.TeammateName, input.AgentName)
+	teammateName := firstNonEmpty(input.TeammateName, input.AgentName)
 	taskID := input.TaskID
-	taskSubject := coalesce(input.TaskSubject, input.Subject)
+	taskSubject := firstNonEmpty(input.TaskSubject, input.Subject)
 	taskDesc := input.TaskDescription
 	if taskDesc == "" {
 		taskDesc = input.Description
@@ -90,7 +90,7 @@ func (h *taskCompletedHandler) handle(input taskCompletedInput, out io.Writer) e
 	agentID := input.AgentID
 	agentType := input.AgentType
 
-	stopReason := coalesce(input.StopReason, input.StopReasonSnake)
+	stopReason := firstNonEmpty(input.StopReason, input.StopReasonSnake)
 	requestContinue := true // デフォルトは続行
 	if input.Continue != nil {
 		requestContinue = *input.Continue
@@ -174,14 +174,4 @@ func approveResponse(reason string) map[string]string {
 		"decision": "approve",
 		"reason":   reason,
 	}
-}
-
-// coalesce は空でない最初の値を返す。
-func coalesce(values ...string) string {
-	for _, v := range values {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
 }

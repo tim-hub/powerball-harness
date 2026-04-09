@@ -222,7 +222,7 @@ func TestRotateJSONL_BelowThreshold(t *testing.T) {
 	content := strings.Join(lines, "\n") + "\n"
 	_ = os.WriteFile(path, []byte(content), 0o644)
 
-	rotateJSONL(path, 500, 400)
+	_ = rotateJSONL(path, 500, 400)
 
 	data, _ := os.ReadFile(path)
 	got := strings.Count(strings.TrimRight(string(data), "\n"), "\n") + 1
@@ -243,7 +243,7 @@ func TestRotateJSONL_AboveThreshold(t *testing.T) {
 	content := strings.Join(lines, "\n") + "\n"
 	_ = os.WriteFile(path, []byte(content), 0o644)
 
-	rotateJSONL(path, 500, 400)
+	_ = rotateJSONL(path, 500, 400)
 
 	data, _ := os.ReadFile(path)
 	trimmed := strings.TrimRight(string(data), "\n")

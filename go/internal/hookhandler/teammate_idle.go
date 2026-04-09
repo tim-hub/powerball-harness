@@ -130,7 +130,7 @@ func HandleTeammateIdle(in io.Reader, out io.Writer) error {
 	}
 	if entryData, err := json.Marshal(logEntry); err == nil {
 		appendToJSONL(timelineFile, entryData)
-		rotateJSONL(timelineFile, timelineRotateMaxLines, timelineRotateKeepLines)
+		_ = rotateJSONL(timelineFile, timelineRotateMaxLines, timelineRotateKeepLines)
 	}
 
 	// === レスポンス ===
@@ -194,34 +194,6 @@ func checkTeammateIdleDedup(timelineFile, dedupKey string) bool {
 	}
 
 	return false
-}
-
-// rotateJSONL は JSONL ファイルが maxLines を超えた場合に keepLines 行に切り詰める。
-// teammate-idle.sh の rotate_jsonl() 関数に対応。
-func rotateJSONL(path string, maxLines, keepLines int) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return
-	}
-
-	lines := strings.Split(strings.TrimRight(string(data), "\n"), "\n")
-	if len(lines) <= maxLines {
-		return
-	}
-
-	// keepLines 行を残す
-	if keepLines > len(lines) {
-		keepLines = len(lines)
-	}
-	kept := lines[len(lines)-keepLines:]
-	content := strings.Join(kept, "\n") + "\n"
-
-	// 一時ファイルに書き込んでアトミックにリネーム
-	tmpPath := path + ".tmp"
-	if err := os.WriteFile(tmpPath, []byte(content), 0o644); err != nil {
-		return
-	}
-	_ = os.Rename(tmpPath, path)
 }
 
 // writeTeammateIdleApprove は approve レスポンスを書き込む。
