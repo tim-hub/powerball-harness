@@ -185,17 +185,21 @@ func (h *UserPromptInjectPolicyHandler) updateToolingPolicy(stateDir, intent str
 		return
 	}
 
-	// LSP フラグをリセット
-	if lsp, ok := policy["lsp"].(map[string]interface{}); ok {
-		lsp["used_since_last_prompt"] = false
-		policy["lsp"] = lsp
+	// LSP フラグをリセット（キーが存在しない場合は空 map を自動生成）
+	lspMap, ok := policy["lsp"].(map[string]interface{})
+	if !ok {
+		lspMap = map[string]interface{}{}
 	}
+	lspMap["used_since_last_prompt"] = false
+	policy["lsp"] = lspMap
 
-	// Skills decision_required 設定
-	if skills, ok := policy["skills"].(map[string]interface{}); ok {
-		skills["decision_required"] = (intent == "semantic")
-		policy["skills"] = skills
+	// Skills decision_required 設定（キーが存在しない場合は空 map を自動生成）
+	skillsMap, ok := policy["skills"].(map[string]interface{})
+	if !ok {
+		skillsMap = map[string]interface{}{}
 	}
+	skillsMap["decision_required"] = (intent == "semantic")
+	policy["skills"] = skillsMap
 
 	updated, err := json.MarshalIndent(policy, "", "  ")
 	if err != nil {
@@ -313,12 +317,10 @@ func (h *UserPromptInjectPolicyHandler) consumeResumeContext(stateDir string) st
 	if rawPID, err := os.ReadFile(processingFlag); err == nil {
 		pidStr := strings.TrimSpace(string(rawPID))
 		if pid, err := strconv.Atoi(pidStr); err == nil && pid > 0 {
-			// PID が生きているかチェック
-			if proc, err := os.FindProcess(pid); err == nil {
-				if err := proc.Signal(os.Signal(nil)); err == nil {
-					// まだ処理中
-					return ""
-				}
+			// PID が生きているかチェック（プラットフォーム非依存）
+			if isProcessAlive(pid) {
+				// まだ処理中
+				return ""
 			}
 		}
 		// 死んだプロセスの processing フラグを削除

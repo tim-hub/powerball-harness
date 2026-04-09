@@ -195,20 +195,21 @@ func (e *EmitAgentTrace) Handle(r io.Reader, w io.Writer) error {
 		_, _ = fmt.Fprintf(os.Stderr, "[agent-trace] %v\n", err)
 	}
 
-	// OTel エクスポート（goroutine で並列実行・失敗は無視）。
-	// stdout への結果書き出しを先に行い、OTel POST はバックグラウンドで並行実行する。
-	// async: true フックなので Handle() を返した後もプロセスは生存し続け、
-	// wg.Wait() でプロセス終了前に POST 完了を保証する。
-	// emitOtelSpan 内の HTTP client に 3s timeout が設定されているので長時間ブロックしない。
-	var wg sync.WaitGroup
+	// OTel エクスポート。
+	// hooks.json の timeout は 5 秒（async: true ではない）なので、
+	// goroutine のまま return するとプロセス終了時に POST が途中で kill される。
+	// WaitGroup で完了を待ち、確実にエクスポートする。
+	// OTel collector が遅延している場合でも emitOtelSpan 内の 3 秒タイムアウトで
+	// ブロックを防ぐ。
 	if endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"); endpoint != "" {
+		var wg sync.WaitGroup
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			e.emitOtelSpan(endpoint, &rec)
 		}()
+		wg.Wait()
 	}
-	wg.Wait()
 
 	return nil
 }

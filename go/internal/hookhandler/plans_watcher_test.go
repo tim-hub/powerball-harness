@@ -286,14 +286,20 @@ func TestHandlePlansWatcher_StatusSummary(t *testing.T) {
 }
 
 func TestIsPlansFile(t *testing.T) {
+	// isPlansFile は filepath.Clean による厳密一致のみ。
+	// projectRoot を加味した比較は isPlansFileWithRoot で行う。
 	cases := []struct {
 		changed  string
 		plans    string
 		expected bool
 	}{
+		// 完全一致（相対パス）
 		{"Plans.md", "Plans.md", true},
-		{"docs/Plans.md", "Plans.md", true},
-		{"/home/user/project/Plans.md", "Plans.md", true},
+		// 完全一致（絶対パス）
+		{"/home/user/project/Plans.md", "/home/user/project/Plans.md", true},
+		// フルパスが異なれば不一致（別ディレクトリの同名ファイルは false）
+		{"docs/Plans.md", "Plans.md", false},
+		{"/home/user/project/Plans.md", "Plans.md", false},
 		{"src/main.go", "Plans.md", false},
 		{"NotPlans.md", "Plans.md", false},
 	}
@@ -301,6 +307,37 @@ func TestIsPlansFile(t *testing.T) {
 		got := isPlansFile(c.changed, c.plans)
 		if got != c.expected {
 			t.Errorf("isPlansFile(%q, %q) = %v, want %v", c.changed, c.plans, got, c.expected)
+		}
+	}
+}
+
+func TestIsPlansFileWithRoot(t *testing.T) {
+	// isPlansFileWithRoot は projectRoot を使って相対パスを解決する。
+	projectRoot := "/home/user/project"
+	cases := []struct {
+		changedFile string
+		plansFile   string
+		expected    bool
+		desc        string
+	}{
+		// 相対パス → projectRoot で解決して一致
+		{"Plans.md", "/home/user/project/Plans.md", true, "relative path match"},
+		// 絶対パスで一致
+		{"/home/user/project/Plans.md", "/home/user/project/Plans.md", true, "absolute path match"},
+		// 別ディレクトリの相対パス（Plans.md だが plansFile は projectRoot 直下）
+		{"docs/Plans.md", "/home/user/project/Plans.md", false, "subdirectory mismatch"},
+		// 別ディレクトリの相対パスが plansFile と一致する場合
+		{"docs/Plans.md", "/home/user/project/docs/Plans.md", true, "subdirectory match"},
+		// 全く別のファイル
+		{"src/main.go", "/home/user/project/Plans.md", false, "non plans file"},
+		// 別プロジェクトの同名ファイル（絶対パス）
+		{"/tmp/other/Plans.md", "/home/user/project/Plans.md", false, "different project Plans.md"},
+	}
+	for _, tc := range cases {
+		got := isPlansFileWithRoot(tc.changedFile, tc.plansFile, projectRoot)
+		if got != tc.expected {
+			t.Errorf("[%s] isPlansFileWithRoot(%q, %q, %q) = %v, want %v",
+				tc.desc, tc.changedFile, tc.plansFile, projectRoot, got, tc.expected)
 		}
 	}
 }
@@ -382,36 +419,92 @@ func TestHandlePlansWatcher_CursorCompatMarker(t *testing.T) {
 	}
 }
 
-// TestIsPlansFile_CustomPath はカスタムパスの Plans.md に対しても
-// ファイル名レベルでマッチすることを確認する（指摘2修正のテスト）。
+// TestHandlePlansWatcher_CustomPlansDirectory は plansDirectory 設定があるとき
+// カスタムディレクトリの Plans.md を正しく検出することを確認する。
+func TestHandlePlansWatcher_CustomPlansDirectory(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	// 設定ファイルを作成（plansDirectory: docs）
+	configContent := "plansDirectory: docs\n"
+	if err := os.WriteFile(harnessConfigFileName, []byte(configContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// docs/Plans.md を作成
+	if err := os.MkdirAll("docs", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	plansContent := "| Task 1 | 実装A | DoD | - | pm:依頼中 |\n"
+	if err := os.WriteFile("docs/Plans.md", []byte(plansContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// 前回の状態（pm_pending=0）を保存
+	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	prevState := `{"timestamp":"2026-01-01T00:00:00Z","pm_pending":0,"cc_todo":0,"cc_wip":0,"cc_done":0,"pm_confirmed":0}`
+	if err := os.WriteFile(plansStateFile, []byte(prevState), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// docs/Plans.md を変更したイベントを送信
+	input := `{"tool_name":"Edit","tool_input":{"file_path":"docs/Plans.md"}}`
+	var out bytes.Buffer
+	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var result postToolOutput
+	if jsonErr := json.Unmarshal(out.Bytes(), &result); jsonErr != nil {
+		t.Fatalf("invalid JSON output: %v, raw: %s", jsonErr, out.String())
+	}
+
+	// 新規タスクが検出されること（カスタムパスの Plans.md が認識される）
+	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "新規タスク") {
+		t.Errorf("expected '新規タスク' in additionalContext for custom plansDirectory, got %q",
+			result.HookSpecificOutput.AdditionalContext)
+	}
+}
+
+// TestIsPlansFile_CustomPath はカスタムパスの Plans.md に対して
+// isPlansFileWithRoot が正しく動作することを確認する（P2修正: 別ディレクトリ同名ファイルを誤マッチしない）。
 func TestIsPlansFile_CustomPath(t *testing.T) {
+	projectRoot := "/project"
 	cases := []struct {
 		changedFile string
 		plansFile   string
 		want        bool
 		desc        string
 	}{
-		// 完全一致
-		{"Plans.md", "Plans.md", true, "exact match"},
-		// パス含む完全一致
-		{"/project/Plans.md", "Plans.md", true, "absolute path suffix match"},
-		// カスタムディレクトリにある Plans.md（ファイル名一致）
-		{"docs/Plans.md", "Plans.md", true, "subdirectory with same filename"},
-		// 大文字小文字を区別しない（plansFile 側が異なるケース）
-		{"PLANS.md", "plans.md", true, "case insensitive filename"},
-		{"plans.md", "PLANS.MD", true, "case insensitive filename reversed"},
+		// 完全一致（相対パスをprojectRootで解決）
+		{"Plans.md", "/project/Plans.md", true, "exact match via projectRoot"},
+		// カスタムディレクトリの Plans.md が plansFile と一致
+		{"docs/Plans.md", "/project/docs/Plans.md", true, "custom subdir match"},
+		// 別ディレクトリの同名ファイルは誤マッチしない（修正の核心）
+		{"docs/Plans.md", "/project/Plans.md", false, "subdirectory mismatch - must not match"},
 		// 全く別のファイル
-		{"src/main.go", "Plans.md", false, "non plans file"},
-		{"README.md", "Plans.md", false, "readme not plans"},
+		{"src/main.go", "/project/Plans.md", false, "non plans file"},
+		{"README.md", "/project/Plans.md", false, "readme not plans"},
 		// ファイル名が Plans.md に似ているが別ファイル
-		{"Plans.md.bak", "Plans.md", false, "backup file not matched"},
+		{"Plans.md.bak", "/project/Plans.md", false, "backup file not matched"},
+		// 絶対パスで別プロジェクトの Plans.md
+		{"/tmp/other/Plans.md", "/project/Plans.md", false, "different project Plans.md must not match"},
 	}
 
 	for _, tc := range cases {
-		got := isPlansFile(tc.changedFile, tc.plansFile)
+		got := isPlansFileWithRoot(tc.changedFile, tc.plansFile, projectRoot)
 		if got != tc.want {
-			t.Errorf("[%s] isPlansFile(%q, %q) = %v, want %v",
-				tc.desc, tc.changedFile, tc.plansFile, got, tc.want)
+			t.Errorf("[%s] isPlansFileWithRoot(%q, %q, %q) = %v, want %v",
+				tc.desc, tc.changedFile, tc.plansFile, projectRoot, got, tc.want)
 		}
 	}
 }

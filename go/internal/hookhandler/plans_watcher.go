@@ -84,14 +84,15 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 		)
 	}
 
-	// Plans.md ファイルを探す
-	plansFile := findPlansFile()
+	// Plans.md ファイルを探す（設定ファイルの plansDirectory 対応）
+	projectRoot := resolveProjectRoot()
+	plansFile := resolvePlansPath(projectRoot)
 	if plansFile == "" {
 		return emptyPostToolOutput(out)
 	}
 
-	// 変更されたファイルが Plans.md でない場合はスキップ
-	if !isPlansFile(changedFile, plansFile) {
+	// 変更されたファイルが Plans.md でない場合はスキップ（完全パスで厳密比較）
+	if !isPlansFileWithRoot(changedFile, plansFile, projectRoot) {
 		return emptyPostToolOutput(out)
 	}
 
@@ -144,24 +145,30 @@ func findPlansFile() string {
 // isPlansFile は変更されたファイルが Plans.md かどうかを判定する。
 //
 // 判定ロジック:
-//  1. 完全一致（パス一致）
-//  2. "/" + plansFile で終わるパス（サブディレクトリ経由のフルパス）
-//  3. ファイル名が plansFile と大文字小文字を区別せずに一致する（カスタムパス対応）
+//  1. filepath.Clean による完全一致（相対パス・絶対パス双方に対応）
+//  2. changedFile が相対パスの場合、projectRoot で絶対パスに変換して再比較
+//
+// 旧実装にあった basename による大文字小文字を区別しないフォールバックは削除した。
+// basename のみの比較では別ディレクトリにある同名ファイル（例: /tmp/other/Plans.md）
+// が誤ってマッチするため、フルパスでの厳密一致のみを採用する。
 func isPlansFile(changedFile, plansFile string) bool {
-	// 完全一致または "/" + plansFile で終わるパス
-	if changedFile == plansFile {
-		return true
-	}
-	if strings.HasSuffix(changedFile, "/"+plansFile) {
-		return true
-	}
-	// ファイル名レベルの大文字小文字を区別しない比較（カスタムパス設定対応）
-	changedBase := filepath.Base(changedFile)
-	plansBase := filepath.Base(plansFile)
-	if strings.EqualFold(changedBase, plansBase) {
+	// filepath.Clean で正規化して完全一致
+	if filepath.Clean(changedFile) == filepath.Clean(plansFile) {
 		return true
 	}
 	return false
+}
+
+// isPlansFileWithRoot は changedFile が相対パスの場合に projectRoot を補完して比較する。
+// HandlePlansWatcher から呼び出す際に使用する。
+func isPlansFileWithRoot(changedFile, plansFile, projectRoot string) bool {
+	// changedFile が絶対パスの場合はそのまま比較
+	if filepath.IsAbs(changedFile) {
+		return isPlansFile(changedFile, plansFile)
+	}
+	// 相対パスの場合は projectRoot を基点に絶対パスへ変換
+	absChanged := filepath.Join(projectRoot, changedFile)
+	return isPlansFile(absChanged, plansFile)
 }
 
 // countMarker は Plans.md 内の marker 文字列の出現回数を返す。

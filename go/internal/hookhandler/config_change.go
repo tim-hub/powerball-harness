@@ -68,16 +68,16 @@ func HandleConfigChange(in io.Reader, out io.Writer) error {
 		return writeJSON(out, okOutput{OK: true})
 	}
 
-	// file_path をリポジトリ相対パスに正規化（ユーザー名等を隠蔽）
+	// file_path をリポジトリ相対パスに正規化（ユーザー名等を隠蔽）。
+	// filepath.Rel を使用することで、Windows のパス区切り文字（\）にも対応する。
 	rawPath := input.FilePath
 	if rawPath == "" {
 		rawPath = "unknown"
 	}
 	relPath := rawPath
 	if rawPath != "unknown" && projectRoot != "" {
-		trimmed := strings.TrimPrefix(rawPath, projectRoot+"/")
-		if trimmed != rawPath {
-			relPath = trimmed
+		if rel, relErr := filepath.Rel(projectRoot, rawPath); relErr == nil {
+			relPath = rel
 		}
 	}
 
