@@ -148,12 +148,20 @@ func handleSetupHook(in io.Reader, out io.Writer, mode string) error {
 }
 
 // resolveSetupScriptDir はスクリプトディレクトリのパスを解決する。
-// HARNESS_SCRIPT_DIR 環境変数が設定されている場合はそれを使用する。
+// フックは対象プロジェクトの CWD で実行されるため、CWD ベースの検索は
+// harness のインストール先を指さない。以下の優先順位で解決する:
+//
+//  1. CLAUDE_PLUGIN_ROOT 環境変数（harness インストール先）
+//  2. HARNESS_SCRIPT_DIR 環境変数（明示的なオーバーライド）
+//  3. CWD（開発環境用フォールバック）
 func resolveSetupScriptDir() string {
+	if root := os.Getenv("CLAUDE_PLUGIN_ROOT"); root != "" {
+		return filepath.Join(root, "scripts")
+	}
 	if dir := os.Getenv("HARNESS_SCRIPT_DIR"); dir != "" {
 		return dir
 	}
-	// フォールバック: カレントディレクトリの scripts/
+	// フォールバック: カレントディレクトリの scripts/（開発環境用）
 	cwd, _ := os.Getwd()
 	return filepath.Join(cwd, "scripts")
 }

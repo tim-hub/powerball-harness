@@ -289,5 +289,67 @@ func TestCopyFile(t *testing.T) {
 	}
 }
 
+// TestResolveSetupScriptDir_CLAUDE_PLUGIN_ROOT は CLAUDE_PLUGIN_ROOT が優先されることを確認する。
+func TestResolveSetupScriptDir_CLAUDE_PLUGIN_ROOT(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("CLAUDE_PLUGIN_ROOT", dir)
+	// HARNESS_SCRIPT_DIR も設定して、優先順位の確認
+	t.Setenv("HARNESS_SCRIPT_DIR", "/should/not/be/used")
+
+	got := resolveSetupScriptDir()
+	want := filepath.Join(dir, "scripts")
+	if got != want {
+		t.Errorf("resolveSetupScriptDir() = %q, want %q", got, want)
+	}
+}
+
+// TestResolveSetupScriptDir_HARNESS_SCRIPT_DIR は CLAUDE_PLUGIN_ROOT がない場合に
+// HARNESS_SCRIPT_DIR が使われることを確認する。
+func TestResolveSetupScriptDir_HARNESS_SCRIPT_DIR(t *testing.T) {
+	dir := t.TempDir()
+	os.Unsetenv("CLAUDE_PLUGIN_ROOT")
+	t.Setenv("HARNESS_SCRIPT_DIR", dir)
+
+	got := resolveSetupScriptDir()
+	if got != dir {
+		t.Errorf("resolveSetupScriptDir() = %q, want %q", got, dir)
+	}
+}
+
+// TestResolveSetupScriptDir_CWDFallback は両環境変数がない場合に CWD/scripts が返ることを確認する。
+func TestResolveSetupScriptDir_CWDFallback(t *testing.T) {
+	dir := t.TempDir()
+	origWD, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origWD) //nolint:errcheck
+
+	os.Unsetenv("CLAUDE_PLUGIN_ROOT")
+	os.Unsetenv("HARNESS_SCRIPT_DIR")
+
+	got := resolveSetupScriptDir()
+
+	// macOS では os.Getwd() が /private/var 経由の実パスを返すが、
+	// t.TempDir() は /var 経由のパスを返すことがある (symlink)。
+	// パスの末尾が "/scripts" になっているかを確認することで対応する。
+	if filepath.Base(got) != "scripts" {
+		t.Errorf("resolveSetupScriptDir() = %q, want path ending in 'scripts'", got)
+	}
+	// 戻り値は os.Getwd() + "/scripts" なので、ディレクトリ部分は CWD と一致する
+	// (symlink 解決後の比較)
+	cwd, _ := os.Getwd()
+	gotDir := filepath.Dir(got)
+	gotDirReal, _ := filepath.EvalSymlinks(gotDir)
+	cwdReal, _ := filepath.EvalSymlinks(cwd)
+	if gotDirReal != cwdReal {
+		t.Errorf("resolveSetupScriptDir() parent = %q (real: %q), want CWD = %q (real: %q)",
+			gotDir, gotDirReal, cwd, cwdReal)
+	}
+}
+
 // time パッケージを setup_hook_test.go でも使用するため
 var _ = time.Now

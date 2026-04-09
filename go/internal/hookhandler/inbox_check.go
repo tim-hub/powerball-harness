@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -15,7 +16,12 @@ import (
 // CheckInterval is the minimum duration between inbox checks (5 minutes).
 const CheckInterval = 5 * time.Minute
 
+// broadcastMsgRe matches broadcast.md message headers.
+// Format: ## 2026-04-09T12:34:56Z [sender-prefix]
+var broadcastMsgRe = regexp.MustCompile(`^## (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z) \[([^\]]+)\]`)
+
 // inboxLine represents a single line parsed from session-inbox.jsonl.
+// Kept for backward compatibility in case inbox JSONL is present.
 type inboxLine struct {
 	Read bool   `json:"read"`
 	Msg  string `json:"msg"`
@@ -38,9 +44,10 @@ type preToolAllowOutput struct {
 
 // HandleInboxCheck ports pretooluse-inbox-check.sh.
 //
-// Reads .claude/state/session-inbox.jsonl, counts unread messages, and if
-// there are any injects them as additionalContext. A 5-minute throttle is
-// enforced via .claude/sessions/.last_inbox_check.
+// Reads .claude/sessions/broadcast.md (same source as the bash version),
+// counts unread messages since the last read timestamp, and if there are any
+// injects them as additionalContext. A 5-minute throttle is enforced via
+// .claude/sessions/.last_inbox_check.
 func HandleInboxCheck(in io.Reader, out io.Writer) error {
 	// Read stdin (ignored — the hook payload is not needed for this handler).
 	_, _ = io.ReadAll(in)
@@ -50,7 +57,6 @@ func HandleInboxCheck(in io.Reader, out io.Writer) error {
 
 	sessionsDir := projectRoot + "/.claude/sessions"
 	checkIntervalFile := sessionsDir + "/.last_inbox_check"
-	inboxFile := projectRoot + "/.claude/state/session-inbox.jsonl"
 	broadcastFile := sessionsDir + "/broadcast.md"
 
 	// Throttle: exit 0 (no output) if last check was < 5 minutes ago.
@@ -69,10 +75,15 @@ func HandleInboxCheck(in io.Reader, out io.Writer) error {
 		return nil
 	}
 
-	// Read unread messages from inbox.
-	messages, err := readUnreadMessages(inboxFile, 5)
+	// Read unread messages from broadcast.md (markdown format — matches bash version).
+	messages, err := readBroadcastMessages(broadcastFile, 5)
 	if err != nil || len(messages) == 0 {
-		return nil
+		// Fallback: try session-inbox.jsonl for backward compatibility.
+		inboxFile := projectRoot + "/.claude/state/session-inbox.jsonl"
+		messages, _ = readUnreadMessages(inboxFile, 5)
+		if len(messages) == 0 {
+			return nil
+		}
 	}
 
 	// Build additionalContext string.
@@ -108,6 +119,61 @@ func throttleAllowed(checkIntervalFile string) bool {
 	return elapsed >= CheckInterval
 }
 
+// readBroadcastMessages reads up to maxCount unread messages from broadcast.md.
+// The markdown format used by session-inbox-check.sh:
+//
+//	## 2026-04-09T12:34:56Z [sender-short-id]
+//	message content line
+//
+// Messages are considered unread if they appear in the file (no per-session
+// read-state is tracked in the Go implementation; the 5-minute throttle
+// prevents excessive notifications).
+func readBroadcastMessages(path string, maxCount int) ([]string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var msgs []string
+	var currentTimestamp, currentSender, currentContent string
+	inMessage := false
+
+	flush := func() {
+		if inMessage && currentContent != "" && len(msgs) < maxCount {
+			// Format: [HH:MM] sender: content
+			ts := currentTimestamp
+			if len(ts) >= 16 {
+				ts = ts[11:16] // extract HH:MM from ISO timestamp
+			}
+			msgs = append(msgs, fmt.Sprintf("[%s] %s: %s", ts, currentSender, currentContent))
+		}
+	}
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if m := broadcastMsgRe.FindStringSubmatch(line); m != nil {
+			// Flush previous message before starting a new one.
+			flush()
+			currentTimestamp = m[1]
+			currentSender = m[2]
+			currentContent = ""
+			inMessage = true
+			continue
+		}
+
+		if inMessage && strings.TrimSpace(line) != "" {
+			currentContent = strings.TrimSpace(line)
+		}
+	}
+	// Flush the last message.
+	flush()
+
+	return msgs, scanner.Err()
+}
+
 // readUnreadMessages reads up to maxCount unread messages from a JSONL inbox
 // file. Each line is expected to be a JSON object; lines that are not valid
 // JSON are treated as raw text messages. Lines starting with '[' are treated
@@ -141,4 +207,3 @@ func readUnreadMessages(path string, maxCount int) ([]string, error) {
 	}
 	return msgs, scanner.Err()
 }
-

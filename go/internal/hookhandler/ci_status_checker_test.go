@@ -89,12 +89,12 @@ func TestCIStatusChecker_GitPushCommand_NoGH(t *testing.T) {
 func TestCIStatusChecker_GitPushCommand_WithGH(t *testing.T) {
 	dir := t.TempDir()
 
-	var asyncCalled atomic.Bool
+	var runnerCalled atomic.Bool
 	h := &CIStatusCheckerHandler{
 		ProjectRoot: dir,
 		GHCommand:   findGHOrSkip(t),
 		AsyncRunner: func(projectRoot, stateDir, bashCmd, ghCommand string) {
-			asyncCalled.Store(true)
+			runnerCalled.Store(true)
 		},
 	}
 
@@ -121,8 +121,10 @@ func TestCIStatusChecker_GitPushCommand_WithGH(t *testing.T) {
 		t.Errorf("expected 'CI monitoring started' in reason, got: %s", resp.Reason)
 	}
 
-	// 非同期ランナーが呼ばれたことを確認（goroutine なので少し待つ）
-	_ = asyncCalled.Load()
+	// 同期呼び出しなので Handle() が戻った時点でランナーは必ず実行済み。
+	if !runnerCalled.Load() {
+		t.Error("runner was not called synchronously")
+	}
 }
 
 func TestCIStatusChecker_GHPRCreateCommand(t *testing.T) {

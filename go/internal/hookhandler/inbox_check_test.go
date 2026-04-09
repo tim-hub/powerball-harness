@@ -179,3 +179,84 @@ func TestNoBroadcastFile_NoOutput(t *testing.T) {
 	}
 }
 
+func TestReadBroadcastMessages_MarkdownFormat(t *testing.T) {
+	dir := t.TempDir()
+	broadcastPath := filepath.Join(dir, "broadcast.md")
+
+	// bash 版 session-inbox-check.sh が生成するマークダウン形式
+	content := "## 2026-04-09T12:00:00Z [abc123456def]\nhello from session A\n\n## 2026-04-09T12:05:00Z [xyz789012abc]\nupdate: task completed\n"
+	if err := os.WriteFile(broadcastPath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	msgs, err := readBroadcastMessages(broadcastPath, 5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(msgs) != 2 {
+		t.Fatalf("expected 2 messages, got %d: %v", len(msgs), msgs)
+	}
+	if !strings.Contains(msgs[0], "hello from session A") {
+		t.Errorf("message 0 should contain 'hello from session A', got: %s", msgs[0])
+	}
+	if !strings.Contains(msgs[1], "update: task completed") {
+		t.Errorf("message 1 should contain 'update: task completed', got: %s", msgs[1])
+	}
+	// タイムスタンプは HH:MM 形式で含まれるはず
+	if !strings.Contains(msgs[0], "[12:00]") {
+		t.Errorf("message 0 should contain '[12:00]', got: %s", msgs[0])
+	}
+}
+
+func TestReadBroadcastMessages_MaxCount(t *testing.T) {
+	dir := t.TempDir()
+	broadcastPath := filepath.Join(dir, "broadcast.md")
+
+	// 5件以上のメッセージ
+	var content string
+	for i := 0; i < 8; i++ {
+		content += fmt.Sprintf("## 2026-04-09T12:0%dZ [sender%d]\nmessage %d\n\n", i, i, i)
+	}
+	if err := os.WriteFile(broadcastPath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	msgs, err := readBroadcastMessages(broadcastPath, 5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(msgs) > 5 {
+		t.Errorf("expected at most 5 messages, got %d", len(msgs))
+	}
+}
+
+func TestHandleInboxCheck_BroadcastMdSource(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HARNESS_PROJECT_ROOT", dir)
+
+	sessionsDir := filepath.Join(dir, ".claude", "sessions")
+	if err := os.MkdirAll(sessionsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	// broadcast.md にメッセージを書き込む（bash 版と同じソース）
+	broadcastPath := filepath.Join(sessionsDir, "broadcast.md")
+	content := "## 2026-04-09T10:30:00Z [remote-session-a1]\nplease check the CI status\n"
+	if err := os.WriteFile(broadcastPath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var out bytes.Buffer
+	if err := HandleInboxCheck(strings.NewReader("{}"), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if out.Len() == 0 {
+		t.Fatal("expected output for broadcast.md message, got nothing")
+	}
+	outStr := out.String()
+	if !strings.Contains(outStr, "CI status") {
+		t.Errorf("output should contain 'CI status', got: %s", outStr)
+	}
+}
+

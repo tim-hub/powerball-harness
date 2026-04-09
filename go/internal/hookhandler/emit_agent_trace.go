@@ -195,9 +195,12 @@ func (e *EmitAgentTrace) Handle(r io.Reader, w io.Writer) error {
 		_, _ = fmt.Fprintf(os.Stderr, "[agent-trace] %v\n", err)
 	}
 
-	// OTel エクスポート（非同期、失敗は無視）
+	// OTel エクスポート（同期・失敗は無視）。
+	// async: true フックなので goroutine は不要。
+	// プロセス終了で goroutine が kill されるリスクを排除するため同期呼び出しにする。
+	// emitOtelSpan 内の HTTP client に 3s timeout が設定されているので長時間ブロックしない。
 	if endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"); endpoint != "" {
-		go e.emitOtelSpan(endpoint, &rec)
+		e.emitOtelSpan(endpoint, &rec)
 	}
 
 	return nil
@@ -504,7 +507,9 @@ func eatFetchAttribution() *traceAttribution {
 	return attr
 }
 
-// emitOtelSpan は OTel Span を OTLP HTTP エンドポイントに POST する（非同期）。
+// emitOtelSpan は OTel Span を OTLP HTTP エンドポイントに POST する。
+// 呼び出し元は同期呼び出しを前提にする。HTTP client に 3s timeout が設定されているため
+// 長時間ブロックしない。失敗はサイレントに無視する。
 func (e *EmitAgentTrace) emitOtelSpan(otlpEndpoint string, rec *traceRecord) {
 	serviceVersion := eatReadServiceVersion()
 	spanJSON := eatBuildOtelSpanJSON(rec, serviceVersion)

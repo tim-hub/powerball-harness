@@ -13,7 +13,9 @@ import (
 )
 
 // CIStatusCheckerHandler は PostToolUse (Bash) フックハンドラ（CI ステータスチェック）。
-// git push / gh pr コマンドを検出し、CI ステータスを非同期でチェックする。
+// git push / gh pr コマンドを検出し、CI ステータスを同期的にチェックする。
+// async: true フック（CC がプロセスを最大 600s 生存させる）を前提に、
+// goroutine ではなくブロッキング呼び出しで runner を実行する。
 // CI 失敗時は additionalContext で /ci スキルを推奨する。
 //
 // shell 版: scripts/hook-handlers/ci-status-checker.sh
@@ -24,8 +26,8 @@ type CIStatusCheckerHandler struct {
 	// GHCommand は gh コマンドのパス（テスト用）。空の場合は PATH から検索する。
 	GHCommand string
 
-	// AsyncRunner は非同期 CI チェックの実行関数（テスト用モック）。
-	// nil の場合はデフォルト実装（バックグラウンドゴルーチン）を使用する。
+	// AsyncRunner は CI チェックの実行関数（テスト用モック）。
+	// nil の場合はデフォルト実装（同期ブロッキング）を使用する。
 	AsyncRunner func(projectRoot, stateDir, bashCmd, ghCommand string)
 }
 
@@ -106,28 +108,36 @@ func (h *CIStatusCheckerHandler) Handle(r io.Reader, w io.Writer) error {
 	stateDir := filepath.Join(projectRoot, ".claude", "state")
 	_ = os.MkdirAll(stateDir, 0700)
 
-	// 非同期で CI ステータスをチェック（フックをブロックしない）
-	runner := h.AsyncRunner
-	if runner == nil {
-		runner = defaultAsyncCIRunner
-	}
-	go runner(projectRoot, stateDir, bashCmd, ghCmd)
-
-	// 直近の CI 失敗シグナルをチェック
+	// 直近の CI 失敗シグナルをチェック（runner 実行前に確認）
 	additionalContext := h.checkRecentCIFailure(stateDir, bashCmd)
 
+	// レスポンスを先に stdout に書き出す（async: true フックなので CC はプロセスを生かし続ける）
+	var writeErr error
 	if additionalContext != "" {
-		return writeCIJSON(w, ciStatusResponse{
+		writeErr = writeCIJSON(w, ciStatusResponse{
 			Decision:          "approve",
 			Reason:            "ci-status-checker: push/PR detected, CI failure context injected",
 			AdditionalContext: additionalContext,
 		})
+	} else {
+		writeErr = writeCIJSON(w, ciStatusResponse{
+			Decision: "approve",
+			Reason:   "ci-status-checker: push/PR detected, CI monitoring started",
+		})
+	}
+	if writeErr != nil {
+		return writeErr
 	}
 
-	return writeCIJSON(w, ciStatusResponse{
-		Decision: "approve",
-		Reason:   "ci-status-checker: push/PR detected, CI monitoring started",
-	})
+	// レスポンス書き出し後にブロッキングで CI ステータスをポーリング。
+	// async: true フックなので CC がプロセスを最大 600s 生存させてくれる。
+	// goroutine は不要 — プロセス終了で kill されるリスクを排除する。
+	runner := h.AsyncRunner
+	if runner == nil {
+		runner = defaultCIRunner
+	}
+	runner(projectRoot, stateDir, bashCmd, ghCmd)
+	return nil
 }
 
 // isPushOrPRCommand は bashCmd が push / PR コマンドを含むかを返す。
@@ -188,10 +198,11 @@ func (h *CIStatusCheckerHandler) checkRecentCIFailure(stateDir, bashCmd string) 
 	)
 }
 
-// defaultAsyncCIRunner は gh run list でポーリングし、結果をシグナルファイルに書き込む。
-// バックグラウンドゴルーチンとして実行される。
-func defaultAsyncCIRunner(projectRoot, stateDir, bashCmd, ghCmd string) {
-	const maxWait = 60 * time.Second
+// defaultCIRunner は gh run list でポーリングし、結果をシグナルファイルに書き込む。
+// async: true フックを前提に同期ブロッキングで実行される。
+// maxWait を hooks.json の timeout (30s) より短い 25s に設定して安全マージンを確保する。
+func defaultCIRunner(projectRoot, stateDir, bashCmd, ghCmd string) {
+	const maxWait = 25 * time.Second
 	const pollInterval = 10 * time.Second
 
 	ciStatusFile := filepath.Join(stateDir, "ci-status.json")
