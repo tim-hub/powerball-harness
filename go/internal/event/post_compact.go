@@ -46,11 +46,12 @@ type handoffPreviousState struct {
 }
 
 // handoffSessionState はセッション状態。
+// null になりうるフィールドはポインタ型で受け取り、JSON null を正しくアンマーシャルする。
 type handoffSessionState struct {
-	State        string `json:"state"`
-	ReviewStatus string `json:"review_status"`
-	ActiveSkill  string `json:"active_skill"`
-	ResumedAt    string `json:"resumed_at"`
+	State        string  `json:"state"`
+	ReviewStatus *string `json:"review_status,omitempty"`
+	ActiveSkill  *string `json:"active_skill,omitempty"`
+	ResumedAt    *string `json:"resumed_at,omitempty"`
 }
 
 // handoffPlanCounts はプランカウント情報。
@@ -62,15 +63,16 @@ type handoffPlanCounts struct {
 }
 
 // handoffNextAction は next_action フィールドのスキーマ。
+// null になりうるフィールドはポインタ型で受け取る。
 type handoffNextAction struct {
-	Summary  string `json:"summary"`
-	TaskID   string `json:"taskId"`
-	Task     string `json:"task"`
-	DoD      string `json:"dod"`
-	Depends  string `json:"depends"`
-	Status   string `json:"status"`
-	Source   string `json:"source"`
-	Priority string `json:"priority"`
+	Summary  string  `json:"summary"`
+	TaskID   *string `json:"taskId,omitempty"`
+	Task     string  `json:"task"`
+	DoD      string  `json:"dod"`
+	Depends  string  `json:"depends"`
+	Status   string  `json:"status"`
+	Source   string  `json:"source"`
+	Priority string  `json:"priority"`
 }
 
 // handoffRisk はリスクエントリ。
@@ -279,14 +281,14 @@ func (h *PostCompactHandler) extractStructuredContext(path string) string {
 			if ss.State != "" {
 				bits = append(bits, "state="+ss.State)
 			}
-			if ss.ReviewStatus != "" {
-				bits = append(bits, "review_status="+ss.ReviewStatus)
+			if ss.ReviewStatus != nil && *ss.ReviewStatus != "" {
+				bits = append(bits, "review_status="+*ss.ReviewStatus)
 			}
-			if ss.ActiveSkill != "" {
-				bits = append(bits, "active_skill="+ss.ActiveSkill)
+			if ss.ActiveSkill != nil && *ss.ActiveSkill != "" {
+				bits = append(bits, "active_skill="+*ss.ActiveSkill)
 			}
-			if ss.ResumedAt != "" {
-				bits = append(bits, "resumed_at="+ss.ResumedAt)
+			if ss.ResumedAt != nil && *ss.ResumedAt != "" {
+				bits = append(bits, "resumed_at="+*ss.ResumedAt)
 			}
 			if len(bits) > 0 {
 				parts = append(parts, "- Session state: "+strings.Join(bits, ", "))
@@ -318,7 +320,11 @@ func (h *PostCompactHandler) extractStructuredContext(path string) string {
 		if na.Summary != "" {
 			naBits = append(naBits, na.Summary)
 		}
-		taskLabel := strings.TrimSpace(na.TaskID + " " + na.Task)
+		taskIDStr := ""
+		if na.TaskID != nil {
+			taskIDStr = *na.TaskID
+		}
+		taskLabel := strings.TrimSpace(taskIDStr + " " + na.Task)
 		if taskLabel != "" && taskLabel != na.Summary {
 			naBits = append(naBits, taskLabel)
 		}
@@ -360,9 +366,16 @@ func (h *PostCompactHandler) extractStructuredContext(path string) string {
 		var checkTexts []string
 		for _, c := range checks {
 			text := riskNormalizeText(c.Check, c.Detail)
-			if text != "" {
-				checkTexts = append(checkTexts, text)
+			if text == "" {
+				continue
 			}
+			// detail があれば "check: detail" 形式で追記する。
+			// riskNormalizeText は primary が空のとき secondary を返すだけなので、
+			// ここで両方を結合して detail の情報が落ちないようにする。
+			if c.Check != "" && c.Detail != "" {
+				text = c.Check + ": " + c.Detail
+			}
+			checkTexts = append(checkTexts, text)
 		}
 		if len(checkTexts) > 0 {
 			parts = append(parts, "- Failed checks: "+strings.Join(checkTexts, "; "))

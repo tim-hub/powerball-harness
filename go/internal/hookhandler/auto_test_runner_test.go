@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -97,6 +98,9 @@ func TestDetectTestCommand_Jest_PackageJSON(t *testing.T) {
 }
 
 func TestDetectTestCommand_Pytest_IniFile(t *testing.T) {
+	if _, err := exec.LookPath("pytest"); err != nil {
+		t.Skip("pytest not found in PATH; skipping pytest detection test")
+	}
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "pytest.ini"), []byte("[pytest]"), 0o644); err != nil {
 		t.Fatal(err)
@@ -108,6 +112,9 @@ func TestDetectTestCommand_Pytest_IniFile(t *testing.T) {
 }
 
 func TestDetectTestCommand_Pytest_Pyproject(t *testing.T) {
+	if _, err := exec.LookPath("pytest"); err != nil {
+		t.Skip("pytest not found in PATH; skipping pytest detection test")
+	}
 	dir := t.TempDir()
 	content := "[tool.pytest.ini_options]\naddopts = \"-v\"\n"
 	if err := os.WriteFile(filepath.Join(dir, "pyproject.toml"), []byte(content), 0o644); err != nil {
@@ -116,6 +123,22 @@ func TestDetectTestCommand_Pytest_Pyproject(t *testing.T) {
 	got := detectTestCommand(dir)
 	if got != "pytest -v" {
 		t.Errorf("want pytest command, got %q", got)
+	}
+}
+
+// TestDetectTestCommand_Pytest_NoPytestBinary は pytest バイナリが PATH 上にない場合に
+// pytest.ini があっても空文字を返すことを確認する。
+func TestDetectTestCommand_Pytest_NoPytestBinary(t *testing.T) {
+	if _, err := exec.LookPath("pytest"); err == nil {
+		t.Skip("pytest is installed; cannot test missing-binary branch")
+	}
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "pytest.ini"), []byte("[pytest]"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := detectTestCommand(dir)
+	if got != "" {
+		t.Errorf("want empty (pytest not in PATH), got %q", got)
 	}
 }
 
@@ -199,7 +222,121 @@ func TestDetectTestCommand_VitestHasPriorityOverNpmTest(t *testing.T) {
 	}
 }
 
-func TestDetectTestCommand_VitestHasPriority(t *testing.T) {
+// TestDetectTestCommand_Pytest_TestsDir は tests/ ディレクトリのみ存在する Python プロジェクトで
+// pytest が検出されることを確認する（指摘1修正）。
+func TestDetectTestCommand_Pytest_TestsDir(t *testing.T) {
+	if _, err := exec.LookPath("pytest"); err != nil {
+		t.Skip("pytest not installed")
+	}
+	dir := t.TempDir()
+	// pytest.ini も pyproject.toml もなく tests/ ディレクトリのみ
+	if err := os.MkdirAll(filepath.Join(dir, "tests"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	got := detectTestCommand(dir)
+	if got != "pytest -v" {
+		t.Errorf("want pytest -v (tests/ dir detected), got %q", got)
+	}
+}
+
+// TestDetectTestCommand_Pytest_TestsDir_NotForJSProject は package.json がある JS プロジェクトで
+// tests/ ディレクトリがあっても pytest と誤判定されないことを確認する（P2 修正）。
+func TestDetectTestCommand_Pytest_TestsDir_NotForJSProject(t *testing.T) {
+	dir := t.TempDir()
+	// package.json あり（scripts.test なし）+ tests/ ディレクトリ
+	pkgContent := `{"name":"my-app","scripts":{"build":"webpack"}}`
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkgContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "tests"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	got := detectTestCommand(dir)
+	if got == "pytest -v" {
+		t.Errorf("false positive: JS project with tests/ dir was detected as pytest, got %q", got)
+	}
+}
+
+// TestDetectTestCommand_Cargo は Cargo.toml が存在する Rust プロジェクトで
+// cargo test が検出されることを確認する（指摘2修正）。
+func TestDetectTestCommand_Cargo(t *testing.T) {
+	dir := t.TempDir()
+	cargoContent := `[package]
+name = "my-crate"
+version = "0.1.0"
+edition = "2021"
+`
+	if err := os.WriteFile(filepath.Join(dir, "Cargo.toml"), []byte(cargoContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := detectTestCommand(dir)
+	if got != "cargo test" {
+		t.Errorf("want cargo test, got %q", got)
+	}
+}
+
+// TestDetectTestCommand_Jest_FalsePositive_AtTypesJest は @types/jest のみを持つ
+// package.json で Jest が誤検出されないことを確認する（指摘3修正）。
+func TestDetectTestCommand_Jest_FalsePositive_AtTypesJest(t *testing.T) {
+	dir := t.TempDir()
+	// @types/jest だけ devDependencies に入っている（jest config なし）
+	pkgContent := `{"name":"my-app","devDependencies":{"@types/jest":"^29.0.0","typescript":"^5.0.0"},"scripts":{"build":"tsc"}}`
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkgContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := detectTestCommand(dir)
+	// Jest config がなく scripts.test にも jest がないため npm test / 空になるべき
+	if got == "npx jest --verbose" {
+		t.Errorf("false positive: got jest command for @types/jest-only package.json, got %q", got)
+	}
+}
+
+// TestDetectTestCommand_Jest_FalsePositive_JestJunit は jest-junit のみを持つ
+// package.json で Jest が誤検出されないことを確認する（指摘3修正）。
+func TestDetectTestCommand_Jest_FalsePositive_JestJunit(t *testing.T) {
+	dir := t.TempDir()
+	pkgContent := `{"name":"my-app","devDependencies":{"jest-junit":"^16.0.0"},"scripts":{"build":"webpack"}}`
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkgContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := detectTestCommand(dir)
+	if got == "npx jest --verbose" {
+		t.Errorf("false positive: got jest command for jest-junit-only package.json, got %q", got)
+	}
+}
+
+// TestDetectTestCommand_Jest_ConfigObject は package.json の "jest" キーがオブジェクトとして
+// 存在する場合に正しく Jest と判定されることを確認する（指摘3修正）。
+func TestDetectTestCommand_Jest_ConfigObject(t *testing.T) {
+	dir := t.TempDir()
+	// jest キーがトップレベルに設定オブジェクトとして存在
+	pkgContent := `{"name":"my-app","jest":{"testEnvironment":"node","collectCoverage":true}}`
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkgContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := detectTestCommand(dir)
+	if got != "npx jest --verbose" {
+		t.Errorf("want npx jest --verbose (jest config object in package.json), got %q", got)
+	}
+}
+
+// TestDetectTestCommand_Jest_ScriptsTest は scripts.test に "jest" を含む場合に
+// 正しく Jest と判定されることを確認する（指摘3修正）。
+func TestDetectTestCommand_Jest_ScriptsTest(t *testing.T) {
+	dir := t.TempDir()
+	pkgContent := `{"name":"my-app","scripts":{"test":"jest --coverage","build":"webpack"}}`
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkgContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := detectTestCommand(dir)
+	if got != "npx jest --verbose" {
+		t.Errorf("want npx jest --verbose (scripts.test contains jest), got %q", got)
+	}
+}
+
+// TestDetectTestCommand_Jest_ConfigFile_HasPriority は jest.config.js が存在する場合に
+// package.json の内容に関係なく Jest が検出されることを確認する。
+func TestDetectTestCommand_Jest_ConfigFile_HasPriority(t *testing.T) {
 	// vitest.config と jest.config が両方ある場合、vitest が優先される
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "vitest.config.ts"), []byte(""), 0o644); err != nil {
@@ -222,7 +359,7 @@ func TestFindRelatedTests_TSFile(t *testing.T) {
 	if err := os.WriteFile(testFile, []byte(""), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got := findRelatedTests(filepath.Join(dir, "utils.ts"))
+	got := findRelatedTests(filepath.Join(dir, "utils.ts"), "")
 	if got != testFile {
 		t.Errorf("want %q, got %q", testFile, got)
 	}
@@ -241,7 +378,7 @@ func TestFindRelatedTests_GoFile(t *testing.T) {
 	if err := os.WriteFile(testFile, []byte(""), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got := findRelatedTests(srcFile)
+	got := findRelatedTests(srcFile, "")
 	if got != testFile {
 		t.Errorf("want %q, got %q", testFile, got)
 	}
@@ -254,15 +391,35 @@ func TestFindRelatedTests_PyFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	// findRelatedTests は相対パスで検索する
-	got := findRelatedTests("utils.py")
+	got := findRelatedTests("utils.py", "")
 	// ファイルが存在しない場合は空文字
 	_ = got // 存在確認は実際のファイルパスに依存するため最低限テスト
 }
 
 func TestFindRelatedTests_NotFound(t *testing.T) {
-	got := findRelatedTests("nonexistent_source_file.ts")
+	got := findRelatedTests("nonexistent_source_file.ts", "")
 	if got != "" {
 		t.Errorf("want empty, got %q", got)
+	}
+}
+
+// TestFindRelatedTests_WithProjectRoot は projectRoot を指定した場合に、
+// 相対パスのソースファイルに対応するテストファイルを正しく検出できることを確認する（P2 修正）。
+func TestFindRelatedTests_WithProjectRoot(t *testing.T) {
+	dir := t.TempDir()
+	// projectRoot/src/utils.ts に対して projectRoot/src/utils.test.ts を作成
+	srcDir := filepath.Join(dir, "src")
+	if err := os.MkdirAll(srcDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	testFile := filepath.Join(srcDir, "utils.test.ts")
+	if err := os.WriteFile(testFile, []byte(""), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// 相対パスで渡し、projectRoot を指定
+	got := findRelatedTests("src/utils.ts", dir)
+	if got != testFile {
+		t.Errorf("want %q, got %q", testFile, got)
 	}
 }
 
@@ -349,6 +506,103 @@ func TestLimitLines_LessThanLimit(t *testing.T) {
 	}
 }
 
+// --- buildExecCommand (P1 修正) ---
+
+// TestBuildExecCommand_GoTest_NoDoubleDash は go test に `-- <file>` が付かないことを確認する（P1）。
+func TestBuildExecCommand_GoTest_NoDoubleDash(t *testing.T) {
+	cmd := buildExecCommand("go test ./...", "internal/foo/bar_test.go", "/repo")
+	if strings.Contains(cmd, "-- ") {
+		t.Errorf("go test command must not contain '-- <file>', got %q", cmd)
+	}
+	// パッケージパス形式になっていることを確認
+	if !strings.HasPrefix(cmd, "go test ./") {
+		t.Errorf("go test command should start with 'go test ./', got %q", cmd)
+	}
+}
+
+// TestBuildExecCommand_GoTest_PackagePath は go test が _test.go のディレクトリから
+// パッケージパスを生成することを確認する（P1）。
+func TestBuildExecCommand_GoTest_PackagePath(t *testing.T) {
+	got := buildExecCommand("go test ./...", "internal/foo/bar_test.go", "/repo")
+	want := "go test ./internal/foo/..."
+	if got != want {
+		t.Errorf("want %q, got %q", want, got)
+	}
+}
+
+// TestBuildExecCommand_GoTest_AbsRelatedTest は relatedTest が絶対パスの場合にも
+// 正しくパッケージパスへ変換されることを確認する（P1）。
+func TestBuildExecCommand_GoTest_AbsRelatedTest(t *testing.T) {
+	got := buildExecCommand("go test ./...", "/repo/internal/foo/bar_test.go", "/repo")
+	want := "go test ./internal/foo/..."
+	if got != want {
+		t.Errorf("want %q, got %q", want, got)
+	}
+}
+
+// TestBuildExecCommand_Pytest_FileArg は pytest がファイルパスを直接引数に取ることを確認する（P1）。
+func TestBuildExecCommand_Pytest_FileArg(t *testing.T) {
+	got := buildExecCommand("pytest -v", "tests/test_utils.py", "")
+	want := "pytest -v tests/test_utils.py"
+	if got != want {
+		t.Errorf("want %q, got %q", want, got)
+	}
+}
+
+// TestBuildExecCommand_CargoTest_NoFileArg は cargo test がファイル指定なしで実行されることを確認する（P1）。
+func TestBuildExecCommand_CargoTest_NoFileArg(t *testing.T) {
+	got := buildExecCommand("cargo test", "src/lib.rs", "")
+	if got != "cargo test" {
+		t.Errorf("want 'cargo test' (no file arg), got %q", got)
+	}
+}
+
+// TestBuildExecCommand_Jest_DoubleDash は jest がファイル指定に `-- <file>` 形式を使うことを確認する（P1）。
+func TestBuildExecCommand_Jest_DoubleDash(t *testing.T) {
+	got := buildExecCommand("npx jest --verbose", "src/utils.test.ts", "")
+	want := "npx jest --verbose -- src/utils.test.ts"
+	if got != want {
+		t.Errorf("want %q, got %q", want, got)
+	}
+}
+
+// TestBuildExecCommand_Vitest_DoubleDash は vitest がファイル指定に `-- <file>` 形式を使うことを確認する（P1）。
+func TestBuildExecCommand_Vitest_DoubleDash(t *testing.T) {
+	got := buildExecCommand("npx vitest run --reporter=verbose", "src/utils.test.ts", "")
+	want := "npx vitest run --reporter=verbose -- src/utils.test.ts"
+	if got != want {
+		t.Errorf("want %q, got %q", want, got)
+	}
+}
+
+// TestBuildExecCommand_NpmTest_NoFileArg は npm test がファイル指定なしで実行されることを確認する（P1）。
+func TestBuildExecCommand_NpmTest_NoFileArg(t *testing.T) {
+	got := buildExecCommand("npm test", "src/utils.ts", "")
+	if got != "npm test" {
+		t.Errorf("want 'npm test' (no file arg), got %q", got)
+	}
+}
+
+// TestBuildExecCommand_NoRelatedTest はテストファイルが見つからない場合に
+// 元のコマンドをそのまま返すことを確認する（P1）。
+func TestBuildExecCommand_NoRelatedTest(t *testing.T) {
+	cases := []struct {
+		testCmd string
+	}{
+		{"go test ./..."},
+		{"pytest -v"},
+		{"cargo test"},
+		{"npx jest --verbose"},
+		{"npm test"},
+	}
+	for _, tc := range cases {
+		got := buildExecCommand(tc.testCmd, "", "")
+		if got != tc.testCmd {
+			t.Errorf("buildExecCommand(%q, \"\", \"\") = %q, want %q", tc.testCmd, got, tc.testCmd)
+		}
+	}
+}
+
 // --- autoTestWriteJSONFile ---
 
 func TestWriteJSONFile(t *testing.T) {
@@ -368,5 +622,37 @@ func TestWriteJSONFile(t *testing.T) {
 	}
 	if got["key"] != "value" {
 		t.Errorf("want value, got %q", got["key"])
+	}
+}
+
+// TestHasNpmTestScript_Placeholder は npm init のプレースホルダーが除外されることを確認する（P2修正）。
+func TestHasNpmTestScript_Placeholder(t *testing.T) {
+	// npm init が生成するデフォルトの package.json
+	placeholderPkg := []byte(`{"scripts":{"test":"echo \"Error: no test specified\" && exit 1"}}`)
+
+	got := hasNpmTestScript(placeholderPkg)
+	if got {
+		t.Error("expected hasNpmTestScript=false for npm init placeholder, got true")
+	}
+}
+
+// TestHasNpmTestScript_RealScript は実際のテストスクリプトが true を返すことを確認する。
+func TestHasNpmTestScript_RealScript(t *testing.T) {
+	// 実際のテストスクリプトを持つ package.json
+	realPkg := []byte(`{"scripts":{"test":"jest --coverage"}}`)
+
+	got := hasNpmTestScript(realPkg)
+	if !got {
+		t.Error("expected hasNpmTestScript=true for real test script, got false")
+	}
+}
+
+// TestHasNpmTestScript_Empty は scripts.test が空の場合に false を返すことを確認する。
+func TestHasNpmTestScript_Empty(t *testing.T) {
+	emptyPkg := []byte(`{"scripts":{"test":""}}`)
+
+	got := hasNpmTestScript(emptyPkg)
+	if got {
+		t.Error("expected hasNpmTestScript=false for empty test script, got true")
 	}
 }
