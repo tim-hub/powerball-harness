@@ -5,7 +5,6 @@ description-en: "Validates brainstormed ideas with Cursor PM, updates Plans.md, 
 description-ja: "Cursor PM でアイデアを検証し Plans.md を更新してバトンタッチ。Cursor ↔ Claude Code 2-Agent ワークフロー対応。Use when user mentions Cursor PM handoff, 2-agent plan validation, CC-Cursor round trip, or brainstorm review. Do NOT load for: implementation work, single-agent tasks, or direct coding."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 user-invocable: false
-disable-model-invocation: true
 ---
 
 # CC-Cursor-CC Skill (Plan Validation Round Trip)

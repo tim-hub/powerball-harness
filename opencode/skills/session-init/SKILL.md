@@ -5,7 +5,6 @@ description-en: "Initializes session with environment checks and task status ove
 description-ja: "環境チェックとタスク状況概要でセッション初期化。Use when user mentions starting a session, beginning work, or status checks. Do NOT load for: implementation work, reviews, or mid-session tasks."
 allowed-tools: ["Read", "Write", "Bash"]
 user-invocable: false
-disable-model-invocation: true
 ---
 
 # Session Init Skill

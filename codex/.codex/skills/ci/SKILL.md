@@ -7,7 +7,6 @@ allowed-tools: ["Read", "Grep", "Bash", "Task"]
 user-invocable: false
 context: fork
 argument-hint: "[analyze|fix|run]"
-disable-model-invocation: true
 ---
 
 # CI/CD Skills

@@ -5,7 +5,6 @@ description-en: "Implements authentication and payment features using Clerk, Sup
 description-ja: "認証と決済機能を実装。Clerk、Supabase Auth、Stripeに対応。Use when user mentions login, authentication, payments, subscriptions, or Stripe. Do NOT load for: general UI work, database design, or non-auth features."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 user-invocable: false
-disable-model-invocation: true
 ---
 
 # Auth Skills

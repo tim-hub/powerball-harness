@@ -6,7 +6,6 @@ description-en: "Team execution mode — backward-compatible alias for harness-w
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Task", "WebSearch"]
 argument-hint: "[all|N-M|--codex|--parallel N|--no-commit|--no-discuss|--auto-mode]"
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # Breezing — Team Execution Mode
