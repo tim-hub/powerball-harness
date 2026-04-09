@@ -381,3 +381,37 @@ func TestHandlePlansWatcher_CursorCompatMarker(t *testing.T) {
 			result.HookSpecificOutput.AdditionalContext)
 	}
 }
+
+// TestIsPlansFile_CustomPath はカスタムパスの Plans.md に対しても
+// ファイル名レベルでマッチすることを確認する（指摘2修正のテスト）。
+func TestIsPlansFile_CustomPath(t *testing.T) {
+	cases := []struct {
+		changedFile string
+		plansFile   string
+		want        bool
+		desc        string
+	}{
+		// 完全一致
+		{"Plans.md", "Plans.md", true, "exact match"},
+		// パス含む完全一致
+		{"/project/Plans.md", "Plans.md", true, "absolute path suffix match"},
+		// カスタムディレクトリにある Plans.md（ファイル名一致）
+		{"docs/Plans.md", "Plans.md", true, "subdirectory with same filename"},
+		// 大文字小文字を区別しない（plansFile 側が異なるケース）
+		{"PLANS.md", "plans.md", true, "case insensitive filename"},
+		{"plans.md", "PLANS.MD", true, "case insensitive filename reversed"},
+		// 全く別のファイル
+		{"src/main.go", "Plans.md", false, "non plans file"},
+		{"README.md", "Plans.md", false, "readme not plans"},
+		// ファイル名が Plans.md に似ているが別ファイル
+		{"Plans.md.bak", "Plans.md", false, "backup file not matched"},
+	}
+
+	for _, tc := range cases {
+		got := isPlansFile(tc.changedFile, tc.plansFile)
+		if got != tc.want {
+			t.Errorf("[%s] isPlansFile(%q, %q) = %v, want %v",
+				tc.desc, tc.changedFile, tc.plansFile, got, tc.want)
+		}
+	}
+}

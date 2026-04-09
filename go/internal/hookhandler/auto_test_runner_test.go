@@ -138,6 +138,67 @@ func TestDetectTestCommand_None(t *testing.T) {
 	}
 }
 
+// TestDetectTestCommand_NpmTest は package.json に scripts.test だけあるプロジェクトで
+// npm test がフォールバックとして返されることを確認する（指摘1修正のテスト）。
+func TestDetectTestCommand_NpmTest_Fallback(t *testing.T) {
+	dir := t.TempDir()
+	// vitest/jest config なし、scripts.test だけ定義
+	pkgContent := `{"name":"my-app","scripts":{"test":"mocha --exit","build":"webpack"}}`
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkgContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := detectTestCommand(dir)
+	if got != "npm test" {
+		t.Errorf("want npm test, got %q", got)
+	}
+}
+
+// TestDetectTestCommand_NpmTest_EmptyScript は scripts.test が空文字の場合は
+// npm test を返さないことを確認する。
+func TestDetectTestCommand_NpmTest_EmptyScript(t *testing.T) {
+	dir := t.TempDir()
+	pkgContent := `{"name":"my-app","scripts":{"test":""}}`
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkgContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := detectTestCommand(dir)
+	if got != "" {
+		t.Errorf("want empty (no valid test script), got %q", got)
+	}
+}
+
+// TestDetectTestCommand_NpmTest_NoTestScript は scripts.test がない場合は
+// npm test を返さないことを確認する。
+func TestDetectTestCommand_NpmTest_NoTestScript(t *testing.T) {
+	dir := t.TempDir()
+	pkgContent := `{"name":"my-app","scripts":{"build":"webpack","start":"node index.js"}}`
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkgContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := detectTestCommand(dir)
+	if got != "" {
+		t.Errorf("want empty (no test script), got %q", got)
+	}
+}
+
+// TestDetectTestCommand_VitestHasPriorityOverNpmTest は vitest.config がある場合に
+// npm test よりも vitest が優先されることを確認する。
+func TestDetectTestCommand_VitestHasPriorityOverNpmTest(t *testing.T) {
+	dir := t.TempDir()
+	// vitest.config.ts あり かつ scripts.test あり
+	if err := os.WriteFile(filepath.Join(dir, "vitest.config.ts"), []byte(""), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	pkgContent := `{"name":"my-app","scripts":{"test":"vitest run"}}`
+	if err := os.WriteFile(filepath.Join(dir, "package.json"), []byte(pkgContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := detectTestCommand(dir)
+	if got != "npx vitest run --reporter=verbose" {
+		t.Errorf("want vitest command (higher priority), got %q", got)
+	}
+}
+
 func TestDetectTestCommand_VitestHasPriority(t *testing.T) {
 	// vitest.config と jest.config が両方ある場合、vitest が優先される
 	dir := t.TempDir()

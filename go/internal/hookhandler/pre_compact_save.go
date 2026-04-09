@@ -325,7 +325,7 @@ func (h *PreCompactSave) buildHandoffArtifact(repoRoot, plansFile, sessionID, no
 	workState := h.getWorkState(repoRoot)
 	sessionState := h.getSessionStateFile(repoRoot)
 	na := h.pickNextAction(planRows)
-	openRisks := h.buildOpenRisks(planRows, recentEdits, workState)
+	openRisks := h.buildOpenRisks(planRows, recentEdits, workState, metrics)
 	failedChecks := h.buildFailedChecks(workState, metrics)
 	decisionLog := h.buildDecisionLog(now, na, workState)
 	contextReset := h.buildContextResetRecommendation(planRows, recentEdits, workState, metrics, sessionState)
@@ -619,7 +619,10 @@ func (h *PreCompactSave) pickNextAction(rows []planRow) *nextAction {
 }
 
 // buildOpenRisks はリスクエントリを構築する。
-func (h *PreCompactSave) buildOpenRisks(rows []planRow, recentEdits []string, workState interface{}) []openRisk {
+//
+// JS版 pre-compact-save.js の buildOpenRisks に相当。
+// metrics 引数を受け取り、session-metrics.json の failed validations を quality risk として変換する。
+func (h *PreCompactSave) buildOpenRisks(rows []planRow, recentEdits []string, workState interface{}, metrics interface{}) []openRisk {
 	var risks []openRisk
 
 	wipCount := countWIP(rows)
@@ -689,6 +692,19 @@ func (h *PreCompactSave) buildOpenRisks(rows []planRow, recentEdits []string, wo
 				Kind:     "review",
 				Summary:  fmt.Sprintf("work review_status is %s", reviewStatus),
 				Detail:   "Independent review is still required before finalizing the work.",
+			})
+		}
+	}
+
+	// session-metrics.json の failed validations → quality risk に変換（JS版との対称性）
+	if metrics != nil {
+		failureCount := countFailures(metrics)
+		if failureCount > 0 {
+			risks = append(risks, openRisk{
+				Severity: "high",
+				Kind:     "quality",
+				Summary:  fmt.Sprintf("%d recorded failed check(s) in session metrics", failureCount),
+				Detail:   "Review the latest validation results before resuming work.",
 			})
 		}
 	}

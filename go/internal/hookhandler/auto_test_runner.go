@@ -187,6 +187,7 @@ func shouldRunTests(file string) bool {
 //  2. jest.config.* or package.json の jest → npx jest --verbose
 //  3. pytest.ini or pyproject.toml の [tool.pytest] → pytest -v
 //  4. *_test.go → go test ./...
+//  5. package.json の scripts.test → npm test
 func detectTestCommand(projectRoot string) string {
 	// vitest
 	vitestConfigs := []string{
@@ -234,7 +235,41 @@ func detectTestCommand(projectRoot string) string {
 		return "go test ./..."
 	}
 
+	// npm test: package.json の scripts.test が定義されている場合
+	if autoTestFileExists(pkgPath) {
+		content, err := os.ReadFile(pkgPath)
+		if err == nil && hasNpmTestScript(content) {
+			return "npm test"
+		}
+	}
+
 	return ""
+}
+
+// hasNpmTestScript は package.json の内容に scripts.test が定義されているか確認する。
+func hasNpmTestScript(content []byte) bool {
+	var pkg map[string]json.RawMessage
+	if err := json.Unmarshal(content, &pkg); err != nil {
+		return false
+	}
+	scriptsRaw, ok := pkg["scripts"]
+	if !ok {
+		return false
+	}
+	var scripts map[string]interface{}
+	if err := json.Unmarshal(scriptsRaw, &scripts); err != nil {
+		return false
+	}
+	testVal, ok := scripts["test"]
+	if !ok {
+		return false
+	}
+	// "test" キーが存在しても空文字や "echo" だけの場合は除外
+	testStr, ok := testVal.(string)
+	if !ok || strings.TrimSpace(testStr) == "" {
+		return false
+	}
+	return true
 }
 
 // findRelatedTests は変更ファイルに対応するテストファイルを探す。

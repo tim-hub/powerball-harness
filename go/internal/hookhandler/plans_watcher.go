@@ -142,12 +142,23 @@ func findPlansFile() string {
 }
 
 // isPlansFile は変更されたファイルが Plans.md かどうかを判定する。
+//
+// 判定ロジック:
+//  1. 完全一致（パス一致）
+//  2. "/" + plansFile で終わるパス（サブディレクトリ経由のフルパス）
+//  3. ファイル名が plansFile と大文字小文字を区別せずに一致する（カスタムパス対応）
 func isPlansFile(changedFile, plansFile string) bool {
 	// 完全一致または "/" + plansFile で終わるパス
 	if changedFile == plansFile {
 		return true
 	}
 	if strings.HasSuffix(changedFile, "/"+plansFile) {
+		return true
+	}
+	// ファイル名レベルの大文字小文字を区別しない比較（カスタムパス設定対応）
+	changedBase := filepath.Base(changedFile)
+	plansBase := filepath.Base(plansFile)
+	if strings.EqualFold(changedBase, plansBase) {
 		return true
 	}
 	return false
