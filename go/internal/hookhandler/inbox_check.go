@@ -45,12 +45,19 @@ type preToolAllowOutput struct {
 // HandleInboxCheck ports pretooluse-inbox-check.sh.
 //
 // Reads .claude/sessions/broadcast.md (same source as the bash version),
-// counts unread messages since the last read timestamp, and if there are any
-// injects them as additionalContext. A 5-minute throttle is enforced via
-// .claude/sessions/.last_inbox_check.
+// filters messages newer than the session's last-read timestamp, and if there
+// are any injects them as additionalContext. A 5-minute throttle is enforced
+// via .claude/sessions/.last_inbox_check.
+//
+// Session-specific read state is stored in
+// .claude/sessions/.last_inbox_read_<session_id> — mirroring the bash
+// version's get_last_read_file() logic.
 func HandleInboxCheck(in io.Reader, out io.Writer) error {
-	// Read stdin (ignored — the hook payload is not needed for this handler).
-	_, _ = io.ReadAll(in)
+	// Read stdin to extract session_id.
+	data, _ := io.ReadAll(in)
+
+	var inp inboxCheckInput
+	_ = json.Unmarshal(data, &inp)
 
 	// Resolve project root from CWD or environment, same pattern as bash script.
 	projectRoot := resolveProjectRoot()
@@ -75,8 +82,11 @@ func HandleInboxCheck(in io.Reader, out io.Writer) error {
 		return nil
 	}
 
-	// Read unread messages from broadcast.md (markdown format — matches bash version).
-	messages, err := readBroadcastMessages(broadcastFile, 5)
+	// Determine session-specific last-read timestamp (bash: .last_read_<session_id>).
+	lastReadTime := lastInboxReadTime(sessionsDir, inp.SessionID)
+
+	// Read messages from broadcast.md newer than lastReadTime.
+	messages, err := readBroadcastMessagesSince(broadcastFile, 5, lastReadTime)
 	if err != nil || len(messages) == 0 {
 		// Fallback: try session-inbox.jsonl for backward compatibility.
 		inboxFile := projectRoot + "/.claude/state/session-inbox.jsonl"
@@ -86,21 +96,111 @@ func HandleInboxCheck(in io.Reader, out io.Writer) error {
 		}
 	}
 
+	// NOTE: 既読マークは明示的な --mark 操作でのみ更新する（bash 版の動作と一致）。
+	// メッセージ表示時に自動で updateLastInboxRead() を呼ばないことで、
+	// 次回チェック時（5分スロットル経過後）に再表示される動作を維持する。
+
 	// Build additionalContext string.
-	context := fmt.Sprintf("📨 他セッションからのメッセージ %d件:\n---\n%s\n---",
+	ctx := fmt.Sprintf("📨 他セッションからのメッセージ %d件:\n---\n%s\n---",
 		len(messages), strings.Join(messages, "\n"))
 
 	output := preToolAllowOutput{}
 	output.HookSpecificOutput.HookEventName = "PreToolUse"
 	output.HookSpecificOutput.PermissionDecision = "allow"
-	output.HookSpecificOutput.AdditionalContext = context
+	output.HookSpecificOutput.AdditionalContext = ctx
 
-	data, err := json.Marshal(output)
+	outData, err := json.Marshal(output)
 	if err != nil {
 		return fmt.Errorf("marshaling output: %w", err)
 	}
-	_, err = fmt.Fprintf(out, "%s\n", data)
+	_, err = fmt.Fprintf(out, "%s\n", outData)
 	return err
+}
+
+// lastInboxReadFile はセッション固有の既読タイムスタンプファイルパスを返す。
+// bash 版 session-inbox-check.sh の get_last_read_file() に相当。
+func lastInboxReadFile(sessionsDir, sessionID string) string {
+	if sessionID == "" {
+		sessionID = "unknown"
+	}
+	return sessionsDir + "/.last_inbox_read_" + sessionID
+}
+
+// lastInboxReadTime はセッション固有の最終既読タイムスタンプを返す。
+// ファイルが存在しない場合は time.Time{} (zero) を返す。
+func lastInboxReadTime(sessionsDir, sessionID string) time.Time {
+	f := lastInboxReadFile(sessionsDir, sessionID)
+	raw, err := os.ReadFile(f)
+	if err != nil {
+		return time.Time{}
+	}
+	ts := strings.TrimSpace(string(raw))
+	t, err := time.Parse("2006-01-02T15:04:05Z", ts)
+	if err != nil {
+		return time.Time{}
+	}
+	return t
+}
+
+// updateLastInboxRead はセッション固有の既読タイムスタンプを現在時刻で更新する。
+// bash 版 session-inbox-check.sh の mark_as_read() に相当。
+func updateLastInboxRead(sessionsDir, sessionID string) {
+	f := lastInboxReadFile(sessionsDir, sessionID)
+	now := time.Now().UTC().Format("2006-01-02T15:04:05Z")
+	_ = os.WriteFile(f, []byte(now+"\n"), 0o644)
+}
+
+// readBroadcastMessagesSince は broadcast.md から since 以降のメッセージを最大 maxCount 件読む。
+// since が zero の場合は全メッセージを返す（初回読み込み相当）。
+func readBroadcastMessagesSince(path string, maxCount int, since time.Time) ([]string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var msgs []string
+	var currentTimestamp, currentSender, currentContent string
+	inMessage := false
+
+	flush := func() {
+		if !inMessage || currentContent == "" || len(msgs) >= maxCount {
+			return
+		}
+		// タイムスタンプをパース
+		msgTime, parseErr := time.Parse("2006-01-02T15:04:05Z", currentTimestamp)
+		if parseErr == nil && !since.IsZero() && !msgTime.After(since) {
+			// since 以前のメッセージはスキップ
+			return
+		}
+		// Format: [HH:MM] sender: content
+		ts := currentTimestamp
+		if len(ts) >= 16 {
+			ts = ts[11:16] // extract HH:MM from ISO timestamp
+		}
+		msgs = append(msgs, fmt.Sprintf("[%s] %s: %s", ts, currentSender, currentContent))
+	}
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if m := broadcastMsgRe.FindStringSubmatch(line); m != nil {
+			flush()
+			currentTimestamp = m[1]
+			currentSender = m[2]
+			currentContent = ""
+			inMessage = true
+			continue
+		}
+
+		if inMessage && strings.TrimSpace(line) != "" {
+			currentContent = strings.TrimSpace(line)
+		}
+	}
+	flush()
+
+	return msgs, scanner.Err()
 }
 
 // throttleAllowed returns true when enough time has passed since the last check.
@@ -119,59 +219,11 @@ func throttleAllowed(checkIntervalFile string) bool {
 	return elapsed >= CheckInterval
 }
 
-// readBroadcastMessages reads up to maxCount unread messages from broadcast.md.
-// The markdown format used by session-inbox-check.sh:
-//
-//	## 2026-04-09T12:34:56Z [sender-short-id]
-//	message content line
-//
-// Messages are considered unread if they appear in the file (no per-session
-// read-state is tracked in the Go implementation; the 5-minute throttle
-// prevents excessive notifications).
+// readBroadcastMessages reads up to maxCount messages from broadcast.md.
+// Backward-compatible wrapper around readBroadcastMessagesSince with zero since
+// (returns all messages regardless of timestamp).
 func readBroadcastMessages(path string, maxCount int) ([]string, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	var msgs []string
-	var currentTimestamp, currentSender, currentContent string
-	inMessage := false
-
-	flush := func() {
-		if inMessage && currentContent != "" && len(msgs) < maxCount {
-			// Format: [HH:MM] sender: content
-			ts := currentTimestamp
-			if len(ts) >= 16 {
-				ts = ts[11:16] // extract HH:MM from ISO timestamp
-			}
-			msgs = append(msgs, fmt.Sprintf("[%s] %s: %s", ts, currentSender, currentContent))
-		}
-	}
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if m := broadcastMsgRe.FindStringSubmatch(line); m != nil {
-			// Flush previous message before starting a new one.
-			flush()
-			currentTimestamp = m[1]
-			currentSender = m[2]
-			currentContent = ""
-			inMessage = true
-			continue
-		}
-
-		if inMessage && strings.TrimSpace(line) != "" {
-			currentContent = strings.TrimSpace(line)
-		}
-	}
-	// Flush the last message.
-	flush()
-
-	return msgs, scanner.Err()
+	return readBroadcastMessagesSince(path, maxCount, time.Time{})
 }
 
 // readUnreadMessages reads up to maxCount unread messages from a JSONL inbox

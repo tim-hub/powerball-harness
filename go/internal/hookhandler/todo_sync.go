@@ -61,10 +61,18 @@ func (h *TodoSyncHandler) Handle(r io.Reader, w io.Writer) error {
 		return nil
 	}
 
-	// プロジェクトルートを決定
+	// プロジェクトルートを決定。
+	// os.Getwd() ではなく resolveProjectRoot() を使うことで monorepo の
+	// サブディレクトリから実行した場合でも .claude/state が正しく解決される
+	// （git rev-parse --show-toplevel 対応）。
 	projectRoot := h.ProjectRoot
 	if projectRoot == "" {
-		projectRoot, _ = os.Getwd()
+		projectRoot = resolveProjectRoot()
+	}
+
+	// Plans.md が存在しない場合はスキップ（bash 版の動作と一致）
+	if resolvePlansPath(projectRoot) == "" {
+		return nil
 	}
 
 	stateDir := filepath.Join(projectRoot, ".claude", "state")

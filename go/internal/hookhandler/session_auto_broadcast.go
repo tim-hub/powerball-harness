@@ -27,6 +27,7 @@ var autoBroadcastPatterns = []string{
 
 // autoBroadcastInput は session-auto-broadcast.sh に渡される stdin JSON。
 type autoBroadcastInput struct {
+	SessionID string `json:"session_id"`
 	ToolInput struct {
 		FilePath string `json:"file_path"`
 		Path     string `json:"path"`
@@ -58,7 +59,9 @@ func emptyPostToolOutput(w io.Writer) error {
 // HandleSessionAutoBroadcast は session-auto-broadcast.sh の Go 移植。
 //
 // PostToolUse Write/Edit イベントで呼び出され、重要なファイルの変更を
-// .claude/state/broadcast.md にチームメイト通知として書き込む。
+// .claude/sessions/broadcast.md にチームメイト通知として書き込む。
+// inbox_check が読む broadcast.md と同じファイルに書き込むことで
+// プロデューサー/コンシューマーのパスが一致する。
 //
 // 対象パターン: src/api/, src/types/, src/interfaces/, api/, types/,
 // schema.prisma, openapi, swagger, .graphql
@@ -136,7 +139,7 @@ func HandleSessionAutoBroadcast(in io.Reader, out io.Writer) error {
 
 	// ブロードキャスト実行: .claude/state/broadcast.md に書き込む
 	fileName := filepath.Base(filePath)
-	if broadcastErr := writeBroadcastNotification(filePath, matchedPattern); broadcastErr != nil {
+	if broadcastErr := writeBroadcastNotification(filePath, matchedPattern, input.SessionID); broadcastErr != nil {
 		// 書き込み失敗は無視（フォールバックとして空レスポンスを返す）
 		return emptyPostToolOutput(out)
 	}
@@ -150,18 +153,34 @@ func HandleSessionAutoBroadcast(in io.Reader, out io.Writer) error {
 	return writeJSON(out, o)
 }
 
-// writeBroadcastNotification は .claude/state/broadcast.md にチームメイト通知を書き込む。
-func writeBroadcastNotification(filePath, matchedPattern string) error {
-	stateDir := ".claude/state"
-	if err := os.MkdirAll(stateDir, 0o755); err != nil {
-		return fmt.Errorf("mkdir state dir: %w", err)
+// writeBroadcastNotification は .claude/sessions/broadcast.md にチームメイト通知を書き込む。
+// inbox_check が読む .claude/sessions/broadcast.md と同じファイルに書き込む。
+// ヘッダーフォーマット: ## <RFC3339 timestamp> [<session_id_prefix_8chars>]
+// これは inbox_check の broadcastMsgRe パーサーが期待する形式に準拠する。
+// sessionID を sender として使うことで、inbox_check が自セッションのメッセージを
+// フィルタできるようになる（bash 版の動作と一致）。
+func writeBroadcastNotification(filePath, matchedPattern, sessionID string) error {
+	sessionsDir := ".claude/sessions"
+	if err := os.MkdirAll(sessionsDir, 0o755); err != nil {
+		return fmt.Errorf("mkdir sessions dir: %w", err)
 	}
 
-	broadcastFile := filepath.Join(stateDir, "broadcast.md")
+	broadcastFile := filepath.Join(sessionsDir, "broadcast.md")
 
-	ts := time.Now().UTC().Format(time.RFC3339)
-	entry := fmt.Sprintf("## %s\n\n- file: %s\n- pattern: %s\n- action: auto-broadcast\n\n",
-		ts, filePath, matchedPattern)
+	// sender タグ: session_id の先頭 8 文字を使用。
+	// 空の場合は "unknown" にフォールバック（bash 版の動作と一致）。
+	senderTag := sessionID
+	if senderTag == "" {
+		senderTag = "unknown"
+	} else if len(senderTag) > 8 {
+		senderTag = senderTag[:8]
+	}
+
+	// ヘッダーフォーマット: ## <timestamp> [<session_id_prefix>]
+	// session-inbox-check.sh のパーサーが期待する形式に合わせる。
+	ts := time.Now().UTC().Format("2006-01-02T15:04:05Z")
+	entry := fmt.Sprintf("\n## %s [%s]\n📁 `%s` が変更されました: パターン '%s' にマッチ\n",
+		ts, senderTag, filePath, matchedPattern)
 
 	f, err := os.OpenFile(broadcastFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {

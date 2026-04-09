@@ -260,3 +260,140 @@ func TestHandleInboxCheck_BroadcastMdSource(t *testing.T) {
 	}
 }
 
+// TestHandleInboxCheck_SessionSpecificReadState はセッション固有の既読管理を確認する。
+// 既読後に再度チェックすると既読メッセージが表示されないことを検証する。
+func TestHandleInboxCheck_SessionSpecificReadState(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HARNESS_PROJECT_ROOT", dir)
+
+	sessionsDir := filepath.Join(dir, ".claude", "sessions")
+	if err := os.MkdirAll(sessionsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	broadcastPath := filepath.Join(sessionsDir, "broadcast.md")
+	content := "## 2026-04-09T10:00:00Z [session-a]\nold message\n"
+	if err := os.WriteFile(broadcastPath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	sessionID := "test-session-123"
+
+	// 既読タイムスタンプをメッセージより後に設定（既読済み扱い）
+	updateLastInboxRead(sessionsDir, sessionID)
+
+	// セッションIDを含む JSON を渡す
+	inp := fmt.Sprintf(`{"session_id":%q}`, sessionID)
+	var out bytes.Buffer
+	if err := HandleInboxCheck(strings.NewReader(inp), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// 既読済みなので何も表示されないはず
+	if out.Len() != 0 {
+		outStr := out.String()
+		if strings.Contains(outStr, "old message") {
+			t.Errorf("already-read message should not appear again, got: %s", outStr)
+		}
+	}
+}
+
+// TestHandleInboxCheck_NewMessagesAfterLastRead は最終既読後の新しいメッセージのみが表示されることを確認する。
+func TestHandleInboxCheck_NewMessagesAfterLastRead(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HARNESS_PROJECT_ROOT", dir)
+
+	sessionsDir := filepath.Join(dir, ".claude", "sessions")
+	if err := os.MkdirAll(sessionsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	// 古いメッセージと新しいメッセージを含む broadcast.md
+	broadcastPath := filepath.Join(sessionsDir, "broadcast.md")
+	content := "## 2020-01-01T00:00:00Z [session-a]\nold message\n\n## 2030-12-31T23:59:59Z [session-b]\nnew message\n"
+	if err := os.WriteFile(broadcastPath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	sessionID := "test-session-456"
+	// 最終既読を 2025 年に設定 → 2020 年のメッセージは既読済み、2030 年は未読
+	lastReadFile := lastInboxReadFile(sessionsDir, sessionID)
+	if err := os.WriteFile(lastReadFile, []byte("2025-01-01T00:00:00Z\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	inp := fmt.Sprintf(`{"session_id":%q}`, sessionID)
+	var out bytes.Buffer
+	if err := HandleInboxCheck(strings.NewReader(inp), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if out.Len() == 0 {
+		t.Fatal("expected output for new message, got nothing")
+	}
+	outStr := out.String()
+	if strings.Contains(outStr, "old message") {
+		t.Errorf("old (read) message should not appear, got: %s", outStr)
+	}
+	if !strings.Contains(outStr, "new message") {
+		t.Errorf("new (unread) message should appear, got: %s", outStr)
+	}
+}
+
+// TestLastInboxReadFile はセッション固有のファイルパスが正しく生成されることを確認する。
+func TestLastInboxReadFile(t *testing.T) {
+	got := lastInboxReadFile("/sessions", "abc123")
+	want := "/sessions/.last_inbox_read_abc123"
+	if got != want {
+		t.Errorf("lastInboxReadFile() = %q, want %q", got, want)
+	}
+}
+
+// TestLastInboxReadFile_EmptySessionID は空のセッションIDで "unknown" が使われることを確認する。
+func TestLastInboxReadFile_EmptySessionID(t *testing.T) {
+	got := lastInboxReadFile("/sessions", "")
+	want := "/sessions/.last_inbox_read_unknown"
+	if got != want {
+		t.Errorf("lastInboxReadFile() = %q, want %q", got, want)
+	}
+}
+
+// TestHandleInboxCheck_NoAutoMarkAfterDisplay はメッセージ表示後に
+// 既読ファイル (.last_inbox_read_*) が更新されないことを確認する。
+// bash 版は --mark フラグで明示的に更新するまで既読化しない動作に対応。
+func TestHandleInboxCheck_NoAutoMarkAfterDisplay(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HARNESS_PROJECT_ROOT", dir)
+
+	sessionsDir := filepath.Join(dir, ".claude", "sessions")
+	if err := os.MkdirAll(sessionsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	// broadcast.md にメッセージを書き込む
+	broadcastPath := filepath.Join(sessionsDir, "broadcast.md")
+	content := "## 2026-04-09T10:00:00Z [remote-session]\nhello, please review\n"
+	if err := os.WriteFile(broadcastPath, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	sessionID := "test-no-auto-mark"
+	inp := fmt.Sprintf(`{"session_id":%q}`, sessionID)
+
+	var out bytes.Buffer
+	if err := HandleInboxCheck(strings.NewReader(inp), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// メッセージが表示されたことを確認
+	if out.Len() == 0 {
+		t.Fatal("expected output for message, got nothing")
+	}
+
+	// 既読ファイルが作成されていないことを確認（自動既読化しない）
+	readFile := lastInboxReadFile(sessionsDir, sessionID)
+	if _, err := os.Stat(readFile); err == nil {
+		t.Errorf("last-read file should NOT be created after display: %s", readFile)
+	}
+}
+
