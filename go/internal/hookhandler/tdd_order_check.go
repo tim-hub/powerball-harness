@@ -92,12 +92,13 @@ func HandleTDDOrderCheck(in io.Reader, out io.Writer) error {
 	}
 
 	// cc:WIP タスクが存在しなければスキップ
-	if !hasActiveWIPTask() {
+	projectRoot := resolveProjectRoot()
+	if !hasActiveWIPTask(projectRoot) {
 		return writeTDDApprove(out, "")
 	}
 
 	// [skip:tdd] マーカーがあればスキップ
-	if isTDDSkipped() {
+	if isTDDSkipped(projectRoot) {
 		return writeTDDApprove(out, "")
 	}
 
@@ -146,8 +147,17 @@ func isSourceFilePath(filePath string) bool {
 }
 
 // hasActiveWIPTask は Plans.md に cc:WIP タスクが存在するかどうかを確認する。
-func hasActiveWIPTask() bool {
-	data, err := os.ReadFile("Plans.md")
+// projectRoot が空の場合は resolveProjectRoot() でカレントディレクトリを基準にする。
+// resolvePlansPath が空文字を返した場合（Plans.md が存在しない）は false を返す。
+func hasActiveWIPTask(projectRoot string) bool {
+	if projectRoot == "" {
+		projectRoot = resolveProjectRoot()
+	}
+	plansPath := resolvePlansPath(projectRoot)
+	if plansPath == "" {
+		return false
+	}
+	data, err := os.ReadFile(plansPath)
 	if err != nil {
 		return false
 	}
@@ -155,8 +165,17 @@ func hasActiveWIPTask() bool {
 }
 
 // isTDDSkipped は Plans.md の cc:WIP タスクに [skip:tdd] マーカーがあるかを確認する。
-func isTDDSkipped() bool {
-	data, err := os.ReadFile("Plans.md")
+// projectRoot が空の場合は resolveProjectRoot() でカレントディレクトリを基準にする。
+// resolvePlansPath が空文字を返した場合（Plans.md が存在しない）は false を返す。
+func isTDDSkipped(projectRoot string) bool {
+	if projectRoot == "" {
+		projectRoot = resolveProjectRoot()
+	}
+	plansPath := resolvePlansPath(projectRoot)
+	if plansPath == "" {
+		return false
+	}
+	data, err := os.ReadFile(plansPath)
 	if err != nil {
 		return false
 	}

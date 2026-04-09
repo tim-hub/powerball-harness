@@ -51,19 +51,14 @@ func runSyncPluginCache(scriptDir string) {
 }
 
 // getPlansFilePath は設定から Plans.md のパスを取得する。
-// config-utils.sh の get_plans_file_path() に対応。
-func getPlansFilePath(scriptDir string) string {
-	configUtilsScript := filepath.Join(scriptDir, "config-utils.sh")
-	if _, err := os.Stat(configUtilsScript); err == nil {
-		cmd := exec.Command("bash", "-c", fmt.Sprintf("source %s && get_plans_file_path", configUtilsScript))
-		if out, err := cmd.Output(); err == nil {
-			path := strings.TrimSpace(string(out))
-			if path != "" {
-				return path
-			}
-		}
+// helpers.go の resolvePlansPath() を使った Go ネイティブ実装。
+// bash (config-utils.sh) への依存を排除している。
+func getPlansFilePath(_ string) string {
+	projectRoot := resolveProjectRoot()
+	if path := resolvePlansPath(projectRoot); path != "" {
+		return path
 	}
-	return "Plans.md"
+	return filepath.Join(projectRoot, "Plans.md")
 }
 
 // runTemplateTracker はテンプレートトラッカースクリプトを実行する。

@@ -41,6 +41,9 @@ type taskCompletedHandler struct {
 	timelineFile   string
 	pendingFixFile string
 	finalizeMarker string
+	// plansPath は Plans.md の解決済みパス（設定の plansDirectory を考慮）。
+	// 存在しない場合は空文字。
+	plansPath string
 }
 
 // HandleTaskCompleted は task-completed.sh の Go 移植エントリポイント。
@@ -70,6 +73,8 @@ func HandleTaskCompleted(in io.Reader, out io.Writer) error {
 		timelineFile:   filepath.Join(projectRoot, ".claude", "state", "breezing-timeline.jsonl"),
 		pendingFixFile: filepath.Join(projectRoot, ".claude", "state", "pending-fix-proposals.jsonl"),
 		finalizeMarker: filepath.Join(projectRoot, ".claude", "state", "harness-mem-finalize-work-completed.json"),
+		// 設定ファイルの plansDirectory を考慮して Plans.md のパスを解決する
+		plansPath: resolvePlansPath(projectRoot),
 	}
 
 	return h.handle(input, data, out)

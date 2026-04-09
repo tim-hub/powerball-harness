@@ -227,19 +227,19 @@ func TestHandleSessionAutoBroadcast_SessionIDInHeader(t *testing.T) {
 		t.Fatalf("unexpected error: %v", handlerErr)
 	}
 
-	// broadcast.md のヘッダーに session_id の先頭 8 文字が含まれることを確認
+	// broadcast.md のヘッダーに session_id の先頭 12 文字が含まれることを確認
 	broadcastFile := filepath.Join(".claude", "sessions", "broadcast.md")
 	data, readErr := os.ReadFile(broadcastFile)
 	if readErr != nil {
 		t.Fatalf("broadcast.md not created: %v", readErr)
 	}
 	content := string(data)
-	// [auto-broadcast] ではなく [abcdef12]（先頭8文字）が使われるはず
+	// [auto-broadcast] ではなく [abcdef123456]（先頭12文字）が使われるはず
 	if strings.Contains(content, "[auto-broadcast]") {
 		t.Errorf("header should NOT use [auto-broadcast] when session_id is set, got: %s", content)
 	}
-	if !strings.Contains(content, "[abcdef12]") {
-		t.Errorf("header should contain session_id prefix [abcdef12], got: %s", content)
+	if !strings.Contains(content, "[abcdef123456]") {
+		t.Errorf("header should contain session_id prefix [abcdef123456], got: %s", content)
 	}
 }
 

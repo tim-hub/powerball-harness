@@ -167,13 +167,13 @@ func writeBroadcastNotification(filePath, matchedPattern, sessionID string) erro
 
 	broadcastFile := filepath.Join(sessionsDir, "broadcast.md")
 
-	// sender タグ: session_id の先頭 8 文字を使用。
+	// sender タグ: session_id の先頭 12 文字を使用（bash 版に合わせた長さ）。
 	// 空の場合は "unknown" にフォールバック（bash 版の動作と一致）。
 	senderTag := sessionID
 	if senderTag == "" {
 		senderTag = "unknown"
-	} else if len(senderTag) > 8 {
-		senderTag = senderTag[:8]
+	} else if len(senderTag) > 12 {
+		senderTag = senderTag[:12]
 	}
 
 	// ヘッダーフォーマット: ## <timestamp> [<session_id_prefix>]

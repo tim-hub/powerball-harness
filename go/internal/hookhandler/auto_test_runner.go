@@ -123,8 +123,8 @@ func HandleAutoTestRunner(in io.Reader, out io.Writer) error {
 		return emptyPostToolOutput(out)
 	}
 
-	// 関連テストファイルを検出
-	relatedTest := findRelatedTests(changedFile)
+	// 関連テストファイルを検出（P2 修正: projectRoot を渡す）
+	relatedTest := findRelatedTests(changedFile, projectRoot)
 
 	stateDir := filepath.Join(projectRoot, ".claude", "state")
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
@@ -182,12 +182,17 @@ func shouldRunTests(file string) bool {
 
 // detectTestCommand はプロジェクトルートからテストコマンドを自動検出する。
 //
-// 検出優先順:
+// 検出優先順（P2 修正: JS フレームワーク → Python → Rust → Go の順に並べ、
+// tests/ の pytest 判定は package.json がない場合のみ適用する）:
 //  1. vitest.config.* → npx vitest run --reporter=verbose
-//  2. jest.config.* or package.json の jest → npx jest --verbose
-//  3. pytest.ini or pyproject.toml の [tool.pytest] → pytest -v
-//  4. *_test.go → go test ./...
-//  5. package.json の scripts.test → npm test
+//  2. jest.config.* → npx jest --verbose
+//  3. package.json の jest キー/scripts.test に jest → npx jest --verbose
+//  4. package.json の scripts.test（npm test フォールバック）→ npm test
+//  5. pytest.ini → pytest -v
+//  6. pyproject.toml の [tool.pytest] → pytest -v
+//  7. tests/ ディレクトリ（package.json がない場合のみ）→ pytest -v
+//  8. Cargo.toml → cargo test
+//  9. go.mod → go test ./...
 func detectTestCommand(projectRoot string) string {
 	// vitest
 	vitestConfigs := []string{
@@ -199,7 +204,7 @@ func detectTestCommand(projectRoot string) string {
 		}
 	}
 
-	// jest
+	// jest: config ファイルによる検出（誤検出なし）
 	jestConfigs := []string{
 		"jest.config.ts", "jest.config.js", "jest.config.mjs", "jest.config.cjs",
 	}
@@ -208,26 +213,59 @@ func detectTestCommand(projectRoot string) string {
 			return "npx jest --verbose"
 		}
 	}
-	// package.json の jest フィールド
+
+	// package.json が存在する JS/Node プロジェクトの検出
+	// jest 判定と npm test フォールバックをまとめて処理し、
+	// tests/ の pytest 誤判定（P2）を防ぐために package.json チェックを先に行う。
 	pkgPath := filepath.Join(projectRoot, "package.json")
-	if autoTestFileExists(pkgPath) {
+	hasPkgJSON := autoTestFileExists(pkgPath)
+	if hasPkgJSON {
 		content, err := os.ReadFile(pkgPath)
-		if err == nil && bytes.Contains(content, []byte(`"jest"`)) {
-			return "npx jest --verbose"
+		if err == nil {
+			// jest: package.json の JSON パースによる検出
+			// "jest" キーがトップレベルオブジェクトとして存在するか、
+			// または scripts.test に "jest" を含む場合のみ Jest と判定する。
+			// @types/jest や jest-junit のような依存パッケージ名による誤検出を防ぐ。
+			if hasJestConfig(content) {
+				return "npx jest --verbose"
+			}
+			// npm test フォールバック
+			if hasNpmTestScript(content) {
+				return "npm test"
+			}
 		}
 	}
 
-	// pytest.ini
-	if autoTestFileExists(filepath.Join(projectRoot, "pytest.ini")) {
-		return "pytest -v"
-	}
-	// pyproject.toml の [tool.pytest]
-	pyprojectPath := filepath.Join(projectRoot, "pyproject.toml")
-	if autoTestFileExists(pyprojectPath) {
-		content, err := os.ReadFile(pyprojectPath)
-		if err == nil && bytes.Contains(content, []byte("[tool.pytest")) {
+	// pytest 系フレームワーク: pytest バイナリが PATH 上に存在する場合のみ返す。
+	// インストールされていない環境でフレームワーク設定ファイルだけ存在しても
+	// コマンドが実行できないため、LookPath で事前に確認する。
+	if _, pytestErr := exec.LookPath("pytest"); pytestErr == nil {
+		// pytest.ini
+		if autoTestFileExists(filepath.Join(projectRoot, "pytest.ini")) {
 			return "pytest -v"
 		}
+		// pyproject.toml の [tool.pytest]
+		pyprojectPath := filepath.Join(projectRoot, "pyproject.toml")
+		if autoTestFileExists(pyprojectPath) {
+			content, err := os.ReadFile(pyprojectPath)
+			if err == nil && bytes.Contains(content, []byte("[tool.pytest")) {
+				return "pytest -v"
+			}
+		}
+		// tests/ ディレクトリが存在する Python プロジェクト（設定ファイルなし）
+		// package.json がある JS プロジェクトには適用しない。
+		if !hasPkgJSON {
+			if autoTestFileExists(filepath.Join(projectRoot, "tests")) {
+				if info, err := os.Stat(filepath.Join(projectRoot, "tests")); err == nil && info.IsDir() {
+					return "pytest -v"
+				}
+			}
+		}
+	}
+
+	// Cargo.toml が存在する Rust プロジェクト
+	if autoTestFileExists(filepath.Join(projectRoot, "Cargo.toml")) {
+		return "cargo test"
 	}
 
 	// go test: go.mod が存在するか確認
@@ -235,15 +273,47 @@ func detectTestCommand(projectRoot string) string {
 		return "go test ./..."
 	}
 
-	// npm test: package.json の scripts.test が定義されている場合
-	if autoTestFileExists(pkgPath) {
-		content, err := os.ReadFile(pkgPath)
-		if err == nil && hasNpmTestScript(content) {
-			return "npm test"
+	return ""
+}
+
+// hasJestConfig は package.json の内容から Jest が設定されているかを JSON パースで確認する。
+//
+// 以下のいずれかを満たす場合に true を返す:
+//   - トップレベルに "jest" キーがオブジェクトとして存在する（Jest 設定オブジェクト）
+//   - scripts.test の値に "jest" という文字列が含まれる
+//
+// @types/jest や jest-junit のような依存パッケージ名を単純文字列検索した場合の誤検出を防ぐ。
+func hasJestConfig(content []byte) bool {
+	var pkg map[string]json.RawMessage
+	if err := json.Unmarshal(content, &pkg); err != nil {
+		return false
+	}
+
+	// "jest" キーがトップレベルオブジェクトとして存在するか確認
+	if jestRaw, ok := pkg["jest"]; ok {
+		// 値がオブジェクト（Jest 設定）かどうかを確認
+		var jestObj map[string]json.RawMessage
+		if json.Unmarshal(jestRaw, &jestObj) == nil {
+			return true
 		}
 	}
 
-	return ""
+	// scripts.test に "jest" が含まれるか確認
+	scriptsRaw, ok := pkg["scripts"]
+	if !ok {
+		return false
+	}
+	var scripts map[string]interface{}
+	if err := json.Unmarshal(scriptsRaw, &scripts); err != nil {
+		return false
+	}
+	if testVal, ok := scripts["test"]; ok {
+		if testStr, ok := testVal.(string); ok && strings.Contains(testStr, "jest") {
+			return true
+		}
+	}
+
+	return false
 }
 
 // hasNpmTestScript は package.json の内容に scripts.test が定義されているか確認する。
@@ -264,19 +334,34 @@ func hasNpmTestScript(content []byte) bool {
 	if !ok {
 		return false
 	}
-	// "test" キーが存在しても空文字や "echo" だけの場合は除外
+	// "test" キーが存在しても空文字や npm init のプレースホルダーは除外
 	testStr, ok := testVal.(string)
 	if !ok || strings.TrimSpace(testStr) == "" {
+		return false
+	}
+	// npm init が生成するデフォルト値はテスト有りと見なさない
+	if strings.Contains(testStr, "Error: no test specified") {
 		return false
 	}
 	return true
 }
 
 // findRelatedTests は変更ファイルに対応するテストファイルを探す。
-func findRelatedTests(file string) string {
-	ext := filepath.Ext(file)
-	basename := strings.TrimSuffix(file, ext)
-	dirname := filepath.Dir(file)
+//
+// P2 修正: projectRoot を受け取り、ファイルが相対パスの場合は
+// filepath.Join(projectRoot, file) を基準にテストファイルを探索する。
+// harness バイナリがリポルート外から起動された場合でも正しくテストを検出できる。
+func findRelatedTests(file, projectRoot string) string {
+	// file が絶対パスでない場合は projectRoot と結合して絶対パスを求め、
+	// パターン生成の基準とする。
+	absFile := file
+	if !filepath.IsAbs(file) && projectRoot != "" {
+		absFile = filepath.Join(projectRoot, file)
+	}
+
+	ext := filepath.Ext(absFile)
+	basename := strings.TrimSuffix(absFile, ext)
+	dirname := filepath.Dir(absFile)
 	baseName := filepath.Base(basename)
 
 	patterns := []string{
@@ -302,13 +387,62 @@ func findRelatedTests(file string) string {
 	return ""
 }
 
+// buildExecCommand はテストランナーごとにファイル引数の渡し方を分岐して実行コマンドを返す。
+//
+// P1 修正: `go test` は `-- <file>` 引数を受け付けないため、ランナーごとに分岐する。
+//
+//   - go test    : go test ./path/to/pkg/... (パッケージパスに変換)
+//   - pytest     : pytest path/to/test_file.py
+//   - cargo test : cargo test (ファイル指定なし)
+//   - jest/vitest: npx jest -- path/to/test.ts / npx vitest run -- path/to/test.ts
+//   - npm test   : npm test (ファイル指定なし)
+func buildExecCommand(testCmd, relatedTest, projectRoot string) string {
+	if relatedTest == "" {
+		return testCmd
+	}
+
+	switch {
+	case strings.HasPrefix(testCmd, "go test"):
+		// go test は <package path> を引数に取る。
+		// relatedTest が絶対パスの場合は projectRoot からの相対パスに戻してパッケージパスへ変換する。
+		rel := relatedTest
+		if filepath.IsAbs(relatedTest) && projectRoot != "" {
+			if r, err := filepath.Rel(projectRoot, relatedTest); err == nil {
+				rel = r
+			}
+		}
+		// _test.go ファイルが属するディレクトリのパッケージパスを生成する。
+		// 例: internal/foo/bar_test.go → go test ./internal/foo/...
+		pkgDir := filepath.Dir(rel)
+		return "go test ./" + filepath.ToSlash(pkgDir) + "/..."
+
+	case strings.HasPrefix(testCmd, "pytest"):
+		// pytest はファイルパスを直接引数に渡せる。
+		return testCmd + " " + relatedTest
+
+	case strings.HasPrefix(testCmd, "cargo test"):
+		// cargo test はファイル単位の指定をサポートしないため、ファイル指定なしで実行する。
+		return testCmd
+
+	case strings.HasPrefix(testCmd, "npx jest"),
+		strings.HasPrefix(testCmd, "npx vitest"):
+		// jest/vitest は `-- <file>` 形式でテストファイルを絞り込める。
+		return testCmd + " -- " + relatedTest
+
+	case strings.HasPrefix(testCmd, "npm test"):
+		// npm test はファイル指定のインターフェースが不定のため、ファイル指定なしで実行する。
+		return testCmd
+
+	default:
+		// 不明なランナーはファイル指定なしで安全側に倒す。
+		return testCmd
+	}
+}
+
 // runTestsAndReport はテストを実行して結果を記録し、additionalContext で通知する。
 func runTestsAndReport(out io.Writer, projectRoot, stateDir, changedFile, testCmd, relatedTest string) error {
-	// 実行コマンドを決定
-	execCmd := testCmd
-	if relatedTest != "" {
-		execCmd = testCmd + " -- " + relatedTest
-	}
+	// 実行コマンドを決定（P1 修正: ランナーごとにファイル引数を分岐）
+	execCmd := buildExecCommand(testCmd, relatedTest, projectRoot)
 
 	ts := time.Now().UTC().Format(time.RFC3339)
 

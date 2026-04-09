@@ -409,3 +409,35 @@ func TestLastPathComponent(t *testing.T) {
 		}
 	}
 }
+
+// TestWriteFinalizeMarker_StateDirSymlink は stateDir がシンボリックリンクの場合に
+// writeFinalizeMarker が書き込みを拒否することを確認する。
+func TestWriteFinalizeMarker_StateDirSymlink(t *testing.T) {
+	dir := t.TempDir()
+
+	// 実際の stateDir となるディレクトリ
+	realStateDir := filepath.Join(dir, "real-state")
+	if err := os.MkdirAll(realStateDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	// stateDir へのシンボリックリンクを作成
+	symlinkStateDir := filepath.Join(dir, "symlink-state")
+	if err := os.Symlink(realStateDir, symlinkStateDir); err != nil {
+		t.Skip("symlink creation not supported on this platform")
+	}
+
+	finalizeMarker := filepath.Join(symlinkStateDir, "finalize-marker.json")
+	h := &taskCompletedHandler{
+		stateDir:       symlinkStateDir,
+		finalizeMarker: finalizeMarker,
+		projectRoot:    dir,
+	}
+
+	// stateDir が symlink → writeFinalizeMarker は何も書かない
+	h.writeFinalizeMarker("sess1", "my-project", "2026-01-01T00:00:00Z")
+
+	if _, err := os.Stat(finalizeMarker); err == nil {
+		t.Error("writeFinalizeMarker should not write when stateDir is a symlink")
+	}
+}

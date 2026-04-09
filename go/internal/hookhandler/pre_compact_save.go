@@ -228,19 +228,38 @@ func (h *PreCompactSave) Handle(r io.Reader, w io.Writer) error {
 
 	plansFile := h.PlansFile
 	if plansFile == "" {
-		plansFile = filepath.Join(repoRoot, "Plans.md")
+		// resolvePlansPath は plansDirectory 設定を考慮してパスを解決し、
+		// ファイルが存在しない場合は空文字を返す（bash 版の get_plans_file_path と同等）。
+		plansFile = resolvePlansPath(repoRoot)
 	}
 
 	claudeDir := filepath.Join(repoRoot, ".claude")
 	artifactPath := filepath.Join(stateDir, "handoff-artifact.json")
 	snapshotPath := filepath.Join(stateDir, "precompact-snapshot.json")
 
-	// セキュリティ: .claude がシンボリックリンクでないことを確認
+	// セキュリティ: .claude がシンボリックリンクの場合、repo 外への symlink は拒否する。
+	// repo 内への symlink（例: モノレポのサブパッケージが共有 .claude を参照する構成）は許可する。
 	if info, err := os.Lstat(claudeDir); err == nil && info.Mode()&os.ModeSymlink != 0 {
-		return writePreCompactJSON(w, preCompactResponse{
-			Continue: true,
-			Message:  "Skipped: security check failed (.claude symlink)",
-		})
+		target, resolveErr := filepath.EvalSymlinks(claudeDir)
+		if resolveErr != nil {
+			// symlink 先を解決できない場合は安全のため拒否する。
+			return writePreCompactJSON(w, preCompactResponse{
+				Continue: true,
+				Message:  "Skipped: security check failed (.claude symlink unresolvable)",
+			})
+		}
+		// filepath.EvalSymlinks は OS パスを返すため、比較前に Clean を適用する。
+		cleanTarget := filepath.Clean(target)
+		cleanRoot := filepath.Clean(repoRoot)
+		// HasPrefix だと /foo が /foobar にマッチしてしまうため、
+		// パス区切り文字付きで前方一致を確認する。
+		if cleanTarget != cleanRoot && !strings.HasPrefix(cleanTarget, cleanRoot+string(filepath.Separator)) {
+			return writePreCompactJSON(w, preCompactResponse{
+				Continue: true,
+				Message:  "Skipped: security check failed (.claude symlink points outside repo)",
+			})
+		}
+		// repo 内への symlink は正当な使い方なので続行する。
 	}
 
 	// stateDir 作成・セキュリティチェック

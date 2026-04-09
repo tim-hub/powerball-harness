@@ -561,3 +561,59 @@ func TestBuildFailedChecks_ArrayFailedChecks(t *testing.T) {
 		t.Fatalf("expected 2 checks, got %d: %+v", len(checks), checks)
 	}
 }
+
+// TestPreCompactSave_CustomPlansDirectory は plansDirectory 設定があるとき
+// resolvePlansPath 経由でカスタムディレクトリの Plans.md が読まれることを確認する（P1修正）。
+func TestPreCompactSave_CustomPlansDirectory(t *testing.T) {
+	dir := t.TempDir()
+
+	// 設定ファイルに plansDirectory: workspace を設定
+	configContent := "plansDirectory: workspace\n"
+	configPath := filepath.Join(dir, harnessConfigFileName)
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// workspace/ ディレクトリに Plans.md を配置
+	workspaceDir := filepath.Join(dir, "workspace")
+	if err := os.MkdirAll(workspaceDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	plansContent := "| 1 | Custom Dir Task | DoD | none | `cc:WIP` |\n"
+	if err := os.WriteFile(filepath.Join(workspaceDir, "Plans.md"), []byte(plansContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	stateDir := filepath.Join(dir, ".claude", "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	// PlansFile を空にして resolvePlansPath に委ねる（PlansFile="" → 設定を参照）
+	h := &PreCompactSave{
+		RepoRoot: dir,
+		StateDir: stateDir,
+		// PlansFile は意図的に設定しない
+	}
+
+	var buf bytes.Buffer
+	if err := h.Handle(strings.NewReader("{}"), &buf); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	artifactPath := filepath.Join(stateDir, "handoff-artifact.json")
+	data, err := os.ReadFile(artifactPath)
+	if err != nil {
+		t.Fatalf("handoff-artifact.json not found: %v", err)
+	}
+
+	var artifact handoffArtifact
+	if err := json.Unmarshal(data, &artifact); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+
+	// WIP タスクが検出されていること（カスタムディレクトリの Plans.md が読まれた証拠）
+	if len(artifact.WIPTasks) == 0 {
+		t.Error("expected WIP tasks from custom plansDirectory, got none")
+	}
+}

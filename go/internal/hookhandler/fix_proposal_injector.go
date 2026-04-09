@@ -155,9 +155,21 @@ func (h *FixProposalInjectorHandler) resolveProjectRoot() string {
 }
 
 // resolvePlansPath は Plans.md のパスを解決する。
+// PlansPath が明示されている場合はそれを使用し、そうでなければ
+// 設定ファイルの plansDirectory を考慮してパスを解決する。
+// Plans.md が存在しない場合も（apply 時に plans_missing を返すため）フルパスを返す。
 func (h *FixProposalInjectorHandler) resolvePlansPath(projectRoot string) string {
 	if h.PlansPath != "" {
 		return h.PlansPath
+	}
+	// 存在する Plans.md のパスを取得
+	if p := resolvePlansPath(projectRoot); p != "" {
+		return p
+	}
+	// 存在しない場合は設定の plansDirectory を考慮したデフォルトパスを返す
+	plansDir := readPlansDirectoryFromConfig(projectRoot)
+	if plansDir != "" {
+		return filepath.Join(projectRoot, plansDir, "Plans.md")
 	}
 	return filepath.Join(projectRoot, "Plans.md")
 }

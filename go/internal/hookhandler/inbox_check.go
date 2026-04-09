@@ -86,7 +86,8 @@ func HandleInboxCheck(in io.Reader, out io.Writer) error {
 	lastReadTime := lastInboxReadTime(sessionsDir, inp.SessionID)
 
 	// Read messages from broadcast.md newer than lastReadTime.
-	messages, err := readBroadcastMessagesSince(broadcastFile, 5, lastReadTime)
+	// 自セッションの broadcast をフィルタするため session_id を渡す。
+	messages, err := readBroadcastMessagesSince(broadcastFile, 5, lastReadTime, inp.SessionID)
 	if err != nil || len(messages) == 0 {
 		// Fallback: try session-inbox.jsonl for backward compatibility.
 		inboxFile := projectRoot + "/.claude/state/session-inbox.jsonl"
@@ -152,12 +153,21 @@ func updateLastInboxRead(sessionsDir, sessionID string) {
 
 // readBroadcastMessagesSince は broadcast.md から since 以降のメッセージを最大 maxCount 件読む。
 // since が zero の場合は全メッセージを返す（初回読み込み相当）。
-func readBroadcastMessagesSince(path string, maxCount int, since time.Time) ([]string, error) {
+func readBroadcastMessagesSince(path string, maxCount int, since time.Time, currentSessionID string) ([]string, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
+
+	// 自セッションのフィルタ用プレフィックス（12文字）。
+	// session_auto_broadcast.go の senderTag と同じ長さ（bash 版に合わせて 12 文字）。
+	selfPrefix := ""
+	if len(currentSessionID) >= 12 {
+		selfPrefix = currentSessionID[:12]
+	} else {
+		selfPrefix = currentSessionID
+	}
 
 	var msgs []string
 	var currentTimestamp, currentSender, currentContent string
@@ -165,6 +175,10 @@ func readBroadcastMessagesSince(path string, maxCount int, since time.Time) ([]s
 
 	flush := func() {
 		if !inMessage || currentContent == "" || len(msgs) >= maxCount {
+			return
+		}
+		// 自セッションが送った broadcast はスキップ（自己エコー防止）。
+		if selfPrefix != "" && currentSender == selfPrefix {
 			return
 		}
 		// タイムスタンプをパース
@@ -221,9 +235,9 @@ func throttleAllowed(checkIntervalFile string) bool {
 
 // readBroadcastMessages reads up to maxCount messages from broadcast.md.
 // Backward-compatible wrapper around readBroadcastMessagesSince with zero since
-// (returns all messages regardless of timestamp).
+// (returns all messages regardless of timestamp). No self-session filtering.
 func readBroadcastMessages(path string, maxCount int) ([]string, error) {
-	return readBroadcastMessagesSince(path, maxCount, time.Time{})
+	return readBroadcastMessagesSince(path, maxCount, time.Time{}, "")
 }
 
 // readUnreadMessages reads up to maxCount unread messages from a JSONL inbox

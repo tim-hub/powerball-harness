@@ -139,8 +139,16 @@ func (h *taskCompletedHandler) finalizeMarkerExistsForSession(sessionID string) 
 
 // writeFinalizeMarker は finalize マーカーを書き出す。
 func (h *taskCompletedHandler) writeFinalizeMarker(sessionID, projectName, ts string) {
-	// シンボルリンクチェック
+	// stateDir がシンボリックリンクの場合は書き込みを拒否する。
+	// 攻撃者が stateDir を symlink に差し替えることで任意パスへの書き込みを誘導する
+	// パストラバーサルを防ぐための事前チェック。
+	if isSymlink(h.stateDir) {
+		fmt.Fprintf(os.Stderr, "[WARNING] writeFinalizeMarker: stateDir is a symlink (%s), refusing write\n", h.stateDir)
+		return
+	}
+	// finalizeMarker ファイル自体がシンボリックリンクの場合も書き込みを拒否する。
 	if info, err := os.Lstat(h.finalizeMarker); err == nil && info.Mode()&os.ModeSymlink != 0 {
+		fmt.Fprintf(os.Stderr, "[WARNING] writeFinalizeMarker: finalizeMarker is a symlink (%s), refusing write\n", h.finalizeMarker)
 		return
 	}
 

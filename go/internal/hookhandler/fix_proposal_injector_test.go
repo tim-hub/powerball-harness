@@ -363,3 +363,54 @@ func TestConsumeFixProposal(t *testing.T) {
 		t.Errorf("expected task 27 to remain, got %s", remaining[0].SourceTaskID)
 	}
 }
+
+// TestFixProposalInjector_CustomPlansDirectory は plansDirectory 設定があるとき
+// カスタムディレクトリの Plans.md に正しく反映されることを確認する。
+func TestFixProposalInjector_CustomPlansDirectory(t *testing.T) {
+	dir := t.TempDir()
+	makeFixProposalFile(t, dir, []fixProposal{sampleProposal()})
+
+	// 設定ファイルを作成（plansDirectory: workspace）
+	configContent := "plansDirectory: workspace\n"
+	if err := os.WriteFile(filepath.Join(dir, harnessConfigFileName), []byte(configContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// workspace/Plans.md を作成
+	workDir := filepath.Join(dir, "workspace")
+	if err := os.MkdirAll(workDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	plansContent := "| Task | 内容 | DoD | Depends | Status |\n|------|------|-----|---------|--------|\n| 26 | 元タスク | 完了 | - | cc:完了 |\n"
+	plansPath := filepath.Join(workDir, "Plans.md")
+	if err := os.WriteFile(plansPath, []byte(plansContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// PlansPath を明示せず ProjectRoot だけ指定（自動解決させる）
+	h := &FixProposalInjectorHandler{ProjectRoot: dir}
+
+	var out bytes.Buffer
+	err := h.Handle(strings.NewReader(`{"prompt":"approve fix 26"}`), &out)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var resp fixProposalInjectorOutput
+	if err := json.Unmarshal(bytes.TrimRight(out.Bytes(), "\n"), &resp); err != nil {
+		t.Fatalf("invalid JSON: %s", out.String())
+	}
+
+	// workspace/Plans.md に fix タスクが反映されること
+	if !strings.Contains(resp.SystemMessage, "反映しました") {
+		t.Errorf("expected success message for custom plansDirectory, got: %s", resp.SystemMessage)
+	}
+
+	plansData, err := os.ReadFile(plansPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(plansData), "26.fix") {
+		t.Errorf("expected fix task in custom-dir Plans.md, got: %s", string(plansData))
+	}
+}

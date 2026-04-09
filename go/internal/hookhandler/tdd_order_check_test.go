@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -319,5 +320,68 @@ func TestFindCorrespondingTestFile(t *testing.T) {
 		if got != c.expected {
 			t.Errorf("findCorrespondingTestFile(%q) = %q, want %q", c.filePath, got, c.expected)
 		}
+	}
+}
+
+// TestHasActiveWIPTask_CustomPlansDirectory は plansDirectory 設定がある場合に
+// カスタムディレクトリの Plans.md から WIP タスクを検出することを確認する（P3修正）。
+func TestHasActiveWIPTask_CustomPlansDirectory(t *testing.T) {
+	dir := t.TempDir()
+
+	// 設定ファイルに plansDirectory: docs を設定
+	configContent := "plansDirectory: docs\n"
+	if err := os.WriteFile(filepath.Join(dir, harnessConfigFileName), []byte(configContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// docs/ ディレクトリに cc:WIP を含む Plans.md を配置
+	docsDir := filepath.Join(dir, "docs")
+	if err := os.MkdirAll(docsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	plansContent := "| 1 | Task | DoD | none | `cc:WIP` |\n"
+	if err := os.WriteFile(filepath.Join(docsDir, "Plans.md"), []byte(plansContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := hasActiveWIPTask(dir)
+	if !got {
+		t.Error("expected hasActiveWIPTask=true for WIP task in custom plansDirectory, got false")
+	}
+}
+
+// TestHasActiveWIPTask_CustomPlansDirectory_NoWIP は カスタムディレクトリの
+// Plans.md に cc:WIP がない場合に false を返すことを確認する。
+func TestHasActiveWIPTask_CustomPlansDirectory_NoWIP(t *testing.T) {
+	dir := t.TempDir()
+
+	configContent := "plansDirectory: docs\n"
+	if err := os.WriteFile(filepath.Join(dir, harnessConfigFileName), []byte(configContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	docsDir := filepath.Join(dir, "docs")
+	if err := os.MkdirAll(docsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	plansContent := "| 1 | Task | DoD | none | `cc:TODO` |\n"
+	if err := os.WriteFile(filepath.Join(docsDir, "Plans.md"), []byte(plansContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := hasActiveWIPTask(dir)
+	if got {
+		t.Error("expected hasActiveWIPTask=false when no WIP task in custom plansDirectory, got true")
+	}
+}
+
+// TestHasActiveWIPTask_NoPlansFile は Plans.md が存在しない場合に false を返すことを確認する。
+func TestHasActiveWIPTask_NoPlansFile(t *testing.T) {
+	dir := t.TempDir()
+	// Plans.md を作成しない
+
+	got := hasActiveWIPTask(dir)
+	if got {
+		t.Error("expected hasActiveWIPTask=false when Plans.md does not exist, got true")
 	}
 }
