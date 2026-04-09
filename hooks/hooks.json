@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" pretooluse-inbox-check",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook inbox-check",
             "timeout": 10
           },
           {
@@ -33,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" pretooluse-browser-guide",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook browser-guide",
             "timeout": 10
           }
         ]
@@ -68,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" setup-hook init",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook setup-init",
             "timeout": 60,
             "once": true
           }
@@ -79,7 +79,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" setup-hook init",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook setup-init",
             "timeout": 60,
             "once": true
           }
@@ -90,7 +90,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" setup-hook maintenance",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook setup-maintenance",
             "timeout": 60,
             "once": true
           }
@@ -109,7 +109,7 @@
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge session-start",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge",
             "timeout": 30,
             "once": true
           }
@@ -133,7 +133,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/instructions-loaded",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook instructions-loaded",
             "timeout": 10
           }
         ]
@@ -167,7 +167,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/teammate-idle",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook teammate-idle",
             "timeout": 10
           }
         ]
@@ -178,7 +178,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/task-completed",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook task-completed-ext",
             "timeout": 10
           }
         ]
@@ -189,7 +189,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/runtime-reactive",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook runtime-reactive",
             "timeout": 10
           }
         ]
@@ -200,7 +200,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/worktree-create",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook worktree-create",
             "timeout": 10
           }
         ]
@@ -211,7 +211,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/worktree-remove",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook worktree-remove",
             "timeout": 10
           }
         ]
@@ -222,7 +222,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/pre-compact-save.js",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook pre-compact-save",
             "timeout": 30
           },
           {
@@ -252,7 +252,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-handlers/elicitation-handler.sh\"",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook elicitation",
             "timeout": 10
           }
         ]
@@ -264,7 +264,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-handlers/elicitation-result.sh\"",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook elicitation-result",
             "timeout": 5
           }
         ]
@@ -287,27 +287,27 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge user-prompt",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" userprompt-inject-policy",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook inject-policy",
             "timeout": 30
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" userprompt-track-command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook track-command",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/fix-proposal-injector",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook fix-proposal",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/breezing-signal-injector",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook breezing-signal",
             "timeout": 10
           }
         ]
@@ -340,12 +340,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge post-tool-use",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" posttooluse-log-toolname",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook log-toolname",
             "timeout": 30
           }
         ]
@@ -355,7 +355,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" posttooluse-commit-cleanup",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook commit-cleanup",
             "timeout": 10
           },
           {
@@ -371,7 +371,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" usage-tracker",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook usage-tracker",
             "timeout": 30
           }
         ]
@@ -381,7 +381,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" posttooluse-clear-pending",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook clear-pending",
             "timeout": 5
           }
         ]
@@ -391,7 +391,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" todo-sync",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook todo-sync",
             "timeout": 30
           }
         ]
@@ -401,43 +401,43 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" emit-agent-trace.js",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook emit-trace",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" auto-cleanup-hook",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook auto-cleanup",
             "timeout": 60
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" track-changes",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook track-changes",
             "timeout": 30
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" auto-test-runner",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook auto-test",
             "timeout": 120,
             "async": true
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" posttooluse-quality-pack",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook quality-pack",
             "timeout": 60
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" plans-watcher",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook plans-watcher",
             "timeout": 30
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" tdd-order-check",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook tdd-check",
             "timeout": 30
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" session-auto-broadcast",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook auto-broadcast",
             "timeout": 10
           }
         ]
@@ -459,7 +459,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/config-change",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook config-change",
             "timeout": 10
           }
         ]
@@ -470,7 +470,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/runtime-reactive",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook runtime-reactive",
             "timeout": 10
           }
         ]
@@ -481,7 +481,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/runtime-reactive",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook runtime-reactive",
             "timeout": 10
           }
         ]
@@ -497,12 +497,12 @@
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge stop",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge",
             "timeout": 30
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/stop-session-evaluator",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook stop-evaluator",
             "timeout": 30
           },
           {
@@ -530,7 +530,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook-handlers/stop-failure.sh\"",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook stop-failure",
             "timeout": 10
           }
         ]

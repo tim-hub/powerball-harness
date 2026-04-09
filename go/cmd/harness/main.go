@@ -37,6 +37,7 @@ import (
 	"github.com/Chachamaru127/claude-code-harness/go/internal/event"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/guardrail"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/hook"
+	"github.com/Chachamaru127/claude-code-harness/go/internal/hookhandler"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/lifecycle"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/session"
 	"github.com/Chachamaru127/claude-code-harness/go/internal/state"
@@ -238,6 +239,173 @@ func runHook(hookType string) {
 		h := &session.SummaryHandler{}
 		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "session-summary handler error: %v\n", err)
+		}
+	// --- hookhandler (Phase 37) ---
+	case "inbox-check":
+		if err := hookhandler.HandleInboxCheck(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "inbox-check handler error: %v\n", err)
+		}
+	case "browser-guide":
+		if err := hookhandler.HandleBrowserGuide(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "browser-guide handler error: %v\n", err)
+		}
+	case "memory-bridge":
+		if err := hookhandler.HandleMemoryBridge(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "memory-bridge handler error: %v\n", err)
+		}
+	case "worktree-create":
+		if err := hookhandler.HandleWorktreeCreate(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "worktree-create handler error: %v\n", err)
+		}
+	case "worktree-remove":
+		h := &hookhandler.WorktreeRemoveHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "worktree-remove handler error: %v\n", err)
+		}
+	case "commit-cleanup":
+		h := &hookhandler.CommitCleanupHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "commit-cleanup handler error: %v\n", err)
+		}
+	case "clear-pending":
+		h := &hookhandler.ClearPendingHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "clear-pending handler error: %v\n", err)
+		}
+	case "auto-broadcast":
+		if err := hookhandler.HandleSessionAutoBroadcast(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "auto-broadcast handler error: %v\n", err)
+		}
+	case "config-change":
+		if err := hookhandler.HandleConfigChange(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "config-change handler error: %v\n", err)
+		}
+	case "instructions-loaded":
+		if err := hookhandler.HandleInstructionsLoaded(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "instructions-loaded handler error: %v\n", err)
+		}
+	case "setup-init":
+		if err := hookhandler.HandleSetupHookInit(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "setup-init handler error: %v\n", err)
+		}
+	case "setup-maintenance":
+		if err := hookhandler.HandleSetupHookMaintenance(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "setup-maintenance handler error: %v\n", err)
+		}
+	case "runtime-reactive":
+		if err := hookhandler.HandleRuntimeReactive(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "runtime-reactive handler error: %v\n", err)
+		}
+	case "teammate-idle":
+		if err := hookhandler.HandleTeammateIdle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "teammate-idle handler error: %v\n", err)
+		}
+	case "track-command":
+		h := &hookhandler.TrackCommandHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "track-command handler error: %v\n", err)
+		}
+	case "breezing-signal":
+		h := &hookhandler.BreezingSignalInjectorHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "breezing-signal handler error: %v\n", err)
+		}
+	case "ci-check":
+		h := &hookhandler.CIStatusCheckerHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "ci-check handler error: %v\n", err)
+		}
+	case "usage-tracker":
+		h := &hookhandler.UsageTrackerHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "usage-tracker handler error: %v\n", err)
+		}
+	case "todo-sync":
+		h := &hookhandler.TodoSyncHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "todo-sync handler error: %v\n", err)
+		}
+	case "auto-cleanup":
+		h := &hookhandler.AutoCleanupHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "auto-cleanup handler error: %v\n", err)
+		}
+	case "track-changes":
+		if err := hookhandler.HandleTrackChanges(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "track-changes handler error: %v\n", err)
+		}
+	case "plans-watcher":
+		if err := hookhandler.HandlePlansWatcher(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "plans-watcher handler error: %v\n", err)
+		}
+	case "tdd-check":
+		if err := hookhandler.HandleTDDOrderCheck(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "tdd-check handler error: %v\n", err)
+		}
+	case "elicitation":
+		h := &hookhandler.ElicitationHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "elicitation handler error: %v\n", err)
+		}
+	case "elicitation-result":
+		h := &hookhandler.ElicitationResultHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "elicitation-result handler error: %v\n", err)
+		}
+	case "stop-evaluator":
+		h := &hookhandler.StopSessionEvaluatorHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "stop-evaluator handler error: %v\n", err)
+		}
+	case "stop-failure":
+		h := &hookhandler.StopFailureHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "stop-failure handler error: %v\n", err)
+		}
+	case "notification-ext":
+		if err := hookhandler.HandleNotification(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "notification-ext handler error: %v\n", err)
+		}
+	case "permission-denied-ext":
+		if err := hookhandler.HandlePermissionDenied(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "permission-denied-ext handler error: %v\n", err)
+		}
+	case "quality-pack":
+		if err := hookhandler.HandlePostToolUseQualityPack(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "quality-pack handler error: %v\n", err)
+		}
+	case "inject-policy":
+		h := &hookhandler.UserPromptInjectPolicyHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "inject-policy handler error: %v\n", err)
+		}
+	case "fix-proposal":
+		h := &hookhandler.FixProposalInjectorHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "fix-proposal handler error: %v\n", err)
+		}
+	case "log-toolname":
+		h := &hookhandler.PostToolUseLogToolNameHandler{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "log-toolname handler error: %v\n", err)
+		}
+	case "auto-test":
+		if err := hookhandler.HandleAutoTestRunner(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "auto-test handler error: %v\n", err)
+		}
+	case "task-completed-ext":
+		if err := hookhandler.HandleTaskCompleted(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "task-completed-ext handler error: %v\n", err)
+		}
+	case "pre-compact-save":
+		h := &hookhandler.PreCompactSave{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "pre-compact-save handler error: %v\n", err)
+		}
+	case "emit-trace":
+		h := &hookhandler.EmitAgentTrace{}
+		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "emit-trace handler error: %v\n", err)
 		}
 	default:
 		// guard-fastpath handlers require tool_name validation
