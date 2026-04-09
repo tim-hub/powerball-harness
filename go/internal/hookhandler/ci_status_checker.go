@@ -200,9 +200,11 @@ func (h *CIStatusCheckerHandler) checkRecentCIFailure(stateDir, bashCmd string) 
 
 // defaultCIRunner は gh run list でポーリングし、結果をシグナルファイルに書き込む。
 // async: true フックを前提に同期ブロッキングで実行される。
-// maxWait を hooks.json の timeout (30s) より短い 25s に設定して安全マージンを確保する。
+// CC は async: true フックのプロセスを最大 600s 生存させるため、
+// maxWait を 120s に設定して GitHub Actions の完了を十分待つ。
+// （以前の 25s では 10s 間隔で 2 回しかポーリングできず、多くの CI が完了前に監視終了していた）
 func defaultCIRunner(projectRoot, stateDir, bashCmd, ghCmd string) {
-	const maxWait = 25 * time.Second
+	const maxWait = 120 * time.Second
 	const pollInterval = 10 * time.Second
 
 	ciStatusFile := filepath.Join(stateDir, "ci-status.json")

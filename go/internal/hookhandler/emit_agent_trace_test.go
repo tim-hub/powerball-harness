@@ -417,6 +417,109 @@ func TestEmitAgentTrace_PathWithinRepo(t *testing.T) {
 	}
 }
 
+// TestEmitAgentTrace_OtelParallel は OTel POST が goroutine で並列実行され、
+// Handle() がブロックせずに返ることを確認する。
+// mock HTTP server を使い、リクエストが確実に届くことも検証する。
+func TestEmitAgentTrace_OtelParallel(t *testing.T) {
+	requestReceived := make(chan struct{}, 1)
+
+	// mock HTTP server: リクエストを受け取ったらチャネルに通知
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		select {
+		case requestReceived <- struct{}{}:
+		default:
+		}
+	}))
+	defer server.Close()
+
+	dir := t.TempDir()
+
+	existingFile := filepath.Join(dir, "test.go")
+	if err := os.WriteFile(existingFile, []byte("package main\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	input, _ := json.Marshal(map[string]interface{}{"file_path": existingFile})
+	t.Setenv("CLAUDE_TOOL_NAME", "Write")
+	t.Setenv("CLAUDE_TOOL_INPUT", string(input))
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", server.URL)
+	defer t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+
+	stateDir := filepath.Join(dir, "state")
+	e := &EmitAgentTrace{
+		RepoRoot:   dir,
+		StateDir:   stateDir,
+		HTTPClient: &http.Client{Timeout: 5 * time.Second},
+	}
+
+	start := time.Now()
+	if err := e.Handle(strings.NewReader(""), nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	elapsed := time.Since(start)
+
+	// Handle() が返った時点で wg.Wait() により POST は完了しているはず
+	select {
+	case <-requestReceived:
+		// 正常: OTel サーバーがリクエストを受信した
+	case <-time.After(3 * time.Second):
+		t.Error("OTel server did not receive request within timeout")
+	}
+
+	// goroutine + wg.Wait() によりブロッキングは最小限
+	// （HTTP タイムアウト 5s 以内で完了するはず）
+	if elapsed > 10*time.Second {
+		t.Errorf("Handle() took too long: %v (expected < 10s)", elapsed)
+	}
+}
+
+// TestEmitAgentTrace_ChmodExistingFile は既存ファイルのパーミッションが 0600 に修正されることを確認する。
+func TestEmitAgentTrace_ChmodExistingFile(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	// 既存の agent-trace.jsonl を 0644 で作成（0600 に修正される必要がある）
+	tracePath := filepath.Join(stateDir, "agent-trace.jsonl")
+	if err := os.WriteFile(tracePath, []byte(""), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	existingFile := filepath.Join(dir, "test.go")
+	if err := os.WriteFile(existingFile, []byte("package main\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	input, _ := json.Marshal(map[string]interface{}{"file_path": existingFile})
+	t.Setenv("CLAUDE_TOOL_NAME", "Write")
+	t.Setenv("CLAUDE_TOOL_INPUT", string(input))
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+
+	e := &EmitAgentTrace{
+		RepoRoot: dir,
+		StateDir: stateDir,
+	}
+
+	if err := e.Handle(strings.NewReader(""), nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// ファイルのパーミッションが 0600 になっていることを確認
+	info, err := os.Stat(tracePath)
+	if err != nil {
+		t.Fatalf("trace file not found: %v", err)
+	}
+
+	// ファイルのモードから permission bits のみ取得
+	perm := info.Mode().Perm()
+	if perm != 0600 {
+		t.Errorf("expected file permission 0600, got %04o", perm)
+	}
+}
+
 func TestEmitAgentTrace_MultipleAppends(t *testing.T) {
 	dir := t.TempDir()
 

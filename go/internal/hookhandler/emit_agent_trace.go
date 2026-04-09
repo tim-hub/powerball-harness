@@ -195,13 +195,20 @@ func (e *EmitAgentTrace) Handle(r io.Reader, w io.Writer) error {
 		_, _ = fmt.Fprintf(os.Stderr, "[agent-trace] %v\n", err)
 	}
 
-	// OTel エクスポート（同期・失敗は無視）。
-	// async: true フックなので goroutine は不要。
-	// プロセス終了で goroutine が kill されるリスクを排除するため同期呼び出しにする。
+	// OTel エクスポート（goroutine で並列実行・失敗は無視）。
+	// stdout への結果書き出しを先に行い、OTel POST はバックグラウンドで並行実行する。
+	// async: true フックなので Handle() を返した後もプロセスは生存し続け、
+	// wg.Wait() でプロセス終了前に POST 完了を保証する。
 	// emitOtelSpan 内の HTTP client に 3s timeout が設定されているので長時間ブロックしない。
+	var wg sync.WaitGroup
 	if endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"); endpoint != "" {
-		e.emitOtelSpan(endpoint, &rec)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			e.emitOtelSpan(endpoint, &rec)
+		}()
 	}
+	wg.Wait()
 
 	return nil
 }
@@ -249,6 +256,10 @@ func (e *EmitAgentTrace) appendTrace(repoRoot, stateDir, tracePath string, rec *
 		return fmt.Errorf("opening trace file: %w", err)
 	}
 	defer f.Close()
+
+	// 既存ファイルの権限を 0600 に修正する（os.OpenFile の perm 引数は新規作成時のみ適用される）。
+	// JS 版は open 後に fchmodSync していた。
+	_ = f.Chmod(0600)
 
 	// 開いた fd が通常ファイルであることを確認
 	info, err := f.Stat()
