@@ -442,3 +442,122 @@ func TestPreCompactSave_SessionMetricsOpenRisks(t *testing.T) {
 		t.Errorf("expected quality risk in open_risks from session-metrics, got risks: %+v", artifact.OpenRisks)
 	}
 }
+
+// TestBuildOpenRisks_ReviewStatusPassed は review_status="passed" のとき
+// リスクが追加されないことを確認する（bash/JS 版との対称性）。
+func TestBuildOpenRisks_ReviewStatusPassed(t *testing.T) {
+	h := &PreCompactSave{}
+
+	workState := map[string]interface{}{
+		"review_status": "passed",
+	}
+
+	risks := h.buildOpenRisks(nil, nil, workState, nil)
+
+	for _, r := range risks {
+		if r.Kind == "review" {
+			t.Errorf("expected no review risk when review_status=passed, got: %+v", r)
+		}
+	}
+}
+
+// TestBuildOpenRisks_ReviewStatusFailed は review_status="failed" のとき
+// high severity の review リスクが追加されることを確認する。
+func TestBuildOpenRisks_ReviewStatusFailed(t *testing.T) {
+	h := &PreCompactSave{}
+
+	workState := map[string]interface{}{
+		"review_status":  "failed",
+		"failure_reason": "critical issue found",
+	}
+
+	risks := h.buildOpenRisks(nil, nil, workState, nil)
+
+	found := false
+	for _, r := range risks {
+		if r.Kind == "review" && r.Severity == "high" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected high severity review risk when review_status=failed, got risks: %+v", risks)
+	}
+}
+
+// TestBuildOpenRisks_ReviewStatusPending は review_status="pending" のとき
+// medium severity の review リスクが追加されることを確認する。
+func TestBuildOpenRisks_ReviewStatusPending(t *testing.T) {
+	h := &PreCompactSave{}
+
+	workState := map[string]interface{}{
+		"review_status": "pending",
+	}
+
+	risks := h.buildOpenRisks(nil, nil, workState, nil)
+
+	found := false
+	for _, r := range risks {
+		if r.Kind == "review" && r.Severity == "medium" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected medium severity review risk when review_status=pending, got risks: %+v", risks)
+	}
+}
+
+// TestBuildFailedChecks_SingleObjectFailedChecks は failed_checks が
+// 単一の map オブジェクトのとき、配列にラップして処理されることを確認する（JS版との対称性）。
+func TestBuildFailedChecks_SingleObjectFailedChecks(t *testing.T) {
+	h := &PreCompactSave{}
+
+	workState := map[string]interface{}{
+		"failed_checks": map[string]interface{}{
+			"check":  "type-check",
+			"status": "failed",
+			"detail": "type mismatch at line 42",
+		},
+	}
+
+	checks := h.buildFailedChecks(workState, nil)
+
+	if len(checks) != 1 {
+		t.Fatalf("expected 1 check, got %d: %+v", len(checks), checks)
+	}
+	if checks[0].Check != "type-check" {
+		t.Errorf("expected check=type-check, got: %s", checks[0].Check)
+	}
+	if checks[0].Status != "failed" {
+		t.Errorf("expected status=failed, got: %s", checks[0].Status)
+	}
+	if checks[0].Detail != "type mismatch at line 42" {
+		t.Errorf("expected detail to be set, got: %s", checks[0].Detail)
+	}
+}
+
+// TestBuildFailedChecks_ArrayFailedChecks は failed_checks が配列のとき
+// 従来通り全エントリが処理されることを確認する（回帰テスト）。
+func TestBuildFailedChecks_ArrayFailedChecks(t *testing.T) {
+	h := &PreCompactSave{}
+
+	workState := map[string]interface{}{
+		"failed_checks": []interface{}{
+			map[string]interface{}{
+				"check":  "lint",
+				"status": "failed",
+			},
+			map[string]interface{}{
+				"check":  "test",
+				"status": "failed",
+			},
+		},
+	}
+
+	checks := h.buildFailedChecks(workState, nil)
+
+	if len(checks) != 2 {
+		t.Fatalf("expected 2 checks, got %d: %+v", len(checks), checks)
+	}
+}

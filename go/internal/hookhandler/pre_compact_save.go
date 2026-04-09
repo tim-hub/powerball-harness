@@ -686,7 +686,8 @@ func (h *PreCompactSave) buildOpenRisks(rows []planRow, recentEdits []string, wo
 				Summary:  "work review_status is failed",
 				Detail:   getStringField(workState, "last_failure", "failure_reason", "reason"),
 			})
-		} else if reviewStatus != "" {
+		} else if reviewStatus != "" && reviewStatus != "passed" {
+			// "passed" はリスクなし。"pending" 等の未確定状態のみ medium リスクとする
 			risks = append(risks, openRisk{
 				Severity: "medium",
 				Kind:     "review",
@@ -732,24 +733,31 @@ func (h *PreCompactSave) buildFailedChecks(workState, metrics interface{}) []fai
 		if value == nil {
 			return
 		}
+		// 単一オブジェクト（map）の場合は配列にラップして統一処理する（JS版との対称性）
+		var items []interface{}
 		switch v := value.(type) {
 		case []interface{}:
-			for _, item := range v {
-				switch entry := item.(type) {
-				case string:
-					checks = append(checks, failedCheck{Source: source, Check: entry, Status: "failed"})
-				case map[string]interface{}:
-					check := getStringField(entry, "check", "name", "type")
-					if check == "" {
-						check = "unknown"
-					}
-					checks = append(checks, failedCheck{
-						Source: source,
-						Check:  check,
-						Status: getStringFieldDefault(entry, "failed", "status"),
-						Detail: getStringField(entry, "detail", "message", "reason", "description"),
-					})
+			items = v
+		case map[string]interface{}:
+			items = []interface{}{v}
+		default:
+			return
+		}
+		for _, item := range items {
+			switch entry := item.(type) {
+			case string:
+				checks = append(checks, failedCheck{Source: source, Check: entry, Status: "failed"})
+			case map[string]interface{}:
+				check := getStringField(entry, "check", "name", "type")
+				if check == "" {
+					check = "unknown"
 				}
+				checks = append(checks, failedCheck{
+					Source: source,
+					Check:  check,
+					Status: getStringFieldDefault(entry, "failed", "status"),
+					Detail: getStringField(entry, "detail", "message", "reason", "description"),
+				})
 			}
 		}
 	}
