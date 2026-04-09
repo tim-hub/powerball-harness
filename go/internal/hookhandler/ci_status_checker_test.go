@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -88,12 +89,12 @@ func TestCIStatusChecker_GitPushCommand_NoGH(t *testing.T) {
 func TestCIStatusChecker_GitPushCommand_WithGH(t *testing.T) {
 	dir := t.TempDir()
 
-	asyncCalled := false
+	var asyncCalled atomic.Bool
 	h := &CIStatusCheckerHandler{
 		ProjectRoot: dir,
 		GHCommand:   findGHOrSkip(t),
 		AsyncRunner: func(projectRoot, stateDir, bashCmd, ghCommand string) {
-			asyncCalled = true
+			asyncCalled.Store(true)
 		},
 	}
 
@@ -121,8 +122,7 @@ func TestCIStatusChecker_GitPushCommand_WithGH(t *testing.T) {
 	}
 
 	// 非同期ランナーが呼ばれたことを確認（goroutine なので少し待つ）
-	// テストでは AsyncRunner を同期的に呼ぶわけではないが、goroutine として起動される
-	_ = asyncCalled
+	_ = asyncCalled.Load()
 }
 
 func TestCIStatusChecker_GHPRCreateCommand(t *testing.T) {
