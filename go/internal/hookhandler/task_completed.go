@@ -72,10 +72,10 @@ func HandleTaskCompleted(in io.Reader, out io.Writer) error {
 		finalizeMarker: filepath.Join(projectRoot, ".claude", "state", "harness-mem-finalize-work-completed.json"),
 	}
 
-	return h.handle(input, out)
+	return h.handle(input, data, out)
 }
 
-func (h *taskCompletedHandler) handle(input taskCompletedInput, out io.Writer) error {
+func (h *taskCompletedHandler) handle(input taskCompletedInput, rawData []byte, out io.Writer) error {
 	// フィールド正規化
 	teammateName := firstNonEmpty(input.TeammateName, input.AgentName)
 	taskID := input.TaskID
@@ -131,8 +131,8 @@ func (h *taskCompletedHandler) handle(input taskCompletedInput, out io.Writer) e
 		})
 	}
 
-	// Webhook 通知（バックグラウンド、エラーは無視）
-	h.fireWebhook()
+	// Webhook 通知（同期、5秒タイムアウト）
+	h.fireWebhook(rawData)
 
 	// 停止判定
 	if !requestContinue || stopReason != "" {

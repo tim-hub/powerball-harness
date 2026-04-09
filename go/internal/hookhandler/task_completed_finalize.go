@@ -164,23 +164,36 @@ func (h *taskCompletedHandler) writeFinalizeMarker(sessionID, projectName, ts st
 }
 
 // fireWebhook は HARNESS_WEBHOOK_URL が設定されている場合に Webhook 通知を行う。
-func (h *taskCompletedHandler) fireWebhook() {
+// bash 版 webhook-notify.sh と同様に、元のフック入力 JSON をボディとしてそのまま POST し、
+// X-Harness-Event ヘッダーを付与する。同期実行（5秒タイムアウト）。
+func (h *taskCompletedHandler) fireWebhook(rawPayload []byte) {
 	webhookURL := os.Getenv("HARNESS_WEBHOOK_URL")
 	if webhookURL == "" {
 		return
 	}
 
-	// バックグラウンドで非同期通知（エラーは無視）
-	go func() {
-		client := &http.Client{Timeout: 5 * time.Second}
-		resp, err := client.Post(webhookURL, "application/json", strings.NewReader(`{"event":"task-completed"}`))
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "[task-completed] webhook: %v\n", err)
-			return
-		}
-		defer resp.Body.Close()
-		io.ReadAll(resp.Body) //nolint:errcheck
-	}()
+	// ペイロードが空の場合はフォールバック
+	body := rawPayload
+	if len(body) == 0 {
+		body = []byte("{}")
+	}
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	req, err := http.NewRequest(http.MethodPost, webhookURL, strings.NewReader(string(body)))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[task-completed] webhook request: %v\n", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Harness-Event", "task-completed")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[task-completed] webhook: %v\n", err)
+		return
+	}
+	defer resp.Body.Close()
+	io.ReadAll(resp.Body) //nolint:errcheck
 }
 
 // lastPathComponent はパスの最後のコンポーネントを返す。

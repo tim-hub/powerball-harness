@@ -1,6 +1,7 @@
 package hookhandler
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -85,7 +86,7 @@ func (h *StopFailureHandler) Handle(in io.Reader, out io.Writer) error {
 	if projectRoot == "" {
 		projectRoot = resolveProjectRoot()
 	}
-	stateDir := projectRoot + "/.claude/state"
+	stateDir := resolveStopFailureStateDir(projectRoot)
 
 	// ステートディレクトリを確保
 	if mkErr := os.MkdirAll(stateDir, 0o700); mkErr != nil {
@@ -209,4 +210,27 @@ func classifyErrorCode(rawCode, msg string) string {
 // セキュリティチェック用。isSymlink は userprompt_track_command.go に定義済み。
 func isStopFailureLogSymlink(path string) bool {
 	return isSymlink(path)
+}
+
+// resolveStopFailureStateDir は stop-failures.jsonl の保存先ディレクトリを返す。
+// bash 版 stop-failure.sh と同様の動作:
+//   - CLAUDE_PLUGIN_DATA が設定されている場合: ${CLAUDE_PLUGIN_DATA}/projects/<hash>
+//     <hash> は CWD の SHA-256 上位 12 文字
+//   - 未設定の場合: ${projectRoot}/.claude/state
+func resolveStopFailureStateDir(projectRoot string) string {
+	pluginData := os.Getenv("CLAUDE_PLUGIN_DATA")
+	if pluginData == "" {
+		return projectRoot + "/.claude/state"
+	}
+
+	// CWD の SHA-256 先頭 12 文字をプロジェクトハッシュとして使用
+	hash := sha256.Sum256([]byte(projectRoot))
+	hashStr := fmt.Sprintf("%x", hash)
+	if len(hashStr) > 12 {
+		hashStr = hashStr[:12]
+	}
+	if hashStr == "" {
+		hashStr = "default"
+	}
+	return pluginData + "/projects/" + hashStr
 }
