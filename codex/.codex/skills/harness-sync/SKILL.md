@@ -6,6 +6,7 @@ description-ja: "Plans.md と実装の進捗同期。差分検出・マーカー
 allowed-tools: ["Read", "Edit", "Bash", "Grep", "Glob"]
 argument-hint: "[--snapshot|--no-retro]"
 effort: medium
+disable-model-invocation: true
 ---
 
 # Harness Sync

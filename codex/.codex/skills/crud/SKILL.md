@@ -6,6 +6,7 @@ description-ja: "CRUDをサクッと自動生成。ボイラープレートはAI
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
 argument-hint: "<entity-name>"
 user-invocable: false
+disable-model-invocation: true
 ---
 
 # CRUD Skill

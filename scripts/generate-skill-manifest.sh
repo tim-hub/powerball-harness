@@ -151,6 +151,7 @@ const skills = skillFiles
       context: frontmatter.context || null,
       effort: frontmatter.effort || null,
       user_invocable: typeof frontmatter['user-invocable'] === 'boolean' ? frontmatter['user-invocable'] : null,
+      disable_model_invocation: typeof frontmatter['disable-model-invocation'] === 'boolean' ? frontmatter['disable-model-invocation'] : null,
       do_not_use_for: parseDoNotUseFor(frontmatter),
     };
   })

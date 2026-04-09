@@ -235,9 +235,12 @@ if [ -f "$SECURITY_TEMPLATE" ]; then
   fi
 fi
 
-# Check 2: permissions.ask に Edit / Write が入っていないこと
+# Check 2: permissions.ask セクションに Edit / Write が入っていないこと
+# NOTE: deny セクションの Edit/Write は二重防御として正当。ask のみをチェック
 if [ -f "$SECURITY_TEMPLATE" ]; then
-  if grep -q '"Edit' "$SECURITY_TEMPLATE" || grep -q '"Write' "$SECURITY_TEMPLATE"; then
+  # ask セクションのみ抽出して Edit/Write を検索
+  ASK_EDIT_WRITE=$(sed -n '/"ask"/,/\]/p' "$SECURITY_TEMPLATE" | grep -E '"(Edit|Write|MultiEdit)' || true)
+  if [ -n "$ASK_EDIT_WRITE" ]; then
     echo "  ❌ settings.security.json.template の ask に Edit/Write が含まれている"
     echo "      bypassPermissions 前提運用のため、Edit/Write は ask に入れないでください"
     BYPASS_ISSUES=$((BYPASS_ISSUES + 1))
@@ -338,7 +341,40 @@ MIRROR_ISSUES=0
 
 # コアスキル（5動詞 harness- prefix + aux）の mirror チェック
 # SSOT: skills/ → ミラー先: codex/.codex/skills/, opencode/skills/
+# NOTE: mirror 側には disable-model-invocation: true が追加されている（自動発動抑制）
+#       この差異は意図的なため、比較時に除外する
 HARNESS_SKILLS="harness-plan harness-work harness-review harness-release harness-setup harness-sync"
+
+# mirror 比較用ヘルパー: disable-model-invocation 行を除外してファイル単位で diff
+# mirror 固有の設定（自動発動抑制）は意図的な差異のため許容する
+diff_mirror() {
+  local src_dir="$1"
+  local mirror_dir="$2"
+
+  # ファイル一覧を比較（ファイル構成の一致を確認）
+  local src_files mirror_files
+  src_files="$(cd "$src_dir" && find . -type f | sort)"
+  mirror_files="$(cd "$mirror_dir" && find . -type f | sort)"
+  if [ "$src_files" != "$mirror_files" ]; then
+    return 1
+  fi
+
+  # 各ファイルを個別に比較（disable-model-invocation 行のみ除外）
+  local f compared=0
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    if ! diff -q \
+      <(grep -v '^disable-model-invocation:' "$src_dir/$f") \
+      <(grep -v '^disable-model-invocation:' "$mirror_dir/$f") \
+      >/dev/null 2>&1; then
+      return 1
+    fi
+    compared=$((compared + 1))
+  done <<< "$src_files"
+
+  # ファイル比較が1件も実行されなかった場合は安全側に倒す
+  [ "$compared" -gt 0 ]
+}
 
 for skill in $HARNESS_SKILLS; do
   src="$SKILLS_DIR/$skill"
@@ -371,7 +407,7 @@ for skill in $HARNESS_SKILLS; do
       continue
     fi
 
-    if diff -qr "$src" "$mirror_path" >/dev/null 2>&1; then
+    if diff_mirror "$src" "$mirror_path"; then
       echo "  ✅ $mirror_name: $skill mirror is in sync"
     else
       echo "  ❌ $mirror_name: $skill mirror が skills/ と不一致"
@@ -394,7 +430,7 @@ if [ -d "$BREEZING_SRC" ]; then
   elif [ -L "$BREEZING_CODEX" ]; then
     echo "  ❌ codex: breezing が symlink のままです"
     ERRORS=$((ERRORS + 1))
-  elif diff -qr "$BREEZING_SRC" "$BREEZING_CODEX" >/dev/null 2>&1; then
+  elif diff_mirror "$BREEZING_SRC" "$BREEZING_CODEX"; then
     echo "  ✅ codex: breezing mirror is in sync"
   else
     echo "  ❌ codex: breezing mirror が skills/ と不一致"

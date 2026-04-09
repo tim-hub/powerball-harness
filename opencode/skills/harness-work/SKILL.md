@@ -6,6 +6,7 @@ description-ja: "Harness v3 統合実行スキル。Plans.md タスクを1件か
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[all] [task-number|range] [--codex] [--parallel N] [--no-commit] [--resume id] [--breezing] [--auto-mode]"
 effort: high
+disable-model-invocation: true
 ---
 
 # Harness Work (v3)

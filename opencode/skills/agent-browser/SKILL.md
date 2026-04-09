@@ -7,6 +7,7 @@ allowed-tools: ["Bash", "Read"]
 user-invocable: false
 context: fork
 argument-hint: "[url] [--headless]"
+disable-model-invocation: true
 ---
 
 # Agent Browser Skill

@@ -5,6 +5,7 @@ description-ja: "Nano Banana Proでプロジェクト紹介スライドを自動
 description-en: "Generate project intro slides with Nano Banana Pro. Use when user mentions slide, project slide, 1-page summary, or visual introduction."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "AskUserQuestion"]
 argument-hint: "[project-path|description]"
+disable-model-invocation: true
 ---
 
 # Generate Slide Skill

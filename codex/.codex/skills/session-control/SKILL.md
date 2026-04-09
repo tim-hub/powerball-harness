@@ -5,6 +5,7 @@ description-en: "Controls session resume/fork(branch) for /work based on --resum
 description-ja: "/work のセッション resume/fork(branch) を --resume/--fork フラグに基づいて制御。session.json と session.events.jsonl を更新する内部ワークフロー専用スキル。Do NOT load for: user session management, login state, app state handling."
 allowed-tools: ["Read", "Bash", "Write", "Edit"]
 user-invocable: false
+disable-model-invocation: true
 ---
 
 # Session Control Skill

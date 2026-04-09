@@ -7,6 +7,7 @@ allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[patch|minor|major|--dry-run|--announce|--complete]"
 context: fork
 effort: high
+disable-model-invocation: true
 ---
 
 # Harness Release (v3)

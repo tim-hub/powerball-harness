@@ -5,6 +5,7 @@ description-en: "Manages session state transitions per SESSION_ORCHESTRATION.md.
 description-ja: "SESSION_ORCHESTRATION.md に基づくセッション状態遷移管理。/work フェーズ境界での状態更新、エラー時の escalated 遷移、セッション再開時の initialized 復帰を制御。Internal workflow use only. Do NOT load for: user session management, login state, app state handling."
 allowed-tools: ["Read", "Bash"]
 user-invocable: false
+disable-model-invocation: true
 ---
 
 # Session State Skill

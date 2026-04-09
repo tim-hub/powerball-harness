@@ -5,6 +5,7 @@ description-en: "Generate NotebookLM YAML and slides. Document craftsman shows s
 description-ja: "NotebookLM用YAMLやスライドを生成。ドキュメント職人の腕の見せ所。Use when user mentions NotebookLM, YAML, slides, or presentations. Do NOT load for: implementation work, code fixes, reviews, or deployments."
 allowed-tools: ["Read", "Write", "Edit"]
 argument-hint: "[yaml|slides]"
+disable-model-invocation: true
 ---
 
 # NotebookLM Skill

@@ -5,6 +5,7 @@ description-en: "Provides development principles, guidelines, and VibeCoder guid
 description-ja: "開発原則、ガイドライン、VibeCoder向けガイダンスを提供。Use when user mentions principles, guidelines, safety, or diff-aware editing. Do not use for actual implementation—use the impl skill instead."
 allowed-tools: ["Read"]
 user-invocable: false
+disable-model-invocation: true
 ---
 
 # Principles Skills

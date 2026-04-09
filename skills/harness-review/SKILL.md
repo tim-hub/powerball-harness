@@ -7,6 +7,7 @@ allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[code|plan|scope] [--dual] [--security]"
 context: fork
 effort: high
+disable-model-invocation: true
 ---
 
 # Harness Review (v3)
