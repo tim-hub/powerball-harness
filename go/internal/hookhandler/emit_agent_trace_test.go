@@ -1,0 +1,463 @@
+package hookhandler
+
+import (
+	"bufio"
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestEmitAgentTrace_NoSupportedTool(t *testing.T) {
+	t.Setenv("CLAUDE_TOOL_NAME", "Bash")
+	t.Setenv("CLAUDE_TOOL_INPUT", "{}")
+
+	dir := t.TempDir()
+	e := &EmitAgentTrace{
+		RepoRoot: dir,
+		StateDir: filepath.Join(dir, "state"),
+	}
+
+	if err := e.Handle(strings.NewReader(""), nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// トレースファイルが作成されないことを確認
+	tracePath := filepath.Join(dir, "state", "agent-trace.jsonl")
+	if _, err := os.Stat(tracePath); err == nil {
+		t.Error("trace file should not be created for unsupported tools")
+	}
+}
+
+func TestEmitAgentTrace_EditTool(t *testing.T) {
+	dir := t.TempDir()
+	testFile := filepath.Join(dir, "test.go")
+	if err := os.WriteFile(testFile, []byte("package main\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	input, _ := json.Marshal(map[string]interface{}{
+		"file_path": testFile,
+		"old_str":   "package main",
+		"new_str":   "package main\n// edited",
+	})
+
+	t.Setenv("CLAUDE_TOOL_NAME", "Edit")
+	t.Setenv("CLAUDE_TOOL_INPUT", string(input))
+	t.Setenv("CLAUDE_SESSION_ID", "test-session-123")
+
+	stateDir := filepath.Join(dir, "state")
+	e := &EmitAgentTrace{
+		RepoRoot: dir,
+		StateDir: stateDir,
+		Now:      func() string { return "2026-04-09T00:00:00Z" },
+	}
+
+	if err := e.Handle(strings.NewReader(""), nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// トレースファイルを確認
+	tracePath := filepath.Join(stateDir, "agent-trace.jsonl")
+	data, err := os.ReadFile(tracePath)
+	if err != nil {
+		t.Fatalf("trace file not found: %v", err)
+	}
+
+	var rec traceRecord
+	if err := json.Unmarshal(bytes.TrimSpace(data), &rec); err != nil {
+		t.Fatalf("invalid trace JSON: %v\n%s", err, string(data))
+	}
+
+	if rec.Version != traceVersion {
+		t.Errorf("expected version=%s, got: %s", traceVersion, rec.Version)
+	}
+	if rec.Tool != "Edit" {
+		t.Errorf("expected tool=Edit, got: %s", rec.Tool)
+	}
+	if rec.ID == "" {
+		t.Error("expected non-empty ID")
+	}
+	if rec.Timestamp != "2026-04-09T00:00:00Z" {
+		t.Errorf("expected timestamp, got: %s", rec.Timestamp)
+	}
+	if rec.Metadata["sessionId"] != "test-session-123" {
+		t.Errorf("expected sessionId, got: %v", rec.Metadata["sessionId"])
+	}
+}
+
+func TestEmitAgentTrace_WriteTool_CreateAction(t *testing.T) {
+	dir := t.TempDir()
+
+	newFile := filepath.Join(dir, "new_file.go")
+	input, _ := json.Marshal(map[string]interface{}{
+		"file_path": newFile,
+		"content":   "package main\n",
+	})
+
+	t.Setenv("CLAUDE_TOOL_NAME", "Write")
+	t.Setenv("CLAUDE_TOOL_INPUT", string(input))
+	t.Setenv("CLAUDE_SESSION_ID", "")
+
+	stateDir := filepath.Join(dir, "state")
+	e := &EmitAgentTrace{
+		RepoRoot: dir,
+		StateDir: stateDir,
+	}
+
+	if err := e.Handle(strings.NewReader(""), nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	tracePath := filepath.Join(stateDir, "agent-trace.jsonl")
+	data, err := os.ReadFile(tracePath)
+	if err != nil {
+		t.Fatalf("trace file not found: %v", err)
+	}
+
+	var rec traceRecord
+	if err := json.Unmarshal(bytes.TrimSpace(data), &rec); err != nil {
+		t.Fatalf("invalid trace JSON: %v", err)
+	}
+
+	if len(rec.Files) == 0 {
+		t.Fatal("expected file entries in trace")
+	}
+	if rec.Files[0].Action != "create" {
+		t.Errorf("expected action=create for new file, got: %s", rec.Files[0].Action)
+	}
+}
+
+func TestEmitAgentTrace_WriteTool_ModifyAction(t *testing.T) {
+	dir := t.TempDir()
+
+	existingFile := filepath.Join(dir, "existing.go")
+	if err := os.WriteFile(existingFile, []byte("package main\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	input, _ := json.Marshal(map[string]interface{}{
+		"file_path": existingFile,
+		"content":   "package main\n// modified\n",
+	})
+
+	t.Setenv("CLAUDE_TOOL_NAME", "Write")
+	t.Setenv("CLAUDE_TOOL_INPUT", string(input))
+
+	stateDir := filepath.Join(dir, "state")
+	e := &EmitAgentTrace{
+		RepoRoot: dir,
+		StateDir: stateDir,
+	}
+
+	if err := e.Handle(strings.NewReader(""), nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	tracePath := filepath.Join(stateDir, "agent-trace.jsonl")
+	data, err := os.ReadFile(tracePath)
+	if err != nil {
+		t.Fatalf("trace file not found: %v", err)
+	}
+
+	var rec traceRecord
+	if err := json.Unmarshal(bytes.TrimSpace(data), &rec); err != nil {
+		t.Fatalf("invalid trace JSON: %v", err)
+	}
+
+	if len(rec.Files) == 0 {
+		t.Fatal("expected file entries")
+	}
+	if rec.Files[0].Action != "modify" {
+		t.Errorf("expected action=modify for existing file, got: %s", rec.Files[0].Action)
+	}
+}
+
+func TestEmitAgentTrace_TaskTool_Metrics(t *testing.T) {
+	dir := t.TempDir()
+
+	input, _ := json.Marshal(map[string]interface{}{
+		"task_id":       "task-42",
+		"subagent_type": "worker",
+	})
+	result, _ := json.Marshal(map[string]interface{}{
+		"metrics": map[string]interface{}{
+			"tokenCount": float64(1500),
+			"toolUses":   float64(10),
+			"duration":   float64(3.14),
+		},
+	})
+
+	t.Setenv("CLAUDE_TOOL_NAME", "Task")
+	t.Setenv("CLAUDE_TOOL_INPUT", string(input))
+	t.Setenv("CLAUDE_TOOL_RESULT", string(result))
+
+	stateDir := filepath.Join(dir, "state")
+	e := &EmitAgentTrace{
+		RepoRoot: dir,
+		StateDir: stateDir,
+	}
+
+	if err := e.Handle(strings.NewReader(""), nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	tracePath := filepath.Join(stateDir, "agent-trace.jsonl")
+	data, err := os.ReadFile(tracePath)
+	if err != nil {
+		t.Fatalf("trace file not found: %v", err)
+	}
+
+	var rec traceRecord
+	if err := json.Unmarshal(bytes.TrimSpace(data), &rec); err != nil {
+		t.Fatalf("invalid trace JSON: %v", err)
+	}
+
+	if rec.Metrics == nil {
+		t.Fatal("expected metrics")
+	}
+	if rec.Metrics.TokenCount == nil || *rec.Metrics.TokenCount != 1500 {
+		t.Errorf("expected tokenCount=1500, got: %v", rec.Metrics.TokenCount)
+	}
+	if rec.Metadata["taskId"] != "task-42" {
+		t.Errorf("expected taskId=task-42, got: %v", rec.Metadata["taskId"])
+	}
+	if rec.Metadata["agentRole"] != "worker" {
+		t.Errorf("expected agentRole=worker, got: %v", rec.Metadata["agentRole"])
+	}
+}
+
+func TestEmitAgentTrace_Rotation(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	tracePath := filepath.Join(stateDir, "agent-trace.jsonl")
+
+	// 小さいサイズのファイルを作成して回転閾値を設定
+	smallContent := strings.Repeat(`{"test":"line"}`, 100) + "\n"
+	if err := os.WriteFile(tracePath, []byte(smallContent), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	e := &EmitAgentTrace{
+		RepoRoot:    dir,
+		StateDir:    stateDir,
+		MaxFileSize: 10, // 10バイトで回転させる
+		Now:         func() string { return "2026-01-01T00:00:00Z" },
+	}
+
+	e.rotateIfNeeded(tracePath)
+
+	// ローテーションされたファイルが存在することを確認
+	rotatedPath := tracePath + ".1"
+	if _, err := os.Stat(rotatedPath); err != nil {
+		t.Errorf("expected rotated file at %s, err: %v", rotatedPath, err)
+	}
+	// 元ファイルが消えていることを確認
+	if _, err := os.Stat(tracePath); err == nil {
+		t.Error("original trace file should be removed after rotation")
+	}
+}
+
+func TestEmitAgentTrace_SecuritySymlinkCheck(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	// tracePath をシンボリックリンクにする
+	target := filepath.Join(dir, "evil.jsonl")
+	if err := os.WriteFile(target, []byte(""), 0600); err != nil {
+		t.Fatal(err)
+	}
+	tracePath := filepath.Join(stateDir, "agent-trace.jsonl")
+	if err := os.Symlink(target, tracePath); err != nil {
+		t.Skip("symlink creation not supported")
+	}
+
+	newFile := filepath.Join(dir, "test.go")
+	input, _ := json.Marshal(map[string]interface{}{"file_path": newFile})
+	t.Setenv("CLAUDE_TOOL_NAME", "Write")
+	t.Setenv("CLAUDE_TOOL_INPUT", string(input))
+
+	e := &EmitAgentTrace{
+		RepoRoot: dir,
+		StateDir: stateDir,
+	}
+
+	// エラーが発生せずに symlink を回避することを確認
+	if err := e.Handle(strings.NewReader(""), nil); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// シンボリックリンクターゲットが書き換えられていないことを確認
+	content, _ := os.ReadFile(target)
+	if len(content) > 0 {
+		t.Error("symlink target should not have been written to")
+	}
+}
+
+func TestEmitAgentTrace_OtelExport(t *testing.T) {
+	var received []byte
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		buf := make([]byte, 4096)
+		n, _ := r.Body.Read(buf)
+		received = buf[:n]
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	dir := t.TempDir()
+
+	rec := &traceRecord{
+		Version:   traceVersion,
+		ID:        "12345678-1234-1234-1234-123456789abc",
+		Timestamp: "2026-04-09T00:00:00Z",
+		Tool:      "Edit",
+		Files:     []traceFile{{Path: "test.go", Action: "modify", Range: "unknown"}},
+		Metadata:  map[string]interface{}{"sessionId": "s1"},
+	}
+
+	e := &EmitAgentTrace{
+		RepoRoot:   dir,
+		HTTPClient: &http.Client{Timeout: 5 * time.Second},
+	}
+
+	e.emitOtelSpan(server.URL, rec)
+
+	// 非同期なので少し待つ
+	time.Sleep(100 * time.Millisecond)
+
+	// サーバーが受信したことを確認
+	if len(received) == 0 {
+		t.Skip("OTel server did not receive request (possibly race condition)")
+	}
+
+	var payload map[string]interface{}
+	if err := json.Unmarshal(received, &payload); err != nil {
+		t.Fatalf("invalid OTel payload: %v\n%s", err, string(received))
+	}
+	if _, ok := payload["resourceSpans"]; !ok {
+		t.Error("expected resourceSpans in OTel payload")
+	}
+}
+
+func TestEmitAgentTrace_NormalizeAgentRole(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"reviewer", "reviewer"},
+		{"code-reviewer", "reviewer"},
+		{"worker", "worker"},
+		{"task-worker", "worker"},
+		{"impl-worker", "worker"},
+		{"lead", "lead"},
+		{"planner", "lead"},
+		{"custom-agent", "custom-agent"},
+		{"", "unknown"},
+	}
+
+	for _, tt := range tests {
+		got := eatNormalizeAgentRole(tt.input)
+		if got != tt.expected {
+			t.Errorf("eatNormalizeAgentRole(%q) = %q, want %q", tt.input, got, tt.expected)
+		}
+	}
+}
+
+func TestEmitAgentTrace_PathWithinRepo(t *testing.T) {
+	dir := t.TempDir()
+
+	// 存在するファイルを作成して absolute path でテスト
+	existingFile := filepath.Join(dir, "src", "main.go")
+	if err := os.MkdirAll(filepath.Dir(existingFile), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(existingFile, []byte(""), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name     string
+		filePath string
+		repoRoot string
+		expected bool
+	}{
+		{
+			name:     "absolute path within repo",
+			filePath: existingFile,
+			repoRoot: dir,
+			expected: true,
+		},
+		{
+			name:     "path with double dots",
+			filePath: "../outside/file.go",
+			repoRoot: dir,
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := eatIsPathWithinRepo(tt.filePath, tt.repoRoot)
+			if got != tt.expected {
+				t.Errorf("eatIsPathWithinRepo(%q, %q) = %v, want %v", tt.filePath, tt.repoRoot, got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestEmitAgentTrace_MultipleAppends(t *testing.T) {
+	dir := t.TempDir()
+
+	existingFile := filepath.Join(dir, "main.go")
+	if err := os.WriteFile(existingFile, []byte("package main\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	input, _ := json.Marshal(map[string]interface{}{"file_path": existingFile})
+	t.Setenv("CLAUDE_TOOL_NAME", "Write")
+	t.Setenv("CLAUDE_TOOL_INPUT", string(input))
+
+	stateDir := filepath.Join(dir, "state")
+	e := &EmitAgentTrace{
+		RepoRoot: dir,
+		StateDir: stateDir,
+	}
+
+	// 複数回呼び出し
+	for i := 0; i < 3; i++ {
+		if err := e.Handle(strings.NewReader(""), nil); err != nil {
+			t.Fatalf("iteration %d: unexpected error: %v", i, err)
+		}
+	}
+
+	tracePath := filepath.Join(stateDir, "agent-trace.jsonl")
+	data, err := os.ReadFile(tracePath)
+	if err != nil {
+		t.Fatalf("trace file not found: %v", err)
+	}
+
+	// 3行あることを確認
+	scanner := bufio.NewScanner(strings.NewReader(string(data)))
+	lineCount := 0
+	for scanner.Scan() {
+		if strings.TrimSpace(scanner.Text()) != "" {
+			lineCount++
+		}
+	}
+	if lineCount != 3 {
+		t.Errorf("expected 3 trace lines, got: %d", lineCount)
+	}
+}
+

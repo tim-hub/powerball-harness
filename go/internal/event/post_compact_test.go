@@ -120,6 +120,92 @@ func TestPostCompactHandler_WithPrecompactSnapshot(t *testing.T) {
 	}
 }
 
+func TestPostCompactHandler_WithHandoffArtifact(t *testing.T) {
+	dir := t.TempDir()
+
+	// handoff-artifact.json を作成（v2.0.0 フォーマット）
+	artifact := map[string]interface{}{
+		"version":      "2.0.0",
+		"artifactType": "structured-handoff",
+		"wipTasks":     []string{"37.4.6 pre-compact-save Go migration", "37.4.7 emit-agent-trace Go migration"},
+		"recentEdits":  []string{"go/internal/hookhandler/pre_compact_save.go"},
+		"previous_state": map[string]interface{}{
+			"summary": "Before compaction: 2 WIP, 1 recent edit(s)",
+			"session_state": map[string]interface{}{
+				"state":         "active",
+				"review_status": "pending",
+				"active_skill":  "harness-work",
+			},
+			"plan_counts": map[string]interface{}{
+				"total":        5,
+				"wip":          2,
+				"blocked":      0,
+				"recent_edits": 1,
+			},
+		},
+		"next_action": map[string]interface{}{
+			"summary":  "Continue 37.4.7 emit-agent-trace Go migration",
+			"taskId":   "37.4.7",
+			"task":     "emit-agent-trace Go migration",
+			"source":   "Plans.md",
+			"priority": "high",
+		},
+		"open_risks": []map[string]interface{}{
+			{
+				"severity": "medium",
+				"kind":     "continuity",
+				"summary":  "2 WIP task(s) remain in Plans.md",
+			},
+		},
+		"context_reset": map[string]interface{}{
+			"recommended": false,
+			"summary":     "Context reset not required (auto)",
+		},
+		"continuity": map[string]interface{}{
+			"effort_hint": "medium",
+			"summary":     "plugin-first workflow: enabled; resume-aware effort continuity: medium",
+		},
+	}
+
+	data, _ := json.MarshalIndent(artifact, "", "  ")
+	if err := os.WriteFile(filepath.Join(dir, "handoff-artifact.json"), data, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	h := &PostCompactHandler{StateDir: dir}
+	var buf bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"/tmp"}`), &buf); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var resp ApproveResponse
+	if err := json.Unmarshal(bytes.TrimSpace(buf.Bytes()), &resp); err != nil {
+		t.Fatalf("invalid JSON output: %v\n%s", err, buf.String())
+	}
+	if resp.Decision != "approve" {
+		t.Errorf("expected approve, got: %s", resp.Decision)
+	}
+	if resp.AdditionalContext == "" {
+		t.Fatal("expected additionalContext from handoff artifact")
+	}
+	// structured handoff のヘッダーを確認
+	if !strings.Contains(resp.AdditionalContext, "Structured Handoff") {
+		t.Errorf("expected Structured Handoff header, got: %s", resp.AdditionalContext)
+	}
+	// next action の情報を確認
+	if !strings.Contains(resp.AdditionalContext, "Next action") {
+		t.Errorf("expected Next action entry, got: %s", resp.AdditionalContext)
+	}
+	// WIP tasks を確認
+	if !strings.Contains(resp.AdditionalContext, "pre-compact-save Go migration") {
+		t.Errorf("expected WIP task in context, got: %s", resp.AdditionalContext)
+	}
+	// continuity を確認
+	if !strings.Contains(resp.AdditionalContext, "Continuity") {
+		t.Errorf("expected Continuity entry, got: %s", resp.AdditionalContext)
+	}
+}
+
 func TestPostCompactHandler_WritesCompactionLog(t *testing.T) {
 	dir := t.TempDir()
 	plansFile := filepath.Join(dir, "Plans.md")
