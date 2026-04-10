@@ -91,15 +91,19 @@ func resolveProjectRoot(args []string) (string, error) {
 // pluginJSON is the schema for .claude-plugin/plugin.json.
 // Fields that are not set in harness.toml are omitted from the output.
 type pluginJSON struct {
-	Name         string       `json:"name,omitempty"`
-	Version      string       `json:"version,omitempty"`
-	Description  string       `json:"description,omitempty"`
-	Author       interface{}  `json:"author,omitempty"`
-	Homepage     string       `json:"homepage,omitempty"`
-	Repository   string       `json:"repository,omitempty"`
-	License      string       `json:"license,omitempty"`
-	Keywords     []string     `json:"keywords,omitempty"`
-	OutputStyles string       `json:"outputStyles,omitempty"`
+	Name         string      `json:"name,omitempty"`
+	Version      string      `json:"version,omitempty"`
+	Description  string      `json:"description,omitempty"`
+	Author       interface{} `json:"author,omitempty"`
+	Homepage     string      `json:"homepage,omitempty"`
+	Repository   string      `json:"repository,omitempty"`
+	License      string      `json:"license,omitempty"`
+	Keywords     []string    `json:"keywords,omitempty"`
+	// Skills declares the skill discovery roots per CC 2.1.94+.
+	// With ["./"], CC uses each SKILL.md frontmatter `name` field as the
+	// invocation name, allowing directory name and invocation name to differ.
+	Skills       []string    `json:"skills,omitempty"`
+	OutputStyles string      `json:"outputStyles,omitempty"`
 }
 
 func generatePluginJSON(projectRoot string, cfg *config.Config) error {
@@ -124,6 +128,10 @@ func generatePluginJSON(projectRoot string, cfg *config.Config) error {
 		Repository:   cfg.Project.Repository,
 		License:      cfg.Project.License,
 		Keywords:     cfg.Project.Keywords,
+		// Always emit ["./"] so CC 2.1.94+ uses frontmatter `name` fields
+		// for skill invocation. This enables short-name aliases like
+		// HAR:plan while keeping directory names unchanged.
+		Skills:       []string{"./"},
 		OutputStyles: cfg.Project.OutputStyles,
 	}
 

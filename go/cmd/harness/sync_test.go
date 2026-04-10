@@ -117,6 +117,19 @@ func TestSync_GeneratesPluginJSON(t *testing.T) {
 	if v["homepage"] != "https://github.com/Chachamaru127/claude-code-harness" {
 		t.Errorf("plugin.json homepage = %v", v["homepage"])
 	}
+	// CC 2.1.94+: skills field must be ["./"] so frontmatter `name` drives
+	// invocation. Prevents auto-revert regression when harness sync runs.
+	skillsRaw, ok := v["skills"]
+	if !ok {
+		t.Fatalf("plugin.json missing skills field")
+	}
+	skills, ok := skillsRaw.([]interface{})
+	if !ok {
+		t.Fatalf("plugin.json skills = %v (type %T), want []interface{}", skillsRaw, skillsRaw)
+	}
+	if len(skills) != 1 || skills[0] != "./" {
+		t.Errorf("plugin.json skills = %v, want [./]", skills)
+	}
 }
 
 func TestSync_GeneratesSettingsJSON(t *testing.T) {
