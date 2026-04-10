@@ -1,8 +1,8 @@
 ---
-name: harness-plan
-description: "Harness 統合プランニングスキル。タスク計画・Plans.md管理・進捗同期を担当。以下のフレーズで起動: 計画を作る、タスクを追加、Plans.md更新、完了マーク、進捗確認、harness-plan、harness-sync。実装・レビュー・リリースには使わない。"
-description-en: "Unified planning skill for Harness. Handles task planning, Plans.md management, and progress sync. Use when user mentions: create a plan, add tasks, update Plans.md, mark complete, check progress, sync status, where am I, harness-plan, harness-sync. Do NOT load for: implementation, code review, or release tasks."
-description-ja: "Harness 統合プランニングスキル。タスク計画・Plans.md管理・進捗同期を担当。以下のフレーズで起動: 計画を作る、タスクを追加、Plans.md更新、完了マーク、進捗確認、harness-plan、harness-sync。実装・レビュー・リリースには使わない。"
+name: HAR:plan
+description: "HAR:タスク計画・Plans.md管理・進捗同期を担当。計画を作る、タスクを追加、Plans.md更新、完了マーク、進捗確認で起動。実装・レビュー・リリースには使わない。"
+description-en: "HAR: Task planning, Plans.md management, progress sync. Trigger: create a plan, add tasks, update Plans.md, mark complete, check progress. Do NOT load for: implementation, review, release."
+description-ja: "HAR:タスク計画・Plans.md管理・進捗同期を担当。計画を作る、タスクを追加、Plans.md更新、完了マーク、進捗確認で起動。実装・レビュー・リリースには使わない。"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "Task"]
 argument-hint: "[create|add|update|sync|sync --no-retro|--ci]"
 effort: medium
