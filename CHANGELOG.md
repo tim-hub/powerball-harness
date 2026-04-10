@@ -100,6 +100,80 @@ CC 2.1.98 で本体が塞いだ 2 つの Bash permission bypass 脆弱性を Har
 
 ---
 
+### テーマ: Phase 39 — レビュー体験改善 + インフラ根本修正
+
+**Phase 38 完了後の独立レビューで発見した改善機会を全て解消。`/harness-review` の出力を非専門家にも読めるよう再設計、`harness sync` の plugin.json auto-revert を根本修正、v3 時代のテスト参照を v4 Go 実装に同期、v3 cleanup 残骸を除去。12 件の改善が事後的に追加され、v4.0.1 リリース前の品質ゲートを完遂。**
+
+---
+
+#### 8. `/harness-review` を非専門家にも読めるレビュー体験に再設計
+
+**今まで**: `/harness-review` の出力は英語混じりの JSON 中心で、結論や主要指摘が JSON の奥深くに埋もれていました。非専門家が読むと「APPROVE って何?」「結局どうすればいいの?」で止まってしまい、技術者向けのツールという印象でした。引数なしの `/harness-review` bare 呼び出しも「タスクが不明です、指示を待ちます」で止まっていました。
+
+**今後**: レビュー出力を **情報粒度 MID / 認知負荷 MIN** を軸に全面再設計しました。
+
+- **判定を冒頭に 1 行で**: `✅ 合格 (APPROVE) — 10 commits 全てがテストを通過し、リリース可能な品質です` のように、判定+理由を最上段に配置
+- **「✨ 良かったところ」セクション必須化**: 2-3 件の具体的な評価点を平易な日本語で。非専門家への安心材料として機能(技術者レビューにはない観点)
+- **「⚠️ 気になったところ」は 4 段構造**: 日本語タイトル → 問題(平易な説明) → 対応(具体的なアクション) → 重要度(🔴 致命的 / 🟠 重要 / 🟡 軽微 / 🟢 推奨、日本語+絵文字) → 技術的位置(開発者向け、隔離)
+- **JSON は「📦 詳細データ」セクションに降格**: 「非専門家は読み飛ばし可」と明記
+- **bare 呼び出し対応**: 引数なし `/harness-review` で自動的に Code Review が開始する Step 0 を追加。`git describe --tags` → `main` → `HEAD~10` の fallback chain で BASE_REF を自動決定
+- **スコープ上限フォールバック**: 最後のタグから 10 commits 超えている場合、自動で HEAD~10 に絞り込み(bare レビューが暴走しない)
+- **日本語出力必須化**: `context: fork` サブエージェントは親セッションの言語文脈を継承しないため、SKILL.md で明示的に CLAUDE.md ルールを引用して徹底
+
+```
+レビュー実行例:
+/harness-review    ← 引数なしで OK
+  ↓
+結果: ✅ 合格 (APPROVE) — ...
+  ↓
+✨ 良かったところ:
+  - プラグイン設定の auto-revert バグが根本解決した
+  - ...
+⚠️ 気になったところ (1 件):
+  1. 変更履歴が未記載
+    → 対応: CHANGELOG を更新する
+    → 重要度: 🟡 軽微
+  ...
+```
+
+#### 9. `harness sync` の plugin.json 自動上書きバグを根本修正
+
+**今まで**: `.claude-plugin/plugin.json` に手動で `"skills": ["./"]` を追加しても、次に `harness sync` が実行されるたびに消える謎の現象がありました。現象を追跡すると、`harness sync` コマンド (Go 実装) が plugin.json を harness.toml から再生成する際に、`pluginJSON` 構造体に `Skills` フィールド自体が存在せず、skills field が毎回 silently drop されていたのが原因でした。Phase 38.2.1 で手動追加した設定が、その後のセッションで `harness sync` が呼ばれた瞬間に消えるので、設定が揮発する状態が続いていました。
+
+**今後**: `go/cmd/harness/sync.go` の `pluginJSON` 構造体に `Skills []string` フィールドを追加し、`generatePluginJSON()` で常に `[]string{"./"}` を出力するようハードコード。これにより `harness sync` が何度実行されても skills 設定が保持されます。`TestSync_GeneratesPluginJSON` に `skills == ["./"]` のアサーションを追加して、将来の regression を防ぎます。CC 2.1.94+ の「frontmatter name 駆動」機能が安定動作するインフラ基盤が整いました。
+
+#### 10. テスト assertion の厳密化 — 偽陽性 pass を防ぐ pipe-token 正規表現
+
+**今まで**: `tests/test-memory-hook-wiring.sh` の SessionStart matcher チェックが `contains("startup")` という **ゆるい substring 判定**に緩和されていました。現在の hooks.json (`matcher: "startup|resume"`) ではたまたま機能していましたが、将来誰かが `matcher: "startup-only"` のようなタイポを書いても「startup が含まれている」として silently pass してしまう偽陽性リスクを抱えていました。
+
+**今後**: jq クエリを pipe-token 正規表現 `test("(^|\\|)startup($|\\|)")` に厳格化。「パイプ区切りで独立したトークンとして startup が存在する」ことを要求します。6 エッジケースで検証済み:
+- `startup`, `startup|resume`, `resume|startup` → マッチ ✅
+- `startup-only`, `startup_special`, `resume|startup-only` → reject ✗
+
+これで将来のタイポが即座に test 失敗として浮上します。
+
+#### 11. 名前整合性の回復 — `HAR:*` → `harness-*` revert
+
+**今まで**: 一度 frontmatter `name` を `HAR:plan`, `HAR:review` 等の短い形式に変更しましたが、directory 名(`harness-plan/`, `harness-review/`)との不一致が原因で、レビュー出力の内部テキストが "harness-review" のまま残ったり、`skill-editing.md` の SSOT ルール (「name はディレクトリ名と一致させる」) 違反が発生する 3-way split 状態になっていました。
+
+**今後**: 18 ファイル (6 skills × 3 mirror locations) の frontmatter `name:` を `harness-*` に revert し、directory 名と一致させました。description 先頭の `HAR:` ブランド表記は維持(54 箇所、3 description fields × 18 files)しているので、スラッシュパレットで視覚的な識別性は失われません。呼び出し名・内部テキスト・ファイルパス・palette 表示が全て `harness-review` のように統一された状態に戻りました。
+
+#### 12. v3 cleanup 残骸の最終除去 + テストスクリプトの v4 migration
+
+**今まで**: v4.0.0 リリース時に削除された `core/src/guardrails/rules.ts` や README の "TypeScript guardrail engine" 記述への参照が、複数のテストスクリプトや検証ツールに残ったままでした。`validate-plugin.sh` は deleted 対象を grep してエラー、`check-consistency.sh` は README の旧文字列を期待して失敗、テストスクリプトは v3 時代の shell 呼び出しパターン (`hook-handlers/memory-bridge`) を厳密一致で検証していて v4 の Go バイナリ呼び出し (`bin/harness hook memory-bridge`) を認識できず、合計 **8 件の false negative 失敗**を抱えていました。またルート直下に Agent tool の isolation エラーの副産物である 2 つの JSON 名 ghost directory、`core/` の掃除残り (node_modules + package-lock.json)、`infographic-check.png` (debug screenshot)、`.orphaned_at` (旧 session marker) が残存していました。
+
+**今後**: 以下を一括で対応:
+
+- `validate-plugin.sh`: RULES_FILE パスを `core/src/guardrails/rules.ts` から `go/internal/guardrail/rules.go` に変更、R12 expected pattern を `warn-direct-push-protected-branch` から `deny-direct-push-protected-branch` に同期 (c101efc8 で R12 が deny に格上げされた際の取り込み漏れを解消)
+- `check-consistency.sh`: README 期待文字列を `"TypeScript guardrail engine"` → `"Go-native guardrail engine"` に同期 (README 本文は v4 で既に更新済みだが、checker が古いまま)
+- `test-memory-hook-wiring.sh`: jq クエリを v3 shell パス厳密一致から v4 Go binary 形式の contains match に migrate、agent-type hook の null `.command` 対応も追加
+- `test-claude-upstream-integration.sh`: PermissionDenied wiring check を `permission-denied-handler` から `permission-denied` に同期 (v4 Go binary は `bin/harness hook permission-denied` 形式)
+- ルート直下から 5 件の ghost file / directory を削除
+
+結果: `validate-plugin.sh` は **36 合格 / 6 失敗 → 42 合格 / 0 失敗** に改善、`check-consistency.sh` は **2 問題 → 0 問題** に改善、ルート直下がクリーンな状態に整理されました。
+
+---
+
 ## [4.0.0] - 2026-04-09
 
 ### テーマ: "Hokage" — Go ネイティブフックエンジンへの全面移行
