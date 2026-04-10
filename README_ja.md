@@ -12,12 +12,32 @@
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
   <img src="https://img.shields.io/badge/Skills-5_Verbs-orange.svg" alt="Skills">
-  <img src="https://img.shields.io/badge/Core-TypeScript-blue.svg" alt="TypeScript Core">
+  <img src="https://img.shields.io/badge/Core-Go_Native-00ADD8.svg" alt="Go Core">
+  <img src="https://img.shields.io/badge/v4.0-Hokage-FF4500.svg" alt="Hokage">
 </p>
 
 <p align="center">
   <a href="README.md">English</a> | 日本語
 </p>
+
+---
+
+## v4.0 "Hokage" — 何が変わったか
+
+> **Go ネイティブエンジン。25倍高速なフック。Node.js 依存ゼロ。**
+
+| | v3（移行前） | v4 "Hokage"（移行後） |
+|---|---|---|
+| **PreToolUse** | 40-60ms | **10ms** |
+| **SessionStart** | 500-800ms | **10-30ms** |
+| **PostToolUse** | 20-30ms | **10ms** |
+| **アーキテクチャ** | bash → Node.js → TypeScript | Go バイナリ（直接実行） |
+| **Node.js** | 必要 (18+) | **不要** |
+
+プラグインを更新するだけで、今日から最大 50 倍速くなります:
+```
+/plugin update claude-code-harness
+```
 
 ---
 
@@ -29,7 +49,7 @@ Claude Code は強力です。Harness はその力を、信頼しやすく、途
   <img src="assets/readme-visuals-ja/generated/why-harness-pillars.svg" alt="Harness を入れると変わること: 計画の定着、実行時ガード、やり直せる検証" width="860">
 </p>
 
-5動詞スキルで流れを揃え、TypeScript ガードレールエンジンで実行を守り、検証は必要なときに同じ手順でやり直せます。
+5動詞スキルで流れを揃え、Go ネイティブガードレールエンジンで実行を守り、検証は必要なときに同じ手順でやり直せます。
 
 ## 人気の Claude Code ハーネスと比べると
 
@@ -163,7 +183,7 @@ Harness が明確な受入条件付きの `Plans.md` を作成。
   <img src="assets/readme-visuals-ja/generated/safety-guardrails.svg" alt="安全保護システム" width="640">
 </p>
 
-Harness v3 は **TypeScript ガードレールエンジン**（`core/`）でコードベースを保護 — 9つの宣言的ルール（R01–R09）、コンパイル済み＆型チェック済み:
+Harness v3 は **Go ネイティブガードレールエンジン**（`core/`）でコードベースを保護 — 9つの宣言的ルール（R01–R09）、コンパイル済み＆型チェック済み:
 
 | ルール | 保護対象 | アクション |
 |--------|----------|------------|
@@ -229,7 +249,7 @@ v3 で42スキルを **5つの動詞スキル**に統合。まずは動詞から
 
 ```
 claude-code-harness/
-├── core/           # TypeScript ガードレールエンジン（strict ESM, NodeNext）
+├── go/             # Go ネイティブガードレールエンジン + hookhandler
 │   └── src/        #   guardrails/ state/ engine/
 ├── skills/         # 5動詞スキル（plan/execute/review/release/setup）
 ├── agents/      # 3エージェント（worker/reviewer/scaffolder）

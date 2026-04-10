@@ -12,12 +12,32 @@
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
   <img src="https://img.shields.io/badge/Skills-5_Verbs-orange.svg" alt="Skills">
-  <img src="https://img.shields.io/badge/Core-TypeScript-blue.svg" alt="TypeScript Core">
+  <img src="https://img.shields.io/badge/Core-Go_Native-00ADD8.svg" alt="Go Core">
+  <img src="https://img.shields.io/badge/v4.0-Hokage-FF4500.svg" alt="Hokage">
 </p>
 
 <p align="center">
   English | <a href="README_ja.md">日本語</a>
 </p>
+
+---
+
+## v4.0 "Hokage" — What's New
+
+> **Go-native engine. 25x faster hooks. Zero Node.js dependency.**
+
+| | v3 (bash + Node.js) | v4 "Hokage" (Go) |
+|---|---|---|
+| **PreToolUse** | 40-60ms | **10ms** |
+| **SessionStart** | 500-800ms | **10-30ms** |
+| **PostToolUse** | 20-30ms | **10ms** |
+| **Architecture** | bash → Node.js → TypeScript | Go binary (direct) |
+| **Node.js** | Required (18+) | **Not needed** |
+
+Just update the plugin — no configuration changes needed:
+```
+/plugin update claude-code-harness
+```
 
 ---
 
@@ -29,7 +49,7 @@ Claude Code is powerful. Harness turns that raw capability into a delivery loop 
   <img src="assets/readme-visuals-en/generated/why-harness-pillars.svg" alt="What changes with Claude Harness: shared plan, runtime guardrails, and rerunnable validation" width="860">
 </p>
 
-The 5 verb skills keep setup, plan, work, review, and release on one path. The TypeScript guardrail engine protects execution, and validation can be rerun when you need proof.
+The 5 verb skills keep setup, plan, work, review, and release on one path. The Go-native guardrail engine protects execution with sub-10ms response, and validation can be rerun when you need proof.
 
 ## Compared With Popular Claude Code Harnesses
 
