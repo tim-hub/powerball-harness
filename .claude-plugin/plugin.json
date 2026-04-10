@@ -16,5 +16,6 @@
     "workflow",
     "plan-work-review"
   ],
+  "skills": ["./"],
   "outputStyles": "./output-styles/"
 }
