@@ -1323,7 +1323,7 @@ Purpose: Phase 38 と Phase 39 の全改善を CHANGELOG.md の [Unreleased] セ
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 39.4.1 | `CHANGELOG.md` の `[Unreleased]` セクションに Phase 39 の全改善を追記。既存の Phase 38 エントリ (CC 2.1.89-2.1.100 追従) はそのまま維持し、その下に「#### 8. レビュー体験の改善 (Phase 39)」等の新セクションを追加。各変更は日本語 Before/After で記述 (`.claude/rules/github-release.md` 準拠)。対象は: (a) /HAR:review bare 呼び出し + 非専門家テンプレート、(b) sync.go Skills field 根本修正、(c) SessionStart matcher 厳密化、(d) bare review scope cap、(e) name revert、(f) v3 cleanup 残骸除去、(g) test scripts v4 migration | CHANGELOG.md Unreleased に Phase 39 の 7 サブエントリが追加されている (grep で確認)。VERSION / plugin.json version / harness.toml version は変更しない (リリース作業ではないため)。`./scripts/ci/check-consistency.sh` PASS | 39.0.1-39.3.5 | cc:TODO |
+| 39.4.1 | `CHANGELOG.md` の `[Unreleased]` セクションに Phase 39 の全改善を追記。既存の Phase 38 エントリ (CC 2.1.89-2.1.100 追従) はそのまま維持し、その下に「#### 8. レビュー体験の改善 (Phase 39)」等の新セクションを追加。各変更は日本語 Before/After で記述 (`.claude/rules/github-release.md` 準拠)。対象は: (a) /HAR:review bare 呼び出し + 非専門家テンプレート、(b) sync.go Skills field 根本修正、(c) SessionStart matcher 厳密化、(d) bare review scope cap、(e) name revert、(f) v3 cleanup 残骸除去、(g) test scripts v4 migration | CHANGELOG.md Unreleased に Phase 39 の 5 サブエントリ (項目 8-12) が追加されている。VERSION / plugin.json version / harness.toml version は変更しない (リリース作業ではないため)。`./scripts/ci/check-consistency.sh` PASS、`./tests/validate-plugin.sh` 42 合格 / 0 失敗 | 39.0.1-39.3.5 | cc:完了 [c96ca7d1] |
 
 ---
 
