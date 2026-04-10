@@ -409,23 +409,26 @@ func TestR11_ResetSoftMain(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// R12: direct push to protected branch warning
+// R12: deny direct push to protected branch (upgraded from warn in c101efc8)
 // ---------------------------------------------------------------------------
 
 func TestR12_PushToMain(t *testing.T) {
 	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin main"})
 	result := EvaluateRules(ctx)
-	if result.Decision != hookproto.DecisionApprove {
-		t.Errorf("expected approve (warning only), got %s", result.Decision)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny, got %s", result.Decision)
 	}
-	if result.SystemMessage == "" {
-		t.Error("expected warning systemMessage for push to main")
+	if result.Reason == "" {
+		t.Error("expected deny reason for push to main")
 	}
 }
 
 func TestR12_PushToFeature(t *testing.T) {
 	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin feature-branch"})
 	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for feature branch push, got %s", result.Decision)
+	}
 	if result.SystemMessage != "" {
 		t.Errorf("expected no warning for feature branch push, got: %s", result.SystemMessage)
 	}
@@ -434,8 +437,11 @@ func TestR12_PushToFeature(t *testing.T) {
 func TestR12_PushRefspecToMain(t *testing.T) {
 	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin HEAD:main"})
 	result := EvaluateRules(ctx)
-	if result.SystemMessage == "" {
-		t.Error("expected warning for refspec push to main")
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny, got %s", result.Decision)
+	}
+	if result.Reason == "" {
+		t.Error("expected deny reason for refspec push to main")
 	}
 }
 
