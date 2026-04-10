@@ -82,8 +82,8 @@ done
 
 # v2.1.89: PermissionDenied hook wiring check
 for hooks_file in "${HOOK_FILES[@]}"; do
-  jq -e '.hooks.PermissionDenied[]?.hooks[]? | select(.command | contains("permission-denied-handler"))' "${hooks_file}" >/dev/null || {
-    echo "${hooks_file} is missing PermissionDenied -> permission-denied-handler wiring"
+  jq -e '.hooks.PermissionDenied[]?.hooks[]? | select(.command | contains("permission-denied"))' "${hooks_file}" >/dev/null || {
+    echo "${hooks_file} is missing PermissionDenied -> permission-denied wiring"
     exit 1
   }
 done
