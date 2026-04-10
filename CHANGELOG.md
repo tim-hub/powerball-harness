@@ -6,6 +6,100 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### テーマ: CC 2.1.89-2.1.100 追従 — Go v4 セキュリティハードニング
+
+**CC 2.1.98 で本体が塞いだ 2 つの Bash permission bypass 脆弱性 (backslash-escape, env-var prefix) を Harness 二層目ガードレール (`go/internal/guardrail/`) にも反映。加えて CC 2.1.89 DecisionDefer ワイヤリング、CC 2.1.89 symlink 解決、CC 2.1.90 .husky 保護、CC 2.1.98 wildcard whitespace 正規化、CC 2.1.94 plugin skills field 明示化、CC 2.1.98 Monitor ツール取込を統合。24 本のセキュリティテスト追加、Go v4.0.0 リリース前の品質ゲート完了。**
+
+---
+
+#### 1. Claude Code 2.1.98 統合 — セキュリティ脆弱性追従 (permission.go)
+
+CC 2.1.98 で本体が塞いだ 2 つの Bash permission bypass 脆弱性を Harness 二層目ガードレールにも反映。Harness は CC 本体のチェックをすり抜けた場合のセーフティネットとして動作するため、上流が塞いだ穴を Harness でも塞ぐことで defense-in-depth を保つ。
+
+##### 1-1. Backslash-escaped フラグ bypass の緩和
+
+**CC のアプデ**: `git\ push\ --force` のようにバックスラッシュでスペースやフラグをエスケープされたコマンドが、auto-allow 経路で read-only コマンドと誤認されて任意コード実行につながる bypass を CC 2.1.98 が修正。
+
+**Harness での活用**: `permission.go` に `hasBackslashEscape()` 関数を追加し、正規表現 `\\[\-\s]` でエスケープパターンを検出。`isSafeCommand()` の先頭で呼び出し、検出時は即 reject。`git\ status`, `git\ push\ --force`, `rm\ -rf\ /` の 3 攻撃ベクタをテストで捕捉。
+
+##### 1-2. 環境変数 prefix の allowlist
+
+**CC のアプデ**: `EVIL=x git status` のように未知の環境変数を前置して read-only コマンドを auto-allow させる bypass を CC 2.1.98 が修正。`LANG`, `TZ`, `NO_COLOR` 等のみ許可。
+
+**Harness での活用**: `permission.go` に `knownSafeEnvVars` map (LANG, LANGUAGE, TZ, NO_COLOR, FORCE_COLOR) と `stripSafeEnvPrefix()` 関数を追加。`LC_*` prefix は locale 系変数として許可。未知の変数を 1 つでも含むコマンドは safe 判定から除外。`LANG=C git status` は通し、`EVIL=x git status` や `LANG=C EVIL=x git status` は reject。
+
+---
+
+#### 2. Claude Code 2.1.89 統合 — hook 機能とパス解決
+
+##### 2-1. DecisionDefer の正しいワイヤリング
+
+**CC のアプデ**: CC 2.1.89 で PreToolUse hook に `"defer"` permission decision が追加。ヘッドレスセッションで判断困難な操作に遭遇した時、セッションを保留して `-p --resume` で再評価する escape hatch。
+
+**Harness での活用**: `go/pkg/hookproto/types.go` には `DecisionDefer` 定数が定義されていたが、`go/internal/guardrail/pre_tool.go` の `PreToolToOutput()` switch case で拾われておらず、返しても CC に伝わらない既知ギャップがあった。`case hookproto.DecisionDefer:` を追加し、`PermissionDecision: "defer"` と `Reason` を出力するよう修正。Breezing ヘッドレスモードでの安全性が向上。
+
+##### 2-2. Symlink target の解決
+
+**CC のアプデ**: CC 2.1.89 で許可ルールが symlink の target を解決してチェックするよう修正。`.env` を指す symlink 経由でのアクセス bypass を塞ぐ。
+
+**Harness での活用**: `helpers.go` の `isProtectedPath()` 内部で `filepath.EvalSymlinks()` を呼び、解決後の実パスに対しても protected patterns をチェック。symlink loop や broken link で `EvalSymlinks` がエラーを返した場合は fail-safe として deny、ただし `os.IsNotExist` での「存在しないパス」は例外扱いで approve (新規ファイル作成を妨げないため)。`link-env → .env`、`link1 → link2 → .env` の 2 段 chain、symlink loop の 3 パターンをテスト。
+
+---
+
+#### 3. Claude Code 2.1.90 統合 — .husky 保護
+
+##### 3-1. .husky/ protected path 追加
+
+**CC のアプデ**: CC 2.1.90 で `.husky/` ディレクトリが acceptEdits モードの protected directories に追加。git hooks の書き換えを防ぐ。
+
+**Harness での活用**: `helpers.go` の `protectedPathPatterns` に `(?:^|/)\.husky(?:/|$)` パターンを追加。Worker が bypassPermissions で動く場合も Harness 二層目で `.husky/pre-commit` 等の書き換えをブロック。
+
+---
+
+#### 4. Claude Code 2.1.98 統合 — wildcard whitespace 正規化
+
+##### 4-1. 連続 whitespace の単一スペース化 (defense-in-depth)
+
+**CC のアプデ**: CC 2.1.98 で `Bash(git push -f:*)` のような wildcard 許可ルールが、実行コマンドに複数スペースやタブが含まれる場合にマッチしない問題を修正。
+
+**Harness での活用**: `helpers.go` に `normalizeCommand()` 関数を追加し、`\s+` を単一スペースに正規化 + TrimSpace。`hasForcePush`, `hasDangerousRmRf`, `hasSudo`, `hasDangerousGitBypassFlag`, `hasProtectedBranchResetHard`, `hasDirectPushToProtectedBranch` の 6 ルールヘルパー全てで呼び出し、仕様より厚い defense-in-depth を実現。`git  push  --force` (複数スペース) と `git\tpush\t-f` (タブ) も確実にブロック。
+
+---
+
+#### 5. Claude Code 2.1.94 統合 — plugin skills field 明示化
+
+##### 5-1. plugin.json の skills field 宣言
+
+**CC のアプデ**: CC 2.1.94 で plugin skill の invocation name が frontmatter `name` 基準になる仕様変更。`"skills": ["./"]` で宣言することで、インストール方法を跨いで安定した名前を持つ。
+
+**Harness での活用**: `.claude-plugin/plugin.json` に `"skills": ["./"]` フィールドを追加。CC は以前から skills ディレクトリを auto-discover していたが、この明示宣言により CC 2.1.94 以降の spec に完全準拠。既存 32 スキル全ての invocation 名は変わらず後方互換。
+
+---
+
+#### 6. Claude Code 2.1.98 統合 — Monitor ツール取込
+
+##### 6-1. 長時間プロセスの stdout ストリーミング監視
+
+**CC のアプデ**: CC 2.1.98 で Monitor ツールが追加。バックグラウンド実行中のシェルプロセスの stdout 各行を逐次通知として Claude に届ける仕組み。ポーリング型より低レイテンシ・低トークン消費。
+
+**Harness での活用**: `breezing`, `harness-work`, `ci`, `deploy`, `harness-review` の 5 スキルの `allowed-tools` に `Monitor` を追加。`breezing` SKILL.md に「Monitor ツール活用ガイド」節を新設し、Worker 監視 (Agent 層が完了通知するため不要) vs シェルプロセス監視 (Monitor 推奨) の使い分けを明記。具体例として `gh run watch`, `go test ./... -v`, `codex-companion.sh watch <job-id>` を列挙。`docs/CLAUDE-feature-table.md` に Monitor 行を追加し付加価値列に "A: 実装あり" と記載 (`.claude/rules/cc-update-policy.md` の「書いただけ検出」対象外)。mirror スキル (codex/.codex/skills/, opencode/skills/) も同期。
+
+---
+
+#### 7. セキュリティテスト強化 + R12 test assertion 同期
+
+**今まで**: ガードレールテストは R01-R13 の基本ケース中心で、backslash escape や env-var prefix のような attack vector を具体的に表現するテストは無かった。また `c101efc8` で R12 を warn → deny にアップグレードした際、Go 側のテスト assertion が warn を期待したまま残存しており、Phase 38 開始時点でベースラインが既に 2 件 failing。
+
+**今後**: Phase 38 で以下の 24 本のテストを追加し、R12 test assertion も同期:
+- `permission_test.go`: 8 本 (backslash escape 3 + env-var allowlist 5)
+- `pre_tool_test.go`: 8 本 (DecisionDefer 出力検証、新規ファイル)
+- `helpers_test.go`: 13 本 (.husky + symlink 解決 + loop fail-safe、新規ファイル)
+- `rules_test.go`: 3 本 (whitespace 変種での force-push) + R12 assertion 3 件更新
+
+攻撃者視点のテスト (実際に試されうる入力) を表現することで、将来的なリファクタリングで退行を即座に検知可能に。`go test ./...` 全 12 パッケージ PASS。
+
+---
+
 ## [4.0.0] - 2026-04-09
 
 ### テーマ: "Hokage" — Go ネイティブフックエンジンへの全面移行
