@@ -349,11 +349,11 @@ else
     fail_test "README.md に hardening parity 文書へのリンクがありません"
 fi
 
-RULES_FILE="$PLUGIN_ROOT/core/src/guardrails/rules.ts"
+RULES_FILE="$PLUGIN_ROOT/go/internal/guardrail/rules.go"
 RULE_IDS=(
     "R10:no-git-bypass-flags"
     "R11:no-reset-hard-protected-branch"
-    "R12:warn-direct-push-protected-branch"
+    "R12:deny-direct-push-protected-branch"
     "R13:warn-protected-review-paths"
 )
 for rule_id in "${RULE_IDS[@]}"; do

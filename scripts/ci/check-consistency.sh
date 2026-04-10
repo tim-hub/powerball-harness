@@ -567,7 +567,7 @@ check_fixed_string "$README_EN" "docs/CURSOR_INTEGRATION.md" "README.md cursor d
 check_fixed_string "$README_EN" "docs/evidence/work-all.md" "README.md work-all evidence link"
 check_fixed_string "$README_EN" "docs/distribution-scope.md" "README.md distribution scope link"
 check_fixed_string "$README_EN" "5 verb skills" "README.md 5 verb skills message"
-check_fixed_string "$README_EN" "TypeScript guardrail engine" "README.md TypeScript guardrail engine message"
+check_fixed_string "$README_EN" "Go-native guardrail engine" "README.md Go-native guardrail engine message"
 check_absent_string "$README_EN" "Production-ready code." "README.md stale production-ready wording"
 
 check_fixed_string "$README_JA" "docs/CLAUDE_CODE_COMPATIBILITY.md" "README_ja.md compatibility doc link"
@@ -575,7 +575,7 @@ check_fixed_string "$README_JA" "docs/CURSOR_INTEGRATION.md" "README_ja.md curso
 check_fixed_string "$README_JA" "docs/evidence/work-all.md" "README_ja.md work-all evidence link"
 check_fixed_string "$README_JA" "docs/distribution-scope.md" "README_ja.md distribution scope link"
 check_fixed_string "$README_JA" "5動詞スキル" "README_ja.md 5動詞スキル message"
-check_fixed_string "$README_JA" "TypeScript ガードレールエンジン" "README_ja.md TypeScript ガードレールエンジン message"
+check_fixed_string "$README_JA" "Go ネイティブガードレールエンジン" "README_ja.md Go ネイティブガードレールエンジン message"
 check_absent_string "$README_JA" "本番品質のコード。" "README_ja.md stale production-ready wording"
 
 check_fixed_string "$SCOPE_DOC" '| `commands/` | Compatibility-retained |' "distribution-scope commands classification"
