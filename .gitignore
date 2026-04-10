@@ -164,6 +164,15 @@ docs/presentation/11.png
 # Playwright MCP (ローカルテスト用)
 .playwright-mcp/
 
+# Firecrawl 一時データ（ローカルのみ）
+/.firecrawl/
+
+# Harness-mem 一時データ（ローカルのみ）
+/.harness-mem/
+
+# 診断出力（一時ファイル）
+/output/
+
 # 調査・研究用ドキュメント（非公開）
 docs/research/
 
@@ -193,10 +202,8 @@ out/
 *.webm
 *.gif
 
-# Core engine (v3)
-/core/node_modules/
-# /core/dist/ is tracked for plugin distribution (Issue #64)
-# Build with: cd core && npm install && npm run build
+# Core engine (v3) — TypeScript エンジンは Go に移植済み。ディレクトリごと除外
+/core/
 
 # Skills - node_modules and generated files
 **/skills/**/node_modules/
@@ -258,8 +265,9 @@ out/
 *.code-workspace
 
 # Dev-only documentation (not for distribution)
-/DEVELOPMENT_FLOW_GUIDE.md
-/IMPLEMENTATION_GUIDE.md
+/docs/development-flow-guide.md
+/docs/implementation-guide.md
+/docs/agents-override.md
 /TEST_CURSOR_INTEGRATION.md
 
 # Lock files in subdirectories (not for distribution)
