@@ -26,12 +26,19 @@ for wrapper_file in "${required_wrapper_files[@]}"; do
 done
 
 for hooks_file in "${ROOT_DIR}/hooks/hooks.json" "${ROOT_DIR}/.claude-plugin/hooks.json"; do
-  jq -e '.hooks.SessionStart[] | select(.matcher | contains("startup")) | .hooks[] | select(.command | contains("memory-bridge"))' "${hooks_file}" >/dev/null || {
+  # Matcher checks use strict pipe-token regex to avoid false positives on
+  # typos like "startup-only" or "startup_special". The pattern matches
+  # "startup" as a standalone token in pipe-separated matchers:
+  #   - "startup"              → matches (whole string)
+  #   - "startup|resume"       → matches (pipe-delimited token)
+  #   - "resume|startup"       → matches (pipe-delimited token, end)
+  #   - "startup-only"         → NO match (hyphen breaks boundary)
+  jq -e '.hooks.SessionStart[] | select(.matcher | test("(^|\\|)startup($|\\|)")) | .hooks[] | select(.command | contains("memory-bridge"))' "${hooks_file}" >/dev/null || {
     echo "SessionStart startup is missing memory-bridge session-start in ${hooks_file}"
     exit 1
   }
 
-  jq -e '.hooks.SessionStart[] | select(.matcher | contains("resume")) | .hooks[] | select(.command | contains("memory-bridge"))' "${hooks_file}" >/dev/null || {
+  jq -e '.hooks.SessionStart[] | select(.matcher | test("(^|\\|)resume($|\\|)")) | .hooks[] | select(.command | contains("memory-bridge"))' "${hooks_file}" >/dev/null || {
     echo "SessionStart resume is missing memory-bridge session-start in ${hooks_file}"
     exit 1
   }
