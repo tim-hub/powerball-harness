@@ -1,6 +1,6 @@
-# Team Composition (v3)
+# Team Composition
 
-Harness v3 の3エージェント構成。
+Harness の3エージェント構成。
 11エージェント → 3エージェントに統合。
 
 ## Team 構成図
@@ -20,9 +20,9 @@ Lead (Execute スキルの --breezing モード) ─ 指揮のみ
         REQUEST_CHANGES → Lead が修正タスクを作成
 ```
 
-## 旧エージェント → v3 マッピング
+## 旧エージェント → 現行エージェント マッピング
 
-| 旧エージェント | v3 エージェント |
+| 旧エージェント | 現行エージェント |
 |--------------|--------------|
 | task-worker | worker |
 | codex-implementer | worker（--codex 内包） |
@@ -93,7 +93,7 @@ few-shot bank を再生成する。
 | **ツール** | Read, Write, Edit, Bash, Grep, Glob |
 | **責務** | プロジェクト分析・足場構築・状態更新 |
 
-## 実行フロー（v3.12+ レビューループ統合）
+## 実行フロー（レビューループ統合）
 
 ```
 Phase A: Lead がタスクを分解・依存グラフ解析・effort スコアリング・sprint-contract 生成

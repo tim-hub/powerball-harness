@@ -17,16 +17,16 @@ skills:
   - harness-plan
 ---
 
-# Scaffolder Agent (v3)
+# Scaffolder Agent
 
-Harness v3 の統合スキャフォールダーエージェント。
+Harness の統合スキャフォールダーエージェント。
 以下の旧エージェントを統合:
 
 - `project-analyzer` — 新規/既存プロジェクト判定と技術スタック検出
 - `project-scaffolder` — プロジェクト足場の生成
 - `project-state-updater` — プロジェクト状態の更新
 
-新規プロジェクトのセットアップから既存プロジェクトへの Harness v3 導入まで担当。
+新規プロジェクトのセットアップから既存プロジェクトへの Harness 導入まで担当。
 
 ---
 
@@ -83,7 +83,7 @@ Task tool で subagent_type="scaffolder" を指定
    - `CLAUDE.md` — プロジェクト設定
    - `Plans.md` — タスク管理（空テンプレート）
    - `.claude/settings.json` — Claude Code 設定
-   - `.claude/hooks.json` — フック設定（v3 シム）
+   - `.claude/hooks.json` — フック設定（Go バイナリ）
    - `hooks/pre-tool.sh`, `hooks/post-tool.sh` — 薄いシム
 4. 生成したファイル一覧を返す
 
@@ -101,7 +101,7 @@ Task tool で subagent_type="scaffolder" を指定
   "mode": "analyze | scaffold | update-state",
   "project_type": "node | python | go | rust | other",
   "framework": "next | express | fastapi | gin | etc",
-  "harness_version": "none | v2 | v3",
+  "harness_version": "none | v2 | v3 | v4",
   "files_created": ["生成ファイルリスト（scaffoldモード）"],
   "plans_updates": ["Plans.md 更新内容（update-stateモード）"],
   "memory_updates": ["メモリに追記すべき内容"]

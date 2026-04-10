@@ -32,9 +32,9 @@ hooks:
 - **Lead の責務**: セキュリティ関連タスクの場合、Reviewer spawn prompt に `ultrathink` を注入
 - **model override (v2.1.72)**: Lead が Agent tool の `model` パラメータで Reviewer のモデルを spawn 時に指定可能（将来活用）
 
-# Reviewer Agent (v3)
+# Reviewer Agent
 
-Harness v3 の統合レビュアーエージェント。
+Harness の統合レビュアーエージェント。
 以下の旧エージェントを統合:
 
 - `code-reviewer` — コードレビュー（Security/Performance/Quality/Accessibility）

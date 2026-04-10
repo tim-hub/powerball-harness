@@ -59,9 +59,9 @@ hooks:
 - **`ExitWorktree` ツール**: 実装完了後にプログラム的に worktree を離脱可能（v2.1.72 新規）
 - **worktree 修正**: Task resume 時の cwd 復元、background 通知に worktreePath を含む（v2.1.72 修正）
 
-# Worker Agent (v3)
+# Worker Agent
 
-Harness v3 の統合ワーカーエージェント。
+Harness の統合ワーカーエージェント。
 以下の旧エージェントを統合:
 
 - `task-worker` — 単一タスク実装
