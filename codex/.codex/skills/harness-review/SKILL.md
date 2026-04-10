@@ -67,11 +67,23 @@ fi
 
 echo "Auto-detected BASE_REF: ${BASE_REF}"
 
-# 差分が存在することを確認
+# 差分が存在することを確認 & スコープ上限チェック
 CHANGED_COUNT="$(git log --oneline "${BASE_REF}..HEAD" 2>/dev/null | wc -l | tr -d ' ')"
+
+# 下限フォールバック: 差分ゼロの時は HEAD~5 で再試行
 if [ "$CHANGED_COUNT" -eq 0 ]; then
   echo "⚠️ ${BASE_REF}..HEAD に差分がありません。HEAD~5..HEAD にフォールバックします。"
   BASE_REF="HEAD~5"
+  CHANGED_COUNT="$(git log --oneline "${BASE_REF}..HEAD" 2>/dev/null | wc -l | tr -d ' ')"
+fi
+
+# 上限フォールバック: commits が 10 を超える時は HEAD~10 に絞る
+# (最後のリリースタグから多数のコミットが積まれた状態で bare 呼び出し
+#  されると、レビュースコープが過大になりレビュー品質が落ちるため)
+if [ "$CHANGED_COUNT" -gt 10 ]; then
+  echo "⚠️ ${BASE_REF}..HEAD に ${CHANGED_COUNT} commits あります。スコープを HEAD~10 に絞ります。"
+  echo "   (フル範囲をレビューしたい場合は明示的に 'code' を指定するか、より古い ref を argument で渡してください)"
+  BASE_REF="HEAD~10"
 fi
 ```
 
