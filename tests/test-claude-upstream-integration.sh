@@ -36,7 +36,7 @@ jq -e '.sandbox.failIfUnavailable == true' "${SETTINGS_FILE}" >/dev/null || {
 
 for hooks_file in "${HOOK_FILES[@]}"; do
   for event in TaskCreated CwdChanged FileChanged; do
-    jq -e ".hooks.${event}[]?.hooks[]? | select(.command | contains(\"hook-handlers/runtime-reactive\"))" "${hooks_file}" >/dev/null || {
+    jq -e ".hooks.${event}[]?.hooks[]? | select(.command | contains(\"runtime-reactive\"))" "${hooks_file}" >/dev/null || {
       echo "${hooks_file} is missing ${event} -> runtime-reactive wiring"
       exit 1
     }

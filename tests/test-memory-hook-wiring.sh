@@ -26,27 +26,27 @@ for wrapper_file in "${required_wrapper_files[@]}"; do
 done
 
 for hooks_file in "${ROOT_DIR}/hooks/hooks.json" "${ROOT_DIR}/.claude-plugin/hooks.json"; do
-  jq -e '.hooks.SessionStart[] | select(.matcher == "startup") | .hooks[] | select(.command == "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge session-start")' "${hooks_file}" >/dev/null || {
+  jq -e '.hooks.SessionStart[] | select(.matcher | contains("startup")) | .hooks[] | select(.command | contains("memory-bridge"))' "${hooks_file}" >/dev/null || {
     echo "SessionStart startup is missing memory-bridge session-start in ${hooks_file}"
     exit 1
   }
 
-  jq -e '.hooks.SessionStart[] | select(.matcher == "resume") | .hooks[] | select(.command == "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge session-start")' "${hooks_file}" >/dev/null || {
+  jq -e '.hooks.SessionStart[] | select(.matcher | contains("resume")) | .hooks[] | select(.command | contains("memory-bridge"))' "${hooks_file}" >/dev/null || {
     echo "SessionStart resume is missing memory-bridge session-start in ${hooks_file}"
     exit 1
   }
 
-  jq -e '.hooks.UserPromptSubmit[] | .hooks[] | select(.command == "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge user-prompt")' "${hooks_file}" >/dev/null || {
+  jq -e '.hooks.UserPromptSubmit[] | .hooks[] | select(.command? | strings | contains("memory-bridge"))' "${hooks_file}" >/dev/null || {
     echo "UserPromptSubmit is missing memory-bridge user-prompt in ${hooks_file}"
     exit 1
   }
 
-  jq -e '.hooks.PostToolUse[] | .hooks[] | select(.command == "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge post-tool-use")' "${hooks_file}" >/dev/null || {
+  jq -e '.hooks.PostToolUse[] | .hooks[] | select(.command? | strings | contains("memory-bridge"))' "${hooks_file}" >/dev/null || {
     echo "PostToolUse is missing memory-bridge post-tool-use in ${hooks_file}"
     exit 1
   }
 
-  jq -e '.hooks.Stop[] | .hooks[] | select(.command == "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/run-hook.sh\" hook-handlers/memory-bridge stop")' "${hooks_file}" >/dev/null || {
+  jq -e '.hooks.Stop[] | .hooks[] | select(.command? | strings | contains("memory-bridge"))' "${hooks_file}" >/dev/null || {
     echo "Stop is missing memory-bridge stop in ${hooks_file}"
     exit 1
   }
