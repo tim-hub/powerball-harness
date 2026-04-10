@@ -1,6 +1,7 @@
 package guardrail
 
 import (
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -26,15 +27,46 @@ var protectedPathPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`\.pfx$`),
 	regexp.MustCompile(`authorized_keys`),
 	regexp.MustCompile(`known_hosts`),
+	// CC 2.1.90: protect git hooks directory (.husky/)
+	regexp.MustCompile(`(?:^|/)\.husky(?:/|$)`),
 }
 
-func isProtectedPath(filePath string) bool {
+// matchesProtectedPatterns reports whether filePath matches any protected pattern.
+func matchesProtectedPatterns(filePath string) bool {
 	for _, p := range protectedPathPatterns {
 		if p.MatchString(filePath) {
 			return true
 		}
 	}
 	return false
+}
+
+// isProtectedPath checks whether filePath refers to a protected resource.
+// It first matches against protectedPathPatterns directly, then resolves
+// symlinks via filepath.EvalSymlinks and re-checks the resolved path.
+// If EvalSymlinks returns an error (symlink loop, broken link, etc.),
+// the function returns true (fail-safe: deny the operation).
+func isProtectedPath(filePath string) bool {
+	// Direct match
+	if matchesProtectedPatterns(filePath) {
+		return true
+	}
+
+	// Resolve symlinks and check the real path (CC 2.1.89: symlink target resolution)
+	realPath, err := filepath.EvalSymlinks(filePath)
+	if err != nil {
+		// Fail-safe: symlink loop, broken link, or other error → deny
+		// Exception: if the path simply doesn't exist, it's not protected.
+		// We distinguish by checking os.Lstat; if the path doesn't exist at all
+		// (not even as a dangling symlink), treat as not protected.
+		if _, statErr := os.Lstat(filePath); os.IsNotExist(statErr) {
+			return false
+		}
+		// Any other error (loop, permission denied, etc.) → fail-safe deny
+		return true
+	}
+
+	return matchesProtectedPatterns(realPath)
 }
 
 // ---------------------------------------------------------------------------
@@ -56,6 +88,22 @@ func isUnderProjectRoot(filePath, projectRoot string) bool {
 }
 
 // ---------------------------------------------------------------------------
+// Whitespace normalization (CC 2.1.98: wildcard pattern defense-in-depth)
+// ---------------------------------------------------------------------------
+
+// wsNormPattern matches one or more whitespace characters (spaces, tabs, etc.)
+var wsNormPattern = regexp.MustCompile(`\s+`)
+
+// normalizeCommand collapses consecutive whitespace characters (spaces, tabs,
+// and other whitespace) into a single space and trims leading/trailing whitespace.
+// This is used as a defense-in-depth measure before wildcard pattern matching,
+// so that "git  push  --force" and "git\tpush\t--force" are treated identically
+// to "git push --force".
+func normalizeCommand(cmd string) string {
+	return strings.TrimSpace(wsNormPattern.ReplaceAllString(cmd, " "))
+}
+
+// ---------------------------------------------------------------------------
 // Dangerous rm -rf detection
 // ---------------------------------------------------------------------------
 
@@ -66,6 +114,8 @@ var rmRecursivePattern = regexp.MustCompile(`\brm\s+--recursive\b`)
 var rmWithFlags = regexp.MustCompile(`\brm\s+(.+)`)
 
 func hasDangerousRmRf(command string) bool {
+	// Normalize whitespace before matching (CC 2.1.98: defense-in-depth)
+	command = normalizeCommand(command)
 	if rmRecursivePattern.MatchString(command) {
 		return true
 	}
@@ -105,6 +155,8 @@ var (
 )
 
 func hasForcePush(command string) bool {
+	// Normalize whitespace before matching (CC 2.1.98: defense-in-depth)
+	command = normalizeCommand(command)
 	return forcePushPattern.MatchString(command) || forcePushShort.MatchString(command)
 }
 
@@ -115,6 +167,7 @@ func hasForcePush(command string) bool {
 var sudoPattern = regexp.MustCompile(`(?:^|\s)sudo\s`)
 
 func hasSudo(command string) bool {
+	command = normalizeCommand(command)
 	return sudoPattern.MatchString(command)
 }
 
@@ -128,6 +181,7 @@ var (
 )
 
 func hasDangerousGitBypassFlag(command string) bool {
+	command = normalizeCommand(command)
 	return noVerifyPattern.MatchString(command) || noGpgSignPattern.MatchString(command)
 }
 
@@ -144,6 +198,7 @@ func normalizeGitToken(token string) string {
 }
 
 func hasProtectedBranchResetHard(command string) bool {
+	command = normalizeCommand(command)
 	tokens := strings.Fields(command)
 	resetIndex := -1
 	hasHard := false
@@ -178,6 +233,7 @@ func hasProtectedBranchResetHard(command string) bool {
 var gitPushPattern = regexp.MustCompile(`\bgit\s+push\b`)
 
 func hasDirectPushToProtectedBranch(command string) bool {
+	command = normalizeCommand(command)
 	if !gitPushPattern.MatchString(command) {
 		return false
 	}

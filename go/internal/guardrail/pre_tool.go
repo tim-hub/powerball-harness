@@ -115,6 +115,10 @@ func PreToolToOutput(result hookproto.HookResult) *hookproto.PreToolOutput {
 		if result.SystemMessage != "" {
 			inner.AdditionalContext = result.SystemMessage
 		}
+	case hookproto.DecisionDefer:
+		// CC 2.1.89: DecisionDefer passes the decision to CC for human review.
+		inner.PermissionDecision = "defer"
+		inner.PermissionDecisionReason = result.Reason
 	}
 
 	return &hookproto.PreToolOutput{HookSpecificOutput: inner}

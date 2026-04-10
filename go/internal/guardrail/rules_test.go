@@ -511,3 +511,34 @@ func TestUnknownToolApproved(t *testing.T) {
 		t.Errorf("expected approve for unknown tool, got %s", result.Decision)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Task 38.1.2: R06 whitespace normalization tests (CC 2.1.98)
+// ---------------------------------------------------------------------------
+
+func TestR06_PushForceMultipleSpaces(t *testing.T) {
+	// "git  push  --force" with multiple spaces should still be denied
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git  push  --force"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for multi-space force push, got %s", result.Decision)
+	}
+}
+
+func TestR06_PushForceTabs(t *testing.T) {
+	// "git\tpush\t-f" with tab separators should still be denied
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git\tpush\t-f"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for tab-separated force push, got %s", result.Decision)
+	}
+}
+
+func TestR06_PushForceWithLeaseSpaces(t *testing.T) {
+	// "git push   --force-with-lease" with extra spaces should still be denied
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push   --force-with-lease"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for force-with-lease with extra spaces, got %s", result.Decision)
+	}
+}

@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
+	"unicode"
 
 	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
 )
@@ -32,6 +34,107 @@ func isPkgManagerAllowed(cwd string) bool {
 }
 
 // ---------------------------------------------------------------------------
+// Backslash-escape attack detection (CC 2.1.98 bypass mitigation)
+// ---------------------------------------------------------------------------
+
+// backslashEscapePattern matches backslash followed by a flag character or space.
+// This detects "git\ status", "git\--force", "rm\ -rf" attack vectors.
+var backslashEscapePattern = regexp.MustCompile(`\\[\-\s]`)
+
+// hasBackslashEscape returns true if the command contains backslash-escaped
+// flag characters or spaces, which are used to bypass pattern matching.
+func hasBackslashEscape(cmd string) bool {
+	return backslashEscapePattern.MatchString(cmd)
+}
+
+// ---------------------------------------------------------------------------
+// Env-var prefix bypass detection (CC 2.1.98 bypass mitigation)
+// ---------------------------------------------------------------------------
+
+// knownSafeEnvVars is the allowlist of environment variable names that are
+// permitted as prefix assignments (e.g. "LANG=C git status").
+// Variables prefixed with LC_ (LC_ALL, LC_CTYPE, etc.) are also permitted.
+var knownSafeEnvVars = map[string]bool{
+	"LANG":        true,
+	"LANGUAGE":    true,
+	"TZ":          true,
+	"NO_COLOR":    true,
+	"FORCE_COLOR": true,
+}
+
+// isValidEnvVarName checks if s is a valid shell identifier (ASCII letters,
+// digits, underscore, must start with letter or underscore).
+func isValidEnvVarName(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	for i, c := range s {
+		if i == 0 {
+			if !unicode.IsLetter(c) && c != '_' {
+				return false
+			}
+		} else {
+			if !unicode.IsLetter(c) && !unicode.IsDigit(c) && c != '_' {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// stripSafeEnvPrefix strips known-safe "VAR=value" prefix tokens from the
+// command and returns the remaining command. Returns ("", false) if any
+// unknown environment variable is found in the prefix.
+//
+// Examples:
+//   - "LANG=C git status"       → ("git status", true)
+//   - "EVIL=x git status"       → ("", false)
+//   - "LANG=C EVIL=x git log"   → ("", false)
+//   - "git status"               → ("git status", true)
+func stripSafeEnvPrefix(cmd string) (string, bool) {
+	tokens := strings.Fields(cmd)
+	i := 0
+	for i < len(tokens) {
+		token := tokens[i]
+		eqIdx := strings.IndexByte(token, '=')
+		if eqIdx <= 0 {
+			// Not a VAR=value token; stop consuming prefix
+			break
+		}
+		varName := token[:eqIdx]
+		varValue := token[eqIdx+1:]
+
+		// Reject empty values (VAR= without value)
+		if varValue == "" {
+			return "", false
+		}
+
+		// Reject invalid env var names (must be ASCII identifier)
+		if !isValidEnvVarName(varName) {
+			return "", false
+		}
+
+		// Check against allowlist: known safe vars or LC_ prefix
+		if !knownSafeEnvVars[varName] && !strings.HasPrefix(varName, "LC_") {
+			return "", false
+		}
+		i++
+	}
+
+	if i == 0 {
+		// No prefix tokens consumed; return cmd as-is
+		return cmd, true
+	}
+
+	// Rejoin remaining tokens
+	if i >= len(tokens) {
+		// All tokens were env var prefixes, no actual command remains
+		return "", false
+	}
+	return strings.Join(tokens[i:], " "), true
+}
+
+// ---------------------------------------------------------------------------
 // Safe command patterns
 // ---------------------------------------------------------------------------
 
@@ -44,6 +147,19 @@ var (
 )
 
 func isSafeCommand(command, cwd string) bool {
+	// Backslash-escaped flags/spaces are an attack vector; reject immediately.
+	if hasBackslashEscape(command) {
+		return false
+	}
+
+	// Strip known-safe env-var prefixes. Unknown prefixes (e.g. EVIL=x) are rejected.
+	stripped, ok := stripSafeEnvPrefix(command)
+	if !ok {
+		return false
+	}
+	// Evaluate the rest of the command against safe patterns.
+	command = stripped
+
 	// Multiline commands are not safe
 	for _, c := range command {
 		if c == '\n' || c == '\r' {
