@@ -1,5 +1,5 @@
 ---
-name: HAR:plan
+name: harness-plan
 description: "HAR:タスク計画・Plans.md管理・進捗同期を担当。計画を作る、タスクを追加、Plans.md更新、完了マーク、進捗確認で起動。実装・レビュー・リリースには使わない。"
 description-en: "HAR: Task planning, Plans.md management, progress sync. Trigger: create a plan, add tasks, update Plans.md, mark complete, check progress. Do NOT load for: implementation, review, release."
 description-ja: "HAR:タスク計画・Plans.md管理・進捗同期を担当。計画を作る、タスクを追加、Plans.md更新、完了マーク、進捗確認で起動。実装・レビュー・リリースには使わない。"

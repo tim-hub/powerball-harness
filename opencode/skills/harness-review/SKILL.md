@@ -1,5 +1,5 @@
 ---
-name: HAR:review
+name: harness-review
 description: "HAR:コード・プラン・スコープを多角的にレビュー。セキュリティ・品質チェック。レビュー、コードレビュー、プランレビュー、スコープ分析で起動。実装・新機能・バグ修正・セットアップ・リリースには使わない。"
 description-en: "HAR: Multi-angle code, plan, scope review. Security/quality check. Trigger: review, code review, plan review, scope analysis. Do NOT load for: implementation, new features, bugfix, setup, release."
 description-ja: "HAR:コード・プラン・スコープを多角的にレビュー。セキュリティ・品質チェック。レビュー、コードレビュー、プランレビュー、スコープ分析で起動。実装・新機能・バグ修正・セットアップ・リリースには使わない。"
@@ -115,6 +115,28 @@ echo "Auto-detected review type: ${REVIEW_TYPE}"
 
 **⚠️ 重要**: Step 0 を実行したら、**必ず Step 1 以降に処理を進める**こと。「モードを決定した」だけで停止せず、決定したモードの全フローを最後まで実行してください。
 
+### 出力言語・フォーマット (絶対遵守)
+
+**このスキルは `context: fork` で動作し、親セッションの言語文脈を継承しません。CLAUDE.md の "All responses must be in Japanese (including context: fork skills)" ルールに従い、以下を徹底してください:**
+
+#### ルール 1: 出力は必ず日本語
+
+- 見出し、本文、説明、観点評価、結論、次のアクションすべて日本語で書く
+- 例外として英語のまま保つもの:
+  - コード識別子、ファイルパス (`skills/harness-review/SKILL.md` など)
+  - `verdict` 値 (`APPROVE` / `REQUEST_CHANGES`) — 機械可読形式
+  - JSON のフィールド名 (`critical_issues`, `observations` など)
+  - ログ出力、コマンド例、エラーメッセージ原文
+
+#### ルール 2: 結果サマリーを出力の最初に配置
+
+- ユーザーが最も知りたい情報 (**判定・主要指摘 3 件・次のアクション**) を**冒頭に日本語で** 出力
+- JSON 詳細や技術的根拠はサマリーの**後**に補足として配置
+- JSON を最初に出す、観点別評価の後に結論を添える、英語で書く — これらは**すべて NG**
+- 詳細な結果サマリーテンプレートは [Step 3: レビュー結果出力](#step-3-レビュー結果出力) を参照
+
+**この 2 つのルールが満たされない出力はレビュー失敗として扱います。**
+
 ---
 
 ## Quick Reference
@@ -205,6 +227,57 @@ bash scripts/review-ai-residuals.sh path/to/file.ts path/to/config.sh
 > `AI Residuals` でも同じ。`major` に入るのは「出荷事故や誤設定に直結しやすいもの」だけで、単なる残骸候補は `minor` または `recommendation` に留める。
 
 ### Step 3: レビュー結果出力
+
+#### 出力順序 (絶対遵守)
+
+レビュー結果は**必ず以下の順序で出力**する:
+
+1. **🎯 結果サマリー** (日本語、必ず最初に出力)
+2. JSON 出力 (機械可読 schema-v1 形式、サマリーの後)
+3. 観点別評価の詳細 (任意、日本語)
+
+#### 1. 結果サマリーテンプレート (必須、最初に出力)
+
+以下のテンプレートを使い、判定・主要指摘 3 件・次のアクションを**日本語で冒頭に出力**する:
+
+```markdown
+## 🎯 レビュー結果
+
+**判定**: APPROVE または REQUEST_CHANGES
+
+**スコープ**: `{BASE_REF}..HEAD` の {N} commits、{M} ファイル変更 (+{INS}/-{DEL} 行)
+**レビュータイプ**: Code Review / Plan Review / Scope Review / Security Review / Dual Review のいずれか
+
+---
+
+### 主要な発見 ({X} 件)
+
+{重要度順に最大 3 件列挙。問題が無い場合は「主要な発見なし(全てのチェックに合格)」と明記}
+
+1. [🔴 critical / 🟠 major / 🟡 minor / 🟢 recommendation] **{カテゴリ}**
+   **{日本語の 1 行要約}**
+   - 対応: {具体的な次のステップ、日本語}
+   - 位置: `{file_path}:{line}` (該当する場合)
+
+2. ...
+
+3. ...
+
+### 次のアクション
+
+- {具体的な TODO 1〜3 項目、すべて日本語}
+- {リリース可否の判断もここに含める}
+
+---
+```
+
+**禁止事項**:
+- JSON 出力を最初に出すこと
+- 結果サマリーを英語で書くこと
+- 判定や主要指摘を JSON の中に埋めてサマリーを省略すること
+- 観点別評価の後で結論を添えること
+
+#### 2. JSON 出力 (schema-v1、サマリーの後に補足として)
 
 ```json
 {
