@@ -20,6 +20,91 @@ Harness の統合レビュースキル。
 - `verify` — ビルド検証・エラー復旧・レビュー修正適用
 - `troubleshoot` — エラー・障害の診断と修復
 
+---
+
+## 🚀 Step 0: 動作モード決定 (必ず最初に読む)
+
+> **あなたは今この瞬間からレビュアーとして動作します。** 以下の決定木に従って**自動的にレビューを開始**してください。「タスクが不明確」「追加の指示を待つ」で停止してはいけません。bare 呼び出し (`/HAR:review` 引数なし) の場合でも git 状態から対象を自動検出して Code Review を開始します。
+
+### 決定木
+
+```
+引数を解析
+├── --security が含まれる    → Security Review モード → Step 3.6 へ
+├── --dual が含まれる        → Dual Review モード → Step 3.5 へ
+├── plan が含まれる          → Plan Review モード → 「## Plan Review フロー」へ
+├── scope が含まれる         → Scope Review モード → 「## Scope Review フロー」へ
+├── code が含まれる          → Code Review モード → Step 1 へ
+└── 引数なし (bare 呼び出し) → 下記「Bare 呼び出し時の default フロー」を実行
+```
+
+### Bare 呼び出し時の default フロー
+
+引数無しで `/HAR:review` が呼ばれた場合、以下を順番に実行して**必ず Code Review を自動開始**してください:
+
+#### Step 0.1: git 状態から base ref を自動決定
+
+```bash
+# 直近の commit 状況を確認
+git log --oneline -15
+git status --short
+
+# Base ref を以下の優先順位で自動決定:
+# 1. 最後の release tag (例: v4.0.0)
+# 2. main/master の HEAD
+# 3. HEAD~10 (上記どちらも取れない時)
+
+BASE_REF=""
+if LAST_TAG="$(git describe --tags --abbrev=0 2>/dev/null)"; then
+  BASE_REF="$LAST_TAG"
+elif git rev-parse --verify main >/dev/null 2>&1; then
+  BASE_REF="main"
+elif git rev-parse --verify master >/dev/null 2>&1; then
+  BASE_REF="master"
+else
+  BASE_REF="HEAD~10"
+fi
+
+echo "Auto-detected BASE_REF: ${BASE_REF}"
+
+# 差分が存在することを確認
+CHANGED_COUNT="$(git log --oneline "${BASE_REF}..HEAD" 2>/dev/null | wc -l | tr -d ' ')"
+if [ "$CHANGED_COUNT" -eq 0 ]; then
+  echo "⚠️ ${BASE_REF}..HEAD に差分がありません。HEAD~5..HEAD にフォールバックします。"
+  BASE_REF="HEAD~5"
+fi
+```
+
+#### Step 0.2: レビュータイプを自動判定
+
+base ref から HEAD までのコミットメッセージを調べて、最適なレビュータイプを選ぶ:
+
+```bash
+RECENT_TYPES="$(git log --oneline "${BASE_REF}..HEAD" --pretty='%s' | head -20)"
+
+# 判定ロジック:
+# - "plan:" で始まる commit が多い → Plan Review
+# - "feat|fix|refactor|test|chore|docs|perf|style" 系 → Code Review (default)
+# - よくわからない → Code Review (default)
+
+if echo "$RECENT_TYPES" | grep -c '^plan:' | awk '$1 > 2 {exit 0} {exit 1}'; then
+  REVIEW_TYPE="plan"
+else
+  REVIEW_TYPE="code"  # Default
+fi
+
+echo "Auto-detected review type: ${REVIEW_TYPE}"
+```
+
+#### Step 0.3: 該当のレビューフローへ遷移
+
+- `REVIEW_TYPE=code` → **Step 1 (変更差分を収集) へ進む**。`BASE_REF` 環境変数は Step 0.1 で決定したものを使用
+- `REVIEW_TYPE=plan` → **「## Plan Review フロー」セクションへ進む**
+
+**⚠️ 重要**: Step 0 を実行したら、**必ず Step 1 以降に処理を進める**こと。「モードを決定した」だけで停止せず、決定したモードの全フローを最後まで実行してください。
+
+---
+
 ## Quick Reference
 
 | ユーザー入力 | サブコマンド | 動作 |
