@@ -73,7 +73,7 @@ Supported baseline and latest verified snapshot: see [Claude Code Compatibility]
 ## Requirements
 
 - **Claude Code v2.1+** ([Install Guide](https://docs.anthropic.com/claude-code))
-- **Node.js 18+** (for TypeScript core engine & safety hooks)
+- **No Node.js required** (v4.0 Hokage uses Go-native engine)
 
 ---
 
@@ -183,7 +183,7 @@ Packages the verified result into CHANGELOG, tag, and release handoff steps afte
   <img src="assets/readme-visuals-en/generated/safety-guardrails.svg" alt="Safety Protection System" width="640">
 </p>
 
-Harness v3 protects your codebase with a **TypeScript guardrail engine** (`core/`) — 13 declarative rules (R01–R13), compiled and type-checked:
+Harness v4 protects your codebase with a **Go-native guardrail engine** (`go/internal/guardrail/`) — 13 declarative rules (R01–R13), single binary with sub-10ms response:
 
 | Rule | Protected | Action |
 |------|-----------|--------|
@@ -207,7 +207,7 @@ Runtime differences between Claude Code hooks and Codex CLI gates are documented
 
 ## 5 Verb Skills, Zero Config
 
-v3 unifies 42 skills into **5 verb skills**. Start with the verbs first, then add Breezing, Codex, or 2-agent flows only when you need them.
+v4 unifies 42 skills into **5 verb skills**. Start with the verbs first, then add Breezing, Codex, or 2-agent flows only when you need them.
 
 <table>
 <tr>
@@ -253,14 +253,14 @@ v3 unifies 42 skills into **5 verb skills**. Start with the verbs first, then ad
 
 ```
 claude-code-harness/
-├── core/           # TypeScript guardrail engine (strict ESM, NodeNext)
+├── go/             # Go-native guardrail engine + hookhandler
 │   └── src/        #   guardrails/ state/ engine/
 ├── skills/         # 5 verb skills (plan/execute/review/release/setup)
 ├── agents/      # 3 agents (worker/reviewer/scaffolder)
 ├── hooks/          # Thin shims → core/ engine
 ├── skills/         # 41 legacy skills (retained for compatibility)
 ├── agents/         # 11 legacy agents (retained for compatibility)
-├── scripts/        # v2 hook scripts (coexist with v3 core)
+├── scripts/        # Auxiliary hook scripts (legacy, coexist with Go engine)
 └── templates/      # Generation templates
 ```
 
