@@ -20,6 +20,10 @@
   English | <a href="README_ja.md">日本語</a>
 </p>
 
+<p align="center">
+  <img src="docs/images/hokage/hokage-hero.jpg" alt="Hokage v4.0 — The Silent Blade" width="860">
+</p>
+
 ---
 
 ## v4.0 "Hokage" — What's New
