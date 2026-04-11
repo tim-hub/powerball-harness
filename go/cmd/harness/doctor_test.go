@@ -10,6 +10,57 @@ import (
 )
 
 // ---------------------------------------------------------------------------
+// TestDoctor_Residue
+// ---------------------------------------------------------------------------
+
+// TestDoctor_Residue verifies that runResidueCheck calls scripts/check-residue.sh
+// and returns the correct exit code.
+//
+// This is an integration test that invokes the actual scanner against the
+// repository. The scanner is expected to be in a clean state (exit 0) after
+// Phase 40 baseline work. Run with -short to skip.
+//
+// NOTE: The scanner may take up to ~30 seconds on large repositories.
+// Future phases may introduce a --fast flag to the scanner for test use.
+func TestDoctor_Residue(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode (scanner can be slow)")
+	}
+
+	// Resolve the project root from the test binary's location.
+	// The test runs from go/cmd/harness/, so we go up three levels.
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("os.Getwd: %v", err)
+	}
+	// go up: harness/ -> cmd/ -> go/ -> project root
+	projectRoot := filepath.Join(cwd, "..", "..", "..")
+
+	// Verify the scanner script exists at the expected location.
+	script := filepath.Join(projectRoot, "scripts", "check-residue.sh")
+	if _, err := os.Stat(script); err != nil {
+		t.Skipf("scripts/check-residue.sh not found at %s — skipping integration test", script)
+	}
+
+	exitCode := runResidueCheck(projectRoot)
+	// The scanner must exit 0 (clean state) after Phase 40 baseline commit.
+	if exitCode != 0 {
+		t.Errorf("runResidueCheck returned exit code %d, want 0 (clean state)", exitCode)
+	}
+}
+
+// TestDoctor_Residue_MissingScript verifies that runResidueCheck returns exit
+// code 2 when the scanner script does not exist.
+func TestDoctor_Residue_MissingScript(t *testing.T) {
+	dir := t.TempDir() // empty dir — no scripts/check-residue.sh
+
+	exitCode := runResidueCheck(dir)
+	if exitCode != 2 {
+		t.Errorf("expected exit code 2 when script is missing, got %d", exitCode)
+	}
+}
+
+// ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
 

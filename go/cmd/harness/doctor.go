@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -11,9 +12,9 @@ import (
 	"strings"
 )
 
-// runDoctor implements the "harness doctor [--migration]" subcommand.
+// runDoctor implements the "harness doctor [--migration] [--residue]" subcommand.
 //
-// Without --migration: performs basic health checks on the project:
+// Without flags: performs basic health checks on the project:
 //   - Go binary version
 //   - harness.toml existence
 //   - hooks.json existence + JSON validity
@@ -23,13 +24,20 @@ import (
 //   - bin/harness PATH resolution
 //
 // With --migration: additionally shows hook migration status (Go vs shell).
+// With --residue: calls scripts/check-residue.sh to detect v3 migration remnants.
+//
+// Both flags are independent and can be combined.
 func runDoctor(args []string) {
 	migration := false
+	residue := false
 	var rootOverride string
 	for _, arg := range args {
-		if arg == "--migration" {
+		switch arg {
+		case "--migration":
 			migration = true
-		} else {
+		case "--residue":
+			residue = true
+		default:
 			rootOverride = arg
 		}
 	}
@@ -49,6 +57,14 @@ func runDoctor(args []string) {
 		fmt.Println()
 		migrationOK := runMigrationCheck(projectRoot)
 		if !migrationOK {
+			allOK = false
+		}
+	}
+
+	if residue {
+		fmt.Println()
+		exitCode := runResidueCheck(projectRoot)
+		if exitCode != 0 {
 			allOK = false
 		}
 	}
@@ -523,4 +539,42 @@ func sortedKeys(m map[string][]hookGroup) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+// ---------------------------------------------------------------------------
+// Residue check (Phase 40 — Migration Residue Scanner)
+// ---------------------------------------------------------------------------
+
+// runResidueCheck calls scripts/check-residue.sh as a subprocess and
+// transparently streams its output to stdout/stderr.
+//
+// Return values:
+//   0 — scanner exited cleanly (no residue detected)
+//   1 — scanner found migration residue (exit code 1 from script)
+//   2 — scanner script not found or failed to launch
+func runResidueCheck(projectRoot string) int {
+	fmt.Println("Migration Residue Check:")
+	fmt.Println()
+
+	script := filepath.Join(projectRoot, "scripts", "check-residue.sh")
+	if _, err := os.Stat(script); err != nil {
+		fmt.Fprintf(os.Stderr, "  scanner failed: scripts/check-residue.sh not found at %s\n", script)
+		return 2
+	}
+
+	cmd := exec.Command("bash", script)
+	// Pipe scanner output directly to this process's stdout/stderr so that
+	// file paths, line numbers, and counts appear transparently to the user.
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Dir = projectRoot
+
+	if err := cmd.Run(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return exitErr.ExitCode()
+		}
+		fmt.Fprintf(os.Stderr, "  scanner failed: %v\n", err)
+		return 2
+	}
+	return 0
 }
