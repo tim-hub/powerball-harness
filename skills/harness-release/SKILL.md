@@ -119,16 +119,25 @@ Harness の統合リリーススキル。
 command -v gh &>/dev/null || echo "gh なし: GitHub Release はスキップ"
 command -v jq &>/dev/null || echo "jq なし: plugin.json 更新に必要"
 
-# 2. vendor-neutral preflight（本実行 / dry-run 共通）
+# 2. Migration residue チェック（Phase 40）
+echo "Checking migration residue..."
+if ! bin/harness doctor --residue; then
+  echo "❌ Phase 40 の scanner が削除済み概念への参照を検出しました。"
+  echo "詳細は 'bash scripts/check-residue.sh' で確認してください。"
+  echo "修正してから再度 harness-release を実行してください。"
+  exit 1
+fi
+
+# 3. vendor-neutral preflight（本実行 / dry-run 共通）
 bash scripts/release-preflight.sh
 
-# 3. プラグイン構造検証
+# 4. プラグイン構造検証
 bash tests/validate-plugin.sh
 
-# 4. 整合性チェック
+# 5. 整合性チェック
 bash scripts/ci/check-consistency.sh
 
-# 5. mirror 同期状態の確認
+# 6. mirror 同期状態の確認
 bash scripts/sync-skill-mirrors.sh --check
 ```
 
@@ -379,6 +388,7 @@ Phase 9 のみを実行する。GitHub Release の作成漏れがないか確認
 
 | チェック項目 | 確認方法 | 備考 |
 |------------|---------|------|
+| Migration residue | `bin/harness doctor --residue` | 削除済み概念/パスへの参照が 0 件 |
 | プラグイン構造 | `tests/validate-plugin.sh` | plugin.json、スキル、フック、スクリプトの検証 |
 | 整合性 | `scripts/ci/check-consistency.sh` | テンプレート、バージョン、mirror、CHANGELOG |
 | Mirror 同期 | `scripts/sync-skill-mirrors.sh --check` | skills と 2 配布面の一致 |
