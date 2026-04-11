@@ -1,189 +1,189 @@
 ---
 name: ci-analyze-failures
-description: "CI の失敗ログを解析し、原因を特定する。CI/CDパイプラインでテストやビルドが失敗した場合に使用します。"
+description: "Analyze CI failure logs and identify the cause. Use when tests or builds fail in a CI/CD pipeline."
 allowed-tools: ["Read", "Grep", "Bash"]
 ---
 
 # CI Analyze Failures
 
-CI/CD パイプラインの失敗を分析し、原因を特定するスキル。
-GitHub Actions、GitLab CI 等のログを解釈します。
+A skill for analyzing CI/CD pipeline failures and identifying causes.
+Interprets logs from GitHub Actions, GitLab CI, and similar platforms.
 
 ---
 
-## 入力
+## Input
 
-- **CI ログ**: 失敗したジョブのログ
-- **run_id**: CI 実行の識別子（あれば）
-- **リポジトリコンテキスト**: CI 設定ファイル
-
----
-
-## 出力
-
-- **失敗原因の特定**: 具体的な原因
-- **修正提案**: 対処方法の提案
+- **CI logs**: Logs from the failed job
+- **run_id**: CI run identifier (if available)
+- **Repository context**: CI configuration files
 
 ---
 
-## 実行手順
+## Output
 
-### Step 1: CI 状態の確認
+- **Failure cause identification**: Specific cause
+- **Fix suggestions**: Proposed remediation steps
+
+---
+
+## Execution Steps
+
+### Step 1: Check CI Status
 
 ```bash
-# GitHub Actions の場合
+# For GitHub Actions
 gh run list --limit 5
 
-# 最新の失敗を確認
+# Check latest failure
 gh run view --log-failed
 ```
 
-### Step 2: 失敗ログの取得
+### Step 2: Retrieve Failure Logs
 
 ```bash
-# 特定の run のログ
+# Logs for a specific run
 gh run view {{run_id}} --log
 
-# 失敗ステップのみ
+# Failed steps only
 gh run view {{run_id}} --log-failed
 ```
 
-### Step 3: エラーパターンの分析
+### Step 3: Analyze Error Patterns
 
-#### ビルドエラー
-
-```
-パターン: "error TS\d+:" または "Build failed"
-原因候補:
-- TypeScript 型エラー
-- 依存関係の不足
-- 構文エラー
-```
-
-#### テストエラー
+#### Build Errors
 
 ```
-パターン: "FAIL" または "✕" または "AssertionError"
-原因候補:
-- テストの失敗
-- テストタイムアウト
-- モックの不一致
+Pattern: "error TS\d+:" or "Build failed"
+Possible causes:
+- TypeScript type errors
+- Missing dependencies
+- Syntax errors
 ```
 
-#### 依存関係エラー
+#### Test Errors
 
 ```
-パターン: "npm ERR!" または "Could not resolve"
-原因候補:
-- package.json の不整合
-- プライベートパッケージの認証
-- バージョン競合
+Pattern: "FAIL" or "✕" or "AssertionError"
+Possible causes:
+- Test failures
+- Test timeouts
+- Mock mismatches
 ```
 
-#### 環境エラー
+#### Dependency Errors
 
 ```
-パターン: "not found" または "undefined"
-原因候補:
-- 環境変数の未設定
-- シークレットの不足
-- パスの問題
+Pattern: "npm ERR!" or "Could not resolve"
+Possible causes:
+- package.json inconsistencies
+- Private package authentication
+- Version conflicts
 ```
 
-### Step 4: 分析結果の出力
+#### Environment Errors
+
+```
+Pattern: "not found" or "undefined"
+Possible causes:
+- Unset environment variables
+- Missing secrets
+- Path issues
+```
+
+### Step 4: Output Analysis Results
 
 ```markdown
-## 🔍 CI 失敗分析
+## 🔍 CI Failure Analysis
 
 **Run ID**: {{run_id}}
-**失敗時刻**: {{timestamp}}
-**失敗ステップ**: {{step_name}}
+**Failure time**: {{timestamp}}
+**Failed step**: {{step_name}}
 
-### 原因特定
+### Cause Identification
 
-**エラータイプ**: {{ビルド / テスト / 依存関係 / 環境}}
+**Error type**: {{build / test / dependency / environment}}
 
-**エラーメッセージ**:
+**Error message**:
 ```
-{{エラーの核心部分}}
+{{core error message}}
 ```
 
-**原因分析**:
-{{具体的な原因の説明}}
+**Cause analysis**:
+{{specific cause explanation}}
 
-### 関連ファイル
+### Related Files
 
-| ファイル | 関連性 |
-|---------|-------|
-| `{{path}}` | {{関連内容}} |
+| File | Relevance |
+|------|-----------|
+| `{{path}}` | {{relevance details}} |
 
-### 修正提案
+### Fix Suggestions
 
-1. {{具体的な修正手順1}}
-2. {{具体的な修正手順2}}
+1. {{specific fix step 1}}
+2. {{specific fix step 2}}
 
-### 自動修正の可否
+### Auto-Fix Feasibility
 
-- 自動修正: {{可能 / 不可能}}
-- 理由: {{理由}}
+- Auto-fix: {{possible / not possible}}
+- Reason: {{reason}}
 ```
 
 ---
 
-## エラーパターン辞書
+## Error Pattern Dictionary
 
-### TypeScript エラー
+### TypeScript Errors
 
-| エラーコード | 意味 | 典型的な修正 |
-|-------------|------|-------------|
-| TS2304 | 名前が見つからない | import 追加 |
-| TS2322 | 型が一致しない | 型修正 |
-| TS2345 | 引数の型が違う | 引数修正 |
-| TS7006 | 暗黙の any | 型注釈追加 |
+| Error Code | Meaning | Typical Fix |
+|-----------|---------|-------------|
+| TS2304 | Name not found | Add import |
+| TS2322 | Type mismatch | Fix type |
+| TS2345 | Argument type mismatch | Fix argument |
+| TS7006 | Implicit any | Add type annotation |
 
-### npm エラー
+### npm Errors
 
-| エラー | 意味 | 典型的な修正 |
-|--------|------|-------------|
-| ERESOLVE | 依存関係解決失敗 | package-lock 削除 & 再インストール |
-| ENOENT | ファイルが見つからない | パス確認 |
-| EACCES | 権限エラー | CI 設定確認 |
+| Error | Meaning | Typical Fix |
+|-------|---------|-------------|
+| ERESOLVE | Dependency resolution failure | Delete package-lock & reinstall |
+| ENOENT | File not found | Check path |
+| EACCES | Permission error | Check CI configuration |
 
-### Jest/Vitest エラー
+### Jest/Vitest Errors
 
-| エラー | 意味 | 典型的な修正 |
-|--------|------|-------------|
-| Timeout | テストタイムアウト | タイムアウト延長 or 非同期修正 |
-| Snapshot | スナップショット不一致 | `npm test -- -u` |
-
----
-
-## 複数エラーの優先順位
-
-1. **ビルドエラー**: 最優先で修正
-2. **依存関係エラー**: ビルド前に解決必要
-3. **テストエラー**: ビルド成功後に対応
-4. **Lint エラー**: 最後に対応
+| Error | Meaning | Typical Fix |
+|-------|---------|-------------|
+| Timeout | Test timeout | Extend timeout or fix async |
+| Snapshot | Snapshot mismatch | `npm test -- -u` |
 
 ---
 
-## 次のアクションへの接続
+## Multiple Error Priority
 
-分析完了後：
+1. **Build errors**: Fix first with highest priority
+2. **Dependency errors**: Must resolve before build
+3. **Test errors**: Address after build succeeds
+4. **Lint errors**: Address last
 
-> 📊 **分析完了**
+---
+
+## Connecting to Next Actions
+
+After analysis is complete:
+
+> 📊 **Analysis Complete**
 >
-> **原因**: {{原因の要約}}
+> **Cause**: {{cause summary}}
 >
-> **次のアクション**:
-> - 「修正して」→ 自動修正を試行
-> - 「詳しく」→ さらに詳細な分析
-> - 「スキップ」→ 手動対応に切り替え
+> **Next actions**:
+> - "Fix it" -> Attempt auto-fix
+> - "More details" -> Deeper analysis
+> - "Skip" -> Switch to manual resolution
 
 ---
 
-## 注意事項
+## Notes
 
-- **ログは大きい**: 重要部分を抽出
-- **連鎖エラー注意**: 最初のエラーを見つける
-- **環境差異**: ローカルと CI の違いを考慮
+- **Logs are large**: Extract the important parts
+- **Watch for cascading errors**: Find the first error
+- **Environment differences**: Consider differences between local and CI

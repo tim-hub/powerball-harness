@@ -1,8 +1,6 @@
 ---
 name: harness-sync
-description: "Plans.md と実装の進捗同期。差分検出・マーカー更新・レトロスペクティブを実行。以下で起動: harness-sync、sync-status、進捗確認、今どこ、どこまで終わった。--snapshot で進捗スナップショット保存にも対応。プランニング・実装・レビュー・リリースには使わない。"
-description-en: "Progress sync between Plans.md and actual implementation. Detects drift, updates markers, runs retrospective. Use when user mentions: harness-sync, sync-status, sync progress, where am I, check progress, what's done. Supports --snapshot for progress snapshots. Do NOT load for: planning, implementation, review, or release."
-description-ja: "Plans.md と実装の進捗同期。差分検出・マーカー更新・レトロスペクティブを実行。以下で起動: harness-sync、sync-status、進捗確認、今どこ、どこまで終わった。--snapshot で進捗スナップショット保存にも対応。プランニング・実装・レビュー・リリースには使わない。"
+description: "Use this skill whenever the user asks to sync progress, check what's done, see current status, asks 'where am I', 'how far along', or runs /harness-sync. Also supports --snapshot for progress snapshots. Do NOT load for: creating new plans (use harness-plan), code implementation (use harness-work), code review (use harness-review), or release. Syncs progress between Plans.md and actual implementation — detects drift, updates task markers, and runs retrospectives."
 allowed-tools: ["Read", "Edit", "Bash", "Grep", "Glob"]
 argument-hint: "[--snapshot|--no-retro]"
 effort: medium
@@ -10,125 +8,125 @@ effort: medium
 
 # Harness Sync
 
-Plans.md と実装状況を照合し、差分を検出・更新する。
-旧 `sync-status` および `harness-plan sync` サブコマンドの独立版。
+Compares Plans.md against implementation status, detecting and updating discrepancies.
+Standalone version of the former `sync-status` and `harness-plan sync` subcommand.
 
 ## Quick Reference
 
-| ユーザー入力 | 動作 |
+| User Input | Behavior |
 |------------|------|
-| `harness-sync` | 進捗同期 + レトロスペクティブ（デフォルト ON） |
-| `harness-sync --no-retro` | 進捗同期のみ（レトロスキップ） |
-| `harness-sync --snapshot` | スナップショット保存（進捗の時点記録） |
-| "今どこ？" / "進捗確認" | 同上 |
+| `harness-sync` | Progress sync + retrospective (default ON) |
+| `harness-sync --no-retro` | Progress sync only (skip retrospective) |
+| `harness-sync --snapshot` | Save snapshot (point-in-time progress record) |
+| "where am I?" / "check progress" | Same as above |
 
-## オプション
+## Options
 
-| オプション | 説明 | デフォルト |
+| Option | Description | Default |
 |----------|------|----------|
-| `--snapshot` | 現在の進捗をスナップショットとして保存 | false |
-| `--no-retro` | レトロスペクティブをスキップ | false（デフォルトで実行） |
+| `--snapshot` | Save current progress as a snapshot | false |
+| `--no-retro` | Skip retrospective | false (runs by default) |
 
-## Step 0: Plans.md 検証
+## Step 0: Plans.md Validation
 
-Plans.md の存在とフォーマットを確認する。問題がある場合は即座に案内して停止する。
+Verify the existence and format of Plans.md. If issues are found, provide guidance and stop immediately.
 
-| 状態 | 案内 |
+| State | Guidance |
 |------|------|
-| Plans.md が存在しない | `Plans.md が見つかりません。harness-plan create で作成してください。` → **停止** |
-| ヘッダーに DoD / Depends カラムがない（v1 形式） | `Plans.md が旧フォーマット（3カラム）です。harness-plan create で v2（5カラム）に再生成してください。既存タスクは自動的に引き継がれます。` → **停止** |
-| v2 形式（5カラム） | そのまま Step 1 に進む |
+| Plans.md does not exist | `Plans.md not found. Please create one with harness-plan create.` -> **Stop** |
+| Header lacks DoD / Depends columns (v1 format) | `Plans.md is in the legacy format (3 columns). Please regenerate with harness-plan create for v2 (5 columns). Existing tasks will be automatically carried over.` -> **Stop** |
+| v2 format (5 columns) | Proceed to Step 1 |
 
-## Step 1: 現状収集（並列）
+## Step 1: Gather Current State (parallel)
 
 ```bash
-# Plans.md の状態
+# Plans.md state
 cat Plans.md
 
-# Git 変更状態
+# Git change state
 git status
 git diff --stat HEAD~3
 
-# 直近コミット履歴
+# Recent commit history
 git log --oneline -10
 
-# エージェントトレース（直近の編集ファイル）
+# Agent trace (recently edited files)
 tail -20 .claude/state/agent-trace.jsonl 2>/dev/null | jq -r '.files[].path' | sort -u
 ```
 
-## Step 1.5: Agent Trace 分析
+## Step 1.5: Agent Trace Analysis
 
-Agent Trace から直近の編集履歴を取得し、Plans.md のタスクと照合する:
+Retrieve recent edit history from Agent Trace and cross-reference with Plans.md tasks:
 
 ```bash
-# 直近の編集ファイル一覧
+# Recent edited files list
 RECENT_FILES=$(tail -20 .claude/state/agent-trace.jsonl 2>/dev/null | \
   jq -r '.files[].path' | sort -u)
 
-# プロジェクト情報
+# Project info
 PROJECT=$(tail -1 .claude/state/agent-trace.jsonl 2>/dev/null | \
   jq -r '.metadata.project')
 ```
 
-**照合ポイント**:
+**Cross-reference points**:
 
-| チェック項目 | 検出方法 |
+| Check Item | Detection Method |
 |------------|----------|
-| Plans.md にないファイル編集 | Agent Trace vs タスク記述 |
-| タスク記述と異なるファイル | 想定ファイル vs 実際の編集 |
-| 長時間編集がないタスク | Agent Trace 時系列 vs WIP 期間 |
+| File edits not in Plans.md | Agent Trace vs task descriptions |
+| Files differing from task description | Expected files vs actual edits |
+| Tasks with no recent edits | Agent Trace timeline vs WIP duration |
 
-## Step 2: 差分検出
+## Step 2: Drift Detection
 
-| チェック項目 | 検出方法 |
+| Check Item | Detection Method |
 |------------|----------|
-| 完了済みなのに `cc:WIP` | コミット履歴 vs マーカー |
-| 着手済みなのに `cc:TODO` | 変更ファイル vs マーカー |
-| `cc:完了` なのに未コミット | git status vs マーカー |
+| Completed but still `cc:WIP` | Commit history vs markers |
+| Started but still `cc:TODO` | Changed files vs markers |
+| `cc:done` but uncommitted | git status vs markers |
 
-## Step 3: Plans.md 更新提案
+## Step 3: Plans.md Update Proposal
 
-差分が検出された場合、提案して実行する:
+When drift is detected, propose and execute updates:
 
 ```
-Plans.md 更新が必要です
+Plans.md updates needed
 
-| Task | 現在 | 変更後 | 理由 |
+| Task | Current | After | Reason |
 |------|------|--------|------|
-| XX   | cc:WIP | cc:完了 | コミット済み |
-| YY   | cc:TODO | cc:WIP | ファイル編集済み |
+| XX   | cc:WIP | cc:done | Already committed |
+| YY   | cc:TODO | cc:WIP | Files already edited |
 
-更新しますか？ (yes / no)
+Apply updates? (yes / no)
 ```
 
-## Step 4: 進捗サマリー出力
+## Step 4: Progress Summary Output
 
 ```markdown
-## 進捗サマリー
+## Progress Summary
 
-**プロジェクト**: {{project_name}}
+**Project**: {{project_name}}
 
-| ステータス | 件数 |
+| Status | Count |
 |----------|------|
-| 未着手 (cc:TODO) | {{count}} |
-| 作業中 (cc:WIP) | {{count}} |
-| 完了 (cc:完了) | {{count}} |
-| PM確認済 (pm:確認済) | {{count}} |
+| Not started (cc:TODO) | {{count}} |
+| In progress (cc:WIP) | {{count}} |
+| Done (cc:done) | {{count}} |
+| PM confirmed (pm:confirmed) | {{count}} |
 
-**進捗率**: {{percent}}%
+**Progress**: {{percent}}%
 
-### 直近の編集ファイル (Agent Trace)
+### Recently Edited Files (Agent Trace)
 - {{file1}}
 - {{file2}}
 ```
 
-## Step 4.5: スナップショット保存（`--snapshot` 指定時）
+## Step 4.5: Snapshot Save (`--snapshot` specified)
 
-`--snapshot` が指定された場合、現在の進捗状態を時刻付きスナップショットとして保存する。
+When `--snapshot` is specified, save the current progress state as a timestamped snapshot.
 
-### 保存先
+### Save Location
 
-`.claude/state/snapshots/` ディレクトリに JSON 形式で保存:
+Saved in JSON format under the `.claude/state/snapshots/` directory:
 
 ```bash
 SNAPSHOT_DIR="${PROJECT_ROOT}/.claude/state/snapshots"
@@ -136,7 +134,7 @@ mkdir -p "${SNAPSHOT_DIR}"
 SNAPSHOT_FILE="${SNAPSHOT_DIR}/progress-$(date -u +%Y%m%dT%H%M%SZ).json"
 ```
 
-### スナップショット内容
+### Snapshot Contents
 
 ```json
 {
@@ -156,98 +154,98 @@ SNAPSHOT_FILE="${SNAPSHOT_DIR}/progress-$(date -u +%Y%m%dT%H%M%SZ).json"
 }
 ```
 
-### 差分比較
+### Diff Comparison
 
-前回スナップショットが存在する場合、差分を表示:
+If a previous snapshot exists, display the diff:
 
 ```markdown
-## スナップショット差分
+## Snapshot Diff
 
-| 指標 | 前回 ({{prev_time}}) | 今回 | 変化 |
+| Metric | Previous ({{prev_time}}) | Current | Change |
 |------|---------------------|------|------|
-| 進捗率 | {{prev}}% | {{current}}% | +{{diff}}%pt |
-| 完了タスク | {{prev_done}} | {{current_done}} | +{{diff_done}} |
-| WIP タスク | {{prev_wip}} | {{current_wip}} | {{diff_wip}} |
+| Progress rate | {{prev}}% | {{current}}% | +{{diff}}%pt |
+| Completed tasks | {{prev_done}} | {{current_done}} | +{{diff_done}} |
+| WIP tasks | {{prev_wip}} | {{current_wip}} | {{diff_wip}} |
 ```
 
-> **設計意図**: snapshot はユーザーが「今の状態を記録しておきたい」と思った時に手動で使う。
-> breezing 中の自動的なプログレスフィード（26.2.3）とは別の機能。
+> **Design intent**: Snapshots are for manual use when the user wants to "record the current state."
+> They are separate from the automatic progress feed during breezing (26.2.3).
 
-## Step 5: 次のアクション提案
+## Step 5: Next Action Proposal
 
 ```
-次にやること
+What to do next
 
-**優先 1**: {{タスク}}
-- 理由: {{依頼中 / アンブロック待ち}}
+**Priority 1**: {{task}}
+- Reason: {{pending request / waiting for unblock}}
 
-**推奨**: harness-work, harness-review
+**Recommended**: harness-work, harness-review
 ```
 
-## 異常検知
+## Anomaly Detection
 
-| 状況 | 警告 |
+| Situation | Warning |
 |------|------|
-| 複数の `cc:WIP` | 複数タスクが同時進行中 |
-| `pm:依頼中` が未処理 | PM の依頼を先に処理する |
-| 大きな乖離 | タスク管理が追いついていない |
-| WIP が 3日以上更新なし | ブロックされていないか確認 |
+| Multiple `cc:WIP` | Multiple tasks in progress simultaneously |
+| Unprocessed `pm:requested` | Process PM's request first |
+| Large drift | Task management is falling behind |
+| WIP without updates for 3+ days | Check if blocked |
 
-## Step 6: レトロスペクティブ（デフォルト ON）
+## Step 6: Retrospective (default ON)
 
-`cc:完了` タスクが 1 件以上あれば自動的に振り返りを実行する。
-`--no-retro` で明示的にスキップ可能。
+Automatically runs a retrospective when 1 or more `cc:done` tasks exist.
+Can be explicitly skipped with `--no-retro`.
 
-### Step R1: 完了タスク収集
+### Step R1: Collect Completed Tasks
 
 ```bash
-# Plans.md から cc:完了 / pm:確認済 のタスクを抽出
-grep -E 'cc:完了|pm:確認済' Plans.md
+# Extract cc:done / pm:confirmed from Plans.md
+grep -E 'cc:done|pm:confirmed' Plans.md
 
-# 直近の完了コミット履歴
+# Recent completion commit history
 git log --oneline --since="7 days ago"
 
-# 変更規模
+# Change volume
 git diff --stat HEAD~10
 ```
 
-### Step R2: 振り返り 4 項目
+### Step R2: Retrospective 4 Items
 
-| 項目 | 分析方法 |
+| Item | Analysis Method |
 |------|---------|
-| **見積もり精度** | Plans.md のタスク記述から想定ファイル数を推論 → `git diff --stat` の実変更ファイル数と比較 |
-| **ブロック原因** | `blocked` マーカーが付いたタスクの理由パターンを集計（技術的/外部依存/仕様不明確） |
-| **品質マーカー的中率** | `[feature:security]` 等を付けたタスクで実際に関連問題が出たか |
-| **スコープ変動** | Plans.md の初回コミット時のタスク数 vs 現在のタスク数（追加/削除件数） |
+| **Estimation accuracy** | Infer expected file count from Plans.md task descriptions -> Compare with actual changed file count from `git diff --stat` |
+| **Block causes** | Aggregate reason patterns for tasks with `blocked` markers (technical/external dependency/unclear spec) |
+| **Quality marker accuracy** | Did tasks tagged with `[feature:security]` etc. actually encounter related issues? |
+| **Scope variation** | Task count at initial Plans.md commit vs current task count (additions/removals) |
 
-### Step R3: 振り返りサマリー出力
+### Step R3: Retrospective Summary Output
 
 ```markdown
-## 振り返りサマリー
+## Retrospective Summary
 
-**期間**: {{start_date}} 〜 {{end_date}}
+**Period**: {{start_date}} - {{end_date}}
 
-| 指標 | 値 |
+| Metric | Value |
 |------|-----|
-| 完了タスク | {{count}} 件 |
-| ブロック発生 | {{blocked_count}} 件 |
-| スコープ変動 | +{{added}} / -{{removed}} 件 |
-| 見積もり精度 | 想定 {{est}} ファイル → 実際 {{actual}} ファイル |
+| Completed tasks | {{count}} |
+| Blocks occurred | {{blocked_count}} |
+| Scope variation | +{{added}} / -{{removed}} |
+| Estimation accuracy | Expected {{est}} files -> Actual {{actual}} files |
 
-### 学び
-- {{1-2 行の学び}}
+### Learnings
+- {{1-2 lines of learnings}}
 
-### 次に活かすこと
-- {{1-2 行の改善アクション}}
+### Actions for Next Time
+- {{1-2 lines of improvement actions}}
 ```
 
-### Step R4: harness-mem への記録
+### Step R4: Record to harness-mem
 
-振り返り結果を harness-mem に記録し、次回の `create` 時に参照できるようにする。
-記録先: `.claude/agent-memory/` 配下の該当エージェントメモリ。
+Record retrospective results to harness-mem so they can be referenced during the next `create`.
+Save location: Under the corresponding agent memory in `.claude/agent-memory/`.
 
-## 関連スキル
+## Related Skills
 
-- `harness-plan` — 計画作成・タスク管理
-- `harness-work` — タスク実装
-- `harness-review` — コードレビュー
+- `harness-plan` — Plan creation and task management
+- `harness-work` — Task implementation
+- `harness-review` — Code review

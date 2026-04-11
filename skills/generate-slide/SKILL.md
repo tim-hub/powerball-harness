@@ -1,226 +1,224 @@
 ---
 name: generate-slide
-description: "Nano Banana Proでプロジェクト紹介スライドを自動生成。スライド、1枚紹介、ビジュアル紹介で起動。動画生成やデッキ作成では起動しない。"
-description-ja: "Nano Banana Proでプロジェクト紹介スライドを自動生成。スライド、1枚紹介、ビジュアル紹介で起動。動画生成やデッキ作成では起動しない。"
-description-en: "Generate project intro slides with Nano Banana Pro. Use when user mentions slide, project slide, 1-page summary, or visual introduction."
+description: "Use this skill whenever the user asks for a project slide, one-page visual summary, project introduction image, or visual overview of a project. Also use when the user wants to present a project visually or create a promotional image for a repository. Do NOT load for: presentation decks (multiple slides), video generation, text-only documentation, or code implementation. Generates project introduction slide images using Nano Banana Pro (Gemini image API) with 3 visual patterns, quality checks, and retries."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "AskUserQuestion"]
 argument-hint: "[project-path|description]"
 ---
 
 # Generate Slide Skill
 
-プロジェクトの内容を紹介・説明する1枚スライド画像を、Nano Banana Pro（Gemini 3 Pro Image Preview）API で自動生成します。
+Automatically generates single-slide images that introduce and explain a project, using the Nano Banana Pro (Gemini 3 Pro Image Preview) API.
 
 ---
 
-## 概要
+## Overview
 
-3パターン x 各2枚候補 = 計6枚生成 → パターンごとに品質チェック → NG ならリトライ → 各パターンの最良1枚、計3枚を出力。
+Generates 3 patterns x 2 candidates each = 6 images total → quality check per pattern → retry if NG → outputs the best 1 image per pattern, 3 images total.
 
-## 前提条件
+## Prerequisites
 
-- `GOOGLE_AI_API_KEY` 環境変数が設定済み
-- Google AI Studio で Nano Banana Pro（Gemini 3 Pro Image Preview）が有効化済み
+- `GOOGLE_AI_API_KEY` environment variable is set
+- Nano Banana Pro (Gemini 3 Pro Image Preview) is enabled in Google AI Studio
 
-## 機能詳細
+## Feature Details
 
-| 機能 | 詳細 |
-|------|------|
-| **スライド画像生成** | See [references/slide-generator.md](${CLAUDE_SKILL_DIR}/references/slide-generator.md) |
-| **品質判定** | See [references/slide-quality-check.md](${CLAUDE_SKILL_DIR}/references/slide-quality-check.md) |
+| Feature | Details |
+|---------|--------|
+| **Slide Image Generation** | See [references/slide-generator.md](${CLAUDE_SKILL_DIR}/references/slide-generator.md) |
+| **Quality Assessment** | See [references/slide-quality-check.md](${CLAUDE_SKILL_DIR}/references/slide-quality-check.md) |
 
 ---
 
-## 実行フロー
+## Execution Flow
 
 ```
 /generate-slide
     |
-    +--[Step 1] 情報収集
-    |   +-- ユーザー指定テキスト or コードベース自動分析（README, package.json 等）
-    |   +-- プロジェクト名・概要・主要機能・技術スタックを抽出
+    +--[Step 1] Information Gathering
+    |   +-- User-specified text or automatic codebase analysis (README, package.json, etc.)
+    |   +-- Extract project name, overview, key features, and tech stack
     |
-    +--[Step 2] 仕様確認（AskUserQuestion）
-    |   +-- サイズ・アスペクト比（デフォルト: 16:9 / 2K）
-    |   +-- トーン（テック、カジュアル、コーポレート等）
-    |   +-- 強調したいポイント（曖昧な場合のみ質問）
+    +--[Step 2] Specification Confirmation (AskUserQuestion)
+    |   +-- Size and aspect ratio (default: 16:9 / 2K)
+    |   +-- Tone (tech, casual, corporate, etc.)
+    |   +-- Points to emphasize (ask only when ambiguous)
     |
-    +--[Step 3] 3パターン x 2枚生成（Nano Banana Pro API x 6回）
-    |   +-- Pattern A: Minimalist（2枚）
-    |   +-- Pattern B: Infographic（2枚）
-    |   +-- Pattern C: Hero Visual（2枚）
+    +--[Step 3] Generate 3 patterns x 2 images (Nano Banana Pro API x 6 calls)
+    |   +-- Pattern A: Minimalist (2 images)
+    |   +-- Pattern B: Infographic (2 images)
+    |   +-- Pattern C: Hero Visual (2 images)
     |
-    +--[Step 4] パターンごとに品質チェック
-    |   +-- 各パターンの2枚を Claude が Read で読み込み
-    |   +-- 5段階スコアリング → 高い方を採用候補
-    |   +-- 両方スコア2以下 → プロンプト改善してリトライ（最大3回）
-    |   +-- リトライ上限到達 → ユーザーに報告、続行 or スキップを選択
+    +--[Step 4] Quality check per pattern
+    |   +-- Claude reads the 2 images per pattern via Read
+    |   +-- 5-level scoring → higher score becomes the candidate
+    |   +-- Both score 2 or below → improve prompt and retry (up to 3 times)
+    |   +-- Retry limit reached → report to user, choose to continue or skip
     |
-    +--[Step 5] 最良3枚を出力
-        +-- 各パターンのベスト1枚を selected/ にコピー
-        +-- 結果一覧（パス + スコア + 評価コメント）をユーザーに提示
+    +--[Step 5] Output the best 3 images
+        +-- Copy the best 1 image per pattern to selected/
+        +-- Present the results list (path + score + evaluation comment) to the user
 ```
 
 ---
 
-## デザインパターン
+## Design Patterns
 
-| パターン | コンセプト | 特徴 |
-|---------|-----------|------|
-| **Minimalist** | 余白とタイポグラフィ主体 | clean, whitespace, typography-driven, elegant |
-| **Infographic** | データ/フロー可視化 | data visualization, metrics, flow diagram, structured |
-| **Hero Visual** | 大ビジュアル + キャッチコピー | bold visual, impactful, hero image, catchy headline |
+| Pattern | Concept | Characteristics |
+|---------|---------|----------------|
+| **Minimalist** | Whitespace and typography focused | clean, whitespace, typography-driven, elegant |
+| **Infographic** | Data/flow visualization | data visualization, metrics, flow diagram, structured |
+| **Hero Visual** | Large visual + catchphrase | bold visual, impactful, hero image, catchy headline |
 
 ---
 
-## 出力先
+## Output Destination
 
 ```
 out/slides/
-+-- minimalist_1.png       # Pattern A 候補1
-+-- minimalist_2.png       # Pattern A 候補2
-+-- infographic_1.png      # Pattern B 候補1
-+-- infographic_2.png      # Pattern B 候補2
-+-- hero_1.png             # Pattern C 候補1
-+-- hero_2.png             # Pattern C 候補2
++-- minimalist_1.png       # Pattern A candidate 1
++-- minimalist_2.png       # Pattern A candidate 2
++-- infographic_1.png      # Pattern B candidate 1
++-- infographic_2.png      # Pattern B candidate 2
++-- hero_1.png             # Pattern C candidate 1
++-- hero_2.png             # Pattern C candidate 2
 +-- selected/
-|   +-- minimalist.png     # Pattern A 最良
-|   +-- infographic.png    # Pattern B 最良
-|   +-- hero.png           # Pattern C 最良
-+-- quality-report.md      # 品質チェック結果レポート
+|   +-- minimalist.png     # Pattern A best
+|   +-- infographic.png    # Pattern B best
+|   +-- hero.png           # Pattern C best
++-- quality-report.md      # Quality check results report
 ```
 
 ---
 
-## 実行手順
+## Execution Steps
 
-### Step 1: 情報収集
+### Step 1: Information Gathering
 
-プロジェクト情報を以下の優先順位で収集:
+Collect project information in the following priority order:
 
-1. **ユーザー指定テキスト**: 引数でプロジェクト説明が渡された場合はそれを使用
-2. **コードベース自動分析**: 引数がない場合、以下を自動分析
-   - `README.md` — プロジェクト概要
-   - `package.json` / `Cargo.toml` / `pyproject.toml` — プロジェクト名・説明・依存関係
-   - `CLAUDE.md` — プロジェクト構成・目的
-   - `Plans.md` — 進行中のタスク（存在する場合）
+1. **User-specified text**: Use the project description if provided as an argument
+2. **Automatic codebase analysis**: If no argument is provided, automatically analyze the following:
+   - `README.md` — Project overview
+   - `package.json` / `Cargo.toml` / `pyproject.toml` — Project name, description, dependencies
+   - `CLAUDE.md` — Project structure and purpose
+   - `Plans.md` — In-progress tasks (if present)
 
-抽出する情報:
+Information to extract:
 
-| 項目 | 例 |
-|------|-----|
-| プロジェクト名 | Claude Code Harness |
-| 概要（1-2文） | Claude Code を Plan-Work-Review で自律運用するプラグイン |
-| 主要機能（3-5個） | スキル管理、品質チェック、並列実行 |
-| 技術スタック | TypeScript, Node.js, Claude Code Plugin |
-| カラー（あれば） | ブランドカラー or 推測 |
+| Item | Example |
+|------|---------|
+| Project name | Claude Code Harness |
+| Overview (1-2 sentences) | A plugin for autonomous operation of Claude Code via Plan-Work-Review |
+| Key features (3-5) | Skill management, quality checks, parallel execution |
+| Tech stack | TypeScript, Node.js, Claude Code Plugin |
+| Colors (if available) | Brand colors or inferred |
 
-### Step 2: 仕様確認
+### Step 2: Specification Confirmation
 
-AskUserQuestion で以下を確認（デフォルト値があるため、曖昧な場合のみ質問）:
+Confirm the following via AskUserQuestion (only ask when ambiguous, as defaults are available):
 
 ```
-質問1: スライドのサイズ・アスペクト比は？
-  - 16:9 / 2K（推奨）
+Question 1: What size and aspect ratio for the slide?
+  - 16:9 / 2K (recommended)
   - 4:3 / 2K
   - 1:1 / 2K
-  - カスタム
+  - Custom
 
-質問2: トーンは？
-  - テック（ダークテーマ、コード感）
-  - カジュアル（明るい、フレンドリー）
-  - コーポレート（フォーマル、信頼感）
-  - クリエイティブ（大胆、アート寄り）
+Question 2: What tone?
+  - Tech (dark theme, code aesthetic)
+  - Casual (bright, friendly)
+  - Corporate (formal, trustworthy)
+  - Creative (bold, art-oriented)
 ```
 
-### Step 3: 画像生成
+### Step 3: Image Generation
 
-`slide-generator.md` の手順に従い、3パターン x 2枚 = 6枚を生成。
+Follow the steps in `slide-generator.md` to generate 3 patterns x 2 images = 6 images.
 
-各パターンの生成は独立しているため、可能な限り並列で curl を実行:
+Since each pattern's generation is independent, run curl in parallel where possible:
 
 ```bash
-# 並列実行例（3パターン x 2枚）
+# Parallel execution example (3 patterns x 2 images)
 for pattern in minimalist infographic hero; do
   for i in 1 2; do
-    # slide-generator.md の curl パターンを実行
-    # → out/slides/${pattern}_${i}.png に保存
+    # Execute the curl pattern from slide-generator.md
+    # → Save to out/slides/${pattern}_${i}.png
   done
 done
 ```
 
-### Step 4: 品質チェック
+### Step 4: Quality Check
 
-`slide-quality-check.md` の基準に従い、各パターンの2枚を評価:
+Evaluate the 2 images per pattern according to the criteria in `slide-quality-check.md`:
 
-1. 各画像を Read で読み込み
-2. 5段階スコアリング（情報伝達力、レイアウト、テキスト可読性、プロフェッショナル感、ブランド整合性）
-3. パターン内でスコアが高い方を採用候補
-4. 両方スコア2以下 → プロンプト改善して再生成（最大3回）
+1. Read each image via Read
+2. 5-level scoring (information conveyance, layout, text readability, professionalism, brand alignment)
+3. Select the higher-scoring image within each pattern as the candidate
+4. Both score 2 or below → improve prompt and regenerate (up to 3 times)
 
-### Step 5: 結果出力
+### Step 5: Result Output
 
 ```bash
-# 最良画像を selected/ にコピー
+# Copy the best images to selected/
 mkdir -p out/slides/selected
 cp out/slides/minimalist_best.png out/slides/selected/minimalist.png
 cp out/slides/infographic_best.png out/slides/selected/infographic.png
 cp out/slides/hero_best.png out/slides/selected/hero.png
 ```
 
-品質レポート（`out/slides/quality-report.md`）を生成:
+Generate the quality report (`out/slides/quality-report.md`):
 
 ```markdown
 # Slide Quality Report
 
-## 生成情報
-- プロジェクト: {project_name}
-- 生成日時: {datetime}
-- アスペクト比: {aspect_ratio}
-- トーン: {tone}
+## Generation Info
+- Project: {project_name}
+- Generated at: {datetime}
+- Aspect ratio: {aspect_ratio}
+- Tone: {tone}
 
-## 結果サマリー
+## Results Summary
 
-| パターン | 候補1 | 候補2 | 採用 | スコア |
-|---------|-------|-------|------|--------|
-| Minimalist | 3/5 | 4/5 | 候補2 | 4/5 |
-| Infographic | 4/5 | 3/5 | 候補1 | 4/5 |
-| Hero Visual | 5/5 | 4/5 | 候補1 | 5/5 |
+| Pattern | Candidate 1 | Candidate 2 | Selected | Score |
+|---------|------------|------------|----------|-------|
+| Minimalist | 3/5 | 4/5 | Candidate 2 | 4/5 |
+| Infographic | 4/5 | 3/5 | Candidate 1 | 4/5 |
+| Hero Visual | 5/5 | 4/5 | Candidate 1 | 5/5 |
 
-## 詳細評価
+## Detailed Evaluation
 ...
 ```
 
 ---
 
-## エラーハンドリング
+## Error Handling
 
-### GOOGLE_AI_API_KEY 未設定
+### GOOGLE_AI_API_KEY Not Set
 
 ```
-GOOGLE_AI_API_KEY が設定されていません。
+GOOGLE_AI_API_KEY is not set.
 
-設定方法:
-1. Google AI Studio でAPIキーを取得: https://ai.google.dev/aistudio
+Setup instructions:
+1. Get an API key from Google AI Studio: https://ai.google.dev/aistudio
 2. export GOOGLE_AI_API_KEY="your-api-key"
 ```
 
-### 全パターンでリトライ上限到達
+### Retry Limit Reached for All Patterns
 
-AskUserQuestion で選択肢を提示:
+Present options via AskUserQuestion:
 
 ```
-パターン {pattern} の画像が3回のリトライでも基準を満たしませんでした。
+Images for pattern {pattern} did not meet the criteria after 3 retries.
 
-選択肢:
-1. 最も高スコアの画像を採用して続行
-2. このパターンをスキップ
-3. プロンプトを手動で指定して再生成
+Options:
+1. Use the highest-scoring image and continue
+2. Skip this pattern
+3. Manually specify a prompt and regenerate
 ```
 
 ---
 
-## 関連スキル
+## Related Skills
 
-- `generate-video` — プロダクトデモ動画生成（画像生成エンジンを共有）
-- `notebookLM` — ドキュメント・スライド生成（別アプローチ）
+- `generate-video` — Product demo video generation (shares the image generation engine)
+- `notebookLM` — Document and slide generation (different approach)

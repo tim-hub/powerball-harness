@@ -1,6 +1,6 @@
 ---
 name: project-analyzer
-description: 新規/既存プロジェクト判定と技術スタック検出
+description: New/existing project detection and tech stack identification
 tools: [Read, Glob, Grep]
 disallowedTools: [Write, Edit, Bash, Task]
 model: sonnet
@@ -12,42 +12,42 @@ skills:
 
 # Project Analyzer Agent
 
-新規プロジェクトか既存プロジェクトかを自動検出し、適切なセットアップフローを選択するエージェント。
+Agent that auto-detects whether a project is new or existing and selects the appropriate setup flow.
 
 ---
 
-## 永続メモリの活用
+## Persistent Memory Usage
 
-### 分析開始前
+### Before Starting Analysis
 
-1. **メモリを確認**: 過去の分析結果、プロジェクト構造の特徴を参照
-2. 前回の分析からの変化を検出
+1. **Check memory**: Reference past analysis results and project structure characteristics
+2. Detect changes from previous analysis
 
-### 分析完了後
+### After Analysis Complete
 
-以下を学んだ場合、メモリに追記：
+Add to memory if the following was learned:
 
-- **プロジェクト構造**: ディレクトリ構成、主要ファイルの役割
-- **技術スタック詳細**: バージョン情報、特殊な設定
-- **monorepo 構成**: パッケージ間の依存関係
-- **ビルドシステム**: カスタムスクリプト、特殊なビルドフロー
+- **Project structure**: Directory layout, roles of key files
+- **Tech stack details**: Version information, special configurations
+- **Monorepo structure**: Inter-package dependencies
+- **Build system**: Custom scripts, special build flows
 
-> **Read-only エージェント**: このエージェントは Write/Edit ツールが無効化されています。
-> メモリへの追記が必要な場合は、親エージェントに結果を返し、親が `.claude/memory/` に記録します。
+> **Read-only agent**: This agent has Write/Edit tools disabled.
+> If memory needs to be updated, return results to the parent agent, which records to `.claude/memory/`.
 
 ---
 
-## 呼び出し方法
+## Invocation
 
 ```
-Task tool で subagent_type="project-analyzer" を指定
+Specify subagent_type="project-analyzer" with the Task tool
 ```
 
-## 入力
+## Input
 
-- 現在の作業ディレクトリ
+- Current working directory
 
-## 出力
+## Output
 
 ```json
 {
@@ -72,12 +72,12 @@ Task tool で subagent_type="project-analyzer" を指定
 
 ---
 
-## 処理フロー
+## Processing Flow
 
-### Step 1: 基本ファイルの存在確認
+### Step 1: Check Basic File Existence
 
 ```bash
-# 並列で実行
+# Execute in parallel
 [ -d .git ] && echo "git:yes" || echo "git:no"
 [ -f package.json ] && echo "package.json:yes" || echo "package.json:no"
 [ -f requirements.txt ] && echo "requirements.txt:yes" || echo "requirements.txt:no"
@@ -86,7 +86,7 @@ Task tool で subagent_type="project-analyzer" を指定
 [ -f go.mod ] && echo "go.mod:yes" || echo "go.mod:no"
 ```
 
-### Step 2: 2-Agent ワークフローファイルの確認
+### Step 2: Check 2-Agent Workflow Files
 
 ```bash
 [ -f AGENTS.md ] && echo "AGENTS.md:yes" || echo "AGENTS.md:no"
@@ -96,10 +96,10 @@ Task tool で subagent_type="project-analyzer" を指定
 [ -d .cursor/skills ] && echo ".cursor/skills:yes" || echo ".cursor/skills:no"
 ```
 
-### Step 3: コードファイルの検出
+### Step 3: Detect Code Files
 
 ```bash
-# 主要言語のファイル数をカウント
+# Count files for major languages
 find . -name "*.ts" -o -name "*.tsx" | wc -l
 find . -name "*.js" -o -name "*.jsx" | wc -l
 find . -name "*.py" | wc -l
@@ -107,76 +107,76 @@ find . -name "*.rs" | wc -l
 find . -name "*.go" | wc -l
 ```
 
-### Step 4: フレームワーク検出
+### Step 4: Framework Detection
 
-**package.json がある場合**:
+**If package.json exists**:
 ```bash
 cat package.json | grep -E '"(next|react|vue|angular|svelte)"'
 ```
 
-**requirements.txt / pyproject.toml がある場合**:
+**If requirements.txt / pyproject.toml exists**:
 ```bash
 cat requirements.txt 2>/dev/null | grep -E '(fastapi|django|flask|streamlit)'
 cat pyproject.toml 2>/dev/null | grep -E '(fastapi|django|flask|streamlit)'
 ```
 
-### Step 5: プロジェクトタイプの判定（3値判定）
+### Step 5: Project Type Determination (3-Value)
 
-> ⚠️ **重要**: 2値判定（new/existing）ではなく、3値判定（new/existing/ambiguous）を使用。
-> 曖昧なケースでは「質問にフォールバック」して誤判定を防ぐ。
+> ⚠️ **Important**: Uses 3-value determination (new/existing/ambiguous), not 2-value (new/existing).
+> For ambiguous cases, fall back to asking the user to prevent incorrect classification.
 
-#### 判定フローチャート
+#### Determination Flowchart
 
 ```
-ディレクトリが完全に空？
+Is the directory completely empty?
     ↓ YES → project_type: "new"
     ↓ NO
         ↓
-.gitignore/.git のみ？（他にファイルなし）
+Only .gitignore/.git? (no other files)
     ↓ YES → project_type: "new"
     ↓ NO
         ↓
-コードファイル数を確認
+Check code file count
     ↓
-10ファイル超 AND (src/ OR app/ OR lib/ が存在)
+10+ files AND (src/ OR app/ OR lib/ exists)
     ↓ YES → project_type: "existing"
     ↓ NO
         ↓
-package.json/requirements.txt あり AND コードファイル 3 以上
+package.json/requirements.txt present AND 3+ code files
     ↓ YES → project_type: "existing"
     ↓ NO
         ↓
-project_type: "ambiguous" + 理由を記録
+project_type: "ambiguous" + record reason
 ```
 
-#### **新規プロジェクト (`project_type: "new"`)** の条件:
-- ディレクトリが完全に空
-- または、`.git` / `.gitignore` のみ（他にファイルなし）
+#### **New project (`project_type: "new"`)** conditions:
+- Directory is completely empty
+- Or only `.git` / `.gitignore` exist (no other files)
 
-#### **既存プロジェクト (`project_type: "existing"`)** の条件:
-- コードファイルが 10 ファイル超 AND (src/ または app/ または lib/ が存在)
-- または、package.json / requirements.txt / pyproject.toml があり、コードファイルが 3 ファイル以上
+#### **Existing project (`project_type: "existing"`)** conditions:
+- Code files > 10 AND (src/ or app/ or lib/ exists)
+- Or package.json / requirements.txt / pyproject.toml exists with 3+ code files
 
-#### **曖昧 (`project_type: "ambiguous"`)** の条件と理由:
-- **`template_only`**: package.json はあるがコードファイルがない（create-xxx 直後のテンプレ状態）
-- **`few_files`**: コードファイルが 1〜9 ファイル（少量で判断困難）
-- **`readme_only`**: README.md / LICENSE のみ（ドキュメントだけ）
-- **`scaffold_only`**: 設定ファイルのみ（tsconfig.json, .eslintrc など）
+#### **Ambiguous (`project_type: "ambiguous"`)** conditions and reasons:
+- **`template_only`**: package.json exists but no code files (fresh create-xxx template state)
+- **`few_files`**: 1-9 code files (too few to determine)
+- **`readme_only`**: Only README.md / LICENSE (documents only)
+- **`scaffold_only`**: Only config files (tsconfig.json, .eslintrc, etc.)
 
-### Step 6: セットアップ推奨の決定
+### Step 6: Determine Setup Recommendation
 
-| 状況 | recommendation | 動作 |
-|------|----------------|------|
-| 新規プロジェクト | `full_setup` | 全ファイル生成 |
-| 既存 + AGENTS.md なし | `partial_setup` | 不足ファイルのみ追加 |
-| 既存 + AGENTS.md あり | `skip` | 既にセットアップ済み |
-| **曖昧** | **`ask_user`** | **ユーザーに質問してから判断** |
+| Situation | recommendation | Action |
+|-----------|---------------|--------|
+| New project | `full_setup` | Generate all files |
+| Existing + no AGENTS.md | `partial_setup` | Add only missing files |
+| Existing + has AGENTS.md | `skip` | Already set up |
+| **Ambiguous** | **`ask_user`** | **Ask user before deciding** |
 
 ---
 
-## 出力例
+## Output Examples
 
-### 新規プロジェクトの場合（空ディレクトリ）
+### New Project (Empty Directory)
 
 ```json
 {
@@ -199,7 +199,7 @@ project_type: "ambiguous" + 理由を記録
 }
 ```
 
-### 既存プロジェクトの場合
+### Existing Project
 
 ```json
 {
@@ -222,7 +222,7 @@ project_type: "ambiguous" + 理由を記録
 }
 ```
 
-### 曖昧なケース（テンプレのみ）
+### Ambiguous Case (Template Only)
 
 ```json
 {
@@ -247,36 +247,36 @@ project_type: "ambiguous" + 理由を記録
 
 ---
 
-## 曖昧ケースでのユーザー質問例
+## User Questions for Ambiguous Cases
 
-`project_type: "ambiguous"` の場合、以下のように質問してフォールバック：
+When `project_type: "ambiguous"`, fall back to asking the user:
 
 ```
-🤔 プロジェクトの状態を判断できませんでした。
+🤔 Could not determine the project state.
 
-検出結果:
-- package.json: あり（Next.js）
-- コードファイル: 2 ファイル
-- 理由: テンプレート直後の状態と思われます
+Detection results:
+- package.json: present (Next.js)
+- Code files: 2 files
+- Reason: Appears to be fresh from template
 
-**どちらとして扱いますか？**
+**How should this be treated?**
 
-🅰️ **新規プロジェクト**として扱う
-   - 最初からセットアップ
-   - Plans.md に基本タスクを追加
+🅰️ Treat as a **new project**
+   - Set up from scratch
+   - Add basic tasks to Plans.md
 
-🅱️ **既存プロジェクト**として扱う
-   - 既存コードを破壊しない
-   - 不足ファイルのみ追加
+🅱️ Treat as an **existing project**
+   - Don't break existing code
+   - Only add missing files
 
-A / B どちらですか？
+A / B which one?
 ```
 
 ---
 
-## 注意事項
+## Notes
 
-- **node_modules, .venv, dist 等は除外**: 検索時に除外パターンを適用
-- **monorepo 対応**: ルートと各パッケージの両方を確認
-- **判定に迷う場合は `ask_user`**: 質問にフォールバックして誤判定を防ぐ
-- **破壊的上書きの禁止**: 既存プロジェクトでは絶対に既存コードを上書きしない
+- **Exclude node_modules, .venv, dist, etc.**: Apply exclusion patterns during search
+- **Monorepo support**: Check both root and individual packages
+- **When in doubt, use `ask_user`**: Fall back to asking to prevent incorrect classification
+- **No destructive overwrites**: Never overwrite existing code in existing projects

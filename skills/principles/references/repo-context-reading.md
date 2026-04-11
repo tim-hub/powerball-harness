@@ -1,74 +1,74 @@
 ---
 name: core-read-repo-context
-description: "リポジトリのコンテキスト（README, Plans.md, 既存コード）を読み取り理解する。セッション開始時、新しいタスク開始前、またはプロジェクト構造の理解が必要な場合に使用します。"
+description: "Read and understand repository context (README, Plans.md, existing code). Use at session start, before starting a new task, or when understanding the project structure is needed."
 allowed-tools: ["Read", "Grep", "Glob"]
 ---
 
 # Read Repository Context
 
-リポジトリの構造とコンテキストを把握するためのスキル。
-作業開始前や、新しい機能の実装前に使用します。
+A skill for understanding the repository structure and context.
+Use before starting work or before implementing a new feature.
 
 ---
 
-## 入力
+## Input
 
-- **必須**: リポジトリのルートディレクトリへのアクセス
-- **オプション**: 特定のファイルやディレクトリへのフォーカス指定
-
----
-
-## 出力
-
-リポジトリの理解を含む構造化されたコンテキスト情報
+- **Required**: Access to the repository root directory
+- **Optional**: Focus on specific files or directories
 
 ---
 
-## 実行手順
+## Output
 
-### Step 1: 基本構造の把握
+Structured context information including repository understanding
+
+---
+
+## Execution Steps
+
+### Step 1: Understand Basic Structure
 
 ```bash
-# ディレクトリ構造
+# Directory structure
 ls -la
 find . -maxdepth 2 -type d | head -20
 
-# 主要ファイルの確認
+# Check main files
 cat README.md 2>/dev/null | head -50
 cat package.json 2>/dev/null | head -20
 ```
 
-### Step 2: ワークフローファイルの確認
+### Step 2: Check Workflow Files
 
 ```bash
-# Plans.md の状態
+# Plans.md status
 cat Plans.md 2>/dev/null || echo "Plans.md not found"
 
-# AGENTS.md の役割分担
+# AGENTS.md role assignments
 cat AGENTS.md 2>/dev/null | head -100 || echo "AGENTS.md not found"
 
-# CLAUDE.md の設定
+# CLAUDE.md configuration
 cat CLAUDE.md 2>/dev/null | head -50 || echo "CLAUDE.md not found"
 ```
 
-### Step 3: 技術スタックの特定
+### Step 3: Identify the Tech Stack
 
 ```bash
-# フロントエンド
+# Frontend
 [ -f package.json ] && cat package.json | grep -E '"(react|vue|angular|next|nuxt)"'
 
-# バックエンド
+# Backend
 [ -f requirements.txt ] && head -10 requirements.txt
 [ -f Gemfile ] && head -10 Gemfile
 [ -f go.mod ] && head -10 go.mod
 
-# 設定ファイル
+# Configuration files
 [ -f tsconfig.json ] && echo "TypeScript project"
 [ -f .eslintrc* ] && echo "ESLint configured"
 [ -f tailwind.config.* ] && echo "Tailwind CSS"
 ```
 
-### Step 4: Git 状態の確認
+### Step 4: Check Git Status
 
 ```bash
 git status -sb
@@ -78,41 +78,41 @@ git branch -a | head -10
 
 ---
 
-## 出力フォーマット
+## Output Format
 
 ```markdown
-## 📁 リポジトリコンテキスト
+## Repository Context
 
-### 基本情報
-- **プロジェクト名**: {{name}}
-- **技術スタック**: {{framework}} + {{language}}
-- **現在のブランチ**: {{branch}}
+### Basic Information
+- **Project name**: {{name}}
+- **Tech stack**: {{framework}} + {{language}}
+- **Current branch**: {{branch}}
 
-### ワークフロー状態
-- **Plans.md**: {{存在する/しない, タスク数}}
-- **AGENTS.md**: {{存在する/しない}}
-- **CLAUDE.md**: {{存在する/しない}}
+### Workflow State
+- **Plans.md**: {{exists/does not exist, task count}}
+- **AGENTS.md**: {{exists/does not exist}}
+- **CLAUDE.md**: {{exists/does not exist}}
 
-### 直近の変更
-{{最近のコミット3件}}
+### Recent Changes
+{{last 3 commits}}
 
-### 重要なファイル
-{{認識すべき主要ファイル一覧}}
+### Important Files
+{{list of key files to be aware of}}
 ```
 
 ---
 
-## 使用タイミング
+## When to Use
 
-1. **セッション開始時**: 現在の状態把握
-2. **新機能実装前**: 既存コードとの整合性確認
-3. **エラー調査時**: 関連ファイルの特定
-4. **レビュー時**: 変更の影響範囲理解
+1. **At session start**: Understand the current state
+2. **Before implementing a new feature**: Check consistency with existing code
+3. **During error investigation**: Identify related files
+4. **During review**: Understand the scope of changes
 
 ---
 
-## 注意事項
+## Notes
 
-- **大規模リポジトリ**: ファイル数が多い場合は重要部分に絞る
-- **秘密情報**: .env や secrets/ の内容は読まない
-- **キャッシュ活用**: 同一セッション内では再読み込みを最小化
+- **Large repositories**: Focus on important sections when there are many files
+- **Sensitive information**: Do not read contents of .env or secrets/
+- **Cache utilization**: Minimize re-reading within the same session

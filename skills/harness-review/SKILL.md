@@ -1,8 +1,6 @@
 ---
 name: harness-review
-description: "Harness v3 統合レビュースキル。コード・プラン・スコープを多角的にレビュー。以下で起動: レビュー、コードレビュー、プランレビュー、スコープ分析、セキュリティ、品質チェック、harness-review。実装・新機能・バグ修正・セットアップ・リリースには使わない。"
-description-en: "Unified review skill for Harness v3. Multi-angle code, plan, and scope review. Use when user mentions: review, code review, plan review, scope analysis, security, performance, quality checks, PRs, diffs, harness-review. Do NOT load for: implementation, new features, bug fixes, setup, or release."
-description-ja: "Harness v3 統合レビュースキル。コード・プラン・スコープを多角的にレビュー。以下で起動: レビュー、コードレビュー、プランレビュー、スコープ分析、セキュリティ、品質チェック、harness-review。実装・新機能・バグ修正・セットアップ・リリースには使わない。"
+description: "Use this skill whenever the user asks to review code, review a plan, check quality, analyze scope, run security checks, examine PRs or diffs, or runs /harness-review. Also use when the user wants a second opinion on changes, performance review, or pre-merge quality gate. Do NOT load for: code implementation (use harness-work), new features, bug fixes, project setup, or release. Unified review skill for Harness v3 — multi-angle code, plan, and scope review with optional dual-reviewer and security analysis."
 allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[code|plan|scope] [--dual] [--security]"
 context: fork
@@ -11,102 +9,102 @@ effort: high
 
 # Harness Review (v3)
 
-Harness v3 の統合レビュースキル。
-以下の旧スキルを統合:
+Unified review skill for Harness v3.
+Consolidates the following legacy skills:
 
-- `harness-review` — コード・プラン・スコープ多角的レビュー
-- `codex-review` — Codex CLI によるセカンドオピニオン
-- `verify` — ビルド検証・エラー復旧・レビュー修正適用
-- `troubleshoot` — エラー・障害の診断と修復
+- `harness-review` — Multi-angle code, plan, and scope review
+- `codex-review` — Second opinion via Codex CLI
+- `verify` — Build verification, error recovery, and review fix application
+- `troubleshoot` — Error and incident diagnosis and repair
 
 ## Quick Reference
 
-| ユーザー入力 | サブコマンド | 動作 |
-|------------|------------|------|
-| "レビューして" / "review" | `code`（自動） | コードレビュー（直近の変更） |
-| "`harness-plan` 実行後" | `plan`（自動） | 計画レビュー |
-| "スコープ確認" | `scope`（自動） | スコープ分析 |
-| `harness-review code` | `code` | コードレビュー強制 |
-| `harness-review plan` | `plan` | 計画レビュー強制 |
-| `harness-review scope` | `scope` | スコープ分析強制 |
-| `harness-review --dual` | `code`（自動） + Codex 並行 | Claude + Codex dual review |
-| `harness-review --security` | Security Review | OWASP Top 10 専用セキュリティレビュー（read-only） |
+| User Input | Subcommand | Behavior |
+|------------|------------|----------|
+| "Review this" / "review" | `code` (auto) | Code review (recent changes) |
+| "After `harness-plan`" | `plan` (auto) | Plan review |
+| "Check scope" | `scope` (auto) | Scope analysis |
+| `harness-review code` | `code` | Force code review |
+| `harness-review plan` | `plan` | Force plan review |
+| `harness-review scope` | `scope` | Force scope analysis |
+| `harness-review --dual` | `code` (auto) + Codex parallel | Claude + Codex dual review |
+| `harness-review --security` | Security Review | OWASP Top 10 dedicated security review (read-only) |
 
-## オプション
+## Options
 
-| オプション | デフォルト | 説明 |
-|-----------|-----------|------|
-| `--dual` | なし | Claude Reviewer と Codex Reviewer を並行実行し verdict をマージ。Codex 不可時は自動フォールバック。詳細: [`${CLAUDE_SKILL_DIR}/references/dual-review.md`](${CLAUDE_SKILL_DIR}/references/dual-review.md) |
-| `--security` | なし | OWASP Top 10 ベースのセキュリティ専用レビューを実行。read-only（Write/Edit/Bash 書き込み不可）。詳細: [`${CLAUDE_SKILL_DIR}/references/security-profile.md`](${CLAUDE_SKILL_DIR}/references/security-profile.md) |
-| `--no-commit` | なし | APPROVE 時の自動コミットを無効化 |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--dual` | none | Run Claude Reviewer and Codex Reviewer in parallel and merge verdicts. Auto-fallback when Codex is unavailable. Details: [`${CLAUDE_SKILL_DIR}/references/dual-review.md`](${CLAUDE_SKILL_DIR}/references/dual-review.md) |
+| `--security` | none | Execute OWASP Top 10-based security-only review. Read-only (no Write/Edit/Bash writes). Details: [`${CLAUDE_SKILL_DIR}/references/security-profile.md`](${CLAUDE_SKILL_DIR}/references/security-profile.md) |
+| `--no-commit` | none | Disable auto-commit on APPROVE |
 
-## レビュータイプ自動判定
+## Review Type Auto-Detection
 
-| 直前のアクティビティ | レビュータイプ | 観点 |
-|--------------------|--------------|------|
-| `harness-work` 後 | **Code Review** | Security, Performance, Quality, Accessibility, AI Residuals |
-| `harness-plan` 後 | **Plan Review** | Clarity, Feasibility, Dependencies, Acceptance |
-| タスク追加後 | **Scope Review** | Scope-creep, Priority, Feasibility, Impact |
+| Recent Activity | Review Type | Perspectives |
+|-----------------|-------------|--------------|
+| After `harness-work` | **Code Review** | Security, Performance, Quality, Accessibility, AI Residuals |
+| After `harness-plan` | **Plan Review** | Clarity, Feasibility, Dependencies, Acceptance |
+| After task addition | **Scope Review** | Scope-creep, Priority, Feasibility, Impact |
 
-## Code Review フロー
+## Code Review Flow
 
-### Step 1: 変更差分を収集
+### Step 1: Collect Change Diff
 
 ```bash
-# BASE_REF が harness-work から渡された場合はそれを使用、なければ HEAD~1 にフォールバック
+# Use BASE_REF from harness-work if available, otherwise fall back to HEAD~1
 CHANGED_FILES="$(git diff --name-only --diff-filter=ACMR "${BASE_REF:-HEAD~1}")"
 git diff ${BASE_REF:-HEAD~1} --stat
 git diff ${BASE_REF:-HEAD~1} -- ${CHANGED_FILES}
 ```
 
-### Step 1.5: AI Residuals を静的走査
+### Step 1.5: Static Scan for AI Residuals
 
-LLM の印象だけで判定せず、再実行できる形で残骸候補を拾う。`scripts/review-ai-residuals.sh` は stable な JSON を返すので、その結果をレビュー根拠として使う。
+Rather than relying solely on LLM impressions, pick up residual candidates in a reproducible way. `scripts/review-ai-residuals.sh` returns stable JSON, which is used as review evidence.
 
 ```bash
-# 差分ベース
+# Diff-based
 AI_RESIDUALS_JSON="$(bash scripts/review-ai-residuals.sh --base-ref "${BASE_REF:-HEAD~1}")"
 
-# 対象ファイルを明示したい場合
+# To explicitly specify target files
 bash scripts/review-ai-residuals.sh path/to/file.ts path/to/config.sh
 ```
 
-### Step 2: 5観点でレビュー
+### Step 2: Review from 5 Perspectives
 
-| 観点 | チェック内容 |
-|------|------------|
-| **Security** | SQLインジェクション, XSS, 機密情報露出, 入力バリデーション |
-| **Performance** | N+1クエリ, 不要な再レンダリング, メモリリーク |
-| **Quality** | 命名, 単一責任, テストカバレッジ, エラーハンドリング |
-| **Accessibility** | ARIA属性, キーボードナビ, カラーコントラスト |
-| **AI Residuals** | `mockData`, `dummy`, `fake`, `localhost`, `TODO`, `FIXME`, `it.skip`, `describe.skip`, `test.skip`, ハードコードされた秘密情報/環境依存 URL, 明らかな仮実装コメント |
+| Perspective | Check Items |
+|-------------|-------------|
+| **Security** | SQL injection, XSS, credential exposure, input validation |
+| **Performance** | N+1 queries, unnecessary re-renders, memory leaks |
+| **Quality** | Naming, single responsibility, test coverage, error handling |
+| **Accessibility** | ARIA attributes, keyboard navigation, color contrast |
+| **AI Residuals** | `mockData`, `dummy`, `fake`, `localhost`, `TODO`, `FIXME`, `it.skip`, `describe.skip`, `test.skip`, hardcoded secrets/environment-dependent URLs, obvious placeholder implementation comments |
 
-### Step 2.2: AI Residuals の severity 判定表
+### Step 2.2: AI Residuals Severity Classification Table
 
-`AI Residuals` は、まず `scripts/review-ai-residuals.sh` の JSON を確認し、その後に diff 文脈で「本当に出荷リスクか」を最終判断する。
+For `AI Residuals`, first check the JSON from `scripts/review-ai-residuals.sh`, then make the final judgment of "is this truly a shipping risk?" from the diff context.
 
-| 重要度 | 代表例 | 判定の考え方 |
-|--------|--------|-------------|
-| **major** | `localhost` / `127.0.0.1` / `0.0.0.0` の接続先、`it.skip` / `describe.skip` / `test.skip`、ハードコードされた秘密情報っぽい値、dev/staging 固定 URL | 本番事故、誤設定、検証抜けに直結しやすい。1 件でも `REQUEST_CHANGES` |
-| **minor** | `mockData`, `dummy`, `fakeData`, `TODO`, `FIXME` | 残骸の可能性は高いが、即事故とは限らない。修正推奨だが verdict は変えない |
-| **recommendation** | `temporary implementation`, `replace later`, `placeholder implementation` のような仮実装コメント | コメント単体では即バグ断定できないが、追跡・明確化を促したい |
+| Severity | Representative Examples | Classification Rationale |
+|----------|------------------------|--------------------------|
+| **major** | `localhost` / `127.0.0.1` / `0.0.0.0` connection targets, `it.skip` / `describe.skip` / `test.skip`, hardcoded secret-like values, dev/staging fixed URLs | Directly linked to production incidents, misconfiguration, or missed validation. 1 item → `REQUEST_CHANGES` |
+| **minor** | `mockData`, `dummy`, `fakeData`, `TODO`, `FIXME` | Likely residuals, but not necessarily an immediate incident. Fix recommended but does not change verdict |
+| **recommendation** | `temporary implementation`, `replace later`, `placeholder implementation` comments | Cannot be immediately classified as a bug from comments alone, but should be tracked and clarified |
 
-### Step 2.5: 閾値基準による verdict 判定
+### Step 2.5: Verdict Determination by Threshold Criteria
 
-各指摘を以下の重要度に分類し、**この基準のみ**で verdict を決定する。
+Classify each finding by the following severity levels and determine the verdict **solely by these criteria**.
 
-| 重要度 | 定義 | verdict への影響 |
-|--------|------|-----------------|
-| **critical** | セキュリティ脆弱性、データ損失リスク、本番障害の可能性 | 1 件でも → REQUEST_CHANGES |
-| **major** | 既存機能の破壊、仕様との明確な矛盾、テスト不通過 | 1 件でも → REQUEST_CHANGES |
-| **minor** | 命名改善、コメント不足、スタイル不統一 | verdict に影響しない |
-| **recommendation** | ベストプラクティス提案、将来の改善案 | verdict に影響しない |
+| Severity | Definition | Verdict Impact |
+|----------|------------|----------------|
+| **critical** | Security vulnerabilities, data loss risk, potential production incidents | 1 item → REQUEST_CHANGES |
+| **major** | Breaking existing functionality, clear contradiction with specifications, test failures | 1 item → REQUEST_CHANGES |
+| **minor** | Naming improvements, insufficient comments, style inconsistencies | No impact on verdict |
+| **recommendation** | Best practice suggestions, future improvement ideas | No impact on verdict |
 
-> **重要**: minor / recommendation のみの場合は **必ず APPROVE** を返すこと。
-> 「あったほうが良い改善」は REQUEST_CHANGES の理由にならない。
-> `AI Residuals` でも同じ。`major` に入るのは「出荷事故や誤設定に直結しやすいもの」だけで、単なる残骸候補は `minor` または `recommendation` に留める。
+> **Important**: When only minor / recommendation items exist, **always return APPROVE**.
+> "Nice-to-have improvements" are not grounds for REQUEST_CHANGES.
+> The same applies to `AI Residuals`. Only items that are "directly linked to shipping incidents or misconfiguration" are classified as `major`; mere residual candidates are kept at `minor` or `recommendation`.
 
-### Step 3: レビュー結果出力
+### Step 3: Review Result Output
 
 ```json
 {
@@ -116,8 +114,8 @@ bash scripts/review-ai-residuals.sh path/to/file.ts path/to/config.sh
   "calibration": {
     "label": "false_positive | false_negative | missed_bug | overstrict_rule",
     "source": "manual | post-review | retrospective",
-    "notes": "観察メモ",
-    "prompt_hint": "few-shot に使う要点",
+    "notes": "observation memo",
+    "prompt_hint": "key points for few-shot",
     "few_shot_ready": true
   },
   "critical_issues": [],
@@ -126,123 +124,121 @@ bash scripts/review-ai-residuals.sh path/to/file.ts path/to/config.sh
     {
       "severity": "critical | major | minor | recommendation",
       "category": "Security | Performance | Quality | Accessibility | AI Residuals",
-      "location": "ファイル名:行番号",
-      "issue": "問題の説明",
-      "suggestion": "修正案"
+      "location": "filename:line_number",
+      "issue": "issue description",
+      "suggestion": "fix suggestion"
     }
   ],
-  "recommendations": ["必須ではない改善提案"]
+  "recommendations": ["non-mandatory improvement suggestions"]
 }
 ```
 
-browser review の場合は `scripts/generate-browser-review-artifact.sh` が `browser_mode` と route / required artifacts を決め、その後に `scripts/write-review-result.sh` で `.claude/state/review-result.json` に正規化して保存する。
-このファイルは commit guard と後続フローの共通入力になる。
-`calibration` が付くレビュー結果は `scripts/record-review-calibration.sh` で
-`.claude/state/review-calibration.jsonl` に追記し、`scripts/build-review-few-shot-bank.sh`
-で few-shot bank を更新する。
+For browser reviews, `scripts/generate-browser-review-artifact.sh` determines `browser_mode` and route / required artifacts, then `scripts/write-review-result.sh` normalizes and saves to `.claude/state/review-result.json`.
+This file serves as the shared input for the commit guard and downstream flows.
+Review results with `calibration` are appended to `.claude/state/review-calibration.jsonl` via `scripts/record-review-calibration.sh`, and the few-shot bank is updated via `scripts/build-review-few-shot-bank.sh`.
 
-### Step 3.5: --dual フラグ時の Codex 並行レビュー
+### Step 3.5: Codex Parallel Review with --dual Flag
 
-`--dual` フラグが指定されている場合、Step 3 の Claude レビューと並行して Codex レビューを実行し、結果をマージする。
+When the `--dual` flag is specified, run a Codex review in parallel with the Claude review in Step 3, then merge the results.
 
-1. Codex の利用可否を確認する（`scripts/codex-companion.sh setup --json`）
-2. 利用可能であれば `scripts/codex-companion.sh review --base "${BASE_REF:-HEAD~1}"` を起動
-3. 両方の verdict を Verdict マージルールで統合する
-4. 最終レビュー結果に `dual_review` フィールドを付加する
+1. Check Codex availability (`scripts/codex-companion.sh setup --json`)
+2. If available, launch `scripts/codex-companion.sh review --base "${BASE_REF:-HEAD~1}"`
+3. Integrate both verdicts using the Verdict Merge Rules
+4. Add a `dual_review` field to the final review result
 
-詳細な手順・出力スキーマ・フォールバック仕様は [`${CLAUDE_SKILL_DIR}/references/dual-review.md`](${CLAUDE_SKILL_DIR}/references/dual-review.md) を参照。
+For detailed procedures, output schema, and fallback specifications, see [`${CLAUDE_SKILL_DIR}/references/dual-review.md`](${CLAUDE_SKILL_DIR}/references/dual-review.md).
 
-### Step 3.6: --security フラグ時のセキュリティ専用レビュー
+### Step 3.6: Security-Only Review with --security Flag
 
-`--security` フラグが指定された場合、通常の 5 観点レビューを **スキップ**し、セキュリティ専用フローを実行する。
+When the `--security` flag is specified, **skip** the standard 5-perspective review and execute the security-only flow.
 
-**Read-only 制約**: このフロー中は Write / Edit / 書き込み系 Bash を一切実行しない。
+**Read-only constraint**: No Write / Edit / write-mode Bash operations are executed during this flow.
 
-1. セキュリティプロファイルを読み込む:
+1. Load the security profile:
    ```
    Read: ${CLAUDE_SKILL_DIR}/references/security-profile.md
    ```
-2. OWASP Top 10 全カテゴリを変更差分・関連ファイルに対して確認する
-3. 認証・認可フロー、秘密情報取り扱い、依存パッケージ脆弱性をチェックする
-4. `reviewer_profile: "security"` を設定して結果を出力する（Step 3 の JSON スキーマに準拠）
-5. Security モードの verdict 判定基準（security-profile.md 末尾参照）を適用する
+2. Check all OWASP Top 10 categories against the change diff and related files
+3. Check authentication/authorization flows, secret handling, and dependency vulnerabilities
+4. Set `reviewer_profile: "security"` and output results (conforming to Step 3's JSON schema)
+5. Apply the Security mode verdict criteria (see end of security-profile.md)
 
-通常の Code Review と `--security` の使い分け:
+Choosing between standard Code Review and `--security`:
 
-| | 通常の Code Review | `--security` |
+| | Standard Code Review | `--security` |
 |---|---|---|
-| 観点 | Security, Performance, Quality, Accessibility, AI Residuals | Security のみ（OWASP Top 10 全項目） |
-| 深度 | セキュリティは概要チェック | 認証・認可・暗号化・依存関係まで網羅 |
-| ツール制限 | なし | Read / Grep / Glob / 読み取り Bash のみ |
-| 用途 | PR マージ前の総合確認 | セキュリティ集中監査・リリース前の追加確認 |
+| Perspectives | Security, Performance, Quality, Accessibility, AI Residuals | Security only (all OWASP Top 10 items) |
+| Depth | Security is overview-level | Comprehensive coverage of auth, authorization, encryption, dependencies |
+| Tool restrictions | None | Read / Grep / Glob / read-only Bash only |
+| Use case | Pre-merge comprehensive check | Security-focused audit, additional pre-release verification |
 
-### Step 4: コミット判定
+### Step 4: Commit Decision
 
-- **APPROVE**: 自動コミット実行（`--no-commit` でなければ）
-- **REQUEST_CHANGES**: critical/major の指摘箇所と修正方針を提示。`harness-work` の修正ループで自動修正後に再レビュー（最大 3 回）
+- **APPROVE**: Execute auto-commit (unless `--no-commit`)
+- **REQUEST_CHANGES**: Present critical/major findings and fix strategy. Auto-fix via `harness-work`'s fix loop followed by re-review (up to 3 times)
 
-## Plan Review フロー
+## Plan Review Flow
 
-1. Plans.md を読み込む
-2. 以下の **5 観点** でレビュー:
-   - **Clarity**: タスク説明が明確か
-   - **Feasibility**: 技術的に実現可能か
-   - **Dependencies**: タスク間の依存関係が正しいか（Depends カラムと実際の依存が一致しているか）
-   - **Acceptance**: 完了条件（DoD カラム）が定義され、検証可能か
-   - **Value**: このタスクはユーザー課題を解くか？
-     - 「誰の、どんな問題」が明示されているか
-     - 代替手段（作らない選択肢）は検討されたか
-     - Elephant（全員気づいているが放置されている問題）はないか
-3. DoD / Depends カラムの品質チェック:
-   - DoD が空欄のタスク → 警告（「完了条件が未定義です」）
-   - DoD が検証不能（「いい感じ」「ちゃんと動く」等） → 警告 + 具体化提案
-   - Depends に存在しないタスク番号 → エラー
-   - 循環依存 → エラー
-4. 改善提案を提示
+1. Read Plans.md
+2. Review from the following **5 perspectives**:
+   - **Clarity**: Are task descriptions clear?
+   - **Feasibility**: Is it technically feasible?
+   - **Dependencies**: Are inter-task dependencies correct? (Do Depends column entries match actual dependencies?)
+   - **Acceptance**: Are completion criteria (DoD column) defined and verifiable?
+   - **Value**: Does this task solve a user problem?
+     - Is "whose problem" explicitly stated?
+     - Were alternatives (including not building it) considered?
+     - Are there Elephants (problems everyone notices but no one addresses)?
+3. DoD / Depends column quality checks:
+   - Tasks with empty DoD → Warning ("Completion criteria undefined")
+   - DoD that is unverifiable ("looks good", "works properly", etc.) → Warning + concretization suggestion
+   - Depends referencing non-existent task numbers → Error
+   - Circular dependencies → Error
+4. Present improvement suggestions
 
-## Scope Review フロー
+## Scope Review Flow
 
-1. 追加されたタスク/機能をリスト化
-2. 以下の観点で分析:
-   - **Scope-creep**: 当初スコープからの逸脱
-   - **Priority**: 優先度は適切か
-   - **Feasibility**: 現在のリソースで実現可能か
-   - **Impact**: 既存機能への影響
-3. リスクと推奨アクションを提示
+1. List added tasks/features
+2. Analyze from the following perspectives:
+   - **Scope-creep**: Deviation from original scope
+   - **Priority**: Is the priority appropriate?
+   - **Feasibility**: Achievable with current resources?
+   - **Impact**: Impact on existing functionality
+3. Present risks and recommended actions
 
-## 異常検知
+## Anomaly Detection
 
-| 状況 | アクション |
-|------|----------|
-| セキュリティ脆弱性 | 即座に REQUEST_CHANGES |
-| テスト改ざん疑い | 警告 + 修正要求 |
-| force push 試み | 拒否 + 代替案提示 |
+| Situation | Action |
+|-----------|--------|
+| Security vulnerability | Immediately REQUEST_CHANGES |
+| Suspected test tampering | Warning + fix request |
+| Force push attempt | Reject + suggest alternative |
 
 ## Codex Environment
 
-Codex CLI 環境（`CODEX_CLI=1`）では一部ツールが利用不可のため、以下のフォールバックを使用する。
+In Codex CLI environments (`CODEX_CLI=1`), some tools are unavailable. The following fallbacks are used.
 
-| 通常環境 | Codex フォールバック |
-|---------|-------------------|
-| `TaskList` でタスク一覧取得 | Plans.md を `Read` して WIP/TODO タスクを確認 |
-| `TaskUpdate` でステータス更新 | Plans.md のマーカーを `Edit` で直接更新（例: `cc:WIP` → `cc:完了`） |
-| レビュー結果を Task に書き込み | レビュー結果を stdout に出力 |
+| Normal Environment | Codex Fallback |
+|-------------------|----------------|
+| Get task list with `TaskList` | Read Plans.md and check WIP/TODO tasks |
+| Update status with `TaskUpdate` | Directly update Plans.md markers with `Edit` (e.g., `cc:WIP` → `cc:Done`) |
+| Write review result to Task | Output review result to stdout |
 
-### 検出方法
+### Detection Method
 
 ```bash
 if [ "${CODEX_CLI:-}" = "1" ]; then
-  # Codex 環境: Plans.md ベースのフォールバック
+  # Codex environment: Plans.md-based fallback
 fi
 ```
 
-### Codex 環境でのレビュー出力
+### Review Output in Codex Environment
 
-Task ツール非対応のため、レビュー結果は標準出力にマークダウン形式で出力する。
-Lead エージェントまたはユーザーが結果を読み取り、次のアクションを判断する。
+Since Task tools are not supported, review results are output to stdout in markdown format.
+The Lead agent or user reads the results and decides the next action.
 
-## 関連スキル
+## Related Skills
 
-- `harness-work` — レビュー後に修正を実装
-- `harness-plan` — 計画を作成・修正
-- `harness-release` — レビュー通過後にリリース
+- `harness-work` — Implement fixes after review
+- `harness-plan` — Create and modify plans
+- `harness-release` — Release after review passes

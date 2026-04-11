@@ -276,3 +276,4 @@ out/
 !/mcp-server/src/tools/
 /mcp-server/src/tools/*
 !/mcp-server/src/tools/memory.ts
+.worktrees/

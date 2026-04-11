@@ -1,79 +1,77 @@
 ---
 name: ui
-description: "UIコンポーネントとフィードバックフォームを生成。Use when user mentions components, UI, hero sections, forms, feedback, or contact requests. Do NOT load for: authentication features, backend implementation, database operations, or business logic."
-description-en: "Generates UI components and feedback forms. Use when user mentions components, UI, hero sections, forms, feedback, or contact requests. Do NOT load for: authentication features, backend implementation, database operations, or business logic."
-description-ja: "UIコンポーネントとフィードバックフォームを生成。Use when user mentions components, UI, hero sections, forms, feedback, or contact requests. Do NOT load for: authentication features, backend implementation, database operations, or business logic."
+description: "Use this skill whenever the user asks to create UI components, build a hero section, design a landing page section, create feedback or contact forms, or generate front-end visual elements. Also use when the user mentions component generation, form creation, or UI scaffolding. Do NOT load for: authentication features, backend API implementation, database operations, or business logic. Generates UI components, hero sections, and feedback/contact forms with production-ready styling."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 user-invocable: false
 ---
 
 # UI Skills
 
-UIコンポーネントとフォームの生成を担当するスキル群です。
+A group of skills responsible for generating UI components and forms.
 
-## 制約の優先順位と適用条件
+## Constraint Priority and Application Conditions
 
-1. 基本は `${CLAUDE_SKILL_DIR}/references/ui-skills.md` の制約を最優先で適用する。
-2. `${CLAUDE_SKILL_DIR}/references/frontend-design.md` は「尖った/独自/表現強め/ブランド強化」などが**明示**された場合のみ適用する。
-3. UI Skills の MUST/NEVER は原則維持。ただし**ユーザーが明示的に要求した場合のみ**以下の例外を許可する:
-   - グラデーション、発光、強い装飾
-   - アニメーション（追加・拡張）
-   - カスタム easing
+1. By default, apply constraints from `${CLAUDE_SKILL_DIR}/references/ui-skills.md` with highest priority.
+2. Apply `${CLAUDE_SKILL_DIR}/references/frontend-design.md` only when "edgy/unique/expressive/brand-enhancing" styles are **explicitly** requested.
+3. UI Skills MUST/NEVER rules are maintained by default. However, the following exceptions are permitted **only when explicitly requested by the user**:
+   - Gradients, glows, heavy decorations
+   - Animations (additions/enhancements)
+   - Custom easing
 
-## 機能詳細
+## Feature Details
 
-| 機能 | 詳細 |
-|------|------|
-| **制約セット** | See [references/ui-skills.md](${CLAUDE_SKILL_DIR}/references/ui-skills.md) / [references/frontend-design.md](${CLAUDE_SKILL_DIR}/references/frontend-design.md) |
-| **コンポーネント生成** | See [references/component-generation.md](${CLAUDE_SKILL_DIR}/references/component-generation.md) |
-| **フィードバックフォーム** | See [references/feedback-forms.md](${CLAUDE_SKILL_DIR}/references/feedback-forms.md) |
+| Feature | Details |
+|---------|---------|
+| **Constraint set** | See [references/ui-skills.md](${CLAUDE_SKILL_DIR}/references/ui-skills.md) / [references/frontend-design.md](${CLAUDE_SKILL_DIR}/references/frontend-design.md) |
+| **Component generation** | See [references/component-generation.md](${CLAUDE_SKILL_DIR}/references/component-generation.md) |
+| **Feedback forms** | See [references/feedback-forms.md](${CLAUDE_SKILL_DIR}/references/feedback-forms.md) |
 
-## 実行手順
+## Execution Steps
 
-1. **制約セットを適用**（優先順位に従う）
-2. **品質判定ゲート**（Step 0）
-3. ユーザーのリクエストを分類
-4. 上記の「機能詳細」から適切な参照ファイルを読む
-5. その内容に従って生成
+1. **Apply constraint set** (following priority order)
+2. **Quality gate** (Step 0)
+3. Classify the user's request
+4. Read the appropriate reference file from "Feature Details" above
+5. Generate according to its content
 
-### Step 0: 品質判定ゲート（a11y チェックリスト）
+### Step 0: Quality Gate (a11y Checklist)
 
-UI コンポーネント生成時は、アクセシビリティを確保:
+Ensure accessibility when generating UI components:
 
 ```markdown
-♿ アクセシビリティチェックリスト
+♿ Accessibility Checklist
 
-生成する UI は以下を満たすことを推奨：
+Generated UI should meet the following:
 
-### 必須項目
-- [ ] 画像に alt 属性を設定
-- [ ] フォーム要素に label を関連付け
-- [ ] キーボード操作可能（Tab でフォーカス移動）
-- [ ] フォーカス状態が視覚的に分かる
+### Required Items
+- [ ] Set alt attributes on images
+- [ ] Associate labels with form elements
+- [ ] Keyboard navigable (Tab for focus movement)
+- [ ] Focus state is visually distinguishable
 
-### 推奨項目
-- [ ] 色だけに依存しない情報伝達
-- [ ] コントラスト比 4.5:1 以上（テキスト）
-- [ ] aria-label / aria-describedby の適切な使用
-- [ ] 見出し構造（h1 → h2 → h3）が論理的
+### Recommended Items
+- [ ] Do not rely on color alone for conveying information
+- [ ] Contrast ratio 4.5:1 or higher (text)
+- [ ] Appropriate use of aria-label / aria-describedby
+- [ ] Heading structure (h1 -> h2 -> h3) is logical
 
-### インタラクティブ要素
-- [ ] ボタンに適切なラベル（「詳細」ではなく「製品詳細を見る」）
-- [ ] モーダル/ダイアログのフォーカストラップ
-- [ ] エラーメッセージがスクリーンリーダーで読まれる
+### Interactive Elements
+- [ ] Appropriate labels on buttons ("View product details" instead of "Details")
+- [ ] Focus trap for modals/dialogs
+- [ ] Error messages are read by screen readers
 ```
 
-### VibeCoder 向け
+### For VibeCoders
 
 ```markdown
-♿ 誰でも使えるデザインにするために
+♿ Making Designs Accessible to Everyone
 
-1. **画像には説明をつける**
-   - 「商品画像」ではなく「赤いスニーカー、正面から」
+1. **Add descriptions to images**
+   - Instead of "product image", use "red sneakers, front view"
 
-2. **クリックできる場所はキーボードでも操作可能に**
-   - Tab キーで移動、Enter で決定
+2. **Make clickable areas keyboard-navigable too**
+   - Navigate with Tab key, confirm with Enter
 
-3. **色だけで判断させない**
-   - 赤=エラー だけでなく、アイコン+テキストも
+3. **Don't rely on color alone for judgment**
+   - Not just red=error, but also icon+text
 ```

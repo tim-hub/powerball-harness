@@ -1,12 +1,12 @@
 # Remotion Visual Components
 
-Phase 5: 視覚コンポーネント実装
+Phase 5: Visual Component Implementation
 
 ## Components
 
 ### 1. EmphasisBox
 
-3段階の強調表示コンポーネント。
+A 3-level emphasis display component.
 
 **Features**:
 - 3 levels: `high`, `medium`, `low`
@@ -47,7 +47,7 @@ import { EmphasisBox } from './components';
 
 ### 2. TransitionWrapper
 
-4種類のトランジションエフェクトでコンテンツをラップ。
+Wraps content with 4 types of transition effects.
 
 **Features**:
 - 4 types: `fade`, `slideIn`, `zoom`, `cut`
@@ -97,7 +97,7 @@ import { TransitionWrapper, TransitionPresets } from './components';
 
 ### 3. ProgressIndicator
 
-セクション位置表示コンポーネント。
+A section position indicator component.
 
 **Features**:
 - 3 styles: `bar`, `dots`, `minimal`
@@ -153,7 +153,7 @@ interface Section {
 
 ### 4. BackgroundLayer
 
-5種類のアニメーション背景レイヤー。
+5 types of animated background layers.
 
 **Features**:
 - 5 types: `neutral`, `highlight`, `dramatic`, `tech`, `warm`
@@ -225,9 +225,9 @@ const bgType = getRecommendedBackground('intro'); // Returns 'highlight'
 
 All components are designed to work with the Phase 4 schemas:
 
-- `EmphasisBox` ← `emphasis.schema.json`
-- `TransitionWrapper` ← `animation.schema.json`
-- `BackgroundLayer` ← `direction.schema.json` (background section)
+- `EmphasisBox` <- `emphasis.schema.json`
+- `TransitionWrapper` <- `animation.schema.json`
+- `BackgroundLayer` <- `direction.schema.json` (background section)
 
 **Example Integration**:
 ```typescript

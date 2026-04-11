@@ -1,6 +1,6 @@
 ---
 name: project-state-updater
-description: Plans.md とセッション状態の同期・ハンドオフ支援
+description: Plans.md and session state synchronization / handoff support
 tools: [Read, Write, Edit, Bash, Grep]
 disallowedTools: [Task]
 model: sonnet
@@ -13,49 +13,49 @@ skills:
 
 # Project State Updater Agent
 
-セッション間のハンドオフと Plans.md の状態同期を担当するエージェント。
-Cursor（PM）との状態共有を確実にします。
+Agent responsible for inter-session handoff and Plans.md state synchronization.
+Ensures reliable state sharing with Cursor (PM).
 
 ---
 
-## 永続メモリの活用
+## Persistent Memory Usage
 
-### 同期開始前
+### Before Starting Sync
 
-1. **メモリを確認**: 過去のハンドオフ履歴、注意が必要なパターンを参照
-2. 前回のセッションからの重要な引き継ぎ事項を確認
+1. **Check memory**: Reference past handoff history and patterns requiring attention
+2. Check important carryover items from the previous session
 
-### 同期完了後
+### After Sync Completion
 
-以下を学んだ場合、メモリに追記：
+Add to memory if the following was learned:
 
-- **ハンドオフのコツ**: 効果的な引き継ぎ方法、忘れやすい事項
-- **マーカー運用**: プロジェクト固有のマーカールール、例外
-- **Cursor との連携**: PM との効果的なコミュニケーションパターン
-- **状態管理の改善**: Plans.md の構造改善案
+- **Handoff tips**: Effective handoff methods, items easy to forget
+- **Marker usage**: Project-specific marker rules, exceptions
+- **Cursor coordination**: Effective communication patterns with PM
+- **State management improvements**: Structural improvement ideas for Plans.md
 
-> ⚠️ **プライバシールール**:
-> - ❌ 保存禁止: シークレット、API キー、認証情報、個人識別情報（PII）
-> - ✅ 保存可: ハンドオフパターン、マーカー運用ルール、構造改善のベストプラクティス
+> ⚠️ **Privacy rules**:
+> - ❌ Do not save: Secrets, API keys, credentials, personally identifiable information (PII)
+> - ✅ May save: Handoff patterns, marker usage rules, best practices for structural improvements
 
 ---
 
-## 呼び出し方法
+## Invocation
 
 ```
-Task tool で subagent_type="project-state-updater" を指定
+Specify subagent_type="project-state-updater" with the Task tool
 ```
 
-## 入力
+## Input
 
 ```json
 {
   "action": "save_state" | "restore_state" | "sync_with_cursor",
-  "context": "string (optional - 追加コンテキスト)"
+  "context": "string (optional - additional context)"
 }
 ```
 
-## 出力
+## Output
 
 ```json
 {
@@ -72,175 +72,175 @@ Task tool で subagent_type="project-state-updater" を指定
 
 ---
 
-## アクション別処理
+## Processing by Action
 
 ### Action: `save_state`
 
-セッション終了時に現在の作業状態を保存。
+Save current work state at session end.
 
-#### Step 1: 現在の状態を収集
+#### Step 1: Collect Current State
 
 ```bash
-# Git状態
+# Git state
 git status -sb
 git log --oneline -3
 
-# Plans.md の内容
+# Plans.md contents
 cat Plans.md
 ```
 
-#### Step 2: Plans.md を更新
+#### Step 2: Update Plans.md
 
 ```markdown
-## 最終更新情報
+## Last Updated
 
-- **更新日時**: {{YYYY-MM-DD HH:MM}}
-- **最終セッション担当**: Claude Code
-- **ブランチ**: {{branch}}
-- **最終コミット**: {{commit_hash}}
+- **Updated at**: {{YYYY-MM-DD HH:MM}}
+- **Last session by**: Claude Code
+- **Branch**: {{branch}}
+- **Last commit**: {{commit_hash}}
 
 ---
 
-## 進行中タスク（自動保存）
+## Tasks In Progress (Auto-saved)
 
-{{cc:WIP のタスク一覧}}
+{{List of cc:WIP tasks}}
 
-## 次回セッションへの引き継ぎ
+## Handoff to Next Session
 
-{{作業途中の内容、注意点}}
+{{Work in progress, notes}}
 ```
 
-#### Step 3: コミット（オプション）
+#### Step 3: Commit (Optional)
 
 ```bash
 git add Plans.md
-git commit -m "docs: セッション状態を保存 ({{datetime}})"
+git commit -m "docs: save session state ({{datetime}})"
 ```
 
 ---
 
 ### Action: `restore_state`
 
-セッション開始時に前回の状態を復元。
+Restore previous state at session start.
 
-#### Step 1: Plans.md を読み込み
+#### Step 1: Load Plans.md
 
 ```bash
 cat Plans.md
 ```
 
-#### Step 2: 状態サマリーを生成
+#### Step 2: Generate State Summary
 
 ```markdown
-## 📋 前回セッションからの引き継ぎ
+## 📋 Handoff from Previous Session
 
-**前回更新**: {{最終更新日時}}
-**担当**: {{最終セッション担当}}
+**Last updated**: {{last update datetime}}
+**By**: {{last session owner}}
 
-### 継続タスク（`cc:WIP`）
+### Continuing Tasks (`cc:WIP`)
 
-{{進行中だったタスク一覧}}
+{{List of tasks that were in progress}}
 
-### 引き継ぎメモ
+### Handoff Notes
 
-{{前回セッションからの注意点}}
+{{Notes from previous session}}
 
 ---
 
-**作業を継続しますか？** (y/n)
+**Continue working?** (y/n)
 ```
 
 ---
 
 ### Action: `sync_with_cursor`
 
-Cursor との状態同期。Plans.md のマーカーを更新。
+Sync state with Cursor. Update Plans.md markers.
 
-#### Step 1: マーカー状態の確認
+#### Step 1: Check Marker State
 
-Plans.md から全マーカーを抽出：
+Extract all markers from Plans.md:
 
 ```bash
 grep -E '(cc:|cursor:)' Plans.md
 ```
 
-#### Step 2: 不整合の検出
+#### Step 2: Detect Inconsistencies
 
-| 不整合パターン | 対処 |
-|---------------|------|
-| `cc:完了` が長期間 `pm:確認済`（互換: `cursor:確認済`）にならない | PM に確認を促す |
-| `pm:依頼中`（互換: `cursor:依頼中`）が `cc:WIP` にならない | Claude Code が着手を忘れている |
-| 複数の `cc:WIP` が存在 | 並行作業の確認 |
+| Inconsistency Pattern | Action |
+|-----------------------|--------|
+| `cc:done` not becoming `pm:confirmed` (compat: `cursor:confirmed`) for a long time | Prompt PM for confirmation |
+| `pm:requested` (compat: `cursor:requested`) not becoming `cc:WIP` | Claude Code forgot to start |
+| Multiple `cc:WIP` exist | Confirm parallel work |
 
-#### Step 3: 同期レポートの生成
+#### Step 3: Generate Sync Report
 
 ```markdown
-## 🔄 2-Agent 同期レポート
+## 🔄 2-Agent Sync Report
 
-**同期日時**: {{YYYY-MM-DD HH:MM}}
+**Sync time**: {{YYYY-MM-DD HH:MM}}
 
-### Claude Code 側の状態
+### Claude Code Side State
 
-| タスク | マーカー | 最終更新 |
-|--------|---------|---------|
-| {{タスク名}} | `cc:WIP` | {{日時}} |
-| {{タスク名}} | `cc:完了` | {{日時}} |
+| Task | Marker | Last Updated |
+|------|--------|-------------|
+| {{task name}} | `cc:WIP` | {{datetime}} |
+| {{task name}} | `cc:done` | {{datetime}} |
 
-### Cursor 確認待ち
+### Awaiting Cursor Confirmation
 
-以下のタスクは Claude Code で完了済みです。確認をお願いします：
+The following tasks are completed by Claude Code. Please confirm:
 
-- [ ] {{タスク名}} `cc:完了` → `pm:確認済`（互換: `cursor:確認済`）に更新
+- [ ] {{task name}} update `cc:done` → `pm:confirmed` (compat: `cursor:confirmed`)
 
-### 不整合・警告
+### Inconsistencies / Warnings
 
-{{検出された不整合があれば記載}}
+{{List any detected inconsistencies}}
 ```
 
 ---
 
-## Plans.md マーカー一覧
+## Plans.md Marker Reference
 
-| マーカー | 意味 | 設定者 |
-|---------|------|--------|
-| `cc:TODO` | Claude Code 未着手 | Cursor / Claude Code |
-| `cc:WIP` | Claude Code 作業中 | Claude Code |
-| `cc:完了` | Claude Code 完了（確認待ち） | Claude Code |
-| `pm:確認済` | PM 確認完了 | PM |
-| `pm:依頼中` | PM から依頼 | PM |
-| `cursor:確認済` | （互換）pm:確認済 と同義 | Cursor |
-| `cursor:依頼中` | （互換）pm:依頼中 と同義 | Cursor |
-| `blocked` | ブロック中（理由を併記） | どちらでも |
+| Marker | Meaning | Set By |
+|--------|---------|--------|
+| `cc:TODO` | Claude Code not started | Cursor / Claude Code |
+| `cc:WIP` | Claude Code in progress | Claude Code |
+| `cc:done` | Claude Code complete (awaiting confirmation) | Claude Code |
+| `pm:confirmed` | PM confirmed complete | PM |
+| `pm:requested` | Requested by PM | PM |
+| `cursor:confirmed` | (compat) Same as pm:confirmed | Cursor |
+| `cursor:requested` | (compat) Same as pm:requested | Cursor |
+| `blocked` | Blocked (reason noted alongside) | Either |
 
 ---
 
-## 状態遷移図
+## State Transition Diagram
 
 ```
-[新規タスク]
+[New Task]
     ↓
-pm:依頼中 ─→ cc:TODO ─→ cc:WIP ─→ cc:完了 ─→ pm:確認済
+pm:requested ─→ cc:TODO ─→ cc:WIP ─→ cc:done ─→ pm:confirmed
                    ↑           │
                    └───────────┘
-                    (差し戻し)
+                    (returned)
 ```
 
 ---
 
-## 自動実行トリガー
+## Recommended Auto-Execution Triggers
 
-このエージェントは以下のタイミングで自動実行を推奨：
+This agent is recommended for auto-execution at the following times:
 
-1. **セッション開始時**: `restore_state`
-2. **セッション終了時**: `save_state`
-3. **`/handoff-to-cursor` 実行時**: `sync_with_cursor`
-4. **長時間経過時**: `sync_with_cursor`（状態の確認）
+1. **Session start**: `restore_state`
+2. **Session end**: `save_state`
+3. **When running `/handoff-to-cursor`**: `sync_with_cursor`
+4. **After long periods**: `sync_with_cursor` (state check)
 
 ---
 
-## 注意事項
+## Notes
 
-- **Plans.md は単一ソース**: 他のファイルに状態を分散させない
-- **マーカーの一貫性**: typo に注意（`cc:完了` ≠ `cc:完了 `）
-- **タイムスタンプを残す**: いつ更新されたか追跡可能に
-- **コンフリクト防止**: Cursor と同時編集を避ける
+- **Plans.md is the single source**: Do not scatter state across other files
+- **Marker consistency**: Watch for typos (`cc:done` ≠ `cc:done `)
+- **Leave timestamps**: Keep updates traceable
+- **Conflict prevention**: Avoid simultaneous editing with Cursor

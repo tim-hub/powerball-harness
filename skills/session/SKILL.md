@@ -1,8 +1,6 @@
 ---
 name: session
-description: "セッション管理の総合窓口。初期化・記憶・状態を一手に引き受けます。Use when managing Claude Code sessions, /session command. Do NOT load for: app user sessions, login state, authentication features."
-description-en: "Unified session management window. Handles initialization, memory, state all-in-one. Use when managing Claude Code sessions, /session command. Do NOT load for: app user sessions, login state, authentication features."
-description-ja: "セッション管理の総合窓口。初期化・記憶・状態を一手に引き受けます。Use when managing Claude Code sessions, /session command. Do NOT load for: app user sessions, login state, authentication features."
+description: "Use this skill when the user runs /session, asks to list active sessions, check inbox messages, broadcast to other sessions, or manage Claude Code session state. Also use for session lifecycle operations. Do NOT load for: application user sessions, login/auth state, or authentication features. Unified session management — initialization, cross-session memory, state tracking, inbox, and broadcasting."
 allowed-tools: ["Read", "Bash", "Write", "Edit", "Glob"]
 argument-hint: "[list|inbox|broadcast \"message\"]"
 ---
@@ -69,49 +67,49 @@ Sends a message to all active sessions.
 
 ---
 
-## メモリ最適化（CC 2.1.49+）
+## Memory Optimization (CC 2.1.49+)
 
-Claude Code 2.1.49 以降、セッション再開時のメモリ使用量が **68% 削減** されました。
+Since Claude Code 2.1.49, memory usage on session resume has been **reduced by 68%**.
 
-### 長時間セッション管理のベストプラクティス
+### Best Practices for Long Session Management
 
-| ワークロード | 推奨戦略 |
-|------------|---------|
-| **通常実装** | 1-2時間ごとに `--resume` で再開 |
-| **大規模リファクタ** | 機能単位でセッション分割 → 各セッションで `--resume` |
-| **並列タスク** | `/work all` で並列実行、長時間なら途中で `--resume` |
-| **メモリ警告時** | 即座に `--resume` で再開（以前より高速） |
+| Workload | Recommended Strategy |
+|----------|---------------------|
+| **Normal implementation** | Resume with `--resume` every 1-2 hours |
+| **Large-scale refactoring** | Split sessions by feature unit, use `--resume` for each |
+| **Parallel tasks** | Run in parallel with `/work all`, use `--resume` midway for long sessions |
+| **Memory warning** | Resume immediately with `--resume` (faster than before) |
 
-### セッション名の自動生成（CC 2.1.41+）
+### Auto-generated Session Names (CC 2.1.41+)
 
-`/rename` を引数なしで実行すると、会話コンテキストからセッション名を自動生成します。
-長時間セッションや `--resume` を多用するワークフローでセッションの識別が容易になります。
+Running `/rename` without arguments auto-generates a session name from the conversation context.
+This makes it easier to identify sessions in long-running or `--resume`-heavy workflows.
 
-### 効率的なワークフロー例
+### Efficient Workflow Example
 
 ```bash
-# 実装フェーズ1
-claude "認証機能を実装"
-# → 1時間後
+# Implementation phase 1
+claude "Implement authentication feature"
+# -> 1 hour later
 
-# セッション再開（メモリ効率的）
-claude --resume "パスワードリセット機能を追加"
-# → 1時間後
+# Resume session (memory-efficient)
+claude --resume "Add password reset feature"
+# -> 1 hour later
 
-# さらに再開
-claude --resume "テストを追加"
+# Resume again
+claude --resume "Add tests"
 ```
 
-### メモリ管理の推奨事項
+### Memory Management Recommendations
 
-| 推奨事項 | 理由 |
-|---------|------|
-| **積極的なセッション再開** | 68% メモリ削減で再開コストが低い |
-| **定期的な再開** | コンテキストを整理し、集中力を維持 |
-| **機能単位の分割** | 大規模タスクを小さく分けて再開 |
-| **Plans.md を活用** | 再開時の引き継ぎがスムーズ |
+| Recommendation | Reason |
+|---------------|--------|
+| **Actively resume sessions** | Low resume cost with 68% memory reduction |
+| **Resume periodically** | Keeps context organized and maintains focus |
+| **Split by feature unit** | Break large tasks into smaller chunks for resuming |
+| **Use Plans.md** | Smooth handoff when resuming |
 
-> 💡 メモリ効率が大幅に改善されたため、セッション再開を積極的に活用してください。
+> 💡 Memory efficiency has been significantly improved, so actively take advantage of session resumption.
 
 ---
 

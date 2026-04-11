@@ -1,57 +1,57 @@
 ---
 name: core-diff-aware-editing
-description: "最小限の差分でファイルを編集し、既存コードへの影響を最小化する。"
+description: "Edit files with minimal diffs, minimizing impact on existing code."
 allowed-tools: ["Read", "Edit"]
 ---
 
 # Diff-Aware Editing
 
-ファイル編集時に最小限の差分で変更を行うスキル。
-既存コードの破壊を防ぎ、レビューしやすい変更を実現します。
+A skill for making changes with minimal diffs when editing files.
+Prevents destruction of existing code and produces review-friendly changes.
 
 ---
 
-## 基本原則
+## Fundamental Principles
 
 ### 1. Read Before Edit
 
-**必ず対象ファイルを読んでから編集する**
+**Always read the target file before editing**
 
 ```
-❌ 悪い例: Write ツールでファイル全体を上書き
-✅ 良い例: Read → 内容確認 → Edit で必要部分のみ変更
+Bad example: Overwrite the entire file with the Write tool
+Good example: Read -> Verify contents -> Change only necessary parts with Edit
 ```
 
-### 2. 最小差分の優先
+### 2. Prefer Minimal Diffs
 
-変更は必要最小限に留める：
+Keep changes to the bare minimum:
 
-- 既存のインデント・フォーマットを維持
-- 既存のコメントは残す
-- 使われているスタイルに合わせる
+- Preserve existing indentation and formatting
+- Keep existing comments
+- Match the existing style
 
-### 3. 意味のある単位で変更
+### 3. Change in Meaningful Units
 
 ```typescript
-// ❌ 悪い例: 無関係な変更を混ぜる
-// 関数の追加 + フォーマット変更 + import整理
+// Bad example: Mix unrelated changes
+// Function addition + formatting changes + import cleanup
 
-// ✅ 良い例: 1つの変更に集中
-// 関数の追加のみ
+// Good example: Focus on one change
+// Function addition only
 ```
 
 ---
 
-## Edit ツールの使い方
+## How to Use the Edit Tool
 
-### パターン1: 単純な置換
+### Pattern 1: Simple Replacement
 
 ```
 old_string: "const value = 1"
 new_string: "const value = 2"
 ```
 
-### パターン2: コードブロックの追加
+### Pattern 2: Adding a Code Block
 
 ```
 old_string: "// TODO: implement feature"
@@ -61,7 +61,7 @@ const feature = () => {
 }"
 ```
 
-### パターン3: 関数の修正
+### Pattern 3: Modifying a Function
 
 ```
 old_string: "function getData() {
@@ -75,72 +75,72 @@ new_string: "function getData() {
 
 ---
 
-## 避けるべきパターン
+## Patterns to Avoid
 
-### 1. ファイル全体の書き換え
-
-```
-❌ Write ツールで 100 行のファイルを丸ごと書き直す
-✅ Edit ツールで変更が必要な 5 行だけ修正
-```
-
-### 2. フォーマット変更の混入
+### 1. Rewriting the Entire File
 
 ```
-❌ 機能追加と同時にインデントを変更
-✅ 機能追加のみ。フォーマットは別コミットで
+Bad: Rewrite all 100 lines of a file with the Write tool
+Good: Fix only the 5 lines that need changing with the Edit tool
 ```
 
-### 3. 不要な空行・コメントの追加
+### 2. Mixing in Formatting Changes
 
 ```
-❌ 自分のスタイルを押し付ける
-✅ 既存のスタイルに従う
+Bad: Change indentation at the same time as adding a feature
+Good: Add the feature only. Handle formatting in a separate commit
+```
+
+### 3. Adding Unnecessary Blank Lines or Comments
+
+```
+Bad: Impose your own style
+Good: Follow the existing style
 ```
 
 ---
 
-## 編集前チェックリスト
+## Pre-Edit Checklist
 
-1. [ ] 対象ファイルを Read で確認した
-2. [ ] 変更が必要な箇所を特定した
-3. [ ] 既存のスタイル（インデント、命名規則）を把握した
-4. [ ] 変更が paths.allowed_modify に含まれるか確認した
-5. [ ] 変更後の動作をイメージできた
+1. [ ] Verified the target file with Read
+2. [ ] Identified the sections that need changing
+3. [ ] Understood the existing style (indentation, naming conventions)
+4. [ ] Confirmed the change is within paths.allowed_modify
+5. [ ] Can visualize the behavior after the change
 
 ---
 
-## 編集後の確認
+## Post-Edit Verification
 
 ```bash
-# 差分の確認
+# Verify the diff
 git diff
 
-# 変更行数の確認（大きすぎないか）
+# Check the number of changed lines (not too large?)
 git diff --stat
 
-# 構文エラーがないか
+# Check for syntax errors
 npm run build 2>&1 | head -20
-# または
+# or
 npx tsc --noEmit
 ```
 
 ---
 
-## 複数ファイルの編集
+## Editing Multiple Files
 
-複数ファイルを編集する場合：
+When editing multiple files:
 
-1. **依存関係の順序**: 型定義 → 実装 → テスト
-2. **一貫性の確保**: 関連する変更は同時に行う
-3. **中間状態でも動作**: 各編集後にビルドが通る状態を維持
+1. **Dependency order**: Type definitions -> Implementation -> Tests
+2. **Ensure consistency**: Make related changes together
+3. **Keep intermediate states working**: Maintain a buildable state after each edit
 
 ---
 
-## エラー時の対応
+## Error Handling
 
-編集でエラーが発生した場合：
+When an edit produces an error:
 
-1. **元のコードを再確認**: Read で現在の状態を確認
-2. **old_string の一致確認**: 空白・改行を正確に
-3. **分割して試行**: 大きな変更は小さく分割
+1. **Re-check the original code**: Verify current state with Read
+2. **Verify old_string match**: Ensure whitespace and line breaks are exact
+3. **Try splitting**: Break large changes into smaller pieces

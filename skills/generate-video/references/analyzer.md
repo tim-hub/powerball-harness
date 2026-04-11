@@ -1,131 +1,131 @@
-# Video Analyzer - コードベース分析エンジン
+# Video Analyzer - Codebase Analysis Engine
 
-プロジェクトを自動分析し、動画生成に必要な情報を抽出します。
+Automatically analyzes projects and extracts information needed for video generation.
 
 ---
 
-## 概要
+## Overview
 
-`/generate-video` の Step 1 で実行される分析エンジンです。
-コードベースとプロジェクト資産を解析し、最適な動画構成を判定します。
+This is the analysis engine executed in Step 1 of `/generate-video`.
+It parses the codebase and project assets to determine the optimal video composition.
 
-## 分析項目
+## Analysis Items
 
-### 1. フレームワーク検出
+### 1. Framework Detection
 
-| 検出対象 | 判定方法 |
-|---------|---------|
-| Next.js | `next.config.*` の存在 |
-| React | `package.json` の dependencies |
-| Vue | `vue.config.*` または `nuxt.config.*` |
+| Detection Target | Detection Method |
+|------------------|-----------------|
+| Next.js | Presence of `next.config.*` |
+| React | `package.json` dependencies |
+| Vue | `vue.config.*` or `nuxt.config.*` |
 | Svelte | `svelte.config.*` |
-| Express/Fastify | `package.json` の dependencies |
+| Express/Fastify | `package.json` dependencies |
 
-**実行コマンド**:
+**Execution Commands**:
 ```bash
-# package.json から依存関係を抽出
+# Extract dependencies from package.json
 cat package.json | jq '.dependencies, .devDependencies'
 
-# 設定ファイルの存在確認
+# Check for config file existence
 ls -la *.config.* 2>/dev/null
 ```
 
-### 2. 主要機能検出
+### 2. Key Feature Detection
 
-| 機能 | 検出パターン |
-|------|-------------|
-| 認証 | `auth/`, `login/`, `@clerk`, `@auth0`, `supabase` |
-| 決済 | `payment/`, `billing/`, `stripe`, `@stripe` |
-| ダッシュボード | `dashboard/`, `admin/`, `analytics` |
+| Feature | Detection Pattern |
+|---------|-------------------|
+| Auth | `auth/`, `login/`, `@clerk`, `@auth0`, `supabase` |
+| Payments | `payment/`, `billing/`, `stripe`, `@stripe` |
+| Dashboard | `dashboard/`, `admin/`, `analytics` |
 | API | `api/`, `routes/`, `trpc`, `graphql` |
 | DB | `prisma/`, `drizzle/`, `@supabase` |
 
-**実行コマンド**:
+**Execution Commands**:
 ```bash
-# ディレクトリ構造から機能を推測
+# Infer features from directory structure
 find src app -type d -name "auth" -o -name "login" -o -name "dashboard" 2>/dev/null
 
-# パッケージから機能を推測
+# Infer features from packages
 grep -E "clerk|stripe|supabase|prisma" package.json
 ```
 
-### 3. UIコンポーネント検出
+### 3. UI Component Detection
 
-| 項目 | 検出方法 |
-|------|---------|
-| ページ数 | `app/**/page.tsx` または `pages/**/*.tsx` のカウント |
-| コンポーネント数 | `components/**/*.tsx` のカウント |
-| UIライブラリ | `shadcn`, `radix`, `chakra`, `mui` の検出 |
+| Item | Detection Method |
+|------|-----------------|
+| Page count | Count of `app/**/page.tsx` or `pages/**/*.tsx` |
+| Component count | Count of `components/**/*.tsx` |
+| UI library | Detection of `shadcn`, `radix`, `chakra`, `mui` |
 
-**実行コマンド**:
+**Execution Commands**:
 ```bash
-# ページ数カウント
+# Count pages
 find . -name "page.tsx" -o -name "page.jsx" 2>/dev/null | wc -l
 
-# コンポーネント数カウント
+# Count components
 find . -path "*/components/*" -name "*.tsx" 2>/dev/null | wc -l
 ```
 
-### 4. プロジェクト資産解析
+### 4. Project Asset Analysis
 
-| 資産 | 用途 |
-|------|------|
-| `package.json` | プロジェクト名、description |
-| `README.md` | プロジェクト概要、タグライン |
-| `Plans.md` | 完了タスク（リリースノート用） |
-| `CHANGELOG.md` | 変更点（リリースノート用） |
-| `.claude/memory/decisions.md` | 技術的意思決定（アーキテクチャ解説用） |
+| Asset | Use |
+|-------|-----|
+| `package.json` | Project name, description |
+| `README.md` | Project overview, tagline |
+| `Plans.md` | Completed tasks (for release notes) |
+| `CHANGELOG.md` | Changes (for release notes) |
+| `.claude/memory/decisions.md` | Technical decisions (for architecture explanation) |
 
-**実行コマンド**:
+**Execution Commands**:
 ```bash
-# プロジェクト情報抽出
+# Extract project info
 cat package.json | jq '{name, description, version}'
 
-# README の最初の段落を抽出
+# Extract first paragraph of README
 head -20 README.md
 ```
 
 ---
 
-## 動画タイプ自動判定
+## Automatic Video Type Detection
 
-### 判定ロジック
+### Detection Logic
 
 ```
-分析結果から動画タイプを判定:
-    │
-    ├─ CHANGELOG が最近更新（7日以内）
-    │   └─ → リリースノート動画
-    │
-    ├─ 大きな構造変更（新ディレクトリ追加等）
-    │   └─ → アーキテクチャ解説
-    │
-    ├─ UI変更が多い（コンポーネント追加/変更）
-    │   └─ → プロダクトデモ
-    │
-    └─ 複数条件に該当
-        └─ → 複合動画（ユーザーに確認）
+Determine video type from analysis results:
+    |
+    +-- CHANGELOG recently updated (within 7 days)
+    |   +-- → Release notes video
+    |
+    +-- Large structural changes (new directory additions, etc.)
+    |   +-- → Architecture explanation
+    |
+    +-- Many UI changes (component additions/modifications)
+    |   +-- → Product demo
+    |
+    +-- Matches multiple conditions
+        +-- → Composite video (confirm with user)
 ```
 
-### 判定基準
+### Detection Criteria
 
-| タイプ | 条件 |
-|--------|------|
-| **リリースノート** | `git log --since="7 days ago"` に tag/release がある |
-| **アーキテクチャ** | 新しい `src/*/` ディレクトリ、大きなリファクタ |
-| **プロダクトデモ** | UI コンポーネントの追加/変更 |
-| **デフォルト** | プロダクトデモ（最も汎用的） |
+| Type | Condition |
+|------|-----------|
+| **Release Notes** | `git log --since="7 days ago"` contains tags/releases |
+| **Architecture** | New `src/*/` directories, major refactoring |
+| **Product Demo** | UI component additions/modifications |
+| **Default** | Product demo (most general-purpose) |
 
 ---
 
-## 出力フォーマット
+## Output Format
 
-分析結果は以下の形式で出力:
+Analysis results output in the following format:
 
 ```yaml
 project:
   name: "MyAwesomeApp"
-  description: "タスク管理を簡単に"
+  description: "Task management made easy"
   version: "1.2.0"
 
 framework:
@@ -133,11 +133,11 @@ framework:
   ui_library: "shadcn/ui"
 
 features:
-  - name: "認証"
+  - name: "Auth"
     type: "auth"
     path: "src/app/(auth)/"
     provider: "Clerk"
-  - name: "ダッシュボード"
+  - name: "Dashboard"
     type: "dashboard"
     path: "src/app/dashboard/"
   - name: "API"
@@ -153,8 +153,8 @@ recent_changes:
   changelog_updated: true
   last_release: "2026-01-20"
   major_changes:
-    - "認証フロー追加"
-    - "ダッシュボード改善"
+    - "Auth flow added"
+    - "Dashboard improvements"
 
 recommended_video_type: "release-notes"
 confidence: 0.85
@@ -162,39 +162,39 @@ confidence: 0.85
 
 ---
 
-## 実行例
+## Execution Example
 
 ```
-📊 プロジェクト分析中...
+📊 Analyzing project...
 
-✅ 分析完了
+✅ Analysis complete
 
-| 項目 | 結果 |
-|------|------|
-| プロジェクト名 | MyAwesomeApp |
-| フレームワーク | Next.js 14 |
-| UIライブラリ | shadcn/ui |
-| ページ数 | 12 |
-| コンポーネント数 | 45 |
+| Item | Result |
+|------|--------|
+| Project name | MyAwesomeApp |
+| Framework | Next.js 14 |
+| UI library | shadcn/ui |
+| Pages | 12 |
+| Components | 45 |
 
-🔍 検出された機能:
-- 認証（Clerk）
-- ダッシュボード
-- API（8エンドポイント）
+🔍 Detected features:
+- Auth (Clerk)
+- Dashboard
+- API (8 endpoints)
 
-📋 最近の変更:
-- v1.2.0 リリース（3日前）
-- 認証フロー追加
-- ダッシュボード改善
+📋 Recent changes:
+- v1.2.0 release (3 days ago)
+- Auth flow added
+- Dashboard improvements
 
-🎬 推奨動画タイプ: リリースノート動画
-   理由: 最近のリリースがあり、主要な機能追加があります
+🎬 Recommended video type: Release notes video
+   Reason: Recent release with major feature additions
 ```
 
 ---
 
 ## Notes
 
-- 分析は非破壊的（ファイルを変更しない）
-- 大規模プロジェクトでも数秒で完了
-- 検出できない機能は手動で追加可能（planner.md で）
+- Analysis is non-destructive (does not modify files)
+- Completes in seconds even for large projects
+- Undetected features can be added manually (in planner.md)

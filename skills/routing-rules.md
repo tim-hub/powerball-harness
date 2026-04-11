@@ -1,68 +1,68 @@
 # Skill Routing Rules (Reference)
 
-スキル間のルーティングルールのリファレンスドキュメント。
+Reference document for routing rules between skills.
 
-> **SSOT の場所**: 各スキルの `description` フィールドがルーティングの SSOT です。
-> このファイルは詳細な説明と例を提供するリファレンスであり、実際のルーティングは各スキルの description に依存します。
+> **SSOT location**: Each skill's `description` field is the SSOT for routing.
+> This file is a reference providing detailed explanations and examples; actual routing depends on each skill's description.
 >
-> **重要**: 各スキルの description と本文の「Do NOT Load For」テーブルは完全一致している必要があります。
+> **Important**: Each skill's description and the "Do NOT Load For" table in its body must be in complete agreement.
 
-## Codex 関連ルーティング
+## Codex-Related Routing
 
-### harness-review (Codex レビュー機能を包含)
+### harness-review (includes Codex review functionality)
 
-**目的**: Codex CLI (`codex exec`) でセカンドオピニオンレビューを提供（v3 で `codex-review` から統合）
+**Purpose**: Provide second-opinion reviews via Codex CLI (`codex exec`) (integrated from `codex-review` in v3)
 
-**トリガーキーワード**（description から引用）:
+**Trigger keywords** (quoted from description):
 - "review", "code review", "plan review"
 - "scope analysis", "security", "performance"
 - "quality checks", "PRs", "diffs"
 - "/harness-review"
 
-**除外キーワード**（description から引用）:
+**Exclusion keywords** (quoted from description):
 - "implementation", "new features", "bug fixes"
 - "setup", "release"
 
-### harness-work --codex (Codex 実装機能を包含)
+### harness-work --codex (includes Codex implementation functionality)
 
-**目的**: Codex を実装エンジンとして使用（v3 で統合）
+**Purpose**: Use Codex as the implementation engine (integrated in v3)
 
-**トリガーキーワード**:
+**Trigger keywords**:
 - "implement", "execute", "/work"
 - "breezing", "team run"
 - "--codex", "--parallel"
 
-**除外キーワード**（description から引用）:
+**Exclusion keywords** (quoted from description):
 - "planning", "code review", "release"
 - "setup", "initialization"
 
-**対応**: `/harness-work --codex` で実行
+**Invocation**: Run with `/harness-work --codex`
 
-## ルーティング判定フロー（参考）
+## Routing Decision Flow (Reference)
 
-> このセクションは Claude Code の内部動作の説明であり、追加のキーワード定義ではありません。
-> 実際のルーティングは各スキルの description に記載されたキーワードのみで判定されます。
+> This section explains Claude Code's internal behavior and does not define additional keywords.
+> Actual routing is determined solely by the keywords specified in each skill's description.
 
 ```
-ユーザー入力
-    │
-    ├── description のトリガーキーワードにマッチ → 該当スキルをロード
-    ├── description の除外キーワードにマッチ → 該当スキルを除外
-    └── どちらでもない → 通常のスキルマッチング
+User input
+    |
+    |-- Matches trigger keywords in description -> Load the matching skill
+    |-- Matches exclusion keywords in description -> Exclude the matching skill
+    |-- Neither -> Standard skill matching
 ```
 
-## 優先順位ルール（参考）
+## Priority Rules (Reference)
 
-キーワードが複数のスキルにマッチする場合の優先順位:
+Priority when keywords match multiple skills:
 
-1. **除外が最優先**: 除外キーワードにマッチしたスキルは絶対にロードしない
-2. **具体的なキーワードが優先**: 完全一致 > 部分一致
+1. **Exclusions take highest priority**: Skills matching exclusion keywords are never loaded
+2. **More specific keywords take priority**: Exact match > partial match
 
-> **注**: 「文脈判定」は曖昧さを生むため使用しない。description のキーワードで決定的に判定される。
+> **Note**: "Contextual inference" is not used to avoid ambiguity. Routing is deterministically decided by description keywords.
 
-## 更新ルール
+## Update Rules
 
-1. **description = SSOT**: 各スキルの `description` フィールドがルーティングの正式な定義
-2. **本文との一致**: 各スキルの「Do NOT Load For」テーブルは description と完全一致が必須
-3. **このファイルの役割**: 詳細な説明と判定フローのリファレンス（SSOT ではない）
-4. **完全リスト維持**: 汎用表現（"〜全般"）を使わず、具体的なキーワードを列挙する
+1. **description = SSOT**: Each skill's `description` field is the authoritative routing definition
+2. **Body consistency**: Each skill's "Do NOT Load For" table must exactly match its description
+3. **Role of this file**: Reference for detailed explanations and decision flow (not the SSOT)
+4. **Maintain complete lists**: Use specific keywords instead of generic expressions (e.g., avoid "all of ~")

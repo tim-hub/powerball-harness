@@ -1,37 +1,37 @@
 ---
 name: deploy-setup
-description: "デプロイ自動化設定（Vercel/Netlify 等）。プロジェクトを公開したい場合に使用します。"
+description: "Deploy automation setup (Vercel/Netlify, etc.). Use when publishing a project."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 ---
 
 # Deploy Setup Skill
 
-Vercel/Netlifyへのデプロイを自動化するスキル。
+A skill for automating deployment to Vercel/Netlify.
 
 ---
 
-## トリガーフレーズ
+## Trigger Phrases
 
-- 「デプロイできるようにして」
-- 「Vercelに出したい」
-- 「Netlifyにデプロイしたい」
-- 「本番環境を設定して」
-
----
-
-## 機能
-
-- Vercel/Netlifyプロジェクトの作成ガイド
-- 環境変数の設定ガイド
-- GitHub Actionsによる自動デプロイ
-- プレビューデプロイ（Pull Request）
+- "Set up deployment"
+- "I want to deploy to Vercel"
+- "I want to deploy to Netlify"
+- "Set up the production environment"
 
 ---
 
-## 実行フロー
+## Features
 
-1. プロジェクト構成を確認
-2. Vercel または Netlify を選択
-3. 設定ファイルを生成（vercel.json / netlify.toml）
-4. 環境変数の設定をガイド
-5. デプロイ検証
+- Vercel/Netlify project creation guide
+- Environment variable configuration guide
+- Automatic deployment via GitHub Actions
+- Preview deployments (Pull Requests)
+
+---
+
+## Execution Flow
+
+1. Check project structure
+2. Choose Vercel or Netlify
+3. Generate configuration files (vercel.json / netlify.toml)
+4. Guide environment variable configuration
+5. Verify deployment
