@@ -44,6 +44,7 @@ deleted_paths:
       - "output/"
       - "docs/social/"  # v3 時代の SNS 投稿（歴史記録）
       - "skills/claude-codex-upstream-update/"  # 上流更新ガイド（歴史参照を含む）
+      - ".claude/rules/migration-policy.md"  # Phase 40 歴史記述（事例付録に削除済みパスを含む）
 
   - path: "core/dist"
     deleted_in: "v4.0.0"
@@ -106,6 +107,7 @@ deleted_concepts:
       - "scripts/codex-setup-local.sh"  # 同上
       - "tests/test-codex-package.sh"  # v3 legacy skill テスト（コメント）
       - "skills-codex/"  # codex スキルミラー（独立管理）
+      - ".claude/rules/migration-policy.md"  # Phase 40 歴史記述（事例付録に旧バージョン名を含む）
       - "out/"
       - "output/"
       - "Plans.md"
@@ -142,3 +144,4 @@ deleted_concepts:
       - "codex/"  # codex は別ランタイム
       - "skills/generate-video/"  # 動画生成スキルは Node.js を使う可能性
       - "opencode/"
+      - ".claude/rules/migration-policy.md"  # Phase 40 歴史記述（事例付録に旧ランタイム要件を含む）

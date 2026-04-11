@@ -134,4 +134,6 @@ Details & handoff: [docs/CLAUDE-commands.md](docs/CLAUDE-commands.md)
 
 Details: [.claude/rules/test-quality.md](.claude/rules/test-quality.md) / [.claude/rules/implementation-quality.md](.claude/rules/implementation-quality.md)
 
+- Migration policy: [.claude/rules/migration-policy.md](.claude/rules/migration-policy.md) - deleted-concepts.yaml の運用ルール (Phase 40 で導入)
+
 <!-- harness-integrity: last-audit=2026-04-07 -->
