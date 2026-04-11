@@ -386,6 +386,16 @@ else
 fi
 
 echo ""
+echo "9. Migration residue check"
+echo "----------------------------------------"
+
+if bash "$PLUGIN_ROOT/scripts/check-residue.sh" > /dev/null 2>&1; then
+    pass_test "No migration residue detected (scripts/check-residue.sh clean)"
+else
+    fail_test "Migration residue found — run 'bash scripts/check-residue.sh' to see details"
+fi
+
+echo ""
 echo "=========================================="
 echo "テスト結果サマリー"
 echo "=========================================="
