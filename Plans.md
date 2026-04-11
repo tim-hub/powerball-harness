@@ -1337,3 +1337,88 @@ Purpose: 前回および今回の /HAR:review で recommendation として発見
 | 39.5.2 | `go/internal/hookhandler/memory_bridge.go` の `validTargets` map が kebab-case (`session-start`, `user-prompt` 等) を期待しているが、CC は `hook_event_name` に PascalCase (`SessionStart`, `UserPromptSubmit` 等) を送っているため常に "unknown target" fail-open branch に落ちて memory bridge が実質動作していない問題を修正。HookEventName を正規化するか validTargets キーを PascalCase に揃える | memory bridge が実際に session-start / user-prompt / post-tool-use / stop の各 event を dispatch する。hook handler テストに PascalCase 入力のケース追加 | - | cc:TODO |
 
 ---
+
+## Phase 40: Migration Residue Scanner — inclusion → exclusion verification
+
+作成日: 2026-04-11
+目的: Harness の検証層に **exclusion-based verification (削除された概念への参照が残っていないかを systematic に検出する層)** を追加する。現状は「X が含まれるか」の inclusion-based チェックのみで、major migration (v3→v4 等) 後の残骸を偶然発見に頼る状態。今セッションで検出した 13 件の v3 残骸バグが将来自動的に捕捉される状態にする
+
+### 背景 (Why this phase exists)
+
+v4.0.0 "Hokage" リリース (2026-04-09) から v4.0.1 までの 2 日間で、13 件の v3 残骸バグが**偶然発見**された:
+
+| # | 残骸バグ | 発見経緯 | 影響 |
+|---|---|---|---|
+| 1 | `validate-plugin.sh` が削除済み `core/src/guardrails/rules.ts` を grep | 初回 validate 実行で 4 件失敗 | 検証スクリプトが false negative |
+| 2 | `check-consistency.sh` が README に `"TypeScript guardrail engine"` を期待 | 初回 consistency 実行で 2 件失敗 | 同上 |
+| 3 | `tests/test-memory-hook-wiring.sh` が v3 shell path を厳密一致期待 | validate の下流失敗 | 同上 |
+| 4 | `tests/test-claude-upstream-integration.sh` の `permission-denied-handler` | Worker C の部分修正後に再発見 | 同上 |
+| 5 | 18 SKILL.md frontmatter の `"Harness v3"` 文字列 | ユーザーがスラッシュパレットで気づく | ユーザー混乱 |
+| 6 | `agents/*.md` の `v3` narrative | grep 再走査で副次発見 | 同上 |
+| 7 | SKILL.md H1 タイトルの `(v3)` サフィックス | 同上 | 同上 |
+| 8 | `harness.toml` → `plugin.json` sync が `skills: ["./"]` を削除 | auto-revert 現象で気づく | 機能退行 |
+| 9 | `/HAR:review` SKILL.md 本体が英語中心 | fork subagent が英語で返答 | UX 問題 |
+| 10 | `README.md` ファイルツリーの `core/ engine` 言及 | ユーザー最終指摘 | 誤誘導 |
+| 11 | `README.md` ファイルツリーの `skills/`/`agents/` 重複バグ | 同上 | 同上 |
+| 12 | `README_ja.md` 同じ問題 | 同上 | 同上 |
+| 13 | `README.md` troubleshooting の `Node.js 18+` 要求 | 同上 | 誤誘導 |
+
+全て **偶然発見**: テスト失敗・ユーザー指摘・レビュー指摘のいずれか。systematic scanner があれば **v4.0.0 リリース前に全て検出できた class の bug**。これは Harness の verification 戦略に関する**根本的な欠陥**を示している: inclusion-based (「X が含まれるか」) のみで exclusion-based (「削除された X が残っていないか」) の視点が欠けている。
+
+### 優先度マトリクス
+
+| 優先度 | Phase | 内容 | タスク数 | 依存 |
+|--------|-------|------|---------|------|
+| **Required** | 40.0 | 基盤 (deleted-concepts.yaml + check-residue.sh) | 2 | なし |
+| **Required** | 40.1 | 統合 (doctor --residue + validate-plugin + release preflight) | 3 | 40.0 |
+| **Required** | 40.2 | ドキュメント (migration-policy.md) | 1 | 40.0, 40.1 |
+
+合計: **6 タスク**
+
+### 完成基準 (Definition of Done — Phase 40 全体)
+
+| # | 基準 | 検証方法 | 必須/推奨 |
+|---|------|---------|----------|
+| 1 | scanner が今セッションの 13 件の v3 残骸を retroactive に全て検出 | v4.0.1 時点の 1 つ前の commit に戻して `bash scripts/check-residue.sh` → 13 件検出 / リリース後の commit → 0 件 | 必須 |
+| 2 | scanner の false positive 率ゼロ (CHANGELOG.md 等の歴史記述を allowlist で正しく除外) | v4.0.1 HEAD で実行して 0 件 | 必須 |
+| 3 | `bin/harness doctor --residue` が scanner を呼び出して結果表示 | コマンド実行で期待出力 (件数 + ファイル + 行番号) | 必須 |
+| 4 | `validate-plugin.sh` に residue 統合、失敗時に合計 fail カウントに加算 | 意図的に v3 残骸を混入 → validate-plugin が失敗 | 必須 |
+| 5 | `harness-release` skill の preflight に `harness doctor --residue` を組み込み、失敗時にリリース中止 | SKILL.md に明記 + dry-run で動作確認 | 必須 |
+| 6 | `.claude/rules/migration-policy.md` が存在、deleted-concepts.yaml の更新ルールを明文化 | ファイル存在 + 内容確認 | 必須 |
+| 7 | `.claude/rules/deleted-concepts.yaml` にこのセッションで検出した 13 件を全てエントリ化 | yaml を parse、最低 8-10 のエントリ (13 件はパターンに集約可能) | 必須 |
+| 8 | Go test 全パス、validate-plugin 43+/0 (residue check 分増加)、check-consistency 全合格 | 既存のテスト走査 | 必須 |
+
+---
+
+### Phase 40.0: 基盤 [P0]
+
+Purpose: `.claude/rules/deleted-concepts.yaml` を SSOT として定義し、それを読んで repo を scan する `check-residue.sh` を実装する
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 40.0.1 | `.claude/rules/deleted-concepts.yaml` を新規作成。スキーマは `deleted_paths[]` と `deleted_concepts[]` の 2 セクション。各エントリは `path`/`term`, `term_ja` (任意), `replacement`/`replacement_ja` (任意), `deleted_in` (version), `deleted_by` (commit hash 任意), `reason`, `allowlist[]` を含む。今セッションで検出した 13 件の v3 残骸をパターンに集約してエントリ化: (a) `core/src/guardrails`, (b) `core/dist`, (c) `core/package.json`, (d) `scripts/run-hook.sh`, (e) 用語 `"TypeScript guardrail engine"` / `"TypeScript ガードレールエンジン"`, (f) 用語 `"Harness v3"` / `"(v3)"`, (g) troubleshooting 文言 `"Node.js 18+ is installed"` / `"Node.js 18+ が必要"` / `"Ensure Node.js"`, (h) v3 shell invocation pattern `"hook-handlers/memory-bridge"` / `"hook-handlers/runtime-reactive"` / `"hook-handlers/permission-denied-handler"`。allowlist には `CHANGELOG.md`, `.claude/memory/archive/**`, `benchmarks/**`, `README.md` の "Before / After" table 領域を含める | YAML が valid (`yq` で parse OK)。8-10 個のエントリ + 各エントリに allowlist 配列。`reason` フィールドで「なぜ削除されたか」が各エントリで説明されている (v4.0.0 Hokage migration, CC 2.1.94 対応等) | - | cc:TODO |
+| 40.0.2 | `scripts/check-residue.sh` を実装。`.claude/rules/deleted-concepts.yaml` を `yq` で読み込み、`deleted_paths[]` と `deleted_concepts[]` を順次 `grep -rln -F` でスキャン。allowlist 適用 (`.gitignore` 風のマッチングか prefix match)。hit があれば exit code 1、詳細レポートを stdout に出力 (件数、ファイル、行番号、該当文字列、どのエントリの violation か)。`set -euo pipefail` 下でも動作すること。エラー時の fallback 仕様も実装 (yq 未インストール → python3 + yaml module でパースする fallback) | (a) v4.0.0 release commit (`8d8ce3c8`) + v4.0.1 前の時点で scanner 実行 → 今セッションの 13 件の v3 残骸を全て検出 (retroactive validation)、(b) v4.0.1 以降の HEAD で実行 → 残骸 0 件 (false positive ゼロ)、(c) 意図的に `core/src/guardrails/rules.ts` への reference を README に追加 → 即検出。`bash scripts/check-residue.sh` 単体実行で全挙動 OK | 40.0.1 | cc:TODO |
+
+---
+
+### Phase 40.1: 統合 [P0]
+
+Purpose: 3 つの検証ポイント (developer ad-hoc / PR ごと / リリース前) に scanner を組み込む
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 40.1.1 | `go/cmd/harness/doctor.go` に `--residue` フラグを追加。内部で `scripts/check-residue.sh` を subprocess 呼び出しして結果をフォーマット表示。または yaml を直接 parse する Go 実装でも可 (その場合 `gopkg.in/yaml.v3` 等を go.mod に追加)。既存の `--migration` 等のフラグと独立して動作。`bin/harness doctor` 単体実行時は residue check をスキップ (高速化のため opt-in) | `bin/harness doctor --residue` を実行すると: (a) scan 中のメッセージ表示、(b) 検出された場合はファイル + 行番号 + 該当エントリ、(c) 0 件なら "✓ No migration residue detected" を表示、(d) exit code 0 (clean) or 1 (residue)。`go test ./cmd/harness/ -run TestDoctor_Residue` で意図的 residue 混入テストが PASS | 40.0.2 | cc:TODO |
+| 40.1.2 | `tests/validate-plugin.sh` に residue scan を組み込む。新しい test カテゴリ "migration residue check" として追加、既存の合格/失敗/警告カウントに統合 (residue 0 件 → +1 合格、residue 1 件以上 → +1 失敗) | `./tests/validate-plugin.sh` 実行時に residue check が最後のセクションとして走る。clean state で合格数 +1 (42 → 43)。意図的な residue 混入時は失敗数 +1。既存テストは全て維持 | 40.0.2 | cc:TODO |
+| 40.1.3 | `skills/harness-release/SKILL.md` の preflight セクション (Step 1 相当) に `bin/harness doctor --residue` を追加。residue 検出時はリリース中止 + ユーザーへ修正指示を日本語で表示。3 mirror (`skills/`, `codex/.codex/skills/`, `opencode/skills/`) 同期 | `harness-release` の preflight テーブルに residue check 行追加。residue 検出時の error message が「Phase 40 の scanner が N 件の削除済み概念への参照を検出しました。修正してから再実行してください。」のように日本語で明確。`check-consistency.sh` PASS (mirror 完全一致) | 40.0.2 | cc:TODO |
+
+---
+
+### Phase 40.2: ドキュメント [P0]
+
+Purpose: 今後の major migration で scanner を正しく運用するためのルール化
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 40.2.1 | `.claude/rules/migration-policy.md` を新規作成。内容: (1) major version migration 時に `.claude/rules/deleted-concepts.yaml` を更新する義務、(2) 更新タイミングは削除 PR と同時 (遅延禁止)、(3) allowlist の運用基準 (歴史記述 CHANGELOG は常に allowlist、Before/After table は文脈で allowlist、docs/archive は常に allowlist)、(4) retroactive validation の実施方法、(5) 今セッション (v4.0.0 → v4.0.1) で検出された 13 件の v3 残骸事例を付録として記録 (なぜこの機能が生まれたかのストーリー付き)、(6) `CLAUDE.md` に migration-policy.md への参照を追加 | ファイルが存在、markdown valid。非専門家にも「なぜ deleted-concepts.yaml が必要か」が 5 分で理解できる。CLAUDE.md に 1 行 reference 追加 | 40.0.1, 40.1.3 | cc:TODO |
+
+---
