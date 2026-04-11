@@ -1,7 +1,7 @@
 {
   "name": "cc-harness-marketplace",
   "metadata": {
-    "description": "claude-code-harness の配布/導入を支援する（単一プラグイン）マーケットプレース"
+    "description": "Marketplace for distributing and installing the claude-code-harness plugin"
   },
   "owner": {
     "name": "tim-hub"

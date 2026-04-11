@@ -80,7 +80,7 @@ claude
 
 # Add the marketplace source & install
 /plugin marketplace add tim-hub/claude-code-harness
-/plugin install claude-code-harness@claude-code-harness-marketplace
+/plugin install cc-harness@cc-harness-marketplace
 
 # Initialize your project
 /harness-setup
@@ -217,13 +217,13 @@ Harness v3 protects your codebase with a **TypeScript guardrail engine** (`core/
 | Post | `it.skip`, assertion tampering | **Warning** |
 | Perm | `git status`, `npm test` | **Auto-allow** |
 
-Runtime differences between Claude Code hooks and Codex CLI gates are documented in [docs/hardening-parity.md](docs/hardening-parity.md).
+Runtime hook behavior is documented in [docs/hardening-parity.md](docs/hardening-parity.md).
 
 ---
 
 ## 5 Verb Skills, Zero Config
 
-v3 unifies 42 skills into **5 verb skills**. Start with the verbs first, then add Breezing, Codex, or 2-agent flows only when you need them.
+v3 unifies 42 skills into **5 verb skills**. Start with the verbs first, then add Breezing or agent teams when you need them.
 
 <table>
 <tr>
@@ -292,7 +292,6 @@ Run entire task lists with autonomous agent teams:
 ```bash
 /harness-work breezing all                    # Plan review + parallel implementation
 /harness-work breezing --no-discuss all       # Skip plan review, go straight to coding
-/harness-work breezing --codex all            # Delegate to Codex engine
 ```
 
 <p align="center">
@@ -309,78 +308,6 @@ Run entire task lists with autonomous agent teams:
 | Hook-driven Signals | Auto-triggers for partial review and next batch |
 
 > **Cost**: ~5.5x tokens (default) vs ~4x (with `--no-discuss`). The plan review pays for itself by reducing rework.
-
-</details>
-
-<details>
-<summary><strong>Codex Engine</strong></summary>
-
-Delegate implementation tasks to OpenAI Codex in parallel:
-
-```bash
-/harness-work --codex implement these 5 API endpoints
-```
-
-Codex implements → Self-reviews → Reports back. Works alongside Claude Code workers.
-
-> **Setup required**: Install [Codex CLI](https://github.com/openai/codex) and configure API key.
-
-</details>
-
-<details>
-<summary><strong>Codex CLI Setup</strong></summary>
-
-Use Harness with [Codex CLI](https://github.com/openai/codex) — no Claude Code required.
-
-**Prerequisites**: [Codex CLI](https://github.com/openai/codex) (`npm i -g @openai/codex`), OpenAI API key (`OPENAI_API_KEY`), Git.
-
-```bash
-# 1. Clone the Harness repository
-git clone https://github.com/tim-hub/claude-code-harness.git
-cd claude-code-harness
-
-# 2. Install skills/rules to user scope (~/.codex)
-./scripts/setup-codex.sh --user
-
-# 3. Go to your project and start working
-cd /path/to/your-project
-codex
-```
-
-Once inside Codex, use `$harness-plan`, `$harness-work`, `$breezing`, and `$harness-review`.
-
-| Flag | Description |
-|------|-------------|
-| `--user` | Install to `~/.codex` (shared across projects, default) |
-| `--project` | Install to `.codex/` in current directory |
-
-> Claude Code users can run `/setup codex` inside a session instead.
-
-</details>
-
-<details>
-<summary><strong>2-Agent Mode (with Cursor)</strong></summary>
-
-Use Cursor as PM, Claude Code as implementer.
-
-```bash
-/harness-release handoff  # Report to Cursor PM
-```
-
-Plans.md syncs between both.
-
-</details>
-
-<details>
-<summary><strong>Codex Review Integration</strong></summary>
-
-Add OpenAI Codex for second opinions:
-
-```bash
-/harness-review --codex  # 4 perspectives + Codex CLI
-```
-
-Codex selects 4 relevant experts from 16 specialist types via `codex exec`.
 
 </details>
 
@@ -463,7 +390,7 @@ For more help, [open an issue](https://github.com/tim-hub/claude-code-harness/is
 ## Uninstall
 
 ```bash
-/plugin uninstall claude-code-harness
+/plugin uninstall cc-harness
 ```
 
 Project files (Plans.md, SSOT files) remain unchanged.
@@ -508,7 +435,6 @@ Full list: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 | [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md) | Requirements |
 | [Distribution Scope](docs/distribution-scope.md) | Included vs compatibility vs development-only paths |
 | [Work All Evidence Pack](docs/evidence/work-all.md) | Success/failure verification contract |
-| [Cursor Integration](docs/CURSOR_INTEGRATION.md) | 2-Agent setup |
 | [Benchmark Rubric](docs/benchmark-rubric.md) | Static vs executed evidence scoring |
 | [Positioning Notes](docs/positioning-notes.md) | Public-facing differentiation language |
 | [Content Layout](docs/content-layout.md) | Source docs vs generated outputs convention |
