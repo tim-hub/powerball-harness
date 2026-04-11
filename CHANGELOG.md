@@ -6,6 +6,8 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.0.1] - 2026-04-11
+
 ### テーマ: CC 2.1.89-2.1.100 追従 — Go v4 セキュリティハードニング
 
 **CC 2.1.98 で本体が塞いだ 2 つの Bash permission bypass 脆弱性 (backslash-escape, env-var prefix) を Harness 二層目ガードレール (`go/internal/guardrail/`) にも反映。加えて CC 2.1.89 DecisionDefer ワイヤリング、CC 2.1.89 symlink 解決、CC 2.1.90 .husky 保護、CC 2.1.98 wildcard whitespace 正規化、CC 2.1.94 plugin skills field 明示化、CC 2.1.98 Monitor ツール取込を統合。24 本のセキュリティテスト追加、Go v4.0.0 リリース前の品質ゲート完了。**
