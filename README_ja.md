@@ -253,15 +253,16 @@ v4 で42スキルを **5つの動詞スキル**に統合。まずは動詞から
 
 ```
 claude-code-harness/
-├── go/             # Go ネイティブガードレールエンジン + hookhandler
-│   └── src/        #   guardrails/ state/ engine/
-├── skills/         # 5動詞スキル（plan/execute/review/release/setup）
-├── agents/      # 3エージェント（worker/reviewer/scaffolder）
-├── hooks/          # 薄いシム → core/ エンジン
-├── skills/         # 旧41スキル（互換性のため保持）
-├── agents/         # 旧11エージェント（互換性のため保持）
-├── scripts/        # 補助フックスクリプト（レガシー、Go エンジンと共存）
-└── templates/      # 生成テンプレート
+├── go/                # Go ネイティブガードレール + hookhandler エンジン
+│   ├── cmd/harness/   #   CLI エントリーポイント (sync, doctor, validate)
+│   ├── internal/      #   guardrail / hookhandler / state / lifecycle / breezing
+│   └── pkg/           #   config / hookproto (公開 API)
+├── bin/               # ビルド済み harness バイナリ (darwin-arm64/amd64, linux-amd64)
+├── skills/            # 5動詞スキル + 拡張スキル (plan/execute/review/release/setup ほか)
+├── agents/            # 3エージェント (worker / reviewer / scaffolder)
+├── hooks/             # CC フック設定 (hooks.json)
+├── scripts/           # 補助シェルスクリプト
+└── templates/         # 生成テンプレート
 ```
 
 ---

@@ -257,15 +257,16 @@ v4 unifies 42 skills into **5 verb skills**. Start with the verbs first, then ad
 
 ```
 claude-code-harness/
-├── go/             # Go-native guardrail engine + hookhandler
-│   └── src/        #   guardrails/ state/ engine/
-├── skills/         # 5 verb skills (plan/execute/review/release/setup)
-├── agents/      # 3 agents (worker/reviewer/scaffolder)
-├── hooks/          # Thin shims → core/ engine
-├── skills/         # 41 legacy skills (retained for compatibility)
-├── agents/         # 11 legacy agents (retained for compatibility)
-├── scripts/        # Auxiliary hook scripts (legacy, coexist with Go engine)
-└── templates/      # Generation templates
+├── go/                # Go-native guardrail + hookhandler engine
+│   ├── cmd/harness/   #   CLI entry point (sync, doctor, validate)
+│   ├── internal/      #   guardrail / hookhandler / state / lifecycle / breezing
+│   └── pkg/           #   config / hookproto (public API)
+├── bin/               # Compiled harness binaries (darwin-arm64/amd64, linux-amd64)
+├── skills/            # 5 verb skills + extension skills (plan/execute/review/release/setup, etc.)
+├── agents/            # 3 agents (worker / reviewer / scaffolder)
+├── hooks/             # CC hook configuration (hooks.json)
+├── scripts/           # Auxiliary shell scripts
+└── templates/         # Generation templates
 ```
 
 ---
@@ -442,7 +443,7 @@ Skill packs can teach a prompt. Harness also enforces behavior at runtime.
 | Command not found | Run `/harness-setup` first |
 | `harness-*` commands missing on Windows | Update or reinstall the plugin. Public command skills now ship as real directories, so `core.symlinks=false` no longer hides them. |
 | Plugin not loading | Clear cache: `rm -rf ~/.claude/plugins/cache/claude-code-harness-marketplace/` and restart |
-| Hooks not working | Ensure Node.js 18+ is installed |
+| Hooks not working | Run `bin/harness doctor` to diagnose (Go binary, no Node.js needed) |
 
 For more help, [open an issue](https://github.com/Chachamaru127/claude-code-harness/issues).
 
