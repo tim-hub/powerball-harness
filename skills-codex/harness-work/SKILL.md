@@ -7,7 +7,7 @@ argument-hint: "[all] [task-number|range] [--parallel N] [--no-commit] [--breezi
 effort: high
 ---
 
-# Harness Work (v3) — Codex Native
+# Harness Work — Codex Native
 
 > **この SKILL.md は Codex CLI ネイティブ版です。**
 > Claude Code 版は `skills/harness-work/SKILL.md` を参照してください。

@@ -58,48 +58,6 @@ deleted_paths:
       - "output/"
       - "docs/social/"
 
-  - path: "hook-handlers/memory-bridge"
-    deleted_in: "v4.0.0"
-    reason: "v3 の bash シェルベース hook-handlers アーキテクチャを廃止。Go-native hook handler に移植"
-    allowlist:
-      - "CHANGELOG.md"
-      - ".claude/memory/archive/"
-      - ".claude/worktrees/"
-      - ".claude/state/"
-      - "go/"  # Go 版の memory_bridge.go は正当なファイル
-      - "Plans.md"
-      - "out/"
-      - "output/"
-      - "docs/social/"
-      - "docs/distribution-scope.md"  # 旧配布スコープドキュメント（v3 アーキテクチャの記録）
-
-  - path: "hook-handlers/permission-denied-handler"
-    deleted_in: "v4.0.0"
-    reason: "同上 — v3 bash シェルベース hook-handlers アーキテクチャ廃止"
-    allowlist:
-      - "CHANGELOG.md"
-      - ".claude/memory/archive/"
-      - ".claude/worktrees/"
-      - ".claude/state/"
-      - "go/"  # Go 版の permission_denied.go は正当なファイル
-      - "Plans.md"
-      - "out/"
-      - "output/"
-      - "docs/social/"
-
-  - path: "hook-handlers/runtime-reactive"
-    deleted_in: "v4.0.0"
-    reason: "同上 — v3 bash シェルベース hook-handlers アーキテクチャ廃止"
-    allowlist:
-      - "CHANGELOG.md"
-      - ".claude/memory/archive/"
-      - ".claude/worktrees/"
-      - ".claude/state/"
-      - "go/"
-      - "Plans.md"
-      - "out/"
-      - "output/"
-      - "docs/social/"
 
 # ─── 削除済み概念・用語 ─────────────────────────────────────────────────────────
 deleted_concepts:

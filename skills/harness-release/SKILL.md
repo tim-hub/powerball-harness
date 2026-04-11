@@ -385,7 +385,7 @@ Phase 9 のみを実行する。GitHub Release の作成漏れがないか確認
 | Preflight | `scripts/release-preflight.sh` | working tree、CHANGELOG、CI、残骸 |
 | リリースノート | `scripts/validate-release-notes.sh vX.Y.Z` | GitHub Release のフォーマット検証 |
 | VERSION 同期 | `scripts/sync-version.sh check` | VERSION と plugin.json の一致 |
-| ガードレール | `core/src/guardrails/rules.ts` の R01-R13 | TypeScript ルールの健全性 |
+| ガードレール | `go/internal/guardrail/rules.go` の R01-R13 | Go ネイティブルールの健全性 |
 | タグ連続性 | `git tag --sort=-version:refname \| head -5` | 欠番がないこと |
 | ロケール | description と description-ja の一致 | `set-locale.sh` で切替可能 |
 
