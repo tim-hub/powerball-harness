@@ -1,23 +1,23 @@
 /**
  * core/src/guardrails/post-tool.ts
- * PostToolUse フック統合評価関数
+ * PostToolUse hook integrated evaluation function
  *
- * 以下の PostToolUse スクリプト群を Promise.allSettled で並列実行し、
- * 結果を集約して HookResult として返す:
+ * Runs the following PostToolUse script equivalents in parallel via Promise.allSettled
+ * and aggregates the results into a single HookResult:
  *
- * 1. tampering-detector: テスト改ざん検出（警告のみ）
- * 2. security-review: セキュリティパターン検出（警告のみ）
+ * 1. tampering-detector: Test tampering detection (warning only)
+ * 2. security-review: Security pattern detection (warning only)
  *
- * その他（log-toolname, commit-cleanup 等）は副作用のみで HookResult に影響しないため
- * hooks.json の別エントリとして独立して実行する設計を維持する。
+ * Others (log-toolname, commit-cleanup, etc.) are side-effect-only and do not affect
+ * the HookResult, so they maintain their design as separate hooks.json entries.
  */
 import { detectTestTampering } from "./tampering.js";
 // ============================================================
-// セキュリティパターン検出（posttooluse-security-review.sh 移植）
+// Security pattern detection (ported from posttooluse-security-review.sh)
 // ============================================================
 /**
- * 書き込まれたコード内のセキュリティリスクパターンを検出する。
- * 検出した場合は警告を systemMessage として追加（ブロックしない）。
+ * Detect security risk patterns in written code.
+ * If detected, add warnings as systemMessage (does not block).
  */
 function detectSecurityRisks(input) {
     const toolInput = input.tool_input;
@@ -32,23 +32,23 @@ function detectSecurityRisks(input) {
     const securityPatterns = [
         {
             pattern: /process\.env\.[A-Z_]+.*(?:password|secret|key|token)/i,
-            message: "機密情報を環境変数から直接文字列に埋め込んでいる可能性があります",
+            message: "Possible sensitive data embedded directly from environment variables",
         },
         {
             pattern: /eval\s*\(\s*(?:request|req|input|param|query)/i,
-            message: "ユーザー入力を eval() に渡すコードを検出しました（RCE リスク）",
+            message: "Detected code passing user input to eval() (RCE risk)",
         },
         {
             pattern: /exec\s*\(\s*`[^`]*\$\{/,
-            message: "テンプレートリテラルを exec() に渡すコードを検出しました（コマンドインジェクションリスク）",
+            message: "Detected code passing template literals to exec() (command injection risk)",
         },
         {
             pattern: /innerHTML\s*=\s*(?:.*\+.*|`[^`]*\$\{)/,
-            message: "ユーザー入力を innerHTML に設定しているコードを検出しました（XSS リスク）",
+            message: "Detected code setting user input to innerHTML (XSS risk)",
         },
         {
             pattern: /(?:password|passwd|secret|api_key|apikey)\s*=\s*["'][^"']{8,}["']/i,
-            message: "ハードコードされた機密情報（パスワード/APIキー）を検出しました",
+            message: "Detected hardcoded sensitive data (password/API key)",
         },
     ];
     for (const { pattern, message } of securityPatterns) {
@@ -59,36 +59,36 @@ function detectSecurityRisks(input) {
     return warnings;
 }
 // ============================================================
-// PostToolUse 統合エントリポイント
+// PostToolUse integrated entry point
 // ============================================================
 /**
- * PostToolUse フックのエントリポイント。
- * 複数の検出器を並列実行し、警告を統合して返す。
+ * PostToolUse hook entry point.
+ * Runs multiple detectors in parallel and returns aggregated warnings.
  */
 export async function evaluatePostTool(input) {
-    // Write / Edit / MultiEdit のみ詳細チェック
+    // Only perform detailed checks for Write / Edit / MultiEdit
     const isWriteOp = ["Write", "Edit", "MultiEdit"].includes(input.tool_name);
     if (!isWriteOp) {
         return { decision: "approve" };
     }
-    // 並列実行（Promise.allSettled で一方の失敗が全体に影響しないように）
+    // Parallel execution (Promise.allSettled ensures one failure doesn't affect the other)
     const [tamperingResult, securityWarnings] = await Promise.allSettled([
         Promise.resolve(detectTestTampering(input)),
         Promise.resolve(detectSecurityRisks(input)),
     ]);
     const systemMessages = [];
-    // 改ざん検出の警告を収集
+    // Collect tampering detection warnings
     if (tamperingResult.status === "fulfilled" &&
         tamperingResult.value.systemMessage) {
         systemMessages.push(tamperingResult.value.systemMessage);
     }
-    // セキュリティ警告を収集
+    // Collect security warnings
     if (securityWarnings.status === "fulfilled" &&
         securityWarnings.value.length > 0) {
         const secLines = securityWarnings.value
             .map((w) => `- ${w}`)
             .join("\n");
-        systemMessages.push(`[Harness v3] セキュリティリスク検出:\n${secLines}`);
+        systemMessages.push(`[Harness v3] Security risk detected:\n${secLines}`);
     }
     if (systemMessages.length === 0) {
         return { decision: "approve" };

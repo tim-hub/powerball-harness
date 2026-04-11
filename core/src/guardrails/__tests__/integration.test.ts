@@ -1,13 +1,13 @@
 /**
  * core/src/guardrails/__tests__/integration.test.ts
- * Harness v3 ガードレール E2E 統合テスト
+ * Harness v3 Guardrail E2E Integration Tests
  *
- * 実際のフック呼び出しフロー（evaluatePreTool → evaluatePostTool）を通じて
- * 9つのガードルールが連携して正しく動作することを検証する。
+ * Validates that 9 guard rules work correctly together through
+ * the actual hook invocation flow (evaluatePreTool → evaluatePostTool).
  *
- * ユニットテストとの違い:
- *   - rules.test.ts: 個別ルール関数の単体テスト
- *   - integration.test.ts: PreToolUse → PostToolUse の実フロー全体テスト
+ * Difference from unit tests:
+ *   - rules.test.ts: Unit tests for individual rule functions
+ *   - integration.test.ts: Full-flow tests for PreToolUse → PostToolUse pipeline
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -16,7 +16,7 @@ import { evaluatePostTool } from "../post-tool.js";
 import type { HookInput } from "../../types.js";
 
 // ============================================================
-// テストヘルパー
+// Test helpers
 // ============================================================
 
 function buildInput(
@@ -35,11 +35,11 @@ function buildInput(
 }
 
 // ============================================================
-// PreToolUse → 判定結果の統合テスト
+// PreToolUse → decision integration tests
 // ============================================================
 
-describe("E2E: PreToolUse フロー", () => {
-  // 各テストで環境変数をリセット
+describe("E2E: PreToolUse flow", () => {
+  // Reset environment variables for each test
   beforeEach(() => {
     delete process.env["HARNESS_WORK_MODE"];
     delete process.env["HARNESS_CODEX_MODE"];
@@ -52,39 +52,39 @@ describe("E2E: PreToolUse フロー", () => {
   });
 
   // ------------------------------------------------------------------
-  // 正常系: 問題のない操作は approve される
+  // Happy path: safe operations are approved
   // ------------------------------------------------------------------
 
-  describe("approve ケース", () => {
-    it("通常の Bash コマンドは approve される", async () => {
+  describe("approve cases", () => {
+    it("normal Bash command is approved", async () => {
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "npm test" })
       );
       expect(result.decision).toBe("approve");
     });
 
-    it("通常のファイル書き込みは approve される", async () => {
+    it("normal file write is approved", async () => {
       const result = await evaluatePreTool(
         buildInput("Write", { file_path: "/test/project/src/index.ts" })
       );
       expect(result.decision).toBe("approve");
     });
 
-    it("rm -r フラグなしの削除は approve される", async () => {
+    it("rm without -r flag is approved", async () => {
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "rm /tmp/test.log" })
       );
       expect(result.decision).toBe("approve");
     });
 
-    it("git push（force なし）は approve される", async () => {
+    it("git push (without force) is approved", async () => {
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "git push origin feature/login" })
       );
       expect(result.decision).toBe("approve");
     });
 
-    it("通常の Read は approve される", async () => {
+    it("normal Read is approved", async () => {
       const result = await evaluatePreTool(
         buildInput("Read", { file_path: "/test/project/src/app.ts" })
       );
@@ -93,11 +93,11 @@ describe("E2E: PreToolUse フロー", () => {
   });
 
   // ------------------------------------------------------------------
-  // deny ケース: 危険操作は阻止される
+  // deny cases: dangerous operations are blocked
   // ------------------------------------------------------------------
 
-  describe("deny ケース", () => {
-    it("sudo は deny される", async () => {
+  describe("deny cases", () => {
+    it("sudo is denied", async () => {
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "sudo apt-get update" })
       );
@@ -105,7 +105,7 @@ describe("E2E: PreToolUse フロー", () => {
       expect(result.reason).toContain("sudo");
     });
 
-    it("git push --force は deny される", async () => {
+    it("git push --force is denied", async () => {
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "git push --force origin main" })
       );
@@ -113,14 +113,14 @@ describe("E2E: PreToolUse フロー", () => {
       expect(result.reason).toContain("force");
     });
 
-    it("git push -f も deny される", async () => {
+    it("git push -f is also denied", async () => {
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "git push -f origin main" })
       );
       expect(result.decision).toBe("deny");
     });
 
-    it("--no-verify は deny される", async () => {
+    it("--no-verify is denied", async () => {
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "git commit --no-verify -m 'test'" })
       );
@@ -128,7 +128,7 @@ describe("E2E: PreToolUse フロー", () => {
       expect(result.reason).toContain("--no-verify");
     });
 
-    it("--no-gpg-sign は deny される", async () => {
+    it("--no-gpg-sign is denied", async () => {
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "git commit --no-gpg-sign -m 'test'" })
       );
@@ -136,7 +136,7 @@ describe("E2E: PreToolUse フロー", () => {
       expect(result.reason).toContain("--no-gpg-sign");
     });
 
-    it("git reset --hard main は deny される", async () => {
+    it("git reset --hard main is denied", async () => {
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "git reset --hard main" })
       );
@@ -144,7 +144,7 @@ describe("E2E: PreToolUse フロー", () => {
       expect(result.reason).toContain("reset --hard");
     });
 
-    it(".env ファイルへの Write は deny される", async () => {
+    it("Write to .env file is denied", async () => {
       const result = await evaluatePreTool(
         buildInput("Write", { file_path: "/test/project/.env" })
       );
@@ -152,35 +152,35 @@ describe("E2E: PreToolUse フロー", () => {
       expect(result.reason).toContain(".env");
     });
 
-    it(".git/ ディレクトリへの Edit は deny される", async () => {
+    it("Edit to .git/ directory is denied", async () => {
       const result = await evaluatePreTool(
         buildInput("Edit", { file_path: "/test/project/.git/config" })
       );
       expect(result.decision).toBe("deny");
     });
 
-    it("Bash での .env への書き込みは deny される", async () => {
+    it("Bash writing to .env is denied", async () => {
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "echo 'SECRET=123' > .env" })
       );
       expect(result.decision).toBe("deny");
     });
 
-    it("Bash での .env バリアントへの書き込みも deny される", async () => {
+    it("Bash writing to .env variants is also denied", async () => {
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "echo 'KEY=val' >> .env.local" })
       );
       expect(result.decision).toBe("deny");
     });
 
-    it("秘密鍵ファイルへの Write は deny される", async () => {
+    it("Write to private key file is denied", async () => {
       const result = await evaluatePreTool(
         buildInput("Write", { file_path: "/root/.ssh/id_rsa" })
       );
       expect(result.decision).toBe("deny");
     });
 
-    it("codex モード時の Write は deny される", async () => {
+    it("Write is denied in codex mode", async () => {
       process.env["HARNESS_CODEX_MODE"] = "1";
       const result = await evaluatePreTool(
         buildInput("Write", { file_path: "/test/project/src/app.ts" })
@@ -189,7 +189,7 @@ describe("E2E: PreToolUse フロー", () => {
       expect(result.reason).toContain("Codex");
     });
 
-    it("breezing reviewer は git commit を deny される", async () => {
+    it("breezing reviewer is denied git commit", async () => {
       process.env["HARNESS_BREEZING_ROLE"] = "reviewer";
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "git commit -m 'feat: add feature'" })
@@ -197,7 +197,7 @@ describe("E2E: PreToolUse フロー", () => {
       expect(result.decision).toBe("deny");
     });
 
-    it("breezing reviewer は Write を deny される", async () => {
+    it("breezing reviewer is denied Write", async () => {
       process.env["HARNESS_BREEZING_ROLE"] = "reviewer";
       const result = await evaluatePreTool(
         buildInput("Write", { file_path: "/test/project/src/app.ts" })
@@ -207,11 +207,11 @@ describe("E2E: PreToolUse フロー", () => {
   });
 
   // ------------------------------------------------------------------
-  // ask ケース: 確認が必要な操作
+  // ask cases: operations requiring confirmation
   // ------------------------------------------------------------------
 
-  describe("ask ケース（work モード以外）", () => {
-    it("rm -rf は ask される", async () => {
+  describe("ask cases (non-work mode)", () => {
+    it("rm -rf returns ask", async () => {
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "rm -rf /tmp/test-dir" })
       );
@@ -219,14 +219,14 @@ describe("E2E: PreToolUse フロー", () => {
       expect(result.reason).toContain("rm");
     });
 
-    it("rm -fr も ask される", async () => {
+    it("rm -fr also returns ask", async () => {
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "rm -fr dist/" })
       );
       expect(result.decision).toBe("ask");
     });
 
-    it("プロジェクト外の絶対パスへの Write は ask される", async () => {
+    it("Write to absolute path outside project returns ask", async () => {
       process.env["HARNESS_PROJECT_ROOT"] = "/test/project";
       const result = await evaluatePreTool(
         buildInput("Write", { file_path: "/etc/hosts" })
@@ -236,20 +236,20 @@ describe("E2E: PreToolUse フロー", () => {
   });
 
   // ------------------------------------------------------------------
-  // work モード: バイパス可能な操作
+  // work mode: bypassable operations
   // ------------------------------------------------------------------
 
-  describe("work モード バイパスケース", () => {
-    it("work モード時は rm -rf が ask されない", async () => {
+  describe("work mode bypass cases", () => {
+    it("rm -rf is not asked in work mode", async () => {
       process.env["HARNESS_WORK_MODE"] = "1";
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "rm -rf dist/" })
       );
-      // work モードでは ask をスキップして approve になる
+      // In work mode, ask is skipped and becomes approve
       expect(result.decision).toBe("approve");
     });
 
-    it("work モード時もプロジェクト外への書き込みは ask されない", async () => {
+    it("writing outside project is not asked in work mode", async () => {
       process.env["HARNESS_WORK_MODE"] = "1";
       process.env["HARNESS_PROJECT_ROOT"] = "/test/project";
       const result = await evaluatePreTool(
@@ -258,7 +258,7 @@ describe("E2E: PreToolUse フロー", () => {
       expect(result.decision).toBe("approve");
     });
 
-    it("work モードでも sudo は deny される（例外なし）", async () => {
+    it("sudo is still denied in work mode (no exceptions)", async () => {
       process.env["HARNESS_WORK_MODE"] = "1";
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "sudo make install" })
@@ -266,7 +266,7 @@ describe("E2E: PreToolUse フロー", () => {
       expect(result.decision).toBe("deny");
     });
 
-    it("work モードでも git push --force は deny される（例外なし）", async () => {
+    it("git push --force is still denied in work mode (no exceptions)", async () => {
       process.env["HARNESS_WORK_MODE"] = "1";
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "git push --force origin main" })
@@ -276,20 +276,20 @@ describe("E2E: PreToolUse フロー", () => {
   });
 
   // ------------------------------------------------------------------
-  // approve + systemMessage ケース: 警告付き承認
+  // approve + systemMessage cases: approved with warning
   // ------------------------------------------------------------------
 
-  describe("approve + 警告 ケース", () => {
-    it(".env ファイルの Read は approve されるが警告が出る", async () => {
+  describe("approve + warning cases", () => {
+    it("Read of .env file is approved but emits a warning", async () => {
       const result = await evaluatePreTool(
         buildInput("Read", { file_path: "/test/project/.env" })
       );
       expect(result.decision).toBe("approve");
-      expect(result.systemMessage).toContain("警告");
+      expect(result.systemMessage).toContain("Warning");
       expect(result.systemMessage).toContain(".env");
     });
 
-    it("git push origin main は approve + systemMessage を返す", async () => {
+    it("git push origin main returns approve + systemMessage", async () => {
       const result = await evaluatePreTool(
         buildInput("Bash", { command: "git push origin main" })
       );
@@ -298,7 +298,7 @@ describe("E2E: PreToolUse フロー", () => {
       expect(result.systemMessage).toContain("main");
     });
 
-    it("package.json への Write は approve + systemMessage を返す", async () => {
+    it("Write to package.json returns approve + systemMessage", async () => {
       const result = await evaluatePreTool(
         buildInput("Write", { file_path: "/test/project/package.json" })
       );
@@ -310,15 +310,15 @@ describe("E2E: PreToolUse フロー", () => {
 });
 
 // ============================================================
-// PostToolUse フロー
+// PostToolUse flow
 // ============================================================
 
-describe("E2E: PostToolUse フロー", () => {
+describe("E2E: PostToolUse flow", () => {
   beforeEach(() => {
     delete process.env["HARNESS_WORK_MODE"];
   });
 
-  it("通常の Write 結果は approve される", async () => {
+  it("normal Write result is approved", async () => {
     const result = await evaluatePostTool(
       buildInput("Write", {
         file_path: "/test/project/src/app.ts",
@@ -328,7 +328,7 @@ describe("E2E: PostToolUse フロー", () => {
     expect(result.decision).toBe("approve");
   });
 
-  it("テスト改ざんを検出すると approve + 警告が返る", async () => {
+  it("test tampering detection returns approve + warning", async () => {
     const result = await evaluatePostTool(
       buildInput("Write", {
         file_path: "/test/project/src/__tests__/app.test.ts",
@@ -340,7 +340,7 @@ describe("E2E: PostToolUse フロー", () => {
     expect(result.systemMessage).toContain("it.skip");
   });
 
-  it("ESLint disable コメントを検出すると警告が出る", async () => {
+  it("ESLint disable comment triggers a warning", async () => {
     const result = await evaluatePostTool(
       buildInput("Write", {
         file_path: "/test/project/.eslintrc.js",
@@ -351,7 +351,7 @@ describe("E2E: PostToolUse フロー", () => {
     expect(result.systemMessage).toBeTruthy();
   });
 
-  it("CI の continue-on-error 追加を検出すると警告が出る", async () => {
+  it("CI continue-on-error addition triggers a warning", async () => {
     const result = await evaluatePostTool(
       buildInput("Write", {
         file_path: "/test/project/.github/workflows/ci.yml",
@@ -362,7 +362,7 @@ describe("E2E: PostToolUse フロー", () => {
     expect(result.systemMessage).toBeTruthy();
   });
 
-  it("通常の Bash 実行結果は approve される", async () => {
+  it("normal Bash execution result is approved", async () => {
     const result = await evaluatePostTool(
       buildInput("Bash", {
         command: "npm test",
@@ -374,11 +374,11 @@ describe("E2E: PostToolUse フロー", () => {
 });
 
 // ============================================================
-// プリ → ポスト の連続フロー
+// Pre → Post sequential flow
 // ============================================================
 
-describe("E2E: PreToolUse → PostToolUse 連続フロー", () => {
-  it("正常な Write 操作は両フックで approve される", async () => {
+describe("E2E: PreToolUse → PostToolUse sequential flow", () => {
+  it("normal Write operation is approved by both hooks", async () => {
     const input = buildInput("Write", {
       file_path: "/test/project/src/feature.ts",
       content: "export const feature = () => 'hello';",
@@ -391,12 +391,12 @@ describe("E2E: PreToolUse → PostToolUse 連続フロー", () => {
     expect(postResult.decision).toBe("approve");
   });
 
-  it("sudo は PreToolUse で阻止される（PostToolUse は不要）", async () => {
+  it("sudo is blocked at PreToolUse (PostToolUse is unnecessary)", async () => {
     const input = buildInput("Bash", { command: "sudo apt-get install curl" });
 
     const preResult = await evaluatePreTool(input);
     expect(preResult.decision).toBe("deny");
-    // deny された場合、PostToolUse は実行されない（ここではシミュレーションのみ）
+    // When denied, PostToolUse is not executed (simulation only here)
     expect(preResult.reason).toContain("sudo");
   });
 });

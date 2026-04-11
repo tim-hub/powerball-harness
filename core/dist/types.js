@@ -1,9 +1,9 @@
 /**
  * core/src/types.ts
- * Harness v3 共通型定義
+ * Harness v3 common type definitions
  *
- * Claude Code Hooks の stdin/stdout JSON スキーマと
- * ガードレールエンジンの内部型を定義する。
+ * Defines the stdin/stdout JSON schema for Claude Code Hooks
+ * and internal types for the guardrail engine.
  */
 export {};
 //# sourceMappingURL=types.js.map

@@ -1,30 +1,31 @@
 /**
  * core/src/state/store.ts
- * Harness v3 SQLite ストア
+ * Harness v3 SQLite store
  *
- * better-sqlite3 を使って sessions / signals / task_failures / work_states
- * テーブルを操作するラッパークラス。
- * 同期 API（better-sqlite3 の特性）を活用し、単純で堅牢な実装とする。
+ * Wrapper class that operates on sessions / signals / task_failures / work_states
+ * tables using better-sqlite3.
+ * Leverages the synchronous API (a characteristic of better-sqlite3) for a simple
+ * and robust implementation.
  */
 import { createRequire } from "node:module";
 import { ALL_DDL, SCHEMA_VERSION, CREATE_SCHEMA_META } from "./schema.js";
-// ESM から CommonJS ネイティブアドオンを読み込む標準パターン
+// Standard pattern for loading CommonJS native addons from ESM
 const require = createRequire(import.meta.url);
 const Database = require("better-sqlite3");
 // ============================================================
-// HarnessStore クラス
+// HarnessStore class
 // ============================================================
 export class HarnessStore {
     db;
     constructor(dbPath) {
         this.db = new Database(dbPath);
-        // WAL モードで並列読み取りを改善
+        // WAL mode improves concurrent read performance
         this.db.pragma("journal_mode = WAL");
         this.db.pragma("foreign_keys = ON");
         this.initSchema();
     }
     // ============================================================
-    // スキーマ初期化
+    // Schema initialization
     // ============================================================
     initSchema() {
         this.db.exec(CREATE_SCHEMA_META);
@@ -32,7 +33,7 @@ export class HarnessStore {
             .prepare("SELECT value FROM schema_meta WHERE key = 'version'")
             .get();
         if (versionRow === undefined) {
-            // 初回: 全 DDL を実行してバージョンを記録
+            // First run: execute all DDL and record the version
             for (const ddl of ALL_DDL) {
                 this.db.exec(ddl);
             }
@@ -40,12 +41,12 @@ export class HarnessStore {
                 .prepare("INSERT OR REPLACE INTO schema_meta(key, value) VALUES ('version', ?)")
                 .run(String(SCHEMA_VERSION));
         }
-        // マイグレーションは将来の migration.ts で担当
+        // Migrations are handled by migration.ts in the future
     }
     // ============================================================
-    // セッション管理
+    // Session management
     // ============================================================
-    /** セッションを登録または更新する */
+    /** Register or update a session */
     upsertSession(session) {
         const startedAt = Math.floor(new Date(session.started_at).getTime() / 1000);
         const contextJson = JSON.stringify(session.context ?? {});
@@ -58,14 +59,14 @@ export class HarnessStore {
            context_json = excluded.context_json`)
             .run(session.session_id, session.mode, session.project_root, startedAt, contextJson);
     }
-    /** セッションを終了済みにする */
+    /** Mark a session as ended */
     endSession(sessionId) {
         const endedAt = Math.floor(Date.now() / 1000);
         this.db
             .prepare("UPDATE sessions SET ended_at = ? WHERE session_id = ?")
             .run(endedAt, sessionId);
     }
-    /** セッション情報を取得する */
+    /** Retrieve session information */
     getSession(sessionId) {
         const row = this.db
             .prepare("SELECT * FROM sessions WHERE session_id = ?")
@@ -81,9 +82,9 @@ export class HarnessStore {
         };
     }
     // ============================================================
-    // シグナル管理
+    // Signal management
     // ============================================================
-    /** シグナルを送信する */
+    /** Send a signal */
     sendSignal(signal) {
         const sentAt = Math.floor(Date.now() / 1000);
         const payloadJson = JSON.stringify(signal.payload);
@@ -93,7 +94,7 @@ export class HarnessStore {
             .run(signal.type, signal.from_session_id, signal.to_session_id ?? null, payloadJson, sentAt);
         return result.lastInsertRowid;
     }
-    /** 未消費のシグナルを受信する（宛先 = sessionId またはブロードキャスト） */
+    /** Receive unconsumed signals (destination = sessionId or broadcast) */
     receiveSignals(sessionId) {
         const rows = this.db
             .prepare(`SELECT * FROM signals
@@ -104,7 +105,7 @@ export class HarnessStore {
             .all(sessionId, sessionId);
         if (rows.length === 0)
             return [];
-        // 消費済みにマーク
+        // Mark as consumed
         const ids = rows.map((r) => r.id);
         const placeholders = ids.map(() => "?").join(",");
         this.db
@@ -124,9 +125,9 @@ export class HarnessStore {
         });
     }
     // ============================================================
-    // タスク失敗管理
+    // Task failure management
     // ============================================================
-    /** タスク失敗を記録する */
+    /** Record a task failure */
     recordFailure(failure, sessionId) {
         const failedAt = Math.floor(Date.now() / 1000);
         const result = this.db
@@ -135,7 +136,7 @@ export class HarnessStore {
             .run(failure.task_id, sessionId, failure.severity, failure.message, failure.detail ?? null, failedAt, failure.attempt);
         return result.lastInsertRowid;
     }
-    /** タスクの失敗履歴を取得する */
+    /** Retrieve failure history for a task */
     getFailures(taskId) {
         const rows = this.db
             .prepare("SELECT task_id, severity, message, detail, failed_at, attempt FROM task_failures WHERE task_id = ? ORDER BY failed_at ASC")
@@ -155,9 +156,9 @@ export class HarnessStore {
         });
     }
     // ============================================================
-    // work_states 管理
+    // work_states management
     // ============================================================
-    /** work/codex モードを登録する（TTL 24 時間） */
+    /** Register a work/codex mode (TTL 24 hours) */
     setWorkState(sessionId, options = {}) {
         const expiresAt = Math.floor(Date.now() / 1000) + 24 * 3600;
         this.db
@@ -170,7 +171,7 @@ export class HarnessStore {
            expires_at = excluded.expires_at`)
             .run(sessionId, options.codexMode ? 1 : 0, options.bypassRmRf ? 1 : 0, options.bypassGitPush ? 1 : 0, expiresAt);
     }
-    /** 有効な work_state を取得する（期限切れは null） */
+    /** Get a valid work_state (returns null if expired) */
     getWorkState(sessionId) {
         const now = Math.floor(Date.now() / 1000);
         const row = this.db
@@ -184,7 +185,7 @@ export class HarnessStore {
             bypassGitPush: row.bypass_git_push === 1,
         };
     }
-    /** 期限切れの work_states を削除する */
+    /** Delete expired work_states */
     cleanExpiredWorkStates() {
         const now = Math.floor(Date.now() / 1000);
         const result = this.db
@@ -193,16 +194,16 @@ export class HarnessStore {
         return result.changes;
     }
     // ============================================================
-    // schema_meta キー/バリュー管理
+    // schema_meta key/value management
     // ============================================================
-    /** schema_meta テーブルから値を取得する（存在しない場合は null） */
+    /** Get a value from the schema_meta table (returns null if not found) */
     getMeta(key) {
         const row = this.db
             .prepare("SELECT value FROM schema_meta WHERE key = ?")
             .get(key);
         return row?.value ?? null;
     }
-    /** schema_meta テーブルに値を保存する（upsert） */
+    /** Save a value to the schema_meta table (upsert) */
     setMeta(key, value) {
         this.db
             .prepare(`INSERT INTO schema_meta(key, value) VALUES (?, ?)
@@ -210,7 +211,7 @@ export class HarnessStore {
             .run(key, value);
     }
     // ============================================================
-    // クローズ
+    // Close
     // ============================================================
     close() {
         this.db.close();

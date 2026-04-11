@@ -1,37 +1,37 @@
 /**
- * lifecycle.ts — セッションライフサイクル管理
+ * lifecycle.ts — Session lifecycle management
  *
- * 旧セッション系スキル（session / session-init / session-control /
- * session-state / session-memory）のロジックを吸収。
- * セッション開始・終了・状態遷移を一元管理する。
+ * Absorbs logic from legacy session-related skills (session / session-init /
+ * session-control / session-state / session-memory).
+ * Centrally manages session start, end, and state transitions.
  */
 
 import type { SessionState, SessionMode, Signal } from "../types.js";
 
 // ============================================================
-// セッション実行状態（内部 enum 相当）
+// Session execution state (internal enum equivalent)
 // ============================================================
 
-/** セッションの実行フェーズ */
+/** Session execution phase */
 export type SessionPhase = "active" | "paused" | "completed" | "failed";
 
-/** セッションコンテキスト */
+/** Session context */
 export interface SessionContext {
   sessionId: string;
   startedAt: Date;
   phase: SessionPhase;
   state: SessionState;
-  /** 直近の agent-trace エントリ */
+  /** Recent agent-trace entries */
   recentFiles: string[];
 }
 
 // ============================================================
-// セッション開始（session-init 相当）
+// Session start (equivalent to session-init)
 // ============================================================
 
 /**
- * セッション開始処理。
- * 環境チェック・タスク状況把握・引き継ぎ確認を行う。
+ * Session initialization.
+ * Performs environment checks, task status assessment, and handoff confirmation.
  */
 export function initSession(opts: {
   sessionId: string;
@@ -55,10 +55,10 @@ export function initSession(opts: {
 }
 
 // ============================================================
-// セッション状態遷移（session-state / session-control 相当）
+// Session state transitions (equivalent to session-state / session-control)
 // ============================================================
 
-/** 許可された状態遷移マップ */
+/** Allowed state transition map */
 const VALID_TRANSITIONS: Record<SessionPhase, SessionPhase[]> = {
   active: ["paused", "completed", "failed"],
   paused: ["active", "completed", "failed"],
@@ -67,8 +67,8 @@ const VALID_TRANSITIONS: Record<SessionPhase, SessionPhase[]> = {
 };
 
 /**
- * セッションフェーズを遷移させる。
- * 不正な遷移の場合は Error をスロー。
+ * Transition a session phase.
+ * Throws an Error on invalid transitions.
  */
 export function transitionSession(
   ctx: SessionContext,
@@ -84,20 +84,20 @@ export function transitionSession(
 }
 
 // ============================================================
-// セッション終了処理（session-memory 相当）
+// Session finalization (equivalent to session-memory)
 // ============================================================
 
-/** セッション終了時のサマリー */
+/** Session end summary */
 export interface SessionSummary {
   sessionId: string;
-  duration: number; // ミリ秒
+  duration: number; // milliseconds
   finalPhase: SessionPhase;
   signals: Signal[];
 }
 
 /**
- * セッション終了処理。
- * 完了・失敗いずれの場合も呼び出す。
+ * Session finalization.
+ * Called for both completion and failure.
  */
 export function finalizeSession(
   ctx: SessionContext,
@@ -113,12 +113,12 @@ export function finalizeSession(
 }
 
 // ============================================================
-// セッションフォーク（session-control の --fork 相当）
+// Session fork (equivalent to session-control --fork)
 // ============================================================
 
 /**
- * 現在のセッションコンテキストをフォークする。
- * 新しいセッション ID を割り当てた独立したコピーを返す。
+ * Fork the current session context.
+ * Returns an independent copy with a new session ID.
  */
 export function forkSession(
   parent: SessionContext,
@@ -140,10 +140,10 @@ export function forkSession(
 }
 
 // ============================================================
-// セッション再開（session-control の --resume 相当）
+// Session resume (equivalent to session-control --resume)
 // ============================================================
 
-/** セッション再開用の最小情報 */
+/** Minimal information for session resumption */
 export interface ResumeInfo {
   sessionId: string;
   projectRoot: string;
@@ -152,8 +152,8 @@ export interface ResumeInfo {
 }
 
 /**
- * 過去セッションを再開する。
- * lastPhase が completed / failed の場合は新規セッションとして扱う。
+ * Resume a past session.
+ * If lastPhase is completed or failed, treat as a new session.
  */
 export function resumeSession(info: ResumeInfo): SessionContext {
   const isResumable =

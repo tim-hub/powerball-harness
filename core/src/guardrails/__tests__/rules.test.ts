@@ -1,9 +1,9 @@
 /**
  * core/src/guardrails/__tests__/rules.test.ts
- * GUARD_RULES 宣言的ガードルールテーブルの単体テスト
+ * Unit tests for GUARD_RULES declarative guard rule table
  *
- * pretooluse-guard.sh の各ルールが正しく TypeScript に移植されていることを検証。
- * カバレッジ目標: 90%+
+ * Verifies that each rule from pretooluse-guard.sh is correctly ported to TypeScript.
+ * Coverage target: 90%+
  */
 
 import { describe, it, expect } from "vitest";
@@ -11,7 +11,7 @@ import { GUARD_RULES, evaluateRules } from "../rules.js";
 import type { RuleContext, HookInput } from "../../types.js";
 
 // ============================================================
-// テストヘルパー
+// Test helpers
 // ============================================================
 
 function makeCtx(
@@ -31,39 +31,39 @@ function makeCtx(
 }
 
 // ============================================================
-// R01: sudo ブロック
+// R01: sudo block
 // ============================================================
-describe("R01: sudo ブロック", () => {
-  it("sudo rm -rf / をブロックする", () => {
+describe("R01: sudo block", () => {
+  it("blocks sudo rm -rf /", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "sudo rm -rf /" })
     );
     expect(result.decision).toBe("deny");
   });
 
-  it("sudo apt-get install をブロックする", () => {
+  it("blocks sudo apt-get install", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "sudo apt-get install vim" })
     );
     expect(result.decision).toBe("deny");
   });
 
-  it("sudo-prefix でない通常コマンドはブロックしない", () => {
+  it("does not block commands without sudo prefix", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "nosudo echo test" })
     );
     expect(result.decision).toBe("approve");
   });
 
-  it("sudo を含まない Bash はブロックしない", () => {
+  it("does not block Bash without sudo", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "ls -la" })
     );
     expect(result.decision).toBe("approve");
   });
 
-  it("Write ツールには適用されない", () => {
-    // R01 は Bash のみ対象
+  it("does not apply to Write tool", () => {
+    // R01 targets Bash only
     const rule = GUARD_RULES.find((r) => r.id === "R01:no-sudo")!;
     const result = rule.evaluate(
       makeCtx("Write", { file_path: "/project/sudo.ts" })
@@ -73,9 +73,9 @@ describe("R01: sudo ブロック", () => {
 });
 
 // ============================================================
-// R02: 保護パスへの書き込みブロック
+// R02: protected path write block
 // ============================================================
-describe("R02: 保護パスへの書き込みブロック", () => {
+describe("R02: protected path write block", () => {
   const protectedPaths = [
     ".git/config",
     "/project/.git/HEAD",
@@ -90,14 +90,14 @@ describe("R02: 保護パスへの書き込みブロック", () => {
   ];
 
   for (const path of protectedPaths) {
-    it(`${path} への Write をブロックする`, () => {
+    it(`blocks Write to ${path}`, () => {
       const result = evaluateRules(
         makeCtx("Write", { file_path: path })
       );
       expect(result.decision).toBe("deny");
     });
 
-    it(`${path} への Edit をブロックする`, () => {
+    it(`blocks Edit to ${path}`, () => {
       const result = evaluateRules(
         makeCtx("Edit", { file_path: path })
       );
@@ -105,14 +105,14 @@ describe("R02: 保護パスへの書き込みブロック", () => {
     });
   }
 
-  it("通常のソースファイルへの Write はブロックしない", () => {
+  it("does not block Write to normal source file", () => {
     const result = evaluateRules(
       makeCtx("Write", { file_path: "/project/src/index.ts" })
     );
     expect(result.decision).toBe("approve");
   });
 
-  it("Bash ツールには R02 は適用されない", () => {
+  it("R02 does not apply to Bash tool", () => {
     const rule = GUARD_RULES.find((r) => r.id === "R02:no-write-protected-paths")!;
     const result = rule.evaluate(
       makeCtx("Bash", { command: "echo hello > .env" })
@@ -122,9 +122,9 @@ describe("R02: 保護パスへの書き込みブロック", () => {
 });
 
 // ============================================================
-// R03: Bash での保護パスへのシェル書き込みブロック
+// R03: Bash shell write to protected paths block
 // ============================================================
-describe("R03: Bash での保護パスへのシェル書き込みブロック", () => {
+describe("R03: Bash shell write to protected paths block", () => {
   const dangerousBashCmds = [
     'echo "SECRET=foo" > .env',
     'echo "key" > .env.local',
@@ -134,13 +134,13 @@ describe("R03: Bash での保護パスへのシェル書き込みブロック", 
   ];
 
   for (const cmd of dangerousBashCmds) {
-    it(`${cmd} をブロックする`, () => {
+    it(`blocks ${cmd}`, () => {
       const result = evaluateRules(makeCtx("Bash", { command: cmd }));
       expect(result.decision).toBe("deny");
     });
   }
 
-  it("安全な Bash コマンドはブロックしない", () => {
+  it("does not block safe Bash commands", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "echo hello" })
     );
@@ -149,24 +149,24 @@ describe("R03: Bash での保護パスへのシェル書き込みブロック", 
 });
 
 // ============================================================
-// R04: プロジェクト外への書き込み確認
+// R04: write outside project confirmation
 // ============================================================
-describe("R04: プロジェクト外への書き込み確認", () => {
-  it("プロジェクト外の絶対パスへの Write は ask を返す", () => {
+describe("R04: write outside project confirmation", () => {
+  it("returns ask for Write to absolute path outside project", () => {
     const result = evaluateRules(
       makeCtx("Write", { file_path: "/tmp/output.txt" }, { projectRoot: "/project" })
     );
     expect(result.decision).toBe("ask");
   });
 
-  it("プロジェクト外の絶対パスへの Edit は ask を返す", () => {
+  it("returns ask for Edit to absolute path outside project", () => {
     const result = evaluateRules(
       makeCtx("Edit", { file_path: "/home/user/outside.ts" }, { projectRoot: "/project" })
     );
     expect(result.decision).toBe("ask");
   });
 
-  it("プロジェクト内の絶対パスは ask を返さない", () => {
+  it("does not return ask for absolute path inside project", () => {
     const result = evaluateRules(
       makeCtx(
         "Write",
@@ -177,14 +177,14 @@ describe("R04: プロジェクト外への書き込み確認", () => {
     expect(result.decision).toBe("approve");
   });
 
-  it("相対パスはプロジェクト内とみなす", () => {
+  it("treats relative paths as inside project", () => {
     const result = evaluateRules(
       makeCtx("Write", { file_path: "src/foo.ts" })
     );
     expect(result.decision).toBe("approve");
   });
 
-  it("work モード時はプロジェクト外への書き込みを確認しない", () => {
+  it("does not confirm outside-project writes in work mode", () => {
     const result = evaluateRules(
       makeCtx(
         "Write",
@@ -192,15 +192,15 @@ describe("R04: プロジェクト外への書き込み確認", () => {
         { workMode: true, projectRoot: "/project" }
       )
     );
-    // R04 は workMode 時にスキップ → 後続ルールで approve
+    // R04 is skipped in workMode → subsequent rules approve
     expect(result.decision).toBe("approve");
   });
 });
 
 // ============================================================
-// R05: rm -rf 確認
+// R05: rm -rf confirmation
 // ============================================================
-describe("R05: rm -rf 確認", () => {
+describe("R05: rm -rf confirmation", () => {
   const rmRfCmds = [
     "rm -rf /tmp/work",
     "rm -fr /tmp/work",
@@ -209,21 +209,21 @@ describe("R05: rm -rf 確認", () => {
   ];
 
   for (const cmd of rmRfCmds) {
-    it(`${cmd} は ask を返す`, () => {
+    it(`${cmd} returns ask`, () => {
       const result = evaluateRules(makeCtx("Bash", { command: cmd }));
       expect(result.decision).toBe("ask");
     });
   }
 
-  it("work モード時は rm -rf を確認しない", () => {
+  it("does not confirm rm -rf in work mode", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "rm -rf /tmp/work" }, { workMode: true })
     );
-    // R05 は workMode でスキップ → R06 へ（該当なしなので approve）
+    // R05 skipped in workMode → falls through to R06 (no match → approve)
     expect(result.decision).toBe("approve");
   });
 
-  it("通常の rm -f はブロックしない", () => {
+  it("does not block normal rm -f", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "rm -f /tmp/test.log" })
     );
@@ -232,9 +232,9 @@ describe("R05: rm -rf 確認", () => {
 });
 
 // ============================================================
-// R06: git push --force ブロック
+// R06: git push --force block
 // ============================================================
-describe("R06: git push --force ブロック", () => {
+describe("R06: git push --force block", () => {
   const forcePushCmds = [
     "git push --force",
     "git push --force-with-lease",
@@ -244,20 +244,20 @@ describe("R06: git push --force ブロック", () => {
   ];
 
   for (const cmd of forcePushCmds) {
-    it(`${cmd} をブロックする`, () => {
+    it(`blocks ${cmd}`, () => {
       const result = evaluateRules(makeCtx("Bash", { command: cmd }));
       expect(result.decision).toBe("deny");
     });
   }
 
-  it("通常の git push はブロックしない", () => {
+  it("does not block normal git push", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "git push origin feature/login" })
     );
     expect(result.decision).toBe("approve");
   });
 
-  it("work モード時も force push はブロックする（例外なし）", () => {
+  it("blocks force push even in work mode (no exceptions)", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "git push --force" }, { workMode: true })
     );
@@ -266,17 +266,17 @@ describe("R06: git push --force ブロック", () => {
 });
 
 // ============================================================
-// R10: Git bypass flags ブロック
+// R10: Git bypass flags block
 // ============================================================
-describe("R10: Git bypass flags ブロック", () => {
-  it("--no-verify をブロックする", () => {
+describe("R10: Git bypass flags block", () => {
+  it("blocks --no-verify", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "git commit --no-verify -m 'test'" })
     );
     expect(result.decision).toBe("deny");
   });
 
-  it("--no-gpg-sign をブロックする", () => {
+  it("blocks --no-gpg-sign", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "git commit --no-gpg-sign -m 'test'" })
     );
@@ -285,9 +285,9 @@ describe("R10: Git bypass flags ブロック", () => {
 });
 
 // ============================================================
-// R11: protected branch への git reset --hard ブロック
+// R11: git reset --hard to protected branch block
 // ============================================================
-describe("R11: protected branch への git reset --hard ブロック", () => {
+describe("R11: git reset --hard to protected branch block", () => {
   const dangerousResetCmds = [
     "git reset --hard main",
     "git reset --hard master",
@@ -295,7 +295,7 @@ describe("R11: protected branch への git reset --hard ブロック", () => {
   ];
 
   for (const cmd of dangerousResetCmds) {
-    it(`${cmd} をブロックする`, () => {
+    it(`blocks ${cmd}`, () => {
       const result = evaluateRules(makeCtx("Bash", { command: cmd }));
       expect(result.decision).toBe("deny");
     });
@@ -303,10 +303,10 @@ describe("R11: protected branch への git reset --hard ブロック", () => {
 });
 
 // ============================================================
-// R12: protected branch への direct push 警告
+// R12: direct push to protected branch warning
 // ============================================================
-describe("R12: protected branch への direct push 警告", () => {
-  it("git push origin main は approve + systemMessage を返す", () => {
+describe("R12: direct push to protected branch warning", () => {
+  it("git push origin main returns approve + systemMessage", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "git push origin main" })
     );
@@ -315,7 +315,7 @@ describe("R12: protected branch への direct push 警告", () => {
     expect(result.systemMessage).toContain("main");
   });
 
-  it("git push upstream master は approve + systemMessage を返す", () => {
+  it("git push upstream master returns approve + systemMessage", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "git push upstream master" })
     );
@@ -326,9 +326,9 @@ describe("R12: protected branch への direct push 警告", () => {
 });
 
 // ============================================================
-// R13: 重要ファイル変更の警告
+// R13: important file change warning
 // ============================================================
-describe("R13: 重要ファイル変更の警告", () => {
+describe("R13: important file change warning", () => {
   const protectedPaths = [
     "package.json",
     "Dockerfile",
@@ -340,7 +340,7 @@ describe("R13: 重要ファイル変更の警告", () => {
   ];
 
   for (const path of protectedPaths) {
-    it(`${path} の Write は approve + systemMessage を返す`, () => {
+    it(`Write to ${path} returns approve + systemMessage`, () => {
       const result = evaluateRules(
         makeCtx("Write", { file_path: path })
       );
@@ -350,7 +350,7 @@ describe("R13: 重要ファイル変更の警告", () => {
     });
   }
 
-  it("通常のソースファイル変更は警告しない", () => {
+  it("normal source file change does not warn", () => {
     const result = evaluateRules(
       makeCtx("Write", { file_path: "src/index.ts" })
     );
@@ -360,33 +360,33 @@ describe("R13: 重要ファイル変更の警告", () => {
 });
 
 // ============================================================
-// R07: Codex モード時の Write/Edit ブロック
+// R07: Write/Edit block in Codex mode
 // ============================================================
-describe("R07: Codex モード時の Write/Edit ブロック", () => {
-  it("Codex モード時の Write をブロックする", () => {
+describe("R07: Write/Edit block in Codex mode", () => {
+  it("blocks Write in Codex mode", () => {
     const result = evaluateRules(
       makeCtx("Write", { file_path: "/project/src/foo.ts" }, { codexMode: true })
     );
     expect(result.decision).toBe("deny");
   });
 
-  it("Codex モード時の Edit をブロックする", () => {
+  it("blocks Edit in Codex mode", () => {
     const result = evaluateRules(
       makeCtx("Edit", { file_path: "/project/src/foo.ts" }, { codexMode: true })
     );
     expect(result.decision).toBe("deny");
   });
 
-  it("通常モードでは Write をブロックしない", () => {
+  it("does not block Write in normal mode", () => {
     const result = evaluateRules(
       makeCtx("Write", { file_path: "/project/src/foo.ts" }, { codexMode: false })
     );
     expect(result.decision).toBe("approve");
   });
 
-  it("Codex モード時の Bash はブロックしない（R07 の toolPattern が Write/Edit のみ）", () => {
-    // R07 の toolPattern は /^(?:Write|Edit|MultiEdit)$/ のみ
-    // evaluateRules が toolPattern をチェックするため Bash は R07 にマッチしない
+  it("does not block Bash in Codex mode (R07 toolPattern is Write/Edit only)", () => {
+    // R07's toolPattern is /^(?:Write|Edit|MultiEdit)$/ only
+    // evaluateRules checks toolPattern so Bash does not match R07
     const result = evaluateRules(
       makeCtx("Bash", { command: "ls" }, { codexMode: true })
     );
@@ -395,54 +395,54 @@ describe("R07: Codex モード時の Write/Edit ブロック", () => {
 });
 
 // ============================================================
-// R08: Breezing reviewer ロールガード
+// R08: Breezing reviewer role guard
 // ============================================================
-describe("R08: Breezing reviewer ロールガード", () => {
-  it("reviewer ロール時の Write をブロックする", () => {
+describe("R08: Breezing reviewer role guard", () => {
+  it("blocks Write for reviewer role", () => {
     const result = evaluateRules(
       makeCtx("Write", { file_path: "/project/src/foo.ts" }, { breezingRole: "reviewer" })
     );
     expect(result.decision).toBe("deny");
   });
 
-  it("reviewer ロール時の Edit をブロックする", () => {
+  it("blocks Edit for reviewer role", () => {
     const result = evaluateRules(
       makeCtx("Edit", { file_path: "/project/src/foo.ts" }, { breezingRole: "reviewer" })
     );
     expect(result.decision).toBe("deny");
   });
 
-  it("reviewer ロール時の git commit をブロックする", () => {
+  it("blocks git commit for reviewer role", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "git commit -m 'test'" }, { breezingRole: "reviewer" })
     );
     expect(result.decision).toBe("deny");
   });
 
-  it("reviewer ロール時の git push をブロックする", () => {
+  it("blocks git push for reviewer role", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "git push origin main" }, { breezingRole: "reviewer" })
     );
     expect(result.decision).toBe("deny");
   });
 
-  it("reviewer ロール時の ls はブロックしない（read-only コマンド）", () => {
+  it("does not block ls for reviewer role (read-only command)", () => {
     const rule = GUARD_RULES.find((r) => r.id === "R08:breezing-reviewer-no-write")!;
     const result = rule.evaluate(
       makeCtx("Bash", { command: "ls -la" }, { breezingRole: "reviewer" })
     );
-    // prohibited パターンに該当しないため null
+    // Does not match prohibited patterns, returns null
     expect(result).toBeNull();
   });
 
-  it("reviewer ロールでない場合はブロックしない", () => {
+  it("does not block for non-reviewer role", () => {
     const result = evaluateRules(
       makeCtx("Write", { file_path: "/project/src/foo.ts" }, { breezingRole: "implementer" })
     );
     expect(result.decision).toBe("approve");
   });
 
-  it("ロールなしの場合はブロックしない", () => {
+  it("does not block when no role is set", () => {
     const result = evaluateRules(
       makeCtx("Write", { file_path: "/project/src/foo.ts" }, { breezingRole: null })
     );
@@ -451,9 +451,9 @@ describe("R08: Breezing reviewer ロールガード", () => {
 });
 
 // ============================================================
-// R09: 機密ファイル Read 警告（approve + systemMessage）
+// R09: sensitive file Read warning (approve + systemMessage)
 // ============================================================
-describe("R09: 機密ファイル Read 警告", () => {
+describe("R09: sensitive file Read warning", () => {
   const secretPaths = [
     ".env",
     "id_rsa",
@@ -463,7 +463,7 @@ describe("R09: 機密ファイル Read 警告", () => {
   ];
 
   for (const path of secretPaths) {
-    it(`${path} の Read は approve + systemMessage を返す`, () => {
+    it(`Read of ${path} returns approve + systemMessage`, () => {
       const result = evaluateRules(
         makeCtx("Read", { file_path: path })
       );
@@ -473,7 +473,7 @@ describe("R09: 機密ファイル Read 警告", () => {
     });
   }
 
-  it("通常のソースファイルの Read は警告なし", () => {
+  it("Read of normal source file has no warning", () => {
     const result = evaluateRules(
       makeCtx("Read", { file_path: "src/index.ts" })
     );
@@ -483,39 +483,39 @@ describe("R09: 機密ファイル Read 警告", () => {
 });
 
 // ============================================================
-// evaluateRules: 統合テスト
+// evaluateRules: integration tests
 // ============================================================
-describe("evaluateRules: 統合テスト", () => {
-  it("tool_input.command が文字列でない場合はルールをスキップする", () => {
+describe("evaluateRules: integration tests", () => {
+  it("skips rules when tool_input.command is not a string", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: 12345 })
     );
     expect(result.decision).toBe("approve");
   });
 
-  it("どのルールにも該当しない場合は approve を返す", () => {
+  it("returns approve when no rules match", () => {
     const result = evaluateRules(
       makeCtx("Bash", { command: "echo hello" })
     );
     expect(result.decision).toBe("approve");
   });
 
-  it("Codex MCP ツールは Bash ルールが適用されない", () => {
-    // mcp__codex__* は GUARD_RULES にない（rules.ts の対象外）
-    // index.ts で別途ブロックされる
+  it("Codex MCP tools are not subject to Bash rules", () => {
+    // mcp__codex__* is not in GUARD_RULES (out of scope for rules.ts)
+    // Blocked separately in index.ts
     const result = evaluateRules(
       makeCtx("mcp__codex__exec", { input: "ls" })
     );
     expect(result.decision).toBe("approve");
   });
 
-  it("R01 と R05 が同時に該当する場合は R01（sudo）を優先する", () => {
-    // sudo + rm -rf のコマンド → R01 が先にマッチ
+  it("R01 takes priority when both R01 and R05 match", () => {
+    // sudo + rm -rf command → R01 matches first
     const result = evaluateRules(
       makeCtx("Bash", { command: "sudo rm -rf /" })
     );
     expect(result.decision).toBe("deny");
-    // deny なら R01 の説明が含まれる
+    // deny includes R01's description
     expect(result.reason).toContain("sudo");
   });
 });

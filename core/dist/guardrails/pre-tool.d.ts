@@ -1,14 +1,14 @@
 /**
  * core/src/guardrails/pre-tool.ts
- * PreToolUse フック評価関数
+ * PreToolUse hook evaluation function
  *
- * HookInput を受け取り、rules.ts の宣言的ガードルールテーブルを評価して
- * approve / deny / ask の HookResult を返す。
+ * Receives HookInput, evaluates the declarative guard rule table in rules.ts,
+ * and returns an approve / deny / ask HookResult.
  */
 import { type HookInput, type HookResult } from "../types.js";
 /**
- * PreToolUse フックのエントリポイント。
- * HookInput を受け取り、ガードルールを評価して HookResult を返す。
+ * PreToolUse hook entry point.
+ * Receives HookInput, evaluates guard rules, and returns a HookResult.
  */
 export declare function evaluatePreTool(input: HookInput): HookResult;
 //# sourceMappingURL=pre-tool.d.ts.map

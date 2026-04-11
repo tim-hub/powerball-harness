@@ -1,22 +1,22 @@
 /**
  * core/src/index.ts
- * Harness v3 コアエンジン エントリポイント
+ * Harness v3 core engine entry point
  *
- * stdin から JSON を読み込み、フックタイプに応じてルーティングし、
- * stdout に JSON レスポンスを返す基本パイプライン。
+ * Reads JSON from stdin, routes by hook type,
+ * and writes a JSON response to stdout.
  *
- * 使用方法:
+ * Usage:
  *   echo '{"tool_name":"Bash","tool_input":{...}}' | node dist/index.js pre-tool
  *   echo '{"tool_name":"Write","tool_input":{...}}' | node dist/index.js post-tool
  */
 
 import { type HookInput, type HookResult } from "./types.js";
 
-/** サポートするフックタイプ */
+/** Supported hook types */
 type HookType = "pre-tool" | "post-tool" | "permission";
 
 /**
- * stdin を全読みして文字列を返す
+ * Read all of stdin and return as a string
  */
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = [];
@@ -27,7 +27,7 @@ async function readStdin(): Promise<string> {
 }
 
 /**
- * stdin JSON をパースして HookInput を取得する
+ * Parse stdin JSON into a HookInput
  */
 function parseInput(raw: string): HookInput {
   const parsed: unknown = JSON.parse(raw);
@@ -65,8 +65,8 @@ function parseInput(raw: string): HookInput {
 }
 
 /**
- * フックタイプに応じてハンドラへルーティングする
- * 各 Phase で実装が追加される拡張ポイント
+ * Route to the appropriate handler based on hook type.
+ * Extension point where implementations are added per phase.
  */
 async function route(
   hookType: HookType,
@@ -74,12 +74,10 @@ async function route(
 ): Promise<HookResult> {
   switch (hookType) {
     case "pre-tool": {
-      // Phase 17.1 で core/guardrails/pre-tool.ts に実装予定
       const { evaluatePreTool } = await import("./guardrails/pre-tool.js");
       return evaluatePreTool(input);
     }
     case "post-tool": {
-      // Phase 17.1 で core/guardrails/post-tool.ts に実装予定
       const { evaluatePostTool } = await import("./guardrails/post-tool.js");
       return evaluatePostTool(input);
     }
@@ -88,14 +86,14 @@ async function route(
         "./guardrails/permission.js"
       );
       const permResult = evaluatePermission(input);
-      // PermissionRequest は hookSpecificOutput 形式で出力する必要があるため
-      // formatPermissionOutput で変換し、main() の JSON.stringify をバイパスするために
-      // systemMessage に最終 JSON を格納して返す
+      // PermissionRequest requires hookSpecificOutput format, so we convert
+      // via formatPermissionOutput and store the final JSON in systemMessage
+      // to bypass main()'s JSON.stringify
       const permJson = formatPermissionOutput(permResult);
       return { decision: permResult.decision, systemMessage: permJson };
     }
     default: {
-      // 未知のフックタイプは安全側（approve）で返す
+      // Unknown hook types default to approve (safe fallback)
       return {
         decision: "approve",
         reason: `Unknown hook type: ${String(hookType)}`,
@@ -105,7 +103,7 @@ async function route(
 }
 
 /**
- * エラーを HookResult 形式に変換する
+ * Convert an error to HookResult format
  */
 function errorToResult(err: unknown): HookResult {
   const message = err instanceof Error ? err.message : String(err);
@@ -116,7 +114,7 @@ function errorToResult(err: unknown): HookResult {
 }
 
 /**
- * メイン関数: stdin → parse → route → stdout
+ * Main function: stdin → parse → route → stdout
  */
 async function main(): Promise<void> {
   const hookType = (process.argv[2] ?? "pre-tool") as HookType;
@@ -127,7 +125,7 @@ async function main(): Promise<void> {
     const raw = await readStdin();
 
     if (!raw.trim()) {
-      // 空入力は安全に approve
+      // Empty input safely approves
       result = { decision: "approve", reason: "Empty input" };
     } else {
       const input = parseInput(raw);
@@ -137,7 +135,7 @@ async function main(): Promise<void> {
     result = errorToResult(err);
   }
 
-  // permission フック時は systemMessage に最終 JSON が格納されている
+  // For permission hooks, the final JSON is stored in systemMessage
   if (hookType === "permission" && result.systemMessage !== undefined) {
     process.stdout.write(result.systemMessage + "\n");
   } else {

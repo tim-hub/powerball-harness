@@ -1,11 +1,11 @@
 /**
  * core/src/index.ts
- * Harness v3 コアエンジン エントリポイント
+ * Harness v3 core engine entry point
  *
- * stdin から JSON を読み込み、フックタイプに応じてルーティングし、
- * stdout に JSON レスポンスを返す基本パイプライン。
+ * Reads JSON from stdin, routes by hook type,
+ * and writes a JSON response to stdout.
  *
- * 使用方法:
+ * Usage:
  *   echo '{"tool_name":"Bash","tool_input":{...}}' | node dist/index.js pre-tool
  *   echo '{"tool_name":"Write","tool_input":{...}}' | node dist/index.js post-tool
  */

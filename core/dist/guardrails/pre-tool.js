@@ -1,43 +1,43 @@
 /**
  * core/src/guardrails/pre-tool.ts
- * PreToolUse フック評価関数
+ * PreToolUse hook evaluation function
  *
- * HookInput を受け取り、rules.ts の宣言的ガードルールテーブルを評価して
- * approve / deny / ask の HookResult を返す。
+ * Receives HookInput, evaluates the declarative guard rule table in rules.ts,
+ * and returns an approve / deny / ask HookResult.
  */
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { evaluateRules } from "./rules.js";
 import { HarnessStore } from "../state/store.js";
-/** 環境変数が truthy 値（"1", "true", "yes"）かどうか判定 */
+/** Check if an environment variable has a truthy value ("1", "true", "yes") */
 function isTruthy(value) {
     return value === "1" || value === "true" || value === "yes";
 }
 /**
- * プロジェクトルートから SQLite DB パスを解決する。
- * .harness/state.db が存在しない場合は null を返す。
+ * Resolve the SQLite DB path from the project root.
+ * Returns null if .harness/state.db does not exist.
  */
 function resolveDbPath(projectRoot) {
     const dbPath = resolve(projectRoot, ".harness", "state.db");
     return existsSync(dbPath) ? dbPath : null;
 }
 /**
- * 実行環境から RuleContext を組み立てる。
- * 優先順位: SQLite work_states > 環境変数
+ * Build RuleContext from the execution environment.
+ * Priority: SQLite work_states > environment variables
  */
 function buildContext(input) {
-    // cwd がプロジェクトルート。plugin_root はプラグイン自身のパスなので除外
+    // cwd is the project root. plugin_root is the plugin's own path, so excluded
     const projectRoot = input.cwd ??
         process.env["HARNESS_PROJECT_ROOT"] ??
         process.env["PROJECT_ROOT"] ??
         process.cwd();
-    // 環境変数ベースの初期値
+    // Initial values from environment variables
     let workMode = isTruthy(process.env["HARNESS_WORK_MODE"]) ||
         isTruthy(process.env["ULTRAWORK_MODE"]);
     let codexMode = isTruthy(process.env["HARNESS_CODEX_MODE"]);
-    // breezing ロール: 環境変数から取得
+    // Breezing role: obtained from environment variable
     const breezingRole = process.env["HARNESS_BREEZING_ROLE"] ?? null;
-    // SQLite work_states から補完（session_id が利用可能な場合）
+    // Supplement from SQLite work_states (if session_id is available)
     const sessionId = input.session_id;
     if (sessionId) {
         const dbPath = resolveDbPath(projectRoot);
@@ -47,7 +47,7 @@ function buildContext(input) {
                 try {
                     const state = store.getWorkState(sessionId);
                     if (state !== null) {
-                        // DB の値で環境変数を上書き（より信頼性が高い）
+                        // Override env vars with DB values (more reliable)
                         workMode = workMode || state.bypassRmRf || state.bypassGitPush;
                         codexMode = codexMode || state.codexMode;
                     }
@@ -57,7 +57,7 @@ function buildContext(input) {
                 }
             }
             catch {
-                // DB アクセス失敗は無視（環境変数フォールバックを使用）
+                // Ignore DB access failures (fall back to environment variables)
             }
         }
     }
@@ -70,8 +70,8 @@ function buildContext(input) {
     };
 }
 /**
- * PreToolUse フックのエントリポイント。
- * HookInput を受け取り、ガードルールを評価して HookResult を返す。
+ * PreToolUse hook entry point.
+ * Receives HookInput, evaluates guard rules, and returns a HookResult.
  */
 export function evaluatePreTool(input) {
     const ctx = buildContext(input);

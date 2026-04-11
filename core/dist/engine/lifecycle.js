@@ -1,16 +1,16 @@
 /**
- * lifecycle.ts — セッションライフサイクル管理
+ * lifecycle.ts — Session lifecycle management
  *
- * 旧セッション系スキル（session / session-init / session-control /
- * session-state / session-memory）のロジックを吸収。
- * セッション開始・終了・状態遷移を一元管理する。
+ * Absorbs logic from legacy session-related skills (session / session-init /
+ * session-control / session-state / session-memory).
+ * Centrally manages session start, end, and state transitions.
  */
 // ============================================================
-// セッション開始（session-init 相当）
+// Session start (equivalent to session-init)
 // ============================================================
 /**
- * セッション開始処理。
- * 環境チェック・タスク状況把握・引き継ぎ確認を行う。
+ * Session initialization.
+ * Performs environment checks, task status assessment, and handoff confirmation.
  */
 export function initSession(opts) {
     const initialState = {
@@ -28,9 +28,9 @@ export function initSession(opts) {
     };
 }
 // ============================================================
-// セッション状態遷移（session-state / session-control 相当）
+// Session state transitions (equivalent to session-state / session-control)
 // ============================================================
-/** 許可された状態遷移マップ */
+/** Allowed state transition map */
 const VALID_TRANSITIONS = {
     active: ["paused", "completed", "failed"],
     paused: ["active", "completed", "failed"],
@@ -38,8 +38,8 @@ const VALID_TRANSITIONS = {
     failed: [],
 };
 /**
- * セッションフェーズを遷移させる。
- * 不正な遷移の場合は Error をスロー。
+ * Transition a session phase.
+ * Throws an Error on invalid transitions.
  */
 export function transitionSession(ctx, next) {
     const allowed = VALID_TRANSITIONS[ctx.phase];
@@ -49,8 +49,8 @@ export function transitionSession(ctx, next) {
     return { ...ctx, phase: next };
 }
 /**
- * セッション終了処理。
- * 完了・失敗いずれの場合も呼び出す。
+ * Session finalization.
+ * Called for both completion and failure.
  */
 export function finalizeSession(ctx, signals = []) {
     const duration = Date.now() - ctx.startedAt.getTime();
@@ -62,11 +62,11 @@ export function finalizeSession(ctx, signals = []) {
     };
 }
 // ============================================================
-// セッションフォーク（session-control の --fork 相当）
+// Session fork (equivalent to session-control --fork)
 // ============================================================
 /**
- * 現在のセッションコンテキストをフォークする。
- * 新しいセッション ID を割り当てた独立したコピーを返す。
+ * Fork the current session context.
+ * Returns an independent copy with a new session ID.
  */
 export function forkSession(parent, newSessionId) {
     const forkedState = {
@@ -83,8 +83,8 @@ export function forkSession(parent, newSessionId) {
     };
 }
 /**
- * 過去セッションを再開する。
- * lastPhase が completed / failed の場合は新規セッションとして扱う。
+ * Resume a past session.
+ * If lastPhase is completed or failed, treat as a new session.
  */
 export function resumeSession(info) {
     const isResumable = info.lastPhase === "active" || info.lastPhase === "paused";

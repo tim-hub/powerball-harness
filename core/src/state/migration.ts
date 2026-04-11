@@ -1,14 +1,14 @@
 /**
  * core/src/state/migration.ts
- * Harness v2 JSON / JSONL → v3 SQLite 移行スクリプト
+ * Harness v2 JSON / JSONL → v3 SQLite migration script
  *
- * v2 の状態ファイルを v3 SQLite DB に取り込む。
- * 移行対象:
- *   .claude/state/session.json      → sessions テーブル
- *   .claude/state/session.events.jsonl → signals テーブル（task_completed 等）
- *   .claude/work-active.json         → work_states テーブル
+ * Imports v2 state files into the v3 SQLite DB.
+ * Migration targets:
+ *   .claude/state/session.json      → sessions table
+ *   .claude/state/session.events.jsonl → signals table (task_completed, etc.)
+ *   .claude/work-active.json         → work_states table
  *
- * 冪等設計: 既に移行済みの場合は再実行しても安全。
+ * Idempotent design: safe to re-run if migration is already complete.
  */
 
 import { readFileSync, existsSync, renameSync } from "node:fs";
@@ -17,12 +17,12 @@ import type { SignalType } from "../types.js";
 import { HarnessStore } from "./store.js";
 
 // ============================================================
-// 型定義（v2 JSON 構造）
+// Type definitions (v2 JSON structures)
 // ============================================================
 
 interface V2Session {
   session_id?: string;
-  id?: string; // 旧フィールド名
+  id?: string; // Legacy field name
   mode?: string;
   project_root?: string;
   started_at?: string | number;
@@ -32,14 +32,14 @@ interface V2Session {
 
 interface V2Event {
   type?: string;
-  event?: string; // 旧フィールド名
+  event?: string; // Legacy field name
   session_id?: string;
   from_session_id?: string;
   to_session_id?: string | null;
   payload?: Record<string, unknown>;
-  data?: Record<string, unknown>; // 旧フィールド名
+  data?: Record<string, unknown>; // Legacy field name
   timestamp?: string | number;
-  sent_at?: string | number; // 旧フィールド名
+  sent_at?: string | number; // Legacy field name
 }
 
 interface V2WorkActive {
@@ -51,24 +51,24 @@ interface V2WorkActive {
 }
 
 // ============================================================
-// ヘルパー関数
+// Helper functions
 // ============================================================
 
-/** ISO 日付文字列または Unix タイムスタンプを ISO 文字列に正規化 */
+/** Normalize an ISO date string or Unix timestamp to an ISO string */
 function toIsoString(value: string | number | null | undefined): string {
   if (value === null || value === undefined) {
     return new Date().toISOString();
   }
   if (typeof value === "number") {
-    // Unix タイムスタンプ秒またはミリ秒を判定
+    // Determine if Unix timestamp is in seconds or milliseconds
     const ms = value > 1e10 ? value : value * 1000;
     return new Date(ms).toISOString();
   }
-  // 既に ISO 文字列の場合はそのまま返す
+  // Already an ISO string — return as-is
   return value;
 }
 
-/** v2 モード文字列を v3 モードに正規化 */
+/** Normalize a v2 mode string to a v3 mode */
 function normalizeMode(mode: string | undefined): "normal" | "work" | "codex" | "breezing" {
   switch (mode) {
     case "work":
@@ -80,22 +80,22 @@ function normalizeMode(mode: string | undefined): "normal" | "work" | "codex" | 
   }
 }
 
-/** SignalType として有効な文字列かチェック */
+/** Check if a string is a valid SignalType */
 function normalizeSignalType(type: string | undefined): SignalType {
-  // 有効な SignalType 一覧（types.ts の SignalType と同期）
+  // Valid SignalType list (synchronized with SignalType in types.ts)
   const valid: SignalType[] = [
     "task_completed", "task_failed", "teammate_idle",
     "session_start", "session_end", "stop_failure", "request_review",
   ];
   if (type && (valid as string[]).includes(type)) return type as SignalType;
-  return "task_completed"; // 不明な型はフォールバック
+  return "task_completed"; // Fallback for unknown types
 }
 
 // ============================================================
-// JSON ファイル読み込みユーティリティ
+// JSON file reading utilities
 // ============================================================
 
-/** JSON ファイルを安全に読み込む。存在しない場合は null を返す */
+/** Safely read a JSON file. Returns null if it does not exist */
 function readJsonFile<T>(filePath: string): T | null {
   if (!existsSync(filePath)) return null;
   try {
@@ -106,7 +106,7 @@ function readJsonFile<T>(filePath: string): T | null {
   }
 }
 
-/** JSONL ファイルを安全に読み込む（1行1JSON）。存在しない場合は [] を返す */
+/** Safely read a JSONL file (one JSON per line). Returns [] if it does not exist */
 function readJsonlFile<T>(filePath: string): T[] {
   if (!existsSync(filePath)) return [];
   try {
@@ -121,7 +121,7 @@ function readJsonlFile<T>(filePath: string): T[] {
 }
 
 // ============================================================
-// 移行処理
+// Migration logic
 // ============================================================
 
 export interface MigrationResult {
@@ -133,11 +133,11 @@ export interface MigrationResult {
 }
 
 /**
- * v2 JSON/JSONL 状態ファイルを v3 SQLite DB に移行する。
+ * Migrate v2 JSON/JSONL state files to the v3 SQLite DB.
  *
- * @param projectRoot - プロジェクトルートのパス（デフォルト: process.cwd()）
- * @param dbPath - SQLite DB のパス（デフォルト: <projectRoot>/.harness/state.db）
- * @returns 移行結果
+ * @param projectRoot - Project root path (default: process.cwd())
+ * @param dbPath - SQLite DB path (default: <projectRoot>/.harness/state.db)
+ * @returns Migration result
  */
 export function migrate(
   projectRoot: string = process.cwd(),
@@ -157,7 +157,7 @@ export function migrate(
   const store = new HarnessStore(resolvedDbPath);
 
   try {
-    // 移行済みチェック: schema_meta に migration_done が存在すれば スキップ
+    // Skip if already migrated: check for migration_done in schema_meta
     const migrationDone = store.getMeta("migration_v1_done");
     if (migrationDone === "1") {
       result.skipped = true;
@@ -165,7 +165,7 @@ export function migrate(
     }
 
     // ------------------------------------------------
-    // 1. session.json → sessions テーブル
+    // 1. session.json → sessions table
     // ------------------------------------------------
     const sessionFile = resolve(stateDir, "session.json");
     const v2Session = readJsonFile<V2Session>(sessionFile);
@@ -189,7 +189,7 @@ export function migrate(
     }
 
     // ------------------------------------------------
-    // 2. session.events.jsonl → signals テーブル
+    // 2. session.events.jsonl → signals table
     // ------------------------------------------------
     const eventsFile = resolve(stateDir, "session.events.jsonl");
     const v2Events = readJsonlFile<V2Event>(eventsFile);
@@ -216,7 +216,7 @@ export function migrate(
     }
 
     // ------------------------------------------------
-    // 3. work-active.json → work_states テーブル
+    // 3. work-active.json → work_states table
     // ------------------------------------------------
     const workActiveFile = resolve(projectRoot, ".claude", "work-active.json");
     const v2WorkActive = readJsonFile<V2WorkActive>(workActiveFile);
@@ -224,7 +224,7 @@ export function migrate(
     if (v2WorkActive !== null) {
       const sessionId = v2WorkActive.session_id ?? "migrated-work-session";
       try {
-        // FK 制約を満たすため sessions に仮登録
+        // Register a placeholder session to satisfy the FK constraint
         store.upsertSession({
           session_id: sessionId,
           mode: normalizeMode(v2WorkActive.mode ?? "work"),
@@ -243,18 +243,18 @@ export function migrate(
     }
 
     // ------------------------------------------------
-    // 4. 移行完了マークを記録
+    // 4. Record migration completion marker
     // ------------------------------------------------
     store.setMeta("migration_v1_done", "1");
 
     // ------------------------------------------------
-    // 5. 元ファイルをバックアップ（削除はしない）
+    // 5. Backup original files (do not delete)
     // ------------------------------------------------
     if (v2Session !== null && existsSync(sessionFile)) {
       try {
         renameSync(sessionFile, `${sessionFile}.v2.bak`);
       } catch {
-        // バックアップ失敗は無視（移行自体は完了済み）
+        // Ignore backup failures (migration itself is already complete)
       }
     }
 
@@ -266,11 +266,11 @@ export function migrate(
 }
 
 // ============================================================
-// CLI エントリポイント（node で直接実行された場合）
+// CLI entry point (when executed directly via node)
 // ============================================================
 
-// ESM では import.meta.url で「直接実行」を判定できる
-// dist/ にコンパイルされた後は `node dist/state/migration.js` で呼ぶ
+// In ESM, import.meta.url can determine "direct execution"
+// After compiling to dist/, invoke with `node dist/state/migration.js`
 const isMain = process.argv[1]?.endsWith("migration.js");
 
 if (isMain) {

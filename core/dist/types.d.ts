@@ -1,35 +1,35 @@
 /**
  * core/src/types.ts
- * Harness v3 共通型定義
+ * Harness v3 common type definitions
  *
- * Claude Code Hooks の stdin/stdout JSON スキーマと
- * ガードレールエンジンの内部型を定義する。
+ * Defines the stdin/stdout JSON schema for Claude Code Hooks
+ * and internal types for the guardrail engine.
  */
-/** PreToolUse / PostToolUse フックへの入力 */
+/** Input to PreToolUse / PostToolUse hooks */
 export interface HookInput {
-    /** 実行されようとしているツール名（例: "Bash", "Write"） */
+    /** Tool name about to be executed (e.g. "Bash", "Write") */
     tool_name: string;
-    /** ツールへの入力パラメータ */
+    /** Input parameters for the tool */
     tool_input: Record<string, unknown>;
-    /** セッション ID（Claude Code が設定） */
+    /** Session ID (set by Claude Code) */
     session_id?: string;
-    /** 現在の作業ディレクトリ */
+    /** Current working directory */
     cwd?: string;
-    /** プラグインルートディレクトリ */
+    /** Plugin root directory */
     plugin_root?: string;
 }
-/** フックが返すアクション */
+/** Action returned by a hook */
 export type HookDecision = "approve" | "deny" | "ask";
-/** フックの出力（Claude Code Hooks プロトコル） */
+/** Hook output (Claude Code Hooks protocol) */
 export interface HookResult {
-    /** 実行を許可するか拒否するか */
+    /** Whether to allow or deny execution */
     decision: HookDecision;
-    /** ユーザーへの説明メッセージ */
+    /** Explanation message for the user */
     reason?: string;
-    /** Claude への追加コンテキスト（systemMessage） */
+    /** Additional context for Claude (systemMessage) */
     systemMessage?: string;
 }
-/** ガードルールの評価コンテキスト */
+/** Evaluation context for a guard rule */
 export interface RuleContext {
     input: HookInput;
     projectRoot: string;
@@ -37,55 +37,55 @@ export interface RuleContext {
     codexMode: boolean;
     breezingRole: string | null;
 }
-/** 単一ガードルールの定義 */
+/** Definition of a single guard rule */
 export interface GuardRule {
-    /** ルール識別子（ログ・デバッグ用） */
+    /** Rule identifier (for logging and debugging) */
     id: string;
-    /** このルールが適用されるツール名のパターン（正規表現） */
+    /** Tool name pattern this rule applies to (regex) */
     toolPattern: RegExp;
-    /** ルールを評価する関数。一致しなければ null を返す */
+    /** Function to evaluate the rule. Returns null if no match */
     evaluate: (ctx: RuleContext) => HookResult | null;
 }
-/** エージェント間で交換するシグナルの種類 */
+/** Types of signals exchanged between agents */
 export type SignalType = "task_completed" | "task_failed" | "teammate_idle" | "session_start" | "session_end" | "stop_failure" | "request_review";
-/** エージェント間シグナル */
+/** Inter-agent signal */
 export interface Signal {
     type: SignalType;
-    /** 送信元セッション ID */
+    /** Source session ID */
     from_session_id: string;
-    /** 宛先セッション ID（省略時はブロードキャスト） */
+    /** Destination session ID (omit for broadcast) */
     to_session_id?: string;
-    /** シグナルのペイロード */
+    /** Signal payload */
     payload: Record<string, unknown>;
-    /** 送信時刻（ISO 8601） */
+    /** Timestamp (ISO 8601) */
     timestamp: string;
 }
-/** タスク失敗の重大度 */
+/** Severity of a task failure */
 export type FailureSeverity = "warning" | "error" | "critical";
-/** タスク失敗イベント */
+/** Task failure event */
 export interface TaskFailure {
-    /** 失敗したタスクの識別子 */
+    /** Identifier of the failed task */
     task_id: string;
-    /** 失敗の重大度 */
+    /** Failure severity */
     severity: FailureSeverity;
-    /** 失敗の説明 */
+    /** Failure description */
     message: string;
-    /** スタックトレースまたは詳細情報 */
+    /** Stack trace or detailed information */
     detail?: string;
-    /** 失敗時刻（ISO 8601） */
+    /** Failure timestamp (ISO 8601) */
     timestamp: string;
-    /** 試行回数 */
+    /** Attempt number */
     attempt: number;
 }
-/** セッションの実行モード */
+/** Session execution mode */
 export type SessionMode = "normal" | "work" | "codex" | "breezing";
-/** セッション状態 */
+/** Session state */
 export interface SessionState {
     session_id: string;
     mode: SessionMode;
     project_root: string;
     started_at: string;
-    /** work/breezing モードでのコンテキスト情報 */
+    /** Context information for work/breezing mode */
     context?: Record<string, unknown>;
 }
 //# sourceMappingURL=types.d.ts.map

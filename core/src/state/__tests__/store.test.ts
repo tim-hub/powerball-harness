@@ -1,8 +1,8 @@
 /**
  * core/src/state/__tests__/store.test.ts
- * HarnessStore 単体テスト
+ * HarnessStore unit tests
  *
- * better-sqlite3 を使った実際の SQLite DB（メモリ内）で各メソッドを検証する。
+ * Tests each method using an actual SQLite DB (in-memory) via better-sqlite3.
  */
 
 import { createRequire } from "node:module";
@@ -12,9 +12,9 @@ import { HarnessStore } from "../store.js";
 const require = createRequire(import.meta.url);
 const Database = require("better-sqlite3") as typeof import("better-sqlite3").default;
 
-// テスト用に HarnessStore のサブクラスを作り、メモリ DB を使う
-// HarnessStore のコンストラクタはファイルパスを受け取るが、
-// ":memory:" を渡すことで better-sqlite3 はメモリ内 DB を使用する
+// Create a HarnessStore subclass for testing that uses an in-memory DB.
+// HarnessStore's constructor takes a file path, but passing ":memory:"
+// makes better-sqlite3 use an in-memory database.
 function createStore(): HarnessStore {
   return new HarnessStore(":memory:");
 }
@@ -31,11 +31,11 @@ describe("HarnessStore", () => {
   });
 
   // ------------------------------------------------------------------
-  // セッション管理
+  // Session management
   // ------------------------------------------------------------------
 
   describe("upsertSession / getSession", () => {
-    it("セッションを登録して取得できる", () => {
+    it("can register and retrieve a session", () => {
       store.upsertSession({
         session_id: "sess-001",
         mode: "work",
@@ -50,12 +50,12 @@ describe("HarnessStore", () => {
       expect(session?.project_root).toBe("/tmp/project");
     });
 
-    it("存在しないセッションは null を返す", () => {
+    it("returns null for non-existent session", () => {
       const session = store.getSession("nonexistent");
       expect(session).toBeNull();
     });
 
-    it("upsert で既存セッションを更新できる", () => {
+    it("can update an existing session via upsert", () => {
       store.upsertSession({
         session_id: "sess-002",
         mode: "normal",
@@ -75,7 +75,7 @@ describe("HarnessStore", () => {
       expect(session?.project_root).toBe("/tmp/project-v2");
     });
 
-    it("endSession でセッションを終了できる", () => {
+    it("can end a session via endSession", () => {
       store.upsertSession({
         session_id: "sess-003",
         mode: "breezing",
@@ -87,17 +87,17 @@ describe("HarnessStore", () => {
 
       const session = store.getSession("sess-003");
       expect(session).not.toBeNull();
-      // ended_at は getSession ではマッピングされないが、
-      // セッション自体は取得できる
+      // ended_at is not mapped by getSession, but
+      // the session itself is still retrievable
     });
   });
 
   // ------------------------------------------------------------------
-  // シグナル管理
+  // Signal management
   // ------------------------------------------------------------------
 
   describe("sendSignal / receiveSignals", () => {
-    it("シグナルを送信して受信できる", () => {
+    it("can send and receive signals", () => {
       store.upsertSession({
         session_id: "sender",
         mode: "normal",
@@ -125,7 +125,7 @@ describe("HarnessStore", () => {
       expect(signals[0]?.payload).toEqual({ task_id: "task-01", result: "success" });
     });
 
-    it("ブロードキャストシグナルはすべてのセッションが受信できる", () => {
+    it("broadcast signals can be received by all sessions", () => {
       store.upsertSession({
         session_id: "broadcaster",
         mode: "normal",
@@ -144,7 +144,7 @@ describe("HarnessStore", () => {
       expect(signals[0]?.type).toBe("teammate_idle");
     });
 
-    it("受信済みシグナルは再度受信されない", () => {
+    it("already-received signals are not received again", () => {
       store.upsertSession({
         session_id: "s1",
         mode: "normal",
@@ -166,7 +166,7 @@ describe("HarnessStore", () => {
       expect(second).toHaveLength(0);
     });
 
-    it("自分が送ったシグナルは自分では受信しない", () => {
+    it("signals sent by self are not received by self", () => {
       store.sendSignal({
         type: "request_review",
         from_session_id: "s1",
@@ -179,11 +179,11 @@ describe("HarnessStore", () => {
   });
 
   // ------------------------------------------------------------------
-  // タスク失敗管理
+  // Task failure management
   // ------------------------------------------------------------------
 
   describe("recordFailure / getFailures", () => {
-    it("タスク失敗を記録して取得できる", () => {
+    it("can record and retrieve task failures", () => {
       const id = store.recordFailure(
         {
           task_id: "task-01",
@@ -203,7 +203,7 @@ describe("HarnessStore", () => {
       expect(failures[0]?.attempt).toBe(1);
     });
 
-    it("detail フィールドはオプション（省略可能）", () => {
+    it("detail field is optional", () => {
       store.recordFailure(
         {
           task_id: "task-02",
@@ -218,7 +218,7 @@ describe("HarnessStore", () => {
       expect(failures[0]?.detail).toBeUndefined();
     });
 
-    it("detail フィールドがある場合は取得できる", () => {
+    it("detail field is retrievable when present", () => {
       store.recordFailure(
         {
           task_id: "task-03",
@@ -234,19 +234,19 @@ describe("HarnessStore", () => {
       expect(failures[0]?.detail).toBe("Stack trace here");
     });
 
-    it("存在しないタスクは空配列を返す", () => {
+    it("returns empty array for non-existent task", () => {
       const failures = store.getFailures("nonexistent-task");
       expect(failures).toHaveLength(0);
     });
   });
 
   // ------------------------------------------------------------------
-  // work_states 管理
+  // work_states management
   // ------------------------------------------------------------------
 
   describe("setWorkState / getWorkState / cleanExpiredWorkStates", () => {
-    it("work state を設定して取得できる", () => {
-      // FK 制約を満たすためにセッションを事前登録
+    it("can set and retrieve work state", () => {
+      // Pre-register session to satisfy FK constraint
       store.upsertSession({
         session_id: "sess-001",
         mode: "work",
@@ -266,8 +266,8 @@ describe("HarnessStore", () => {
       expect(state?.bypassGitPush).toBe(false);
     });
 
-    it("デフォルト値はすべて false", () => {
-      // FK 制約を満たすためにセッションを事前登録
+    it("defaults are all false", () => {
+      // Pre-register session to satisfy FK constraint
       store.upsertSession({
         session_id: "sess-002",
         mode: "normal",
@@ -282,22 +282,22 @@ describe("HarnessStore", () => {
       expect(state?.bypassGitPush).toBe(false);
     });
 
-    it("存在しない session の work state は null", () => {
+    it("returns null for non-existent session work state", () => {
       const state = store.getWorkState("nonexistent");
       expect(state).toBeNull();
     });
 
-    it("cleanExpiredWorkStates で期限切れを削除できる", () => {
-      // FK 制約を満たすためにセッションを事前登録
+    it("can delete expired records via cleanExpiredWorkStates", () => {
+      // Pre-register session to satisfy FK constraint
       store.upsertSession({
         session_id: "expired-sess",
         mode: "normal",
         project_root: "/tmp",
         started_at: new Date().toISOString(),
       });
-      // DB に直接期限切れレコードを挿入
+      // Insert expired record directly into DB
       const db = (store as unknown as { db: InstanceType<typeof Database> }).db;
-      const expiredAt = Math.floor(Date.now() / 1000) - 1; // 1秒前 = 期限切れ
+      const expiredAt = Math.floor(Date.now() / 1000) - 1; // 1 second ago = expired
       db.prepare(
         `INSERT INTO work_states(session_id, codex_mode, bypass_rm_rf, bypass_git_push, expires_at)
          VALUES ('expired-sess', 0, 0, 0, ?)`

@@ -1,14 +1,14 @@
 /**
  * core/src/state/migration.ts
- * Harness v2 JSON / JSONL → v3 SQLite 移行スクリプト
+ * Harness v2 JSON / JSONL → v3 SQLite migration script
  *
- * v2 の状態ファイルを v3 SQLite DB に取り込む。
- * 移行対象:
- *   .claude/state/session.json      → sessions テーブル
- *   .claude/state/session.events.jsonl → signals テーブル（task_completed 等）
- *   .claude/work-active.json         → work_states テーブル
+ * Imports v2 state files into the v3 SQLite DB.
+ * Migration targets:
+ *   .claude/state/session.json      → sessions table
+ *   .claude/state/session.events.jsonl → signals table (task_completed, etc.)
+ *   .claude/work-active.json         → work_states table
  *
- * 冪等設計: 既に移行済みの場合は再実行しても安全。
+ * Idempotent design: safe to re-run if migration is already complete.
  */
 export interface MigrationResult {
     sessions: number;
@@ -18,11 +18,11 @@ export interface MigrationResult {
     errors: string[];
 }
 /**
- * v2 JSON/JSONL 状態ファイルを v3 SQLite DB に移行する。
+ * Migrate v2 JSON/JSONL state files to the v3 SQLite DB.
  *
- * @param projectRoot - プロジェクトルートのパス（デフォルト: process.cwd()）
- * @param dbPath - SQLite DB のパス（デフォルト: <projectRoot>/.harness/state.db）
- * @returns 移行結果
+ * @param projectRoot - Project root path (default: process.cwd())
+ * @param dbPath - SQLite DB path (default: <projectRoot>/.harness/state.db)
+ * @returns Migration result
  */
 export declare function migrate(projectRoot?: string, dbPath?: string): MigrationResult;
 //# sourceMappingURL=migration.d.ts.map

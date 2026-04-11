@@ -1,11 +1,11 @@
 /**
  * core/src/guardrails/permission.ts
- * PermissionRequest フック評価関数
+ * PermissionRequest hook evaluation function
  *
- * permission-request.sh の全ロジックを TypeScript に移植。
- * 安全なコマンド（read-only git、テストコマンド等）を自動承認する。
+ * Full logic ported from permission-request.sh to TypeScript.
+ * Auto-approves safe commands (read-only git, test commands, etc.).
  *
- * 参照元: scripts/permission-request.sh
+ * Reference: scripts/permission-request.sh
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -18,11 +18,11 @@ function makeAllow() {
     };
 }
 // ============================================================
-// パッケージマネージャー自動承認 許可リスト
+// Package manager auto-approval allowlist
 // ============================================================
 /**
- * .claude/config/allowed-pkg-managers.json が存在し、allowed: true であれば
- * npm/pnpm/yarn の test/build/lint 等を自動承認する。
+ * If .claude/config/allowed-pkg-managers.json exists and allowed is true,
+ * auto-approve npm/pnpm/yarn test/build/lint commands.
  */
 function isPkgManagerAllowed(cwd) {
     const allowlistPath = join(cwd, ".claude", "config", "allowed-pkg-managers.json");
@@ -36,65 +36,65 @@ function isPkgManagerAllowed(cwd) {
         }
     }
     catch {
-        // JSON パースエラーは不許可として扱う
+        // Treat JSON parse errors as disallowed
     }
     return false;
 }
 // ============================================================
-// 安全なコマンド判定
+// Safe command detection
 // ============================================================
 /**
- * コマンド文字列が自動承認可能かを判定する。
+ * Determine whether a command string can be auto-approved.
  *
- * security hardening:
- * - パイプ、リダイレクト、変数展開、コマンド置換を含む場合は不承認（保守的）
- * - シンプルなコマンドのみ自動承認
+ * Security hardening:
+ * - Reject commands containing pipes, redirects, variable expansion, or command substitution (conservative)
+ * - Only auto-approve simple commands
  */
 function isSafeCommand(command, cwd) {
-    // 複数行コマンドは不承認
+    // Reject multi-line commands
     if (command.includes("\n") || command.includes("\r"))
         return false;
-    // シェル特殊文字（パイプ、リダイレクト、変数展開、コマンド置換）を含む場合は不承認
+    // Reject if contains shell special characters (pipes, redirects, variable expansion, command substitution)
     if (/[;&|<>`$]/.test(command))
         return false;
-    // read-only git コマンドは常に安全
+    // Read-only git commands are always safe
     if (/^git\s+(status|diff|log|branch|rev-parse|show|ls-files)(\s|$)/i.test(command)) {
         return true;
     }
-    // JS/TS テスト・検証コマンドはパッケージマネージャー許可リストを確認
+    // JS/TS test/validation commands check the package manager allowlist
     if (/^(npm|pnpm|yarn)\s+(test|run\s+(test|lint|typecheck|build|validate)|lint|typecheck|build)(\s|$)/i.test(command)) {
         return isPkgManagerAllowed(cwd);
     }
-    // Python テスト（package.json リスクなし）
+    // Python tests (no package.json risk)
     if (/^(pytest|python\s+-m\s+pytest)(\s|$)/i.test(command))
         return true;
-    // Go / Rust テスト
+    // Go / Rust tests
     if (/^(go\s+test|cargo\s+test)(\s|$)/i.test(command))
         return true;
     return false;
 }
 // ============================================================
-// evaluatePermission: メインエクスポート
+// evaluatePermission: main export
 // ============================================================
 /**
- * PermissionRequest フックの評価関数。
+ * PermissionRequest hook evaluation function.
  *
- * Edit/Write は bypassPermissions 相当で自動承認。
- * Bash は安全なコマンドパターンのみ自動承認。
- * その他は何も返さず（デフォルト動作 = ユーザーに確認）。
+ * Edit/Write are auto-approved (bypassPermissions equivalent).
+ * Bash only auto-approves safe command patterns.
+ * Others return nothing (default behavior = prompt the user).
  */
 export function evaluatePermission(input) {
     const toolName = input.tool_name;
     const cwd = input.cwd ?? process.cwd();
-    // Edit / Write は自動承認（bypassPermissions モード補完）
+    // Auto-approve Edit / Write (bypassPermissions mode complement)
     if (toolName === "Edit" || toolName === "Write" || toolName === "MultiEdit") {
         return _permissionResponseToHookResult(makeAllow());
     }
-    // Bash 以外はデフォルト動作（スルー）
+    // Non-Bash tools use default behavior (pass through)
     if (toolName !== "Bash") {
         return { decision: "approve" };
     }
-    // Bash: コマンドを取得して安全性チェック
+    // Bash: get the command and check safety
     const command = input.tool_input["command"];
     if (typeof command !== "string" || command.trim() === "") {
         return { decision: "approve" };
@@ -102,16 +102,15 @@ export function evaluatePermission(input) {
     if (isSafeCommand(command, cwd)) {
         return _permissionResponseToHookResult(makeAllow());
     }
-    // 安全でないコマンドはデフォルト動作（ユーザーに確認を委ねる）
+    // Unsafe commands use default behavior (defer to user confirmation)
     return { decision: "approve" };
 }
 /**
- * PermissionResponse を HookResult に変換する。
+ * Convert a PermissionResponse to a HookResult.
  *
- * PermissionRequest フックは通常の HookResult とは異なる出力形式だが、
- * 内部の型システムでは HookResult として扱い、
- * index.ts の route() で stdout 出力時に formatPermissionOutput() を使って
- * 正しい形式に変換する（Phase 17.1.7 で hooks.json を差し替え後に対応予定）。
+ * The PermissionRequest hook uses a different output format than regular HookResult,
+ * but internally we treat it as a HookResult. During stdout output in index.ts route(),
+ * formatPermissionOutput() converts it to the correct format.
  */
 function _permissionResponseToHookResult(response) {
     return {
@@ -120,11 +119,11 @@ function _permissionResponseToHookResult(response) {
     };
 }
 /**
- * PermissionRequest フック用の stdout 出力を生成する。
- * index.ts の route() から "permission" フックタイプ時に呼び出す。
+ * Generate stdout output for the PermissionRequest hook.
+ * Called from index.ts route() for the "permission" hook type.
  */
 export function formatPermissionOutput(result) {
-    // systemMessage に PermissionResponse の JSON が入っている場合はそちらを優先
+    // If systemMessage contains PermissionResponse JSON, use that preferentially
     if (result.systemMessage !== undefined) {
         try {
             const parsed = JSON.parse(result.systemMessage);
@@ -135,7 +134,7 @@ export function formatPermissionOutput(result) {
             }
         }
         catch {
-            // パース失敗時は通常の HookResult として出力
+            // On parse failure, output as a regular HookResult
         }
     }
     return JSON.stringify(result);

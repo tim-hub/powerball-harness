@@ -1,24 +1,24 @@
 /**
  * core/src/guardrails/permission.ts
- * PermissionRequest フック評価関数
+ * PermissionRequest hook evaluation function
  *
- * permission-request.sh の全ロジックを TypeScript に移植。
- * 安全なコマンド（read-only git、テストコマンド等）を自動承認する。
+ * Full logic ported from permission-request.sh to TypeScript.
+ * Auto-approves safe commands (read-only git, test commands, etc.).
  *
- * 参照元: scripts/permission-request.sh
+ * Reference: scripts/permission-request.sh
  */
 import { type HookInput, type HookResult } from "../types.js";
 /**
- * PermissionRequest フックの評価関数。
+ * PermissionRequest hook evaluation function.
  *
- * Edit/Write は bypassPermissions 相当で自動承認。
- * Bash は安全なコマンドパターンのみ自動承認。
- * その他は何も返さず（デフォルト動作 = ユーザーに確認）。
+ * Edit/Write are auto-approved (bypassPermissions equivalent).
+ * Bash only auto-approves safe command patterns.
+ * Others return nothing (default behavior = prompt the user).
  */
 export declare function evaluatePermission(input: HookInput): HookResult;
 /**
- * PermissionRequest フック用の stdout 出力を生成する。
- * index.ts の route() から "permission" フックタイプ時に呼び出す。
+ * Generate stdout output for the PermissionRequest hook.
+ * Called from index.ts route() for the "permission" hook type.
  */
 export declare function formatPermissionOutput(result: HookResult): string;
 //# sourceMappingURL=permission.d.ts.map

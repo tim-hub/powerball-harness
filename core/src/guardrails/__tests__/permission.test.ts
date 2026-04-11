@@ -1,8 +1,8 @@
 /**
  * core/src/guardrails/__tests__/permission.test.ts
- * permission.ts 単体テスト
+ * Unit tests for permission.ts
  *
- * permission-request.sh の全ロジックが正しく移植されていることを検証する。
+ * Verifies that all logic from permission-request.sh is correctly ported.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -10,7 +10,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { evaluatePermission, formatPermissionOutput } from "../permission.js";
 import type { HookInput } from "../../types.js";
 
-// fs モジュールをモック
+// Mock the fs module
 vi.mock("node:fs");
 
 const mockedExistsSync = vi.mocked(existsSync);
@@ -28,7 +28,7 @@ function makeInput(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // デフォルト: 許可リストファイルは存在しない
+  // Default: allowlist file does not exist
   mockedExistsSync.mockReturnValue(false);
 });
 
@@ -37,21 +37,21 @@ afterEach(() => {
 });
 
 // ============================================================
-// Edit / Write の自動承認
+// Edit / Write auto-approval
 // ============================================================
-describe("Edit / Write の自動承認", () => {
-  it("Edit ツールを自動承認する", () => {
+describe("Edit / Write auto-approval", () => {
+  it("auto-approves Edit tool", () => {
     const result = evaluatePermission(
       makeInput("Edit", { file_path: "/project/src/foo.ts" })
     );
-    // approve が返り、systemMessage に PermissionRequest JSON が含まれる
+    // Returns approve with PermissionRequest JSON in systemMessage
     expect(result.decision).toBe("approve");
     expect(result.systemMessage).toBeDefined();
     const parsed = JSON.parse(result.systemMessage!);
     expect(parsed.hookSpecificOutput.decision.behavior).toBe("allow");
   });
 
-  it("Write ツールを自動承認する", () => {
+  it("auto-approves Write tool", () => {
     const result = evaluatePermission(
       makeInput("Write", { file_path: "/project/src/bar.ts", content: "" })
     );
@@ -61,7 +61,7 @@ describe("Edit / Write の自動承認", () => {
     expect(parsed.hookSpecificOutput.decision.behavior).toBe("allow");
   });
 
-  it("MultiEdit ツールを自動承認する", () => {
+  it("auto-approves MultiEdit tool", () => {
     const result = evaluatePermission(makeInput("MultiEdit"));
     expect(result.decision).toBe("approve");
     expect(result.systemMessage).toBeDefined();
@@ -69,9 +69,9 @@ describe("Edit / Write の自動承認", () => {
 });
 
 // ============================================================
-// Bash: read-only git コマンドの自動承認
+// Bash: read-only git command auto-approval
 // ============================================================
-describe("Bash: read-only git コマンドの自動承認", () => {
+describe("Bash: read-only git command auto-approval", () => {
   const readOnlyGitCmds = [
     "git status",
     "git diff",
@@ -83,7 +83,7 @@ describe("Bash: read-only git コマンドの自動承認", () => {
   ];
 
   for (const cmd of readOnlyGitCmds) {
-    it(`${cmd} を自動承認する`, () => {
+    it(`auto-approves ${cmd}`, () => {
       const result = evaluatePermission(
         makeInput("Bash", { command: cmd })
       );
@@ -96,24 +96,24 @@ describe("Bash: read-only git コマンドの自動承認", () => {
 });
 
 // ============================================================
-// Bash: npm/pnpm/yarn — 許可リストなしは不承認（approve のみ）
+// Bash: npm/pnpm/yarn — no allowlist means no auto-approval
 // ============================================================
-describe("Bash: npm/pnpm/yarn — 許可リストなしは不承認", () => {
-  it("許可リストがない場合 npm test はデフォルト動作（approve）", () => {
+describe("Bash: npm/pnpm/yarn — no allowlist means no auto-approval", () => {
+  it("npm test defaults to approve without auto-approval when no allowlist", () => {
     mockedExistsSync.mockReturnValue(false);
     const result = evaluatePermission(
       makeInput("Bash", { command: "npm test" })
     );
-    // 安全でないため systemMessage なしの approve
+    // Not safe, so approve without systemMessage
     expect(result.decision).toBe("approve");
     expect(result.systemMessage).toBeUndefined();
   });
 });
 
 // ============================================================
-// Bash: npm/pnpm/yarn — 許可リストありは自動承認
+// Bash: npm/pnpm/yarn — auto-approved with allowlist
 // ============================================================
-describe("Bash: npm/pnpm/yarn — 許可リストありは自動承認", () => {
+describe("Bash: npm/pnpm/yarn — auto-approved with allowlist", () => {
   beforeEach(() => {
     mockedExistsSync.mockReturnValue(true);
     mockedReadFileSync.mockReturnValue(
@@ -134,7 +134,7 @@ describe("Bash: npm/pnpm/yarn — 許可リストありは自動承認", () => {
   ];
 
   for (const cmd of pkgCmds) {
-    it(`${cmd} を自動承認する（許可リストあり）`, () => {
+    it(`auto-approves ${cmd} (with allowlist)`, () => {
       const result = evaluatePermission(
         makeInput("Bash", { command: cmd })
       );
@@ -147,9 +147,9 @@ describe("Bash: npm/pnpm/yarn — 許可リストありは自動承認", () => {
 });
 
 // ============================================================
-// Bash: Python / Go / Rust テストの自動承認
+// Bash: Python / Go / Rust test auto-approval
 // ============================================================
-describe("Bash: Python / Go / Rust テストの自動承認", () => {
+describe("Bash: Python / Go / Rust test auto-approval", () => {
   const safeCmds = [
     "pytest",
     "pytest -v",
@@ -159,7 +159,7 @@ describe("Bash: Python / Go / Rust テストの自動承認", () => {
   ];
 
   for (const cmd of safeCmds) {
-    it(`${cmd} を自動承認する`, () => {
+    it(`auto-approves ${cmd}`, () => {
       const result = evaluatePermission(
         makeInput("Bash", { command: cmd })
       );
@@ -170,9 +170,9 @@ describe("Bash: Python / Go / Rust テストの自動承認", () => {
 });
 
 // ============================================================
-// Bash: シェル特殊文字を含むコマンドは不承認
+// Bash: commands with shell special characters are not auto-approved
 // ============================================================
-describe("Bash: シェル特殊文字を含むコマンドは不承認", () => {
+describe("Bash: commands with shell special characters are not auto-approved", () => {
   const dangerousCmds = [
     "git status | grep modified",
     "npm test && git push",
@@ -183,11 +183,11 @@ describe("Bash: シェル特殊文字を含むコマンドは不承認", () => {
   ];
 
   for (const cmd of dangerousCmds) {
-    it(`"${cmd}" はデフォルト動作（approve のみ）`, () => {
+    it(`"${cmd}" defaults to approve only`, () => {
       const result = evaluatePermission(
         makeInput("Bash", { command: cmd })
       );
-      // 保守的：approve は返すが systemMessage（自動承認）はなし
+      // Conservative: returns approve but without systemMessage (no auto-approval)
       expect(result.decision).toBe("approve");
       expect(result.systemMessage).toBeUndefined();
     });
@@ -195,13 +195,13 @@ describe("Bash: シェル特殊文字を含むコマンドは不承認", () => {
 });
 
 // ============================================================
-// Bash: その他のツールはスルー
+// Other tools: default behavior
 // ============================================================
-describe("その他のツールはデフォルト動作", () => {
+describe("other tools default to approve", () => {
   const otherTools = ["Read", "Glob", "Grep", "Task", "Skill"];
 
   for (const tool of otherTools) {
-    it(`${tool} はデフォルト動作（approve）`, () => {
+    it(`${tool} defaults to approve`, () => {
       const result = evaluatePermission(makeInput(tool));
       expect(result.decision).toBe("approve");
       expect(result.systemMessage).toBeUndefined();
@@ -213,7 +213,7 @@ describe("その他のツールはデフォルト動作", () => {
 // formatPermissionOutput
 // ============================================================
 describe("formatPermissionOutput", () => {
-  it("PermissionResponse JSON を含む systemMessage を正しく出力する", () => {
+  it("outputs correct systemMessage containing PermissionResponse JSON", () => {
     const result = evaluatePermission(
       makeInput("Edit", { file_path: "/project/src/foo.ts" })
     );
@@ -223,7 +223,7 @@ describe("formatPermissionOutput", () => {
     expect(parsed.hookSpecificOutput.decision.behavior).toBe("allow");
   });
 
-  it("systemMessage がない場合は通常の HookResult を出力する", () => {
+  it("outputs normal HookResult when no systemMessage", () => {
     const result = evaluatePermission(makeInput("Bash", { command: "rm -rf /" }));
     const output = formatPermissionOutput(result);
     const parsed = JSON.parse(output);

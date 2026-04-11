@@ -1,25 +1,25 @@
 /**
- * lifecycle.ts — セッションライフサイクル管理
+ * lifecycle.ts — Session lifecycle management
  *
- * 旧セッション系スキル（session / session-init / session-control /
- * session-state / session-memory）のロジックを吸収。
- * セッション開始・終了・状態遷移を一元管理する。
+ * Absorbs logic from legacy session-related skills (session / session-init /
+ * session-control / session-state / session-memory).
+ * Centrally manages session start, end, and state transitions.
  */
 import type { SessionState, SessionMode, Signal } from "../types.js";
-/** セッションの実行フェーズ */
+/** Session execution phase */
 export type SessionPhase = "active" | "paused" | "completed" | "failed";
-/** セッションコンテキスト */
+/** Session context */
 export interface SessionContext {
     sessionId: string;
     startedAt: Date;
     phase: SessionPhase;
     state: SessionState;
-    /** 直近の agent-trace エントリ */
+    /** Recent agent-trace entries */
     recentFiles: string[];
 }
 /**
- * セッション開始処理。
- * 環境チェック・タスク状況把握・引き継ぎ確認を行う。
+ * Session initialization.
+ * Performs environment checks, task status assessment, and handoff confirmation.
  */
 export declare function initSession(opts: {
     sessionId: string;
@@ -27,11 +27,11 @@ export declare function initSession(opts: {
     mode?: SessionMode;
 }): SessionContext;
 /**
- * セッションフェーズを遷移させる。
- * 不正な遷移の場合は Error をスロー。
+ * Transition a session phase.
+ * Throws an Error on invalid transitions.
  */
 export declare function transitionSession(ctx: SessionContext, next: SessionPhase): SessionContext;
-/** セッション終了時のサマリー */
+/** Session end summary */
 export interface SessionSummary {
     sessionId: string;
     duration: number;
@@ -39,16 +39,16 @@ export interface SessionSummary {
     signals: Signal[];
 }
 /**
- * セッション終了処理。
- * 完了・失敗いずれの場合も呼び出す。
+ * Session finalization.
+ * Called for both completion and failure.
  */
 export declare function finalizeSession(ctx: SessionContext, signals?: Signal[]): SessionSummary;
 /**
- * 現在のセッションコンテキストをフォークする。
- * 新しいセッション ID を割り当てた独立したコピーを返す。
+ * Fork the current session context.
+ * Returns an independent copy with a new session ID.
  */
 export declare function forkSession(parent: SessionContext, newSessionId: string): SessionContext;
-/** セッション再開用の最小情報 */
+/** Minimal information for session resumption */
 export interface ResumeInfo {
     sessionId: string;
     projectRoot: string;
@@ -56,8 +56,8 @@ export interface ResumeInfo {
     lastPhase: SessionPhase;
 }
 /**
- * 過去セッションを再開する。
- * lastPhase が completed / failed の場合は新規セッションとして扱う。
+ * Resume a past session.
+ * If lastPhase is completed or failed, treat as a new session.
  */
 export declare function resumeSession(info: ResumeInfo): SessionContext;
 //# sourceMappingURL=lifecycle.d.ts.map

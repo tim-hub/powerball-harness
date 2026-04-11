@@ -1,21 +1,21 @@
 /**
  * core/src/state/schema.ts
- * Harness v3 SQLite テーブル定義
+ * Harness v3 SQLite table definitions
  *
- * better-sqlite3 を使用して、セッション状態・エージェント間シグナル・
- * タスク失敗イベントを単一の SQLite ファイルで管理する。
+ * Uses better-sqlite3 to manage session state, inter-agent signals,
+ * and task failure events in a single SQLite file.
  */
 // ============================================================
-// テーブル作成 DDL
+// Table creation DDL
 // ============================================================
 /**
- * sessions テーブル
- * - session_id: Claude Code が発行するセッション識別子
+ * sessions table
+ * - session_id: Session identifier issued by Claude Code
  * - mode: normal | work | codex | breezing
- * - project_root: セッションが紐付くプロジェクトルート
- * - started_at: セッション開始時刻（Unix タイムスタンプ秒）
- * - ended_at: セッション終了時刻（NULL = アクティブ）
- * - context_json: 任意の追加情報（JSON テキスト）
+ * - project_root: Project root associated with the session
+ * - started_at: Session start time (Unix timestamp in seconds)
+ * - ended_at: Session end time (NULL = active)
+ * - context_json: Arbitrary additional information (JSON text)
  */
 export const CREATE_SESSIONS = `
   CREATE TABLE IF NOT EXISTS sessions (
@@ -28,14 +28,14 @@ export const CREATE_SESSIONS = `
   )
 `;
 /**
- * signals テーブル
- * - id: 自動採番 PK
- * - type: シグナル種別（SignalType）
- * - from_session_id: 送信元セッション
- * - to_session_id: 宛先セッション（NULL = ブロードキャスト）
- * - payload_json: ペイロード（JSON テキスト）
- * - sent_at: 送信時刻（Unix タイムスタンプ秒）
- * - consumed: 受信済みフラグ
+ * signals table
+ * - id: Auto-increment PK
+ * - type: Signal type (SignalType)
+ * - from_session_id: Source session
+ * - to_session_id: Destination session (NULL = broadcast)
+ * - payload_json: Payload (JSON text)
+ * - sent_at: Send time (Unix timestamp in seconds)
+ * - consumed: Consumed flag
  */
 export const CREATE_SIGNALS = `
   CREATE TABLE IF NOT EXISTS signals (
@@ -49,15 +49,15 @@ export const CREATE_SIGNALS = `
   )
 `;
 /**
- * task_failures テーブル
- * - id: 自動採番 PK
- * - task_id: 失敗したタスクの識別子
- * - session_id: タスクを実行していたセッション（外部参照）
+ * task_failures table
+ * - id: Auto-increment PK
+ * - task_id: Identifier of the failed task
+ * - session_id: Session that was executing the task (foreign reference)
  * - severity: warning | error | critical
- * - message: 失敗の説明
- * - detail: スタックトレース等の詳細情報（NULL 可）
- * - failed_at: 失敗時刻（Unix タイムスタンプ秒）
- * - attempt: 試行回数（1 始まり）
+ * - message: Failure description
+ * - detail: Stack trace or detailed information (nullable)
+ * - failed_at: Failure time (Unix timestamp in seconds)
+ * - attempt: Attempt count (1-based)
  */
 export const CREATE_TASK_FAILURES = `
   CREATE TABLE IF NOT EXISTS task_failures (
@@ -72,13 +72,13 @@ export const CREATE_TASK_FAILURES = `
   )
 `;
 /**
- * work_states テーブル
- * - work-active.json の後継。work/codex/breezing モードの状態を管理
- * - session_id: 紐付くセッション ID
- * - codex_mode: codex モードフラグ
- * - bypass_rm_rf: rm -rf ガードバイパスフラグ
- * - bypass_git_push: git push ガードバイパスフラグ
- * - expires_at: 有効期限（24 時間後の Unix タイムスタンプ秒）
+ * work_states table
+ * - Successor to work-active.json. Manages state for work/codex/breezing modes
+ * - session_id: Associated session ID
+ * - codex_mode: Codex mode flag
+ * - bypass_rm_rf: rm -rf guard bypass flag
+ * - bypass_git_push: git push guard bypass flag
+ * - expires_at: Expiration time (Unix timestamp in seconds, 24 hours after creation)
  */
 export const CREATE_WORK_STATES = `
   CREATE TABLE IF NOT EXISTS work_states (
@@ -91,7 +91,7 @@ export const CREATE_WORK_STATES = `
   )
 `;
 // ============================================================
-// インデックス
+// Indexes
 // ============================================================
 export const CREATE_INDEXES = [
     `CREATE INDEX IF NOT EXISTS idx_signals_to_session
@@ -104,7 +104,7 @@ export const CREATE_INDEXES = [
      ON work_states(expires_at)`,
 ];
 // ============================================================
-// スキーマバージョン管理
+// Schema version management
 // ============================================================
 export const SCHEMA_VERSION = 1;
 export const CREATE_SCHEMA_META = `
@@ -114,9 +114,9 @@ export const CREATE_SCHEMA_META = `
   )
 `;
 // ============================================================
-// エクスポート: 初期化時に実行する DDL リスト
+// Export: DDL list to execute during initialization
 // ============================================================
-/** DB 初期化時に順番に実行する DDL の配列 */
+/** Array of DDL statements to execute in order during DB initialization */
 export const ALL_DDL = [
     CREATE_SCHEMA_META,
     CREATE_SESSIONS,

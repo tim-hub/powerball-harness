@@ -1,20 +1,20 @@
 /**
  * core/src/guardrails/post-tool.ts
- * PostToolUse フック統合評価関数
+ * PostToolUse hook integrated evaluation function
  *
- * 以下の PostToolUse スクリプト群を Promise.allSettled で並列実行し、
- * 結果を集約して HookResult として返す:
+ * Runs the following PostToolUse script equivalents in parallel via Promise.allSettled
+ * and aggregates the results into a single HookResult:
  *
- * 1. tampering-detector: テスト改ざん検出（警告のみ）
- * 2. security-review: セキュリティパターン検出（警告のみ）
+ * 1. tampering-detector: Test tampering detection (warning only)
+ * 2. security-review: Security pattern detection (warning only)
  *
- * その他（log-toolname, commit-cleanup 等）は副作用のみで HookResult に影響しないため
- * hooks.json の別エントリとして独立して実行する設計を維持する。
+ * Others (log-toolname, commit-cleanup, etc.) are side-effect-only and do not affect
+ * the HookResult, so they maintain their design as separate hooks.json entries.
  */
 import type { HookInput, HookResult } from "../types.js";
 /**
- * PostToolUse フックのエントリポイント。
- * 複数の検出器を並列実行し、警告を統合して返す。
+ * PostToolUse hook entry point.
+ * Runs multiple detectors in parallel and returns aggregated warnings.
  */
 export declare function evaluatePostTool(input: HookInput): Promise<HookResult>;
 //# sourceMappingURL=post-tool.d.ts.map
