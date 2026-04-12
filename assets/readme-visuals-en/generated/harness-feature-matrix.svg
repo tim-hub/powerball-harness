@@ -103,8 +103,8 @@
     <text x="14" y="316" class="label">Cross-session memory</text>
     <text x="360" y="316" text-anchor="middle" class="cellYes">AUTO</text>
     <text x="510" y="316" text-anchor="middle" class="cellPartial">JSONL</text>
-    <text x="660" y="316" text-anchor="middle" class="cellNo">—</text>
-    <text x="820" y="316" text-anchor="middle" class="cellNo">—</text>
+    <text x="660" y="316" text-anchor="middle" class="cellPartial">+ claude-mem</text>
+    <text x="820" y="316" text-anchor="middle" class="cellPartial">+ claude-mem</text>
 
     <!-- Row 9 -->
     <rect y="328" width="900" height="36" fill="#F8F7F4"/>
@@ -128,5 +128,5 @@
     <circle cx="5" cy="4" r="4" fill="#A08040"/>
     <text x="16" y="8" class="tagline">Harness + mem = planned, guarded, reviewed, rerunnable, and remembered.</text>
   </g>
-  <text x="40" y="528" class="note">* Default install behavior as of 2026-04-13. Marketing presentation — see docs/github-harness-plugin-benchmark.md for details.</text>
+  <text x="40" y="528" class="note">* Default install behavior as of 2026-04-13. "+ claude-mem" = optional add-on (github.com/thedotmack/claude-mem). See docs/github-harness-plugin-benchmark.md.</text>
 </svg>
