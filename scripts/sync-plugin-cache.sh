@@ -11,13 +11,16 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 
 # --- Step 1: Run harness sync (Go binary) ---
+# Best-effort: if the binary is unavailable (e.g. in CI before build), skip
+# and rely on the committed .claude-plugin/* files for Step 2 distribution.
+sync_ok=0
 if command -v harness >/dev/null 2>&1; then
-  harness sync "$PROJECT_ROOT"
-elif [ -x "${PROJECT_ROOT}/bin/harness" ]; then
-  "${PROJECT_ROOT}/bin/harness" sync "$PROJECT_ROOT"
-else
-  echo "Error: harness binary not found. Run 'cd go && make install' first." >&2
-  exit 1
+  harness sync "$PROJECT_ROOT" && sync_ok=1
+elif [ -x "${PROJECT_ROOT}/bin/harness" ] && "${PROJECT_ROOT}/bin/harness" sync "$PROJECT_ROOT" 2>/dev/null; then
+  sync_ok=1
+fi
+if [ "$sync_ok" = 0 ]; then
+  echo "Warning: harness binary not found or failed; using committed .claude-plugin/* files." >&2
 fi
 
 # --- Step 2: Sync critical files to marketplace cache ---

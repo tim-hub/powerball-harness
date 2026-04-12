@@ -53,6 +53,10 @@ jobs:
               diff -rq skills/ codex/.codex/skills/ 2>/dev/null \
                 | grep -v ".DS_Store" \
                 | grep -v "^Only in skills/: cc-update-review$" \
+                | grep -v "^Only in skills/: allow1$" \
+                | grep -v "^Only in skills/: claude-codex-upstream-update$" \
+                | grep -v "^Only in skills/: x-announce$" \
+                | grep -v "^Only in skills/: x-article$" \
                 || true
             )
             if [ -n "$DIFF" ]; then

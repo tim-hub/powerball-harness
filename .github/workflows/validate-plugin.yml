@@ -39,7 +39,7 @@ jobs:
         run: |
           bash ./tests/test-codex-package.sh
 
-  test-core:
+  test-go:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -47,21 +47,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: core/package.json
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
 
-      - name: Install core dependencies
-        working-directory: core
-        run: npm install --package-lock=false
+      - name: Build harness binary
+        working-directory: go
+        run: go build ./cmd/harness/
 
-      - name: Typecheck core
-        working-directory: core
-        run: npm run typecheck
+      - name: Run Go tests
+        working-directory: go
+        run: go test ./...
 
-      - name: Run vitest
-        working-directory: core
-        run: npm test
+      - name: Run go vet
+        working-directory: go
+        run: go vet ./...
