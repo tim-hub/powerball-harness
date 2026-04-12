@@ -6,6 +6,22 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [3.17.4] - 2026-04-12
+
+### Theme: Automated changelog generation skill
+
+**Added an `update-changelog` skill that generates CHANGELOG entries by diffing versions, so release notes follow a consistent Before/After format without manual effort.**
+
+---
+
+#### 1. New `update-changelog` skill
+
+**Before**: Writing changelog entries required manually reviewing git diffs, categorizing changes, and formatting them in the project's Before/After style. This was tedious and format-inconsistent across releases.
+
+**After**: Running `/update-changelog` (or triggering it after a version bump in `marketplace.json`) automatically gathers commits between the old and new version, categorizes them, and writes a properly formatted CHANGELOG entry. The skill lives at `.claude/skills/update-changelog/` as a project-local skill.
+
+## [3.17.3] - 2026-04-12
+
 ### Theme: Repository rebrand + v3 directory consolidation
 
 **Rebranded the repository from `Chachamaru127/claude-code-harness` to `tim-hub/powerball-harness`, eliminated the redundant `skills-v3/` and `agents-v3/` directories, and unified all skills and agents under `skills/` and `agents/`.**
@@ -2582,6 +2598,10 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/tim-hub/powerball-harness/releases).
 
 [Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v3.16.0...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v3.17.4...HEAD
+[3.17.4]: https://github.com/tim-hub/powerball-harness/compare/v3.17.3...v3.17.4
+[3.17.3]: https://github.com/tim-hub/powerball-harness/compare/v3.17.2...v3.17.3
+[3.17.2]: https://github.com/tim-hub/powerball-harness/compare/v3.17.1...v3.17.2
 [3.17.1]: https://github.com/tim-hub/powerball-harness/compare/v3.17.0...v3.17.1
 [3.17.0]: https://github.com/tim-hub/powerball-harness/compare/v3.16.0...v3.17.0
 [3.16.0]: https://github.com/tim-hub/powerball-harness/compare/v3.15.0...v3.16.0
