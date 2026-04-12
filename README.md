@@ -12,12 +12,43 @@
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
   <img src="https://img.shields.io/badge/Skills-5_Verbs-orange.svg" alt="Skills">
-  <img src="https://img.shields.io/badge/Core-TypeScript-blue.svg" alt="TypeScript Core">
+  <img src="https://img.shields.io/badge/Core-Go_Native-00ADD8.svg" alt="Go Core">
+  <img src="https://img.shields.io/badge/v4.0-Hokage-FF4500.svg" alt="Hokage">
 </p>
 
 <p align="center">
   English | <a href="README_ja.md">日本語</a>
 </p>
+
+<p align="center">
+  <img src="docs/images/hokage/hokage-hero.jpg" alt="Hokage v4.0 — The Silent Blade" width="860">
+</p>
+
+---
+
+## v4.0 "Hokage" — What's New
+
+> **Go-native engine. 25x faster hooks. Zero Node.js dependency.**
+
+Every tool call Claude makes passes through Harness hooks. In v3, each pass cost 40-60ms of bash + Node.js overhead — a subtle drag you feel across hundreds of calls per session. v4 replaces the entire stack with a single Go binary:
+
+| | v3 (bash + Node.js) | v4 "Hokage" (Go) |
+|---|---|---|
+| **PreToolUse** | 40-60ms | **10ms** |
+| **SessionStart** | 500-800ms | **10-30ms** |
+| **PostToolUse** | 20-30ms | **10ms** |
+| **Node.js** | Required (18+) | **Not needed** |
+
+**What you'll notice:**
+- The micro-pauses between tool calls disappear — Claude feels more responsive
+- No more `npm install` or Node.js version issues on setup
+- Session startup is instant (10-30ms vs almost a second)
+- Optional [harness-mem](https://github.com/Chachamaru127/harness-mem) integration: sessions remember what you worked on last time
+
+Just update the plugin — no configuration changes needed:
+```
+/plugin update claude-code-harness
+```
 
 ---
 
@@ -29,22 +60,19 @@ Claude Code is powerful. Harness turns that raw capability into a delivery loop 
   <img src="assets/readme-visuals-en/generated/why-harness-pillars.svg" alt="What changes with Claude Harness: shared plan, runtime guardrails, and rerunnable validation" width="860">
 </p>
 
-The 5 verb skills keep setup, plan, work, review, and release on one path. The TypeScript guardrail engine protects execution, and validation can be rerun when you need proof.
+The 5 verb skills keep setup, plan, work, review, and release on one path. The Go-native guardrail engine protects execution with sub-10ms response, and validation can be rerun when you need proof.
 
 ## Compared With Popular Claude Code Harnesses
 
-What matters here is not the theoretical ceiling of Claude Code. It is what becomes the **default operating model** once you install a harness.
-
-This is a **user-facing workflow** snapshot as of **2026-03-06**, not a popularity contest.
-Full notes and source links: [docs/github-harness-plugin-benchmark.md](docs/github-harness-plugin-benchmark.md)
-
-The card below focuses on what becomes the default operating path after install.
+What matters here is not the theoretical ceiling of Claude Code. It is what becomes the **default operating model** once you install a harness — and what happens when you pair it with [harness-mem](https://github.com/Chachamaru127/harness-mem).
 
 <p align="center">
-  <img src="assets/readme-visuals-en/generated/harness-feature-matrix.svg" alt="How the default workflow changes after installing Claude Harness, Superpowers, or cc-sdd" width="860">
+  <img src="assets/readme-visuals-en/generated/harness-feature-matrix.svg" alt="Comparison: Claude Harness + harness-mem vs Harness solo vs Superpowers vs cc-sdd — 10 capabilities compared" width="860">
 </p>
 
-Claude Harness is the clearest fit if you want the default path itself to stay planned, guarded, reviewed, and rerunnable.
+With harness-mem, Claude Harness is the only setup where the default path is planned, guarded, reviewed, rerunnable, **and remembered across sessions**.
+
+Full notes and source links: [docs/github-harness-plugin-benchmark.md](docs/github-harness-plugin-benchmark.md)
 
 Supported baseline and latest verified snapshot: see [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md).
 
@@ -53,7 +81,19 @@ Supported baseline and latest verified snapshot: see [Claude Code Compatibility]
 ## Requirements
 
 - **Claude Code v2.1+** ([Install Guide](https://docs.anthropic.com/claude-code))
-- **Node.js 18+** (for TypeScript core engine & safety hooks)
+- **No Node.js required** (v4.0 Hokage uses Go-native engine)
+
+---
+
+## Who Is This For?
+
+| You Are | Harness Helps You |
+|---------|-------------------|
+| **Developer** | Ship faster with built-in QA |
+| **Freelancer** | Deliver review reports to clients |
+| **Indie Hacker** | Move fast without breaking things |
+| **VibeCoder** | Build apps with natural language |
+| **Team Lead** | Enforce standards across projects |
 
 ---
 
@@ -163,7 +203,7 @@ Packages the verified result into CHANGELOG, tag, and release handoff steps afte
   <img src="assets/readme-visuals-en/generated/safety-guardrails.svg" alt="Safety Protection System" width="640">
 </p>
 
-Harness v3 protects your codebase with a **TypeScript guardrail engine** (`core/`) — 13 declarative rules (R01–R13), compiled and type-checked:
+Harness v4 protects your codebase with a **Go-native guardrail engine** (`go/internal/guardrail/`) — 13 declarative rules (R01–R13), single binary with sub-10ms response:
 
 | Rule | Protected | Action |
 |------|-----------|--------|
@@ -187,7 +227,7 @@ Runtime differences between Claude Code hooks and Codex CLI gates are documented
 
 ## 5 Verb Skills, Zero Config
 
-v3 unifies 42 skills into **5 verb skills**. Start with the verbs first, then add Breezing, Codex, or 2-agent flows only when you need them.
+v4 unifies 42 skills into **5 verb skills**. Start with the verbs first, then add Breezing, Codex, or 2-agent flows only when you need them.
 
 <table>
 <tr>
@@ -214,18 +254,7 @@ v3 unifies 42 skills into **5 verb skills**. Start with the verbs first, then ad
 | `/harness-release` | CHANGELOG, tag, GitHub Release | `/release-har`, `/handoff` |
 | `/harness-setup` | Initialize project | `/harness-init`, `/setup` |
 | `/memory` | Manage SSOT files | — |
-
----
-
-## Who Is This For?
-
-| You Are | Harness Helps You |
-|---------|-------------------|
-| **Developer** | Ship faster with built-in QA |
-| **Freelancer** | Deliver review reports to clients |
-| **Indie Hacker** | Move fast without breaking things |
-| **VibeCoder** | Build apps with natural language |
-| **Team Lead** | Enforce standards across projects |
+| `harness doctor --residue` | Detect stale references to deleted code | — |
 
 ---
 
@@ -233,169 +262,80 @@ v3 unifies 42 skills into **5 verb skills**. Start with the verbs first, then ad
 
 ```
 claude-code-harness/
-├── core/           # TypeScript guardrail engine (strict ESM, NodeNext)
-│   └── src/        #   guardrails/ state/ engine/
-├── skills-v3/      # 5 verb skills (plan/execute/review/release/setup)
-├── agents-v3/      # 3 agents (worker/reviewer/scaffolder)
-├── hooks/          # Thin shims → core/ engine
-├── skills/         # 41 legacy skills (retained for compatibility)
-├── agents/         # 11 legacy agents (retained for compatibility)
-├── scripts/        # v2 hook scripts (coexist with v3 core)
-└── templates/      # Generation templates
+├── go/                # Go-native guardrail + hookhandler engine
+│   ├── cmd/harness/   #   CLI entry point (sync, doctor, validate)
+│   ├── internal/      #   guardrail / hookhandler / state / lifecycle / breezing
+│   └── pkg/           #   config / hookproto (public API)
+├── bin/               # Compiled harness binaries (darwin-arm64/amd64, linux-amd64)
+├── skills/            # 5 verb skills + extension skills (plan/execute/review/release/setup, etc.)
+├── agents/            # 3 agents (worker / reviewer / scaffolder)
+├── hooks/             # CC hook configuration (hooks.json)
+├── scripts/           # Auxiliary shell scripts
+└── templates/         # Generation templates
 ```
 
 ---
 
 ## Advanced Features
 
-<details>
-<summary><strong>Breezing (Agent Teams)</strong></summary>
+### Breezing (Agent Teams)
 
 Run entire task lists with autonomous agent teams:
 
 ```bash
 /harness-work breezing all                    # Plan review + parallel implementation
 /harness-work breezing --no-discuss all       # Skip plan review, go straight to coding
-/harness-work breezing --codex all            # Delegate to Codex engine
 ```
 
 <p align="center">
   <img src="assets/readme-visuals-en/breezing-agents.svg" alt="Breezing agent teams" width="640">
 </p>
 
-**Phase 0 (Planning Discussion)** runs by default—Planner analyzes task quality, Critic challenges the plan, then you approve before coding starts.
+**Phase 0 (Planning Discussion)** runs by default — Planner analyzes task quality, Critic challenges the plan, then you approve before coding starts. 8+ tasks auto-split into manageable batches.
 
-| Feature | Description |
-|---------|-------------|
-| Planning Discussion | Planner + Critic review your plan (default-on) |
-| Task Validation (V1–V5) | Scope, ambiguity, overlap, dependency, TDD checks |
-| Progressive Batching | 8+ tasks auto-split into manageable batches |
-| Hook-driven Signals | Auto-triggers for partial review and next batch |
+### Session Memory (harness-mem)
 
-> **Cost**: ~5.5x tokens (default) vs ~4x (with `--no-discuss`). The plan review pays for itself by reducing rework.
+When [harness-mem](https://github.com/Chachamaru127/harness-mem) is running, Harness automatically records session events — what you worked on, what tools were used, and how the session ended. Next time you start a session, that context is available for retrieval.
 
-</details>
+- **Without harness-mem**: events are logged locally to `.claude/state/memory-bridge-events.jsonl` (no external dependency)
+- **With harness-mem**: events are also sent to the memory server for cross-session search and retrieval
+
+No configuration needed — Harness detects harness-mem automatically.
 
 <details>
 <summary><strong>Codex Engine</strong></summary>
 
-Delegate implementation tasks to OpenAI Codex in parallel:
+Delegate implementation tasks to OpenAI Codex in parallel. Codex implements, self-reviews, and reports back.
 
 ```bash
 /harness-work --codex implement these 5 API endpoints
+/harness-review --codex  # 4 perspectives + Codex second opinion
 ```
 
-Codex implements → Self-reviews → Reports back. Works alongside Claude Code workers.
-
-> **Setup required**: Install [Codex CLI](https://github.com/openai/codex) and configure API key.
-
-</details>
-
-<details>
-<summary><strong>Codex CLI Setup</strong></summary>
-
-Use Harness with [Codex CLI](https://github.com/openai/codex) — no Claude Code required.
-
-**Prerequisites**: [Codex CLI](https://github.com/openai/codex) (`npm i -g @openai/codex`), OpenAI API key (`OPENAI_API_KEY`), Git.
-
-```bash
-# 1. Clone the Harness repository
-git clone https://github.com/Chachamaru127/claude-code-harness.git
-cd claude-code-harness
-
-# 2. Install skills/rules to user scope (~/.codex)
-./scripts/setup-codex.sh --user
-
-# 3. Go to your project and start working
-cd /path/to/your-project
-codex
-```
-
-Once inside Codex, use `$harness-plan`, `$harness-work`, `$breezing`, and `$harness-review`.
-
-| Flag | Description |
-|------|-------------|
-| `--user` | Install to `~/.codex` (shared across projects, default) |
-| `--project` | Install to `.codex/` in current directory |
-
-> Claude Code users can run `/setup codex` inside a session instead.
+> **Setup**: Install [Codex CLI](https://github.com/openai/codex) and configure API key. Or run `./scripts/setup-codex.sh --user` to use Harness skills inside Codex CLI directly.
 
 </details>
 
 <details>
 <summary><strong>2-Agent Mode (with Cursor)</strong></summary>
 
-Use Cursor as PM, Claude Code as implementer.
+Use Cursor as PM, Claude Code as implementer. Plans.md syncs between both.
 
 ```bash
 /harness-release handoff  # Report to Cursor PM
 ```
 
-Plans.md syncs between both.
-
 </details>
 
 <details>
-<summary><strong>Codex Review Integration</strong></summary>
-
-Add OpenAI Codex for second opinions:
+<summary><strong>Content Generation (Slides & Video)</strong></summary>
 
 ```bash
-/harness-review --codex  # 4 perspectives + Codex CLI
+/generate-slide   # 3 visual patterns, quality scoring, auto-export
+/generate-video   # JSON Schema-driven pipeline with Remotion
 ```
 
-Codex selects 4 relevant experts from 16 specialist types via `codex exec`.
-
-</details>
-
-<details>
-<summary><strong>Slide Generation</strong></summary>
-
-Generate one-page project intro slides:
-
-```bash
-/generate-slide
-```
-
-- 3 visual patterns (Minimalist / Infographic / Hero)
-- 2 candidates per pattern with quality scoring
-- Best 3 slides exported to `out/slides/selected/`
-
-> **Dependencies**: `GOOGLE_AI_API_KEY` and Google AI Studio access.
-
-</details>
-
-<details>
-<summary><strong>Video Generation</strong></summary>
-
-Generate product videos with JSON Schema-driven pipeline:
-
-```bash
-/generate-video
-```
-
-- JSON Schema as SSOT (Single Source of Truth)
-- 3-layer validation: scene → scenario → E2E
-- Remotion-based rendering with deterministic output
-
-> **Dependencies**: Requires [Remotion](https://www.remotion.dev/) project setup and ffmpeg.
-
-</details>
-
-<details>
-<summary><strong>Agent Trace</strong></summary>
-
-Automatically tracks AI-generated code edits:
-
-```
-.claude/state/agent-trace.jsonl
-```
-
-- Records every Edit/Write operation
-- Shows project name, current task, recent edits at session end
-- Enables `/sync-status` to compare Plans.md with actual changes
-
-No setup required—enabled by default.
+> **Dependencies**: Slides need `GOOGLE_AI_API_KEY`. Video needs [Remotion](https://www.remotion.dev/) + ffmpeg.
 
 </details>
 
@@ -418,7 +358,8 @@ Skill packs can teach a prompt. Harness also enforces behavior at runtime.
 | Command not found | Run `/harness-setup` first |
 | `harness-*` commands missing on Windows | Update or reinstall the plugin. Public command skills now ship as real directories, so `core.symlinks=false` no longer hides them. |
 | Plugin not loading | Clear cache: `rm -rf ~/.claude/plugins/cache/claude-code-harness-marketplace/` and restart |
-| Hooks not working | Ensure Node.js 18+ is installed |
+| Hooks not working | Run `bin/harness doctor` to diagnose (Go binary, no Node.js needed) |
+| Stale v3 references after migration | Run `bin/harness doctor --residue` — auto-detects leftover references to deleted code |
 
 For more help, [open an issue](https://github.com/Chachamaru127/claude-code-harness/issues).
 
@@ -434,33 +375,20 @@ Project files (Plans.md, SSOT files) remain unchanged.
 
 ---
 
-## Claude Code 2.1.74+ Features
+## Claude Code Feature Highlights
 
-Harness leverages the latest Claude Code features out of the box.
+Harness leverages the latest Claude Code features automatically. Here are the ones you'll notice:
 
-| Feature | Skill | Purpose |
-|---------|-------|---------|
-| **Agent Memory** | harness-work, harness-review | Persistent learning across sessions |
-| **TeammateIdle/TaskCompleted Hook** | breezing | Automated team monitoring |
-| **Worktree isolation** | breezing | Safe parallel writes to the same file |
-| **HTTP hooks** | hooks | JSON POST to Slack, dashboards, metrics |
-| **Effort levels + ultrathink** | harness-work | Auto-injects ultrathink for complex tasks |
-| **Agent hooks** | hooks | LLM-powered code quality guards (secrets, TODO stubs, security) |
-| **`${CLAUDE_SKILL_DIR}` variable** | all harness-* skills | Stable references to skill-local docs |
-| **`agent_id` / `agent_type` fields** | hooks, breezing | Robust teammate identity and role guard |
-| **`{"continue": false}` teammate response** | breezing | Auto-stop when all assigned tasks are complete |
-| **`/reload-plugins`** | all harness-* skills | Apply skill/hook edits immediately |
-| **`/loop` + Cron scheduling** | breezing, harness-work | Active polling with `/loop 5m /sync-status` |
-| **PostToolUseFailure hook** | hooks | Auto-escalation after 3 consecutive tool failures |
-| **Background Agent output fix** | breezing | Safe `run_in_background` with output path in completion |
-| **Compaction image retention** | all harness-* skills | Images preserved during context compaction |
-| **WorktreeCreate/Remove hook** | breezing | Worktree lifecycle auto-setup and cleanup |
-| **`modelOverrides` setting** | harness-setup, breezing | Map model picker aliases to Bedrock, Vertex, or other provider-specific model IDs |
-| **`autoMemoryDirectory` setting** | session-memory, harness-setup | Store Claude auto-memory in a project-specific path when needed |
-| **`CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS`** | hooks | Give SessionEnd hooks enough time for cleanup and finalize work |
-| **Full model ID support** | agents-v3, breezing | Use `claude-sonnet-4-6` style IDs in agent frontmatter and JSON config |
+| What You Get | How It Works |
+|-------------|-------------|
+| **Parallel safe writes** | Worktree isolation lets multiple workers edit the same file |
+| **Smart effort scaling** | Complex tasks auto-trigger ultrathink mode |
+| **Auto-escalation** | 3 consecutive tool failures trigger recovery |
+| **LLM quality guards** | Agent hooks run security and quality checks on every edit |
+| **Team monitoring** | Breezing auto-detects when workers finish or idle |
+| **Model flexibility** | Use any provider (Bedrock, Vertex, etc.) via `modelOverrides` |
 
-Full list: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
+Full technical list (19 features): [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 
 ---
 

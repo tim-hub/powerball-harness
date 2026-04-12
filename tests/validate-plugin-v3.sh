@@ -67,24 +67,24 @@ V3_SKILLS=(harness-plan harness-work harness-review harness-release harness-setu
 AUX_V3_SKILLS=(harness-sync)
 
 for skill in "${V3_SKILLS[@]}"; do
-  skill_dir="$PLUGIN_ROOT/skills-v3/$skill"
+  skill_dir="$PLUGIN_ROOT/skills/$skill"
   skill_md="$skill_dir/SKILL.md"
 
   if [ ! -d "$skill_dir" ]; then
-    fail_test "skills-v3/$skill/ (ディレクトリなし)"
+    fail_test "skills/$skill/ (ディレクトリなし)"
     continue
   fi
 
   if [ ! -f "$skill_md" ]; then
-    fail_test "skills-v3/$skill/SKILL.md (なし)"
+    fail_test "skills/$skill/SKILL.md (なし)"
     continue
   fi
 
   # frontmatter の name: チェック
   if grep -q "^name: $skill$" "$skill_md"; then
-    pass_test "skills-v3/$skill/SKILL.md (name: $skill)"
+    pass_test "skills/$skill/SKILL.md (name: $skill)"
   else
-    fail_test "skills-v3/$skill/SKILL.md (name: フィールドが '$skill' でない)"
+    fail_test "skills/$skill/SKILL.md (name: フィールドが '$skill' でない)"
   fi
 done
 
@@ -92,23 +92,23 @@ echo ""
 echo "🧭 [2.5/6] 補助 workflow surface チェック..."
 
 for skill in "${AUX_V3_SKILLS[@]}"; do
-  skill_dir="$PLUGIN_ROOT/skills-v3/$skill"
+  skill_dir="$PLUGIN_ROOT/skills/$skill"
   skill_md="$skill_dir/SKILL.md"
 
   if [ ! -d "$skill_dir" ]; then
-    fail_test "skills-v3/$skill/ (ディレクトリなし)"
+    fail_test "skills/$skill/ (ディレクトリなし)"
     continue
   fi
 
   if [ ! -f "$skill_md" ]; then
-    fail_test "skills-v3/$skill/SKILL.md (なし)"
+    fail_test "skills/$skill/SKILL.md (なし)"
     continue
   fi
 
   if grep -q "^name: $skill$" "$skill_md"; then
-    pass_test "skills-v3/$skill/SKILL.md (name: $skill)"
+    pass_test "skills/$skill/SKILL.md (name: $skill)"
   else
-    fail_test "skills-v3/$skill/SKILL.md (name: フィールドが '$skill' でない)"
+    fail_test "skills/$skill/SKILL.md (name: フィールドが '$skill' でない)"
   fi
 done
 
@@ -119,7 +119,6 @@ echo ""
 echo "📦 [3/6] Public mirror bundle チェック..."
 
 MIRRORS=(
-  "skills"
   "codex/.codex/skills"
   "opencode/skills"
 )
@@ -131,7 +130,7 @@ for mirror_dir in "${MIRRORS[@]}"; do
   fi
 
   for skill in "${V3_SKILLS[@]}"; do
-    source_dir="$PLUGIN_ROOT/skills-v3/$skill"
+    source_dir="$PLUGIN_ROOT/skills/$skill"
     mirror_path="$PLUGIN_ROOT/$mirror_dir/$skill"
 
     if [ ! -d "$mirror_path" ]; then
@@ -145,14 +144,14 @@ for mirror_dir in "${MIRRORS[@]}"; do
     fi
 
     if diff -qr "$source_dir" "$mirror_path" >/dev/null 2>&1; then
-      pass_test "$mirror_dir/$skill (skills-v3/$skill と同期)"
+      pass_test "$mirror_dir/$skill (skills/$skill と同期)"
     else
-      fail_test "$mirror_dir/$skill (skills-v3/$skill と差分あり)"
+      fail_test "$mirror_dir/$skill (skills/$skill と差分あり)"
     fi
   done
 
   for skill in "${AUX_V3_SKILLS[@]}"; do
-    source_dir="$PLUGIN_ROOT/skills-v3/$skill"
+    source_dir="$PLUGIN_ROOT/skills/$skill"
     mirror_path="$PLUGIN_ROOT/$mirror_dir/$skill"
 
     if [ ! -d "$mirror_path" ]; then
@@ -166,9 +165,9 @@ for mirror_dir in "${MIRRORS[@]}"; do
     fi
 
     if diff -qr "$source_dir" "$mirror_path" >/dev/null 2>&1; then
-      pass_test "$mirror_dir/$skill (skills-v3/$skill と同期)"
+      pass_test "$mirror_dir/$skill (skills/$skill と同期)"
     else
-      fail_test "$mirror_dir/$skill (skills-v3/$skill と差分あり)"
+      fail_test "$mirror_dir/$skill (skills/$skill と差分あり)"
     fi
   done
 done
@@ -182,24 +181,24 @@ echo "🤖 [4/6] 3エージェントチェック..."
 V3_AGENTS=(worker reviewer scaffolder)
 
 for agent in "${V3_AGENTS[@]}"; do
-  agent_file="$PLUGIN_ROOT/agents-v3/$agent.md"
+  agent_file="$PLUGIN_ROOT/agents/$agent.md"
   if [ -f "$agent_file" ]; then
     # name: フィールド確認
     if grep -q "^name: $agent$" "$agent_file"; then
-      pass_test "agents-v3/$agent.md (name: $agent)"
+      pass_test "agents/$agent.md (name: $agent)"
     else
-      fail_test "agents-v3/$agent.md (name: フィールドが '$agent' でない)"
+      fail_test "agents/$agent.md (name: フィールドが '$agent' でない)"
     fi
   else
-    fail_test "agents-v3/$agent.md (存在しない)"
+    fail_test "agents/$agent.md (存在しない)"
   fi
 done
 
 # team-composition.md
-if [ -f "$PLUGIN_ROOT/agents-v3/team-composition.md" ]; then
-  pass_test "agents-v3/team-composition.md"
+if [ -f "$PLUGIN_ROOT/agents/team-composition.md" ]; then
+  pass_test "agents/team-composition.md"
 else
-  warn_test "agents-v3/team-composition.md (なし)"
+  warn_test "agents/team-composition.md (なし)"
 fi
 
 # ============================================================

@@ -5,6 +5,7 @@ description-en: "Auto-generate product demo videos. A picture worth thousand wor
 description-ja: "プロダクトデモ動画を自動生成。百聞は一見にしかず、を体現。Use when user mentions '/generate-video', video generation, product demos, or visual documentation. Do NOT load for: embedding video players, live demos, video playback features. Requires Remotion setup."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task", "AskUserQuestion", "WebFetch"]
 disable-model-invocation: true
+user-invocable: false
 argument-hint: "[demo|arch|release]"
 context: fork
 ---

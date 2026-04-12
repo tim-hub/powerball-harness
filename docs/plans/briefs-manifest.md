@@ -48,7 +48,7 @@ API を含むタスクでは `contract brief` を作る。
 - `surface`
 - `related_surfaces`
 
-`related_surfaces` には `skills-v3`, `skills`, `codex/.codex/skills`, `opencode/skills` のような mirror 情報も含まれる。
+`related_surfaces` には `skills`, `codex/.codex/skills`, `opencode/skills` のような mirror 情報も含まれる。
 
 ## 実行例
 

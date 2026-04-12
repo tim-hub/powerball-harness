@@ -36,14 +36,14 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **Sonnet 4.5 → 4.6 auto-migration** | all skills | Legacy Sonnet references migrate to 4.6 behavior automatically |
 | **WorktreeCreate/Remove hook (v2.1.50)** | breezing | Worktree lifecycle auto-setup and cleanup |
 | **Auto Mode (Research Preview, Phase 1 active)** | breezing, work | `--auto-mode` flag for safer bypassPermissions alternative. Phase 1: RP started 2026-03-12 |
-| **Per-agent hooks (v2.1.69+)** | agents-v3/ | Worker PreToolUse guard + Reviewer Stop log in agent frontmatter |
-| **Agent `isolation: worktree` (v2.1.50+)** | agents-v3/worker | Auto worktree isolation for parallel writes with shared Agent Memory |
+| **Per-agent hooks (v2.1.69+)** | agents/ | Worker PreToolUse guard + Reviewer Stop log in agent frontmatter |
+| **Agent `isolation: worktree` (v2.1.50+)** | agents/worker | Auto worktree isolation for parallel writes with shared Agent Memory |
 | **`/loop` + Cron scheduling (v2.1.71)** | breezing, harness-work | Periodic task monitoring with `/loop 5m /sync-status` |
 | **PostToolUseFailure hook (v2.1.70)** | hooks | Auto-escalation after 3 consecutive failures |
 | **Background Agent output fix (v2.1.71)** | breezing | Safe background agent usage with output path in completion notification |
 | **Compaction image retention (v2.1.70)** | all skills | Images preserved during context compaction |
 | **Subagent `background` field (v2.1.71+)** | breezing | Always-background agent execution via frontmatter |
-| **Subagent `local` memory scope (v2.1.71+)** | agents-v3/ | Non-VCS agent memory in `.claude/agent-memory-local/` |
+| **Subagent `local` memory scope (v2.1.71+)** | agents/ | Non-VCS agent memory in `.claude/agent-memory-local/` |
 | **Agent Teams experimental flag (v2.1.71+)** | breezing | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env var for official Agent Teams |
 | **`/agents` command (v2.1.71+)** | setup, troubleshoot | Interactive agent management UI (create/edit/delete) |
 | **Desktop Scheduled Tasks (v2.1.71+)** | harness-work | `~/.claude/scheduled-tasks/` SKILL.md-based recurring tasks |
@@ -70,13 +70,13 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **Bedrock/Vertex Opus 4.6 default (v2.1.73)** | breezing | Default Opus on cloud providers updated from 4.1 to 4.6 |
 | **`autoMemoryDirectory` setting (v2.1.74)** | session-memory, setup | Custom auto-memory storage path for project-specific memory isolation |
 | **`CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS` (v2.1.74)** | hooks | Configurable SessionEnd hooks timeout (was fixed 1.5s kill) |
-| **Full model ID fix (v2.1.74)** | agents-v3/, breezing | `claude-opus-4-6` etc. now recognized in agent frontmatter and JSON config |
+| **Full model ID fix (v2.1.74)** | agents/, breezing | `claude-opus-4-6` etc. now recognized in agent frontmatter and JSON config |
 | **Streaming API memory leak fix (v2.1.74)** | breezing, work | Unbounded RSS growth in streaming response buffers fixed |
 | **LSP server integration (`.lsp.json`)** | setup | Real-time diagnostics, code navigation via Language Server Protocol |
 | **`SubagentStart`/`SubagentStop` matcher** | breezing, hooks | Agent type-specific lifecycle monitoring with matcher filtering |
 | **Agent Teams: Task Dependencies** | breezing | Auto-unblocking dependent tasks with file-lock claiming |
 | **`--teammate-mode` CLI flag** | breezing | Per-session display mode override (`in-process`/`tmux`) |
-| **`skills` field in agent frontmatter** | agents-v3/ | Preload skill content into subagent context at startup |
+| **`skills` field in agent frontmatter** | agents/ | Preload skill content into subagent context at startup |
 | **`--remote` / Cloud Sessions** | breezing, harness-work | Terminal-to-cloud async task execution with `/teleport` retrieval |
 | **`CLAUDE_ENV_FILE` SessionStart persistence** | hooks | Persist env vars from SessionStart hooks to subsequent Bash commands |
 | **`PreCompact` hook** | hooks | Pre-compaction state save + WIP task warning (implemented) |
@@ -107,7 +107,7 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **`--plugin-dir` 仕様変更 (v2.1.76, breaking)** | setup | 複数ディレクトリは `--plugin-dir` 繰返しで指定 |
 | **Deferred Tools スキーマ修正 (v2.1.76)** | all skills | コンパクション後の ToolSearch ツールスキーマ保持 |
 | **`/context` コマンド (v2.1.74)** | all skills | コンテキスト消費の可視化と最適化提案。長時間セッションの肥大化防止 |
-| **`maxTurns` エージェント安全制限** | agents-v3/ | Worker: 100, Reviewer: 50, Scaffolder: 75。暴走防止の安全弁 |
+| **`maxTurns` エージェント安全制限** | agents/ | Worker: 100, Reviewer: 50, Scaffolder: 75。暴走防止の安全弁 |
 | **`Notification` フック実装** | hooks | 通知イベント（permission_prompt, idle_prompt 等）のログ記録。Breezing 観測性向上 |
 | **Output token limits 64k/128k (v2.1.77)** | all skills | Opus 4.6 / Sonnet 4.6 のデフォルト出力 64k、上限 128k トークン |
 | **`allowRead` sandbox setting (v2.1.77)** | harness-review | `denyRead` 領域内で特定パスの読み取りを再許可 |
@@ -119,7 +119,7 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **Stale worktree race fix (v2.1.77)** | breezing | アクティブエージェントの worktree が誤削除される競合を修正 |
 | **`StopFailure` hook event (v2.1.78)** | hooks | API エラー（レート制限、認証失敗）でのセッション停止失敗をキャプチャ |
 | **`${CLAUDE_PLUGIN_DATA}` variable (v2.1.78)** | hooks, setup | プラグイン更新でも永続するステートディレクトリ変数 |
-| **Agent `effort`/`maxTurns`/`disallowedTools` frontmatter (v2.1.78)** | agents-v3/ | プラグインエージェント定義で effort・ターン制限・ツール禁止を宣言的に設定 |
+| **Agent `effort`/`maxTurns`/`disallowedTools` frontmatter (v2.1.78)** | agents/ | プラグインエージェント定義で effort・ターン制限・ツール禁止を宣言的に設定 |
 | **`deny: ["mcp__*"]` permission fix (v2.1.78)** | setup | settings.json の deny ルールで MCP ツールを正しくブロック |
 | **`ANTHROPIC_CUSTOM_MODEL_OPTION` env var (v2.1.78)** | setup | `/model` ピッカーにカスタムモデルエントリを追加 |
 | **`--worktree` skills/hooks loading fix (v2.1.78)** | breezing | worktree フラグ使用時もスキル・フックが正しくロードされる |

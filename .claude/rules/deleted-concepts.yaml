@@ -1,0 +1,147 @@
+# deleted-concepts.yaml
+#
+# Purpose:
+#   Harness の migration residue を systematic に検出するための
+#   「削除済みパス・概念」カタログ。
+#
+#   Phase 40 で追加。背景: v4.0.0 "Hokage" リリース直後の 2 日間で
+#   13 件の v3 残骸バグが偶然発見された。全て inclusion-based verification
+#   の盲点（「削除済みの X が残っていないか」を確認していなかった）。
+#   このファイルは exclusion-based verification の SSOT として機能する。
+#
+# Update Rules:
+#   1. 新しい削除済みパス/概念が生じたら、削除時に本ファイルを更新する
+#   2. allowlist は prefix match で適用（歴史ドキュメントは明示的に除外）
+#   3. reason フィールドは必須。"なぜ削除されたか" を記述する
+#   4. スキャンは scripts/check-residue.sh で実行する
+#   5. バージョン変更時は deleted_in を更新すること
+#
+# Allowlist 設計原則:
+#   - CHANGELOG.md: 全エントリで allowlist（歴史記述）
+#   - .claude/memory/archive/: 全エントリで allowlist（アーカイブ）
+#   - .claude/worktrees/: 全エントリで allowlist（過去の worktree 残骸）
+#   - .claude/state/: 全エントリで allowlist（セッション state スナップショット）
+#   - out/, output/: 全エントリで allowlist（生成物・診断出力）
+#   - docs/social/: 全エントリで allowlist（v3 時代の SNS 投稿・歴史記録）
+#   - 歴史ドキュメントは個別にエントリへ追加する
+#
+
+version: 1
+
+# ─── 削除済みファイルパス ──────────────────────────────────────────────────────
+deleted_paths:
+  - path: "core/src/guardrails"
+    deleted_in: "v4.0.0"
+    reason: "TypeScript guardrail engine を Go-native に移植 (Hokage migration)。TS エンジンごと core/ を廃止"
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/worktrees/"
+      - ".claude/state/"
+      - "go/"  # Go 版のファイルパスに guardrails が含まれるため除外
+      - "Plans.md"
+      - "out/"
+      - "output/"
+      - "docs/social/"  # v3 時代の SNS 投稿（歴史記録）
+      - "skills/claude-codex-upstream-update/"  # 上流更新ガイド（歴史参照を含む）
+      - ".claude/rules/migration-policy.md"  # Phase 40 歴史記述（事例付録に削除済みパスを含む）
+
+  - path: "core/dist"
+    deleted_in: "v4.0.0"
+    reason: "TypeScript ビルド成果物。Go 移行により不要になった"
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/worktrees/"
+      - ".claude/state/"
+      - "Plans.md"
+      - "out/"
+      - "output/"
+      - "docs/social/"
+
+
+# ─── 削除済み概念・用語 ─────────────────────────────────────────────────────────
+deleted_concepts:
+  - term: "TypeScript guardrail engine"
+    term_ja: "TypeScript ガードレールエンジン"
+    replacement: "Go-native guardrail engine"
+    replacement_ja: "Go ネイティブガードレールエンジン"
+    deleted_in: "v4.0.0"
+    reason: "Hokage migration で TS→Go 移植完了。TS エンジンへの言及は旧版の記述"
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/worktrees/"
+      - ".claude/state/"
+      - "docs/CLAUDE_CODE_COMPATIBILITY.md"  # 比較ドキュメント
+      - "docs/github-harness-plugin-benchmark.md"
+      - "docs/MIGRATION-v4.md"  # v3→v4 移行ガイド（移行元の TS engine 言及は正当）
+      - "docs/social/"  # v3 時代の SNS 投稿
+      - "docs/claims-audit.md"  # 旧マーケティング監査ドキュメント
+      - "docs/distribution-scope.md"  # 配布スコープ分析（旧版ベース）
+      - "docs/private/"  # プライベート分析ドキュメント
+      - "docs/positioning-notes.md"  # 旧ポジショニング文書
+      - "docs/release-copy-phase21.md"  # Phase 21 リリースコピー
+      - ".claude/rules/"  # rules ファイル（versioning.md が歴史的言及を含む）
+      - "Plans.md"
+      - "out/"
+      - "output/"
+
+  - term: "Harness v3"
+    term_ja: null
+    replacement: "Harness v4"
+    replacement_ja: "Harness v4"
+    deleted_in: "v4.0.0"
+    reason: "旧バージョン表記。v4 Hokage が現行バージョン"
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/worktrees/"
+      - ".claude/state/"
+      - ".claude/rules/v3-architecture.md"  # v3 アーキテクチャの歴史ドキュメント
+      - "docs/CLAUDE-feature-table.md"  # 歴史テーブル（旧バージョン比較を含む）
+      - "docs/MIGRATION-v4.md"  # v3→v4 移行ガイド
+      - "docs/distribution-scope.md"  # 配布スコープドキュメント
+      - "docs/social/"  # v3 時代の SNS 投稿（歴史記録）
+      - "scripts/setup-codex.sh"  # Harness v3 を grep 検出パターンとして使用（意図的）
+      - "scripts/codex-setup-local.sh"  # 同上
+      - "tests/test-codex-package.sh"  # v3 legacy skill テスト（コメント）
+      - "skills-codex/"  # codex スキルミラー（独立管理）
+      - ".claude/rules/migration-policy.md"  # Phase 40 歴史記述（事例付録に旧バージョン名を含む）
+      - "out/"
+      - "output/"
+      - "Plans.md"
+
+  - term: "# "
+    term_ja: null
+    replacement: null
+    replacement_ja: null
+    deleted_in: "v4.0.0"
+    reason: "SKILL.md H1 タイトルへの (v3) サフィックス付与は廃止。v4 ではバージョンサフィックスを H1 に付けない"
+    # 注意: この term は汎用すぎるため使用しない。
+    # 代わりに check-residue.sh で H1 line 限定のパターンマッチを行う
+    # (grep -rn "^# .*(v3)" skills/ agents/ で検索)
+    # この概念はコメントとして記録するが、term-based スキャンの対象外とする
+    _scan_disabled: true
+    allowlist:
+      - "CHANGELOG.md"
+
+  - term: "Node.js 18+"
+    term_ja: null
+    replacement: "Go 1.22+"
+    replacement_ja: "Go 1.22+"
+    deleted_in: "v4.0.0"
+    reason: "v3 の Node.js 依存が廃止。v4 Go バイナリはランタイム不要。Node.js 要件はドキュメント上の false requirement"
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/worktrees/"
+      - ".claude/state/"
+      - "out/"
+      - "output/"
+      - "Plans.md"
+      - ".opencode/"  # opencode は別ランタイム
+      - "codex/"  # codex は別ランタイム
+      - "skills/generate-video/"  # 動画生成スキルは Node.js を使う可能性
+      - "opencode/"
+      - ".claude/rules/migration-policy.md"  # Phase 40 歴史記述（事例付録に旧ランタイム要件を含む）

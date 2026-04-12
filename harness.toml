@@ -1,0 +1,85 @@
+# Harness v4 Configuration
+# Edit this file, then run `harness sync` to generate CC plugin files.
+
+[project]
+name = "claude-code-harness"
+version = "4.0.2"
+description = "Claude harness - A harness for solo developers (Vibecoders) to handle full-cycle contract development."
+homepage = "https://github.com/Chachamaru127/claude-code-harness"
+repository = "https://github.com/Chachamaru127/claude-code-harness"
+license = "MIT"
+keywords = ["claude-code", "plugin", "vibecoder", "workflow", "plan-work-review"]
+outputStyles = "./output-styles/"
+
+[project.author]
+name = "Chachamaru"
+url = "https://github.com/Chachamaru127"
+
+[env]
+CLAUDE_CODE_SUBPROCESS_ENV_SCRUB = "1"
+
+[safety.permissions]
+deny = [
+  "Bash(sudo:*)",
+  "Bash(rm -rf:*)",
+  "Bash(rm -fr:*)",
+  "Bash(psql:*)",
+  "Bash(mysql:*)",
+  "Bash(mongod:*)",
+  "Bash(mongo:*)",
+  "mcp__codex__*",
+  "Read(./.env)",
+  "Read(./.env.*)",
+  "Read(./secrets/**)",
+  "Read(**/*.pem)",
+  "Read(**/*.key)",
+  "Read(**/*id_rsa*)",
+  "Read(**/*id_ed25519*)",
+  "Read(**/.aws/**)",
+  "Read(**/.ssh/**)",
+  "Read(**/.npmrc)",
+]
+ask = [
+  "Bash(rm -r:*)",
+  "Bash(git reset --hard:*)",
+  "Bash(git push -f:*)",
+  "Bash(git push --force:*)",
+  "Bash(git push --force-with-lease:*)",
+  "Bash(git clean -f:*)",
+  "Bash(git clean -fdx:*)",
+  "Bash(git clean -fx:*)",
+  "Bash(git rebase:*)",
+  "Bash(git merge:*)",
+  "Bash(npm install:*)",
+  "Bash(npm exec:*)",
+  "Bash(npx:*)",
+  "Bash(bun install:*)",
+  "Bash(pnpm install:*)",
+]
+
+[safety.sandbox]
+failIfUnavailable = true
+
+[safety.sandbox.filesystem]
+denyRead = [
+  ".env",
+  ".env.*",
+  "!.env.example",
+  "secrets/**",
+  "**/*.pem",
+  "**/*.key",
+  "**/*id_rsa*",
+  "**/*id_ed25519*",
+  "**/.aws/**",
+  "**/.ssh/**",
+]
+allowRead = [
+  ".env.example",
+  ".env.sample",
+  "config/public-*",
+  "docs/**",
+]
+
+[telemetry]
+# otel_endpoint = ""
+# webhook_url = ""

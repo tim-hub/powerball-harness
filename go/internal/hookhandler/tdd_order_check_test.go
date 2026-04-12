@@ -1,0 +1,387 @@
+package hookhandler
+
+import (
+	"bytes"
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// tddOutput はテスト用に tddApproveOutput の JSON を解析するための構造体。
+type tddOutput struct {
+	Decision      string `json:"decision"`
+	Reason        string `json:"reason"`
+	SystemMessage string `json:"systemMessage"`
+}
+
+func parseTDDOutput(t *testing.T, out *bytes.Buffer) tddOutput {
+	t.Helper()
+	var result tddOutput
+	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+		t.Fatalf("invalid JSON output: %v, raw: %s", err, out.String())
+	}
+	return result
+}
+
+func TestHandleTDDOrderCheck_NoInput(t *testing.T) {
+	var out bytes.Buffer
+	err := HandleTDDOrderCheck(strings.NewReader(""), &out)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	result := parseTDDOutput(t, &out)
+	if result.Decision != "approve" {
+		t.Errorf("expected decision=approve, got %q", result.Decision)
+	}
+	if result.SystemMessage != "" {
+		t.Errorf("expected empty systemMessage for empty input, got %q", result.SystemMessage)
+	}
+}
+
+func TestHandleTDDOrderCheck_NoFilePath(t *testing.T) {
+	input := `{"tool_name":"Write","tool_input":{}}`
+	var out bytes.Buffer
+	if err := HandleTDDOrderCheck(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	result := parseTDDOutput(t, &out)
+	if result.SystemMessage != "" {
+		t.Errorf("expected empty systemMessage for no file_path, got %q", result.SystemMessage)
+	}
+}
+
+func TestHandleTDDOrderCheck_TestFileSkipped(t *testing.T) {
+	// テストファイルの編集はスキップ
+	cases := []string{
+		"src/main.test.ts",
+		"src/main.spec.tsx",
+		"pkg/util_test.go",
+		"tests/test_main.py",
+		"src/__tests__/helper.ts",
+	}
+	for _, filePath := range cases {
+		input := `{"tool_name":"Write","tool_input":{"file_path":"` + filePath + `"}}`
+		var out bytes.Buffer
+		if err := HandleTDDOrderCheck(strings.NewReader(input), &out); err != nil {
+			t.Fatalf("unexpected error for %s: %v", filePath, err)
+		}
+		result := parseTDDOutput(t, &out)
+		if result.SystemMessage != "" {
+			t.Errorf("expected no warning for test file %s, got %q", filePath, result.SystemMessage)
+		}
+	}
+}
+
+func TestHandleTDDOrderCheck_NonSourceFileSkipped(t *testing.T) {
+	// ソースファイル以外はスキップ
+	cases := []string{
+		"README.md",
+		"Plans.md",
+		"config.yaml",
+		"Makefile",
+	}
+	for _, filePath := range cases {
+		input := `{"tool_name":"Write","tool_input":{"file_path":"` + filePath + `"}}`
+		var out bytes.Buffer
+		if err := HandleTDDOrderCheck(strings.NewReader(input), &out); err != nil {
+			t.Fatalf("unexpected error for %s: %v", filePath, err)
+		}
+		result := parseTDDOutput(t, &out)
+		if result.SystemMessage != "" {
+			t.Errorf("expected no warning for non-source file %s, got %q", filePath, result.SystemMessage)
+		}
+	}
+}
+
+func TestHandleTDDOrderCheck_NoWIPTask(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	// Plans.md に cc:WIP がない場合はスキップ
+	if err := os.WriteFile("Plans.md", []byte("| Task | 実装 | DoD | - | cc:TODO |\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	input := `{"tool_name":"Write","tool_input":{"file_path":"src/main.ts"}}`
+	var out bytes.Buffer
+	if err := HandleTDDOrderCheck(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	result := parseTDDOutput(t, &out)
+	if result.SystemMessage != "" {
+		t.Errorf("expected no warning when no WIP task, got %q", result.SystemMessage)
+	}
+}
+
+func TestHandleTDDOrderCheck_SkipTDDMarker(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	// [skip:tdd] マーカーがある場合はスキップ
+	plansContent := "| Task | 実装 [skip:tdd] | DoD | - | cc:WIP |\n"
+	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	input := `{"tool_name":"Write","tool_input":{"file_path":"src/main.ts"}}`
+	var out bytes.Buffer
+	if err := HandleTDDOrderCheck(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	result := parseTDDOutput(t, &out)
+	if result.SystemMessage != "" {
+		t.Errorf("expected no warning with [skip:tdd] marker, got %q", result.SystemMessage)
+	}
+}
+
+func TestHandleTDDOrderCheck_WarningEmitted(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	// WIP タスクあり、テスト未編集、[skip:tdd] なし → 警告を出力
+	if err := os.WriteFile("Plans.md", []byte("| Task | 実装 | DoD | - | cc:WIP |\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	input := `{"tool_name":"Write","tool_input":{"file_path":"src/main.ts"}}`
+	var out bytes.Buffer
+	if err := HandleTDDOrderCheck(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	result := parseTDDOutput(t, &out)
+
+	// 警告が出力されること
+	if result.SystemMessage == "" {
+		t.Error("expected warning systemMessage, got empty")
+	}
+	if !strings.Contains(result.SystemMessage, "TDD") {
+		t.Errorf("expected 'TDD' in systemMessage, got %q", result.SystemMessage)
+	}
+	// ブロックではなく approve であること
+	if result.Decision != "approve" {
+		t.Errorf("expected decision=approve (not block), got %q", result.Decision)
+	}
+}
+
+func TestHandleTDDOrderCheck_TestAlreadyEdited(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	// WIP タスクあり、テストファイルが session-changes.json に記録済み
+	if err := os.WriteFile("Plans.md", []byte("| Task | 実装 | DoD | - | cc:WIP |\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// session-changes.json にテストファイルの記録を入れる
+	sessionContent := `{"files":["src/main.test.ts","src/main.ts"]}`
+	if err := os.WriteFile(sessionChangesFile, []byte(sessionContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	input := `{"tool_name":"Write","tool_input":{"file_path":"src/main.ts"}}`
+	var out bytes.Buffer
+	if err := HandleTDDOrderCheck(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	result := parseTDDOutput(t, &out)
+	if result.SystemMessage != "" {
+		t.Errorf("expected no warning when test already edited, got %q", result.SystemMessage)
+	}
+}
+
+func TestHandleTDDOrderCheck_TestAlreadyInChangedFiles(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	// WIP タスクあり、changed-files.jsonl にテストファイルの記録あり
+	if err := os.WriteFile("Plans.md", []byte("| Task | 実装 | DoD | - | cc:WIP |\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// changed-files.jsonl にテストファイルの記録を入れる
+	testEntry := `{"file":"src/main.test.ts","action":"Write","timestamp":"2026-04-09T00:00:00Z","important":true}` + "\n"
+	if err := os.WriteFile(changedFilesPath, []byte(testEntry), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	input := `{"tool_name":"Write","tool_input":{"file_path":"src/main.ts"}}`
+	var out bytes.Buffer
+	if err := HandleTDDOrderCheck(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	result := parseTDDOutput(t, &out)
+	if result.SystemMessage != "" {
+		t.Errorf("expected no warning when test in changed-files.jsonl, got %q", result.SystemMessage)
+	}
+}
+
+func TestIsTestFilePath(t *testing.T) {
+	testCases := []struct {
+		path     string
+		expected bool
+	}{
+		{"src/main.test.ts", true},
+		{"src/main.spec.tsx", true},
+		{"pkg/util_test.go", true},
+		{"tests/test_main.py", true},
+		{"src/__tests__/helper.ts", true},
+		{"src/main.ts", false},
+		{"src/main.go", false},
+		{"src/main.py", false},
+		{"src/main.tsx", false},
+	}
+	for _, c := range testCases {
+		got := isTestFilePath(c.path)
+		if got != c.expected {
+			t.Errorf("isTestFilePath(%q) = %v, want %v", c.path, got, c.expected)
+		}
+	}
+}
+
+func TestIsSourceFilePath(t *testing.T) {
+	sourceCases := []struct {
+		path     string
+		expected bool
+	}{
+		{"src/main.ts", true},
+		{"src/main.tsx", true},
+		{"src/main.js", true},
+		{"src/main.jsx", true},
+		{"src/main.py", true},
+		{"src/main.go", true},
+		{"src/main.test.ts", false},
+		{"src/main.spec.js", false},
+		{"pkg/util_test.go", false},
+		{"README.md", false},
+		{"config.yaml", false},
+	}
+	for _, c := range sourceCases {
+		got := isSourceFilePath(c.path)
+		if got != c.expected {
+			t.Errorf("isSourceFilePath(%q) = %v, want %v", c.path, got, c.expected)
+		}
+	}
+}
+
+func TestFindCorrespondingTestFile(t *testing.T) {
+	cases := []struct {
+		filePath string
+		expected string
+	}{
+		{"src/main.ts", "src/main.test.ts"},
+		{"src/components/App.tsx", "src/components/App.test.tsx"},
+		{"lib/util.js", "lib/util.test.js"},
+		{"pkg/main.go", "pkg/main_test.go"},
+		{"src/helper.py", "src/test_helper.py"},
+	}
+	for _, c := range cases {
+		got := findCorrespondingTestFile(c.filePath)
+		if got != c.expected {
+			t.Errorf("findCorrespondingTestFile(%q) = %q, want %q", c.filePath, got, c.expected)
+		}
+	}
+}
+
+// TestHasActiveWIPTask_CustomPlansDirectory は plansDirectory 設定がある場合に
+// カスタムディレクトリの Plans.md から WIP タスクを検出することを確認する（P3修正）。
+func TestHasActiveWIPTask_CustomPlansDirectory(t *testing.T) {
+	dir := t.TempDir()
+
+	// 設定ファイルに plansDirectory: docs を設定
+	configContent := "plansDirectory: docs\n"
+	if err := os.WriteFile(filepath.Join(dir, harnessConfigFileName), []byte(configContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// docs/ ディレクトリに cc:WIP を含む Plans.md を配置
+	docsDir := filepath.Join(dir, "docs")
+	if err := os.MkdirAll(docsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	plansContent := "| 1 | Task | DoD | none | `cc:WIP` |\n"
+	if err := os.WriteFile(filepath.Join(docsDir, "Plans.md"), []byte(plansContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := hasActiveWIPTask(dir)
+	if !got {
+		t.Error("expected hasActiveWIPTask=true for WIP task in custom plansDirectory, got false")
+	}
+}
+
+// TestHasActiveWIPTask_CustomPlansDirectory_NoWIP は カスタムディレクトリの
+// Plans.md に cc:WIP がない場合に false を返すことを確認する。
+func TestHasActiveWIPTask_CustomPlansDirectory_NoWIP(t *testing.T) {
+	dir := t.TempDir()
+
+	configContent := "plansDirectory: docs\n"
+	if err := os.WriteFile(filepath.Join(dir, harnessConfigFileName), []byte(configContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	docsDir := filepath.Join(dir, "docs")
+	if err := os.MkdirAll(docsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	plansContent := "| 1 | Task | DoD | none | `cc:TODO` |\n"
+	if err := os.WriteFile(filepath.Join(docsDir, "Plans.md"), []byte(plansContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := hasActiveWIPTask(dir)
+	if got {
+		t.Error("expected hasActiveWIPTask=false when no WIP task in custom plansDirectory, got true")
+	}
+}
+
+// TestHasActiveWIPTask_NoPlansFile は Plans.md が存在しない場合に false を返すことを確認する。
+func TestHasActiveWIPTask_NoPlansFile(t *testing.T) {
+	dir := t.TempDir()
+	// Plans.md を作成しない
+
+	got := hasActiveWIPTask(dir)
+	if got {
+		t.Error("expected hasActiveWIPTask=false when Plans.md does not exist, got true")
+	}
+}

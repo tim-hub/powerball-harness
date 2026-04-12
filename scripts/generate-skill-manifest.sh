@@ -39,7 +39,7 @@ process.stdout.on('error', (error) => {
 
 const [outputFile] = process.argv.slice(2);
 const repoRoot = process.cwd();
-const roots = ['skills', 'skills-v3', 'skills-v3-codex', 'codex/.codex/skills', 'opencode/skills'];
+const roots = ['skills', 'skills-codex', 'codex/.codex/skills', 'opencode/skills'];
 
 function walk(dirPath, entries) {
   if (!fs.existsSync(dirPath)) return;
@@ -151,6 +151,7 @@ const skills = skillFiles
       context: frontmatter.context || null,
       effort: frontmatter.effort || null,
       user_invocable: typeof frontmatter['user-invocable'] === 'boolean' ? frontmatter['user-invocable'] : null,
+      disable_model_invocation: typeof frontmatter['disable-model-invocation'] === 'boolean' ? frontmatter['disable-model-invocation'] : null,
       do_not_use_for: parseDoNotUseFor(frontmatter),
     };
   })

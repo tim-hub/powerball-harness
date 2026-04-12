@@ -14,14 +14,14 @@ TEMPLATE_FILES=(
   "${ROOT_DIR}/templates/rules/plans-management.md.template"
 )
 SKILL_FILES=(
-  "${ROOT_DIR}/skills-v3/harness-work/SKILL.md"
-  "${ROOT_DIR}/skills-v3/harness-review/SKILL.md"
-  "${ROOT_DIR}/skills-v3/harness-plan/SKILL.md"
+  "${ROOT_DIR}/skills/harness-work/SKILL.md"
+  "${ROOT_DIR}/skills/harness-review/SKILL.md"
+  "${ROOT_DIR}/skills/harness-plan/SKILL.md"
 )
 AGENT_FILES=(
-  "${ROOT_DIR}/agents-v3/worker.md"
-  "${ROOT_DIR}/agents-v3/reviewer.md"
-  "${ROOT_DIR}/agents-v3/scaffolder.md"
+  "${ROOT_DIR}/agents/worker.md"
+  "${ROOT_DIR}/agents/reviewer.md"
+  "${ROOT_DIR}/agents/scaffolder.md"
 )
 
 jq -e '.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB == "1"' "${SETTINGS_FILE}" >/dev/null || {
@@ -36,7 +36,7 @@ jq -e '.sandbox.failIfUnavailable == true' "${SETTINGS_FILE}" >/dev/null || {
 
 for hooks_file in "${HOOK_FILES[@]}"; do
   for event in TaskCreated CwdChanged FileChanged; do
-    jq -e ".hooks.${event}[]?.hooks[]? | select(.command | contains(\"hook-handlers/runtime-reactive\"))" "${hooks_file}" >/dev/null || {
+    jq -e ".hooks.${event}[]?.hooks[]? | select(.command | contains(\"runtime-reactive\"))" "${hooks_file}" >/dev/null || {
       echo "${hooks_file} is missing ${event} -> runtime-reactive wiring"
       exit 1
     }
@@ -82,8 +82,8 @@ done
 
 # v2.1.89: PermissionDenied hook wiring check
 for hooks_file in "${HOOK_FILES[@]}"; do
-  jq -e '.hooks.PermissionDenied[]?.hooks[]? | select(.command | contains("permission-denied-handler"))' "${hooks_file}" >/dev/null || {
-    echo "${hooks_file} is missing PermissionDenied -> permission-denied-handler wiring"
+  jq -e '.hooks.PermissionDenied[]?.hooks[]? | select(.command | contains("permission-denied"))' "${hooks_file}" >/dev/null || {
+    echo "${hooks_file} is missing PermissionDenied -> permission-denied wiring"
     exit 1
   }
 done

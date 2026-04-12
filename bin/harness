@@ -1,0 +1,14 @@
+#!/bin/sh
+OS="$(uname -s | tr A-Z a-z)"
+ARCH="$(uname -m)"
+case "$ARCH" in
+  x86_64)  ARCH="amd64" ;;
+  aarch64) ARCH="arm64" ;;
+esac
+BINARY="$(dirname "$0")/harness-${OS}-${ARCH}"
+if [ -x "$BINARY" ]; then
+  exec "$BINARY" "$@"
+else
+  echo "{\"decision\":\"approve\",\"reason\":\"platform not supported: ${OS}-${ARCH}\"}" >&2
+  exit 1
+fi

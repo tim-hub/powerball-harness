@@ -1,8 +1,8 @@
 ---
 name: harness-sync
-description: "Plans.md と実装の進捗同期。差分検出・マーカー更新・レトロスペクティブを実行。以下で起動: harness-sync、sync-status、進捗確認、今どこ、どこまで終わった。--snapshot で進捗スナップショット保存にも対応。プランニング・実装・レビュー・リリースには使わない。"
-description-en: "Progress sync between Plans.md and actual implementation. Detects drift, updates markers, runs retrospective. Use when user mentions: harness-sync, sync-status, sync progress, where am I, check progress, what's done. Supports --snapshot for progress snapshots. Do NOT load for: planning, implementation, review, or release."
-description-ja: "Plans.md と実装の進捗同期。差分検出・マーカー更新・レトロスペクティブを実行。以下で起動: harness-sync、sync-status、進捗確認、今どこ、どこまで終わった。--snapshot で進捗スナップショット保存にも対応。プランニング・実装・レビュー・リリースには使わない。"
+description: "HAR:Plans.md と実装の進捗同期。差分検出・マーカー更新・レトロスペクティブ。sync-status、進捗確認、今どこ、どこまで終わったで起動。--snapshot でスナップショット保存。プランニング・実装・レビュー・リリースには使わない。"
+description-en: "HAR: Sync Plans.md with implementation. Drift detect, marker update, retrospective. Trigger: sync-status, where am I, check progress. --snapshot for snapshots. Do NOT load for: planning, implementation, review, release."
+description-ja: "HAR:Plans.md と実装の進捗同期。差分検出・マーカー更新・レトロスペクティブ。sync-status、進捗確認、今どこ、どこまで終わったで起動。--snapshot でスナップショット保存。プランニング・実装・レビュー・リリースには使わない。"
 allowed-tools: ["Read", "Edit", "Bash", "Grep", "Glob"]
 argument-hint: "[--snapshot|--no-retro]"
 effort: medium

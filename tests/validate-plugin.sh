@@ -349,11 +349,11 @@ else
     fail_test "README.md に hardening parity 文書へのリンクがありません"
 fi
 
-RULES_FILE="$PLUGIN_ROOT/core/src/guardrails/rules.ts"
+RULES_FILE="$PLUGIN_ROOT/go/internal/guardrail/rules.go"
 RULE_IDS=(
     "R10:no-git-bypass-flags"
     "R11:no-reset-hard-protected-branch"
-    "R12:warn-direct-push-protected-branch"
+    "R12:deny-direct-push-protected-branch"
     "R13:warn-protected-review-paths"
 )
 for rule_id in "${RULE_IDS[@]}"; do
@@ -383,6 +383,16 @@ if grep -q "gate_hardening()" "$CODEX_GATE" && grep -q '"hardening"' "$CODEX_GAT
     pass_test "Codex quality gate に hardening parity チェックがあります"
 else
     fail_test "Codex quality gate に hardening parity チェックがありません"
+fi
+
+echo ""
+echo "9. Migration residue check"
+echo "----------------------------------------"
+
+if bash "$PLUGIN_ROOT/scripts/check-residue.sh" > /dev/null 2>&1; then
+    pass_test "No migration residue detected (scripts/check-residue.sh clean)"
+else
+    fail_test "Migration residue found — run 'bash scripts/check-residue.sh' to see details"
 fi
 
 echo ""

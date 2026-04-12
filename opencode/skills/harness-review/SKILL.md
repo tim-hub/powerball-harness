@@ -1,23 +1,143 @@
 ---
 name: harness-review
-description: "Harness v3 統合レビュースキル。コード・プラン・スコープを多角的にレビュー。以下で起動: レビュー、コードレビュー、プランレビュー、スコープ分析、セキュリティ、品質チェック、harness-review。実装・新機能・バグ修正・セットアップ・リリースには使わない。"
-description-en: "Unified review skill for Harness v3. Multi-angle code, plan, and scope review. Use when user mentions: review, code review, plan review, scope analysis, security, performance, quality checks, PRs, diffs, harness-review. Do NOT load for: implementation, new features, bug fixes, setup, or release."
-description-ja: "Harness v3 統合レビュースキル。コード・プラン・スコープを多角的にレビュー。以下で起動: レビュー、コードレビュー、プランレビュー、スコープ分析、セキュリティ、品質チェック、harness-review。実装・新機能・バグ修正・セットアップ・リリースには使わない。"
-allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task"]
+description: "HAR:コード・プラン・スコープを多角的にレビュー。セキュリティ・品質チェック。レビュー、コードレビュー、プランレビュー、スコープ分析で起動。実装・新機能・バグ修正・セットアップ・リリースには使わない。"
+description-en: "HAR: Multi-angle code, plan, scope review. Security/quality check. Trigger: review, code review, plan review, scope analysis. Do NOT load for: implementation, new features, bugfix, setup, release."
+description-ja: "HAR:コード・プラン・スコープを多角的にレビュー。セキュリティ・品質チェック。レビュー、コードレビュー、プランレビュー、スコープ分析で起動。実装・新機能・バグ修正・セットアップ・リリースには使わない。"
+allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task", "Monitor"]
 argument-hint: "[code|plan|scope] [--dual] [--security]"
 context: fork
 effort: high
+disable-model-invocation: true
 ---
 
-# Harness Review (v3)
+# Harness Review
 
-Harness v3 の統合レビュースキル。
+Harness の統合レビュースキル。
 以下の旧スキルを統合:
 
 - `harness-review` — コード・プラン・スコープ多角的レビュー
 - `codex-review` — Codex CLI によるセカンドオピニオン
 - `verify` — ビルド検証・エラー復旧・レビュー修正適用
 - `troubleshoot` — エラー・障害の診断と修復
+
+---
+
+## 🚀 Step 0: 動作モード決定 (必ず最初に読む)
+
+> **あなたは今この瞬間からレビュアーとして動作します。** 以下の決定木に従って**自動的にレビューを開始**してください。「タスクが不明確」「追加の指示を待つ」で停止してはいけません。bare 呼び出し (`/HAR:review` 引数なし) の場合でも git 状態から対象を自動検出して Code Review を開始します。
+
+### 決定木
+
+```
+引数を解析
+├── --security が含まれる    → Security Review モード → Step 3.6 へ
+├── --dual が含まれる        → Dual Review モード → Step 3.5 へ
+├── plan が含まれる          → Plan Review モード → 「## Plan Review フロー」へ
+├── scope が含まれる         → Scope Review モード → 「## Scope Review フロー」へ
+├── code が含まれる          → Code Review モード → Step 1 へ
+└── 引数なし (bare 呼び出し) → 下記「Bare 呼び出し時の default フロー」を実行
+```
+
+### Bare 呼び出し時の default フロー
+
+引数無しで `/HAR:review` が呼ばれた場合、以下を順番に実行して**必ず Code Review を自動開始**してください:
+
+#### Step 0.1: git 状態から base ref を自動決定
+
+```bash
+# 直近の commit 状況を確認
+git log --oneline -15
+git status --short
+
+# Base ref を以下の優先順位で自動決定:
+# 1. 最後の release tag (例: v4.0.0)
+# 2. main/master の HEAD
+# 3. HEAD~10 (上記どちらも取れない時)
+
+BASE_REF=""
+if LAST_TAG="$(git describe --tags --abbrev=0 2>/dev/null)"; then
+  BASE_REF="$LAST_TAG"
+elif git rev-parse --verify main >/dev/null 2>&1; then
+  BASE_REF="main"
+elif git rev-parse --verify master >/dev/null 2>&1; then
+  BASE_REF="master"
+else
+  BASE_REF="HEAD~10"
+fi
+
+echo "Auto-detected BASE_REF: ${BASE_REF}"
+
+# 差分が存在することを確認 & スコープ上限チェック
+CHANGED_COUNT="$(git log --oneline "${BASE_REF}..HEAD" 2>/dev/null | wc -l | tr -d ' ')"
+
+# 下限フォールバック: 差分ゼロの時は HEAD~5 で再試行
+if [ "$CHANGED_COUNT" -eq 0 ]; then
+  echo "⚠️ ${BASE_REF}..HEAD に差分がありません。HEAD~5..HEAD にフォールバックします。"
+  BASE_REF="HEAD~5"
+  CHANGED_COUNT="$(git log --oneline "${BASE_REF}..HEAD" 2>/dev/null | wc -l | tr -d ' ')"
+fi
+
+# 上限フォールバック: commits が 10 を超える時は HEAD~10 に絞る
+# (最後のリリースタグから多数のコミットが積まれた状態で bare 呼び出し
+#  されると、レビュースコープが過大になりレビュー品質が落ちるため)
+if [ "$CHANGED_COUNT" -gt 10 ]; then
+  echo "⚠️ ${BASE_REF}..HEAD に ${CHANGED_COUNT} commits あります。スコープを HEAD~10 に絞ります。"
+  echo "   (フル範囲をレビューしたい場合は明示的に 'code' を指定するか、より古い ref を argument で渡してください)"
+  BASE_REF="HEAD~10"
+fi
+```
+
+#### Step 0.2: レビュータイプを自動判定
+
+base ref から HEAD までのコミットメッセージを調べて、最適なレビュータイプを選ぶ:
+
+```bash
+RECENT_TYPES="$(git log --oneline "${BASE_REF}..HEAD" --pretty='%s' | head -20)"
+
+# 判定ロジック:
+# - "plan:" で始まる commit が多い → Plan Review
+# - "feat|fix|refactor|test|chore|docs|perf|style" 系 → Code Review (default)
+# - よくわからない → Code Review (default)
+
+if echo "$RECENT_TYPES" | grep -c '^plan:' | awk '$1 > 2 {exit 0} {exit 1}'; then
+  REVIEW_TYPE="plan"
+else
+  REVIEW_TYPE="code"  # Default
+fi
+
+echo "Auto-detected review type: ${REVIEW_TYPE}"
+```
+
+#### Step 0.3: 該当のレビューフローへ遷移
+
+- `REVIEW_TYPE=code` → **Step 1 (変更差分を収集) へ進む**。`BASE_REF` 環境変数は Step 0.1 で決定したものを使用
+- `REVIEW_TYPE=plan` → **「## Plan Review フロー」セクションへ進む**
+
+**⚠️ 重要**: Step 0 を実行したら、**必ず Step 1 以降に処理を進める**こと。「モードを決定した」だけで停止せず、決定したモードの全フローを最後まで実行してください。
+
+### 出力言語・フォーマット (絶対遵守)
+
+**このスキルは `context: fork` で動作し、親セッションの言語文脈を継承しません。CLAUDE.md の "All responses must be in Japanese (including context: fork skills)" ルールに従い、以下を徹底してください:**
+
+#### ルール 1: 出力は必ず日本語
+
+- 見出し、本文、説明、観点評価、結論、次のアクションすべて日本語で書く
+- 例外として英語のまま保つもの:
+  - コード識別子、ファイルパス (`skills/harness-review/SKILL.md` など)
+  - `verdict` 値 (`APPROVE` / `REQUEST_CHANGES`) — 機械可読形式
+  - JSON のフィールド名 (`critical_issues`, `observations` など)
+  - ログ出力、コマンド例、エラーメッセージ原文
+
+#### ルール 2: 結果サマリーを出力の最初に配置
+
+- ユーザーが最も知りたい情報 (**判定・主要指摘 3 件・次のアクション**) を**冒頭に日本語で** 出力
+- JSON 詳細や技術的根拠はサマリーの**後**に補足として配置
+- JSON を最初に出す、観点別評価の後に結論を添える、英語で書く — これらは**すべて NG**
+- 詳細な結果サマリーテンプレートは [Step 3: レビュー結果出力](#step-3-レビュー結果出力) を参照
+
+**この 2 つのルールが満たされない出力はレビュー失敗として扱います。**
+
+---
 
 ## Quick Reference
 
@@ -107,6 +227,99 @@ bash scripts/review-ai-residuals.sh path/to/file.ts path/to/config.sh
 > `AI Residuals` でも同じ。`major` に入るのは「出荷事故や誤設定に直結しやすいもの」だけで、単なる残骸候補は `minor` または `recommendation` に留める。
 
 ### Step 3: レビュー結果出力
+
+#### 出力順序 (絶対遵守)
+
+レビュー結果は**必ず以下の順序で出力**する:
+
+1. **🎯 結果サマリー** (日本語、必ず最初に出力)
+2. JSON 出力 (機械可読 schema-v1 形式、サマリーの後)
+3. 観点別評価の詳細 (任意、日本語)
+
+#### 1. 結果サマリーテンプレート (必須、最初に出力)
+
+**設計方針**: 非専門家にもわかるように、**情報粒度 MID / 認知負荷 MIN** を意識。結論を最上段、安心材料(良かったこと)を先、問題点は日本語タイトル→平易な説明→アクション→技術詳細の 4 段で隔離。
+
+以下のテンプレートで出力する:
+
+```markdown
+## 🎯 レビュー結果
+
+### {✅ 合格 (APPROVE) | ❌ 要修正 (REQUEST_CHANGES)} — {1 行の日本語結論}
+
+例: ✅ 合格 (APPROVE) — 10 commits 全てがテストを通過し、リリース可能な品質です
+
+**対象**: `{BASE_REF}..HEAD` の {N} commits、{M} ファイル変更 (+{INS}/-{DEL} 行)
+**レビュー種別**: コードレビュー / プランレビュー / スコープレビュー / セキュリティレビュー / デュアルレビュー
+
+---
+
+### ✨ 良かったところ
+
+{2〜3 件、非専門家にもわかる日本語で。何が良かったか 1 行ずつ}
+
+- {ポイント 1: 具体的に評価できる変更点を平易に}
+- {ポイント 2}
+- {ポイント 3}
+
+### ⚠️ 気になったところ ({X} 件)
+
+{0 件なら「特になし — すべてクリーンです 🎉」と 1 行で明記して次のセクションへ}
+
+{1 件以上ある場合、重要度順に最大 3 件。各項目は以下の 4 段構造を厳守}
+
+#### 1. {日本語のタイトル: 技術用語を避け、何が問題か一読でわかる表現}
+
+**問題**: {技術用語を使わず、何が起きているか・起きうる影響を 1〜2 文で説明}
+
+**対応**: {具体的な次のステップを日本語で。動詞で始める。例: 「〜を修正する」「〜を別タスクとして起票する」}
+
+**重要度**: {🔴 致命的 | 🟠 重要 | 🟡 軽微 | 🟢 推奨}
+
+**技術的位置 (開発者向け)**: `{file_path}:{line}` — {1 行の技術要約}
+
+#### 2. ...
+
+### 🎬 次のアクション
+
+{1〜3 項目、日本語、動詞で始める。リリース可否の判断もここに含める}
+
+1. {アクション 1}
+2. {アクション 2}
+3. {アクション 3}
+
+### 📊 自動検証の結果
+
+{チェックリスト形式、日本語表記}
+
+- ✅ Go テスト ({N} packages): 全パス
+- ✅ プラグイン検証: {合格数} 件合格 / {失敗数} 件失敗
+- ✅ 整合性チェック: 全パス
+- ✅ AI 残骸スキャナ: {件数} 件
+
+---
+
+### 📦 詳細データ (開発者・ツール連携向け、非専門家は読み飛ばし可)
+
+<!-- ここから先は任意。JSON・観点別評価・ファイル一覧などを配置 -->
+```
+
+**禁止事項 (非専門家向け UX を守るため)**:
+- ❌ JSON 出力を最初に出すこと — 必ず結果サマリーより後、「📦 詳細データ」セクション内に配置
+- ❌ 結果サマリー本文を英語で書くこと — 見出し・説明・アクションすべて日本語
+- ❌ 判定や主要指摘を JSON の中に埋めてサマリーを省略すること
+- ❌ 観点別評価の後に結論を添えること — 結論は必ず最初
+- ❌ 「気になったところ」の **本文**(問題・対応の説明) で技術用語を説明なしに使うこと
+  - 例の悪い書き方: 「`validTargets` が kebab-case を期待しているため `HookEventName` と一致しない」
+  - 例の良い書き方: 「フック名の大文字小文字が揃わず、機能が動いていない可能性があります」
+  - 技術用語は「技術的位置 (開発者向け)」欄に隔離すれば OK
+- ❌ `critical` / `major` / `minor` / `recommendation` の英単語を本文で使うこと
+  - 代わりに「🔴 致命的」「🟠 重要」「🟡 軽微」「🟢 推奨」の日本語+絵文字表記を使用
+- ❌ 「良かったところ」セクションを省略すること — APPROVE 時は必ず 2〜3 件の具体的な評価点を列挙(安心材料として非専門家に必要)
+
+**ベースリファレンス透明性**: bare 呼び出しで Step 0.1 の上限フォールバックが発動した場合 (`>10 commits → HEAD~10`)、「対象」行には元の候補 ref と絞込後を併記すること。例: `対象: HEAD~10..HEAD (v4.0.0 から 21 commits のうち直近 10 を対象)`
+
+#### 2. JSON 出力 (schema-v1、「📦 詳細データ」セクション内)
 
 ```json
 {

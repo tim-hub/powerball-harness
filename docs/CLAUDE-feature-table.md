@@ -49,8 +49,8 @@
 | **`includeGitInstructions: false` (v2.1.69)** | work, breezing | git 指示が不要な場面のトークン削減 |
 | **`git-subdir` plugin source (v2.1.69)** | setup, release | サブディレクトリ管理された plugin source に対応 |
 | **Auto Mode (RP Phase 1)** | breezing, work | CC native 機能。Harness 側は PermissionDenied 追跡のみ。判断ロジック未実装。現行 default は `bypassPermissions` |
-| **Per-agent hooks (v2.1.69+)** | agents-v3/ | エージェント定義の frontmatter に `hooks` フィールドを追加。Worker に PreToolUse ガード、Reviewer に Stop ログを設定 |
-| **Agent `isolation: worktree` (v2.1.50+)** | agents-v3/worker | Worker エージェント定義に `isolation: worktree` を追加。並列書き込み時の自動 worktree 分離 |
+| **Per-agent hooks (v2.1.69+)** | agents/ | エージェント定義の frontmatter に `hooks` フィールドを追加。Worker に PreToolUse ガード、Reviewer に Stop ログを設定 |
+| **Agent `isolation: worktree` (v2.1.50+)** | agents/worker | Worker エージェント定義に `isolation: worktree` を追加。並列書き込み時の自動 worktree 分離 |
 | **Compaction 画像保持 (v2.1.70)** | notebookLM, harness-review | サマリーリクエストで画像を保持。プロンプトキャッシュ再利用改善 |
 | **サブエージェント最終レポート簡潔化 (v2.1.70)** | breezing, harness-work | サブエージェント完了レポートのトークン消費削減 |
 | **`--resume` スキルリスト再注入廃止 (v2.1.70)** | session | セッション再開時に ~600 tokens 節約 |
@@ -63,7 +63,7 @@
 | **Plugin インストール並列実行修正 (v2.1.71)** | breezing | 複数インスタンス時のプラグイン状態安定化 |
 | **Marketplace 改善 (v2.1.71)** | setup | @ref パーサー修正、update merge conflict 修正、MCP server 重複排除、/plugin uninstall が settings.local.json 使用 |
 | **Subagent `background` フィールド (v2.1.71+)** | breezing, parallel-workflows | エージェント定義に `background: true` を追加。常にバックグラウンドタスクとして実行 |
-| **Subagent `local` メモリスコープ (v2.1.71+)** | agents-v3/ | `memory: local` で `.claude/agent-memory-local/` に保存。VCS にコミットしない機密性の高い学習を分離 |
+| **Subagent `local` メモリスコープ (v2.1.71+)** | agents/ | `memory: local` で `.claude/agent-memory-local/` に保存。VCS にコミットしない機密性の高い学習を分離 |
 | **Agent Teams 実験フラグ (v2.1.71+)** | breezing | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 環境変数で Agent Teams を有効化。公式ドキュメント化済み |
 | **`/agents` コマンド (v2.1.71+)** | troubleshoot, setup | エージェントの対話的管理UI。作成・編集・削除・一覧を GUI で操作 |
 | **Desktop Scheduled Tasks (v2.1.71+)** | harness-work | CC native 機能。Harness 側のデフォルト設定なし（CronCreate ツールは利用可） |
@@ -82,7 +82,7 @@
 | **Bash auto-approval 追加 (v2.1.72)** | guardrails | `lsof`, `pgrep`, `tput`, `ss`, `fd`, `fdfind` が許可リストに追加 |
 | **プロンプトキャッシュ修正 (v2.1.72)** | 全スキル | SDK `query()` のキャッシュ無効化修正。入力トークンコスト最大 12 倍削減 |
 | **Output Styles (v2.1.72+)** | 全スキル | `.claude/output-styles/` にカスタム出力スタイルを定義。`harness-ops` で Plan/Work/Review の構造化出力を提供 |
-| **`permissionMode` in agent frontmatter (v2.1.72+)** | agents-v3/ | エージェント定義 YAML に `permissionMode` を明示宣言。spawn 時の `mode` 指定が不要に |
+| **`permissionMode` in agent frontmatter (v2.1.72+)** | agents/ | エージェント定義 YAML に `permissionMode` を明示宣言。spawn 時の `mode` 指定が不要に |
 | **Agent Teams 公式ベストプラクティス (v2.1.72+)** | breezing | 5-6 tasks/teammate ガイドライン、`teammateMode` 設定、plan approval パターンを team-composition に反映 |
 | **Sandboxing (`/sandbox`)** | breezing, harness-work | OS レベルのファイルシステム/ネットワーク隔離。`bypassPermissions` の補完レイヤー |
 | **`opusplan` モデルエイリアス** | breezing | Plan 時は Opus、実行時は Sonnet に自動切替。Lead の Plan → Execute フローに最適 |
@@ -105,13 +105,13 @@
 | **`/btw` サイドクエスチョン (v2.1.72+)** | 全スキル | 現在のコンテキストを保持したまま短い質問。ツールアクセスなし、履歴に残らない。サブエージェント起動の軽量代替 |
 | **Plugin CLI コマンド群 (v2.1.72+)** | setup | `claude plugin install/uninstall/enable/disable/update` + `--scope` フラグ。スクリプトによる自動化対応 |
 | **Remote Control 強化 (v2.1.72+)** | 調査済み・将来対応 | `/remote-control` (`/rc`) でセッション内から有効化。`--name`, `--sandbox`, `--verbose` フラグ。`/mobile` で QR コード表示。自動再接続対応 |
-| **`skills` フィールド in agent frontmatter (v2.1.72+)** | agents-v3/ | サブエージェントにスキルをプリロード。Worker に `harness-work`+`harness-review`、Reviewer に `harness-review`、Scaffolder に `harness-setup`+`harness-plan` を注入（実装済み） |
+| **`skills` フィールド in agent frontmatter (v2.1.72+)** | agents/ | サブエージェントにスキルをプリロード。Worker に `harness-work`+`harness-review`、Reviewer に `harness-review`、Scaffolder に `harness-setup`+`harness-plan` を注入（実装済み） |
 | **`modelOverrides` 設定 (v2.1.73)** | setup, breezing | モデルピッカーのエントリを Bedrock ARN 等のカスタムプロバイダモデル ID にマッピング |
 | **`/output-style` 非推奨化 (v2.1.73)** | 全スキル | `/config` に移行。出力スタイル選択はコンフィグメニューに統合 |
 | **Bedrock/Vertex Opus 4.6 デフォルト化 (v2.1.73)** | breezing | クラウドプロバイダのデフォルト Opus が 4.1 → 4.6 に更新 |
 | **`autoMemoryDirectory` 設定 (v2.1.74)** | session-memory, setup | 自動メモリの保存パスをカスタマイズ。プロジェクト固有のメモリ分離に対応 |
 | **`CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS` (v2.1.74)** | hooks | SessionEnd フックのタイムアウトを設定可能に（従来は 1.5 秒固定で kill） |
-| **Full model ID 修正 (v2.1.74)** | agents-v3/, breezing | `claude-opus-4-6` 等の完全モデル ID がエージェント frontmatter・JSON config で認識されるように |
+| **Full model ID 修正 (v2.1.74)** | agents/, breezing | `claude-opus-4-6` 等の完全モデル ID がエージェント frontmatter・JSON config で認識されるように |
 | **Streaming API メモリリーク修正 (v2.1.74)** | breezing, harness-work | ストリーミングレスポンスバッファの無制限 RSS 増大を修正 |
 | **`--remote` / Cloud Sessions** | breezing, harness-work | `--remote` でターミナルからクラウドセッションを起動。非同期タスク実行 |
 | **`/teleport` (`/tp`)** | session | クラウドセッションをローカルターミナルに取り込み |
@@ -123,7 +123,7 @@
 | **`PreCompact` hook** | hooks | コンテキスト圧縮前の状態保存と WIP タスク警告（実装済み） |
 | **`Notification` hook event** | hooks | 通知発火時のカスタムハンドラ（実装済み） |
 | **`/context` コマンド (v2.1.74)** | all skills | コンテキスト消費の可視化と最適化提案 |
-| **`maxTurns` エージェント安全制限** | agents-v3/ | ターン上限による暴走防止。Worker: 100, Reviewer: 50, Scaffolder: 75 |
+| **`maxTurns` エージェント安全制限** | agents/ | ターン上限による暴走防止。Worker: 100, Reviewer: 50, Scaffolder: 75 |
 | **Output token limits 64k/128k (v2.1.77)** | all skills | Opus 4.6 / Sonnet 4.6 デフォルト 64k、上限 128k トークン |
 | **`allowRead` sandbox 設定 (v2.1.77)** | harness-review | `denyRead` 内で特定パスの読み取りを再許可 |
 | **PreToolUse `allow` が `deny` を尊重 (v2.1.77)** | guardrails | フック `allow` が settings.json `deny` を上書きしない |
@@ -134,12 +134,12 @@
 | **Stale worktree 競合修正 (v2.1.77)** | breezing | アクティブ worktree 誤削除の防止 |
 | **`StopFailure` hook event (v2.1.78)** | hooks | API エラーでのセッション停止失敗をキャプチャ |
 | **`${CLAUDE_PLUGIN_DATA}` 変数 (v2.1.78)** | hooks, setup | プラグイン更新でも永続するステートディレクトリ |
-| **Agent `effort`/`maxTurns`/`disallowedTools` frontmatter (v2.1.78)** | agents-v3/ | プラグインエージェントの宣言的制御 |
+| **Agent `effort`/`maxTurns`/`disallowedTools` frontmatter (v2.1.78)** | agents/ | プラグインエージェントの宣言的制御 |
 | **`deny: ["mcp__*"]` 修正 (v2.1.78)** | setup | settings.json deny で MCP ツールを正しくブロック |
 | **`ANTHROPIC_CUSTOM_MODEL_OPTION` (v2.1.78)** | setup | カスタムモデルピッカーエントリ |
 | **`--worktree` skills/hooks 読込修正 (v2.1.78)** | breezing | worktree フラグ時のスキル・フック正常ロード |
 | **Skill `effort` frontmatter (v2.1.80)** | harness-work, harness-review, harness-plan, harness-release | 5動詞スキル自体に思考量を持たせ、重いフローの初動品質を引き上げる |
-| **Agent `initialPrompt` frontmatter (v2.1.83)** | agents-v3/ | Worker / Reviewer / Scaffolder の最初の1ターンを役割ごとに安定化 |
+| **Agent `initialPrompt` frontmatter (v2.1.83)** | agents/ | Worker / Reviewer / Scaffolder の最初の1ターンを役割ごとに安定化 |
 | **`sandbox.failIfUnavailable` (v2.1.83)** | setup, guardrails | sandbox 起動失敗時に unsandboxed へ silently fallback しない |
 | **`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` (v2.1.83)** | hooks, setup | hook / Bash / MCP stdio subprocess への資格情報流出面を縮小 |
 | **`TaskCreated` / `CwdChanged` / `FileChanged` hooks (v2.1.83-2.1.84)** | hooks, session | reactive state tracking と Plans / ルール再読リマインドを追加 |
@@ -169,6 +169,16 @@
 | **`--resume` prompt-cache miss fix (v2.1.90)** | session | v2.1.69 以降の回帰バグ修正。deferred tools/MCP/agents 使用時の resume キャッシュミス。CC 自動継承 |
 | **SSE/transcript performance (v2.1.90)** | all skills | SSE フレーム O(n²)→O(n)、transcript writes 二次関数→線形。CC 自動継承 |
 | **`/powerup` interactive lessons (v2.1.90)** | — | Claude Code 機能学習のアニメーションデモ。CC 自動継承 |
+| **MCP `maxResultSizeChars` 500K (v2.1.91)** | hooks, setup | MCP ツール結果の最大サイズを `_meta["anthropic/maxResultSizeChars"]` で 500K まで拡張。大きな harness-mem 結果等で活用可能 |
+| **`disableSkillShellExecution` setting (v2.1.91)** | setup, guardrails | スキル内の shell 実行を無効化。セキュリティ要件が高い環境向け設定 |
+| **Plugin `bin/` directory (v2.1.91)** | setup | プラグインが `bin/` ディレクトリにコンパイル済みバイナリを同梱可能。将来の配布形態拡張候補 |
+| **Transcript chain breaks fix (v2.1.91)** | session | `--resume` 時の transcript 途切れを修正。CC 自動継承 |
+| **Subagent spawning fix (v2.1.92)** | breezing | 「Could not determine pane count」修正。Breezing 安定性向上。CC 自動継承 |
+| **`forceRemoteSettingsRefresh` (v2.1.92)** | — | Teams/Enterprise 向け fail-closed remote settings。CC 自動継承 |
+| **`/cost` per-model breakdown (v2.1.92)** | all skills | モデル別・キャッシュヒット別コスト内訳。CC 自動継承 |
+| **Linux `apply-seccomp` helper (v2.1.92)** | setup | sandbox unix-socket ブロッキング強化。CC 自動継承 |
+| **Plugin `skills` フィールド明示化 (v2.1.94)** | setup | plugin.json に `"skills": ["./"]` を明示宣言。CC 2.1.94 でスキル呼び出し名が frontmatter `name` 基準に。A: 実装あり (plugin.json 更新) |
+| **Monitor ツール (v2.1.98)** | breezing/harness-work/ci/deploy/harness-review | 長時間プロセスの stdout ストリーミング監視。polling より低レイテンシ・低トークン消費で CI/デプロイ進捗を追跡。A: 実装あり (allowed-tools + 運用ガイド + Feature Table) |
 
 ## 機能詳細
 
@@ -367,7 +377,7 @@ Harness では3箇所に限定採用し、コスト管理のため `model: "haik
 
 CC 2.1.68 で Opus 4.6 が **medium effort** をデフォルトに変更。`ultrathink` キーワードで1ターンのみ high effort（extended thinking）を有効化できる。
 `harness-work` スキルが多要素スコアリング（変更ファイル数・対象ディレクトリ・キーワード・失敗履歴・PM 明示指定）でスコアを算出し、閾値 3 以上で Worker spawn prompt 冒頭に `ultrathink` を自動注入する。
-詳細は `skills-v3/harness-work/SKILL.md` の「Effort レベル制御」セクション参照。
+詳細は `skills/harness-work/SKILL.md` の「Effort レベル制御」セクション参照。
 
 ### Opus 4/4.1 削除（v2.1.68）
 
@@ -735,14 +745,14 @@ Harness への反映:
 - Auto Mode は rollout 候補として整理し、現行 shipped default は `bypassPermissions` のまま維持する
 
 ```yaml
-# agents-v3/worker.md frontmatter
+# agents/worker.md frontmatter
 permissionMode: bypassPermissions  # 追加
 ```
 
 ### Agent Teams 公式ベストプラクティス (v2.1.72+)
 
 Claude Code 公式に `agent-teams.md` が独立ドキュメントとして整備された。
-Harness の `agents-v3/team-composition.md` に以下を反映:
+Harness の `agents/team-composition.md` に以下を反映:
 
 1. **タスク粒度ガイドライン**: 5-6 tasks/teammate の推奨値
 2. **`teammateMode` 設定**: `"auto"` / `"in-process"` / `"tmux"` の公式サポート
@@ -1161,7 +1171,7 @@ CC 2.1.74 で `claude-opus-4-6`、`claude-sonnet-4-6` 等の完全なモデル I
 - 現状 Harness はエイリアス（`sonnet`, `opus`）を使用しており即時影響なし。Bedrock/Vertex 環境でフル ID 指定が必要な場合に有用
 
 ```yaml
-# agents-v3/worker.md frontmatter（完全モデル ID 使用例）
+# agents/worker.md frontmatter（完全モデル ID 使用例）
 model: claude-sonnet-4-6
 ```
 
