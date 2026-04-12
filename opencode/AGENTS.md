@@ -11,126 +11,12 @@ This file provides guidance for Claude Code when working in this repository.
 
 **Special note**: This project is self-referential — it uses the harness itself to improve the harness.
 
-## Claude Code 2.1.79+ Feature Utilization Guide
+## Claude Code Feature Utilization
 
-Harness makes full use of new features introduced in Claude Code 2.1.79.
+<!-- Feature Table は docs/CLAUDE-feature-table.md に集約。ここに行を追加しない -->
+CC v2.1.92+ の機能を活用。詳細: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 
-| Feature | Skill | Purpose |
-|---------|-------|---------|
-| **Agent Memory (memory frontmatter)** | task-worker, code-reviewer | Persistent learning |
-| **TeammateIdle/TaskCompleted Hook** | breezing | Automated team monitoring |
-| **Skill budget scaling** | All skills | Auto-adjusts to 2% of context window |
-| **Fast mode (Opus 4.6)** | All skills | High-speed output mode |
-| **Worktree isolation** | breezing, parallel-workflows | Safe parallel writes to the same file |
-| **`/simplify` Auto-Refinement** | work | Automatic code simplification after implementation |
-| **HTTP hooks** | hooks | JSON POST to external services (Slack, dashboards, metrics) |
-| **Effort levels + ultrathink (v2.1.68)** | harness-work | Multi-factor scoring injects ultrathink for complex tasks |
-| **Agent hooks (v2.1.68)** | hooks | LLM-based code quality guard (type: "agent") |
-| **`${CLAUDE_SKILL_DIR}` variable (v2.1.69)** | all skills | Stable skill-local reference path resolution |
-| **InstructionsLoaded hook (v2.1.69)** | hooks | Pre-session instruction load tracking and environment checks |
-| **`agent_id` / `agent_type` fields (v2.1.69)** | hooks, breezing | Robust teammate identity and role-aware guarding |
-| **`{"continue": false}` teammate response (v2.1.69)** | breezing | Stop team loop when all tasks are completed or stop is requested |
-| **`/reload-plugins` (v2.1.69)** | all skills | Immediate reflection after skill/hook edits without restarting |
-| **`includeGitInstructions: false` (v2.1.69)** | breezing, work | Reduce prompt token overhead for git-instruction-light tasks |
-| **`git-subdir` plugin source (v2.1.69)** | setup, release | Support plugin source managed from repository subdirectories |
-| **Sonnet 4.5 → 4.6 auto-migration** | all skills | Legacy Sonnet references migrate to 4.6 behavior automatically |
-| **WorktreeCreate/Remove hook (v2.1.50)** | breezing | Worktree lifecycle auto-setup and cleanup |
-| **Auto Mode (Research Preview, Phase 1 active)** | breezing, work | `--auto-mode` flag for safer bypassPermissions alternative. Phase 1: RP started 2026-03-12 |
-| **Per-agent hooks (v2.1.69+)** | agents/ | Worker PreToolUse guard + Reviewer Stop log in agent frontmatter |
-| **Agent `isolation: worktree` (v2.1.50+)** | agents/worker | Auto worktree isolation for parallel writes with shared Agent Memory |
-| **`/loop` + Cron scheduling (v2.1.71)** | breezing, harness-work | Periodic task monitoring with `/loop 5m /sync-status` |
-| **PostToolUseFailure hook (v2.1.70)** | hooks | Auto-escalation after 3 consecutive failures |
-| **Background Agent output fix (v2.1.71)** | breezing | Safe background agent usage with output path in completion notification |
-| **Compaction image retention (v2.1.70)** | all skills | Images preserved during context compaction |
-| **Subagent `background` field (v2.1.71+)** | breezing | Always-background agent execution via frontmatter |
-| **Subagent `local` memory scope (v2.1.71+)** | agents/ | Non-VCS agent memory in `.claude/agent-memory-local/` |
-| **Agent Teams experimental flag (v2.1.71+)** | breezing | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env var for official Agent Teams |
-| **`/agents` command (v2.1.71+)** | setup, troubleshoot | Interactive agent management UI (create/edit/delete) |
-| **Desktop Scheduled Tasks (v2.1.71+)** | harness-work | `~/.claude/scheduled-tasks/` SKILL.md-based recurring tasks |
-| **`--agents` CLI flag (v2.1.71+)** | breezing, CI | Session-level JSON agent definitions without disk persistence |
-| **`ExitWorktree` tool (v2.1.72)** | breezing, work | Programmatic worktree exit for agent workflows |
-| **Effort levels simplified (v2.1.72)** | harness-work | 永続レベルは `low/medium/high`（`○ ◐ ●`）。`max` は Opus 4.6 のセッション専用オプションとして存続 |
-| **Agent tool `model` param restored (v2.1.72)** | breezing | Per-invocation model overrides re-enabled |
-| **`/plan` description argument (v2.1.72)** | harness-plan | `/plan fix the auth bug` enters plan mode with context |
-| **Parallel tool call fix (v2.1.72)** | breezing, work | Failed Read/WebFetch/Glob no longer cancel sibling calls |
-| **Worktree isolation fixes (v2.1.72)** | breezing | Task resume cwd restore + background notification worktreePath |
-| **`/clear` preserves background agents (v2.1.72)** | breezing | `/clear` only kills foreground tasks; background agents survive |
-| **Hooks fixes (v2.1.72)** | hooks | transcript_path fix, skill hooks double-fire fix, async stdin fix |
-| **HTML comments hidden in CLAUDE.md (v2.1.72)** | all | `<!-- -->` hidden from auto-injection; visible via Read tool |
-| **Sandboxing (`/sandbox`)** | breezing, work | OS-level filesystem/network isolation complementing bypassPermissions |
-| **`opusplan` model alias** | breezing | Auto-switches Opus (plan) ↔ Sonnet (execute) for Lead sessions |
-| **`CLAUDE_CODE_SUBAGENT_MODEL` env var** | breezing, work | Centralized subagent model control for Worker/Reviewer |
-| **Checkpointing (`/rewind`)** | work | Session state tracking, rewind, and selective summarization |
-| **Code Review (managed, RP)** | harness-review | Multi-agent PR review with `REVIEW.md` guidance. Teams/Enterprise |
-| **Status Line (`/statusline`)** | all skills | Custom shell-script status bar for context/cost/git monitoring |
-| **1M Context (`sonnet[1m]`)** | harness-review, breezing | 1M token context window for large codebase analysis |
-| **Chrome Integration (`--chrome`, beta)** | harness-work, harness-review | Browser automation for UI testing, console debugging, data extraction |
-| **`modelOverrides` setting (v2.1.73)** | setup, breezing | Map model picker entries to custom provider model IDs (Bedrock ARNs, etc.) |
-| **`/output-style` deprecated (v2.1.73)** | all skills | Use `/config` instead; output style selection moved to config menu |
-| **Bedrock/Vertex Opus 4.6 default (v2.1.73)** | breezing | Default Opus on cloud providers updated from 4.1 to 4.6 |
-| **`autoMemoryDirectory` setting (v2.1.74)** | session-memory, setup | Custom auto-memory storage path for project-specific memory isolation |
-| **`CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS` (v2.1.74)** | hooks | Configurable SessionEnd hooks timeout (was fixed 1.5s kill) |
-| **Full model ID fix (v2.1.74)** | agents/, breezing | `claude-opus-4-6` etc. now recognized in agent frontmatter and JSON config |
-| **Streaming API memory leak fix (v2.1.74)** | breezing, work | Unbounded RSS growth in streaming response buffers fixed |
-| **LSP server integration (`.lsp.json`)** | setup | Real-time diagnostics, code navigation via Language Server Protocol |
-| **`SubagentStart`/`SubagentStop` matcher** | breezing, hooks | Agent type-specific lifecycle monitoring with matcher filtering |
-| **Agent Teams: Task Dependencies** | breezing | Auto-unblocking dependent tasks with file-lock claiming |
-| **`--teammate-mode` CLI flag** | breezing | Per-session display mode override (`in-process`/`tmux`) |
-| **`skills` field in agent frontmatter** | agents/ | Preload skill content into subagent context at startup |
-| **`--remote` / Cloud Sessions** | breezing, harness-work | Terminal-to-cloud async task execution with `/teleport` retrieval |
-| **`CLAUDE_ENV_FILE` SessionStart persistence** | hooks | Persist env vars from SessionStart hooks to subsequent Bash commands |
-| **`PreCompact` hook** | hooks | Pre-compaction state save + WIP task warning (implemented) |
-| **Slack Integration (`@Claude`)** | harness-work (future) | Route coding tasks from Slack channels via cloud sessions |
-| **Analytics Dashboard** | setup, harness-review | PR attribution (`claude-code-assisted` label), usage/contribution metrics, leaderboard |
-| **OpenTelemetry Monitoring** | hooks, breezing | OTel metrics/events export (sessions, tokens, cost, tool results, active time) |
-| **`/security-review` command** | harness-review | Analyze pending changes for security vulnerabilities (injection, auth, data exposure) |
-| **`/insights` command** | session-memory | Session analysis report: project areas, interaction patterns, friction points |
-| **`/stats` command** | session | Daily usage visualization, session history, streaks, model preferences |
-| **Prompt Suggestions** | all skills | Git-history-based context-aware autocomplete; Tab to accept, Enter to submit |
-| **PR Review Status footer** | breezing, harness-review | Clickable PR link with color-coded review status (green/yellow/red/gray/purple) |
-| **`CLAUDE_CODE_TASK_LIST_ID` env var** | breezing | Named task list sharing across sessions: `CLAUDE_CODE_TASK_LIST_ID=my-project claude` |
-| **`fastModePerSessionOptIn` setting** | setup, breezing | Admin control: fast mode resets each session, users must `/fast` to re-enable |
-| **1M Context Window (`opus[1m]`) (v2.1.75)** | breezing, harness-review | Opus 4.6 の 1M コンテキスト窓。Max/Team/Enterprise では自動昇格 |
-| **Memory file timestamps (v2.1.75)** | session-memory, memory | メモリファイルの最終更新タイムスタンプ。鮮度ベースのメモリ判断を支援 |
-| **Async hook suppression (v2.1.75)** | breezing, hooks | 非同期フック完了メッセージをデフォルト非表示。`--verbose` で表示 |
-| **`/effort max` session-only (v2.1.75+)** | harness-work, harness-plan | Opus 4.6 限定の最深推論モード。セッション単位で有効化、永続化しない |
-| **MCP Elicitation サポート (v2.1.76)** | hooks, breezing | MCP サーバーからの構造化入力要求。Breezing では自動スキップ |
-| **`Elicitation`/`ElicitationResult` フック (v2.1.76)** | hooks | MCP elicitation の前後でインターセプト・ログ記録 |
-| **`PostCompact` フック (v2.1.76)** | hooks, breezing | コンパクション完了後のコンテキスト再注入（PreCompact の対） |
-| **`-n`/`--name` CLI フラグ (v2.1.76)** | breezing | セッション表示名の設定。セッション一覧での識別に活用 |
-| **`worktree.sparsePaths` 設定 (v2.1.76)** | breezing, setup | モノレポでの worktree sparse-checkout。並列ワーカー起動高速化 |
-| **`/effort` スラッシュコマンド (v2.1.76)** | harness-work | セッション中の effort レベル切替（low/medium/high） |
-| **`--worktree` 起動高速化 (v2.1.76)** | breezing | git refs 直接読取 + 冗長な fetch スキップ |
-| **バックグラウンドエージェント部分結果保持 (v2.1.76)** | breezing | kill 時にも部分結果がコンテキストに保存 |
-| **stale worktree 自動クリーンアップ (v2.1.76)** | breezing | 中断された並列実行のワークツリーを自動削除 |
-| **自動コンパクション circuit breaker (v2.1.76)** | all skills | 3 回連続失敗で自動停止（無限リトライ防止） |
-| **`--plugin-dir` 仕様変更 (v2.1.76, breaking)** | setup | 複数ディレクトリは `--plugin-dir` 繰返しで指定 |
-| **Deferred Tools スキーマ修正 (v2.1.76)** | all skills | コンパクション後の ToolSearch ツールスキーマ保持 |
-| **`/context` コマンド (v2.1.74)** | all skills | コンテキスト消費の可視化と最適化提案。長時間セッションの肥大化防止 |
-| **`maxTurns` エージェント安全制限** | agents/ | Worker: 100, Reviewer: 50, Scaffolder: 75。暴走防止の安全弁 |
-| **`Notification` フック実装** | hooks | 通知イベント（permission_prompt, idle_prompt 等）のログ記録。Breezing 観測性向上 |
-| **Output token limits 64k/128k (v2.1.77)** | all skills | Opus 4.6 / Sonnet 4.6 のデフォルト出力 64k、上限 128k トークン |
-| **`allowRead` sandbox setting (v2.1.77)** | harness-review | `denyRead` 領域内で特定パスの読み取りを再許可 |
-| **PreToolUse `allow` respects `deny` (v2.1.77)** | guardrails | フック `allow` が settings.json の `deny` ルールを上書きしない（セキュリティ強化） |
-| **Agent `resume` → `SendMessage` (v2.1.77)** | breezing | Agent tool の `resume` パラメータ廃止。`SendMessage({to: agentId})` に移行 |
-| **`/branch` (was `/fork`) (v2.1.77)** | session | `/fork` を `/branch` にリネーム（`/fork` はエイリアスとして存続） |
-| **`claude plugin validate` enhanced (v2.1.77)** | setup | frontmatter + hooks.json の構文検証を追加 |
-| **`--resume` 45% faster (v2.1.77)** | session | fork-heavy セッション再開が最大 45% 高速化、100-150MB メモリ削減 |
-| **Stale worktree race fix (v2.1.77)** | breezing | アクティブエージェントの worktree が誤削除される競合を修正 |
-| **`StopFailure` hook event (v2.1.78)** | hooks | API エラー（レート制限、認証失敗）でのセッション停止失敗をキャプチャ |
-| **`${CLAUDE_PLUGIN_DATA}` variable (v2.1.78)** | hooks, setup | プラグイン更新でも永続するステートディレクトリ変数 |
-| **Agent `effort`/`maxTurns`/`disallowedTools` frontmatter (v2.1.78)** | agents/ | プラグインエージェント定義で effort・ターン制限・ツール禁止を宣言的に設定 |
-| **`deny: ["mcp__*"]` permission fix (v2.1.78)** | setup | settings.json の deny ルールで MCP ツールを正しくブロック |
-| **`ANTHROPIC_CUSTOM_MODEL_OPTION` env var (v2.1.78)** | setup | `/model` ピッカーにカスタムモデルエントリを追加 |
-| **`--worktree` skills/hooks loading fix (v2.1.78)** | breezing | worktree フラグ使用時もスキル・フックが正しくロードされる |
-| **Large session truncation fix (v2.1.78)** | session | `cc log` / `--resume` で 5MB 超セッションが切り詰められる問題を修正 |
-| **`--console` auth flag (v2.1.79)** | setup | Anthropic Console API 課金認証用の `claude auth login --console` |
-| **Turn duration toggle (v2.1.79)** | all skills | `/config` でターン実行時間の表示を切替 |
-| **`CLAUDE_CODE_PLUGIN_SEED_DIR` multiple dirs (v2.1.79)** | setup | 複数シードディレクトリをプラットフォーム区切り文字で指定 |
-| **SessionEnd hooks fix in `/resume` (v2.1.79)** | hooks | 対話的 `/resume` セッション切替時に SessionEnd フックが正常発火 |
-| **18MB startup memory reduction (v2.1.79)** | all skills | 起動時メモリ使用量を約 18MB 削減 |
-
-Full details: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
+主要活用機能: Agent Memory, Worktree isolation, Agent hooks, PreCompact/PostCompact, PermissionDenied tracking, 1M Context Window
 
 ## Development Rules
 
@@ -140,13 +26,13 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/): `feat:` / `
 
 ### Version Management
 
-Keep `VERSION` and `.claude-plugin/plugin.json` in sync.
+Keep `VERSION`, `.claude-plugin/plugin.json`, and `harness.toml` in sync.
 Normal feature/docs PRs must leave both files unchanged and record changes under `CHANGELOG.md`'s `[Unreleased]` section.
 Use `./scripts/sync-version.sh bump` only when cutting a release.
 
 ### CHANGELOG
 
-Details: [.claude/rules/changelog.md](.claude/rules/changelog.md) (Keep a Changelog format; include Before/After tables for major changes)
+Details: [.claude/rules/github-release.md](.claude/rules/github-release.md) (Keep a Changelog format; include Before/After tables for major changes)
 
 ### Language
 
@@ -156,11 +42,11 @@ All responses must be in **Japanese** (including `context: fork` skills).
 
 - Use clear and descriptive names
 - Add comments for complex logic
-- Keep commands/agents/skills single-responsibility
+- Keep agents/skills single-responsibility
 
 ## Repository Structure
 
-`.claude-plugin/` Plugin manifest / `agents/` Sub-agents / `skills/` Skills / `hooks/` Hooks / `scripts/` Shell scripts / `docs/` Documentation / `tests/` Validation
+`.claude-plugin/` Plugin manifest / `agents/` Sub-agents (Worker, Reviewer, Scaffolder) / `skills/` Skills (5-verb skills) / `hooks/` Hooks / `scripts/` Shell scripts / `docs/` Documentation / `tests/` Validation / `go/` Harness v4 Go rewrite ([SPEC.md](go/SPEC.md) — 詳細仕様, [DESIGN.md](go/DESIGN.md) — 設計) / `bin/` Go バイナリ出力 / `core/` TypeScript engine (guardrails + state management)
 
 ## Using Skills (Important)
 
@@ -203,6 +89,30 @@ Details: [docs/CLAUDE-commands.md](docs/CLAUDE-commands.md)
 - **Hooks run automatically**: PreToolUse/PostToolUse guards are active
 - **VERSION sync**: Leave version files untouched in normal PRs; update them only for releases
 
+## MCP Trust Policy
+
+ユーザーレベル MCP は全て信頼済みソース。
+外部 MCP 追加時のルール:
+1. `harness_mem_ingest` 経由のメモリ書き込みには出所タグ (`source: "mcp:<server-name>"`) を付与
+2. 不特定の外部入力はサブエージェントで検疫（隔離コンテキストで検証後にメモリ昇格）
+3. プロジェクトレベル MCP 追加時は deny で `mcp__<新サーバー>__*` を制限し、必要なツールのみ allow
+
+## Permission Boundaries
+
+以下は settings.json の deny/ask + ガードレールエンジン (R01-R13) による**多層防御**。
+
+| Rule | 防御層 | 理由 |
+|------|--------|------|
+| `.claude-plugin/settings*`, `.claude/settings*` | deny | 自己書き換え防止 |
+| `.eslintrc*`, `eslint.config.*`, `biome.json`, `tsconfig*.json` | deny | 品質基準の保護 |
+| `.github/workflows/*` | deny | CI パイプラインの保護 |
+| `git push --force` | ask + R06 deny | 不可逆操作の防止 |
+| `git push origin main/master` | R12 deny | protected branch 保護 |
+| `git reset --hard` | ask + R11 deny | 不可逆操作の防止 |
+| `mcp__codex__*` | deny | Codex MCP 直接使用の防止 |
+
+変更が必要な場合はユーザーに手動操作を依頼すること。
+
 ## Key Commands (for development)
 
 | Command | Purpose |
@@ -226,3 +136,7 @@ Details & handoff: [docs/CLAUDE-commands.md](docs/CLAUDE-commands.md)
 > **Absolutely prohibited**: Tampering with tests to fake "success"
 
 Details: [.claude/rules/test-quality.md](.claude/rules/test-quality.md) / [.claude/rules/implementation-quality.md](.claude/rules/implementation-quality.md)
+
+- Migration policy: [.claude/rules/migration-policy.md](.claude/rules/migration-policy.md) - deleted-concepts.yaml の運用ルール (Phase 40 で導入)
+
+<!-- harness-integrity: last-audit=2026-04-07 -->
