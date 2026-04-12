@@ -59,21 +59,41 @@ harness-go/
 │   │   ├── marker.go            # Status marker read/update
 │   │   └── effort.go            # Task complexity scoring
 │   │
-│   ├── notify/                  # External notifications (webhook + OTel + broadcast)
-│   │   ├── webhook.go           # HARNESS_WEBHOOK_URL → HTTP POST (sync with timeout, secret mask)
-│   │   ├── otel.go              # OTLP HTTP span export (sync with timeout, fallback JSONL)
-│   │   └── broadcast.go         # Inter-session file-based broadcast
+│   ├── hook/                    # Hook I/O codec (stdin parse, stdout marshal)
+│   │   └── codec.go             # ReadInput / WriteResult helpers
 │   │
-│   └── config/                  # Configuration + security utilities
-│       ├── settings.go          # Plugin settings.json
-│       ├── env.go               # Environment detection (CLAUDE_*, PROJECT_ROOT)
-│       ├── paths.go             # State dir, log file path resolution
-│       ├── safefile.go          # Symlink-safe file operations (append, read, mkdir)
-│       └── mask.go              # Secret masking for logs/webhook URLs
+│   ├── hookhandler/             # Go ports of shell hook handlers (40+ handlers)
+│   │   ├── emit_agent_trace.go  # OTel span export (sync HTTP POST, 3s timeout, JSONL fallback)
+│   │   ├── session_auto_broadcast.go  # Inter-session file-based broadcast
+│   │   ├── memory_bridge.go     # Memory bridge (JSONL logging; MCP call は将来実装)
+│   │   ├── task_completed.go    # TaskCompleted lifecycle + escalation + timeline
+│   │   ├── auto_test_runner.go  # Auto test execution on Write/Edit
+│   │   ├── ci_status_checker.go # CI status polling
+│   │   └── ...                  # 30+ additional handlers (see go/internal/hookhandler/)
+│   │
+│   ├── breezing/                # Parallel task orchestration (worktree isolation)
+│   │   ├── orchestrator.go      # Semaphore-controlled parallel execution
+│   │   ├── worktree.go          # Git worktree create/remove
+│   │   └── deps.go              # Task dependency resolution
+│   │
+│   ├── ci/                      # CI integration utilities
+│   │   └── ci.go                # CI provider detection + status check
+│   │
+│   ├── lifecycle/               # Session lifecycle tracking + recovery
+│   │   ├── tracker.go           # Session state machine
+│   │   ├── state.go             # Work state persistence
+│   │   └── recovery.go          # 4-stage recovery logic
+│   │
+│   └── state/                   # SQLite state store
+│       ├── schema.go            # DB schema definition
+│       └── store.go             # HarnessStore CRUD operations
 │
 ├── pkg/
 │   ├── hookproto/               # Hook protocol types (public API)
 │   │   └── types.go             # HookInput, HookResult, Decision constants, output structs
+│   │
+│   └── config/                  # Configuration (harness.toml parsing)
+│       └── toml.go              # HarnessConfig + TelemetryConfig (webhook_url, otel_endpoint)
 │
 ├── skills/                   # Skills (Markdown, unchanged)
 ├── agents/                   # Agents (Markdown, unchanged)
@@ -93,8 +113,9 @@ harness-go/
 └── go.sum
 ```
 
-**パッケージ数: 11 → 6** (guardrail, session, event, plans, notify, config)。`pkg/` は hookproto のみ。
-JSONL 操作は `config/safefile.go` に統合。agent tracking は `session/agent.go` に統合。
+**internal パッケージ: 9** (guardrail, session, event, hook, hookhandler, breezing, ci, lifecycle, state)。`pkg/` は hookproto + config。
+通知機能 (OTel span export, broadcast) は `hookhandler/` に統合。独立 notify パッケージは設けず、各 handler が直接送信する設計に変更。
+webhook POST は未実装（config 定義のみ将来対応予定）。
 review (security/dual) はスキル側のプロンプト指示で完結するため Go binary から除外。
 
 ## Core Design: Single Binary, Subcommand Routing
@@ -499,18 +520,18 @@ var Rules = []Rule{
 ## State Management
 
 ```go
-// internal/config/paths.go
+// 設計方針: State directory resolution（各 handler で適用）
 
-func StateDir() string {
+func stateDir() string {
     if d := os.Getenv("CLAUDE_PLUGIN_DATA"); d != "" {
-        hash := projectHash(ProjectRoot())
+        hash := projectHash(projectRoot())
         return filepath.Join(d, "projects", hash)
     }
-    return filepath.Join(ProjectRoot(), ".claude", "state")
+    return filepath.Join(projectRoot(), ".claude", "state")
 }
 
-// Symlink safety is built into every file operation
-func SafeAppend(path string, data []byte) error {
+// 設計方針: Symlink safety（ファイル I/O 前に検証）
+func safeAppend(path string, data []byte) error {
     if isSymlink(path) || isSymlink(filepath.Dir(path)) {
         return ErrSymlinkRefused
     }
@@ -518,39 +539,53 @@ func SafeAppend(path string, data []byte) error {
 }
 ```
 
-**セキュリティチェック（symlink 拒否、ディレクトリ検証）がライブラリレベルで強制。** 個別スクリプトで忘れる問題が消える。
+**セキュリティチェック（symlink 拒否、ディレクトリ検証）は設計方針として全 handler に適用。**
+現在は各 handler が個別にパス解決・ファイル I/O を行っている。
+共通ユーティリティへの統合は将来のリファクタリング候補。
 
 ## Security Design
 
 | 脅威 | 対策 | 実装場所 |
 |------|------|---------|
-| **Symlink traversal** | `safefile.go` で全 I/O 前に `os.Lstat` チェック。symlink は即拒否 | config/safefile.go |
-| **Path traversal (../)** | `filepath.Clean` + `filepath.Rel` で state dir 外への書込を拒否 | config/paths.go |
-| **Secret leak (logs)** | `mask.go` で URL、トークン、API キーを `***` にマスク。webhook URL も対象 | config/mask.go |
-| **Command injection** | guardrail ホットパス（pretool/posttool/permission）は shell・exec.Command を使わず全て内部処理。worker サブコマンド（auto-test, ci-check）は exec.Command でプロジェクトの test/CI コマンドを実行する（現行 shell 版と同等） | guardrail/*, session/* は内部処理。event/worker.go は exec.Command 許可 |
-| **TOCTOU** | ファイル存在チェックせず直接操作 → エラーハンドリング | config/safefile.go |
-| **Unbounded growth** | JSONL rotation (500行超 → 400行に切詰) を safefile.Append に内蔵 | config/safefile.go |
-| **Secret in hook output** | PreToolUse deny 理由にユーザー入力を含める際はサニタイズ | guardrail/pretool.go |
+| **Symlink traversal** | ファイル I/O 前に symlink チェック。symlink は即拒否 | 設計方針。各 handler で個別に `os.Lstat` 実施 |
+| **Path traversal (../)** | `filepath.Clean` + `filepath.Rel` で state dir 外への書込を拒否 | 設計方針。各 handler で個別に適用 |
+| **Secret leak (logs)** | URL、トークン、API キーをログ出力時にマスク | 設計方針（将来 webhook 実装時に統合予定） |
+| **Command injection** | guardrail ホットパス（pretool/posttool/permission）は shell・exec.Command を使わず全て内部処理。worker サブコマンド（auto-test, ci-check）は exec.Command でプロジェクトの test/CI コマンドを実行する（現行 shell 版と同等） | guardrail/* は内部処理。hookhandler/auto_test_runner.go, hookhandler/ci_status_checker.go は exec.Command 許可 |
+| **TOCTOU** | ファイル存在チェックせず直接操作 → エラーハンドリング | 各 handler で直接操作 → error handling パターンを適用 |
+| **Unbounded growth** | JSONL rotation (500行超 → 400行に切詰) | hookhandler/emit_agent_trace.go (MaxFileSize による rotation) |
+| **Secret in hook output** | PreToolUse deny 理由にユーザー入力を含める際はサニタイズ | guardrail/pre_tool.go |
 
-## Delivery Model: Short-Lived Process での通知保証
+## Delivery Model: Short-Lived Process での通知
 
 Go binary は都度起動→即終了の短命プロセス。async goroutine はプロセス終了で消える。
 
-**設計方針**: webhook と OTel は **sync with timeout** で送信。
+**現在の実装状況**:
+
+| 通知チャネル | 状態 | 実装場所 |
+|------------|------|---------|
+| OTel span export | **実装済み** (sync, 3s timeout) | `hookhandler/emit_agent_trace.go` |
+| Inter-session broadcast | **実装済み** (file-based) | `hookhandler/session_auto_broadcast.go` |
+| Webhook POST | **未実装** (将来対応予定) | — |
+
+**OTel span export フロー** (emit-agent-trace handler):
 
 ```
-bin/harness hook task-completed
-  → guardrail check (1ms)
-  → JSONL append (0.5ms)
-  → webhook POST (timeout 3s, sync)  ← プロセス内で完了を待つ
-  → OTel POST (timeout 2s, sync)     ← 同上
+bin/harness hook PostToolUse (agent trace)
+  → trace record を agent-trace.jsonl に追記
+  → OTEL_EXPORTER_OTLP_ENDPOINT が設定されている場合:
+    → HTTP POST (sync, 3s timeout, Content-Type: application/json)
+    → 失敗は stderr ログのみ。リトライしない
   → stdout JSON response
   → exit
 ```
 
-- 送信成功/タイムアウト/接続拒否のいずれかが確定してから exit
+- OTel 送信は sync with timeout (3s)。プロセス内で完了を待つ
 - 送信失敗は stderr ログのみ。リトライしない（次回の hook 起動時に新イベントを送る）
-- webhook + OTel で最大 5 秒追加。ただしタイムアウトは稀なので通常は数十 ms
+- JSONL は常に書き込まれる（OTel 送信失敗時のフォールバック兼ローカル記録）
+
+**Webhook POST** は config struct (`harness.toml` の `[telemetry]` セクション) に
+フィールド定義があるが、送信ロジックは未実装。必要性が確認された時点で
+`hookhandler/` 内の該当 handler に sync POST を追加する方針。
 
 **長時間系 hook (PostToolUse) の扱い**:
 
@@ -688,7 +723,7 @@ Worst case total:    5ms
 | node_modules/ | 0 | Go は stdlib 完結 |
 | scripts/run-hook.sh routing | 0 | Go の subcommand routing |
 | jq dependency | 0 | Go encoding/json |
-| scripts/path-utils.sh | 0 | Go internal/config/paths.go |
+| scripts/path-utils.sh | 0 | 各 handler でパス解決を内包 |
 | scripts/sync-plugin-cache.sh | Go 版に更新 | hooks.json + bin/* を .claude-plugin/ にコピー。二重管理は維持（テスト互換） |
 
 ## Build & Distribution
@@ -737,7 +772,7 @@ Switch is atomic: replace `hooks/hooks.json` + `.claude-plugin/hooks.json` + `.c
 | D2 | Codex companion | **現行 shell wrapper を維持** | companion は codex-plugin-cc の proxy。Go 化の ROI が低い |
 | D3 | Memory MCP | **分離プロセス。Go に内蔵しない** | SQLite CGO 問題、ライフサイクル不一致。Node 版を継続利用 |
 | D4 | Plugin bin/ auto-selection | **CC の bin/ feature を使う** | CC v2.1.91+ がプラットフォーム別にバイナリを選択。Makefile で命名規則を合わせるだけ |
-| D5 | パッケージ構造 | **6 パッケージに統合** (guardrail, session, event, plans, notify, config) | 11 は過多。Go 慣習に従い機能密度を上げる |
+| D5 | パッケージ構造 | **internal 9 + pkg 2** (guardrail, session, event, hook, hookhandler, breezing, ci, lifecycle, state / hookproto, config) | 通知は hookhandler に統合。機能単位で分割しつつ依存方向を一方向に維持 |
 | D6 | review (security/dual) | **Go binary から除外。スキルのプロンプト指示で完結** | review の判断は LLM が行う。Go が持つ必要がない |
 | D7 | 外部依存 | **uuid のみ許容。他は stdlib** | MCP/OTel も encoding/json + net/http で自前実装 |
 

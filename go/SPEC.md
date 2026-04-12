@@ -384,11 +384,13 @@ pkg/protocol/       — 型定義
 ### worker-runtime (長寿命)
 
 ```
-internal/state/     — SQLite ストア
-internal/session/   — セッションライフサイクル
-internal/breezing/  — 並行オーケストレーション
-internal/config/    — 設定パーサー、パス解決
-internal/notify/    — webhook、OTel、ブロードキャスト
+internal/state/       — SQLite ストア
+internal/session/     — セッションライフサイクル
+internal/breezing/    — 並行オーケストレーション
+internal/hookhandler/ — hook handler 群（OTel export, broadcast 含む）
+internal/lifecycle/   — セッション状態追跡 + リカバリ
+internal/ci/          — CI 統合ユーティリティ
+pkg/config/           — 設定パーサー (harness.toml)
 ```
 
 **制約**:
