@@ -565,6 +565,21 @@ func safeAppend(path string, data []byte) error {
 | **TOCTOU** | ファイル存在チェックせず直接操作 → エラーハンドリング | 各 handler で直接操作 → error handling パターンを適用 |
 | **Unbounded growth** | JSONL rotation (500行超 → 400行に切詰) | hookhandler/emit_agent_trace.go (MaxFileSize による rotation) |
 | **Secret in hook output** | PreToolUse deny 理由にユーザー入力を含める際はサニタイズ | guardrail/pre_tool.go |
+| **Memory injection** | harness-mem POST 前に必須フィールド・長さチェック (K-1.2) | hookhandler/memory_bridge.go `validateBridgeInput` |
+
+### SafeResult の fail-open 設計判断
+
+`hook.SafeResult` は stdin パースエラー等のエンジンエラー時に `approve` を返す（fail-open）。
+これは S-1.5「安全側をデフォルトにする」と表面上矛盾するが、意図的な設計判断である。
+
+**理由**: CC プロトコルにおいて hook は「ツール使用を補助的に検査する層」であり、
+hook 自体の障害でユーザーのセッションが停止することは、ガードレール不在での続行より
+被害が大きい。deny の判断は `GuardRule` テーブルの正規表現マッチで確定的に行われ、
+SafeResult に到達するのは「ルール評価自体が不可能だった場合」のみ。
+
+**ガードの位置**: deny 判定は exit code 2 で確実にブロックされる。
+SafeResult は「ルール評価の前段階でのインフラ障害」であり、
+「安全性判定を skip した」のではなく「安全性判定のインプットが得られなかった」ケース。
 
 ## Delivery Model: Short-Lived Process での通知
 

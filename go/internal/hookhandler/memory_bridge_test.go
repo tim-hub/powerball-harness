@@ -273,6 +273,52 @@ func TestMemoryBridgeClient_BearerToken(t *testing.T) {
 	}
 }
 
+func TestValidateBridgeInput(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   memoryBridgeInput
+		wantErr bool
+	}{
+		{"valid", memoryBridgeInput{SessionID: "s1", CWD: "/tmp", HookEventName: "session-start"}, false},
+		{"empty session_id", memoryBridgeInput{SessionID: "", CWD: "/tmp", HookEventName: "session-start"}, true},
+		{"empty cwd", memoryBridgeInput{SessionID: "s1", CWD: "", HookEventName: "session-start"}, true},
+		{"session_id too long", memoryBridgeInput{SessionID: strings.Repeat("x", 257), CWD: "/tmp", HookEventName: "session-start"}, true},
+		{"session_id at limit", memoryBridgeInput{SessionID: strings.Repeat("x", 256), CWD: "/tmp", HookEventName: "session-start"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateBridgeInput(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateBridgeInput() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestMemoryBridgeClient_ValidationBlocksPost(t *testing.T) {
+	postReceived := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		postReceived = true
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	dir := t.TempDir()
+	t.Setenv("HARNESS_PROJECT_ROOT", dir)
+
+	c := &MemoryBridgeClient{HTTPClient: server.Client(), BaseURL: server.URL}
+	var out bytes.Buffer
+	// Empty session_id should fail validation and NOT post to server.
+	payload := `{"hook_event_name":"session-start","session_id":"","cwd":"` + dir + `"}`
+	if err := c.Handle(strings.NewReader(payload), &out); err != nil {
+		t.Fatalf("Handle error: %v", err)
+	}
+	assertApprove(t, out.String())
+	if postReceived {
+		t.Error("validation should have blocked POST to harness-mem, but server received a request")
+	}
+}
+
 // --- helpers ---
 
 // assertApprove verifies the output is a valid JSON approve response.

@@ -114,9 +114,29 @@ func (c *MemoryBridgeClient) Handle(in io.Reader, out io.Writer) error {
 	}
 
 	// POST to harness-mem (best-effort, sync with 2s timeout).
-	c.postToHarnessMem(target, input)
+	// K-1.2: validate before sending to long-term memory.
+	if err := validateBridgeInput(input); err != nil {
+		fmt.Fprintf(os.Stderr, "[claude-code-harness] memory-bridge validation failed: %v\n", err)
+	} else {
+		c.postToHarnessMem(target, input)
+	}
 
 	return approveMemoryBridge(out, target)
+}
+
+// validateBridgeInput は harness-mem に POST する前に最小限のスキーマ検証を行う。
+// 不正なイベントが長期記憶に昇格するのを防ぐ (K-1.2: 記憶は保存前に監査する)。
+func validateBridgeInput(input memoryBridgeInput) error {
+	if input.SessionID == "" {
+		return fmt.Errorf("session_id is required")
+	}
+	if len(input.SessionID) > 256 {
+		return fmt.Errorf("session_id too long (%d chars, max 256)", len(input.SessionID))
+	}
+	if input.CWD == "" {
+		return fmt.Errorf("cwd is required")
+	}
+	return nil
 }
 
 // postToHarnessMem は harness-mem デーモンにイベントを HTTP POST する。
