@@ -59,7 +59,7 @@ All responses must be in **Japanese** (including `context: fork` skills).
 | breezing | Full auto-run with Agent Teams (--codex support) | "run with team", "breezing" |
 | harness-review | Code review, quality checks | "review", "security", "performance" |
 | setup | Setup integration hub (init, harness-mem, Codex CLI, etc.) | "setup", "initialize", "harness-mem", "codex-setup" |
-| memory | SSOT management, memory search, SSOT promotion | "SSOT", "decisions.md", "memory search", "claude-mem" |
+| memory | SSOT management, memory search, SSOT promotion | "SSOT", "decisions.md", "memory search", "harness-mem" |
 
 Full category list and hierarchy: [docs/CLAUDE-skill-catalog.md](docs/CLAUDE-skill-catalog.md)
 
