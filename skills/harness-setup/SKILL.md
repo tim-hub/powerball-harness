@@ -24,8 +24,8 @@ Consolidates the following legacy skills:
 | `harness-setup ci` | CI/CD pipeline configuration |
 | `harness-setup codex` | Codex CLI installation and configuration |
 | `harness-setup harness-mem` | harness-mem integration and memory configuration |
-| `harness-setup mirrors` | skills-v3/ → public mirror bundle update |
-| `harness-setup agents` | agents-v3/ agent configuration |
+| `harness-setup mirrors` | skills/ → public mirror bundle update |
+| `harness-setup agents` | agents/ agent configuration |
 | `harness-setup localize` | CLAUDE.md rule localization |
 
 ## Subcommand Details
@@ -128,10 +128,10 @@ Update targets:
 
 ### agents — Agent Configuration
 
-Configure the 3-agent structure in agents-v3/.
+Configure the 3-agent structure in agents/.
 
 ```
-agents-v3/
+agents/
 ├── worker.md      # Implementation (task-worker + codex-implementer + error-recovery)
 ├── reviewer.md    # Review (code-reviewer + plan-critic)
 └── scaffolder.md  # Scaffolding (project-analyzer + scaffolder)

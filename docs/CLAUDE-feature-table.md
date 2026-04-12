@@ -49,8 +49,8 @@
 | **`includeGitInstructions: false` (v2.1.69)** | work, breezing | Token reduction for tasks that don't need git instructions |
 | **`git-subdir` plugin source (v2.1.69)** | setup, release | Support plugin source managed from repository subdirectories |
 | **Auto Mode (RP Phase 1)** | breezing, work | CC native feature. Harness only tracks PermissionDenied. Decision logic not implemented. Current default is `bypassPermissions` |
-| **Per-agent hooks (v2.1.69+)** | agents-v3/ | Added `hooks` field to agent definition frontmatter. Worker gets PreToolUse guard, Reviewer gets Stop log |
-| **Agent `isolation: worktree` (v2.1.50+)** | agents-v3/worker | Added `isolation: worktree` to Worker agent definition. Auto worktree isolation for parallel writes |
+| **Per-agent hooks (v2.1.69+)** | agents/ | Added `hooks` field to agent definition frontmatter. Worker gets PreToolUse guard, Reviewer gets Stop log |
+| **Agent `isolation: worktree` (v2.1.50+)** | agents/worker | Added `isolation: worktree` to Worker agent definition. Auto worktree isolation for parallel writes |
 | **Compaction image retention (v2.1.70)** | notebookLM, harness-review | Images retained in summary requests. Improved prompt cache reuse |
 | **Sub-agent final report simplification (v2.1.70)** | breezing, harness-work | Reduced token consumption for sub-agent completion reports |
 | **`--resume` skill list re-injection removed (v2.1.70)** | session | ~600 tokens saved on session resume |
@@ -63,7 +63,7 @@
 | **Plugin install parallel execution fix (v2.1.71)** | breezing | Stabilized plugin state during multiple simultaneous instances |
 | **Marketplace improvements (v2.1.71)** | setup | @ref parser fix, update merge conflict fix, MCP server deduplication, /plugin uninstall uses settings.local.json |
 | **Subagent `background` field (v2.1.71+)** | breezing, parallel-workflows | Added `background: true` to agent definitions. Always runs as background task |
-| **Subagent `local` memory scope (v2.1.71+)** | agents-v3/ | `memory: local` saves to `.claude/agent-memory-local/`. Isolates sensitive learning that shouldn't be committed to VCS |
+| **Subagent `local` memory scope (v2.1.71+)** | agents/ | `memory: local` saves to `.claude/agent-memory-local/`. Isolates sensitive learning that shouldn't be committed to VCS |
 | **Agent Teams experimental flag (v2.1.71+)** | breezing | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env var enables Agent Teams. Officially documented |
 | **`/agents` command (v2.1.71+)** | troubleshoot, setup | Interactive agent management UI. Create, edit, delete, and list via GUI |
 | **Desktop Scheduled Tasks (v2.1.71+)** | harness-work | CC native feature. No Harness default config (CronCreate tool available) |
@@ -82,7 +82,7 @@
 | **Bash auto-approval additions (v2.1.72)** | guardrails | `lsof`, `pgrep`, `tput`, `ss`, `fd`, `fdfind` added to allow list |
 | **Prompt cache fix (v2.1.72)** | all skills | Fixed SDK `query()` cache invalidation. Up to 12x input token cost reduction |
 | **Output Styles (v2.1.72+)** | all skills | Define custom output styles in `.claude/output-styles/`. `harness-ops` provides structured output for Plan/Work/Review |
-| **`permissionMode` in agent frontmatter (v2.1.72+)** | agents-v3/ | Declaratively specify `permissionMode` in agent definition YAML. No need for `mode` specification at spawn time |
+| **`permissionMode` in agent frontmatter (v2.1.72+)** | agents/ | Declaratively specify `permissionMode` in agent definition YAML. No need for `mode` specification at spawn time |
 | **Agent Teams official best practices (v2.1.72+)** | breezing | 5-6 tasks/teammate guideline, `teammateMode` setting, plan approval pattern reflected in team-composition |
 | **Sandboxing (`/sandbox`)** | breezing, harness-work | OS-level filesystem/network isolation. Complementary layer to `bypassPermissions` |
 | **`opusplan` model alias** | breezing | Auto-switches Opus (plan) / Sonnet (execute). Optimal for Lead's Plan -> Execute flow |
@@ -105,13 +105,13 @@
 | **`/btw` side question (v2.1.72+)** | all skills | Short questions while preserving current context. No tool access, not saved to history. Lightweight alternative to sub-agent |
 | **Plugin CLI commands (v2.1.72+)** | setup | `claude plugin install/uninstall/enable/disable/update` + `--scope` flag. Script automation support |
 | **Remote Control enhancements (v2.1.72+)** | investigated, future support | `/remote-control` (`/rc`) to enable in-session. `--name`, `--sandbox`, `--verbose` flags. `/mobile` for QR code. Auto-reconnection support |
-| **`skills` field in agent frontmatter (v2.1.72+)** | agents-v3/ | Preload skills into sub-agents. Worker gets `harness-work`+`harness-review`, Reviewer gets `harness-review`, Scaffolder gets `harness-setup`+`harness-plan` (implemented) |
+| **`skills` field in agent frontmatter (v2.1.72+)** | agents/ | Preload skills into sub-agents. Worker gets `harness-work`+`harness-review`, Reviewer gets `harness-review`, Scaffolder gets `harness-setup`+`harness-plan` (implemented) |
 | **`modelOverrides` setting (v2.1.73)** | setup, breezing | Map model picker entries to custom provider model IDs (Bedrock ARNs, etc.) |
 | **`/output-style` deprecation (v2.1.73)** | all skills | Migrated to `/config`. Output style selection moved to config menu |
 | **Bedrock/Vertex Opus 4.6 default (v2.1.73)** | breezing | Cloud provider default Opus updated from 4.1 to 4.6 |
 | **`autoMemoryDirectory` setting (v2.1.74)** | session-memory, setup | Customize auto-memory storage path. Project-specific memory isolation |
 | **`CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS` (v2.1.74)** | hooks | Configurable SessionEnd hook timeout (previously fixed at 1.5s kill) |
-| **Full model ID fix (v2.1.74)** | agents-v3/, breezing | `claude-opus-4-6` etc. now recognized in agent frontmatter and JSON config |
+| **Full model ID fix (v2.1.74)** | agents/, breezing | `claude-opus-4-6` etc. now recognized in agent frontmatter and JSON config |
 | **Streaming API memory leak fix (v2.1.74)** | breezing, harness-work | Fixed unbounded RSS growth in streaming response buffers |
 | **`--remote` / Cloud Sessions** | breezing, harness-work | Launch cloud sessions from terminal with `--remote`. Async task execution |
 | **`/teleport` (`/tp`)** | session | Import cloud sessions to local terminal |
@@ -123,7 +123,7 @@
 | **`PreCompact` hook** | hooks | Pre-compaction state save and WIP task warning (implemented) |
 | **`Notification` hook event** | hooks | Custom handler for notification events (implemented) |
 | **`/context` command (v2.1.74)** | all skills | Visualize context consumption and suggest optimizations |
-| **`maxTurns` agent safety limit** | agents-v3/ | Runaway prevention via turn limits. Worker: 100, Reviewer: 50, Scaffolder: 75 |
+| **`maxTurns` agent safety limit** | agents/ | Runaway prevention via turn limits. Worker: 100, Reviewer: 50, Scaffolder: 75 |
 | **Output token limits 64k/128k (v2.1.77)** | all skills | Opus 4.6 / Sonnet 4.6 default 64k, max 128k tokens |
 | **`allowRead` sandbox setting (v2.1.77)** | harness-review | Re-allow read access to specific paths within `denyRead` regions |
 | **PreToolUse `allow` respects `deny` (v2.1.77)** | guardrails | Hook `allow` no longer overrides settings.json `deny` rules |
@@ -134,12 +134,12 @@
 | **Stale worktree race fix (v2.1.77)** | breezing | Prevention of active worktree false deletion |
 | **`StopFailure` hook event (v2.1.78)** | hooks | Capture session stop failures on API errors |
 | **`${CLAUDE_PLUGIN_DATA}` variable (v2.1.78)** | hooks, setup | Persistent state directory that survives plugin updates |
-| **Agent `effort`/`maxTurns`/`disallowedTools` frontmatter (v2.1.78)** | agents-v3/ | Declarative control for plugin agents |
+| **Agent `effort`/`maxTurns`/`disallowedTools` frontmatter (v2.1.78)** | agents/ | Declarative control for plugin agents |
 | **`deny: ["mcp__*"]` fix (v2.1.78)** | setup | settings.json deny now correctly blocks MCP tools |
 | **`ANTHROPIC_CUSTOM_MODEL_OPTION` (v2.1.78)** | setup | Custom model picker entries |
 | **`--worktree` skills/hooks loading fix (v2.1.78)** | breezing | Skills and hooks load correctly with worktree flag |
 | **Skill `effort` frontmatter (v2.1.80)** | harness-work, harness-review, harness-plan, harness-release | Set thinking depth on 5-verb skills themselves, improving initial quality for heavy flows |
-| **Agent `initialPrompt` frontmatter (v2.1.83)** | agents-v3/ | Stabilize the first turn of Worker / Reviewer / Scaffolder per role |
+| **Agent `initialPrompt` frontmatter (v2.1.83)** | agents/ | Stabilize the first turn of Worker / Reviewer / Scaffolder per role |
 | **`sandbox.failIfUnavailable` (v2.1.83)** | setup, guardrails | Prevent silent fallback to unsandboxed when sandbox fails to start |
 | **`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` (v2.1.83)** | hooks, setup | Reduce credential exposure surface to hook / Bash / MCP stdio subprocesses |
 | **`TaskCreated` / `CwdChanged` / `FileChanged` hooks (v2.1.83-2.1.84)** | hooks, session | Add reactive state tracking and Plans / rules re-read reminders |
@@ -367,7 +367,7 @@ Designed to roll back to `command` type if effectiveness is insufficient.
 
 CC 2.1.68 changed Opus 4.6 to **medium effort** by default. The `ultrathink` keyword enables high effort (extended thinking) for one turn.
 `harness-work` skill calculates a multi-factor score (changed file count, target directories, keywords, failure history, PM explicit specification) and auto-injects `ultrathink` at Worker spawn prompt start when score >= 3.
-See the "Effort Level Control" section in `skills-v3/harness-work/SKILL.md` for details.
+See the "Effort Level Control" section in `skills/harness-work/SKILL.md` for details.
 
 ### Opus 4/4.1 removal (v2.1.68)
 
@@ -732,14 +732,14 @@ Harness integration:
 - Auto Mode organized as rollout candidate; current shipped default remains `bypassPermissions`
 
 ```yaml
-# agents-v3/worker.md frontmatter
+# agents/worker.md frontmatter
 permissionMode: bypassPermissions  # added
 ```
 
 ### Agent Teams official best practices (v2.1.72+)
 
 Claude Code official `agent-teams.md` established as independent documentation.
-Reflected in Harness's `agents-v3/team-composition.md`:
+Reflected in Harness's `agents/team-composition.md`:
 
 1. **Task granularity guideline**: 5-6 tasks/teammate recommended
 2. **`teammateMode` setting**: Official support for `"auto"` / `"in-process"` / `"tmux"`
@@ -1158,7 +1158,7 @@ Previously only aliases (`opus`, `sonnet`) worked reliably.
 - Harness currently uses aliases (`sonnet`, `opus`), so no immediate impact. Useful for Bedrock/Vertex environments requiring full ID specification
 
 ```yaml
-# agents-v3/worker.md frontmatter (full model ID example)
+# agents/worker.md frontmatter (full model ID example)
 model: claude-sonnet-4-6
 ```
 

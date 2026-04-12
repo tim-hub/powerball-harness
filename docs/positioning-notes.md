@@ -23,6 +23,6 @@ In short, the value of `claude-code-harness` for public-facing purposes is not a
 ## Proof Points
 
 - TypeScript guardrail engine (`core/`)
-- 5 verb skills (`skills-v3/`)
+- 5 verb skills (`skills/`)
 - consistency check and plugin validation
 - `/harness-work all` evidence pack

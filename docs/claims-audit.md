@@ -9,7 +9,7 @@ When updating README or release copy, review this table first.
 
 | Claim | Status | Current evidence | Before stronger wording |
 |------|--------|------------------|-------------------------|
-| Harness is built around **5 verb skills** | Proven now | `skills-v3/`, `README`, `validate-plugin-v3.sh` | None |
+| Harness is built around **5 verb skills** | Proven now | `skills/`, `README`, `validate-plugin-v3.sh` | None |
 | Harness uses a **TypeScript guardrail engine** | Proven now | `core/`, `core npm test`, `hooks/` | None |
 | README / docs / Plans no longer contradict each other on version and missing links | Proven now | `README*`, `docs/CLAUDE_CODE_COMPATIBILITY.md`, `docs/CURSOR_INTEGRATION.md`, `check-consistency.sh` | Continue simultaneous updates when changing documentation |
 | `commands/` and `mcp-server/` are intentionally retained with clear boundaries | Proven now | `docs/distribution-scope.md`, `.gitignore`, `Plans.md` wording repair | Update scope table simultaneously when boundaries change |

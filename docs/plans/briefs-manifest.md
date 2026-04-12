@@ -48,7 +48,7 @@ Output includes:
 - `surface`
 - `related_surfaces`
 
-`related_surfaces` also includes mirror information such as `skills-v3`, `skills`, `codex/.codex/skills`, `opencode/skills`.
+`related_surfaces` also includes mirror information such as `skills`, `skills`, `codex/.codex/skills`, `opencode/skills`.
 
 ## Example
 

@@ -16,14 +16,14 @@ claude-code-harness/
 │   │       └── tampering.ts  # Tampering detection
 │   ├── package.json          # standalone TypeScript package
 │   └── tsconfig.json         # strict, NodeNext ESM
-├── skills-v3/      # 5-verb skills
+├── skills/      # 5-verb skills
 │   ├── plan/       # planning + plans-management + sync-status consolidated
 │   ├── execute/    # work + breezing + codex consolidated
 │   ├── review/     # harness-review + codex-review consolidated
 │   ├── release/    # release-har + handoff consolidated
 │   ├── setup/      # harness-init + harness-mem consolidated
 │   └── extensions/ # Extension packs (symlink → skills/)
-├── agents-v3/      # 3 agents (11→3 consolidated)
+├── agents/      # 3 agents (11→3 consolidated)
 │   ├── worker.md        # Implementation agent
 │   ├── reviewer.md      # Review agent (Read-only)
 │   ├── scaffolder.md    # Scaffolding and state update agent
@@ -64,11 +64,11 @@ claude-code-harness/
 
 ## Symlink Structure (v3)
 
-The 5-verb skills in `codex/.codex/skills/` and `opencode/skills/` are symlinks to `skills-v3/`:
+The 5-verb skills in `codex/.codex/skills/` and `opencode/skills/` are symlinks to `skills/`:
 
 ```bash
-codex/.codex/skills/plan -> ../../../../skills-v3/plan
-opencode/skills/execute   -> ../../../skills-v3/execute
+codex/.codex/skills/plan -> ../../../../skills/plan
+opencode/skills/execute   -> ../../../skills/execute
 # ...etc
 ```
 

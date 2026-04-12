@@ -6,6 +6,58 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Repository rebrand + v3 directory consolidation
+
+**Rebranded the repository from `Chachamaru127/claude-code-harness` to `tim-hub/powerball-harness`, eliminated the redundant `skills-v3/` and `agents-v3/` directories, and unified all skills and agents under `skills/` and `agents/`.**
+
+---
+
+#### 1. Repository URL rebrand
+
+**Before**: Repository URLs pointed to `Chachamaru127/claude-code-harness` (original upstream) or `tim-hub/claude-code-harness` (fork). Marketplace, install scripts, CI badges, social posts, and documentation all referenced the old paths.
+
+**After**: All URLs now point to `tim-hub/powerball-harness`. Updated across README, CONTRIBUTING, marketplace.json, CHANGELOG link references, CI scripts, install scripts, social post drafts, and benchmark docs. Added an Origin section to README crediting the original upstream repository.
+
+#### 2. Merge `skills-v3/` and `agents-v3/` into `skills/` and `agents/`
+
+**Before**: Two parallel directory structures existed — `skills/` (legacy, 28 skills) and `skills-v3/` (v3 consolidation, 7 core + 10 extension symlinks). The v3 migration was never completed; both directories had converged to identical content. `agents-v3/` held 4 agent files (`worker.md`, `reviewer.md`, `scaffolder.md`, `team-composition.md`) that had no counterparts in `agents/`.
+
+**After**: Copied v3 agents into `agents/`. Removed `skills-v3/` entirely (core skills were duplicates, extensions were symlinks back to `skills/`). Updated all references across 27 files (docs, scripts, rules, CI tests, CLAUDE.md). `CHANGELOG.md` and `Plans.md` left as historical records.
+
+#### 3. Planning skill uses Opus model
+
+**Before**: `harness-plan` skill used the default model.
+
+**After**: Added `model: opus` to `harness-plan` frontmatter for higher-quality planning output.
+
+---
+
+## [3.17.2] - 2026-04-11
+
+### Theme: Full English translation + OSS readiness
+
+**Translated the entire codebase from Japanese to English for open-source readiness, removed non-Claude Code platform directories, and cleaned up the plugin manifest.**
+
+---
+
+#### 1. Full English translation
+
+**Before**: Skills, agents, rules, docs, hooks, scripts, workflows, benchmarks, and CI all contained Japanese text. This limited accessibility for English-speaking contributors and users.
+
+**After**: All SKILL.md frontmatter descriptions, agent instructions, rule files, documentation, hook scripts, CI workflows, and benchmark reports translated to English. Japanese README (`README_ja.md`) and license (`LICENSE.ja.md`) removed.
+
+#### 2. Non-Claude Code platform removal
+
+**Before**: Repository included directories for Codex (`codex/`), OpenCode (`opencode/`), Cursor (`.cursor/`), and other non-CC platforms with mirrored skills and configurations.
+
+**After**: Removed `codex/`, `opencode/`, `.cursor/`, and related platform-specific files. Harness now focuses exclusively on Claude Code as its target platform.
+
+#### 3. Plugin manifest cleanup
+
+**Before**: `.claude-plugin/plugin.json` existed alongside `marketplace.json` with overlapping metadata.
+
+**After**: Removed redundant `plugin.json`. `marketplace.json` is the single source for plugin metadata.
+
 ## [3.17.1] - 2026-04-06
 
 ### Theme: harness-mem integration fix (emergency patch)

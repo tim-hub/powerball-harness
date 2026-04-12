@@ -74,7 +74,7 @@ Only the following 2 files are subject to version management:
 
 ## Distribution Surfaces and Mirror Sync
 
-`skills-v3/` is the SSOT (Single Source of Truth). The following 3 distribution surfaces are synced as mirrors:
+`skills/` is the SSOT (Single Source of Truth). The following 3 distribution surfaces are synced as mirrors:
 
 | Surface | Path | Target Users |
 |---------|------|-------------|
@@ -82,7 +82,7 @@ Only the following 2 files are subject to version management:
 | Codex | `codex/.codex/skills/harness-release/` | Codex CLI users |
 | OpenCode | `opencode/skills/harness-release/` | OpenCode users |
 
-**Important**: After editing `skills-v3/`, always sync mirrors before releasing:
+**Important**: After editing `skills/`, always sync mirrors before releasing:
 
 ```bash
 ./scripts/sync-v3-skill-mirrors.sh
@@ -251,7 +251,7 @@ Do not empty the `[Unreleased]` section; keep it for the next release:
 ### Phase 5: Mirror Sync
 
 ```bash
-# Mirror sync: skills-v3 → skills, codex, opencode
+# Mirror sync: skills → skills, codex, opencode
 ./scripts/sync-v3-skill-mirrors.sh
 
 # Verify sync
@@ -379,7 +379,7 @@ Verify the following regressions before release:
 |------------|-------------------|-------|
 | Plugin structure | `tests/validate-plugin.sh` | Validates plugin.json, skills, hooks, scripts |
 | Consistency | `scripts/ci/check-consistency.sh` | Templates, versions, mirrors, CHANGELOG |
-| Mirror sync | `scripts/sync-v3-skill-mirrors.sh --check` | Match between skills-v3 and 3 distribution surfaces |
+| Mirror sync | `scripts/sync-v3-skill-mirrors.sh --check` | Match between skills and 3 distribution surfaces |
 | Preflight | `scripts/release-preflight.sh` | Working tree, CHANGELOG, CI, remnants |
 | Release notes | `scripts/validate-release-notes.sh vX.Y.Z` | GitHub Release format validation |
 | VERSION sync | `scripts/sync-version.sh check` | Match between VERSION and plugin.json |

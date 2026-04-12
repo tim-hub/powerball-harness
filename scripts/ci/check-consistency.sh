@@ -108,12 +108,12 @@ echo ""
 echo "📋 [4/12] Expected skill file structure..."
 
 # 2agent config integrated into harness-setup (v3)
-# Check existence of skills-v3/harness-setup/SKILL.md
-SETUP_V3="$PLUGIN_ROOT/skills-v3/harness-setup/SKILL.md"
+# Check existence of skills/harness-setup/SKILL.md
+SETUP_V3="$PLUGIN_ROOT/skills/harness-setup/SKILL.md"
 if [ -f "$SETUP_V3" ]; then
-  echo "  skills-v3/harness-setup/SKILL.md exists (includes 2-agent config)"
+  echo "  skills/harness-setup/SKILL.md exists (includes 2-agent config)"
 else
-  echo "  skills-v3/harness-setup/SKILL.md not found"
+  echo "  skills/harness-setup/SKILL.md not found"
   ERRORS=$((ERRORS + 1))
 fi
 
@@ -332,7 +332,7 @@ fi
 echo ""
 echo "📦 [10/12] v3 skill mirror check..."
 
-V3_SKILLS_DIR="$PLUGIN_ROOT/skills-v3"
+V3_SKILLS_DIR="$PLUGIN_ROOT/skills"
 CLAUDE_MIRROR="$PLUGIN_ROOT/skills"
 CODEX_MIRROR="$PLUGIN_ROOT/codex/.codex/skills"
 OPENCODE_MIRROR="$PLUGIN_ROOT/opencode/skills"
@@ -372,7 +372,7 @@ if [ -d "$V3_SKILLS_DIR" ]; then
       if diff -qr "$src" "$mirror_path" >/dev/null 2>&1; then
         echo "  ✅ $mirror_name: $skill mirror is in sync"
       else
-        echo "  $mirror_name: $skill mirror is out of sync with skills-v3"
+        echo "  $mirror_name: $skill mirror is out of sync with skills"
         MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
       fi
     done
@@ -407,20 +407,20 @@ if [ -d "$V3_SKILLS_DIR" ]; then
       if diff -qr "$src" "$mirror_path" >/dev/null 2>&1; then
         echo "  ✅ $mirror_name: $skill mirror is in sync"
       else
-        echo "  ❌ $mirror_name: $skill mirror drifted from skills-v3/$skill"
+        echo "  ❌ $mirror_name: $skill mirror drifted from skills/$skill"
         MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
       fi
     done
   done
 else
-  echo "  skills-v3/ does not exist (skipped)"
+  echo "  skills/ does not exist (skipped)"
 fi
 
 if [ $MIRROR_ISSUES -gt 0 ]; then
   ERRORS=$((ERRORS + MIRROR_ISSUES))
 fi
 
-# breezing alias must match skills-v3 in both public mirror and codex mirror
+# breezing alias must match skills in both public mirror and codex mirror
 for mirror_entry in "claude:$CLAUDE_MIRROR/breezing" "codex:$CODEX_MIRROR/breezing"; do
   mirror_name="${mirror_entry%%:*}"
   mirror_path="${mirror_entry#*:}"
@@ -439,7 +439,7 @@ for mirror_entry in "claude:$CLAUDE_MIRROR/breezing" "codex:$CODEX_MIRROR/breezi
   if diff -qr "$V3_SKILLS_DIR/breezing" "$mirror_path" >/dev/null 2>&1; then
     echo "  ✅ $mirror_name: breezing mirror is in sync"
   else
-    echo "  $mirror_name: breezing mirror is out of sync with skills-v3"
+    echo "  $mirror_name: breezing mirror is out of sync with skills"
     ERRORS=$((ERRORS + 1))
   fi
 done

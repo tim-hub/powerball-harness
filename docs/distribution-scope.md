@@ -10,8 +10,8 @@ When uncertain in `Plans.md`, README, distribution scripts, or validation script
 | Path | Status | Why it exists | Enforcement signal |
 |------|--------|---------------|--------------------|
 | `core/` | Distribution-included | TypeScript guardrail engine core | `core npm test`, README architecture |
-| `skills-v3/` | Distribution-included | Current 5 verb skills | README, mirror sync checks |
-| `agents-v3/` | Distribution-included | Current worker / reviewer / scaffolder | README, validate-plugin-v3 |
+| `skills/` | Distribution-included | Current 5 verb skills | README, mirror sync checks |
+| `agents/` | Distribution-included | Current worker / reviewer / scaffolder | README, validate-plugin-v3 |
 | `hooks/` | Distribution-included | Runtime guardrails and lifecycle hooks | `hooks/hooks.json`, validate-plugin |
 | `scripts/hook-handlers/memory-bridge.sh`, `scripts/hook-handlers/memory-*.sh` | Distribution-included | Bridge and wrapper for harness-mem integration. Hooks reference the stable bridge, wrappers are for compatibility and testing | `validate-plugin`, `test-memory-hook-wiring.sh` |
 | `templates/` | Distribution-included | Authoritative source for project init and rules distribution | `check-consistency.sh` |

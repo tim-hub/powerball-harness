@@ -4,6 +4,7 @@ description: "Use this skill whenever the user asks to create a plan, add tasks,
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "Task"]
 argument-hint: "[create|add|update|sync|sync --no-retro|--ci]"
 effort: medium
+model: opus
 ---
 
 # Harness Plan (v3)

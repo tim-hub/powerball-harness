@@ -11,7 +11,7 @@ Direct invocation of raw `codex exec` is prohibited. Use one of the following tw
 
 ## Prohibited
 
-- Direct invocation of `codex exec` (except within `skills-v3-codex/`; see exception below)
+- Direct invocation of `codex exec` (except within `skills-codex/`; see exception below)
 - Use of `mcp__codex__codex` (MCP server has been deprecated)
 - Searching for Codex MCP via ToolSearch
 - Re-registering the MCP server via `claude mcp add codex`
@@ -98,7 +98,7 @@ The official plugin's review output uses a different schema from Harness. Conver
 
 ## Exception: Codex Native Skills
 
-Skills within `skills-v3-codex/` **run inside the Codex CLI**, so
+Skills within `skills-codex/` **run inside the Codex CLI**, so
 Codex native APIs such as `spawn_agent` / `wait_agent` / `send_input` / `close_agent`
 may continue to be used. However, invoking reviews via the companion script is recommended.
 

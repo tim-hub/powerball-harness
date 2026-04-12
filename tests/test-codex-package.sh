@@ -183,10 +183,10 @@ fi
 
 log_test "Public v3 skill mirrors stay in sync"
 if ./scripts/sync-v3-skill-mirrors.sh --check >/tmp/codex-skill-mirrors.$$ 2>&1; then
-  log_pass "Public skill mirrors match skills-v3"
+  log_pass "Public skill mirrors match skills"
 else
   cat /tmp/codex-skill-mirrors.$$ | sed 's/^/  /'
-  log_fail "Public skill mirrors drifted from skills-v3"
+  log_fail "Public skill mirrors drifted from skills"
 fi
 rm -f /tmp/codex-skill-mirrors.$$ || true
 
@@ -251,8 +251,8 @@ if [ -L "codex/.codex/skills/breezing" ]; then
   echo "  symlink: codex/.codex/skills/breezing must be a real directory"
   workflow_surface_ok=false
 fi
-if ! diff -qr "skills-v3/breezing" "codex/.codex/skills/breezing" >/dev/null 2>&1; then
-  echo "  drift: codex breezing mirror does not match skills-v3/breezing"
+if ! diff -qr "skills/breezing" "codex/.codex/skills/breezing" >/dev/null 2>&1; then
+  echo "  drift: codex breezing mirror does not match skills/breezing"
   workflow_surface_ok=false
 fi
 for forbidden_pat in '$plan-with-agent' '$work' '$verify' '$remember'; do

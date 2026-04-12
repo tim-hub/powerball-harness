@@ -5,7 +5,7 @@
 # Purpose: Called from session-init.sh
 # Behavior:
 #   - When public harness-* skills in skills/ are plain files (old Windows checkout)
-#   - Replace with actual copies from skills-v3/
+#   - Replace with actual copies from skills/
 #   - Output repair count to stdout (JSON format)
 #
 # Output:
@@ -17,7 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 SKILLS_DIR="$PLUGIN_ROOT/skills"
-SKILLS_V3_DIR="$PLUGIN_ROOT/skills-v3"
+SKILLS_V3_DIR="$PLUGIN_ROOT/skills"
 
 # Public 5 skills list (skills/ mirror bundle)
 V3_SKILLS=("harness-plan" "harness-work" "harness-review" "harness-setup" "harness-release")

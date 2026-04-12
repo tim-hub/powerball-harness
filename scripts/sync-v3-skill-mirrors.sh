@@ -14,8 +14,8 @@
 #   - opencode/skills/
 #
 # Usage:
-#   ./scripts/sync-v3-skill-mirrors.sh          # overwrite mirrors from skills-v3
-#   ./scripts/sync-v3-skill-mirrors.sh --check  # verify mirrors match skills-v3
+#   ./scripts/sync-v3-skill-mirrors.sh          # overwrite mirrors from skills
+#   ./scripts/sync-v3-skill-mirrors.sh --check  # verify mirrors match skills
 
 set -euo pipefail
 
@@ -52,7 +52,7 @@ fi
 sync_skill() {
   local skill="$1"
   local mirror_root="$2"
-  local src="$PLUGIN_ROOT/skills-v3/$skill"
+  local src="$PLUGIN_ROOT/skills/$skill"
   local dst_root="$PLUGIN_ROOT/$mirror_root"
   local dst="$dst_root/$skill"
 
@@ -65,7 +65,7 @@ sync_skill() {
 check_skill() {
   local skill="$1"
   local mirror_root="$2"
-  local src="$PLUGIN_ROOT/skills-v3/$skill"
+  local src="$PLUGIN_ROOT/skills/$skill"
   local dst="$PLUGIN_ROOT/$mirror_root/$skill"
 
   if [ ! -d "$dst" ]; then
@@ -89,7 +89,7 @@ check_skill() {
 sync_alias_skill() {
   local skill="$1"
   local mirror_root="$2"
-  local src="$PLUGIN_ROOT/skills-v3/$skill"
+  local src="$PLUGIN_ROOT/skills/$skill"
   local dst_root="$PLUGIN_ROOT/$mirror_root"
   local dst="$dst_root/$skill"
 
@@ -102,7 +102,7 @@ sync_alias_skill() {
 check_alias_skill() {
   local skill="$1"
   local mirror_root="$2"
-  local src="$PLUGIN_ROOT/skills-v3/$skill"
+  local src="$PLUGIN_ROOT/skills/$skill"
   local dst="$PLUGIN_ROOT/$mirror_root/$skill"
 
   if [ ! -d "$dst" ]; then

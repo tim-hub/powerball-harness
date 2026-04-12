@@ -42,7 +42,7 @@ Each item added to the Feature Table is classified into the following 3 categori
 |-----------------------|-------------------------------------|---------------|
 | `PostCompact hook` | `hooks/post-compact-handler.sh` newly created | A |
 | `MCP Elicitation support` | Elicitation event added to `hooks.json` + `elicitation-handler.sh` created | A |
-| `Worker maxTurns limit` | maxTurns field added to `agents-v3/worker.md` | A |
+| `Worker maxTurns limit` | maxTurns field added to `agents/worker.md` | A |
 
 **Result**: OK. No additional action needed.
 

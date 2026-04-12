@@ -173,7 +173,7 @@ Official documentation now documents `permissionMode` as a formal field in agent
 **Declaration at the definition level is recommended** over specifying `mode` at spawn time:
 
 ```yaml
-# agents-v3/worker.md frontmatter
+# agents/worker.md frontmatter
 permissionMode: bypassPermissions
 ```
 
@@ -397,7 +397,7 @@ it is **TUI-only** and non-interactive fork is not yet implemented.
 ### codex exec Flag Official Names (Reference: codex-cli 0.115.0+)
 
 > **Note**: Harness uses `scripts/codex-companion.sh` rather than raw `codex exec`.
-> The following is for reference within Codex native skills (`skills-v3-codex/`).
+> The following is for reference within Codex native skills (`skills-codex/`).
 
 | Flag | Short Form | Description |
 |---|---|---|
@@ -556,7 +556,7 @@ export CLAUDE_CODE_SUBAGENT_MODEL=claude-haiku-4-5-20251001
 - Codex Worker: Effort control is Claude Code specific. Not applicable in Codex CLI
 
 ### Effort Injection Pattern
-When Lead spawns Worker/Reviewer, `ultrathink` is added at the beginning of the spawn prompt based on the task's complexity score. See the "Effort Level Control" section in `skills-v3/harness-work/SKILL.md` for details.
+When Lead spawns Worker/Reviewer, `ultrathink` is added at the beginning of the spawn prompt based on the task's complexity score. See the "Effort Level Control" section in `skills/harness-work/SKILL.md` for details.
 
 ### v2.1.72 Agent Tool `model` Parameter Restored
 The Agent tool's per-invocation `model` parameter has been restored. Separate from the agent definition's `model`, a temporary model specification is possible at spawn time.

@@ -67,24 +67,24 @@ V3_SKILLS=(harness-plan harness-work harness-review harness-release harness-setu
 AUX_V3_SKILLS=(harness-sync)
 
 for skill in "${V3_SKILLS[@]}"; do
-  skill_dir="$PLUGIN_ROOT/skills-v3/$skill"
+  skill_dir="$PLUGIN_ROOT/skills/$skill"
   skill_md="$skill_dir/SKILL.md"
 
   if [ ! -d "$skill_dir" ]; then
-    fail_test "skills-v3/$skill/ (directory missing)"
+    fail_test "skills/$skill/ (directory missing)"
     continue
   fi
 
   if [ ! -f "$skill_md" ]; then
-    fail_test "skills-v3/$skill/SKILL.md (missing)"
+    fail_test "skills/$skill/SKILL.md (missing)"
     continue
   fi
 
   # frontmatter name: check
   if grep -q "^name: $skill$" "$skill_md"; then
-    pass_test "skills-v3/$skill/SKILL.md (name: $skill)"
+    pass_test "skills/$skill/SKILL.md (name: $skill)"
   else
-    fail_test "skills-v3/$skill/SKILL.md (name: field is not '$skill')"
+    fail_test "skills/$skill/SKILL.md (name: field is not '$skill')"
   fi
 done
 
@@ -92,23 +92,23 @@ echo ""
 echo "🧭 [2.5/6] Auxiliary workflow surface check..."
 
 for skill in "${AUX_V3_SKILLS[@]}"; do
-  skill_dir="$PLUGIN_ROOT/skills-v3/$skill"
+  skill_dir="$PLUGIN_ROOT/skills/$skill"
   skill_md="$skill_dir/SKILL.md"
 
   if [ ! -d "$skill_dir" ]; then
-    fail_test "skills-v3/$skill/ (directory missing)"
+    fail_test "skills/$skill/ (directory missing)"
     continue
   fi
 
   if [ ! -f "$skill_md" ]; then
-    fail_test "skills-v3/$skill/SKILL.md (missing)"
+    fail_test "skills/$skill/SKILL.md (missing)"
     continue
   fi
 
   if grep -q "^name: $skill$" "$skill_md"; then
-    pass_test "skills-v3/$skill/SKILL.md (name: $skill)"
+    pass_test "skills/$skill/SKILL.md (name: $skill)"
   else
-    fail_test "skills-v3/$skill/SKILL.md (name: field is not '$skill')"
+    fail_test "skills/$skill/SKILL.md (name: field is not '$skill')"
   fi
 done
 
@@ -131,7 +131,7 @@ for mirror_dir in "${MIRRORS[@]}"; do
   fi
 
   for skill in "${V3_SKILLS[@]}"; do
-    source_dir="$PLUGIN_ROOT/skills-v3/$skill"
+    source_dir="$PLUGIN_ROOT/skills/$skill"
     mirror_path="$PLUGIN_ROOT/$mirror_dir/$skill"
 
     if [ ! -d "$mirror_path" ]; then
@@ -145,14 +145,14 @@ for mirror_dir in "${MIRRORS[@]}"; do
     fi
 
     if diff -qr "$source_dir" "$mirror_path" >/dev/null 2>&1; then
-      pass_test "$mirror_dir/$skill (in sync with skills-v3/$skill)"
+      pass_test "$mirror_dir/$skill (in sync with skills/$skill)"
     else
-      fail_test "$mirror_dir/$skill (differs from skills-v3/$skill)"
+      fail_test "$mirror_dir/$skill (differs from skills/$skill)"
     fi
   done
 
   for skill in "${AUX_V3_SKILLS[@]}"; do
-    source_dir="$PLUGIN_ROOT/skills-v3/$skill"
+    source_dir="$PLUGIN_ROOT/skills/$skill"
     mirror_path="$PLUGIN_ROOT/$mirror_dir/$skill"
 
     if [ ! -d "$mirror_path" ]; then
@@ -166,9 +166,9 @@ for mirror_dir in "${MIRRORS[@]}"; do
     fi
 
     if diff -qr "$source_dir" "$mirror_path" >/dev/null 2>&1; then
-      pass_test "$mirror_dir/$skill (in sync with skills-v3/$skill)"
+      pass_test "$mirror_dir/$skill (in sync with skills/$skill)"
     else
-      fail_test "$mirror_dir/$skill (differs from skills-v3/$skill)"
+      fail_test "$mirror_dir/$skill (differs from skills/$skill)"
     fi
   done
 done
@@ -182,24 +182,24 @@ echo "🤖 [4/6] 3-agent check..."
 V3_AGENTS=(worker reviewer scaffolder)
 
 for agent in "${V3_AGENTS[@]}"; do
-  agent_file="$PLUGIN_ROOT/agents-v3/$agent.md"
+  agent_file="$PLUGIN_ROOT/agents/$agent.md"
   if [ -f "$agent_file" ]; then
     # name: field check
     if grep -q "^name: $agent$" "$agent_file"; then
-      pass_test "agents-v3/$agent.md (name: $agent)"
+      pass_test "agents/$agent.md (name: $agent)"
     else
-      fail_test "agents-v3/$agent.md (name: field is not '$agent')"
+      fail_test "agents/$agent.md (name: field is not '$agent')"
     fi
   else
-    fail_test "agents-v3/$agent.md (not found)"
+    fail_test "agents/$agent.md (not found)"
   fi
 done
 
 # team-composition.md
-if [ -f "$PLUGIN_ROOT/agents-v3/team-composition.md" ]; then
-  pass_test "agents-v3/team-composition.md"
+if [ -f "$PLUGIN_ROOT/agents/team-composition.md" ]; then
+  pass_test "agents/team-composition.md"
 else
-  warn_test "agents-v3/team-composition.md (missing)"
+  warn_test "agents/team-composition.md (missing)"
 fi
 
 # ============================================================
