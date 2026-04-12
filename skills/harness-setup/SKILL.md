@@ -115,16 +115,16 @@ EOF
 
 On Windows with `core.symlinks=false`, repository symlinks become regular files, and `harness-*` skills may not appear in the command list. Public bundles are synced as real directory mirrors.
 
+Codex skills are symlinks to `skills/` — no manual sync needed:
+
 ```bash
-./scripts/sync-v3-skill-mirrors.sh
-./scripts/sync-v3-skill-mirrors.sh --check
+ls -la codex/.codex/skills/
 ```
 
 Update targets:
 
-- `skills/`
-- `codex/.codex/skills/`
-- `opencode/skills/`
+- `skills/` (SSOT)
+- `codex/.codex/skills/` (symlinks → `../../../skills/`)
 
 ### agents — Agent Configuration
 

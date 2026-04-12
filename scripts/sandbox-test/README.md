@@ -46,4 +46,4 @@ This directory was generated with the following command:
 ## Related Documentation
 
 - [/work --full Documentation](../../docs/PARALLEL_FULL_CYCLE.md)
-- [task-worker Agent](../../agents/task-worker.md)
+- [Worker Agent](../../agents/worker.md)

@@ -10,7 +10,7 @@
  * Usage:
  *   node run-script.js <script-name> [args...]
  *   Example: node run-script.js session-init
- *       node run-script.js pretooluse-guard
+ *       node run-script.js posttooluse-log-toolname
  *
  * Usage in hooks.json:
  *   "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js session-init"

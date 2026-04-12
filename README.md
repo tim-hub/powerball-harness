@@ -12,6 +12,8 @@
 
 ---
 
+A Claude Code plugin for autonomous "Plan → Work → Review" workflows. This project is self-referential — it uses the harness itself to improve the harness.
+
 ## Why Harness?
 
 Claude Code is powerful. Harness turns that raw capability into a delivery loop that is easier to trust and harder to derail.

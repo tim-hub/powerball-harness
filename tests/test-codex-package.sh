@@ -167,28 +167,35 @@ else
   log_fail "Missing path-based core skills"
 fi
 
-log_test "Shipped Codex/OpenCode skills have required description frontmatter"
+log_test "Shipped Codex skills have required description frontmatter"
 skill_frontmatter_ok=true
 while IFS= read -r skill_file; do
   if ! rg -q '^description:' "$skill_file"; then
     echo "  missing description: $skill_file"
     skill_frontmatter_ok=false
   fi
-done < <(find codex/.codex/skills opencode/skills -name SKILL.md | sort)
+done < <(find codex/.codex/skills -name SKILL.md 2>/dev/null | sort)
 if $skill_frontmatter_ok; then
   log_pass "All shipped skill bundles have description frontmatter"
 else
   log_fail "Some shipped skill bundles are invalid for Codex skill loading"
 fi
 
-log_test "Public v3 skill mirrors stay in sync"
-if ./scripts/sync-v3-skill-mirrors.sh --check >/tmp/codex-skill-mirrors.$$ 2>&1; then
-  log_pass "Public skill mirrors match skills"
+log_test "Codex skill symlinks resolve correctly"
+codex_symlinks_ok=true
+for link in codex/.codex/skills/*; do
+  if [ -L "$link" ]; then
+    if [ ! -d "$link" ]; then
+      echo "  broken symlink: $link"
+      codex_symlinks_ok=false
+    fi
+  fi
+done
+if $codex_symlinks_ok; then
+  log_pass "All Codex skill symlinks resolve correctly"
 else
-  cat /tmp/codex-skill-mirrors.$$ | sed 's/^/  /'
-  log_fail "Public skill mirrors drifted from skills"
+  log_fail "Some Codex skill symlinks are broken"
 fi
-rm -f /tmp/codex-skill-mirrors.$$ || true
 
 log_test "Non-breezing Codex skills are CLI-only"
 cli_only_targets=(
@@ -468,33 +475,22 @@ else
   log_fail "Removed legacy Harness skills were not archived correctly"
 fi
 
-# Test 2: skills directory parity
-log_test "Skills parity by SKILL name"
-if [ -d "opencode/skills" ] && [ -d "codex/.codex/skills" ]; then
-  get_skill_names() {
-    local root="$1"
-    find "$root" -mindepth 1 -maxdepth 1 -type d | while IFS= read -r d; do
-      local dirname
-      dirname="$(basename "$d")"
-      # Skip dev/test/unsupported skills (matches build-opencode.js logic)
-      case "$dirname" in
-        test-*|x-*|allow1|breezing|cc-update-review|claude-codex-upstream-update|zz-review-empty|zz-review-escape|_archived|harness-ui) continue ;;
-      esac
-      if [ -f "$d/SKILL.md" ]; then
-        sed -n 's/^name:[[:space:]]*//p' "$d/SKILL.md" | head -n 1 | tr -d '\"'
-      fi
-    done | sort
-  }
-
-  source_list=$(get_skill_names opencode/skills)
-  target_list=$(get_skill_names codex/.codex/skills)
-
-  if diff -u <(echo "$source_list") <(echo "$target_list") >/dev/null; then
-    log_pass "Skill names match"
+# Test 2: codex skills are symlinks to skills/
+log_test "Codex skills are symlinks pointing to skills/"
+if [ -d "codex/.codex/skills" ]; then
+  codex_parity_ok=true
+  for link in codex/.codex/skills/*; do
+    [ -L "$link" ] || continue
+    target=$(readlink "$link")
+    if ! echo "$target" | grep -q '../../../skills/'; then
+      echo "  $link points to $target (expected ../../../skills/...)"
+      codex_parity_ok=false
+    fi
+  done
+  if $codex_parity_ok; then
+    log_pass "All Codex skills are symlinks to skills/"
   else
-    echo "[DETAIL] opencode vs codex skill names differ"
-    diff -u <(echo "$source_list") <(echo "$target_list") || true
-    log_fail "Skill names mismatch"
+    log_fail "Some Codex skills point to unexpected targets"
   fi
 else
   log_fail "Skills directories missing"

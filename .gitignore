@@ -108,7 +108,6 @@ docs/MOSHI_REMOTE_SETUP.md
 skills/test-*/
 skills/zz-review-*/
 skills/zz-review-symlink
-opencode/skills/test-*/
 codex/.codex/skills/test-*/
 
 # 開発用スキル（非公開）
@@ -118,15 +117,12 @@ skills/x-article/
 skills/x-announce/
 skills/x-promo/
 skills/x-release-harness/
-opencode/skills/x-promo/
-opencode/skills/x-release-harness/
 codex/.codex/skills/x-promo/
 codex/.codex/skills/x-release-harness/
 
 # Harness UI / optional UI integration (distribution excluded)
 /harness-ui/
 /skills/harness-ui/
-/opencode/skills/harness-ui/
 /codex/.codex/skills/harness-ui/
 /scripts/harness-ui-register.sh
 /scripts/test-harness-ui-register.sh
@@ -209,9 +205,8 @@ out/
 **/skills/**/IMPLEMENTATION_*.md
 **/skills/**/TASK_*.md
 !codex/.codex/skills/**/IMPLEMENTATION_*.md
-!opencode/skills/**/IMPLEMENTATION_*.md
 
-# OpenCode (local-only)
+# OpenCode (removed in 3.17.2)
 .opencode/
 
 # Benchmarks - local development data only

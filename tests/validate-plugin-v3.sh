@@ -121,7 +121,6 @@ echo "📦 [3/6] Public mirror bundle check..."
 MIRRORS=(
   "skills"
   "codex/.codex/skills"
-  "opencode/skills"
 )
 
 for mirror_dir in "${MIRRORS[@]}"; do

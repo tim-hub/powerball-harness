@@ -16,20 +16,21 @@ claude-code-harness/
 │   │       └── tampering.ts  # Tampering detection
 │   ├── package.json          # standalone TypeScript package
 │   └── tsconfig.json         # strict, NodeNext ESM
-├── skills/      # 5-verb skills
-│   ├── plan/       # planning + plans-management + sync-status consolidated
-│   ├── execute/    # work + breezing + codex consolidated
-│   ├── review/     # harness-review + codex-review consolidated
-│   ├── release/    # release-har + handoff consolidated
-│   ├── setup/      # harness-init + harness-mem consolidated
-│   └── extensions/ # Extension packs (symlink → skills/)
-├── agents/      # 3 agents (11→3 consolidated)
-│   ├── worker.md        # Implementation agent
-│   ├── reviewer.md      # Review agent (Read-only)
-│   ├── scaffolder.md    # Scaffolding and state update agent
-│   └── team-composition.md  # Team composition guide
-├── skills/         # Legacy skills (retained for backward compatibility)
+├── skills/         # Named skills (harness-work, harness-plan, breezing, etc.)
+├── codex/          # Codex CLI distribution (symlinked skills)
+│   └── .codex/
+│       ├── config.toml       # Multi-agent config
+│       ├── rules/            # Codex guardrail rules
+│       └── skills/           # Symlinks → ../../../skills/
+├── agents/         # 6 agents (3 core + 3 specialized)
+│   ├── worker.md             # Implementation agent
+│   ├── reviewer.md           # Review agent (Read-only)
+│   ├── scaffolder.md         # Scaffolding and state update agent
+│   ├── team-composition.md   # Team composition guide
+│   ├── ci-cd-fixer.md        # CI/CD failure recovery
+│   └── video-scene-generator.md # Remotion video generation
 ├── hooks/          # Thin shims (→ delegates to core/src/index.ts)
+├── scripts/        # Hook handlers, session management, Codex companion
 └── .claude/
     └── agent-memory/
         ├── claude-code-harness-worker/
@@ -37,17 +38,7 @@ claude-code-harness/
         └── claude-code-harness-scaffolder/
 ```
 
-## 5-Verb Skill Mapping
-
-| v3 Skill | Consolidated From (Legacy Skills) |
-|----------|----------------|
-| `plan` | planning, plans-management, sync-status |
-| `execute` | work, impl, breezing, parallel-workflows, ci |
-| `review` | harness-review, codex-review, verify, troubleshoot |
-| `release` | release-har, x-release-harness, handoff |
-| `setup` | setup, harness-init, harness-update, maintenance |
-
-## 3-Agent Mapping
+## Agent Consolidation History
 
 | v3 Agent | Consolidated From (Legacy Agents) |
 |--------------|------------------|
@@ -62,13 +53,14 @@ claude-code-harness/
 - `NodeNext` module resolution — ESM
 - `better-sqlite3` is in `optionalDependencies` (Node 24 compat)
 
-## Symlink Structure (v3)
+## Codex Symlink Structure
 
-The 5-verb skills in `codex/.codex/skills/` and `opencode/skills/` are symlinks to `skills/`:
+Skills in `codex/.codex/skills/` are symlinks to `../../../skills/`:
 
 ```bash
-codex/.codex/skills/plan -> ../../../../skills/plan
-opencode/skills/execute   -> ../../../skills/execute
+codex/.codex/skills/harness-work -> ../../../skills/harness-work
+codex/.codex/skills/harness-plan -> ../../../skills/harness-plan
+codex/.codex/skills/breezing     -> ../../../skills/breezing
 # ...etc
 ```
 

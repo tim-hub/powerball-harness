@@ -335,7 +335,7 @@ echo "📦 [10/12] v3 skill mirror check..."
 V3_SKILLS_DIR="$PLUGIN_ROOT/skills"
 CLAUDE_MIRROR="$PLUGIN_ROOT/skills"
 CODEX_MIRROR="$PLUGIN_ROOT/codex/.codex/skills"
-OPENCODE_MIRROR="$PLUGIN_ROOT/opencode/skills"
+# OpenCode mirror removed in 3.17.2
 MIRROR_ISSUES=0
 
 # v3 core skills (5-verb harness- prefix) mirror check
@@ -345,11 +345,10 @@ V3_AUX_SKILLS="harness-sync"
 if [ -d "$V3_SKILLS_DIR" ]; then
   for skill in $V3_CORE_SKILLS; do
     src="$V3_SKILLS_DIR/$skill"
-    for mirror_name in claude codex opencode; do
+    for mirror_name in claude codex; do
       case "$mirror_name" in
         claude) mirror_root="$CLAUDE_MIRROR" ;;
         codex) mirror_root="$CODEX_MIRROR" ;;
-        opencode) mirror_root="$OPENCODE_MIRROR" ;;
       esac
 
       if [ ! -d "$mirror_root" ]; then
@@ -364,8 +363,13 @@ if [ -d "$V3_SKILLS_DIR" ]; then
       fi
 
       if [ -L "$mirror_path" ]; then
-        echo "  $mirror_name: $skill is still a symlink"
-        MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
+        # Codex skills are symlinks by design — verify they resolve
+        if [ -d "$mirror_path" ]; then
+          echo "  ✅ $mirror_name: $skill symlink resolves correctly"
+        else
+          echo "  $mirror_name: $skill symlink is broken"
+          MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
+        fi
         continue
       fi
 
@@ -380,11 +384,10 @@ if [ -d "$V3_SKILLS_DIR" ]; then
 
   for skill in $V3_AUX_SKILLS; do
     src="$V3_SKILLS_DIR/$skill"
-    for mirror_name in claude codex opencode; do
+    for mirror_name in claude codex; do
       case "$mirror_name" in
         claude) mirror_root="$CLAUDE_MIRROR" ;;
         codex) mirror_root="$CODEX_MIRROR" ;;
-        opencode) mirror_root="$OPENCODE_MIRROR" ;;
       esac
 
       if [ ! -d "$mirror_root" ]; then
@@ -399,8 +402,13 @@ if [ -d "$V3_SKILLS_DIR" ]; then
       fi
 
       if [ -L "$mirror_path" ]; then
-        echo "  $mirror_name: $skill is still a symlink"
-        MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
+        # Codex skills are symlinks by design — verify they resolve
+        if [ -d "$mirror_path" ]; then
+          echo "  ✅ $mirror_name: $skill symlink resolves correctly"
+        else
+          echo "  $mirror_name: $skill symlink is broken"
+          MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
+        fi
         continue
       fi
 

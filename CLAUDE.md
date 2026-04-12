@@ -1,6 +1,4 @@
-# CLAUDE.md - Powerball Harness
 
-A Claude Code plugin for autonomous "Plan → Work → Review" workflows. This project is self-referential — it uses the harness itself to improve the harness.
 
 ## Development Rules
 
@@ -9,6 +7,7 @@ A Claude Code plugin for autonomous "Plan → Work → Review" workflows. This p
 - **CHANGELOG**: Record changes under `[Unreleased]` in Before/After format. Details: [.claude/rules/changelog.md](.claude/rules/changelog.md)
 - **Code style**: Clear names, comments for complex logic, single-responsibility skills/agents
 - **Test tampering**: Absolutely prohibited. Details: [.claude/rules/test-quality.md](.claude/rules/test-quality.md)
+- Use English for all code, comments, documentation, and communication, if anything is not english, please translate it.
 
 ## Repository Structure
 

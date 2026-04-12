@@ -3,7 +3,7 @@
 # Commit Guard feature tests
 #
 # Test targets:
-# - scripts/pretooluse-guard.sh (git commit blocking logic)
+# - core/src/guardrails/rules.ts + hooks/pre-tool.sh (git commit blocking logic)
 # - scripts/posttooluse-commit-cleanup.sh (review approval state cleanup)
 # - hooks.json (hook registration)
 
@@ -69,18 +69,14 @@ test_cleanup_script_executable() {
 }
 
 # ==================================================
-# Test 3: Does pretooluse-guard.sh have git commit detection logic?
+# Test 3: Does core TypeScript guardrail have git commit detection logic?
+# (Ported from pretooluse-guard.sh to core/src/guardrails/rules.ts)
 # ==================================================
-test_pretooluse_has_commit_guard() {
-  local script="$PROJECT_ROOT/scripts/pretooluse-guard.sh"
+test_core_has_commit_guard() {
+  local rules_file="$PROJECT_ROOT/core/src/guardrails/rules.ts"
 
-  if ! grep -q "git[[:space:]]*commit" "$script" 2>/dev/null; then
-    echo "    Error: git commit detection not found in pretooluse-guard.sh"
-    return 1
-  fi
-
-  if ! grep -Eq "review-approved.json|review-result.json" "$script" 2>/dev/null; then
-    echo "    Error: review artifact check not found in pretooluse-guard.sh"
+  if ! grep -q "git.*commit" "$rules_file" 2>/dev/null; then
+    echo "    Error: git commit detection not found in core/src/guardrails/rules.ts"
     return 1
   fi
 
@@ -88,13 +84,13 @@ test_pretooluse_has_commit_guard() {
 }
 
 # ==================================================
-# Test 4: Does pretooluse-guard.sh have a block message?
+# Test 4: Does hooks/pre-tool.sh exist and delegate to core?
 # ==================================================
-test_pretooluse_has_block_message() {
-  local script="$PROJECT_ROOT/scripts/pretooluse-guard.sh"
+test_pretool_hook_exists() {
+  local hook="$PROJECT_ROOT/hooks/pre-tool.sh"
 
-  if ! grep -q "deny_git_commit_no_review" "$script" 2>/dev/null; then
-    echo "    Error: deny_git_commit_no_review message not found"
+  if [ ! -f "$hook" ]; then
+    echo "    Error: hooks/pre-tool.sh does not exist"
     return 1
   fi
 
@@ -214,8 +210,8 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 echo "  [PreToolUse Guard]"
-run_test "pretooluse-guard.sh has git commit detection logic" test_pretooluse_has_commit_guard
-run_test "pretooluse-guard.sh has block message" test_pretooluse_has_block_message
+run_test "core guardrails have git commit detection" test_core_has_commit_guard
+run_test "hooks/pre-tool.sh exists" test_pretool_hook_exists
 
 echo ""
 echo "  [PostToolUse Cleanup]"

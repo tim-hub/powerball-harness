@@ -74,25 +74,12 @@ Only the following 2 files are subject to version management:
 
 ## Distribution Surfaces and Mirror Sync
 
-`skills/` is the SSOT (Single Source of Truth). The following 3 distribution surfaces are synced as mirrors:
+`skills/` is the SSOT (Single Source of Truth). Codex CLI uses symlinks from `codex/.codex/skills/` → `../../../skills/`, so no manual sync is needed.
 
 | Surface | Path | Target Users |
 |---------|------|-------------|
 | Claude | `skills/harness-release/` | Claude Code users |
-| Codex | `codex/.codex/skills/harness-release/` | Codex CLI users |
-| OpenCode | `opencode/skills/harness-release/` | OpenCode users |
-
-**Important**: After editing `skills/`, always sync mirrors before releasing:
-
-```bash
-./scripts/sync-v3-skill-mirrors.sh
-```
-
-Verification only (no writes):
-
-```bash
-./scripts/sync-v3-skill-mirrors.sh --check
-```
+| Codex | `codex/.codex/skills/harness-release/` (symlink) | Codex CLI users |
 
 ## Internationalization (i18n)
 
@@ -126,8 +113,8 @@ bash tests/validate-plugin.sh
 # 4. Consistency check
 bash scripts/ci/check-consistency.sh
 
-# 5. Verify mirror sync state
-bash scripts/sync-v3-skill-mirrors.sh --check
+# 5. Verify codex symlinks
+ls -la codex/.codex/skills/
 ```
 
 `scripts/release-preflight.sh` validates the following:
@@ -248,14 +235,11 @@ Do not empty the `[Unreleased]` section; keep it for the next release:
 ./scripts/sync-version.sh check
 ```
 
-### Phase 5: Mirror Sync
+### Phase 5: Verify Codex Symlinks
 
 ```bash
-# Mirror sync: skills → skills, codex, opencode
-./scripts/sync-v3-skill-mirrors.sh
-
-# Verify sync
-./scripts/sync-v3-skill-mirrors.sh --check
+# Verify codex symlinks resolve correctly
+ls -la codex/.codex/skills/
 ```
 
 ### Phase 6: Commit & Tag
@@ -265,7 +249,7 @@ NEW_VERSION=$(cat VERSION)
 
 # Staging (explicitly specify target files)
 git add VERSION .claude-plugin/plugin.json CHANGELOG.md
-git add skills/ codex/.codex/skills/ opencode/skills/
+git add skills/ codex/.codex/skills/
 
 git commit -m "chore: release v$NEW_VERSION"
 git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
@@ -379,7 +363,7 @@ Verify the following regressions before release:
 |------------|-------------------|-------|
 | Plugin structure | `tests/validate-plugin.sh` | Validates plugin.json, skills, hooks, scripts |
 | Consistency | `scripts/ci/check-consistency.sh` | Templates, versions, mirrors, CHANGELOG |
-| Mirror sync | `scripts/sync-v3-skill-mirrors.sh --check` | Match between skills and 3 distribution surfaces |
+| Codex symlinks | `ls -la codex/.codex/skills/` | All symlinks resolve to skills/ |
 | Preflight | `scripts/release-preflight.sh` | Working tree, CHANGELOG, CI, remnants |
 | Release notes | `scripts/validate-release-notes.sh vX.Y.Z` | GitHub Release format validation |
 | VERSION sync | `scripts/sync-version.sh check` | Match between VERSION and plugin.json |

@@ -39,7 +39,7 @@ process.stdout.on('error', (error) => {
 
 const [outputFile] = process.argv.slice(2);
 const repoRoot = process.cwd();
-const roots = ['skills', 'skills', 'skills-codex', 'codex/.codex/skills', 'opencode/skills'];
+const roots = ['skills', 'codex/.codex/skills'];
 
 function walk(dirPath, entries) {
   if (!fs.existsSync(dirPath)) return;

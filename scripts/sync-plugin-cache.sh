@@ -124,7 +124,6 @@ sync_critical_files() {
   local critical_files=(
     "scripts/run-script.js"
     "scripts/path-utils.sh"
-    "scripts/pretooluse-guard.sh"
     "scripts/posttooluse-log-toolname.sh"
     "scripts/session-init.sh"
     "scripts/session-monitor.sh"
@@ -133,8 +132,6 @@ sync_critical_files() {
     "scripts/track-changes.sh"
     "scripts/analyze-project.sh"
     "scripts/setup-existing-project.sh"
-    "scripts/stop-cleanup-check.sh"
-    "scripts/stop-plans-reminder.sh"
     "scripts/lib/harness-mem-bridge.sh"
     "scripts/hook-handlers/memory-bridge.sh"
     "scripts/hook-handlers/memory-session-start.sh"
@@ -202,7 +199,6 @@ main() {
     local needs_sync=false
     for rel_path in \
       "VERSION" \
-      "scripts/pretooluse-guard.sh" \
       "scripts/posttooluse-log-toolname.sh" \
       "scripts/session-init.sh" \
       "scripts/lib/harness-mem-bridge.sh" \

@@ -183,5 +183,4 @@ Commands have been migrated to skills. Key differences:
 ## Related Documentation
 
 - [Claude Code Skills Documentation](https://code.claude.com/docs/en/skills)
-- [command-editing.md](./command-editing.md) - Legacy command rules (deprecated)
 - [CLAUDE.md](../../CLAUDE.md) - Project Development Guide
