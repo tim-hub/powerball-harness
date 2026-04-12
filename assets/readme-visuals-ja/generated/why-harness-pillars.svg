@@ -45,7 +45,7 @@
     <rect x="42" y="80" width="16" height="14" rx="4" fill="none" stroke="#f7931a" stroke-width="3"/>
     <text x="84" y="76" class="cardTitle">危険操作を実行時に守る</text>
     <text x="84" y="94" class="cardBody">注意書きだけに頼りません。</text>
-    <text x="28" y="132" class="cardBody">TypeScript 製のフックとルールで、</text>
+    <text x="28" y="132" class="cardBody">Go ネイティブエンジンの 13 ルールで、</text>
     <text x="28" y="149" class="cardBody">危険な操作を実際の実行経路で止め</text>
     <text x="28" y="166" class="cardBody">やすくします。</text>
   </g>
