@@ -1,9 +1,4 @@
 <p align="center">
-  <img src="docs/images/claude-harness-logo-with-text.png" alt="Powerball Harness" width="400">
-</p>
-
-<p align="center">
-  <strong>Plan. Work. Review. Ship.</strong><br>
   <em>Turn Claude Code into a disciplined development partner.</em>
 </p>
 
@@ -20,6 +15,13 @@
 ## Why Harness?
 
 Claude Code is powerful. Harness turns that raw capability into a delivery loop that is easier to trust and harder to derail.
+
+### Why Powerball Harness?
+
+- SSOT management with `memory` skill and SSOT files
+- Guardrail engine with 13 declarative rules (R01–R13) for runtime safety
+- Empower Claude Code built-in harness features like parallel workers and agent teams (breezing)
+
 
 <p align="center">
   <img src="assets/readme-visuals-en/generated/why-harness-pillars.svg" alt="What changes with Claude Harness: shared plan, runtime guardrails, and rerunnable validation" width="860">
@@ -370,30 +372,6 @@ Project files (Plans.md, SSOT files) remain unchanged.
 
 ## Claude Code 2.1.74+ Features
 
-Harness leverages the latest Claude Code features out of the box.
-
-| Feature | Skill | Purpose |
-|---------|-------|---------|
-| **Agent Memory** | harness-work, harness-review | Persistent learning across sessions |
-| **TeammateIdle/TaskCompleted Hook** | breezing | Automated team monitoring |
-| **Worktree isolation** | breezing | Safe parallel writes to the same file |
-| **HTTP hooks** | hooks | JSON POST to Slack, dashboards, metrics |
-| **Effort levels + ultrathink** | harness-work | Auto-injects ultrathink for complex tasks |
-| **Agent hooks** | hooks | LLM-powered code quality guards (secrets, TODO stubs, security) |
-| **`${CLAUDE_SKILL_DIR}` variable** | all harness-* skills | Stable references to skill-local docs |
-| **`agent_id` / `agent_type` fields** | hooks, breezing | Robust teammate identity and role guard |
-| **`{"continue": false}` teammate response** | breezing | Auto-stop when all assigned tasks are complete |
-| **`/reload-plugins`** | all harness-* skills | Apply skill/hook edits immediately |
-| **`/loop` + Cron scheduling** | breezing, harness-work | Active polling with `/loop 5m /sync-status` |
-| **PostToolUseFailure hook** | hooks | Auto-escalation after 3 consecutive tool failures |
-| **Background Agent output fix** | breezing | Safe `run_in_background` with output path in completion |
-| **Compaction image retention** | all harness-* skills | Images preserved during context compaction |
-| **WorktreeCreate/Remove hook** | breezing | Worktree lifecycle auto-setup and cleanup |
-| **`modelOverrides` setting** | harness-setup, breezing | Map model picker aliases to Bedrock, Vertex, or other provider-specific model IDs |
-| **`autoMemoryDirectory` setting** | session-memory, harness-setup | Store Claude auto-memory in a project-specific path when needed |
-| **`CLAUDE_CODE_SESSIONEND_HOOKS_TIMEOUT_MS`** | hooks | Give SessionEnd hooks enough time for cleanup and finalize work |
-| **Full model ID support** | agents, breezing | Use `claude-sonnet-4-6` style IDs in agent frontmatter and JSON config |
-
 Full list: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 
 ---
@@ -434,5 +412,7 @@ Issues and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 ---
 
 ## Origin
+
+I am not the original author of this project. I have made significant modifications and improvements to the original codebase.
 
 This project was originally forked from [Chachamaru127/claude-code-harness](https://github.com/Chachamaru127/claude-code-harness). It has since diverged significantly from the original and is maintained independently.
