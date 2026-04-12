@@ -64,18 +64,15 @@ The 5 verb skills keep setup, plan, work, review, and release on one path. The G
 
 ## Compared With Popular Claude Code Harnesses
 
-What matters here is not the theoretical ceiling of Claude Code. It is what becomes the **default operating model** once you install a harness.
-
-This is a **user-facing workflow** snapshot as of **2026-03-06**, not a popularity contest.
-Full notes and source links: [docs/github-harness-plugin-benchmark.md](docs/github-harness-plugin-benchmark.md)
-
-The card below focuses on what becomes the default operating path after install.
+What matters here is not the theoretical ceiling of Claude Code. It is what becomes the **default operating model** once you install a harness — and what happens when you pair it with [harness-mem](https://github.com/Chachamaru127/harness-mem).
 
 <p align="center">
-  <img src="assets/readme-visuals-en/generated/harness-feature-matrix.svg" alt="How the default workflow changes after installing Claude Harness, Superpowers, or cc-sdd" width="860">
+  <img src="assets/readme-visuals-en/generated/harness-feature-matrix.svg" alt="Comparison: Claude Harness + harness-mem vs Harness solo vs Superpowers vs cc-sdd — 10 capabilities compared" width="860">
 </p>
 
-Claude Harness is the clearest fit if you want the default path itself to stay planned, guarded, reviewed, and rerunnable.
+With harness-mem, Claude Harness is the only setup where the default path is planned, guarded, reviewed, rerunnable, **and remembered across sessions**.
+
+Full notes and source links: [docs/github-harness-plugin-benchmark.md](docs/github-harness-plugin-benchmark.md)
 
 Supported baseline and latest verified snapshot: see [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md).
 
