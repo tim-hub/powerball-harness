@@ -1,61 +1,61 @@
-# バージョニングルール
+# Versioning Rules
 
-Harness のバージョン管理基準。SemVer（Semantic Versioning）に準拠する。
+Version management standards for Harness. Follows SemVer (Semantic Versioning).
 
-## バージョン判定基準
+## Version Classification Criteria
 
-| 変更の種類 | バージョン | 例 |
+| Type of Change | Version | Example |
 |-----------|----------|-----|
-| スキル定義（SKILL.md）の文言修正・追記 | **patch** (x.y.Z) | テンプレート微修正、説明文改善 |
-| ドキュメント・ルールファイルの更新 | **patch** (x.y.Z) | CHANGELOG 書き換え、rules/ 追加 |
-| hooks/scripts のバグ修正 | **patch** (x.y.Z) | task-completed.sh のエスケープ修正 |
-| 既存スキルに新しいフラグ/サブコマンド追加 | **minor** (x.Y.0) | `--snapshot`、`--auto-mode` |
-| 新しいスキル/エージェント/hooks 追加 | **minor** (x.Y.0) | 新スキル `harness-foo` |
-| TypeScript ガードレールエンジンの変更 | **minor** (x.Y.0) | 新ルール追加、既存ルール変更 |
-| Claude Code 新バージョン互換対応 | **minor** (x.Y.0) | CC v2.1.72 対応 |
-| 破壊的変更（旧スキル廃止、フォーマット非互換） | **major** (X.0.0) | Plans.md v1 サポート削除 |
+| Wording fixes or additions to skill definitions (SKILL.md) | **patch** (x.y.Z) | Minor template fixes, description improvements |
+| Documentation or rule file updates | **patch** (x.y.Z) | CHANGELOG rewrites, rules/ additions |
+| Bug fixes in hooks/scripts | **patch** (x.y.Z) | Escape fix in task-completed.sh |
+| Adding new flags/subcommands to existing skills | **minor** (x.Y.0) | `--snapshot`, `--auto-mode` |
+| Adding new skills/agents/hooks | **minor** (x.Y.0) | New skill `harness-foo` |
+| Changes to the TypeScript guardrail engine | **minor** (x.Y.0) | New rule additions, existing rule changes |
+| Claude Code new version compatibility | **minor** (x.Y.0) | CC v2.1.72 support |
+| Breaking changes (skill deprecation, format incompatibility) | **major** (X.0.0) | Plans.md v1 support removal |
 
-## 判断フローチャート
+## Decision Flowchart
 
 ```
-既存の動作が壊れる？
+Does it break existing behavior?
 ├─ Yes → major
-└─ No → ユーザーが新しいことをできるようになる？
+└─ No → Does the user gain new capabilities?
     ├─ Yes → minor
     └─ No → patch
 ```
 
-## バッチリリースの推奨
+## Batch Release Recommendations
 
-- **同日に複数 Phase を完了した場合**: 1つの minor リリースにまとめる
-- **Phase の完了 + ドキュメント修正**: Phase 分を minor、ドキュメント修正は同梱（別リリースにしない）
-- **CC 互換対応 + 機能追加**: 1つの minor にまとめてよい
+- **When multiple Phases are completed on the same day**: Combine into a single minor release
+- **Phase completion + documentation fixes**: Use minor for the Phase; bundle documentation fixes (don't create a separate release)
+- **CC compatibility + feature additions**: May be combined into a single minor
 
-### 悪い例
+### Bad Example
 
 ```
 v3.6.0 (03/08 AM) — Phase 25
-v3.7.0 (03/08 PM) — Phase 26    ← 同日に 2 minor は避ける
+v3.7.0 (03/08 PM) — Phase 26    ← Avoid 2 minor bumps on the same day
 v3.7.1 (03/09)    — Auto Mode
 ```
 
-### 良い例
+### Good Example
 
 ```
-v3.6.0 (03/08) — Phase 25 + Phase 26    ← まとめて 1 minor
-v3.6.1 (03/09) — Auto Mode 準備         ← prep は patch
+v3.6.0 (03/08) — Phase 25 + Phase 26    ← Combined into 1 minor
+v3.6.1 (03/09) — Auto Mode prep         ← prep is patch
 ```
 
-## リリース前チェック
+## Pre-Release Checklist
 
-1. **前回リリースからの変更を一覧化**
-2. **判定基準に照らしてバージョン種別を決定**
-3. **同日の複数変更はバッチ化を検討**
-4. **VERSION / plugin.json / CHANGELOG の3点同期を確認**
-5. **git tag が欠番なく連続していることを確認**
+1. **List all changes since the last release**
+2. **Determine version type based on the classification criteria**
+3. **Consider batching multiple same-day changes**
+4. **Verify sync across VERSION / plugin.json / CHANGELOG**
+5. **Verify git tags are sequential with no gaps**
 
-## 禁止事項
+## Prohibited
 
-- タグの削除・巻き戻し（公開済みバージョンは不変）
-- 同日に 2 回以上の minor バンプ
-- patch レベルの変更での minor バンプ
+- Deleting or rolling back tags (published versions are immutable)
+- More than one minor bump on the same day
+- Using a minor bump for patch-level changes

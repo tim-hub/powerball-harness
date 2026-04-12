@@ -1,6 +1,6 @@
 #!/bin/bash
 # write-review-result.sh
-# さまざまな review 出力を review-result.v1 に正規化し、後方互換の review-approved.json も更新する。
+# Normalize various review outputs to review-result.v1 and update backward-compatible review-approved.json.
 
 set -euo pipefail
 
@@ -42,14 +42,14 @@ jq -n \
     else
       item + {severity: (item.severity // severity)}
     end;
-  # companion verdict 正規化: approve→APPROVE, needs-attention→REQUEST_CHANGES
+  # Normalize companion verdict: approve->APPROVE, needs-attention->REQUEST_CHANGES
   def normalize_verdict(v):
     if v == "approve" then "APPROVE"
     elif v == "needs-attention" then "REQUEST_CHANGES"
     else v
     end;
-  # companion findings[] → gaps[] マッピング（引数で入力を受け取る）
-  # companion findings → gaps（critical/high のみブロッキング）
+  # Companion findings[] -> gaps[] mapping (receives input as arguments)
+  # Companion findings -> gaps (only critical/high are blocking)
   def findings_to_gaps(input):
     as_array(input.findings) | map({
       severity: .severity,
@@ -59,7 +59,7 @@ jq -n \
       line_end: (.line_end // null),
       recommendation: (.recommendation // "")
     }) | map(select(.severity | IN("critical","high")));
-  # companion findings → followups（medium/low は非ブロッキング）
+  # Companion findings -> followups (medium/low are non-blocking)
   def findings_to_followups(input):
     as_array(input.findings) | map({
       severity: .severity,
@@ -131,7 +131,7 @@ jq -n \
       dual_review: ($in.dual_review // null)
     }' > "$OUTPUT_FILE"
 
-# blocking gaps がある場合は verdict を REQUEST_CHANGES に強制
+# Force verdict to REQUEST_CHANGES if blocking gaps exist
 BLOCKING_GAPS="$(jq '[.gaps[] | select(.severity == "critical" or .severity == "high" or .severity == "major")] | length' "$OUTPUT_FILE" 2>/dev/null || echo 0)"
 if [ "$BLOCKING_GAPS" -gt 0 ]; then
   jq '.verdict = "REQUEST_CHANGES"' "$OUTPUT_FILE" > "${OUTPUT_FILE}.tmp" && mv "${OUTPUT_FILE}.tmp" "$OUTPUT_FILE"

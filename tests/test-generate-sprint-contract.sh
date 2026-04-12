@@ -8,11 +8,11 @@ TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 cat > "${TMP_DIR}/Plans.md" <<'EOF'
-| Task | 内容 | DoD | Depends | Status |
+| Task | Description | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 32.1.1 | contract を作る | runtime validation を contract に載せる | 32.0.1 | cc:TODO |
-| 32.2.2 | browser evaluator を追加する | browser で UI フローを確認する | 32.2.1 | cc:TODO |
-| 32.2.5 | browser_mode: exploratory を扱う | exploratory mode で AgentBrowser を優先する | 32.2.2 | cc:TODO |
+| 32.1.1 | Create contract | Include runtime validation in the contract | 32.0.1 | cc:TODO |
+| 32.2.2 | Add browser evaluator | Verify UI flows via browser | 32.2.1 | cc:TODO |
+| 32.2.5 | Handle browser_mode: exploratory | Prefer AgentBrowser in exploratory mode | 32.2.2 | cc:TODO |
 EOF
 
 cat > "${TMP_DIR}/package.json" <<'EOF'

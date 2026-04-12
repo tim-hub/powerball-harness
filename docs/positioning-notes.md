@@ -1,28 +1,28 @@
 # Positioning Notes
 
-最終更新: 2026-03-06
+Last updated: 2026-03-06
 
-公開向けに短く言うなら、`claude-code-harness` の価値は「skill pack を増やすこと」ではなく、**Plan -> Work -> Review を runtime enforcement と verification 付きで回せること**です。
+In short, the value of `claude-code-harness` for public-facing purposes is not about "adding more skill packs," but about **being able to run Plan -> Work -> Review with runtime enforcement and verification**.
 
 ## Core Message
 
-- Harness は `5 verb skills + TypeScript guardrail engine` を商品本体として扱う
-- 価値はコマンド数の多さではなく、`guardrail`, `review`, `consistency`, `evidence` が一体で効くこと
-- `commands/` や `mcp-server/` のような legacy / optional bucket は弱みではなく、境界が明文化されていれば運用資産として説明できる
+- Harness treats `5 verb skills + TypeScript guardrail engine` as the core product
+- The value is not in the number of commands, but in `guardrail`, `review`, `consistency`, and `evidence` working together as a unified system
+- Legacy / optional buckets like `commands/` and `mcp-server/` are not weaknesses; they can be explained as operational assets as long as their boundaries are clearly documented
 
 ## Public Comparison Language
 
-- 避ける: 「競合より圧倒的に上」「完全勝利」
-- 使う: 「runtime enforcement が強い」「verification path が明確」「claims を再現証拠に結びつけている」
-- 競合比較では、思想や採用実績を否定せず、Harness の強みを guardrail / evidence / operator clarity に寄せて説明する
+- Avoid: "overwhelmingly superior to competitors," "complete victory"
+- Use: "strong runtime enforcement," "clear verification path," "claims are backed by reproducible evidence"
+- In competitor comparisons, do not dismiss their philosophy or adoption track record; instead focus Harness strengths on guardrail / evidence / operator clarity
 
 ## Recommended One-liner
 
-> Claude Code を skill pack で拡張するだけでなく、Plan -> Work -> Review を guardrail と検証付きで運用できるようにするハーネス。
+> A harness that goes beyond extending Claude Code with skill packs to enable Plan -> Work -> Review with guardrails and verification.
 
 ## Proof Points
 
 - TypeScript guardrail engine (`core/`)
 - 5 verb skills (`skills-v3/`)
-- consistency check と plugin validation
+- consistency check and plugin validation
 - `/harness-work all` evidence pack

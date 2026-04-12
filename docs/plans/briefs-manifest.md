@@ -1,42 +1,42 @@
 # Optional Briefs and Skill Manifest
 
-`harness-plan create` は、必要なときだけ brief を付ける。brief は Plans.md を置き換えず、実装の前提を短く固定する補助資料。
+`harness-plan create` attaches a brief only when needed. Briefs do not replace Plans.md; they are supplementary materials that briefly define implementation assumptions.
 
 ## Design Brief
 
-UI を含むタスクでは `design brief` を作る。
+Create a `design brief` for tasks involving UI.
 
-最低限入れる内容:
+Minimum required content:
 
-- 何を達成したいか
-- 誰が使うか
-- 重要な画面状態
-- 見た目や操作感の制約
-- 完了条件
+- What you want to achieve
+- Who will use it
+- Important screen states
+- Visual and interaction constraints
+- Completion criteria
 
 ## Contract Brief
 
-API を含むタスクでは `contract brief` を作る。
+Create a `contract brief` for tasks involving APIs.
 
-最低限入れる内容:
+Minimum required content:
 
-- 何を受け取るか / 返すか
-- 入力検証の条件
-- 失敗時の振る舞い
-- 外部依存
-- 完了条件
+- What is received / returned
+- Input validation conditions
+- Failure behavior
+- External dependencies
+- Completion criteria
 
 ## Skill Manifest
 
-`scripts/generate-skill-manifest.sh` は、repo 内の `SKILL.md` frontmatter を stable JSON にする。
+`scripts/generate-skill-manifest.sh` converts `SKILL.md` frontmatter across the repo into stable JSON.
 
-使いどころ:
+Use cases:
 
-- skill surface の監査
-- mirror 間の比較
-- 自動 docs 生成の入力
+- Skill surface auditing
+- Cross-mirror comparison
+- Input for automated docs generation
 
-出力には次を含める。
+Output includes:
 
 - `name`
 - `description`
@@ -48,9 +48,9 @@ API を含むタスクでは `contract brief` を作る。
 - `surface`
 - `related_surfaces`
 
-`related_surfaces` には `skills-v3`, `skills`, `codex/.codex/skills`, `opencode/skills` のような mirror 情報も含まれる。
+`related_surfaces` also includes mirror information such as `skills-v3`, `skills`, `codex/.codex/skills`, `opencode/skills`.
 
-## 実行例
+## Example
 
 ```bash
 scripts/generate-skill-manifest.sh --output .claude/state/skill-manifest.json

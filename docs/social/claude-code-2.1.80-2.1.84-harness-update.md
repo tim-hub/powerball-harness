@@ -1,198 +1,182 @@
-# Claude Code 2.1.80-2.1.84 を Harness に取り込んだ話
+# How Harness Incorporated Claude Code 2.1.80-2.1.84
 
-## X記事タイトル案
+## Article Title Draft
 
-Claude Code の更新を、Harness でどう「増幅」したか
+How Harness "Amplified" Claude Code Updates
 
-## リード
+## Introduction
 
-Claude Code の 2.1.80〜2.1.84 には、hooks、skill frontmatter、agent frontmatter、安全設定、rules 適用範囲まわりで重要な更新が入りました。
+Claude Code 2.1.80 through 2.1.84 included important updates around hooks, skill frontmatter, agent frontmatter, safety settings, and rules scope.
 
-今回 Harness でやったのは、単に「新機能に対応しました」と並べることではありません。Claude Code 単体で良くなった部分を、実際の開発フローに接続して、もっと強く効く形に変えることでした。
+What Harness did this time wasn't simply "adding support for new features." It was about connecting improvements that Claude Code makes on its own to the actual development flow, making them even more effective.
 
-言い方を変えると、Claude Code が単体で 10 良くなったところを、Harness を入れることで 15 や 20 に伸ばす、という方向の更新です。
+Put another way, where Claude Code improves by 10 on its own, adding Harness extends that to 15 or 20.
 
-この記事では、Claude Code 側で何が増えたのか、Harness 側でどう取り込んだのか、その結果として何が良くなるのかを、非専門家にも分かるようにまとめます。
+This article summarizes -- in accessible terms -- what changed on the Claude Code side, how Harness incorporated it, and what improved as a result.
 
-## 1. 今回のテーマは「追従」ではなく「増幅」
+## 1. The Theme Is "Amplification," Not "Tracking"
 
-AI 開発ツールのアップデートは、どうしても「新機能が増えた」で終わりがちです。
+AI development tool updates tend to end with "new features were added."
 
-でも実際には、新機能そのものよりも、
+But in reality, what matters more than the features themselves is:
 
-- それを日々の実装にどうつなぐか
-- チーム運用でどう事故を減らすか
-- 毎回のプロンプト調整なしでどう安定させるか
+- How to connect them to daily implementation
+- How to reduce incidents in team operations
+- How to stabilize without per-prompt adjustments each time
 
-の方が、使っている人にとっては重要です。
+Harness is the layer for that. Rather than just accepting Claude Code's new features, it connects them to planning, implementation, review, safety mechanisms, and rule operations, carrying them all the way to where they make a difference in the daily development experience.
 
-Harness はそのための層です。Claude Code の新機能を、そのまま受け取るだけではなく、計画、実装、レビュー、安全装置、ルール運用に接続して、日常の開発体験として効くところまで持っていきます。
+## 2. Claude Code Updates and Harness Integration
 
-## 2. Claude Code 側の更新と、Harness 側の取り込み
+### 2-1. New hooks were turned into development-time awareness
 
-### 2-1. 新しい hooks を、開発中の注意喚起に変えた
+First, hooks. Hooks are "mechanisms that automatically run something the moment a certain event occurs."
 
-まず hooks です。hooks は「ある出来事が起きた瞬間に、自動で何かを走らせる仕組み」です。
-
-Claude Code の 2.1.83 と 2.1.84 では、次のイベントが扱えるようになりました。
+Claude Code 2.1.83 and 2.1.84 made the following events available:
 
 - `TaskCreated`
 - `CwdChanged`
 - `FileChanged`
 
-これだけ見ると、「イベントが増えた」という話です。
+On their own, this is just "more events are available."
 
-Harness ではここに、新しい reactive hook をつなぎました。
+Harness connected new reactive hooks to these:
 
-- task が作られたら記録する
-- `Plans.md` が変わったら、次の実装前に読み直しを促す
-- ルールや設定が変わったら、前提が変わったことを知らせる
-- worktree や別の作業場所に移ったら、文脈を再確認するよう促す
+- When a task is created, record it
+- When `Plans.md` changes, prompt a re-read before the next implementation
+- When rules or settings change, alert that assumptions have changed
+- When moving to a different worktree or workspace, prompt context re-confirmation
 
-つまり、「イベントを取れる」状態を、「前提の変化を見失いにくい」状態に変えています。
+This transforms "being able to capture events" into "making it harder to lose track of assumption changes."
 
-これで、
+This reduces:
 
-- 古い計画のまま実装を進めてしまう
-- 別の worktree に移ったのに前の前提で動いてしまう
-- ルール更新に気づかず、そのまま作業してしまう
+- Proceeding with implementation against outdated plans
+- Operating under old assumptions after moving to a different worktree
+- Working without noticing rule updates
 
-といったズレを減らせます。
+### 2-2. Safety settings were made to take effect automatically
 
-### 2-2. 安全設定を、使う人に自動で効く形にした
+Next, safety.
 
-次に安全まわりです。
-
-Claude Code 2.1.83 では、特に価値の大きい設定が入りました。
+Claude Code 2.1.83 introduced particularly valuable settings:
 
 - `sandbox.failIfUnavailable`
 - `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`
 
-意味をやさしく言うと、
+In plain terms:
 
-- sandbox が使えないなら、そのまま危ない状態で続けない
-- 裏側で動く Bash や hook、連携プロセスに、認証情報をできるだけ渡さない
+- If sandbox is unavailable, don't continue in an unsafe state
+- Minimize passing credentials to background Bash, hooks, and integration processes
 
-ということです。
+Harness didn't leave these as "configurable" -- they were built in as plugin defaults. They were also reflected in distribution cache sync, ensuring they take effect in real operation after installation.
 
-Harness では、これを「設定できる」だけで終わらせず、プラグイン既定値として組み込みました。さらに配布キャッシュ同期にも反映し、インストール後の実運用でちゃんと効くところまで持っていきました。
+This difference is significant.
 
-この差は大きいです。
+Features that merely exist may not take effect unless you configure them yourself. But building them into Harness reduces cases of "unknowingly forgetting to enable safety features."
 
-新機能があるだけだと、自分で設定しない限り効かないことがあります。でも Harness に組み込んでおけば、「知らないうちに安全機能を使い忘れていた」を減らせます。
+### 2-3. Heavy work now thinks deeply from the start
 
-### 2-3. 重い作業で、最初から深く考えやすくした
+Claude Code 2.1.80 added the ability to set `effort` in skill frontmatter.
 
-Claude Code 2.1.80 では、skill frontmatter に `effort` を持たせられるようになりました。
+Frontmatter is the configuration section at the top of Markdown files. `effort` specifies "how deeply to think."
 
-frontmatter は、Markdown ファイルの先頭に書く設定欄です。`effort` は「どれくらい深く考えるか」の指定です。
+Harness assigned this to key skills:
 
-Harness ではこれを、主要スキルに割り当てました。
+- `harness-work`: high
+- `harness-review`: high
+- `harness-release`: high
+- `harness-plan`: medium
+- `harness-sync`: medium
+- `harness-setup`: medium
 
-- `harness-work`: 高め
-- `harness-review`: 高め
-- `harness-release`: 高め
-- `harness-plan`: 中くらい
-- `harness-sync`: 中くらい
-- `harness-setup`: 中くらい
+The benefit is that thinking depth automatically starts higher for the task at hand, without saying "think deeply this time" each session.
 
-この更新の良いところは、毎回「今回は深く考えて」と言い直さなくても、作業の性質に合わせて初動の思考密度を上げられることです。
+This is especially effective in review and release scenarios where oversight costs are high.
 
-特にレビューやリリースのように、見落としコストが高い場面で効きます。
+### 2-4. Sub-agent initial behavior stabilized
 
-### 2-4. サブエージェントの初動を安定化した
+Claude Code 2.1.83 added the ability to set `initialPrompt` for agents.
 
-Claude Code 2.1.83 では、agent に `initialPrompt` を持たせられるようになりました。
+This means providing sub-agents with "what to prioritize thinking about" at the very moment of startup.
 
-これは、サブエージェントが起動した最初の瞬間に、「何を優先して考えるべきか」を先に与えられる、ということです。
-
-Harness では、
+Harness added initial behavior instructions for:
 
 - Worker
 - Reviewer
 - Scaffolder
 
-に初動用の指示を入れました。
+For example:
 
-たとえば、
+- Worker first organizes the task, DoD, target files, and verification approach
+- Reviewer first confirms verdict criteria and avoids confusing minor with major
+- Scaffolder first organizes the existing structure and current setup goals
 
-- Worker は最初に task、DoD、対象ファイル、検証方針を整理する
-- Reviewer は最初に verdict の基準を確認し、minor と major を混同しない
-- Scaffolder は最初に既存構成と今回のセットアップ目的を整理する
+This reduces the risk of sub-agents immediately running in the wrong direction.
 
-という形です。
+### 2-5. Rules scope was made more robust
 
-これによって、サブエージェントがいきなりズレた方向に走るリスクを減らせます。
+Claude Code 2.1.84 enabled YAML arrays for `paths:` in rules and skills.
 
-### 2-5. rules の適用範囲を、壊れにくい書き方に変えた
+Previously, multiple target patterns were often held in a single string, which was:
 
-Claude Code 2.1.84 では、rules や skills の `paths:` に YAML 配列を使えるようになりました。
+- Hard to read
+- Hard to extend
+- Prone to breaking on commas or whitespace
 
-これまでは、複数の対象パターンを 1 行の文字列で持つことが多く、
+Harness updated templates and `localize-rules.sh` to use YAML arrays for `paths:`.
 
-- 読みにくい
-- 追加しにくい
-- カンマや空白で壊れやすい
+This looks minor but:
 
-という弱点がありました。
+- Scope becomes more readable
+- Future additions are easier
+- Fewer accidents in auto-generation
 
-Harness では template と `localize-rules.sh` を更新し、`paths:` を YAML 配列に移しました。
+### 3. What Improved as a Result
 
-見た目は地味ですが、この変更で、
+Summarizing for non-specialists, this update improved five things:
 
-- 適用範囲が読みやすくなる
-- 将来の追加がしやすくなる
-- 自動生成時の事故が減る
+- Easier to notice when assumptions change
+- Safety features now take effect in real operation, not just configuration
+- Heavy work thinks deeply from the start
+- Sub-agents are less likely to deviate from their roles
+- Rule operations are more readable and less fragile
 
-という効果があります。
+None of these are dramatic visual changes, but they make a difference when used daily.
 
-## 3. 結果として、何が良くなるのか
+That's why this update is best described not as "Claude Code got new features" but as "Harness turned those improvements into real development strength."
 
-ここまでを非専門家向けにまとめると、今回の更新で良くなったのは次の 5 つです。
+## 4. What Was Deliberately Not Expanded This Time
 
-- 前提が変わったときに気づきやすくなった
-- 安全機能が、設定だけでなく実運用でも効きやすくなった
-- 重い作業で、最初から深く考えやすくなった
-- サブエージェントが役割を外しにくくなった
-- ルール運用が読みやすく、壊れにくくなった
+Not everything was incorporated at equal weight this time.
 
-どれも派手な見た目の変化ではありませんが、日々使うと差が出る部分です。
+The reason is simple: even when Claude Code improves, some items see their value significantly extended through Harness while others don't.
 
-だからこそ、今回の更新は「Claude Code に新機能が増えました」ではなく、「その改善を Harness で実際の開発強度に変えました」と言うのがいちばん近いと思っています。
+This time, priority went to items that "directly connect to Harness's strengths":
 
-## 4. 今回あえて広げなかったもの
+- Reactive hooks
+- Safety settings
+- Skill / agent initial quality
+- Rules maintainability
 
-今回の範囲では、全部を同じ重さで取り込みませんでした。
+## Summary
 
-理由は単純で、Claude Code 側で良くなっていても、Harness を挟むことでさらに価値が伸びる項目と、そこまで伸びない項目があるからです。
+The Claude Code 2.1.80-2.1.84 updates are valuable on their own.
 
-今回は特に、
+But adding Harness allowed transforming that value into "forms that affect the development flow."
 
-- reactive hooks
-- 安全設定
-- skill / agent の初動品質
-- rules の保守性
+This update targeted exactly that.
 
-のような、「Harness の得意分野に直結するもの」を優先しています。
+Rather than accepting the improved parts of Claude Code as-is, they were connected to the implementation, review, safety, and operational layers, making them stronger to use.
+That's what this Harness-side update is about.
 
-## まとめ
+## Article Cover Image Prompt
 
-Claude Code 2.1.80〜2.1.84 の更新は、それだけでも価値があります。
+High-resolution, white-background tech infographic. Center heading: "Harness Amplifies Claude Code Updates." Left: "Claude Code 2.1.80-2.1.84," right: "Harness." Five strong arrows pointing from center to right. Five cards labeled "Reactive Hooks," "Safer Sandbox," "Skill Effort," "Agent Initial Prompt," and "YAML Paths." Clean, futuristic editorial design with SaaS announcement feel. Colors: white, deep blue, teal, minimal orange. Text readable and clearly organized, works well as X article cover at thumbnail size. 1:1, generous whitespace, low noise, minimal icons, tastefully understated design.
 
-ただ、Harness を入れることで、その価値を「開発フローに効く形」に変えられるものがありました。
+## Cover Image Text Draft
 
-今回のアップデートは、まさにそこを狙ったものです。
-
-Claude Code が良くなった部分を、そのまま受け取るのではなく、実装、レビュー、安全、運用のレイヤーにつないで、より強く使えるようにした。  
-それが今回の Harness 側の更新です。
-
-## 記事カバー画像プロンプト
-
-白背景ベースの高解像度なテック系インフォグラフィック。中央に「Harness Amplifies Claude Code Updates」という大きな見出し。左に「Claude Code 2.1.80-2.1.84」、右に「Harness」。中央から右に向かって5本の強い矢印。5つのカードにそれぞれ「Reactive Hooks」「Safer Sandbox」「Skill Effort」「Agent Initial Prompt」「YAML Paths」。全体はクリーン、未来感、編集デザイン、SaaSプロダクト発表っぽい雰囲気。配色は白、深い青、青緑、少しだけオレンジ。文字は読みやすく、情報整理が明快で、X記事のカバー画像としても見栄えがよく、縮小表示でも潰れない。1:1、余白広め、ノイズ少なめ、アイコンは最小限、誇張しすぎない上品なデザイン。
-
-## カバー画像内テキスト案
-
-Claude Code Updates  
+Claude Code Updates
 Amplified by Harness
 
 - Reactive Hooks
@@ -201,14 +185,14 @@ Amplified by Harness
 - Deeper Skill Execution
 - More Reliable Rules
 
-## altテキスト
+## Alt Text
 
-Claude Code の更新を Harness が増幅することを示したインフォグラフィック。Reactive Hooks、Safer Sandbox、Skill Effort、Agent Initial Prompt、YAML Paths の5項目が整理されている。
+Infographic showing how Harness amplifies Claude Code updates. Five items are organized: Reactive Hooks, Safer Sandbox, Skill Effort, Agent Initial Prompt, and YAML Paths.
 
-## 記事共有用の短い告知文
+## Short Announcement for Article Sharing
 
-Claude Code 2.1.80〜2.1.84 を Harness に取り込みました。  
-今回のテーマは「追従」ではなく「増幅」です。
+We incorporated Claude Code 2.1.80-2.1.84 into Harness.
+This time's theme is "amplification," not "tracking."
 
-新しい hooks、安全設定、skill / agent の初動、rules 適用範囲まで、実運用に効く形へ接続しました。  
-記事にまとめました。
+New hooks, safety settings, skill / agent initial behavior, and rules scope -- all connected to forms that affect real operations.
+Summarized in an article.

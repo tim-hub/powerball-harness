@@ -1,6 +1,6 @@
 #!/bin/bash
 # record-review-calibration.sh
-# review-result.json に calibration が付いている場合に、学習用ログへ追記する。
+# Append to learning log when calibration is present in review-result.json.
 
 set -euo pipefail
 

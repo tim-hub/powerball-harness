@@ -1,6 +1,6 @@
 #!/bin/bash
 # session-control.sh
-# /work の resume/fork フラグに応じてセッション状態を更新
+# Update session state based on /work resume/fork flags
 #
 # Usage:
 #   ./scripts/session-control.sh --resume <id|latest>

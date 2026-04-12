@@ -1,21 +1,21 @@
 #!/bin/bash
 # stop-plans-reminder.sh
-# Stop Hook 用: Plans.md マーカー更新のリマインダー
+# Stop Hook: Plans.md marker update reminder
 #
-# Claude Code 2.1.1 互換: prompt タイプの代わりに command タイプで実装
-# 出力: JSON 形式 {"decision": "approve", "reason": "...", "systemMessage": "..."}
+# Claude Code 2.1.1 compat: implemented with command type instead of prompt type
+# Output: JSON format {"decision": "approve", "reason": "...", "systemMessage": "..."}
 
 set -euo pipefail
 
-# 判定用変数
+# Decision variables
 NEED_REMINDER="false"
 REASON=""
 MESSAGE=""
 
-# 変更があるかチェック
+# Check for changes
 HAS_CHANGES="false"
 
-# Git 未コミット変更
+# Git uncommitted changes
 if [ -d ".git" ]; then
   GIT_UNCOMMITTED=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ' || echo "0")
   if [ "$GIT_UNCOMMITTED" -gt 0 ]; then
@@ -23,7 +23,7 @@ if [ -d ".git" ]; then
   fi
 fi
 
-# セッション中の変更
+# Changes during session
 if [ -f ".claude/state/session.json" ] && command -v jq >/dev/null 2>&1; then
   SESSION_CHANGES=$(jq '.changes_this_session // 0' .claude/state/session.json 2>/dev/null || echo "0")
   if [ "$SESSION_CHANGES" != "0" ] && [ "$SESSION_CHANGES" != "null" ]; then
@@ -31,35 +31,35 @@ if [ -f ".claude/state/session.json" ] && command -v jq >/dev/null 2>&1; then
   fi
 fi
 
-# 変更がある場合のみ Plans.md をチェック
+# Check Plans.md only when there are changes
 if [ "$HAS_CHANGES" = "true" ] && [ -f "Plans.md" ]; then
-  PM_PENDING=$(( $(grep -c "pm:依頼中" Plans.md 2>/dev/null || echo "0") + $(grep -c "cursor:依頼中" Plans.md 2>/dev/null || echo "0") ))
+  PM_PENDING=$(( $(grep -c "pm:requested" Plans.md 2>/dev/null || echo "0") + $(grep -c "cursor:requested" Plans.md 2>/dev/null || echo "0") ))
   CC_WIP=$(grep -c "cc:WIP" Plans.md 2>/dev/null || echo "0")
-  CC_DONE=$(grep -c "cc:完了" Plans.md 2>/dev/null || echo "0")
+  CC_DONE=$(grep -c "cc:done" Plans.md 2>/dev/null || echo "0")
 
-  # PM からの依頼がある場合
+  # When there are PM requests
   if [ "$PM_PENDING" -gt 0 ]; then
     NEED_REMINDER="true"
     REASON="pm_pending_tasks > 0"
-    MESSAGE="Plans.md: pm:依頼中 が${PM_PENDING}件あります。作業開始時は cc:WIP に、完了時は cc:完了 に更新してください"
+    MESSAGE="Plans.md: ${PM_PENDING} pm:requested item(s) found. Update to cc:WIP when starting work, and cc:done when done"
   fi
 
-  # WIP タスクがある場合
+  # When there are WIP tasks
   if [ "$CC_WIP" -gt 0 ]; then
     NEED_REMINDER="true"
     REASON="cc_wip_tasks > 0"
-    MESSAGE="Plans.md: cc:WIP が${CC_WIP}件あります。完了した場合は cc:完了 に更新してください"
+    MESSAGE="Plans.md: ${CC_WIP} cc:WIP item(s) found. Update to cc:done when completed"
   fi
 
-  # 完了タスクがある場合（PM確認待ち）
+  # When there are Done tasks (awaiting PM confirmation)
   if [ "$CC_DONE" -gt 0 ]; then
     NEED_REMINDER="true"
     REASON="cc_done_tasks > 0"
-    MESSAGE="Plans.md: cc:完了 が${CC_DONE}件あります。PMが確認後 pm:確認済 に更新してください"
+    MESSAGE="Plans.md: ${CC_DONE} cc:done item(s) found. Update to pm:confirmed after PM confirmation"
   fi
 fi
 
-# JSON 出力
+# JSON output
 if [ "$NEED_REMINDER" = "true" ]; then
   cat << EOF
 {"decision": "approve", "reason": "$REASON", "systemMessage": "$MESSAGE"}

@@ -1,6 +1,6 @@
 #!/bin/bash
-# VibeCoder向けプラグイン検証テスト
-# このスクリプトは、claude-code-harnessが正しく構成されているかを検証します
+# Plugin validation test for VibeCoder
+# This script validates that claude-code-harness is correctly configured
 
 set -u
 set -o pipefail
@@ -9,11 +9,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
 
 echo "=========================================="
-echo "Claude harness - プラグイン検証テスト"
+echo "Claude harness - Plugin Validation Test"
 echo "=========================================="
 echo ""
 
-# カラー出力
+# Color output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
@@ -23,7 +23,7 @@ PASS_COUNT=0
 FAIL_COUNT=0
 WARN_COUNT=0
 
-# テスト結果を記録
+# Record test results
 pass_test() {
     echo -e "${GREEN}✓${NC} $1"
     PASS_COUNT=$((PASS_COUNT + 1))
@@ -64,7 +64,7 @@ PY
 
 has_frontmatter_description() {
     local file="$1"
-    # frontmatter があり、その中に description: があるか
+    # Check if frontmatter exists and contains description:
     awk '
       NR==1 { if ($0 != "---") exit 1 }
       NR>1 && $0=="---" { exit 2 }  # end of frontmatter without description
@@ -73,83 +73,83 @@ has_frontmatter_description() {
     ' "$file"
 }
 
-echo "1. プラグイン構造の検証"
+echo "1. Plugin structure validation"
 echo "----------------------------------------"
 
-# plugin.jsonの存在確認
+# Check plugin.json existence
 if [ -f "$PLUGIN_ROOT/.claude-plugin/plugin.json" ]; then
-    pass_test "plugin.json が存在します"
+    pass_test "plugin.json exists"
 else
-    fail_test "plugin.json が見つかりません"
+    fail_test "plugin.json not found"
     exit 1
 fi
 
-# plugin.jsonの妥当性チェック
+# Validate plugin.json
 if json_is_valid "$PLUGIN_ROOT/.claude-plugin/plugin.json"; then
-    pass_test "plugin.json は有効なJSONです"
+    pass_test "plugin.json is valid JSON"
 else
-    fail_test "plugin.json が不正なJSONです"
+    fail_test "plugin.json is invalid JSON"
     exit 1
 fi
 
-# 必須フィールドの確認
+# Check required fields
 REQUIRED_FIELDS=("name" "version" "description" "author")
 for field in "${REQUIRED_FIELDS[@]}"; do
     if json_has_key "$PLUGIN_ROOT/.claude-plugin/plugin.json" "$field"; then
-        pass_test "plugin.json に $field フィールドがあります"
+        pass_test "plugin.json has '$field' field"
     else
-        fail_test "plugin.json に $field フィールドがありません"
+        fail_test "plugin.json missing '$field' field"
     fi
 done
 
 echo ""
-echo "2. コマンドの検証（レガシー）"
+echo "2. Command validation (legacy)"
 echo "----------------------------------------"
 
-# v2.17.0 以降: コマンドは Skills に移行済み
-# commands/ ディレクトリが存在する場合のみ検証（後方互換性）
+# v2.17.0+: Commands migrated to Skills
+# Only validate if commands/ directory exists (backward compatibility)
 if [ -d "$PLUGIN_ROOT/commands" ]; then
     CMD_COUNT=$(find "$PLUGIN_ROOT/commands" -name "*.md" -type f | wc -l | tr -d ' ')
-    pass_test "commands/ に ${CMD_COUNT} 個のコマンドファイルがあります（レガシー）"
+    pass_test "commands/ has ${CMD_COUNT} command files (legacy)"
 
-    # サブディレクトリ構造を表示
+    # Show subdirectory structure
     for subdir in "$PLUGIN_ROOT/commands"/*/; do
         if [ -d "$subdir" ]; then
             subdir_name=$(basename "$subdir")
             subdir_count=$(find "$subdir" -name "*.md" -type f | wc -l | tr -d ' ')
             if [ "$subdir_count" -gt 0 ]; then
-                pass_test "  └─ ${subdir_name}/ に ${subdir_count} 個のコマンド"
+                pass_test "  └─ ${subdir_name}/ has ${subdir_count} commands"
             else
-                warn_test "  └─ ${subdir_name}/ は空です（コマンドファイルがありません）"
+                warn_test "  └─ ${subdir_name}/ is empty (no command files)"
             fi
         fi
     done
 
-    # frontmatter description の存在確認（SlashCommand tool / /help の発見性向上）
+    # Check frontmatter description presence (improves discoverability in SlashCommand tool / /help)
     MISSING_DESC=0
     while IFS= read -r cmd_file; do
         if has_frontmatter_description "$cmd_file"; then
             pass_test "frontmatter description: $(basename "$cmd_file")"
         else
-            warn_test "frontmatter description が見つかりません: $(basename "$cmd_file")"
+            warn_test "frontmatter description not found: $(basename "$cmd_file")"
             MISSING_DESC=$((MISSING_DESC + 1))
         fi
     done < <(find "$PLUGIN_ROOT/commands" -name "*.md" -type f | sort)
 else
-    # v2.17.0+: Skills に移行済みのため、commands/ は不要
-    pass_test "commands/ は Skills に移行済み（v2.17.0+）"
+    # v2.17.0+: Migrated to Skills, commands/ is no longer needed
+    pass_test "commands/ migrated to Skills (v2.17.0+)"
 fi
 
 echo ""
-echo "3. スキルの検証"
+echo "3. Skills validation"
 echo "----------------------------------------"
 
-# スキルディレクトリの存在
+# Check skills directory
 if [ -d "$PLUGIN_ROOT/skills" ]; then
     SKILL_COUNT=$(find "$PLUGIN_ROOT/skills" -name "SKILL.md" | wc -l)
-    pass_test "$SKILL_COUNT 個のスキルが定義されています"
-    
-    # スキルのフロントマター確認（サンプル）
+    pass_test "$SKILL_COUNT skills defined"
+
+    # Check skill frontmatter (sample)
     SKILLS_WITH_DESCRIPTION=0
     SKILLS_WITH_ALLOWED_TOOLS=0
     
@@ -163,41 +163,41 @@ if [ -d "$PLUGIN_ROOT/skills" ]; then
     done
     
     if [ $SKILL_COUNT -gt 0 ]; then
-        pass_test "スキルファイルが適切に配置されています"
+        pass_test "Skill files are properly placed"
     fi
 else
-    warn_test "skills ディレクトリが見つかりません"
+    warn_test "skills directory not found"
 fi
 
 echo ""
-echo "4. エージェントの検証"
+echo "4. Agents validation"
 echo "----------------------------------------"
 
 if [ -d "$PLUGIN_ROOT/agents" ]; then
     AGENT_COUNT=$(find "$PLUGIN_ROOT/agents" -name "*.md" | wc -l)
     if [ $AGENT_COUNT -gt 0 ]; then
-        pass_test "$AGENT_COUNT 個のエージェントが定義されています"
+        pass_test "$AGENT_COUNT agents defined"
     else
-        warn_test "エージェントが定義されていません"
+        warn_test "No agents defined"
     fi
 else
-    warn_test "agents ディレクトリが見つかりません"
+    warn_test "agents directory not found"
 fi
 
 echo ""
-echo "5. フックの検証"
+echo "5. Hooks validation"
 echo "----------------------------------------"
 
 if [ -f "$PLUGIN_ROOT/hooks/hooks.json" ]; then
     if json_is_valid "$PLUGIN_ROOT/hooks/hooks.json"; then
-        pass_test "hooks.json は有効なJSONです"
-        
-        pass_test "hooks.json が読み込めます"
+        pass_test "hooks.json is valid JSON"
+
+        pass_test "hooks.json is readable"
     else
-        fail_test "hooks.json が不正なJSONです"
+        fail_test "hooks.json is invalid JSON"
     fi
 else
-    warn_test "hooks.json が見つかりません"
+    warn_test "hooks.json not found"
 fi
 
 POST_TOOL_FAILURE="$PLUGIN_ROOT/scripts/hook-handlers/post-tool-failure.sh"
@@ -212,9 +212,9 @@ if [ -f "$POST_TOOL_FAILURE" ]; then
     target_after="$(cat "$target_file" 2>/dev/null || true)"
 
     if [ "$hook_output" = "{}" ] && [ "$target_after" = "SAFE" ]; then
-        pass_test "post-tool-failure.sh は symlink state file を上書きしません"
+        pass_test "post-tool-failure.sh does not overwrite symlink state file"
     else
-        fail_test "post-tool-failure.sh の symlink 防御が不足しています"
+        fail_test "post-tool-failure.sh lacks symlink protection"
     fi
 
     rm -rf "$tmp_dir"
@@ -231,122 +231,122 @@ MEMORY_WRAPPERS=(
 )
 for wrapper in "${MEMORY_WRAPPERS[@]}"; do
     if [ -f "$wrapper" ]; then
-        pass_test "memory wrapper が存在します: $(basename "$wrapper")"
+        pass_test "memory wrapper exists: $(basename "$wrapper")"
     else
-        fail_test "memory wrapper が見つかりません: $wrapper"
+        fail_test "memory wrapper not found: $wrapper"
     fi
 done
 
 if bash "$PLUGIN_ROOT/tests/test-memory-hook-wiring.sh" >/dev/null 2>&1; then
-    pass_test "memory hook wiring が有効です"
+    pass_test "memory hook wiring is valid"
 else
-    fail_test "memory hook wiring の整合が崩れています"
+    fail_test "memory hook wiring is broken"
 fi
 
 if bash "$PLUGIN_ROOT/tests/test-sync-plugin-cache.sh" >/dev/null 2>&1; then
-    pass_test "sync-plugin-cache が memory wrapper を配布キャッシュへ同期できます"
+    pass_test "sync-plugin-cache can sync memory wrappers to distribution cache"
 else
-    fail_test "sync-plugin-cache が memory wrapper を配布キャッシュへ同期できません"
+    fail_test "sync-plugin-cache cannot sync memory wrappers to distribution cache"
 fi
 
 if bash "$PLUGIN_ROOT/tests/test-runtime-reactive-hooks.sh" >/dev/null 2>&1; then
-    pass_test "reactive hook runtime (TaskCreated/FileChanged/CwdChanged) が動作します"
+    pass_test "reactive hook runtime (TaskCreated/FileChanged/CwdChanged) works"
 else
-    fail_test "reactive hook runtime (TaskCreated/FileChanged/CwdChanged) に問題があります"
+    fail_test "reactive hook runtime (TaskCreated/FileChanged/CwdChanged) has issues"
 fi
 
 if bash "$PLUGIN_ROOT/tests/test-claude-upstream-integration.sh" >/dev/null 2>&1; then
-    pass_test "Claude Code 2.1.80-2.1.86 の統合ポイントが配線されています"
+    pass_test "Claude Code 2.1.80-2.1.86 integration points are wired"
 else
-    fail_test "Claude Code 2.1.80-2.1.86 の統合ポイントに欠落があります"
+    fail_test "Claude Code 2.1.80-2.1.86 integration points have gaps"
 fi
 
 echo ""
-echo "6. スクリプトの検証"
+echo "6. Scripts validation"
 echo "----------------------------------------"
 
 if [ -d "$PLUGIN_ROOT/scripts" ]; then
     SCRIPT_COUNT=$(find "$PLUGIN_ROOT/scripts" -name "*.sh" -type f | wc -l)
     if [ $SCRIPT_COUNT -gt 0 ]; then
-        pass_test "$SCRIPT_COUNT 個のスクリプトが存在します"
-        
-        # 実行権限の確認（GNU/BSD 両対応: -perm -111 を使用）
+        pass_test "$SCRIPT_COUNT scripts found"
+
+        # Check execute permissions (GNU/BSD compatible: using -perm -111)
         EXECUTABLE_COUNT=$(find "$PLUGIN_ROOT/scripts" -name "*.sh" -type f -perm -111 | wc -l | tr -d ' ')
         if [ $EXECUTABLE_COUNT -eq $SCRIPT_COUNT ]; then
-            pass_test "全てのスクリプトに実行権限があります"
+            pass_test "All scripts have execute permission"
         else
-            warn_test "一部のスクリプトに実行権限がありません ($EXECUTABLE_COUNT/$SCRIPT_COUNT)"
+            warn_test "Some scripts lack execute permission ($EXECUTABLE_COUNT/$SCRIPT_COUNT)"
         fi
     else
-        warn_test "スクリプトが見つかりません"
+        warn_test "No scripts found"
     fi
 else
-    warn_test "scripts ディレクトリが見つかりません"
+    warn_test "scripts directory not found"
 fi
 
 echo ""
-echo "7. ドキュメントの検証"
+echo "7. Documentation validation"
 echo "----------------------------------------"
 
 if [ -f "$PLUGIN_ROOT/README.md" ]; then
     README_SIZE=$(wc -c < "$PLUGIN_ROOT/README.md")
     if [ $README_SIZE -gt 1000 ]; then
-        pass_test "README.md が存在します (${README_SIZE} bytes)"
+        pass_test "README.md exists (${README_SIZE} bytes)"
     else
-        warn_test "README.md が簡潔すぎます (${README_SIZE} bytes)"
+        warn_test "README.md is too brief (${README_SIZE} bytes)"
     fi
 else
-    fail_test "README.md が見つかりません"
+    fail_test "README.md not found"
 fi
 
 if [ -f "$PLUGIN_ROOT/IMPLEMENTATION_GUIDE.md" ]; then
-    pass_test "IMPLEMENTATION_GUIDE.md が存在します"
+    pass_test "IMPLEMENTATION_GUIDE.md exists"
 else
-    warn_test "IMPLEMENTATION_GUIDE.md が見つかりません（推奨）"
+    warn_test "IMPLEMENTATION_GUIDE.md not found (recommended)"
 fi
 
 echo ""
-echo "7. Claude Code プラグイン検証（v2.1.77+）"
+echo "7. Claude Code plugin validation (v2.1.77+)"
 echo "----------------------------------------"
 
-# claude コマンドが利用可能な場合のみ実行
+# Only run if claude command is available
 if command -v claude > /dev/null 2>&1; then
-    # サブコマンドの存在を確認（v2.1.77 未満では plugin validate が無い）
+    # Check subcommand existence (plugin validate not available below v2.1.77)
     if claude plugin validate --help > /dev/null 2>&1; then
         if claude plugin validate "$PLUGIN_ROOT/.claude-plugin/plugin.json" > /dev/null 2>&1; then
-            pass_test "claude plugin validate に合格"
+            pass_test "claude plugin validate passed"
         else
-            fail_test "claude plugin validate でエラー検出（CC v2.1.77+ 必須）"
+            fail_test "claude plugin validate detected errors (requires CC v2.1.77+)"
         fi
     else
-        warn_test "claude plugin validate が未サポート（CC v2.1.77+ にアップデート推奨）"
+        warn_test "claude plugin validate not supported (recommend updating to CC v2.1.77+)"
     fi
 else
-    warn_test "claude コマンドが未インストール（claude plugin validate をスキップ）"
+    warn_test "claude command not installed (skipping claude plugin validate)"
 fi
 
 echo ""
-echo "8. Hardening parity の検証"
+echo "8. Hardening parity validation"
 echo "----------------------------------------"
 
 HARDENING_DOC="$PLUGIN_ROOT/docs/hardening-parity.md"
 HARDENING_CONTRACT="$PLUGIN_ROOT/scripts/lib/codex-hardening-contract.txt"
 if [ -f "$HARDENING_DOC" ]; then
-    pass_test "hardening parity 文書が存在します"
+    pass_test "hardening parity document exists"
 else
-    fail_test "docs/hardening-parity.md が見つかりません"
+    fail_test "docs/hardening-parity.md not found"
 fi
 
 if [ -f "$HARDENING_CONTRACT" ] && grep -q "HARNESS_HARDENING_CONTRACT_V1" "$HARDENING_CONTRACT"; then
-    pass_test "Codex hardening contract テンプレートが存在します"
+    pass_test "Codex hardening contract template exists"
 else
-    fail_test "scripts/lib/codex-hardening-contract.txt が見つかりません"
+    fail_test "scripts/lib/codex-hardening-contract.txt not found"
 fi
 
 if grep -q "docs/hardening-parity.md" "$PLUGIN_ROOT/README.md"; then
-    pass_test "README.md から hardening parity 文書へリンクされています"
+    pass_test "README.md links to hardening parity document"
 else
-    fail_test "README.md に hardening parity 文書へのリンクがありません"
+    fail_test "README.md missing link to hardening parity document"
 fi
 
 RULES_FILE="$PLUGIN_ROOT/core/src/guardrails/rules.ts"
@@ -360,44 +360,44 @@ for rule_id in "${RULE_IDS[@]}"; do
     if grep -q "$rule_id" "$RULES_FILE"; then
         pass_test "guardrail rule: $rule_id"
     else
-        fail_test "guardrail rule が見つかりません: $rule_id"
+        fail_test "guardrail rule not found: $rule_id"
     fi
 done
 
 CODEX_WRAPPER="$PLUGIN_ROOT/scripts/codex/codex-exec-wrapper.sh"
 if grep -q "codex-hardening-contract.txt" "$CODEX_WRAPPER"; then
-    pass_test "Codex wrapper が hardening contract テンプレートを参照しています"
+    pass_test "Codex wrapper references hardening contract template"
 else
-    fail_test "Codex wrapper が hardening contract テンプレートを参照していません"
+    fail_test "Codex wrapper does not reference hardening contract template"
 fi
 
 CODEX_ENGINE="$PLUGIN_ROOT/scripts/codex-worker-engine.sh"
 if grep -q "codex-hardening-contract.txt" "$CODEX_ENGINE"; then
-    pass_test "Codex worker engine が hardening contract テンプレートを参照しています"
+    pass_test "Codex worker engine references hardening contract template"
 else
-    fail_test "Codex worker engine が hardening contract テンプレートを参照していません"
+    fail_test "Codex worker engine does not reference hardening contract template"
 fi
 
 CODEX_GATE="$PLUGIN_ROOT/scripts/codex-worker-quality-gate.sh"
 if grep -q "gate_hardening()" "$CODEX_GATE" && grep -q '"hardening"' "$CODEX_GATE"; then
-    pass_test "Codex quality gate に hardening parity チェックがあります"
+    pass_test "Codex quality gate has hardening parity check"
 else
-    fail_test "Codex quality gate に hardening parity チェックがありません"
+    fail_test "Codex quality gate missing hardening parity check"
 fi
 
 echo ""
 echo "=========================================="
-echo "テスト結果サマリー"
+echo "Test Results Summary"
 echo "=========================================="
-echo -e "${GREEN}合格:${NC} $PASS_COUNT"
-echo -e "${YELLOW}警告:${NC} $WARN_COUNT"
-echo -e "${RED}失敗:${NC} $FAIL_COUNT"
+echo -e "${GREEN}Passed:${NC} $PASS_COUNT"
+echo -e "${YELLOW}Warnings:${NC} $WARN_COUNT"
+echo -e "${RED}Failed:${NC} $FAIL_COUNT"
 echo ""
 
 if [ $FAIL_COUNT -eq 0 ]; then
-    echo -e "${GREEN}✓ 全てのテストに合格しました！${NC}"
+    echo -e "${GREEN}✓ All tests passed!${NC}"
     exit 0
 else
-    echo -e "${RED}✗ $FAIL_COUNT 件のテストが失敗しました${NC}"
+    echo -e "${RED}✗ $FAIL_COUNT test(s) failed${NC}"
     exit 1
 fi

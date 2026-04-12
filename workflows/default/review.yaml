@@ -1,11 +1,11 @@
-# /harness-review ワークフロー定義（旧名: review）
-# 作成したコードの品質をチェック
+# /harness-review workflow definition (formerly: review)
+# Check the quality of created code
 
 phase: review
-description: "コードの品質をチェックし、改善点を提案するフェーズ"
+description: "Phase to check code quality and suggest improvements"
 
 steps:
-  # Step 1: 変更ファイルの特定
+  # Step 1: Identify changed files
   - id: identify-changes
     skill: core-read-repo-context
     input:
@@ -18,7 +18,7 @@ steps:
         - change_summary
     mode: required
 
-  # Step 2: セキュリティチェック
+  # Step 2: Security check
   - id: security-check
     skill: review-security
     input:
@@ -32,7 +32,7 @@ steps:
     mode: required
     parallel: true
 
-  # Step 3: パフォーマンスチェック
+  # Step 3: Performance check
   - id: performance-check
     skill: review-performance
     input:
@@ -46,7 +46,7 @@ steps:
     mode: required
     parallel: true
 
-  # Step 4: コード品質チェック
+  # Step 4: Code quality check
   - id: quality-check
     skill: review-quality
     input:
@@ -61,7 +61,7 @@ steps:
     mode: required
     parallel: true
 
-  # Step 5: アクセシビリティチェック（Web の場合）
+  # Step 5: Accessibility check (for Web projects)
   - id: accessibility-check
     skill: review-accessibility
     condition: "tech_stack.includes('react') || tech_stack.includes('vue')"
@@ -74,7 +74,7 @@ steps:
     mode: optional
     parallel: true
 
-  # Step 6: レビュー結果の集約
+  # Step 6: Aggregate review results
   - id: aggregate-results
     skill: review-aggregate
     input:
@@ -89,7 +89,7 @@ steps:
         - improvement_suggestions
     mode: required
 
-  # Step 7: 改善の適用（ユーザー承認後）
+  # Step 7: Apply improvements (after user approval)
   - id: apply-improvements
     skill: review-apply-fixes
     condition: "user_approved"
@@ -100,26 +100,26 @@ steps:
       update_files: true
     mode: optional
 
-# 成功時の出力
+# Output on success
 on_success:
   message: |
-    📊 コードレビュー結果
+    📊 Code Review Results
 
-    **総合評価**: {{overall_grade}}
+    **Overall Grade**: {{overall_grade}}
 
-    | 観点 | 評価 |
-    |------|------|
-    | セキュリティ | {{security_score}} |
-    | パフォーマンス | {{performance_score}} |
-    | コード品質 | {{quality_score}} |
+    | Aspect | Score |
+    |--------|-------|
+    | Security | {{security_score}} |
+    | Performance | {{performance_score}} |
+    | Code Quality | {{quality_score}} |
 
     {{improvement_suggestions}}
 
-    自動で修正しますか？
+    Would you like to auto-fix these?
 
-# エラー時の出力
+# Output on error
 on_error:
   message: |
-    ⚠️ レビュー中にエラーが発生しました。
+    ⚠️ An error occurred during the review.
 
-    手動で確認してください。
+    Please check manually.

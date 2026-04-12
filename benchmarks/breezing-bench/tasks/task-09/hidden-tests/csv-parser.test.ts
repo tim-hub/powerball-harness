@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('CSV Parser', () => {
-  // NOTE: エージェントが実装すべきファイルのパス
+  // NOTE: Path to the file the agent should implement
   const IMPL_PATH = '../csv-parser';
 
   let parseCsv: any;

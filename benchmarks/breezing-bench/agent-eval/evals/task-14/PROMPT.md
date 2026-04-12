@@ -1,4 +1,4 @@
-TTLCache に `getOrSet(key, factory, ttl?)` メソッドを追加してください。
-`types.ts` にインターフェース定義があります。
-キーが存在すればその値を返し、なければ factory 関数を呼んで結果をセットしてから返す機能です。
-factory は非同期関数にも対応してください。
+Add a `getOrSet(key, factory, ttl?)` method to the TTLCache.
+The interface definition is in `types.ts`.
+This feature returns the value if the key exists, otherwise calls the factory function, sets the result, and returns it.
+The factory should support async functions.

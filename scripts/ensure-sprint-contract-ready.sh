@@ -1,6 +1,6 @@
 #!/bin/bash
 # ensure-sprint-contract-ready.sh
-# Worker 着手前に sprint-contract が approved か確認する。
+# Verify sprint-contract is approved before Worker starts.
 
 set -euo pipefail
 

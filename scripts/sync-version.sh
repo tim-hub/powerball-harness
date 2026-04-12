@@ -1,17 +1,17 @@
 #!/bin/bash
-# sync-version.sh - release metadata の VERSION / plugin.json を同期
+# sync-version.sh - Sync release metadata VERSION / plugin.json
 #
-# 使い方:
-#   ./scripts/sync-version.sh check    # 不一致をチェック
-#   ./scripts/sync-version.sh sync     # plugin.json を VERSION に合わせる
-#   ./scripts/sync-version.sh bump     # release 用に patch version を上げる
+# Usage:
+#   ./scripts/sync-version.sh check    # Check for version mismatch
+#   ./scripts/sync-version.sh sync     # Sync plugin.json to match VERSION
+#   ./scripts/sync-version.sh bump     # Bump patch version for release
 
 set -euo pipefail
 
 VERSION_FILE="VERSION"
 PLUGIN_JSON=".claude-plugin/plugin.json"
 
-# 現在のバージョンを取得
+# Get current version
 get_version() {
     cat "$VERSION_FILE" | tr -d '\n'
 }
@@ -20,43 +20,43 @@ get_plugin_version() {
     grep '"version"' "$PLUGIN_JSON" | sed 's/.*"version": "\([^"]*\)".*/\1/'
 }
 
-# バージョン不一致チェック
+# Check for version mismatch
 check_version() {
     local v1=$(get_version)
     local v2=$(get_plugin_version)
 
     if [ "$v1" != "$v2" ]; then
-        echo "❌ バージョン不一致:"
+        echo "❌ Version mismatch:"
         echo "   VERSION:     $v1"
         echo "   plugin.json: $v2"
         return 1
     else
-        echo "✅ バージョン一致: $v1"
+        echo "✅ Version match: $v1"
         return 0
     fi
 }
 
-# plugin.json を VERSION に同期
+# Sync plugin.json to VERSION
 sync_version() {
     local version=$(get_version)
     local current=$(get_plugin_version)
 
     if [ "$version" = "$current" ]; then
-        echo "✅ 既に同期済み: $version"
+        echo "✅ Already in sync: $version"
         return 0
     fi
 
-    # macOS と Linux 両対応
+    # Compatible with both macOS and Linux
     if [[ "$OSTYPE" == "darwin"* ]]; then
         sed -i '' "s/\"version\": \"$current\"/\"version\": \"$version\"/" "$PLUGIN_JSON"
     else
         sed -i "s/\"version\": \"$current\"/\"version\": \"$version\"/" "$PLUGIN_JSON"
     fi
 
-    echo "✅ plugin.json を更新: $current → $version"
+    echo "✅ Updated plugin.json: $current → $version"
 }
 
-# パッチバージョンを上げる
+# Bump patch version
 bump_version() {
     local current=$(get_version)
     local major=$(echo "$current" | cut -d. -f1)
@@ -67,12 +67,12 @@ bump_version() {
     local new_version="$major.$minor.$new_patch"
 
     echo "$new_version" > "$VERSION_FILE"
-    echo "✅ VERSION を更新: $current → $new_version"
+    echo "✅ Updated VERSION: $current → $new_version"
 
     sync_version
 }
 
-# メイン
+# Main
 case "${1:-check}" in
     check)
         check_version

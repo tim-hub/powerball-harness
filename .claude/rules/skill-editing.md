@@ -21,9 +21,9 @@ skills/
         └── ...
 ```
 
-> **CC v2.1.69+ 推奨**: `SKILL.md` から参照ファイルへリンクする場合は、
-> `references/...` の相対パスではなく `${CLAUDE_SKILL_DIR}/references/...` を使用する。
-> これにより、スキル実行場所に依存せず安定して参照できる。
+> **CC v2.1.69+ recommended**: When linking from `SKILL.md` to reference files,
+> use `${CLAUDE_SKILL_DIR}/references/...` instead of relative paths like `references/...`.
+> This ensures stable resolution regardless of the skill's execution location.
 
 ### 2. YAML Frontmatter Format (Required)
 
@@ -33,7 +33,7 @@ skills/
 ---
 name: skill-name
 description: "English description for auto-loading. Include trigger phrases."
-description-ja: "日本語の説明。トリガーフレーズを含む。"
+description-ja: "Japanese description. Include trigger phrases."
 allowed-tools: ["Read", "Write", "Edit", "Bash", ...]
 ---
 ```
@@ -56,14 +56,14 @@ allowed-tools: ["Read", "Write", "Edit", "Bash", ...]
 
 | Guideline | Recommendation |
 |-----------|----------------|
-| SKILL.md | 推奨 500 行以下 |
+| SKILL.md | Recommended under 500 lines |
 | Large content | Split into `references/` files |
 | References | Use descriptive filenames |
 
-> **Note (CC 2.1.32+)**: スキルの文字バジェットはコンテキスト窓の **2%** に自動スケールされます。
-> 500 行はあくまで推奨値であり、実効上限はモデルのコンテキスト窓サイズに依存します。
-> 大きなスキルファイルは自動的にトリミングされる可能性があるため、
-> 重要な情報は SKILL.md の先頭付近に配置し、詳細は `references/` に分割してください。
+> **Note (CC 2.1.32+)**: The skill character budget automatically scales to **2%** of the context window.
+> 500 lines is only a recommended value; the effective limit depends on the model's context window size.
+> Since large skill files may be automatically trimmed,
+> place important information near the top of SKILL.md and split details into `references/`.
 
 ### 5. Description Best Practices
 
@@ -162,7 +162,7 @@ When creating or editing skill files:
 - [ ] SKILL.md has required frontmatter (`name`, `description`)
 - [ ] `name` matches directory name
 - [ ] `description` includes trigger phrases and exclusions
-- [ ] SKILL.md は推奨 500 行以下 (use references for large content; 2% budget scaling applies)
+- [ ] SKILL.md is under 500 lines recommended (use references for large content; 2% budget scaling applies)
 - [ ] References are under `references/` and linked via `${CLAUDE_SKILL_DIR}/references/...`
 - [ ] Related skills documented
 - [ ] Add entry to CHANGELOG.md (for new skills)

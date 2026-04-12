@@ -1,32 +1,32 @@
 # Release Preflight
 
-`scripts/release-preflight.sh` は、公開前に「今 release してよいか」を先に止めるための read-only チェックです。
-vendor-neutral を前提にしているので、AWS 固定や特定の deploy 基盤に依存しません。
+`scripts/release-preflight.sh` is a read-only check to proactively determine "is it safe to release now" before going public.
+It assumes vendor-neutrality, so it does not depend on AWS or any specific deployment platform.
 
-## 何を見るか
+## What It Checks
 
-- working tree が clean か
-- `CHANGELOG.md` に `[Unreleased]` があるか
-- `.env.example` と `.env` が大きくずれていないか。`.env` がない repo は warning に留め、managed secrets 前提の運用を止めすぎない
-- 既存の `healthcheck` / `preflight` コマンドが通るか
-- `agents/` / `core/` / `hooks/` / `scripts/` の shipped surface に `mockData` / `dummy` / `localhost` / `TODO` / `FIXME` などの残骸が残っていないかを警告する
-- 取得できる場合は CI の最新状態が成功しているか
+- Whether the working tree is clean
+- Whether `CHANGELOG.md` contains `[Unreleased]`
+- Whether `.env.example` and `.env` are significantly out of sync. For repos without `.env`, it only warns to avoid blocking managed-secrets workflows
+- Whether existing `healthcheck` / `preflight` commands pass
+- Whether residuals like `mockData` / `dummy` / `localhost` / `TODO` / `FIXME` remain in shipped surfaces (`agents/` / `core/` / `hooks/` / `scripts/`)
+- Whether the latest CI status is passing, when retrievable
 
-## 使い方
+## Usage
 
 ```bash
 scripts/release-preflight.sh
 scripts/release-preflight.sh --root /path/to/other/repo
 ```
 
-## 環境変数
+## Environment Variables
 
-- `HARNESS_RELEASE_PROJECT_ROOT`: 別 repo を点検したいときの root
-- `HARNESS_RELEASE_HEALTHCHECK_CMD`: repo 固有の healthcheck コマンド
-- `HARNESS_RELEASE_CI_STATUS_CMD`: CI 状態確認を差し替えたいときのコマンド
+- `HARNESS_RELEASE_PROJECT_ROOT`: Root path when checking a different repo
+- `HARNESS_RELEASE_HEALTHCHECK_CMD`: Custom healthcheck command for repo-specific checks
+- `HARNESS_RELEASE_CI_STATUS_CMD`: Command to override CI status retrieval
 
-## dry-run との関係
+## Relationship with dry-run
 
-`/release --dry-run` でも preflight は必ず通す。
-dry-run は「公開操作をしない」という意味で、preflight は「公開してよい状態かを確認する」という意味。
-両者は別物なので、dry-run でも preflight は省略しない。
+`/release --dry-run` always runs preflight.
+dry-run means "do not perform public operations," while preflight means "verify that the state is safe for public release."
+These are separate concepts, so preflight is not skipped even in dry-run mode.

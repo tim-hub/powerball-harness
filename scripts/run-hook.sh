@@ -22,7 +22,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# === 引数チェック ===
+# === Argument check ===
 if [ $# -eq 0 ]; then
   echo "Usage: run-hook.sh <script-name> [args...]" >&2
   exit 1
@@ -30,10 +30,10 @@ fi
 
 script_name="$1"; shift
 
-# === Windows 検出 → run-script.js にフォールバック ===
+# === Windows detection -> fallback to run-script.js ===
 case "$(uname -s)" in
   CYGWIN*|MINGW*|MSYS*)
-    # Windows: run-script.js の Windows パス変換が必要
+    # Windows: run-script.js Windows path conversion required
     NODE="$(command -v node 2>/dev/null || true)"
     if [ -n "$NODE" ]; then
       exec "$NODE" "${SCRIPT_DIR}/run-script.js" "$script_name" "$@"
@@ -43,7 +43,7 @@ case "$(uname -s)" in
     ;;
 esac
 
-# === パストラバーサル防止 ===
+# === Path traversal prevention ===
 case "$script_name" in
   ../*|*/../*|*/..)
     echo "harness: invalid script path: ${script_name}" >&2
@@ -51,32 +51,32 @@ case "$script_name" in
     ;;
 esac
 
-# === 拡張子補完 ===
+# === Extension completion ===
 if [[ "$script_name" != *.sh && "$script_name" != *.js ]]; then
   script_name="${script_name}.sh"
 fi
 script_path="${SCRIPT_DIR}/${script_name}"
 
-# === 解決後パスが SCRIPT_DIR 配下にあることを検証 ===
+# === Verify resolved path is under SCRIPT_DIR ===
 real_script="$(cd "$(dirname "$script_path")" 2>/dev/null && pwd)/$(basename "$script_path")" || true
 if [[ -z "$real_script" || "$real_script" != "${SCRIPT_DIR}/"* ]]; then
   echo "harness: script path escapes scripts dir: ${script_name}" >&2
   exit 1
 fi
 
-# === スクリプト不在 → silent exit（配布差分に対応）===
+# === Script not found -> silent exit (handles distribution differences) ===
 if [ ! -f "$script_path" ]; then
   exit 0
 fi
 
-# === .sh → bash 直接実行（node 不要）===
+# === .sh -> direct bash execution (no node required) ===
 if [[ "$script_path" == *.sh ]]; then
   exec bash "$script_path" "$@"
 fi
 
-# === .js → node を動的解決して実行 ===
+# === .js -> dynamically resolve and execute via node ===
 resolve_node() {
-  # 1. PATH に node があればそれを使う
+  # 1. Use node from PATH if available
   local found
   found="$(command -v node 2>/dev/null || true)"
   if [ -n "$found" ]; then

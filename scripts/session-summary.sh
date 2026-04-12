@@ -1,8 +1,8 @@
 #!/bin/bash
 # session-summary.sh
-# セッション終了時にサマリーを生成
+# Generate summary at session end
 #
-# Usage: Stop hook から自動実行
+# Usage: Auto-executed from Stop hook
 
 set +e
 
@@ -13,23 +13,23 @@ EVENT_LOG_FILE=".claude/state/session.events.jsonl"
 ARCHIVE_DIR=".claude/state/sessions"
 CURRENT_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-# 状態ファイルがなければスキップ
+# Skip if no state file
 if [ ! -f "$STATE_FILE" ]; then
   exit 0
 fi
 
-# jq がなければスキップ
+# Skip if jq not available
 if ! command -v jq &> /dev/null; then
   exit 0
 fi
 
-# 既にメモリへ記録済みならスキップ（Stop hook の二重実行対策）
+# Skip if already logged to memory (prevent double Stop hook execution)
 ALREADY_LOGGED=$(jq -r '.memory_logged // false' "$STATE_FILE" 2>/dev/null)
 if [ "$ALREADY_LOGGED" = "true" ]; then
   exit 0
 fi
 
-# セッション情報を取得
+# Get session information
 SESSION_ID=$(jq -r '.session_id // "unknown"' "$STATE_FILE")
 SESSION_START=$(jq -r '.started_at' "$STATE_FILE")
 PROJECT_NAME=$(jq -r '.project_name // empty' "$STATE_FILE")
@@ -37,76 +37,76 @@ GIT_BRANCH=$(jq -r '.git.branch // empty' "$STATE_FILE")
 CHANGES_COUNT=$(jq '.changes_this_session | length' "$STATE_FILE")
 IMPORTANT_CHANGES=$(jq '[.changes_this_session[] | select(.important == true)] | length' "$STATE_FILE")
 
-# Git 情報
+# Git info
 GIT_COMMITS=0
 if [ -d ".git" ]; then
-  # セッション開始後のコミット数（概算）
+  # Commit count since session start (approximate)
   GIT_COMMITS=$(git log --oneline --since="$SESSION_START" 2>/dev/null | wc -l | tr -d ' ' || echo "0")
 fi
 
-# Plans.md のタスク状況
+# Plans.md task status
 COMPLETED_TASKS=0
 WIP_TASK_TITLE=""
 if [ -f "Plans.md" ]; then
-  COMPLETED_TASKS=$(grep -c "cc:完了" Plans.md 2>/dev/null || echo "0")
-  # 現在のWIPタスクタイトルを取得（最初の1件）
+  COMPLETED_TASKS=$(grep -c "cc:done" Plans.md 2>/dev/null || echo "0")
+  # Get current WIP task title (first one)
   WIP_TASK_TITLE=$(grep -E "^\s*-\s*\[.\]\s*\*\*.*\`cc:WIP\`" Plans.md 2>/dev/null | head -1 | sed 's/.*\*\*\(.*\)\*\*.*/\1/' || true)
 fi
 
-# Agent Trace から直近の編集ファイル情報を取得
+# Get recent edit file info from Agent Trace
 AGENT_TRACE_FILE=".claude/state/agent-trace.jsonl"
 RECENT_EDITS=""
 RECENT_PROJECT=""
 if [ -f "$AGENT_TRACE_FILE" ]; then
-  # 直近10件のトレースから編集ファイルを抽出
+  # Extract edit files from last 10 traces
   RECENT_EDITS=$(tail -10 "$AGENT_TRACE_FILE" 2>/dev/null | jq -r '.files[].path' 2>/dev/null | sort -u | head -5 || true)
-  # 最新のプロジェクト情報を取得
+  # Get latest project info
   RECENT_PROJECT=$(tail -1 "$AGENT_TRACE_FILE" 2>/dev/null | jq -r '.metadata.project // empty' 2>/dev/null || true)
 fi
 
-# セッション時間計算
+# Calculate session duration
 START_EPOCH=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$SESSION_START" "+%s" 2>/dev/null || date -d "$SESSION_START" "+%s" 2>/dev/null || echo "0")
 NOW_EPOCH=$(date +%s)
 DURATION_MINUTES=$(( (NOW_EPOCH - START_EPOCH) / 60 ))
 
-# サマリー出力（変更がある場合のみ）
+# Summary output (only when changes exist)
 if [ "$CHANGES_COUNT" -gt 0 ] || [ "$GIT_COMMITS" -gt 0 ] || [ -n "$RECENT_EDITS" ]; then
   echo ""
-  echo "📊 セッションサマリー"
+  echo "Session Summary"
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-  # プロジェクト名（Agent Trace から）
+  # Project name (from Agent Trace)
   if [ -n "$RECENT_PROJECT" ]; then
-    echo "📁 プロジェクト: ${RECENT_PROJECT}"
+    echo "Project: ${RECENT_PROJECT}"
   fi
 
-  # 現在のタスク（WIP）
+  # Current task (WIP)
   if [ -n "$WIP_TASK_TITLE" ]; then
-    echo "🎯 現在のタスク: ${WIP_TASK_TITLE}"
+    echo "Current task: ${WIP_TASK_TITLE}"
   fi
 
   if [ "$COMPLETED_TASKS" -gt 0 ]; then
-    echo "✅ 完了タスク: ${COMPLETED_TASKS}件"
+    echo "Completed tasks: ${COMPLETED_TASKS}"
   fi
 
-  echo "📝 変更ファイル: ${CHANGES_COUNT}件"
+  echo "Changed files: ${CHANGES_COUNT}"
 
   if [ "$IMPORTANT_CHANGES" -gt 0 ]; then
-    echo "⚠️ 重要な変更: ${IMPORTANT_CHANGES}件"
+    echo "Important changes: ${IMPORTANT_CHANGES}"
   fi
 
   if [ "$GIT_COMMITS" -gt 0 ]; then
-    echo "💾 コミット: ${GIT_COMMITS}件"
+    echo "Commits: ${GIT_COMMITS}"
   fi
 
   if [ "$DURATION_MINUTES" -gt 0 ]; then
-    echo "⏱️ セッション時間: ${DURATION_MINUTES}分"
+    echo "Session duration: ${DURATION_MINUTES} min"
   fi
 
-  # 直近の編集ファイル（Agent Trace から）
+  # Recent edits (from Agent Trace)
   if [ -n "$RECENT_EDITS" ]; then
     echo ""
-    echo "📄 直近の編集:"
+    echo "Recent edits:"
     echo "$RECENT_EDITS" | while read -r f; do
       [ -n "$f" ] && echo "   - $f"
     done
@@ -117,11 +117,11 @@ if [ "$CHANGES_COUNT" -gt 0 ] || [ "$GIT_COMMITS" -gt 0 ] || [ -n "$RECENT_EDITS
 fi
 
 # ================================
-# `.claude/memory/session-log.md` へ自動追記（あれば作成）
+# Auto-append to `.claude/memory/session-log.md` (create if needed)
 # ================================
 
-# 変更がなくても「開始した」という記録が欲しいケースがあるため、
-# セッション開始が取れていればログを書いて良い（空セッションも可）
+# Even without changes, we may want a record that the session started,
+# so write log if session start is available (empty sessions are OK)
 if [ -n "$SESSION_START" ] && [ "$SESSION_START" != "null" ]; then
   mkdir -p "$MEMORY_DIR" 2>/dev/null || true
 
@@ -129,30 +129,30 @@ if [ -n "$SESSION_START" ] && [ "$SESSION_START" != "null" ]; then
     cat > "$SESSION_LOG_FILE" << 'EOF'
 # Session Log
 
-セッション単位の作業ログ（基本はローカル運用向け）。
-重要な意思決定は `.claude/memory/decisions.md`、再利用できる解法は `.claude/memory/patterns.md` に昇格してください。
+Per-session work log (primarily for local use).
+Promote important decisions to `.claude/memory/decisions.md` and reusable solutions to `.claude/memory/patterns.md`.
 
 ## Index
 
-- （必要に応じて追記）
+- (Add as needed)
 
 ---
 EOF
   fi
 
-  # 変更ファイル一覧（重複排除）
+  # Changed files list (deduplicated)
   CHANGED_FILES=$(jq -r '.changes_this_session[]?.file' "$STATE_FILE" 2>/dev/null | awk 'NF' | awk '!seen[$0]++')
   IMPORTANT_FILES=$(jq -r '.changes_this_session[]? | select(.important == true) | .file' "$STATE_FILE" 2>/dev/null | awk 'NF' | awk '!seen[$0]++')
 
-  # WIP タスク（存在すれば軽く抽出）
+  # WIP tasks (extract briefly if present)
   WIP_TASKS=""
   if [ -f "Plans.md" ]; then
-    WIP_TASKS=$(grep -n "cc:WIP\|pm:依頼中\|cursor:依頼中" Plans.md 2>/dev/null | head -20 || true)
+    WIP_TASKS=$(grep -n "cc:WIP\|pm:requested\|cursor:requested" Plans.md 2>/dev/null | head -20 || true)
   fi
 
   {
     echo ""
-    echo "## セッション: ${CURRENT_TIME}"
+    echo "## Session: ${CURRENT_TIME}"
     echo ""
     echo "- session_id: \`${SESSION_ID}\`"
     [ -n "$PROJECT_NAME" ] && echo "- project: \`${PROJECT_NAME}\`"
@@ -164,47 +164,47 @@ EOF
     [ "$IMPORTANT_CHANGES" -gt 0 ] && echo "- important_changes: ${IMPORTANT_CHANGES}"
     [ "$GIT_COMMITS" -gt 0 ] && echo "- commits: ${GIT_COMMITS}"
     echo ""
-    echo "### 変更ファイル"
+    echo "### Changed Files"
     if [ -n "$CHANGED_FILES" ]; then
       echo "$CHANGED_FILES" | while read -r f; do
         [ -n "$f" ] && echo "- \`$f\`"
       done
     else
-      echo "- （なし）"
+      echo "- (none)"
     fi
     echo ""
-    echo "### 重要な変更（important=true）"
+    echo "### Important Changes (important=true)"
     if [ -n "$IMPORTANT_FILES" ]; then
       echo "$IMPORTANT_FILES" | while read -r f; do
         [ -n "$f" ] && echo "- \`$f\`"
       done
     else
-      echo "- （なし）"
+      echo "- (none)"
     fi
     echo ""
-    echo "### 次回への引き継ぎ（任意）"
+    echo "### Handoff to Next Session (optional)"
     if [ -n "$WIP_TASKS" ]; then
       echo ""
-      echo "**Plans.md のWIP/依頼中（抜粋）**:"
+      echo "**Plans.md WIP/pending (excerpt)**:"
       echo ""
       echo '```'
       echo "$WIP_TASKS"
       echo '```'
     else
-      echo "- （必要に応じて追記）"
+      echo "- (Add as needed)"
     fi
     echo ""
     echo "---"
   } >> "$SESSION_LOG_FILE" 2>/dev/null || true
 fi
 
-# 状態ファイルにセッション終了時刻・記録済みフラグを記録
+# Record session end time and logged flag in state file
 append_event() {
   local event_type="$1"
   local event_state="$2"
   local event_time="$3"
 
-  # イベントログ初期化
+  # Initialize event log
   mkdir -p ".claude/state" 2>/dev/null || true
   touch "$EVENT_LOG_FILE" 2>/dev/null || true
 
@@ -235,7 +235,7 @@ if command -v jq >/dev/null 2>&1; then
      "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
 fi
 
-# アーカイブ保存（resume/fork 用）
+# Archive for resume/fork
 if [ -f "$STATE_FILE" ]; then
   mkdir -p "$ARCHIVE_DIR" 2>/dev/null || true
   if command -v jq >/dev/null 2>&1; then

@@ -1,16 +1,16 @@
-# テストスイート
+# Test Suite
 
-このディレクトリには、claude-code-harnessプラグインの品質を保証するためのテストが含まれています。
+This directory contains tests to ensure the quality of the claude-code-harness plugin.
 
-## VibeCoder向けテスト
+## Tests for VibeCoders
 
-エンタープライズレベルの複雑なテストではなく、**1人でクライアントプロジェクトをこなすVibeCoder**が、プラグインが正しく動作することを簡単に確認できるシンプルなテストです。
+These are not enterprise-level complex tests, but simple tests that allow a **solo VibeCoder working on client projects** to quickly verify that the plugin is functioning correctly.
 
-## テストの実行方法
+## How to Run Tests
 
-### プラグイン構造の検証
+### Plugin Structure Validation
 
-プラグインの基本構造が正しいかを検証します：
+Validates that the basic plugin structure is correct:
 
 ```bash
 ./tests/validate-plugin.sh
@@ -18,81 +18,81 @@
 ./scripts/ci/check-consistency.sh
 ```
 
-### Unified Memory 検証
+### Unified Memory Validation
 
-共通メモリdaemonの基本動作を検証します：
+Validates basic operation of the shared memory daemon:
 
 ```bash
 ./tests/test-memory-daemon.sh
 ```
 
-ゾンビプロセスが残らないかをループ検証します：
+Loop-validates that no zombie processes remain:
 
 ```bash
 ./tests/test-memory-daemon-zombie.sh 100
 ```
 
-検索品質（hybrid ranking / privacy filter / API経路）を検証します：
+Validates search quality (hybrid ranking / privacy filter / API routing):
 
 ```bash
 ./tests/test-memory-search-quality.sh
 ```
 
-これらの検証は以下を確認します：
+These validations check the following:
 
-1. **プラグイン構造**: plugin.jsonの存在と妥当性
-2. **コマンド**: 登録されたコマンドファイルの存在
-3. **スキル**: スキル定義の存在と基本的な品質
-4. **エージェント**: エージェント定義の存在
-5. **フック**: hooks.jsonの妥当性
-6. **スクリプト**: 自動化スクリプトの存在と実行権限
-7. **ドキュメント**: README等の必須ドキュメント
+1. **Plugin structure**: plugin.json existence and validity
+2. **Commands**: Existence of registered command files
+3. **Skills**: Skill definitions existence and basic quality
+4. **Agents**: Agent definitions existence
+5. **Hooks**: hooks.json validity
+6. **Scripts**: Automation script existence and execute permissions
+7. **Documentation**: Required documents like README
 
-### 期待される出力
+### Expected Output
 
 ```
 ==========================================
-Claude harness - プラグイン検証テスト
+Claude harness - Plugin Validation Test
 ==========================================
 
-1. プラグイン構造の検証
+1. Plugin structure validation
 ----------------------------------------
-✓ plugin.json が存在します
-✓ plugin.json は有効なJSONです
-✓ plugin.json に name フィールドがあります
-✓ plugin.json に version フィールドがあります
+✓ plugin.json exists
+✓ plugin.json is valid JSON
+✓ plugin.json has 'name' field
+✓ plugin.json has 'version' field
 ...
 
 ==========================================
-テスト結果サマリー
+Test Results Summary
 ==========================================
-合格: 25
-警告: 1
-失敗: 0
+Passed: 25
+Warnings: 1
+Failed: 0
 
-✓ 全てのテストに合格しました！
+✓ All tests passed!
 ```
 
-## テストの追加
+## Adding Tests
 
-新しいコマンドやスキルを追加した場合、このテストを実行して構造が正しいことを確認してください。
+When adding new commands or skills, run these tests to confirm the structure is correct.
 
-## CI/CDでの利用
+## CI/CD Usage
 
-GitHub Actions では `.github/workflows/validate-plugin.yml` が以下を実行します。
+GitHub Actions runs the following in `.github/workflows/validate-plugin.yml`:
 
 - `./tests/validate-plugin.sh`
 - `./scripts/ci/check-consistency.sh`
 - `./tests/test-codex-package.sh`
 - `cd core && npm test`
 
-`/harness-work all` の success / failure fixture は smoke / full を分けて管理しています。詳細は [docs/evidence/work-all.md](../docs/evidence/work-all.md) を参照してください。
+The `/harness-work all` success / failure fixtures are managed separately for smoke / full runs. See [docs/evidence/work-all.md](../docs/evidence/work-all.md) for details.
 
-## トラブルシューティング
+## Troubleshooting
 
-### jqコマンドが見つからない
+### jq command not found
 
-テストスクリプトは`jq`コマンドを使用します。インストールされていない場合：
+Test scripts use the `jq` command. If not installed:
 
 ```bash
 # macOS
@@ -105,17 +105,17 @@ sudo apt-get install jq
 sudo apt-get install jq
 ```
 
-### テストが失敗する場合
+### When tests fail
 
-1. エラーメッセージを確認
-2. 該当するファイルが存在するか確認
-3. JSONファイルの構文エラーがないか確認
+1. Check the error message
+2. Verify the referenced file exists
+3. Check JSON files for syntax errors
 
-## VibeCoder向けのポイント
+## Key Points for VibeCoders
 
-- **シンプル**: 複雑なテストフレームワークは不要
-- **実用的**: 実際に問題になる構造エラーを検出
-- **高速**: 数秒で完了
-- **わかりやすい**: 結果が一目でわかる
+- **Simple**: No complex test frameworks needed
+- **Practical**: Detects structural errors that actually cause problems
+- **Fast**: Completes in seconds
+- **Clear**: Results are obvious at a glance
 
-このテストは、プラグインを変更した後に「壊れていないか」を素早く確認するためのものです。
+These tests are for quickly checking "is anything broken?" after modifying the plugin.

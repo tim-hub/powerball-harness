@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # notification-handler.sh
-# Notification フックハンドラ
-# Claude Code が通知を発行する際に発火
-# permission_prompt, idle_prompt, auth_success 等のイベントを記録
+# Notification hook handler
+# Fires when Claude Code issues a notification
+# Records events such as permission_prompt, idle_prompt, auth_success etc.
 #
 # Input: stdin JSON from Claude Code hooks
 # Output: JSON to approve the event
@@ -10,19 +10,19 @@
 
 set -euo pipefail
 
-# === 設定 ===
+# === Configuration ===
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PARENT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# path-utils.sh の読み込み
+# Load path-utils.sh
 if [ -f "${PARENT_DIR}/path-utils.sh" ]; then
   source "${PARENT_DIR}/path-utils.sh"
 fi
 
-# プロジェクトルートを検出
+# Detect project root
 PROJECT_ROOT="${PROJECT_ROOT:-$(detect_project_root 2>/dev/null || pwd)}"
 
-# ログファイル（CLAUDE_PLUGIN_DATA 使用時はプロジェクト別にスコープ）
+# Log file (scoped per-project when using CLAUDE_PLUGIN_DATA)
 if [ -n "${CLAUDE_PLUGIN_DATA:-}" ]; then
   _project_hash="$(printf '%s' "${PROJECT_ROOT}" | { shasum -a 256 2>/dev/null || sha256sum 2>/dev/null || echo "default  -"; } | cut -c1-12)"
   [ -z "${_project_hash}" ] && _project_hash="default"
@@ -32,7 +32,7 @@ else
 fi
 LOG_FILE="${STATE_DIR}/notification-events.jsonl"
 
-# === ユーティリティ関数 ===
+# === Utility functions ===
 
 ensure_state_dir() {
   local state_parent
@@ -51,7 +51,7 @@ ensure_state_dir() {
   return 0
 }
 
-# JSONL ローテーション（500 行超過時に 400 行に切り詰め）
+# JSONL rotation (trim to 400 lines when exceeding 500 lines)
 rotate_jsonl() {
   local file="$1"
 
@@ -72,18 +72,18 @@ get_timestamp() {
   date -u +"%Y-%m-%dT%H:%M:%SZ"
 }
 
-# === stdin から JSON ペイロードを読み取り ===
+# === Read JSON payload from stdin ===
 INPUT=""
 if [ ! -t 0 ]; then
   INPUT="$(cat 2>/dev/null)"
 fi
 
-# ペイロードが空の場合はスキップ
+# Skip if payload is empty
 if [ -z "${INPUT}" ]; then
   exit 0
 fi
 
-# === フィールド抽出 ===
+# === Field extraction ===
 NOTIFICATION_TYPE=""
 SESSION_ID=""
 AGENT_TYPE=""
@@ -110,7 +110,7 @@ except:
   AGENT_TYPE="$(echo "${_parsed}" | sed -n '3p')"
 fi
 
-# === ログ記録 ===
+# === Log recording ===
 if ! ensure_state_dir; then
   exit 0
 fi
@@ -147,18 +147,18 @@ if [ -n "${log_entry}" ]; then
   rotate_jsonl "${LOG_FILE}"
 fi
 
-# === Breezing 中の重要通知検出 ===
-# Breezing のバックグラウンド Worker では UI 操作が不能
-# ログに記録することで事後分析を可能にする
+# === Detect important notifications during Breezing ===
+# Background Workers in Breezing cannot interact with UI
+# Recording to log enables post-hoc analysis
 
-# permission_prompt: Worker が権限ダイアログに応答できない
+# permission_prompt: Worker cannot respond to permission dialogs
 if [ "${NOTIFICATION_TYPE}" = "permission_prompt" ] && [ -n "${AGENT_TYPE}" ]; then
   echo "Notification: permission_prompt for agent_type=${AGENT_TYPE}" >&2
 fi
 
-# elicitation_dialog: MCP サーバーからの入力要求（v2.1.76+）
-# バックグラウンド Worker では Elicitation フォームに応答不能
-# Elicitation フックで自動スキップ済みだが、通知ログにも残す
+# elicitation_dialog: Input request from MCP server (v2.1.76+)
+# Background Workers cannot respond to Elicitation forms
+# Already auto-skipped by the Elicitation hook, but also logged here
 if [ "${NOTIFICATION_TYPE}" = "elicitation_dialog" ] && [ -n "${AGENT_TYPE}" ]; then
   echo "Notification: elicitation_dialog for agent_type=${AGENT_TYPE} (auto-skipped in background)" >&2
 fi

@@ -95,7 +95,7 @@ function getPlanRows(repoRoot) {
         continue;
       }
 
-      // エスケープされた `\|` をプレースホルダに置換してパース後に復元
+      // Replace escaped `\|` with a placeholder, restore after parsing
       const PIPE_PH = '\x00PIPE\x00';
       const escaped = line.replace(/\\\|/g, PIPE_PH);
       const rawCells = escaped.split('|').map((cell) => cell.trim());
@@ -108,7 +108,7 @@ function getPlanRows(repoRoot) {
       }
 
       const restore = (s) => s.replace(new RegExp(PIPE_PH, 'g'), '|');
-      // 右端から固定カラム数で分割（タイトルや DoD に `|` を含む行に対応）
+      // Split from the right side by fixed column count (handles rows with `|` in title or DoD)
       const taskId = restore(cells[0]);
       const status = restore(cells[cells.length - 1]);
       const depends = restore(cells[cells.length - 2]);
@@ -169,7 +169,7 @@ function getRecentEdits(repoRoot) {
     const { execFileSync } = require('child_process');
 
     // Get files modified in working tree (staged + unstaged + untracked)
-    // HEAD~5 ではなく現在の作業状態を反映する
+    // Reflect the current working state instead of HEAD~5
     const staged = execFileSync('git', ['diff', '--name-only', '--cached'], {
       cwd: repoRoot, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], timeout: GIT_TIMEOUT_MS
     }).trim();

@@ -1,218 +1,222 @@
-# Harness v3.15.0 で、Claude と Codex の最新対応をどこまで言えるのか
+# How Far Can Harness v3.15.0 Go with Claude and Codex Latest Support
 
-## X記事タイトル候補
+## Article Title Candidates
 
-1. Harness v3.15.0 で、Claude は最新対応。Codex はどこまで言えるのか
-2. Claude は最新まで対応、Codex は stable 最新を見て次の差分も明確になった話
-3. 「完璧です」とは言わない。Harness v3.15.0 の正直な最新対応状況
-4. Claude と Codex の最新アップデート、Harness はどこまで取り込めたのか
+1. Harness v3.15.0: Claude is latest-ready. How far can we go with Codex?
+2. Claude is latest-ready, Codex is at stable latest with next steps clearly defined
+3. We won't say "perfect." An honest look at Harness v3.15.0's latest support status
+4. Claude and Codex latest updates: How much has Harness incorporated?
 
-## 採用タイトル
+## Chosen Title
 
-Harness v3.15.0 で、Claude と Codex の最新対応をどこまで言えるのか
+How Far Can Harness v3.15.0 Go with Claude and Codex Latest Support
 
-## リード
+## Introduction
 
-AI 開発ツールの発信では、どうしても「最新対応しました」と強く言いたくなります。
+When communicating about AI development tools, there's always a temptation to make strong claims like "now supporting the latest version."
 
-でも実際に大事なのは、
+But what really matters is:
 
-- 何が本当に対応済みなのか
-- どこまでは自信を持って言えるのか
-- どこから先は、まだ次の実装課題なのか
+- What is actually supported
+- What can we confidently claim
+- What is still an implementation task for the future
 
-を、曖昧にしないことです。
+Without being ambiguous about these distinctions.
 
-Harness v3.15.0 では、Claude Code 側はかなり強く言える状態になりました。一方で Codex 側は、stable 最新を見て反映方針はかなり整理できたものの、「完全に最新追従済み」とまではまだ言いません。
+With Harness v3.15.0, the Claude Code side has reached a state where we can make strong claims. Meanwhile, the Codex side has made significant progress in organizing the latest stable version's integration strategy, but we won't yet say "fully tracking the latest."
 
-この記事では、2026-03-28 時点の公式情報と実装・検証結果をもとに、その違いをやさしく整理します。
+This article organizes those differences based on official information and implementation/verification results as of 2026-03-28.
 
-## 1. まず結論
+## 1. The Bottom Line
 
-最初に結論だけ書くと、今の状態はこうです。
+Stating the conclusion upfront, the current status is:
 
-### Claude から Harness を使う場合
+### Using Harness from Claude
 
-- 最新の Claude Code `2.1.86` を前提にしてよい
-- `2.1.80` から `2.1.86` までの重要アップデートを Harness 側へ実装済み
-- 体感としても「軽さ」「安全性」「前提ずれの減少」が起きる
+- Safe to assume the latest Claude Code `2.1.86`
+- Important updates from `2.1.80` through `2.1.86` have been implemented on the Harness side
+- Tangible improvements in "responsiveness," "safety," and "reduced assumption drift"
 
-### Codex から Harness を使う場合
+### Using Harness from Codex
 
-- stable 最新の `0.117.0` を見て比較・整理は済んでいる
-- ただし、`plugin-first workflow` や `resume-aware effort continuity` は次の実装課題として残っている
-- つまり「最新 stable を踏まえた整理は済み、完全追従はこれから」という状態
+- Comparison and organization against the latest stable `0.117.0` is complete
+- However, `plugin-first workflow` and `resume-aware effort continuity` remain as next implementation tasks
+- In other words, "organization based on latest stable is done; full tracking is still to come"
 
-### release の見え方
+### Release Status
 
-- release はかなり良い状態
-- ただし「完璧」「デグレ絶対なし」とは言わない
-- 今ある自動検証では大きな問題は見えていない、というのが正確な表現
+- The release is in quite good shape
+- But we won't say "perfect" or "absolutely no regressions"
+- The accurate statement is that no major issues are visible in current automated verification
 
-## 2. Claude 側は、なぜ「対応済み」と言いやすいのか
+## 2. Why Claude Side Can Be Called "Latest-Ready"
 
-Claude Code の公式 changelog を見ると、最近の更新の中でも Harness と相性が良い機能がはっきりありました。
+Looking at Claude Code's official changelog, there are features that clearly synergize well with Harness among the recent updates.
 
-今回実際に取り込んだ中心は次のようなものです。
+Key items actually incorporated this time include:
 
 - `TaskCreated` / `FileChanged` / `CwdChanged` hooks
 - `sandbox.failIfUnavailable`
 - `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1`
-- skill の `effort`
-- agent の `initialPrompt`
+- skill `effort`
+- agent `initialPrompt`
 - hooks conditional `if` field
-- rules `paths:` の YAML list 対応
+- rules `paths:` YAML list support
 
-これを Harness 側では、単なる「機能紹介」で終わらせず、毎日の開発で効く形に変えました。
+On the Harness side, these weren't just "introduced" -- they were transformed into forms that make a difference in daily development.
 
-たとえば、Claude から使う人にとっては次の変化があります。
+For example, for those using Claude, the following changes apply:
 
-### 2-1. 不要な権限確認が減って、少し軽くなる
+### 2-1. Fewer unnecessary permission checks, slightly lighter experience
 
-`hooks conditional if field` を使って、permission hook を「安全寄りの Bash コマンドだけ」に絞りました。
+Using the `hooks conditional if field`, permission hooks are now scoped to "safe-leaning Bash commands only."
 
-たとえば、
+For example, operations like:
 
 - `git status`
 - `git diff`
 - `pytest`
 - `npm run lint`
 
-のような比較的安全な操作では、無駄な hook 評価を減らせます。
+now incur fewer unnecessary hook evaluations for relatively safe operations.
 
-つまり、
+This means:
 
-- 遅くなりにくい
-- ノイズが減る
-- でも安全な自動承認は残る
+- Less likely to slow down
+- Less noise
+- Safe auto-approvals are preserved
 
-というバランスになります。
+A good balance.
 
-### 2-2. 前提が変わったことに気づきやすくなる
+### 2-2. Easier to notice when assumptions change
 
-reactive hooks を入れたことで、
+With reactive hooks, changes like:
 
-- `Plans.md` が変わった
-- ルールが変わった
-- settings が変わった
-- worktree や作業場所が変わった
+- `Plans.md` changed
+- Rules changed
+- Settings changed
+- Worktree or workspace changed
 
-といった前提の変化を拾って、次の行動前に再確認を促せるようになりました。
+are now caught, prompting re-confirmation before the next action.
 
-地味ですが、長い作業ではかなり効きます。
+Subtle, but highly effective in long work sessions.
 
-### 2-3. 安全設定が「知っていれば使える」から「最初から効く」に変わる
+### 2-3. Safety settings move from "available if you know about them" to "enabled by default"
 
-`sandbox.failIfUnavailable` は、sandbox が使えないときに危ない状態でそのまま続けないための設定です。
+`sandbox.failIfUnavailable` prevents continuing in an unsafe state when sandbox is unavailable.
 
-`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` は、Bash や hook など裏側で動く処理に、認証情報を引き渡しすぎないための設定です。
+`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` prevents passing too many credentials to background processes like Bash and hooks.
 
-これらを Harness の設定に組み込んだので、利用者が毎回思い出さなくても、最初から効きやすくなっています。
+These are now built into Harness settings, so they take effect from the start without users having to remember them each time.
 
-つまり Claude 側は、**最新 changelog の価値がそのまま runtime 改善に落ちている**ので、「最新対応済み」と言いやすいのです。
+This is why the Claude side can say "latest-ready" -- **the value from the latest changelog directly translates into runtime improvements**.
 
-## 3. Codex 側は、なぜ「まだ完全とは言わない」のか
+## 3. Why Codex Side Won't Say "Fully Tracked" Yet
 
-ここは正直さが大事です。
+Honesty matters here.
 
-Codex の最新 stable は `0.117.0` です。これ自体は調べており、どこに価値があるかも整理できています。
+Codex's latest stable is `0.117.0`. We've examined it and organized where the value lies.
 
-ただ、Harness 側で今回すぐに実装した主役は Claude 側でした。
+However, the main focus of immediate implementation this time was the Claude side.
 
-Codex 側で今回前進したのは、主に次のようなところです。
+Progress on the Codex side this time includes:
 
-- mirror の整合
-- heavy workflow での `effort` frontmatter 反映
-- 重いスキルやフローの初動品質の安定化
+- Mirror alignment
+- `effort` frontmatter integration for heavy workflows
+- Stabilizing initial quality for heavy skills and flows
 
-これは意味のある改善です。
+These are meaningful improvements.
 
-でも、Codex の最新 stable を見たうえで「次に本当に効く」と判断した
+But the items identified as "truly impactful next" after reviewing the latest stable:
 
 - `plugin-first workflow`
 - `resume-aware effort continuity`
 
-は、まだ次フェーズの課題です。
+are still next-phase tasks.
 
-つまり Codex 側は、
+So for Codex:
 
-- 調査済み
-- 比較軸は明確
-- 一部は反映済み
-- でも最新 stable の価値を全部取り込んだとはまだ言わない
+- Investigation complete
+- Comparison axes are clear
+- Partially integrated
+- But we won't say all value from the latest stable has been incorporated
 
-という状態です。
+This wording may appear weak.
 
-この言い方は弱く見えるかもしれません。
+But in reality, **not being ambiguous about what's incomplete makes the next improvement stronger**.
 
-でも実際には、**できていない部分を曖昧にしない方が、次の改善が強くなる**と思っています。
+## 4. How to Answer "Is the Release Perfect?"
 
-## 4. 「release は完璧か」にどう答えるべきか
+Here too, it's better not to overstate.
 
-これも、強く言い切りすぎない方がいいです。
+What can be said about the current release:
 
-今の release について言えるのは、
+- No uncommitted changes
+- `v3.15.0` is at `main` HEAD
+- Latest `validate-plugin` is success
+- `harness-review` shows 0 critical / major
+- `validate-plugin` shows `43 pass / 2 warning / 0 fail`
 
-- 未コミット変更はない
-- `main` 先頭に `v3.15.0` がある
-- 最新の `validate-plugin` は success
-- `harness-review` では critical / major が 0
-- `validate-plugin` は `43 pass / 2 warning / 0 fail`
+This is quite good.
 
-ということです。
+But we won't say "perfect" or "absolutely no regressions."
 
-これはかなり良い状態です。
+The reason is simple: in software, what truly matters is "whether there are problems within what we can currently see," not making guarantees about the future.
 
-ただし、「完璧」「デグレ絶対なし」とまでは言いません。
+So the accurate statement is:
 
-理由は単純で、ソフトウェアでは本当に大事なのは「いま見えている範囲で問題がないか」であって、「未来も絶対大丈夫」と言い切ることではないからです。
+> The release is in quite good shape.
+> No major issues are visible based on automated verification.
+> But we don't promise perfection or zero risk.
 
-なので、今の正確な表現はこうです。
+## 5. Translated to User Perspective
 
-> release はかなり良い状態。  
-> 自動検証ベースでは大きな問題は見えていない。  
-> ただし、完璧やゼロリスクを約束する言い方はしない。
+Setting aside technical details, this time's message is quite simple.
 
-## 5. ユーザー目線で言い換えると
+### For Claude users
 
-専門的な話を抜きにすると、今回のメッセージはかなりシンプルです。
+- Slightly lighter than before
+- Slightly safer
+- Harder to lose track of assumptions in long sessions
+- Easier to benefit from latest updates
 
-### Claude を使う人
+### For Codex users
 
-- 今までより少し軽い
-- 少し安全
-- 長い作業で前提を見失いにくい
-- 最新更新の恩恵をそのまま受けやすい
+- Initial quality for heavy flows has improved
+- But not yet at the stage of fully leveraging the latest stable's strengths
+- What to strengthen next is already clear
 
-### Codex を使う人
+In other words, Claude has "immediately effective improvements" at the center, while Codex is at the "next strengthening targets are now clearly visible" stage.
 
-- 重いフローの初動品質は良くなっている
-- でも最新 stable の強みを全部活かし切る段階まではまだ行っていない
-- 次にどこを強くするかは、すでに明確
+## 6. Summary
 
-つまり、Claude は「今すぐ効く改善」が中心で、Codex は「次の強化ポイントがきれいに見えた」段階です。
+Harness v3.15.0 examined the latest updates for both Claude and Codex, then:
 
-## 6. まとめ
+- Strongly incorporates Claude
+- Doesn't force-fit Codex, but clearly defines next tasks
 
-Harness v3.15.0 は、Claude と Codex の最新アップデートを見たうえで、
+This was a deliberate release decision.
 
-- Claude は強く取り込む
-- Codex は無理に盛らず、次の宿題を明確にする
+This approach is understated but quite important.
 
-という判断をしたリリースです。
+Rather than claiming "everything is supported":
 
-この方針は地味ですが、かなり大事です。
+- Strongly assert what's truly supported
+- Say "not yet" for what's not
+- But be clear about what comes next
 
-「全部対応済み」と言い切るより、
+This results in a product that builds trust more effectively.
 
-- 本当に対応済みなものは強く言う
-- まだのものはまだと言う
-- その代わり、次に何をやるかは明確にする
+This update embodies that Harness philosophy.
 
-方が、結果としてプロダクトは信頼されやすくなります。
+## Questions / CTA
 
-今回の更新は、そういう意味でも Harness らしいアップデートでした。
+If you're interested in this kind of approach -- "not just echoing upstream updates as promotions, but transforming them into real operational strength" -- we'd love to hear whether you primarily use Claude or Codex in your daily work.
 
-## 質問 / CTA
+## Cover Image Prompt
 
-こういう「本体の更新を、そのまま宣伝するのではなく、実運用の強さに変える」話に興味がある方は、Claude と Codex のどちらを日常で使っているか、ぜひ聞かせてください。
+High-resolution, white-background tech infographic. Center heading: "Claude Latest, Codex In Progress, Honest Release Status." Left: "Claude 2.1.86 Ready," right: "Codex 0.117 Stable Tracked." Center bottom banner: "Release: Strong, Not Overclaimed." Three cards each showing "Latest Support," "No Known Regression in Automated Checks," and "Honest Boundaries." Clean, futuristic, organized like a SaaS announcement. Colors: white, deep blue, teal, with a touch of orange. Text readable even at thumbnail size. 1:1, generous whitespace, low noise, not overly flashy.
+
+## Alt Text
+
+Infographic organizing three points: Claude is latest-ready, Codex is tracking the latest stable, and the release is in good shape without overclaiming.

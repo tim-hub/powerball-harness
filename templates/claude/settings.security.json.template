@@ -3,7 +3,7 @@
   "_harness_template": "claude/settings.security.json.template",
   "_harness_version": "2.21.1",
   "_harness_note": "Project-level settings template. Plugin defaults (.claude-plugin/settings.json) provide baseline deny/ask only; allow rules belong here at project scope.",
-  "language": "japanese",
+  "language": "english",
   "permissions": {
     "allow": [
       "Bash(npm test:*)",

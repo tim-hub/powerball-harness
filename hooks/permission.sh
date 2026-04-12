@@ -1,4 +1,4 @@
 #!/bin/bash
-# permission.sh — Harness v3 PermissionRequest 薄いシム
-# stdin JSON → core エンジン → stdout JSON
+# permission.sh — Harness v3 PermissionRequest thin shim
+# stdin JSON → core engine → stdout JSON
 node "${CLAUDE_PLUGIN_ROOT}/core/dist/index.js" permission

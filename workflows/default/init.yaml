@@ -1,13 +1,13 @@
-# /harness-init ワークフロー定義（旧名: init）
-# 新規プロジェクトまたは既存プロジェクトへのワークフロー追加
-# 実際の初期化ロジックは skills/harness-init/ が担当
+# /harness-init workflow definition (formerly: init)
+# Add workflow to a new or existing project
+# Actual initialization logic is handled by skills/harness-init/
 
 phase: init
-description: "プロジェクトを初期化し、開発ワークフローをセットアップする"
+description: "Initialize the project and set up the development workflow"
 
 steps:
-  # Step 1: プロジェクト分析（3値判定）
-  # harness-init スキルの execution-flow.md 内でプロジェクト分析を実施
+  # Step 1: Project analysis (3-value decision)
+  # Project analysis is performed within harness-init skill's execution-flow.md
   - id: analyze-project
     skill: harness-init
     input:
@@ -28,8 +28,8 @@ steps:
         - code_file_count
     mode: required
 
-  # Step 1.5: 曖昧ケースの確認（ambiguous の場合のみ）
-  # harness-init スキルの対話フロー内で処理
+  # Step 1.5: Clarify ambiguous cases (only when ambiguous)
+  # Handled within harness-init skill's interactive flow
   - id: clarify-project-type
     skill: harness-init
     condition: "project_type == 'ambiguous'"
@@ -40,11 +40,11 @@ steps:
         - tech_stack
     output:
       variables:
-        - project_type  # ユーザー選択で new | existing に確定
+        - project_type  # Resolved to new | existing via user selection
     mode: required
 
-  # Step 2: 要件のヒアリング（新規プロジェクトの場合）
-  # harness-init スキルの対話フロー内で処理
+  # Step 2: Gather requirements (for new projects)
+  # Handled within harness-init skill's interactive flow
   - id: init-requirements
     skill: harness-init
     condition: "project_type == 'new'"
@@ -59,8 +59,8 @@ steps:
         - initial_tasks
     mode: required
 
-  # Step 3: プロジェクトの生成（新規の場合）
-  # harness-init スキルのスキャフォールド機能で処理
+  # Step 3: Generate project (for new projects)
+  # Handled by harness-init skill's scaffold feature
   - id: scaffold-project
     skill: harness-init
     condition: "project_type == 'new'"
@@ -76,8 +76,8 @@ steps:
         - src/
     mode: required
 
-  # Step 4: ワークフローファイルの生成
-  # harness-init スキルの generated-files.md で定義
+  # Step 4: Generate workflow files
+  # Defined in harness-init skill's generated-files.md
   - id: generate-workflow-files
     skill: harness-init
     input:
@@ -94,8 +94,8 @@ steps:
         - Plans.md
     mode: required
 
-  # Step 4.5: メモリ（SSOT）の初期化
-  # memory スキルが担当
+  # Step 4.5: Initialize memory (SSOT)
+  # Handled by memory skill
   - id: init-memory-ssot
     skill: memory
     input:
@@ -110,8 +110,8 @@ steps:
         - .claude/memory/session-log.md
     mode: optional
 
-  # Step 5: 計画のレビュー（オプション）
-  # planning スキルが担当
+  # Step 5: Review the plan (optional)
+  # Handled by planning skill
   - id: review-plan
     skill: planning
     input:
@@ -119,7 +119,7 @@ steps:
         - Plans.md
     mode: optional
 
-  # Step 6: 次のアクション案内
+  # Step 6: Guide to next actions
   - id: next-action-guide
     skill: vibecoder-guide
     input:
@@ -130,19 +130,19 @@ steps:
       user_message: true
     mode: required
 
-# 成功時の出力
+# Output on success
 on_success:
   message: |
-    ✅ プロジェクトを初期化しました！
+    ✅ Project initialized!
 
-    次にやること：
-    - 「動かして」→ 開発サーバーを起動
-    - 「フェーズ1を始めて」→ 最初のタスクを実行
-    - 「計画を見せて」→ Plans.md を確認
+    Next steps:
+    - "Run it" → Start the dev server
+    - "Start phase 1" → Execute the first task
+    - "Show the plan" → View Plans.md
 
-# エラー時の出力
+# Output on error
 on_error:
   message: |
-    ⚠️ 初期化中にエラーが発生しました。
+    ⚠️ An error occurred during initialization.
 
-    詳細を確認して、「もう一度」と言ってください。
+    Please check the details and say "try again".

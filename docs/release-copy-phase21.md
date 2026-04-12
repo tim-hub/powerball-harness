@@ -1,25 +1,25 @@
 # Phase 21 Release Copy Drafts
 
-最終更新: 2026-03-06
+Last updated: 2026-03-06
 
-Phase 21 を外向けに告知する場合の下書きです。
-`trust repair`, `evidence pack`, `positioning refresh` を混ぜず、1トピックずつ分けて使います。
+These are drafts for external announcements of Phase 21.
+Use one topic at a time without mixing `trust repair`, `evidence pack`, and `positioning refresh`.
 
 ## Draft 1: Trust Repair
 
-`claude-code-harness` の公開面を整理しました。README badge、欠損 docs、配布境界の説明を揃え、README / Plans / docs の自己矛盾を減らしています。
+We cleaned up the public-facing surfaces of `claude-code-harness`. README badges, missing docs, and distribution boundary descriptions have been aligned, reducing self-contradictions across README / Plans / docs.
 
 ## Draft 2: Evidence Pack
 
-`/harness-work all` の success / failure fixture と smoke runner を追加しました。主張だけでなく、artifact を見ながら再確認できる導線を用意しています。
+We added success / failure fixtures and a smoke runner for `/harness-work all`. Instead of just claims, we now provide a path for re-verification while examining artifacts.
 
 ## Draft 3: Positioning Refresh
 
-Harness の中心メッセージを `5 verb skills + TypeScript guardrail engine` に再集中しました。skill pack を増やすだけでなく、runtime enforcement と verification を一体で回せる点を前面に出しています。
+We refocused the Harness core message on `5 verb skills + TypeScript guardrail engine`. The emphasis is now on being able to run runtime enforcement and verification as a unified system, not just adding skill packs.
 
 ## Current Recommendation
 
-- quota に当たっても evidence artifact は replay fallback で継続取得できる
-- full success artifact が揃うまでは、Draft 2 で「再現可能な骨格を整備した」と表現する
-- `production-ready` のような強い断言は避ける
-- 競合比較を出す場合は `docs/positioning-notes.md` の語彙に合わせる
+- Evidence artifacts can continue to be collected via replay fallback even when hitting quota limits
+- Until full success artifacts are ready, Draft 2 should express that "the rerunnable framework has been established"
+- Avoid strong assertions like `production-ready`
+- When including competitor comparisons, align vocabulary with `docs/positioning-notes.md`

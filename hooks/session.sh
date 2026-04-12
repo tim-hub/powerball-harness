@@ -1,6 +1,6 @@
 #!/bin/bash
 # session.sh
-# セッション開始・終了イベントを core/engine/lifecycle.ts に委譲する薄いシム
+# Thin shim that delegates session start/stop events to core/engine/lifecycle.ts
 #
 # Usage: ./hooks/session.sh [start|stop]
 # stdin: Claude Code Hook JSON (SessionStart / SessionStop)
@@ -11,24 +11,24 @@ HOOK_TYPE="${1:-}"
 PLUGIN_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CORE="$PLUGIN_ROOT/core"
 
-# core が存在しない場合はスキップ（v2 互換フォールバック）
+# Skip if core directory does not exist (v2 compat fallback)
 if [ ! -d "$CORE" ]; then
   exit 0
 fi
 
-# node_modules が未インストールの場合もスキップ
+# Skip if node_modules not installed
 if [ ! -f "$CORE/node_modules/.bin/tsx" ]; then
   exit 0
 fi
 
-# stdin を一時ファイルに保存
+# Save stdin to variable
 INPUT=$(cat)
 
-# core/src/index.ts に委譲
+# Delegate to core/src/index.ts
 echo "$INPUT" | node --input-type=module <<EOF 2>/dev/null || true
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
-// セッションイベントを記録（lifecycle モジュール）
+// Record session event (lifecycle module)
 process.exit(0);
 EOF
 

@@ -51,10 +51,10 @@ If you prefer the unified release path, `/harness-release handoff` can also be u
 
 The safest shared contract is:
 
-- `pm:依頼中` / `cc:TODO`
+- `pm:requesting` / `cc:TODO`
 - `cc:WIP`
-- `cc:完了`
-- `pm:確認済`
+- `cc:done`
+- `pm:verified`
 
 Cursor should own PM markers. Claude Code should own worker markers.
 

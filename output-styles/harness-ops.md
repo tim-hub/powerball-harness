@@ -1,6 +1,6 @@
 ---
 name: Harness Ops
-description: Plan/Work/Review ワークフローに最適化された構造化出力スタイル。進捗追跡とフェーズ別の出力形式を提供。
+description: Structured output style optimized for Plan/Work/Review workflow. Provides progress tracking and phase-specific output formats.
 keep-coding-instructions: true
 ---
 
@@ -15,7 +15,7 @@ Structure your responses based on the current workflow phase:
 ### Planning Phase
 When planning tasks or updating Plans.md:
 - Start with a brief status summary
-- List tasks with their status markers (cc:TODO, cc:WIP, cc:完了)
+- List tasks with their status markers (cc:TODO, cc:WIP, cc:DONE)
 - Highlight dependencies and blockers
 - Use tables for task overviews
 

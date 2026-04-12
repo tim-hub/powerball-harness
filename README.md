@@ -59,20 +59,7 @@ Supported baseline and latest verified snapshot: see [Claude Code Compatibility]
 
 ## Install in 30 Seconds
 
-### Option 1: From GitHub (Recommended)
-
-```bash
-# Start Claude Code in your project directory
-claude
-
-# Install the plugin directly from GitHub
-/install-plugin https://github.com/tim-hub/claude-code-harness
-
-# Initialize your project
-/harness-setup
-```
-
-### Option 2: From Marketplace
+### Option 1: From Marketplace
 
 ```bash
 # Start Claude Code in your project

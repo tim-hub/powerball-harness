@@ -1,40 +1,40 @@
 # Distribution Scope
 
-最終更新: 2026-03-06
+Last updated: 2026-03-06
 
-この文書は `claude-code-harness` の「repo には存在するが、常に同じ形で配布されるとは限らないもの」を明文化するための scope table です。
-`Plans.md`、README、配布スクリプト、検証スクリプトで迷ったら、この表を正本として扱います。
+This document is a scope table that explicitly defines items that "exist in the repo but are not always distributed in the same form" for `claude-code-harness`.
+When uncertain in `Plans.md`, README, distribution scripts, or validation scripts, treat this table as the authoritative source.
 
 ## Scope Table
 
 | Path | Status | Why it exists | Enforcement signal |
 |------|--------|---------------|--------------------|
-| `core/` | Distribution-included | TypeScript guardrail engine の本体 | `core npm test`, README architecture |
-| `skills-v3/` | Distribution-included | 現行の 5 verb skills | README, mirror sync checks |
-| `agents-v3/` | Distribution-included | 現行の worker / reviewer / scaffolder | README, validate-plugin-v3 |
-| `hooks/` | Distribution-included | 実行時 guardrail と lifecycle hook | `hooks/hooks.json`, validate-plugin |
-| `scripts/hook-handlers/memory-bridge.sh`, `scripts/hook-handlers/memory-*.sh` | Distribution-included | harness-mem 連携用の bridge と wrapper。hook は安定した bridge を参照し、wrapper は互換とテストに使う | `validate-plugin`, `test-memory-hook-wiring.sh` |
-| `templates/` | Distribution-included | project init と rules 配布の正本 | `check-consistency.sh` |
-| `commands/` | Compatibility-retained | 旧 slash command 資産。互換確認と mirror/build のため保持 | `tests/validate-plugin.sh`, `scripts/build-opencode.js` |
-| `skills/` | Compatibility-retained | 旧 skill 群。移行済みだが既存導線の互換用に保持 | README architecture, codex mirror tests |
-| `agents/` | Compatibility-retained | 旧 agent 群。移行済み導線の互換用に保持 | README architecture |
-| `codex/`, `opencode/` | Distribution-included | 代替クライアント向け mirror / setup 導線 | `tests/test-codex-package.sh`, `opencode-compat.yml` |
-| `mcp-server/` | Development-only and distribution-excluded | オプション機能。repo では開発・調査用に残すが配布 payload には含めない | `.gitignore`, CHANGELOG history |
-| `harness-ui/`, `harness-ui-archive/` | Development-only and distribution-excluded | optional UI 実験・旧実装の保管 | `.gitignore`, CHANGELOG history |
-| `docs/research/`, `docs/private/` | Private reference | 比較メモ、調査記録、公開前の下書き | repo reference only |
+| `core/` | Distribution-included | TypeScript guardrail engine core | `core npm test`, README architecture |
+| `skills-v3/` | Distribution-included | Current 5 verb skills | README, mirror sync checks |
+| `agents-v3/` | Distribution-included | Current worker / reviewer / scaffolder | README, validate-plugin-v3 |
+| `hooks/` | Distribution-included | Runtime guardrails and lifecycle hooks | `hooks/hooks.json`, validate-plugin |
+| `scripts/hook-handlers/memory-bridge.sh`, `scripts/hook-handlers/memory-*.sh` | Distribution-included | Bridge and wrapper for harness-mem integration. Hooks reference the stable bridge, wrappers are for compatibility and testing | `validate-plugin`, `test-memory-hook-wiring.sh` |
+| `templates/` | Distribution-included | Authoritative source for project init and rules distribution | `check-consistency.sh` |
+| `commands/` | Compatibility-retained | Legacy slash command assets. Retained for compatibility verification and mirror/build | `tests/validate-plugin.sh`, `scripts/build-opencode.js` |
+| `skills/` | Compatibility-retained | Legacy skill set. Migration complete but retained for existing pathway compatibility | README architecture, codex mirror tests |
+| `agents/` | Compatibility-retained | Legacy agent set. Retained for migrated pathway compatibility | README architecture |
+| `codex/`, `opencode/` | Distribution-included | Mirror / setup pathways for alternative clients | `tests/test-codex-package.sh`, `opencode-compat.yml` |
+| `mcp-server/` | Development-only and distribution-excluded | Optional feature. Retained in repo for development/investigation but not included in distribution payload | `.gitignore`, CHANGELOG history |
+| `harness-ui/`, `harness-ui-archive/` | Development-only and distribution-excluded | Optional UI experiments and legacy implementation archive | `.gitignore`, CHANGELOG history |
+| `docs/research/`, `docs/private/` | Private reference | Comparison notes, investigation records, pre-publication drafts | repo reference only |
 
 ## Current Decisions
 
-- `commands/` は削除済み扱いにしない。現在は **Compatibility-retained**。
-- `mcp-server/` は削除済み扱いにしない。現在は **Development-only and distribution-excluded**。
-- `scripts/hook-handlers/memory-bridge.sh` と `memory-*.sh` は local bridge でも **Distribution-included**。hook が参照するため、repo に tracked されている必要がある。
-- README や `Plans.md` で「削除」と書く場合は、実際に tree から消えたときだけ使う。
-- 「配布外」「互換維持」「開発専用」はこの文書のラベルに合わせて使い分ける。
+- `commands/` is not treated as deleted. Currently **Compatibility-retained**.
+- `mcp-server/` is not treated as deleted. Currently **Development-only and distribution-excluded**.
+- `scripts/hook-handlers/memory-bridge.sh` and `memory-*.sh` are **Distribution-included** even as local bridges. They need to be tracked in the repo because hooks reference them.
+- When writing "deleted" in README or `Plans.md`, only use it when items have actually been removed from the tree.
+- Use "distribution-excluded," "compatibility-retained," and "development-only" according to the labels in this document.
 
 ## Update Rule
 
-次のいずれかが起きたら、この表も同じ PR / commit で更新すること。
+When any of the following occur, update this table in the same PR / commit.
 
-1. README の architecture / install / compatibility 説明を変更したとき
-2. `.gitignore` や build script の除外規則を変更したとき
-3. `commands/` や `mcp-server/` など、存在理由が誤解されやすいディレクトリの扱いを変えたとき
+1. When changing README architecture / install / compatibility descriptions
+2. When changing `.gitignore` or build script exclusion rules
+3. When changing how directories prone to misunderstanding (like `commands/` or `mcp-server/`) are handled

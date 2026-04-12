@@ -1,5 +1,5 @@
 {
-  "description": "claude-code-harness: 自動化フック",
+  "description": "claude-code-harness: automation hooks",
   "hooks": {
     "PreToolUse": [
       {

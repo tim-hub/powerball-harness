@@ -53,7 +53,7 @@ grep -q '"hookEventName":"FileChanged"' <<<"${settings_output}" || {
   exit 1
 }
 
-grep -q 'Harness 設定が更新されました' <<<"${settings_output}" || {
+grep -q 'Harness settings have been updated' <<<"${settings_output}" || {
   echo "Relative settings path should emit rule/settings guidance"
   exit 1
 }
@@ -68,7 +68,7 @@ grep -q '"hookEventName":"FileChanged"' <<<"${rules_output}" || {
   exit 1
 }
 
-grep -q 'Harness 設定が更新されました' <<<"${rules_output}" || {
+grep -q 'Harness settings have been updated' <<<"${rules_output}" || {
   echo "Relative rules path should emit rule/settings guidance"
   exit 1
 }
@@ -83,7 +83,7 @@ grep -q '"hookEventName":"CwdChanged"' <<<"${cwd_output}" || {
   exit 1
 }
 
-grep -q '作業ディレクトリが切り替わりました' <<<"${cwd_output}" || {
+grep -q 'Working directory has changed' <<<"${cwd_output}" || {
   echo "CwdChanged should emit context guidance"
   exit 1
 }

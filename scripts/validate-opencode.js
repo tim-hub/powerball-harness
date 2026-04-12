@@ -2,19 +2,19 @@
 /**
  * validate-opencode.js
  *
- * opencode 用に変換されたファイルが正しい形式かを検証
+ * Validate that files converted for opencode have correct format
  *
- * 検証内容:
- * - frontmatter に opencode 非対応フィールドがないか
- * - 必須ファイルが存在するか
- * - JSON ファイルが有効か
+ * Validation checks:
+ * - No unsupported opencode fields in frontmatter
+ * - Required files exist
+ * - JSON files are valid
  *
- * 使用方法:
+ * Usage:
  *   node scripts/validate-opencode.js
  *
- * 終了コード:
- *   0: 検証成功
- *   1: 検証失敗
+ * Exit codes:
+ *   0: Validation passed
+ *   1: Validation failed
  */
 
 const fs = require('fs');
@@ -23,10 +23,10 @@ const path = require('path');
 const ROOT_DIR = path.join(__dirname, '..');
 const OPENCODE_DIR = path.join(ROOT_DIR, 'opencode');
 
-// opencode で無効な frontmatter フィールド
+// Invalid frontmatter fields for opencode
 const INVALID_FIELDS = ['description-en', 'name'];
 
-// 必須ファイル（v2.17.0+: commands は Skills に移行済み、skills が必須）
+// Required files (v2.17.0+: commands migrated to Skills, skills required)
 const REQUIRED_FILES = [
   'opencode/AGENTS.md',
   'opencode/opencode.json',
@@ -38,7 +38,7 @@ let errors = [];
 let warnings = [];
 
 /**
- * frontmatter を解析
+ * Parse frontmatter
  */
 function parseFrontmatter(content) {
   const match = content.match(/^---\n([\s\S]*?)\n---\n/);
@@ -63,7 +63,7 @@ function parseFrontmatter(content) {
 }
 
 /**
- * コマンドファイルを検証
+ * Validate command file
  */
 function validateCommandFile(filePath) {
   const content = fs.readFileSync(filePath, 'utf8');
@@ -71,26 +71,26 @@ function validateCommandFile(filePath) {
   const relativePath = path.relative(ROOT_DIR, filePath);
 
   if (!frontmatter) {
-    // frontmatter がないファイルは警告のみ
+    // Only warn for files without frontmatter
     warnings.push(`${relativePath}: No frontmatter found`);
     return;
   }
 
-  // 無効なフィールドをチェック
+  // Check for invalid fields
   for (const field of INVALID_FIELDS) {
     if (frontmatter[field]) {
       errors.push(`${relativePath}: Invalid field '${field}' found in frontmatter`);
     }
   }
 
-  // description がない場合は警告
+  // Warn if no description
   if (!frontmatter.description) {
     warnings.push(`${relativePath}: Missing 'description' field`);
   }
 }
 
 /**
- * ディレクトリ内のファイルを再帰的に検証
+ * Recursively validate files in directory
  */
 function validateDirectory(dir) {
   if (!fs.existsSync(dir)) {
@@ -112,7 +112,7 @@ function validateDirectory(dir) {
 }
 
 /**
- * JSON ファイルを検証
+ * Validate JSON file
  */
 function validateJsonFile(filePath) {
   const relativePath = path.relative(ROOT_DIR, filePath);
@@ -131,7 +131,7 @@ function validateJsonFile(filePath) {
 }
 
 /**
- * 必須ファイルの存在を確認
+ * Check required files exist
  */
 function validateRequiredFiles() {
   for (const file of REQUIRED_FILES) {
@@ -143,25 +143,25 @@ function validateRequiredFiles() {
 }
 
 /**
- * opencode.json の構造を検証
+ * Validate opencode.json structure
  */
 function validateOpencodeConfig() {
   const configPath = path.join(OPENCODE_DIR, 'opencode.json');
 
   if (!fs.existsSync(configPath)) {
-    return; // 既に必須ファイルチェックでエラー出力済み
+    return; // Error already output in required file check
   }
 
   try {
     const content = fs.readFileSync(configPath, 'utf8');
     const config = JSON.parse(content);
 
-    // $schema の存在確認
+    // Check $schema exists
     if (!config.$schema) {
       warnings.push('opencode/opencode.json: Missing $schema field');
     }
 
-    // mcp 設定の存在確認
+    // Check mcp config exists
     if (config.mcp && config.mcp.harness) {
       const harness = config.mcp.harness;
       if (harness.type !== 'local' && harness.type !== 'remote') {
@@ -169,33 +169,33 @@ function validateOpencodeConfig() {
       }
     }
   } catch (e) {
-    // JSON パースエラーは既に出力済み
+    // JSON parse error already output
   }
 }
 
 /**
- * メイン処理
+ * Main processing
  */
 function main() {
   console.log('🔍 Validating opencode files...\n');
 
-  // 必須ファイルの存在確認
+  // Check required files exist
   console.log('📁 Checking required files...');
   validateRequiredFiles();
 
-  // コマンドファイルの検証
+  // Validate command files
   console.log('📄 Validating command files...');
   const commandsDir = path.join(OPENCODE_DIR, 'commands');
   if (fs.existsSync(commandsDir)) {
     validateDirectory(commandsDir);
   }
 
-  // JSON ファイルの検証
+  // Validate JSON files
   console.log('📋 Validating JSON files...');
   validateJsonFile(path.join(OPENCODE_DIR, 'opencode.json'));
   validateOpencodeConfig();
 
-  // 結果出力
+  // Output results
   console.log('\n' + '='.repeat(50));
 
   if (warnings.length > 0) {

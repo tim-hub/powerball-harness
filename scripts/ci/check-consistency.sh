@@ -1,6 +1,6 @@
 #!/bin/bash
 # check-consistency.sh
-# プラグインの整合性チェック
+# Plugin consistency check
 #
 # Usage: ./scripts/ci/check-consistency.sh
 # Exit codes:
@@ -12,14 +12,14 @@ set -euo pipefail
 PLUGIN_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 ERRORS=0
 
-echo "🔍 claude-code-harness 整合性チェック"
+echo "🔍 claude-code-harness Consistency Check"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # ================================
-# 1. テンプレートファイルの存在確認
+# 1. Template file existence check
 # ================================
 echo ""
-echo "📁 [1/12] テンプレートファイルの存在確認..."
+echo "📁 [1/12] Checking template files..."
 
 REQUIRED_TEMPLATES=(
   "templates/AGENTS.md.template"
@@ -43,7 +43,7 @@ REQUIRED_TEMPLATES=(
 
 for template in "${REQUIRED_TEMPLATES[@]}"; do
   if [ ! -f "$PLUGIN_ROOT/$template" ]; then
-    echo "  ❌ 不足: $template"
+    echo "  Missing: $template"
     ERRORS=$((ERRORS + 1))
   else
     echo "  ✅ $template"
@@ -51,22 +51,22 @@ for template in "${REQUIRED_TEMPLATES[@]}"; do
 done
 
 # ================================
-# 2. コマンド ↔ スキル の整合性
+# 2. Command <-> Skill consistency
 # ================================
 echo ""
-echo "🔗 [2/12] コマンド ↔ スキル の参照整合性..."
+echo "🔗 [2/12] Command/skill reference consistency..."
 
-# コマンドが参照するテンプレートが存在するか
+# Check if templates referenced by commands exist
 check_command_references() {
   local cmd_file="$1"
   local cmd_name=$(basename "$cmd_file" .md)
 
-  # テンプレートへの参照を抽出
+  # Extract template references
   local refs=$(grep -oE 'templates/[a-zA-Z0-9/_.-]+' "$cmd_file" 2>/dev/null || true)
 
   for ref in $refs; do
     if [ ! -e "$PLUGIN_ROOT/$ref" ] && [ ! -e "$PLUGIN_ROOT/${ref}.template" ]; then
-      echo "  ❌ $cmd_name: 参照先が存在しない: $ref"
+      echo "  $cmd_name: referenced target does not exist: $ref"
       ERRORS=$((ERRORS + 1))
     fi
   done
@@ -75,13 +75,13 @@ check_command_references() {
 for cmd in "$PLUGIN_ROOT/commands"/*.md; do
   check_command_references "$cmd"
 done
-echo "  ✅ コマンド参照チェック完了"
+echo "  Command reference check complete"
 
 # ================================
-# 3. バージョン番号の一貫性
+# 3. Version number consistency
 # ================================
 echo ""
-echo "🏷️ [3/12] バージョン番号の一貫性..."
+echo "🏷️ [3/12] Version number consistency..."
 
 VERSION_FILE="$PLUGIN_ROOT/VERSION"
 PLUGIN_JSON="$PLUGIN_ROOT/.claude-plugin/plugin.json"
@@ -91,10 +91,10 @@ if [ -f "$VERSION_FILE" ] && [ -f "$PLUGIN_JSON" ]; then
   JSON_VERSION=$(grep '"version"' "$PLUGIN_JSON" | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
 
   if [ "$FILE_VERSION" != "$JSON_VERSION" ]; then
-    echo "  ❌ バージョン不一致: VERSION=$FILE_VERSION, plugin.json=$JSON_VERSION"
+    echo "  Version mismatch: VERSION=$FILE_VERSION, plugin.json=$JSON_VERSION"
     ERRORS=$((ERRORS + 1))
   else
-    echo "  ✅ VERSION と plugin.json が一致: $FILE_VERSION"
+    echo "  VERSION and plugin.json match: $FILE_VERSION"
   fi
 fi
 
@@ -102,36 +102,36 @@ LATEST_RELEASE_URL="https://github.com/Chachamaru127/claude-code-harness/release
 LATEST_RELEASE_BADGE="https://img.shields.io/github/v/release/Chachamaru127/claude-code-harness?display_name=tag&sort=semver"
 
 # ================================
-# 4. スキルの期待ファイル構成
+# 4. Expected skill file structure
 # ================================
 echo ""
-echo "📋 [4/12] スキル定義の期待ファイル構成..."
+echo "📋 [4/12] Expected skill file structure..."
 
-# 2agent 設定は harness-setup (v3) に統合済み
-# skills-v3/harness-setup/SKILL.md の存在を確認
+# 2agent config integrated into harness-setup (v3)
+# Check existence of skills-v3/harness-setup/SKILL.md
 SETUP_V3="$PLUGIN_ROOT/skills-v3/harness-setup/SKILL.md"
 if [ -f "$SETUP_V3" ]; then
-  echo "  ✅ skills-v3/harness-setup/SKILL.md が存在（2agent 設定を包含）"
+  echo "  skills-v3/harness-setup/SKILL.md exists (includes 2-agent config)"
 else
-  echo "  ❌ skills-v3/harness-setup/SKILL.md が見つかりません"
+  echo "  skills-v3/harness-setup/SKILL.md not found"
   ERRORS=$((ERRORS + 1))
 fi
 
 # ================================
-# 5. Hooks 設定の整合性
+# 5. Hooks config consistency
 # ================================
 echo ""
-echo "🪝 [5/12] Hooks 設定の整合性..."
+echo "🪝 [5/12] Hooks configuration consistency..."
 
 HOOKS_JSON="$PLUGIN_ROOT/hooks/hooks.json"
 if [ -f "$HOOKS_JSON" ]; then
-  # hooks.json 内のスクリプト参照を確認
+  # Check script references in hooks.json
   SCRIPT_REFS=$(grep -oE '\$\{CLAUDE_PLUGIN_ROOT\}/scripts/[a-zA-Z0-9_./-]+' "$HOOKS_JSON" 2>/dev/null || true)
 
   for ref in $SCRIPT_REFS; do
     script_name=$(echo "$ref" | sed 's|\${CLAUDE_PLUGIN_ROOT}/scripts/||')
     if [ ! -f "$PLUGIN_ROOT/scripts/$script_name" ]; then
-      echo "  ❌ hooks.json: スクリプトが存在しない: scripts/$script_name"
+      echo "  hooks.json: script does not exist: scripts/$script_name"
       ERRORS=$((ERRORS + 1))
     else
       echo "  ✅ scripts/$script_name"
@@ -140,12 +140,12 @@ if [ -f "$HOOKS_JSON" ]; then
 fi
 
 # ================================
-# 6. /start-task 廃止の回帰チェック
+# 6. /start-task deprecation regression check
 # ================================
 echo ""
-echo "🚫 [6/12] /start-task 廃止の回帰チェック..."
+echo "🚫 [6/12] /start-task deprecation regression check..."
 
-# 運用導線ファイル（CHANGELOG等の履歴は除外）
+# Operational files (excluding CHANGELOG etc. history)
 START_TASK_TARGETS=(
   "commands/"
   "skills/"
@@ -161,16 +161,17 @@ START_TASK_TARGETS=(
 START_TASK_FOUND=0
 for target in "${START_TASK_TARGETS[@]}"; do
   if [ -e "$PLUGIN_ROOT/$target" ]; then
-    # /start-task への参照を検索（履歴・説明文脈は除外）
-    # 除外パターン: 削除/廃止/Removed（履歴）, 相当/統合/従来/吸収（移行説明）, 改善/使い分け（CHANGELOG）
+    # Search for /start-task references (excluding history/explanation context)
+    # Exclusion patterns: deleted/deprecated/Removed (history), equivalent/integrated/legacy/absorbed (migration), improvement/usage (CHANGELOG)
+    # Exclude history/migration context: deleted, deprecated, removed, equivalent, integrated, legacy, absorbed, improvement, usage
     REFS=$(grep -rn "/start-task" "$PLUGIN_ROOT/$target" 2>/dev/null \
-      | grep -v "削除" | grep -v "廃止" | grep -v "Removed" \
-      | grep -v "相当" | grep -v "統合" | grep -v "従来" | grep -v "吸収" \
-      | grep -v "改善" | grep -v "使い分け" | grep -v "CHANGELOG" \
+      | grep -v "deleted" | grep -v "deprecated" | grep -v "Removed" \
+      | grep -v "equivalent" | grep -v "integrated" | grep -v "legacy" | grep -v "absorbed" \
+      | grep -v "improvement" | grep -v "usage" | grep -v "CHANGELOG" \
       | grep -v "check-consistency.sh" \
       || true)
     if [ -n "$REFS" ]; then
-      echo "  ❌ /start-task 参照が残存: $target"
+      echo "  /start-task reference remains: $target"
       echo "$REFS" | head -3 | sed 's/^/      /'
       START_TASK_FOUND=$((START_TASK_FOUND + 1))
     fi
@@ -178,18 +179,18 @@ for target in "${START_TASK_TARGETS[@]}"; do
 done
 
 if [ $START_TASK_FOUND -eq 0 ]; then
-  echo "  ✅ /start-task 参照なし（運用導線）"
+  echo "  No /start-task references (operational)"
 else
   ERRORS=$((ERRORS + START_TASK_FOUND))
 fi
 
 # ================================
-# 7. docs/ 正規化の回帰チェック
+# 7. docs/ normalization regression check
 # ================================
 echo ""
-echo "📁 [7/12] docs/ 正規化の回帰チェック..."
+echo "📁 [7/12] docs/ normalization regression check..."
 
-# proposal.md / priority_matrix.md のルート参照をチェック
+# Check root references to proposal.md / priority_matrix.md
 DOCS_TARGETS=(
   "commands/"
   "skills/"
@@ -198,11 +199,11 @@ DOCS_TARGETS=(
 DOCS_ISSUES=0
 for target in "${DOCS_TARGETS[@]}"; do
   if [ -d "$PLUGIN_ROOT/$target" ]; then
-    # ルート直下の proposal.md / technical-spec.md / priority_matrix.md への参照を検索
-    # docs/ プレフィックスがないものを検出
+    # Search for references to root-level proposal.md / technical-spec.md / priority_matrix.md
+    # Detect those missing docs/ prefix
     REFS=$(grep -rn "proposal.md\|technical-spec.md\|priority_matrix.md" "$PLUGIN_ROOT/$target" 2>/dev/null | grep -v "docs/" | grep -v "\.template" || true)
     if [ -n "$REFS" ]; then
-      echo "  ❌ docs/ プレフィックスなしの参照: $target"
+      echo "  Reference without docs/ prefix: $target"
       echo "$REFS" | head -3 | sed 's/^/      /'
       DOCS_ISSUES=$((DOCS_ISSUES + 1))
     fi
@@ -210,126 +211,126 @@ for target in "${DOCS_TARGETS[@]}"; do
 done
 
 if [ $DOCS_ISSUES -eq 0 ]; then
-  echo "  ✅ docs/ 正規化OK"
+  echo "  docs/ normalization OK"
 else
   ERRORS=$((ERRORS + DOCS_ISSUES))
 fi
 
 # ================================
-# 8. bypassPermissions 前提運用の回帰チェック
+# 8. bypassPermissions baseline regression check
 # ================================
 echo ""
-echo "🔓 [8/12] bypassPermissions 前提運用の回帰チェック..."
+echo "🔓 [8/12] bypassPermissions regression check..."
 
 BYPASS_ISSUES=0
 
-# Check 1: disableBypassPermissionsMode が templates に戻っていないこと
+# Check 1: disableBypassPermissionsMode not re-introduced in templates
 SECURITY_TEMPLATE="$PLUGIN_ROOT/templates/claude/settings.security.json.template"
 if [ -f "$SECURITY_TEMPLATE" ]; then
   if grep -q "disableBypassPermissionsMode" "$SECURITY_TEMPLATE"; then
-    echo "  ❌ settings.security.json.template に disableBypassPermissionsMode が残存"
-    echo "      bypassPermissions 前提運用のため、この設定は削除してください"
+    echo "  disableBypassPermissionsMode remains in settings.security.json.template"
+    echo "      This setting should be removed for bypassPermissions operation"
     BYPASS_ISSUES=$((BYPASS_ISSUES + 1))
   else
-    echo "  ✅ disableBypassPermissionsMode なし"
+    echo "  ✅ No disableBypassPermissionsMode"
   fi
 fi
 
-# Check 2: permissions.ask に Edit / Write が入っていないこと
+# Check 2: Edit/Write not in permissions.ask
 if [ -f "$SECURITY_TEMPLATE" ]; then
   if grep -q '"Edit' "$SECURITY_TEMPLATE" || grep -q '"Write' "$SECURITY_TEMPLATE"; then
-    echo "  ❌ settings.security.json.template の ask に Edit/Write が含まれている"
-    echo "      bypassPermissions 前提運用のため、Edit/Write は ask に入れないでください"
+    echo "  Edit/Write found in ask of settings.security.json.template"
+    echo "      Edit/Write should not be in ask for bypassPermissions operation"
     BYPASS_ISSUES=$((BYPASS_ISSUES + 1))
   else
-    echo "  ✅ ask に Edit/Write なし"
+    echo "  ✅ No Edit/Write in ask"
   fi
 fi
 
-# Check 2.5: Bash パーミッション構文の回帰チェック（prefix は :* 必須）
+# Check 2.5: Bash permission syntax regression check (prefix requires :*)
 if [ -f "$SECURITY_TEMPLATE" ]; then
   # Portable regex: use [(] / [*] instead of escaping to avoid BSD grep issues.
   if grep -nEq 'Bash[(][^)]*[^:][*]' "$SECURITY_TEMPLATE"; then
-    echo "  ❌ settings.security.json.template に不正な Bash パーミッション構文が含まれています"
-    echo "      prefix マッチングは :* を使用してください（例: Bash(git status:*)）"
+    echo "  Invalid Bash permission syntax in settings.security.json.template"
+    echo "      Use :* for prefix matching (e.g., Bash(git status:*))"
     grep -nE 'Bash[(][^)]*[^:][*]' "$SECURITY_TEMPLATE" | head -3 | sed 's/^/      /'
     BYPASS_ISSUES=$((BYPASS_ISSUES + 1))
   else
-    echo "  ✅ Bash パーミッション構文OK (:*)"
+    echo "  ✅ Bash permission syntax OK (:*)"
   fi
 fi
 
-# Check 3: settings.local.json.template が存在し、defaultMode が documented な permission mode であること
-# NOTE: shipped default は bypassPermissions を維持し、Auto Mode は teammate 実行経路の follow-up rollout として扱う
+# Check 3: settings.local.json.template exists with documented permission mode as defaultMode
+# NOTE: shipped default maintains bypassPermissions; Auto Mode is follow-up rollout for teammate execution path
 LOCAL_TEMPLATE="$PLUGIN_ROOT/templates/claude/settings.local.json.template"
 if [ -f "$LOCAL_TEMPLATE" ]; then
   if grep -q '"defaultMode"[[:space:]]*:[[:space:]]*"bypassPermissions"' "$LOCAL_TEMPLATE"; then
     mode_val=$(grep '"defaultMode"' "$LOCAL_TEMPLATE" | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
     echo "  ✅ settings.local.json.template: defaultMode=${mode_val}"
   else
-    echo "  ❌ settings.local.json.template に defaultMode=bypassPermissions がありません"
+    echo "  defaultMode=bypassPermissions not found in settings.local.json.template"
     BYPASS_ISSUES=$((BYPASS_ISSUES + 1))
   fi
 else
-  echo "  ❌ settings.local.json.template が存在しません"
+  echo "  settings.local.json.template does not exist"
   BYPASS_ISSUES=$((BYPASS_ISSUES + 1))
 fi
 
 if [ $BYPASS_ISSUES -eq 0 ]; then
-  echo "  ✅ bypassPermissions 前提運用OK"
+  echo "  bypassPermissions operation OK"
 else
   ERRORS=$((ERRORS + BYPASS_ISSUES))
 fi
 
 # ================================
-# 9. ccp-* スキル廃止の回帰チェック
+# 9. ccp-* skill deprecation regression check
 # ================================
 echo ""
-echo "🚫 [9/12] ccp-* スキル廃止の回帰チェック..."
+echo "🚫 [9/12] ccp-* skill deprecation regression check..."
 
 CCP_ISSUES=0
 
-# Check 1: skills の name: に ccp- が含まれていないこと
+# Check 1: ccp- not in skill names
 CCP_NAMES=$(grep -rn "^name: ccp-" "$PLUGIN_ROOT/skills/" 2>/dev/null || true)
 if [ -n "$CCP_NAMES" ]; then
-  echo "  ❌ skills に name: ccp-* が残存"
+  echo "  name: ccp-* remains in skills"
   echo "$CCP_NAMES" | head -3 | sed 's/^/      /'
   CCP_ISSUES=$((CCP_ISSUES + 1))
 else
-  echo "  ✅ skills に name: ccp-* なし"
+  echo "  No name: ccp-* in skills"
 fi
 
-# Check 2: workflows の skill: に ccp- が含まれていないこと
+# Check 2: ccp- not in workflow skill references
 CCP_WORKFLOWS=$(grep -rn "skill: ccp-" "$PLUGIN_ROOT/workflows/" 2>/dev/null || true)
 if [ -n "$CCP_WORKFLOWS" ]; then
-  echo "  ❌ workflows に skill: ccp-* が残存"
+  echo "  skill: ccp-* remains in workflows"
   echo "$CCP_WORKFLOWS" | head -3 | sed 's/^/      /'
   CCP_ISSUES=$((CCP_ISSUES + 1))
 else
-  echo "  ✅ workflows に skill: ccp-* なし"
+  echo "  No skill: ccp-* in workflows"
 fi
 
-# Check 3: ccp-* ディレクトリが残っていないこと
+# Check 3: No ccp-* directories remaining
 CCP_DIRS=$(find "$PLUGIN_ROOT/skills" -type d -name "ccp-*" 2>/dev/null || true)
 if [ -n "$CCP_DIRS" ]; then
-  echo "  ❌ ccp-* ディレクトリが残存"
+  echo "  ccp-* directories remain"
   echo "$CCP_DIRS" | head -3 | sed 's/^/      /'
   CCP_ISSUES=$((CCP_ISSUES + 1))
 else
-  echo "  ✅ ccp-* ディレクトリなし"
+  echo "  No ccp-* directories"
 fi
 
 if [ $CCP_ISSUES -eq 0 ]; then
-  echo "  ✅ ccp-* スキル廃止OK"
+  echo "  ccp-* skill deprecation OK"
 else
   ERRORS=$((ERRORS + CCP_ISSUES))
 fi
 
 # ================================
-# 10. v3 スキル Mirror チェック
+# 10. v3 skill mirror check
 # ================================
 echo ""
-echo "📦 [10/12] v3 スキル Mirror チェック..."
+echo "📦 [10/12] v3 skill mirror check..."
 
 V3_SKILLS_DIR="$PLUGIN_ROOT/skills-v3"
 CLAUDE_MIRROR="$PLUGIN_ROOT/skills"
@@ -337,7 +338,7 @@ CODEX_MIRROR="$PLUGIN_ROOT/codex/.codex/skills"
 OPENCODE_MIRROR="$PLUGIN_ROOT/opencode/skills"
 MIRROR_ISSUES=0
 
-# v3 コアスキル（5動詞 harness- prefix）の mirror チェック
+# v3 core skills (5-verb harness- prefix) mirror check
 V3_CORE_SKILLS="harness-plan harness-work harness-review harness-release harness-setup"
 V3_AUX_SKILLS="harness-sync"
 
@@ -357,13 +358,13 @@ if [ -d "$V3_SKILLS_DIR" ]; then
 
       mirror_path="$mirror_root/$skill"
       if [ ! -d "$mirror_path" ]; then
-        echo "  ❌ $mirror_name: $skill がディレクトリとして存在しません"
+        echo "  $mirror_name: $skill does not exist as directory"
         MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
         continue
       fi
 
       if [ -L "$mirror_path" ]; then
-        echo "  ❌ $mirror_name: $skill が symlink のままです"
+        echo "  $mirror_name: $skill is still a symlink"
         MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
         continue
       fi
@@ -371,7 +372,7 @@ if [ -d "$V3_SKILLS_DIR" ]; then
       if diff -qr "$src" "$mirror_path" >/dev/null 2>&1; then
         echo "  ✅ $mirror_name: $skill mirror is in sync"
       else
-        echo "  ❌ $mirror_name: $skill mirror が skills-v3 と不一致"
+        echo "  $mirror_name: $skill mirror is out of sync with skills-v3"
         MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
       fi
     done
@@ -392,13 +393,13 @@ if [ -d "$V3_SKILLS_DIR" ]; then
 
       mirror_path="$mirror_root/$skill"
       if [ ! -d "$mirror_path" ]; then
-        echo "  ❌ $mirror_name: $skill がディレクトリとして存在しません"
+        echo "  $mirror_name: $skill does not exist as directory"
         MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
         continue
       fi
 
       if [ -L "$mirror_path" ]; then
-        echo "  ❌ $mirror_name: $skill が symlink のままです"
+        echo "  $mirror_name: $skill is still a symlink"
         MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
         continue
       fi
@@ -412,25 +413,25 @@ if [ -d "$V3_SKILLS_DIR" ]; then
     done
   done
 else
-  echo "  ⚠️ skills-v3/ が存在しません（スキップ）"
+  echo "  skills-v3/ does not exist (skipped)"
 fi
 
 if [ $MIRROR_ISSUES -gt 0 ]; then
   ERRORS=$((ERRORS + MIRROR_ISSUES))
 fi
 
-# breezing alias は public mirror と codex mirror の両方で skills-v3 と一致すること
+# breezing alias must match skills-v3 in both public mirror and codex mirror
 for mirror_entry in "claude:$CLAUDE_MIRROR/breezing" "codex:$CODEX_MIRROR/breezing"; do
   mirror_name="${mirror_entry%%:*}"
   mirror_path="${mirror_entry#*:}"
   if [ ! -d "$mirror_path" ]; then
-    echo "  ❌ $mirror_name: breezing がディレクトリとして存在しません"
+    echo "  $mirror_name: breezing does not exist as directory"
     ERRORS=$((ERRORS + 1))
     continue
   fi
 
   if [ -L "$mirror_path" ]; then
-    echo "  ❌ $mirror_name: breezing が symlink のままです"
+    echo "  $mirror_name: breezing is still a symlink"
     ERRORS=$((ERRORS + 1))
     continue
   fi
@@ -438,16 +439,16 @@ for mirror_entry in "claude:$CLAUDE_MIRROR/breezing" "codex:$CODEX_MIRROR/breezi
   if diff -qr "$V3_SKILLS_DIR/breezing" "$mirror_path" >/dev/null 2>&1; then
     echo "  ✅ $mirror_name: breezing mirror is in sync"
   else
-    echo "  ❌ $mirror_name: breezing mirror が skills-v3 と不一致"
+    echo "  $mirror_name: breezing mirror is out of sync with skills-v3"
     ERRORS=$((ERRORS + 1))
   fi
 done
 
 # ================================
-# 11. CHANGELOG フォーマット検証
+# 11. CHANGELOG format validation
 # ================================
 echo ""
-echo "📝 [11/12] CHANGELOG フォーマット検証..."
+echo "📝 [11/12] CHANGELOG format validation..."
 
 CHANGELOG_ISSUES=0
 
@@ -458,43 +459,43 @@ for changelog in "$PLUGIN_ROOT/CHANGELOG.md" "$PLUGIN_ROOT/CHANGELOG_ja.md"; do
 
   cl_name=$(basename "$changelog")
 
-  # Check 1: Keep a Changelog ヘッダー（## [x.y.z] - YYYY-MM-DD 形式）
+  # Check 1: Keep a Changelog header (## [x.y.z] - YYYY-MM-DD format)
   BAD_DATES=$(grep -nE '^\#\# \[[0-9]' "$changelog" | grep -vE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | grep -v "Unreleased" || true)
   if [ -n "$BAD_DATES" ]; then
-    echo "  ❌ $cl_name: ISO 8601 日付でないエントリ"
+    echo "  $cl_name: entries with non-ISO 8601 dates"
     echo "$BAD_DATES" | head -3 | sed 's/^/      /'
     CHANGELOG_ISSUES=$((CHANGELOG_ISSUES + 1))
   fi
 
-  # Check 2: 非標準セクション見出し（Keep a Changelog 1.1.0 の 6 種以外）
+  # Check 2: non-standard section headings (outside Keep a Changelog 1.1.0 six types)
   NON_STANDARD=$(grep -nE '^\#\#\# ' "$changelog" \
-    | grep -viE '(Added|Changed|Deprecated|Removed|Fixed|Security|What.*Changed|あなたにとって)' \
+    | grep -viE '(Added|Changed|Deprecated|Removed|Fixed|Security|What.*Changed|What.*Changed.*for.*You)' \
     | grep -viE '(Internal|Breaking|Migration|Summary|Before)' \
     || true)
   if [ -n "$NON_STANDARD" ]; then
-    echo "  ⚠️ $cl_name: 非標準セクション見出し（確認推奨）"
+    echo "  $cl_name: non-standard section headings (review recommended)"
     echo "$NON_STANDARD" | head -3 | sed 's/^/      /'
-    # 警告のみ（エラーにはしない）
+    # Warning only (not an error)
   fi
 
-  # Check 3: [Unreleased] セクションが存在するか
+  # Check 3: Does [Unreleased] section exist
   if ! grep -q '^\#\# \[Unreleased\]' "$changelog"; then
-    echo "  ❌ $cl_name: [Unreleased] セクションがありません"
+    echo "  $cl_name: [Unreleased] section not found"
     CHANGELOG_ISSUES=$((CHANGELOG_ISSUES + 1))
   fi
 done
 
 if [ $CHANGELOG_ISSUES -eq 0 ]; then
-  echo "  ✅ CHANGELOG フォーマットOK"
+  echo "  CHANGELOG format OK"
 else
   ERRORS=$((ERRORS + CHANGELOG_ISSUES))
 fi
 
 # ================================
-# 12. README claim drift チェック
+# 12. README claim drift check
 # ================================
 echo ""
-echo "📚 [12/12] README claim drift チェック..."
+echo "📚 [12/12] README claim drift check..."
 
 README_ISSUES=0
 README_EN="$PLUGIN_ROOT/README.md"
@@ -510,7 +511,7 @@ check_fixed_string() {
   local label="$3"
 
   if [ ! -f "$file_path" ]; then
-    echo "  ❌ ${label}: ファイルが存在しません: $file_path"
+    echo "  ${label}: file does not exist: $file_path"
     README_ISSUES=$((README_ISSUES + 1))
     return
   fi
@@ -518,7 +519,7 @@ check_fixed_string() {
   if grep -qF "$needle" "$file_path"; then
     echo "  ✅ ${label}"
   else
-    echo "  ❌ ${label}: 必須文字列が見つかりません"
+    echo "  ${label}: required string not found"
     README_ISSUES=$((README_ISSUES + 1))
   fi
 }
@@ -529,13 +530,13 @@ check_absent_string() {
   local label="$3"
 
   if [ ! -f "$file_path" ]; then
-    echo "  ❌ ${label}: ファイルが存在しません: $file_path"
+    echo "  ${label}: file does not exist: $file_path"
     README_ISSUES=$((README_ISSUES + 1))
     return
   fi
 
   if grep -qF "$needle" "$file_path"; then
-    echo "  ❌ ${label}: 古い claim が残っています"
+    echo "  ${label}: stale claim remains"
     README_ISSUES=$((README_ISSUES + 1))
   else
     echo "  ✅ ${label}"
@@ -549,7 +550,7 @@ check_exists() {
   if [ -f "$file_path" ]; then
     echo "  ✅ ${label}"
   else
-    echo "  ❌ ${label}: ファイルが存在しません"
+    echo "  ${label}: file does not exist"
     README_ISSUES=$((README_ISSUES + 1))
   fi
 }
@@ -587,21 +588,21 @@ check_fixed_string "$RUBRIC_DOC" "| Executed evidence |" "benchmark-rubric execu
 check_fixed_string "$POSITIONING_DOC" "runtime enforcement" "positioning-notes runtime enforcement"
 
 if [ $README_ISSUES -eq 0 ]; then
-  echo "  ✅ README claim drift チェックOK"
+  echo "  README claim drift check OK"
 else
   ERRORS=$((ERRORS + README_ISSUES))
 fi
 
 # ================================
-# 結果サマリー
+# Result summary
 # ================================
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 if [ $ERRORS -eq 0 ]; then
-  echo "✅ すべてのチェックに合格しました"
+  echo "All checks passed"
   exit 0
 else
-  echo "❌ $ERRORS 個の問題が見つかりました"
+  echo "$ERRORS issues found"
   exit 1
 fi

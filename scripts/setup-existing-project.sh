@@ -1,6 +1,6 @@
 #!/bin/bash
 # setup-existing-project.sh
-# 既存プロジェクトにclaude-code-harnessを適用するセットアップスクリプト
+# Setup script to apply claude-code-harness to an existing project
 #
 # Usage: ./scripts/setup-existing-project.sh [project_path]
 #
@@ -23,7 +23,7 @@ if type normalize_path &>/dev/null; then
   PROJECT_PATH="$(normalize_path "$PROJECT_PATH")"
 fi
 
-# カラー出力
+# Color output
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
@@ -31,31 +31,31 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}Claude harness - 既存プロジェクト適用${NC}"
+echo -e "${BLUE}Claude harness - Existing Project Setup${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 
 # ================================
-# Step 1: 前提条件チェック
+# Step 1: Prerequisites check
 # ================================
 
-echo -e "${BLUE}[1/6] 前提条件チェック${NC}"
+echo -e "${BLUE}[1/6] Prerequisites Check${NC}"
 echo "----------------------------------------"
 
-# プロジェクトディレクトリの存在確認
+# Verify project directory exists
 if [ ! -d "$PROJECT_PATH" ]; then
-    echo -e "${RED}✗ プロジェクトディレクトリが見つかりません: $PROJECT_PATH${NC}"
+    echo -e "${RED}Project directory not found: $PROJECT_PATH${NC}"
     exit 1
 fi
 
 cd "$PROJECT_PATH" || {
-    echo -e "${RED}✗ ディレクトリに移動できません: $PROJECT_PATH${NC}"
+    echo -e "${RED}Cannot change to directory: $PROJECT_PATH${NC}"
     exit 1
 }
 PROJECT_PATH=$(pwd)
-echo -e "${GREEN}✓${NC} プロジェクトディレクトリ: $PROJECT_PATH"
+echo -e "${GREEN}✓${NC} Project directory: $PROJECT_PATH"
 
-# セットアップ用メタ情報
+# Setup metadata
 PROJECT_NAME="$(basename "$PROJECT_PATH")"
 SETUP_DATE_ISO="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 SETUP_DATE_SHORT="$(date +"%Y-%m-%d")"
@@ -64,47 +64,47 @@ if [ -f "$HARNESS_ROOT/VERSION" ]; then
     HARNESS_VERSION="$(cat "$HARNESS_ROOT/VERSION" | tr -d ' \n\r')"
 fi
 
-# テンプレート埋め用（後で analyze-project の結果で上書きされる場合あり）
+# For template filling (may be overwritten by analyze-project results later)
 LANGUAGE="unknown"
 
-# Gitリポジトリかチェック
+# Check if Git repository
 if [ ! -d ".git" ]; then
-    echo -e "${YELLOW}⚠${NC}  Gitリポジトリではありません"
-    read -p "Gitリポジトリを初期化しますか？ (y/N): " -n 1 -r
+    echo -e "${YELLOW}Not a Git repository"
+    read -p "Initialize Git repository? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         git init
-        echo -e "${GREEN}✓${NC} Gitリポジトリを初期化しました"
+        echo -e "${GREEN}✓${NC} Git repository initialized"
     fi
 else
-    echo -e "${GREEN}✓${NC} Gitリポジトリです"
+    echo -e "${GREEN}✓${NC} Git repository detected"
 fi
 
-# 未コミットの変更をチェック
+# Check for uncommitted changes
 if [ -d ".git" ]; then
     if ! git diff-index --quiet HEAD -- 2>/dev/null; then
-        echo -e "${YELLOW}⚠${NC}  未コミットの変更があります"
+        echo -e "${YELLOW}Uncommitted changes detected"
         echo ""
-        echo -e "${YELLOW}推奨: セットアップ前にコミットしてください${NC}"
+        echo -e "${YELLOW}Recommended: commit changes before setup${NC}"
         echo ""
-        read -p "続行しますか？ (y/N): " -n 1 -r
+        read -p "Continue? (y/N): " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo "セットアップを中止しました"
+            echo "Setup aborted"
             exit 0
         fi
     else
-        echo -e "${GREEN}✓${NC} 作業ツリーはクリーンです"
+        echo -e "${GREEN}✓${NC} Working tree is clean"
     fi
 fi
 
 echo ""
 
 # ================================
-# Step 2: 既存の仕様書・ドキュメント探索
+# Step 2: Discover existing specs/documentation
 # ================================
 
-echo -e "${BLUE}[2/6] 既存ドキュメントの探索${NC}"
+echo -e "${BLUE}[2/6] Searching for Existing Documents${NC}"
 echo "----------------------------------------"
 
 FOUND_DOCS=()
@@ -112,56 +112,56 @@ DOC_PATTERNS=(
     "README.md"
     "SPEC.md"
     "SPECIFICATION.md"
-    "仕様書.md"
-    "要件定義.md"
+    "specification.md"
+    "requirements-definition.md"
     "docs/spec.md"
     "docs/specification.md"
     "docs/requirements.md"
     "docs/proposal.md"
-    "docs/提案書.md"
+    "docs/proposal-doc.md"
     "Plans.md"
     "PLAN.md"
-    "計画.md"
+    "plan.md"
 )
 
 for pattern in "${DOC_PATTERNS[@]}"; do
     if [ -f "$pattern" ]; then
         FOUND_DOCS+=("$pattern")
-        echo -e "${GREEN}✓${NC} 発見: $pattern"
+        echo -e "${GREEN}✓${NC} Found: $pattern"
     fi
 done
 
 if [ ${#FOUND_DOCS[@]} -eq 0 ]; then
-    echo -e "${YELLOW}⚠${NC}  既存の仕様書が見つかりませんでした"
+    echo -e "${YELLOW}No existing specifications found"
 else
     echo ""
-    echo -e "${GREEN}${#FOUND_DOCS[@]} 個のドキュメントを発見しました${NC}"
+    echo -e "${GREEN}${#FOUND_DOCS[@]} documents found${NC}"
 fi
 
 echo ""
 
 # ================================
-# Step 3: プロジェクト分析
+# Step 3: Project analysis
 # ================================
 
-echo -e "${BLUE}[3/6] プロジェクト分析${NC}"
+echo -e "${BLUE}[3/6] Project Analysis${NC}"
 echo "----------------------------------------"
 
-# analyze-project.shを実行
+# Run analyze-project.sh
 if [ -f "$HARNESS_ROOT/scripts/analyze-project.sh" ]; then
     ANALYSIS_RESULT=$("$HARNESS_ROOT/scripts/analyze-project.sh" "$PROJECT_PATH" 2>/dev/null || echo "{}")
     
-    # 技術スタック表示（analyze-project.sh の出力: technologies/frameworks/testing）
+    # Display tech stack (analyze-project.sh output: technologies/frameworks/testing)
     if command -v jq &> /dev/null; then
         TECHNOLOGIES=$(echo "$ANALYSIS_RESULT" | jq -r '.technologies[]?' 2>/dev/null || true)
         FRAMEWORKS=$(echo "$ANALYSIS_RESULT" | jq -r '.frameworks[]?' 2>/dev/null || true)
         TESTING=$(echo "$ANALYSIS_RESULT" | jq -r '.testing[]?' 2>/dev/null || true)
 
-        # LANGUAGE の簡易推定（テンプレートの {{LANGUAGE}} 埋め用）
+        # Simple language estimation (for {{LANGUAGE}} template substitution)
         LANGUAGE=$(echo "$ANALYSIS_RESULT" | jq -r '.technologies[0] // "unknown"' 2>/dev/null || echo "unknown")
 
         if [ -n "${TECHNOLOGIES}${FRAMEWORKS}${TESTING}" ]; then
-            echo "検出結果:"
+            echo "Detection results:"
             if [ -n "$TECHNOLOGIES" ]; then
                 echo "  technologies:"
                 echo "$TECHNOLOGIES" | while read -r tech; do
@@ -183,25 +183,25 @@ if [ -f "$HARNESS_ROOT/scripts/analyze-project.sh" ]; then
         fi
     fi
 else
-    echo -e "${YELLOW}⚠${NC}  プロジェクト分析スクリプトが見つかりません"
+    echo -e "${YELLOW}Project analysis script not found"
 fi
 
 echo ""
 
 # ================================
-# Step 4: ハーネス設定ファイルの作成
+# Step 4: Create harness config files
 # ================================
 
-echo -e "${BLUE}[4/6] ハーネス設定ファイルの作成${NC}"
+echo -e "${BLUE}[4/6] Creating Harness Config Files${NC}"
 echo "----------------------------------------"
 
-# .claude-code-harness ディレクトリを作成
+# Create .claude-code-harness directory
 mkdir -p .claude-code-harness
 
-# 既存ドキュメントへの参照を含む設定ファイルを作成（既存があれば上書きしない）
+# Create config file with references to existing docs (skip if exists)
 CONFIG_PATH=".claude-code-harness/config.json"
 if [ -f "$CONFIG_PATH" ]; then
-    echo -e "${YELLOW}⚠${NC}  設定ファイルは既に存在します（上書きしません）: $CONFIG_PATH"
+    echo -e "${YELLOW}Config file already exists (not overwriting): $CONFIG_PATH"
 else
     cat > "$CONFIG_PATH" << EOF
 {
@@ -219,19 +219,19 @@ $(
 }
 EOF
 
-    echo -e "${GREEN}✓${NC} 設定ファイルを作成: $CONFIG_PATH"
+    echo -e "${GREEN}✓${NC} Config file created: $CONFIG_PATH"
 fi
 
-# 既存ドキュメントのサマリーを作成（既存があれば上書きしない）
+# Create existing document summary (skip if exists)
 if [ ${#FOUND_DOCS[@]} -gt 0 ]; then
     SUMMARY_PATH=".claude-code-harness/existing-docs-summary.md"
     if [ -f "$SUMMARY_PATH" ]; then
-        echo -e "${YELLOW}⚠${NC}  既存ドキュメントサマリーは既に存在します（上書きしません）: $SUMMARY_PATH"
+        echo -e "${YELLOW}Existing document summary already exists (not overwriting): $SUMMARY_PATH"
     else
         cat > "$SUMMARY_PATH" << EOF
-# 既存ドキュメント一覧
+# Existing Documents
 
-このプロジェクトには以下の既存ドキュメントがあります：
+This project has the following existing documents:
 
 EOF
 
@@ -244,26 +244,26 @@ EOF
             echo "" >> "$SUMMARY_PATH"
         done
 
-        echo -e "${GREEN}✓${NC} 既存ドキュメントサマリーを作成: $SUMMARY_PATH"
+        echo -e "${GREEN}✓${NC} Existing document summary created: $SUMMARY_PATH"
     fi
 fi
 
 echo ""
 
 # ================================
-# Step 5: Project Rulesの作成
+# Step 5: Create project rules
 # ================================
 
-echo -e "${BLUE}[5/6] Project Rules / ワークフローファイルの作成${NC}"
+echo -e "${BLUE}[5/6] Creating Project Rules / Workflow Files${NC}"
 echo "----------------------------------------"
 
-# .claude/rules ディレクトリを作成
+# Create .claude/rules directory
 mkdir -p .claude/rules
 
-# テンプレートの簡易レンダリング（{{PROJECT_NAME}}/{{DATE}}/{{LANGUAGE}}）
+# Simple template rendering ({{PROJECT_NAME}}/{{DATE}}/{{LANGUAGE}})
 escape_sed_repl() {
-    # sed の置換文字列として安全にする（\ / & | をエスケープ）
-    # バックスラッシュを先にエスケープしてから他の文字をエスケープ
+    # Make safe for sed replacement string (escape \\ / & |)
+    # Escape backslash first, then other characters
     printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/[\/&|]/\\&/g'
 }
 
@@ -273,14 +273,14 @@ render_template_if_missing() {
     local label="$3"
 
     if [ -f "$dest_path" ]; then
-        echo -e "${GREEN}✓${NC} ${label}: 既存（スキップ）"
+        echo -e "${GREEN}✓${NC} ${label}: exists (skipped)"
         return 0
     fi
     if [ ! -f "$template_path" ]; then
-        echo -e "${YELLOW}⚠${NC} ${label}: テンプレートが見つかりません: $template_path"
+        echo -e "${YELLOW}⚠${NC} ${label}: Template not found: $template_path"
         return 0
     fi
-    # ネストしたパスにも対応
+    # Support nested paths
     mkdir -p "$(dirname "$dest_path")" 2>/dev/null || true
 
     local project_esc date_esc lang_esc
@@ -294,89 +294,89 @@ render_template_if_missing() {
         -e "s|{{LANGUAGE}}|$lang_esc|g" \
         "$template_path" > "$dest_path"
 
-    echo -e "${GREEN}✓${NC} ${label} を作成: $dest_path"
+    echo -e "${GREEN}✓${NC} Created ${label}: $dest_path"
 }
 
-# 既存プロジェクト向けのProject Rulesを作成（既存があれば上書きしない）
+# Create Project Rules for existing project (skip if exists)
 RULES_PATH=".claude/rules/harness.md"
 if [ -f "$RULES_PATH" ]; then
-    echo -e "${YELLOW}⚠${NC}  Project Rules は既に存在します（上書きしません）: $RULES_PATH"
+    echo -e "${YELLOW}Project Rules already exists (not overwriting): $RULES_PATH"
 else
     cat > "$RULES_PATH" << EOF
 # Claude harness - Project Rules
 
-このプロジェクトは **claude-code-harness** を使用しています。
+This project uses **claude-code-harness**.
 
-## 既存プロジェクトへの適用
+## Applied to Existing Project
 
-このプロジェクトは既存のコードベースに claude-code-harness を適用したものです。
+This project has claude-code-harness applied to an existing codebase.
 
-### 既存の資産を尊重する
+### Respect Existing Assets
 
-1. **既存のドキュメントを優先**
-   - 既存の仕様書、README、計画書がある場合は、それらを最優先で参照する
-   - `.claude-code-harness/existing-docs-summary.md` に既存ドキュメントの一覧がある
+1. **Prioritize Existing Documents**
+   - Reference existing specs, README, and plans first
+   - `.claude-code-harness/existing-docs-summary.md` contains a list of existing documents
 
-2. **既存のコードスタイルを維持**
-   - 既存のコーディング規約、フォーマット設定を尊重する
-   - 新規コードは既存コードのスタイルに合わせる
+2. **Maintain Existing Code Style**
+   - Respect existing coding conventions and format settings
+   - Match new code to existing code style
 
-3. **段階的な改善**
-   - 一度に全てを書き換えない
-   - 既存の動作を壊さないよう注意する
+3. **Incremental Improvement**
+   - Don't rewrite everything at once
+   - Be careful not to break existing behavior
 
-## 利用可能なコマンド
+## Available Commands
 
-### コア（Plan → Work → Review）
-- `/plan-with-agent` - プロジェクト計画の作成・更新（既存ドキュメントを考慮）
-- `/work` - 機能実装（並列実行対応、既存コードとの整合性を保つ）
-- `/harness-review` - コードレビュー
+### Core (Plan -> Work -> Review)
+- `/plan-with-agent` - Create/update project plans (considering existing docs)
+- `/work` - Feature implementation (parallel execution, maintaining consistency with existing code)
+- `/harness-review` - Code review
 
-### 品質/運用
-- `/validate` - 納品前検証
-- `/cleanup` - Plans.md等の自動整理
-- `/sync-status` - 進捗確認→次アクション提案
-- `/refactor` - 安全なリファクタリング
+### Quality/Operations
+- `/validate` - Pre-delivery validation
+- `/cleanup` - Auto-cleanup of Plans.md etc.
+- `/sync-status` - Progress check -> next action suggestion
+- `/refactor` - Safe refactoring
 
-### 実装支援
-- `/crud` - CRUD機能生成
-- `/ci-setup` - CI/CD設定
+### Implementation Support
+- `/crud` - CRUD feature generation
+- `/ci-setup` - CI/CD setup
 
-### スキル（会話で自動起動）
-- `component` - 「ヒーローを作って」→ UIコンポーネント実装
-- `auth` - 「ログイン機能を付けて」→ 認証実装
-- `payments` - 「Stripeで決済を」→ 決済統合
-- `deploy-setup` - 「Vercelにデプロイしたい」→ デプロイ設定
-- `analytics` - 「アクセス解析を入れて」→ アナリティクス統合
-- `auto-fix` - 「指摘を修正して」→ 自動修正
+### Skills (auto-triggered in conversation)
+- `component` - "Create a hero section" -> UI component implementation
+- `auth` - "Add login feature" -> Authentication implementation
+- `payments` - "Add Stripe payments" -> Payment integration
+- `deploy-setup` - "Deploy to Vercel" -> Deploy setup
+- `analytics` - "Add analytics" -> Analytics integration
+- `auto-fix` - "Fix the issues" -> Auto-fix
 
-## 既存プロジェクトでの注意点
+## Notes for Existing Projects
 
-1. **既存の仕様書を必ず確認**
-   - コマンド実行前に既存ドキュメントを読む
-   - 矛盾がある場合は確認する
+1. **Always Check Existing Specs**
+   - Read existing docs before running commands
+   - Verify if there are contradictions
 
-2. **段階的な適用**
-   - 小さな機能から始める
-   - 動作確認を頻繁に行う
+2. **Gradual Application**
+   - Start with small features
+   - Verify behavior frequently
 
-3. **バージョン管理**
-   - こまめにコミットする
-   - 大きな変更前にブランチを切る
+3. **Version Control**
+   - Commit frequently
+   - Create branches before large changes
 
-## セットアップ情報
+## Setup Information
 
-- セットアップ日: $SETUP_DATE_SHORT
-- ハーネスバージョン: $HARNESS_VERSION
-- 設定ファイル: `.claude-code-harness/config.json`
+- Setup date: $SETUP_DATE_SHORT
+- Harness version: $HARNESS_VERSION
+- Config file: `.claude-code-harness/config.json`
 EOF
 
-    echo -e "${GREEN}✓${NC} Project Rulesを作成: $RULES_PATH"
+    echo -e "${GREEN}✓${NC} Project Rules created: $RULES_PATH"
 fi
 
 echo ""
 
-# ワークフローファイル（AGENTS/CLAUDE/Plans）を必要に応じて作成（既存があれば上書きしない）
+# Create workflow files (AGENTS/CLAUDE/Plans) as needed (skip if exists)
 TEMPLATE_DIR="$HARNESS_ROOT/templates"
 render_template_if_missing "$TEMPLATE_DIR/AGENTS.md.template" "AGENTS.md" "AGENTS.md"
 render_template_if_missing "$TEMPLATE_DIR/CLAUDE.md.template" "CLAUDE.md" "CLAUDE.md"
@@ -385,12 +385,12 @@ render_template_if_missing "$TEMPLATE_DIR/Plans.md.template" "Plans.md" "Plans.m
 echo ""
 
 # ================================
-# Step 5.5: プロジェクトメモリ（SSOT）の初期化
+# Step 5.5: Initialize project memory (SSOT)
 # ================================
-echo -e "${BLUE}[5.5/6] プロジェクトメモリ（SSOT）の初期化${NC}"
+echo -e "${BLUE}[5.5/6] Initializing Project Memory (SSOT)${NC}"
 echo "----------------------------------------"
 
-# decisions/patterns は SSOT として共有推奨。session-log はローカル運用向け。
+# decisions/patterns recommended as shared SSOT. session-log for local use.
 mkdir -p .claude/memory
 render_template_if_missing "$TEMPLATE_DIR/memory/decisions.md.template" ".claude/memory/decisions.md" "decisions.md (SSOT)"
 render_template_if_missing "$TEMPLATE_DIR/memory/patterns.md.template" ".claude/memory/patterns.md" "patterns.md (SSOT)"
@@ -399,49 +399,49 @@ render_template_if_missing "$TEMPLATE_DIR/memory/session-log.md.template" ".clau
 echo ""
 
 # ================================
-# Step 6: セットアップ完了
+# Step 6: Setup complete
 # ================================
 
-echo -e "${BLUE}[6/6] セットアップ完了${NC}"
+echo -e "${BLUE}[6/6] Setup Complete${NC}"
 echo "----------------------------------------"
 
 echo ""
-echo -e "${GREEN}✅ セットアップが完了しました！${NC}"
+echo -e "${GREEN}Setup complete!${NC}"
 echo ""
-echo "次のステップ:"
+echo "Next steps:"
 echo ""
-echo "1. 既存ドキュメントを確認:"
+echo "1. Review existing documents:"
 echo -e "   ${BLUE}cat .claude-code-harness/existing-docs-summary.md${NC}"
 echo ""
-echo "2. Claude Codeでプロジェクトを開く:"
+echo "2. Open project in Claude Code:"
 echo -e "   ${BLUE}cd $PROJECT_PATH${NC}"
 echo -e "   ${BLUE}claude${NC}"
-echo -e "   ${YELLOW}（プラグインを未インストールで、このハーネスをローカルから直接読み込む場合）${NC}"
+echo -e "   ${YELLOW}(When loading this harness directly from local without installing the plugin)${NC}"
 echo -e "   ${BLUE}claude --plugin-dir \"$HARNESS_ROOT\"${NC}"
 echo ""
-echo "3. 既存の仕様を確認してから計画を更新:"
+echo "3. Review existing specs then update plans:"
 echo -e "   ${BLUE}/plan${NC}"
 echo ""
-echo "4. 小さな機能から実装を開始:"
+echo "4. Start implementation with small features:"
 echo -e "   ${BLUE}/work${NC}"
 echo ""
-echo "5. こまめにレビュー:"
+echo "5. Review frequently:"
 echo -e "   ${BLUE}/harness-review${NC}"
 echo ""
-echo "6. （任意）Cursor連携を有効化:"
+echo "6. (Optional) Enable Cursor integration:"
 echo -e "   ${BLUE}/setup-cursor${NC}"
 echo ""
 
-# .gitignoreに追加
+# Add to .gitignore
 if [ -f ".gitignore" ]; then
     if ! grep -q ".claude-code-harness" .gitignore; then
         echo "" >> .gitignore
         echo "# Claude harness" >> .gitignore
         echo ".claude-code-harness/" >> .gitignore
-        echo -e "${GREEN}✓${NC} .gitignoreに追加しました"
+        echo -e "${GREEN}✓${NC} Added to .gitignore"
     fi
 
-    # メモリ運用の推奨（重複追記しない）
+    # Memory management recommendations (avoid duplicate entries)
     if ! grep -q "Claude Memory Policy" .gitignore; then
         echo "" >> .gitignore
         echo "# Claude Memory Policy (recommended)" >> .gitignore
@@ -451,10 +451,10 @@ if [ -f ".gitignore" ]; then
         echo ".claude/memory/session-log.md" >> .gitignore
         echo ".claude/memory/context.json" >> .gitignore
         echo ".claude/memory/archive/" >> .gitignore
-        echo -e "${GREEN}✓${NC} .gitignoreにメモリ運用の推奨を追記しました（必要に応じて調整してください）"
+        echo -e "${GREEN}✓${NC} Added memory management recommendations to .gitignore (adjust as needed)"
     fi
 fi
 
 echo ""
-echo -e "${YELLOW}⚠${NC}  重要: 変更をコミットすることを推奨します"
+echo -e "${YELLOW}Important: we recommend committing these changes"
 echo ""

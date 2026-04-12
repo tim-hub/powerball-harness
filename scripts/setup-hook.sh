@@ -1,19 +1,19 @@
 #!/bin/bash
 # setup-hook.sh
-# Setup Hook: claude --init / --maintenance 時のセットアップ処理
+# Setup Hook: Setup processing for claude --init / --maintenance
 #
 # Usage:
-#   setup-hook.sh init        # 初回セットアップ
-#   setup-hook.sh maintenance # メンテナンス処理
+#   setup-hook.sh init        # Initial setup
+#   setup-hook.sh maintenance # Maintenance processing
 #
-# 出力: JSON形式で hookSpecificOutput を出力
+# Output: hookSpecificOutput in JSON format
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODE="${1:-init}"
 
-# ===== SIMPLE モード検出 =====
+# ===== SIMPLE mode detection =====
 SIMPLE_MODE="false"
 if [ -f "$SCRIPT_DIR/check-simple-mode.sh" ]; then
   # shellcheck source=./check-simple-mode.sh
@@ -24,13 +24,13 @@ if [ -f "$SCRIPT_DIR/check-simple-mode.sh" ]; then
   fi
 fi
 
-# stdin から JSON 入力を読み取り（Claude Code v2.1.10+）
+# Read JSON input from stdin (Claude Code v2.1.10+)
 INPUT=""
 if [ ! -t 0 ]; then
   INPUT=$(cat 2>/dev/null || true)
 fi
 
-# ===== 共通ヘルパー =====
+# ===== Common helpers =====
 output_json() {
   local message="$1"
   cat <<EOF
@@ -38,39 +38,39 @@ output_json() {
 EOF
 }
 
-# ===== Init モード: 初回セットアップ =====
+# ===== Init mode: Initial setup =====
 run_init() {
   local messages=()
 
-  # 1. プラグインキャッシュの同期
+  # 1. Plugin cache sync
   if [ -f "$SCRIPT_DIR/sync-plugin-cache.sh" ]; then
     bash "$SCRIPT_DIR/sync-plugin-cache.sh" >/dev/null 2>&1 || true
-    messages+=("プラグインキャッシュ同期完了")
+    messages+=("Plugin cache sync completed")
   fi
 
-  # 2. 状態ディレクトリの初期化
+  # 2. State directory initialization
   STATE_DIR=".claude/state"
   mkdir -p "$STATE_DIR"
 
-  # 3. デフォルト設定ファイルの生成（存在しない場合）
+  # 3. Generate default config file (if not exists)
   CONFIG_FILE=".claude-code-harness.config.yaml"
   if [ ! -f "$CONFIG_FILE" ]; then
     if [ -f "$SCRIPT_DIR/../templates/.claude-code-harness.config.yaml.template" ]; then
       cp "$SCRIPT_DIR/../templates/.claude-code-harness.config.yaml.template" "$CONFIG_FILE"
-      messages+=("設定ファイル生成完了")
+      messages+=("Config file generated")
     fi
   fi
 
-  # 4. CLAUDE.md の生成（存在しない場合）
+  # 4. Generate CLAUDE.md (if not exists)
   if [ ! -f "CLAUDE.md" ]; then
     if [ -f "$SCRIPT_DIR/../templates/CLAUDE.md.template" ]; then
       cp "$SCRIPT_DIR/../templates/CLAUDE.md.template" "CLAUDE.md"
-      messages+=("CLAUDE.md 生成完了")
+      messages+=("CLAUDE.md generated")
     fi
   fi
 
-  # 5. Plans.md の生成（存在しない場合）
-  # plansDirectory 設定を考慮
+  # 5. Generate Plans.md (if not exists)
+  # Consider plansDirectory setting
   if [ -f "$SCRIPT_DIR/config-utils.sh" ]; then
     source "$SCRIPT_DIR/config-utils.sh"
     PLANS_PATH=$(get_plans_file_path)
@@ -79,29 +79,29 @@ run_init() {
   fi
 
   if [ ! -f "$PLANS_PATH" ]; then
-    # ディレクトリが存在しない場合は作成
+    # Create directory if it does not exist
     PLANS_DIR=$(dirname "$PLANS_PATH")
     [ "$PLANS_DIR" != "." ] && mkdir -p "$PLANS_DIR"
 
     if [ -f "$SCRIPT_DIR/../templates/Plans.md.template" ]; then
       cp "$SCRIPT_DIR/../templates/Plans.md.template" "$PLANS_PATH"
-      messages+=("Plans.md 生成完了")
+      messages+=("Plans.md generated")
     fi
   fi
 
-  # 6. テンプレートトラッカーの初期化
+  # 6. Template tracker initialization
   if [ -f "$SCRIPT_DIR/template-tracker.sh" ]; then
     bash "$SCRIPT_DIR/template-tracker.sh" init >/dev/null 2>&1 || true
   fi
 
-  # SIMPLE モード警告を追加
+  # Add SIMPLE mode warning
   if [ "$SIMPLE_MODE" = "true" ]; then
     messages+=("WARNING: CLAUDE_CODE_SIMPLE mode — skills/agents/memory disabled, hooks only")
   fi
 
-  # 結果出力
+  # Output results
   if [ ${#messages[@]} -eq 0 ]; then
-    output_json "[Setup:init] ハーネスは既に初期化済みです"
+    output_json "[Setup:init] Harness is already initialized"
   else
     local msg_str
     msg_str=$(IFS=', '; echo "${messages[*]}")
@@ -109,63 +109,63 @@ run_init() {
   fi
 }
 
-# ===== Maintenance モード: メンテナンス処理 =====
+# ===== Maintenance mode: Maintenance processing =====
 run_maintenance() {
   local messages=()
 
-  # 1. プラグインキャッシュの同期
+  # 1. Plugin cache sync
   if [ -f "$SCRIPT_DIR/sync-plugin-cache.sh" ]; then
     bash "$SCRIPT_DIR/sync-plugin-cache.sh" >/dev/null 2>&1 || true
-    messages+=("キャッシュ同期完了")
+    messages+=("Cache sync completed")
   fi
 
-  # 2. 古いセッションファイルのクリーンアップ
+  # 2. Clean up old session files
   STATE_DIR=".claude/state"
   ARCHIVE_DIR="$STATE_DIR/sessions"
 
   if [ -d "$ARCHIVE_DIR" ]; then
-    # 7日以上前のセッションアーカイブを削除
+    # Delete session archives older than 7 days
     find "$ARCHIVE_DIR" -name "session-*.json" -mtime +7 -delete 2>/dev/null || true
-    messages+=("古いセッションアーカイブ削除")
+    messages+=("Old session archives deleted")
   fi
 
-  # 3. 一時ファイルのクリーンアップ
+  # 3. Clean up temporary files
   if [ -d "$STATE_DIR" ]; then
-    # .tmp ファイルを削除
+    # Delete .tmp files
     find "$STATE_DIR" -name "*.tmp" -delete 2>/dev/null || true
   fi
 
-  # 4. テンプレート更新チェック
+  # 4. Template update check
   if [ -f "$SCRIPT_DIR/template-tracker.sh" ]; then
     CHECK_RESULT=$(bash "$SCRIPT_DIR/template-tracker.sh" check 2>/dev/null || echo '{"needsCheck": false}')
     if command -v jq >/dev/null 2>&1; then
       NEEDS_UPDATE=$(echo "$CHECK_RESULT" | jq -r '.needsCheck // false')
       if [ "$NEEDS_UPDATE" = "true" ]; then
         UPDATES_COUNT=$(echo "$CHECK_RESULT" | jq -r '.updatesCount // 0')
-        messages+=("テンプレート更新あり: ${UPDATES_COUNT}件")
+        messages+=("Template updates available: ${UPDATES_COUNT} item(s)")
       fi
     fi
   fi
 
-  # 5. SIMPLE モード警告を追加
+  # 5. Add SIMPLE mode warning
   if [ "$SIMPLE_MODE" = "true" ]; then
     messages+=("WARNING: CLAUDE_CODE_SIMPLE mode — skills/agents/memory disabled, hooks only")
   fi
 
-  # 6. 設定ファイルの検証
+  # 6. Config file validation
   CONFIG_FILE=".claude-code-harness.config.yaml"
   if [ -f "$CONFIG_FILE" ]; then
-    # 基本的な YAML 構文チェック
+    # Basic YAML syntax check
     if command -v python3 >/dev/null 2>&1; then
       if ! python3 -c "import yaml; yaml.safe_load(open('$CONFIG_FILE'))" 2>/dev/null; then
-        messages+=("警告: 設定ファイルの構文エラー")
+        messages+=("Warning: config file syntax error")
       fi
     fi
   fi
 
-  # 結果出力
+  # Output results
   if [ ${#messages[@]} -eq 0 ]; then
-    output_json "[Setup:maintenance] メンテナンス完了（変更なし）"
+    output_json "[Setup:maintenance] Maintenance completed (no changes)"
   else
     local msg_str
     msg_str=$(IFS=', '; echo "${messages[*]}")
@@ -173,7 +173,7 @@ run_maintenance() {
   fi
 }
 
-# ===== メイン処理 =====
+# ===== Main processing =====
 case "$MODE" in
   init)
     run_init
@@ -182,7 +182,7 @@ case "$MODE" in
     run_maintenance
     ;;
   *)
-    output_json "[Setup] 不明なモード: $MODE"
+    output_json "[Setup] Unknown mode: $MODE"
     exit 1
     ;;
 esac

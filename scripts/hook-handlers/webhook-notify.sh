@@ -1,8 +1,8 @@
 #!/bin/bash
 # webhook-notify.sh
-# HARNESS_WEBHOOK_URL が設定されている場合のみ外部 webhook に POST する
-# HTTP hook の url フィールドでは環境変数が展開されないため、
-# command hook + curl で実装している
+# POST to external webhook only when HARNESS_WEBHOOK_URL is set
+# Environment variables are not expanded in the HTTP hook url field,
+# so this is implemented as a command hook + curl
 #
 # Usage: bash webhook-notify.sh <event-name>
 # Input: stdin JSON from Claude Code hooks
@@ -12,23 +12,23 @@ set -euo pipefail
 
 EVENT_NAME="${1:-unknown}"
 
-# HARNESS_WEBHOOK_URL が未設定なら何もせず終了（opt-in）
+# Exit silently if HARNESS_WEBHOOK_URL is not set (opt-in)
 if [ -z "${HARNESS_WEBHOOK_URL:-}" ]; then
   echo '{"decision":"approve","reason":"webhook URL not configured, skipping"}'
   exit 0
 fi
 
-# stdin から hook payload を読み取る
+# Read hook payload from stdin
 PAYLOAD=""
 if [ ! -t 0 ]; then
   PAYLOAD=$(cat)
 fi
 
-# URL をマスク（シークレット保護: スキームのみ表示）
-# user:pass@host, ?token=xxx, /services/T00/B00/xxx 等を全て隠す
+# Mask URL (secret protection: show scheme only)
+# Hide user:pass@host, ?token=xxx, /services/T00/B00/xxx etc.
 MASKED_URL="$(echo "${HARNESS_WEBHOOK_URL}" | sed -E 's|^(https?://).*|\1***/***|')"
 
-# curl で POST（タイムアウト 5 秒、失敗しても approve で続行だが結果を報告）
+# POST via curl (5-second timeout, continue with approve on failure but report result)
 HTTP_CODE=""
 CURL_EXIT=0
 HTTP_CODE=$(curl --silent --output /dev/null --write-out "%{http_code}" --max-time 5 \
@@ -38,7 +38,7 @@ HTTP_CODE=$(curl --silent --output /dev/null --write-out "%{http_code}" --max-ti
   --data "${PAYLOAD:-"{}"}" \
   "${HARNESS_WEBHOOK_URL}" 2>/dev/null) || CURL_EXIT=$?
 
-# jq があれば安全に JSON を構築、なければ固定メッセージ
+# Build JSON safely with jq if available, otherwise use a fixed message
 if [ "$CURL_EXIT" -ne 0 ]; then
   if command -v jq >/dev/null 2>&1; then
     jq -nc --arg reason "webhook delivery failed (curl exit $CURL_EXIT)" \

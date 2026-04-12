@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # generate-skill-manifest.sh
-# repo 内の skill frontmatter を machine-readable JSON にする。
+# Convert skill frontmatter in the repo to machine-readable JSON.
 
 set -euo pipefail
 
@@ -105,13 +105,7 @@ function parseDoNotUseFor(frontmatter) {
         .filter(Boolean);
     }
 
-    const japaneseMatch = String(candidate).match(/。([^。]+)には使わない。?$/);
-    if (japaneseMatch) {
-      return japaneseMatch[1]
-        .split('・')
-        .map((item) => item.trim().replace(/[.。]+$/g, ''))
-        .filter(Boolean);
-    }
+    // Legacy Japanese pattern support removed (codebase is now English-only)
   }
 
   return [];

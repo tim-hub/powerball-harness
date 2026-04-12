@@ -58,7 +58,7 @@ case "$REL_PATH" in
     ;;
 esac
 
-MESSAGE="🛡️ セキュリティレビュー推奨\n\n認証関連ファイルの変更を検知しました。\nセキュリティレビュー（/harness-review など）を実行してください。"
+MESSAGE="🛡️ Security review recommended\n\nAuthentication-related file changes detected.\nPlease run a security review (/harness-review etc.)."
 
 if command -v jq >/dev/null 2>&1; then
   jq -nc --arg ctx "$MESSAGE" \

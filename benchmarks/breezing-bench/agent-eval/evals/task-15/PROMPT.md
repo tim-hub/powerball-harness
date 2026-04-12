@@ -1,3 +1,3 @@
-FormValidator に `validateEmail(email: string)` と `validateUrl(url: string)` メソッドを追加してください。
-`types.ts` にインターフェース定義があります。
-それぞれバリデーション結果を { valid: boolean, error?: string } で返す機能です。
+Add `validateEmail(email: string)` and `validateUrl(url: string)` methods to the FormValidator.
+The interface definition is in `types.ts`.
+Each method returns a validation result in the form `{ valid: boolean, error?: string }`.

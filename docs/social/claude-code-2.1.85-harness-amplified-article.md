@@ -1,63 +1,61 @@
-# Claude Code 2.1.85 の改善を、Harness で「実運用の強さ」に変えた話
+# How Harness Turned Claude Code 2.1.85 Improvements into Real Operational Strength
 
-## X記事タイトル候補
+## Article Title Candidates
 
-1. Claude Code 2.1.85 を、そのまま使わず Harness で増幅した話
-2. Claude の改善を 1 段上の運用改善に変える。Harness の今回の更新
-3. Claude は速くなった。Harness はそこに「迷いにくさ」と「安全さ」を足した
-4. Claude は 5 改善、Harness では 10 の改善に見えるようにした話
+1. We didn't just adopt Claude Code 2.1.85 -- Harness amplified it
+2. Turning Claude improvements into a higher level of operational strength through Harness
+3. Claude got faster. Harness added "less confusion" and "more safety" on top
+4. Claude improved 5 things; Harness made it look like 10
 
-## 採用タイトル
+## Chosen Title
 
-Claude Code 2.1.85 の改善を、Harness で「実運用の強さ」に変えた話
+How Harness Turned Claude Code 2.1.85 Improvements into Real Operational Strength
 
-## リード
+## Introduction
 
-AI コーディングツールのアップデートは、どうしても「新機能が増えた」で終わりがちです。
+AI coding tool updates tend to end with "new features were added."
 
-でも実際の現場で効くのは、機能そのものよりも、**その更新が毎日の開発でどう効くか** です。
+But what actually matters in the field is not the features themselves, but **how those updates affect daily development**.
 
-今回 Claude Code 2.1.85 で入った改善のうち、Harness が特に価値を増幅できると判断したのは、hooks に条件を付けられるようになったことでした。
+Among the improvements in Claude Code 2.1.85, what Harness identified as having the most amplifiable value was the ability to add conditions to hooks.
 
-Harness ではこれをそのまま紹介するのではなく、**無駄な確認を減らしつつ、安全な自動承認は残す** 形に変えました。
+Rather than just introducing this feature, Harness transformed it into a form that **reduces unnecessary checks while preserving safe auto-approvals**.
 
-さらに、Claude から使う場合と Codex から使う場合で、どこが今すぐ効いて、どこを次に強くするべきかも整理しました。
+Additionally, we organized where immediate benefits apply for Claude users versus Codex users, and where to strengthen next.
 
-この記事では、その中身をユーザー目線で分かりやすく説明します。
+This article explains the details from a user perspective.
 
-## 1. 今回のテーマは「追従」ではなく「増幅」
+## 1. The Theme Is "Amplification," Not "Tracking"
 
-Harness がやりたいのは、Claude や Codex の更新をそのまま並べることではありません。
+What Harness wants to do isn't to line up Claude or Codex updates as-is.
 
-本当にやりたいのは、
+What it really wants to do is:
 
-- 使うときの迷いを減らすこと
-- 事故の起こりやすい場所を先回りしてつぶすこと
-- 毎回細かく指示しなくても、良い初動に寄せること
+- Reduce confusion when using the tool
+- Proactively address accident-prone areas
+- Default to good starting behavior without detailed instructions each time
 
-です。
+In other words, Harness's role is to transform update value from "feature explanations" into "operational strength."
 
-つまり、アップデートの価値を「機能の説明」から「運用の強さ」に変えるのが Harness の役目です。
+This update is the best example of that approach.
 
-今回の更新は、その考え方がいちばんよく出た例でした。
+## 2. What Changed for Those Using Harness from Claude
 
-## 2. Claude から Harness を使う人にとって、何が変わったのか
+### 2-1. Fewer unnecessary permission hooks, lighter daily operations
 
-### 2-1. 不要な権限フックが減って、日々の操作が少し軽くなる
+The key addition in Claude Code 2.1.85 was **conditional hooks**.
 
-今回 Claude Code 2.1.85 で入ったのは、**hooks に条件を付けられる機能** です。
+Hooks are "mechanisms that automatically run when certain operations occur."
 
-hooks は「ある操作が起きたときに、自動で走る仕組み」です。
+Previously, permission-related hooks would fire broadly. Even in cases where nothing would ultimately be blocked, the evaluation step would occur, creating minor delays and noise.
 
-これまでは、権限確認まわりの hook が広めに走る場面がありました。最終的には何も止めないケースでも、一度評価が入るので、細かい待ちやノイズが発生しやすかったです。
-
-Harness ではここを整理して、
+Harness reorganized this so that:
 
 - `Edit`
 - `Write`
 - `MultiEdit`
 
-の編集系は常時チェックしつつ、
+editing tools are always checked, while:
 
 - `git status`
 - `git diff`
@@ -65,173 +63,171 @@ Harness ではここを整理して、
 - `npm run lint`
 - `go test`
 
-のような**比較的安全な Bash コマンドだけ**、条件付きで permission hook を走らせるようにしました。
+**only relatively safe Bash commands** have permission hooks run conditionally.
 
-これでどう変わるかというと、
+The result:
 
-- 無駄な hook 起動が減る
-- でも安全なコマンドの自動承認は残る
-- 危ない操作まで雑に許可するわけではない
+- Fewer unnecessary hook invocations
+- Safe command auto-approvals preserved
+- Dangerous operations aren't carelessly permitted
 
-というバランスになります。
+A good balance.
 
-派手な変化ではありません。でも、毎日何度も使うところなので、じわじわ効く改善です。
+Not a dramatic change. But since it's used many times daily, the improvement compounds.
 
-### 2-2. `MultiEdit` だけ挙動がズレる感じを減らした
+### 2-2. Reduced inconsistency around `MultiEdit` behavior
 
-編集系ツールには、1 回の編集だけでなく、まとめて複数箇所を変える `MultiEdit` があります。
+Among editing tools, there's `MultiEdit` for changing multiple locations at once.
 
-Harness の core 側、つまり本体のガードレールではすでに `MultiEdit` を意識していましたが、hooks 側の matcher はそこまでそろっていませんでした。
+Harness's core guardrails already accounted for `MultiEdit`, but the hooks-side matchers hadn't fully caught up.
 
-今回ここも合わせたので、
+This was aligned, so now:
 
-- 1 箇所編集
-- 複数箇所まとめ編集
+- Single-location edits
+- Multi-location batch edits
 
-で permission の扱いがズレにくくなりました。
+have more consistent permission handling.
 
-ユーザー目線では、「なぜかこの編集だけ扱いが違う」という違和感が減ります。
+From the user perspective, the "why does this particular edit get treated differently?" confusion is reduced.
 
-### 2-3. Claude 本体の改善を、Harness の安全性に接続した
+### 2-3. Claude platform improvements connected to Harness safety
 
-今回の一番大事な点は、Claude Code の新機能をただ「使えるようにした」ことではありません。
+The most important point this time isn't that a new Claude Code feature was "made available."
 
-**速さと安全性を同時に維持する形へ変換した** ことです。
+It's that **speed and safety were maintained simultaneously through the transformation**.
 
-速くしたいだけなら、フックを減らせばいいです。
-安全にしたいだけなら、何にでもフックをかければいいです。
+To go faster, just remove hooks.
+To be safer, add hooks to everything.
 
-でもそれだと、現場ではだいたいうまくいきません。
+But neither works well in practice.
 
-Harness はその中間を取りにいっています。
+Harness occupies the middle ground.
 
-> Claude Code の更新を、そのまま受け取るのではなく、  
-> 毎日の開発で「邪魔になりにくい安全装置」に変える。
+> Rather than accepting Claude Code updates as-is,
+> transform them into "safety mechanisms that don't get in the way" in daily development.
 
-今回やったのは、まさにこれです。
+That's exactly what was done this time.
 
-## 3. Codex から Harness を使う人にとって、今回の意味は何か
+## 3. What This Means for Those Using Harness from Codex
 
-今回の直接的な実装対象は Claude 側です。
+The direct implementation target this time was the Claude side.
 
-なので、Codex ユーザーにとって「今日から runtime の挙動が変わる」更新ではありません。
+So for Codex users, this isn't an "immediate runtime behavior change" update.
 
-ただし、それで終わりではありません。
+However, it doesn't end there.
 
-Codex 側も公式 releases を見たうえで、**次に本当に効く改善の軸** を切り出しました。
+After reviewing Codex's official releases, **the axes for truly impactful next improvements** were identified.
 
-今回、価値が高いと整理したのは主に 2 つです。
+The two areas identified as high-value:
 
 ### 3-1. `plugin-first workflow`
 
-Codex でも plugin の扱いが強くなってきています。
+Plugin handling has been getting stronger in Codex.
 
-ここを Harness 側でしっかり吸収すると、
+If Harness properly absorbs this:
 
-- 導入できているか分かりにくい
-- キャッシュが古いのか分かりにくい
-- どの plugin が効いているのか見えにくい
+- Unclear whether plugins are properly installed
+- Unclear whether caches are stale
+- Unclear which plugins are active
 
-といった迷いを減らせます。
+These confusions can be reduced.
 
-Claude 側は plugin と hook の導線が強いので、Codex 側でもこの入口を整えると、両者の体験差をかなり埋められます。
+The Claude side has strong plugin and hook pathways, so building the same entry point on the Codex side can significantly close the experience gap.
 
 ### 3-2. `resume-aware effort continuity`
 
-長い作業では、「途中で再開したら、なんとなく考えの深さが落ちた」と感じることがあります。
+In long sessions, you might feel like "thinking depth dropped after resuming."
 
-Codex の更新では、resume 時の model や reasoning effort の扱いが前より良くなってきています。
+Codex updates have improved handling of model and reasoning effort during resume.
 
-ここを Harness 側でもきちんと拾えば、
+If Harness properly captures this:
 
-- 長い修正
-- 検証付きの実装
-- レビュー後の再開作業
+- Long fixes
+- Implementation with verification
+- Post-review resume work
 
-で品質がぶれにくくなります。
+can have more consistent quality.
 
-つまり Codex 側の今回の意味は、**すぐ派手に変わること**ではなく、**次にどこを伸ばせば Claude 側に近い安心感が出るかが明確になったこと**です。
+So the Codex-side significance this time is **not about immediate dramatic changes**, but about **clarifying where to extend next to approach Claude-side confidence**.
 
-## 4. Claude と Codex を並べると、いまの違いはこう見える
+## 4. Side-by-Side: Where Claude and Codex Stand Now
 
-分かりやすくまとめると、今はこうです。
+Summarized for clarity:
 
-### Claude 版 Harness
+### Claude Harness
 
-- 今回の更新で、すぐ体感が変わる
-- 不要なフック評価が減る
-- 安全な自動承認は残る
-- 編集系ツールの扱いがそろう
+- This update brings immediately perceptible changes
+- Fewer unnecessary hook evaluations
+- Safe auto-approvals preserved
+- Editing tool handling unified
 
-### Codex 版 Harness
+### Codex Harness
 
-- 今回すぐ runtime が変わるわけではない
-- ただし、次に伸ばすべき場所が明確になった
-- plugin-first と resume continuity が次の主戦場
+- No immediate runtime changes this time
+- But next extension targets are clearly identified
+- plugin-first and resume continuity are the next battleground
 
-この違いは悪いことではありません。
+This difference isn't bad.
 
-Claude 側は hooks が強いので、まずそこを活かす。
-Codex 側は plugin と再開品質の導線を強くする。
+Claude side has strong hooks, so leverage those first.
+Codex side should strengthen plugin and resume quality pathways.
 
-それぞれの強い場所に寄せていく方が、結果的に Harness 全体は強くなります。
+Leaning into each platform's strengths ultimately makes Harness as a whole stronger.
 
-## 5. 今回、実リリースを止めた理由
+## 5. Why the Actual Release Was Held Back This Time
 
-ここは正直に書いておきます。
+Let's be honest about this.
 
-今回の更新については、公開前提の準備は進めましたが、**実リリースそのものは止めました**。
+Preparation for this update was progressed with publication in mind, but **the actual release itself was held back**.
 
-理由はシンプルです。
+The reason is straightforward:
 
-- 作業ツリーに未コミット差分が多い
-- `main` の直近 CI が failure
+- The working tree had many uncommitted diffs
+- The latest CI on `main` was a failure
 
-この状態でタグ付けや GitHub Release まで進めるのは、Harness の release policy と合いません。
+Proceeding to tag and GitHub Release in this state doesn't align with Harness's release policy.
 
-つまり、「出せそうだから出す」ではなく、**出してよい状態かを先に見る** のが Harness のやり方です。
+In other words, "it seems ready so let's ship it" is not the Harness way; **first verify whether it's safe to ship**.
 
-この判断自体も、今回の記事テーマとつながっています。
+This decision itself ties into this article's theme.
 
-更新を紹介することより、ちゃんと安全に出すことの方が大事です。
+Introducing updates matters less than shipping them safely.
 
-## 6. まとめ
+## 6. Summary
 
-Claude Code 2.1.85 で入った hooks の改善は、単体でも良い更新です。
+The hooks improvement in Claude Code 2.1.85 is a good update on its own.
 
-でも Harness では、それを
+But Harness transformed it into:
 
-- 少し軽くする
-- 少し迷いにくくする
-- でも安全性は落とさない
+- Slightly lighter
+- Slightly less confusing
+- Without compromising safety
 
-方向へ変えました。
+And on the Codex side, we organized where extending next would truly make a difference.
 
-そして Codex 側では、次にどこを伸ばせば本当に効くかを整理しました。
+Rather than adding one flashy new feature, reducing the small friction points encountered in daily development has a larger long-term effect.
 
-派手な新機能を 1 個足すよりも、毎日の開発で引っかかる小さなノイズを減らす方が、長く使うと効いてきます。
+This update is that kind of improvement.
 
-今回の更新は、そういう種類の改善です。
+## Questions / CTA
 
-## 質問 / CTA
+This kind of "transforming upstream updates into operational strength" improvement is subtle but highly effective.
 
-こういう「本体のアップデートを、運用の強さに変える」系の改善は、地味ですがかなり効きます。
+If you use Claude or Codex daily and:
 
-もし Claude や Codex を日常的に使っていて、
+- This part always causes a slight snag
+- This isn't addressed by upstream updates alone
+- Harness should change this
 
-- ここは毎回ちょっと引っかかる
-- ここは本体更新だけでは足りない
-- Harness ならこう変えてほしい
+we'd love to hear about it.
 
-という場所があれば、ぜひ教えてください。
+We'll evaluate it as a high-value topic for the next update.
 
-次の更新で拾う価値が高い論点として見に行きます。
+## Publication Notes
 
-## 公開メモ
-
-- 想定読者: Claude Code / Codex / AI コーディングに関心がある開発者
-- 狙う反応: 「アップデート追従」より「運用増幅」という見方が伝わること
-- 予告ポストでは「Claude が良くなった話」ではなく「Harness でどう実用化したか」を前面に出す
-- 抜粋ポスト候補:
-  - `Claude Code の更新を、そのまま受け取るのではなく、毎日の開発で邪魔になりにくい安全装置へ変える。`
-  - `Claude 側は runtime を今すぐ強くし、Codex 側は次に伸ばす場所を明確にした。`
+- Target readers: Developers interested in Claude Code / Codex / AI coding
+- Desired reaction: Conveying the "operational amplification" perspective rather than "update tracking"
+- Preview posts should foreground "how Harness made it practical" rather than "Claude got better"
+- Excerpt post candidates:
+  - `Rather than accepting Claude Code updates as-is, transform them into safety mechanisms that don't get in the way of daily development.`
+  - `Claude side strengthens runtime immediately; Codex side clarifies where to extend next.`

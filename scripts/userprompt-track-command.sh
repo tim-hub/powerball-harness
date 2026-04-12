@@ -1,9 +1,9 @@
 #!/bin/bash
 # userprompt-track-command.sh
-# UserPromptSubmit時にスラッシュコマンドを検知してusage記録
-# + Skill必須コマンドの pending 作成
+# Detect slash commands on UserPromptSubmit and record usage
+# + Create pending for skill-required commands
 #
-# Usage: UserPromptSubmit hook から自動実行
+# Usage: Auto-executed from UserPromptSubmit hook
 # Input: stdin JSON (Claude Code hooks)
 # Output: JSON (continue)
 
@@ -14,11 +14,11 @@ STATE_DIR=".claude/state"
 PENDING_DIR="${STATE_DIR}/pending-skills"
 RECORD_USAGE="$SCRIPT_DIR/record-usage.js"
 
-# Skill必須コマンド一覧
-# これらのコマンドはSkill toolを使うことが期待される
+# Skill-required commands list
+# These commands are expected to use the Skill tool
 SKILL_REQUIRED_COMMANDS="work|harness-review|validate|plan-with-agent"
 
-# JSONから値を抽出（jq優先）
+# Extract value from JSON (jq preferred)
 json_get() {
   local json="$1"
   local key="$2"
@@ -31,7 +31,7 @@ json_get() {
   fi
 }
 
-# stdin から JSON 入力を読み取る
+# Read JSON input from stdin
 INPUT=""
 if [ ! -t 0 ]; then
   INPUT="$(cat 2>/dev/null)"
@@ -39,49 +39,49 @@ fi
 
 [ -z "$INPUT" ] && { echo '{"continue":true}'; exit 0; }
 
-# prompt を抽出
+# Extract prompt
 PROMPT=$(json_get "$INPUT" ".prompt" "")
 
-# 空のプロンプトはスキップ
+# Skip empty prompts
 [ -z "$PROMPT" ] && { echo '{"continue":true}'; exit 0; }
 
-# スラッシュコマンドを検知（行頭が /xxx で始まる）
-# 複数行の場合は最初の行のみチェック
+# Detect slash commands (line starts with /xxx)
+# Check only the first line for multi-line input
 FIRST_LINE=$(echo "$PROMPT" | head -n1)
 
 if [[ "$FIRST_LINE" =~ ^/([a-zA-Z0-9_:/-]+) ]]; then
   RAW_COMMAND="${BASH_REMATCH[1]}"
 
-  # コマンド名を正規化（プラグインプレフィックスを除去）
+  # Normalize command name (strip plugin prefix)
   # /claude-code-harness:core:work → work
   # /claude-code-harness/work → work
   # /work → work
   COMMAND_NAME="$RAW_COMMAND"
-  # claude-code-harness:xxx:yyy → yyy（最後のセグメント）
+  # claude-code-harness:xxx:yyy -> yyy (last segment)
   if [[ "$COMMAND_NAME" =~ ^claude-code-harness[:/] ]]; then
     COMMAND_NAME=$(echo "$COMMAND_NAME" | sed 's|.*[:/]||')
   fi
 
-  # コマンド使用を記録
+  # Record command usage
   if [ -f "$RECORD_USAGE" ] && [ -n "$COMMAND_NAME" ]; then
     node "$RECORD_USAGE" command "$COMMAND_NAME" >/dev/null 2>&1 || true
   fi
 
-  # Skill必須コマンドかチェック
+  # Check if skill-required command
   if echo "$COMMAND_NAME" | grep -qiE "^($SKILL_REQUIRED_COMMANDS)$"; then
     # Permission hardening: prompt_preview contains user input,
     # restrict file permissions to owner-only (rwx------/rw-------)
     OLD_UMASK=$(umask)
     umask 077
 
-    # pending ディレクトリ作成 (symlink bypass protection)
+    # Create pending directory (symlink bypass protection)
     if [ -L "$PENDING_DIR" ] || [ -L "$(dirname "$PENDING_DIR")" ]; then
       echo "[track-command] Warning: symlink detected in state path, skipping" >&2
       umask "$OLD_UMASK"
     else
     mkdir -p "$PENDING_DIR"
 
-    # pending ファイル作成（タイムスタンプ付き）
+    # Create pending file (with timestamp)
     PENDING_FILE="${PENDING_DIR}/${COMMAND_NAME}.pending"
     # Security: refuse if pending file is a symlink
     if [ -L "$PENDING_FILE" ]; then

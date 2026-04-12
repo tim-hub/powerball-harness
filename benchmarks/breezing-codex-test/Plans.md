@@ -1,9 +1,9 @@
 # Plans.md - Breezing-Codex Test
 
-## Phase 1: TODO アプリ実装
+## Phase 1: TODO App Implementation
 
-### 1.1 TodoStore クラスの実装 `[feature]`
+### 1.1 Implement TodoStore Class `[feature]`
 
-| Task | 内容 | Status |
-|------|------|--------|
-| 1.1.1 | `src/todo.ts` に Todo 型と TodoStore クラスを実装する。テストファイル `src/todo.test.ts` の API に準拠すること。add, list, get, toggle, delete, listByStatus メソッドを実装。 | `cc:TODO` |
+| Task | Description | Status |
+|------|-------------|--------|
+| 1.1.1 | Implement Todo type and TodoStore class in `src/todo.ts`. Conform to the API in test file `src/todo.test.ts`. Implement add, list, get, toggle, delete, listByStatus methods. | `cc:TODO` |

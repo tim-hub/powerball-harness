@@ -1,35 +1,35 @@
 # Team Mode and Issue Bridge
 
-`Plans.md` は正本のまま維持し、GitHub Issue 連携は opt-in の team mode だけで使う。
+`Plans.md` remains the authoritative source, and GitHub Issue integration is only used via opt-in team mode.
 
-## 使い分け
+## When to Use
 
-- solo 開発では issue bridge を使わない
-- team mode では tracking issue を 1 つ作り、その配下に task ごとの sub-issue payload を dry-run で生成する
-- issue bridge は Plans.md を更新しない
-- dry-run だけで完結し、GitHub への実更新はしない
+- Solo development does not use the issue bridge
+- Team mode creates a single tracking issue, with sub-issue payloads generated in dry-run mode for each task underneath
+- The issue bridge does not update Plans.md
+- Completes in dry-run only; no actual updates are made to GitHub
 
-## 変換ルール
+## Conversion Rules
 
-`scripts/plans-issue-bridge.sh` は Plans.md の各 task を次の形に展開する。
+`scripts/plans-issue-bridge.sh` expands each task in Plans.md into the following:
 
 - tracking issue
-  - まとめ用の親 issue
-  - phase の一覧と task の一覧を body に入れる
+  - Parent issue for aggregation
+  - Contains a list of phases and tasks in the body
 - sub-issue
-  - task ごとの個別 payload
-  - `task id`, `DoD`, `Depends`, `Status` を body に残す
+  - Individual payload for each task
+  - Retains `task id`, `DoD`, `Depends`, `Status` in the body
 
-## 実行例
+## Example
 
 ```bash
 scripts/plans-issue-bridge.sh --team-mode --plans Plans.md
 ```
 
-`--format markdown` を指定すると、人が読みやすい dry-run に切り替えられる。
+Specifying `--format markdown` switches to a human-readable dry-run.
 
-## 何がうれしいか
+## Benefits
 
-- Plans.md をそのまま正本に保てる
-- チーム作業だけ issue ベースの見通しを作れる
-- solo 開発では余計な重さを増やさない
+- Plans.md can remain as the authoritative source
+- Only team work gets issue-based visibility
+- Solo development does not incur extra overhead

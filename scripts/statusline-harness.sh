@@ -1,10 +1,10 @@
 #!/bin/bash
-# Harness Status Line — Claude Code /statusline 用スクリプト
-# コンテキスト使用率・コスト・git ブランチ・Harness バージョンを常時表示
+# Harness Status Line - Script for Claude Code /statusline
+# Always display context usage, cost, git branch, and Harness version
 #
-# 設定方法:
-#   /statusline (プロンプトで "use scripts/statusline-harness.sh" と指示)
-#   または settings.json に手動追加:
+# Configuration:
+#   /statusline (specify "use scripts/statusline-harness.sh" in prompt)
+#   Or manually add to settings.json:
 #   { "statusLine": { "type": "command", "command": "path/to/statusline-harness.sh" } }
 
 set -euo pipefail

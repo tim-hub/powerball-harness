@@ -1,26 +1,26 @@
 #!/bin/bash
 # ci-status-checker.sh
-# PostToolUse (Bash matcher) で git push / gh pr 後の CI ステータスを非同期チェック
-# CI 失敗検知時に additionalContext で ci-cd-fixer の spawn を推奨するメッセージを注入
+# Asynchronously check CI status after git push / gh pr via PostToolUse (Bash matcher)
+# When CI failure is detected, inject a message via additionalContext recommending ci-cd-fixer spawn
 #
 # Input: stdin JSON from Claude Code hooks (PostToolUse/Bash)
 # Output: JSON to approve the event (with optional additionalContext)
 
-set +e  # エラーで停止しない
+set +e  # Do not exit on errors
 
-# === stdin から JSON ペイロードを読み取り ===
+# === Read JSON payload from stdin ===
 INPUT=""
 if [ ! -t 0 ]; then
   INPUT="$(cat 2>/dev/null)"
 fi
 
-# ペイロードが空の場合はスキップ
+# Skip if payload is empty
 if [ -z "${INPUT}" ]; then
   echo '{"decision":"approve","reason":"ci-status-checker: no payload"}'
   exit 0
 fi
 
-# === Bash ツールの出力からコマンドと終了コードを取得 ===
+# === Extract command and exit code from Bash tool output ===
 TOOL_NAME=""
 BASH_CMD=""
 BASH_EXIT_CODE=""
@@ -60,10 +60,10 @@ except:
   BASH_OUTPUT="$(echo "${_parsed}" | sed -n '4p')"
 fi
 
-# === git push / gh pr コマンドかどうか判定 ===
+# === Determine if this is a git push / gh pr command ===
 is_push_or_pr_command() {
   local cmd="$1"
-  # git push / gh pr create / gh pr merge / gh workflow run などを検知
+  # Detect git push / gh pr create / gh pr merge / gh workflow run etc.
   if echo "${cmd}" | grep -Eq '(^|[[:space:]])(git\s+push|gh\s+pr\s+(create|merge|edit)|gh\s+workflow\s+run)'; then
     return 0
   fi
@@ -75,7 +75,7 @@ if ! is_push_or_pr_command "${BASH_CMD}"; then
   exit 0
 fi
 
-# === プロジェクトルートを検出 ===
+# === Detect project root ===
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PARENT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 if [ -f "${PARENT_DIR}/path-utils.sh" ]; then
@@ -85,8 +85,8 @@ PROJECT_ROOT="${PROJECT_ROOT:-$(detect_project_root 2>/dev/null || pwd)}"
 STATE_DIR="${PROJECT_ROOT}/.claude/state"
 mkdir -p "${STATE_DIR}" 2>/dev/null || true
 
-# === 非同期で CI ステータスを確認（バックグラウンドジョブ）===
-# CI チェックは最大 60 秒間ポーリング（gh コマンドが存在する場合のみ）
+# === Check CI status asynchronously (background job) ===
+# CI checks poll for up to 60 seconds (only if gh command is available)
 CI_STATUS_FILE="${STATE_DIR}/ci-status.json"
 TS="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
@@ -105,7 +105,7 @@ check_ci_status_async() {
     sleep "${poll_interval}"
     elapsed=$(( elapsed + poll_interval ))
 
-    # 最新の PR チェックを取得
+    # Get the latest PR checks
     local runs_json
     runs_json="$(gh run list --limit 1 --json status,conclusion,name,url 2>/dev/null)" || runs_json=""
     if [ -z "${runs_json}" ]; then
@@ -117,12 +117,12 @@ check_ci_status_async() {
       conclusion="$(printf '%s' "${runs_json}" | jq -r '.[0].conclusion // "unknown"' 2>/dev/null)" || conclusion="unknown"
     fi
 
-    # completed 以外はまだ実行中
+    # Still running if not completed
     if [ "${status}" != "completed" ]; then
       continue
     fi
 
-    # 結果を記録
+    # Record result
     if command -v jq >/dev/null 2>&1; then
       jq -n \
         --arg ts "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
@@ -133,7 +133,7 @@ check_ci_status_async() {
         > "${CI_STATUS_FILE}" 2>/dev/null || true
     fi
 
-    # CI 失敗の場合はシグナルファイルを書き出す
+    # Write signal file on CI failure
     if [ "${conclusion}" = "failure" ] || [ "${conclusion}" = "timed_out" ] || [ "${conclusion}" = "cancelled" ]; then
       SIGNALS_FILE="${STATE_DIR}/breezing-signals.jsonl"
       if command -v jq >/dev/null 2>&1; then
@@ -151,16 +151,16 @@ check_ci_status_async() {
   done
 }
 
-# バックグラウンドで CI チェックを実行（フックをブロックしない）
+# Run CI check in background (does not block the hook)
 check_ci_status_async &
 disown 2>/dev/null || true
 
-# === 直近の CI 失敗シグナルをチェックして additionalContext を注入 ===
+# === Check recent CI failure signals and inject additionalContext ===
 ADDITIONAL_CONTEXT=""
 SIGNALS_FILE="${STATE_DIR}/breezing-signals.jsonl"
 
 if [ -f "${SIGNALS_FILE}" ]; then
-  # 直近1件の ci_failure_detected シグナルを取得（10分以内のもの）
+  # Get the most recent ci_failure_detected signal (within 10 minutes)
   _recent_failure=""
   if command -v jq >/dev/null 2>&1; then
     _recent_failure="$(grep '"ci_failure_detected"' "${SIGNALS_FILE}" 2>/dev/null | tail -1)" || _recent_failure=""
@@ -172,11 +172,11 @@ if [ -f "${SIGNALS_FILE}" ]; then
       _failure_conclusion="$(printf '%s' "${_recent_failure}" | jq -r '.conclusion // ""' 2>/dev/null)" || _failure_conclusion=""
     fi
 
-    ADDITIONAL_CONTEXT="[CI 失敗を検知しました]\nCI ステータス: ${_failure_conclusion}\nトリガーコマンド: ${BASH_CMD}\n\n推奨アクション: /breezing または ci-cd-fixer エージェントを spawn して CI 障害を自動修復してください。\n  例: ci-cd-fixer に「CI が失敗しました。ログを確認して修正してください。」と依頼"
+    ADDITIONAL_CONTEXT="[CI failure detected]\nCI status: ${_failure_conclusion}\nTrigger command: ${BASH_CMD}\n\nRecommended action: Use /breezing or spawn a ci-cd-fixer agent to auto-remediate the CI failure.\n  Example: Ask ci-cd-fixer to \"CI has failed. Check the logs and fix the issue.\""
   fi
 fi
 
-# === レスポンス ===
+# === Response ===
 if [ -n "${ADDITIONAL_CONTEXT}" ]; then
   if command -v jq >/dev/null 2>&1; then
     jq -nc \

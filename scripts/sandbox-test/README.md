@@ -1,49 +1,49 @@
 # Sandbox Test
 
-> `/work --full` 動作確認用のテストディレクトリ
+> Test directory for `/work --full` verification
 
-## 目的
+## Purpose
 
-このディレクトリは Claude harness v2.9.0 で追加された `/work --full` コマンドと `task-worker` エージェントの動作確認のために作成されました。
+This directory was created to verify the `/work --full` command and `task-worker` agent added in Claude harness v2.9.0.
 
-## ファイル構成
+## File Structure
 
-| ファイル | 説明 |
+| File | Description |
 |---------|------|
-| `greeting.ts` | テスト用ユーティリティ関数 |
-| `greeting.test.ts` | ユニットテスト（Vitest） |
-| `README.md` | このファイル |
+| `greeting.ts` | Test utility functions |
+| `greeting.test.ts` | Unit tests (Vitest) |
+| `README.md` | This file |
 
-## テスト実行
+## Running Tests
 
 ```bash
-# Vitest がインストールされている場合
+# If Vitest is installed
 npx vitest run scripts/sandbox-test/
 
-# または
+# Or
 bun test scripts/sandbox-test/
 ```
 
-## /work --full テスト結果
+## /work --full Test Results
 
-このディレクトリは以下のコマンドで生成されました：
+This directory was generated with the following command:
 
 ```bash
 /work --full --parallel 3
 ```
 
-### 期待した動作
+### Expected Behavior
 
-1. **Phase 1**: 3つの task-worker が並列起動
-   - task-worker #1: `greeting.ts` 作成
-   - task-worker #2: `greeting.test.ts` 作成
-   - task-worker #3: `README.md` 作成
+1. **Phase 1**: 3 task-workers launched in parallel
+   - task-worker #1: Create `greeting.ts`
+   - task-worker #2: Create `greeting.test.ts`
+   - task-worker #3: Create `README.md`
 
-2. **Phase 2**: Codex 8並列クロスレビュー（オプション）
+2. **Phase 2**: Codex 8-parallel cross-review (optional)
 
-3. **Phase 3**: コンフリクト解消 → コミット
+3. **Phase 3**: Conflict resolution -> Commit
 
-## 関連ドキュメント
+## Related Documentation
 
-- [/work --full ドキュメント](../../docs/PARALLEL_FULL_CYCLE.md)
-- [task-worker エージェント](../../agents/task-worker.md)
+- [/work --full Documentation](../../docs/PARALLEL_FULL_CYCLE.md)
+- [task-worker Agent](../../agents/task-worker.md)

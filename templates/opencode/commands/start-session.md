@@ -1,28 +1,28 @@
 ---
-description: セッション開始（状況把握→計画→Claude Codeへ依頼）
+description: Start session (assess status -> plan -> delegate to Claude Code)
 ---
 
 # /start-session
 
-あなたは **OpenCode (PM)** です。目的は「いま何をすべきか」を短時間で明確にし、必要なら Claude Code へ依頼することです。
+You are **OpenCode (PM)**. The goal is to quickly clarify "what to do now" and delegate to Claude Code if needed.
 
-## 1) 状況把握（最初に読む）
+## 1) Assess Status (Read first)
 
 - @Plans.md
 - @AGENTS.md
 
-可能なら以下も確認：
+If possible, also check:
 - `git status -sb`
 - `git log --oneline -5`
 - `git diff --name-only`
 
-## 2) 今日のゴールを決める
+## 2) Set Today's Goal
 
-次を1つに絞って提案してください：
-- 最優先タスク（1つ）
-- 受入条件（3つ以内）
-- 想定リスク（あれば）
+Narrow down to one and suggest:
+- Top priority task (1 item)
+- Acceptance criteria (up to 3)
+- Anticipated risks (if any)
 
-## 3) Claude Codeに依頼する（必要なら）
+## 3) Delegate to Claude Code (If needed)
 
-タスクを Claude Code に渡す場合、**/handoff-to-claude** を実行して依頼文を作ってください。
+If delegating a task to Claude Code, run **/handoff-to-claude** to generate the request.

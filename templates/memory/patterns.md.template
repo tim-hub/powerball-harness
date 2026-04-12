@@ -5,44 +5,44 @@ _harness_version: "2.5.27"
 
 # Patterns (SSOT)
 
-このファイルは「再利用できる解法（パターン）」の単一の正（SSOT）です。
-**問題 → 解法 → 適用条件**まで残し、次回同じ判断を高速に再現できるようにします。
+This file is the Single Source of Truth (SSOT) for reusable solutions (patterns).
+Record **problem -> solution -> applicability conditions** so the same decisions can be quickly reproduced next time.
 
 ## Index
 
-- （例）入力バリデーションは境界で一度だけ行う #api #validation
+- (Example) Perform input validation once at the boundary #api #validation
 
 ---
 
-## （パターン名を短く） #pattern #tag1 #tag2
+## (Short pattern name) #pattern #tag1 #tag2
 
-### 問題
+### Problem
 
-- （どんな状況で困るか）
+- (What situation causes difficulty)
 
-### 解法
+### Solution
 
-- （どう解決するか）
+- (How to resolve it)
 
-### 適用条件
+### Applicability Conditions
 
-- （このパターンが効く条件）
+- (Conditions under which this pattern is effective)
 
-### 非適用条件（避ける条件）
+### Non-Applicability Conditions (When to Avoid)
 
-- （このパターンを使わない方が良い条件）
+- (Conditions under which this pattern should not be used)
 
-### 実装例（任意）
+### Implementation Example (Optional)
 
 ```text
-（必要ならコード/疑似コード/設定例）
+(Code/pseudocode/configuration example if needed)
 ```
 
-### 注意点
+### Notes
 
-- （落とし穴、観測/ロギング、運用上の注意など）
+- (Pitfalls, observability/logging, operational considerations, etc.)
 
-### 関連
+### Related
 
-- decisions: （該当があればリンク）
-- 参考リンク:
+- decisions: (Link if applicable)
+- Reference links:

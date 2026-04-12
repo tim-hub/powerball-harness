@@ -1,48 +1,48 @@
 #!/bin/bash
 # template-tracker.sh
-# テンプレート追跡機能：生成ファイルの更新状況を管理
+# Template tracking: manage update status of generated files
 #
-# 機能:
-# - init: generated-files.json を初期化（既存ファイルの状態を記録）
-# - check: テンプレート更新をチェックし、更新が必要なファイルを表示
-# - status: 各ファイルの詳細状態を表示
+# Features:
+# - init: Initialize generated-files.json (record existing file states)
+# - check: Check template updates and show files needing updates
+# - status: Show detailed status of each file
 #
-# 使用方法:
-#   template-tracker.sh init   - 初期化
-#   template-tracker.sh check  - 更新チェック（SessionStart用、JSON出力）
-#   template-tracker.sh status - 詳細表示（人間向け）
+# Usage:
+#   template-tracker.sh init   - Initialize
+#   template-tracker.sh check  - Update check (for SessionStart, JSON output)
+#   template-tracker.sh status - Detailed display (human-readable)
 #
-# 注意（v2.5.30+）:
-# - フロントマターベースの追跡が優先されます（_harness_version, _harness_template）
-# - generated-files.json はフォールバック用です（将来的に非推奨）
-# - 新規生成ファイルはフロントマターでバージョン管理されます
+# Note (v2.5.30+):
+# - Frontmatter-based tracking takes priority (_harness_version, _harness_template)
+# - generated-files.json is for fallback (to be deprecated)
+# - New generated files are version-managed via frontmatter
 
 set -euo pipefail
 
-# スクリプトディレクトリとプラグインルートを取得
+# Get script directory and plugin root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# フロントマターユーティリティを読み込み
+# Load frontmatter utilities
 # shellcheck source=frontmatter-utils.sh
 if [ ! -f "$SCRIPT_DIR/frontmatter-utils.sh" ]; then
-  echo "エラー: frontmatter-utils.sh が見つかりません。プラグインを再インストールしてください。" >&2
+  echo "Error: frontmatter-utils.sh not found. Please reinstall the plugin." >&2
   exit 1
 fi
 source "$SCRIPT_DIR/frontmatter-utils.sh"
 
-# 定数
+# Constants
 REGISTRY_FILE="$PLUGIN_ROOT/templates/template-registry.json"
 STATE_DIR=".claude/state"
 GENERATED_FILES="$STATE_DIR/generated-files.json"
 VERSION_FILE="$PLUGIN_ROOT/VERSION"
 
-# 現在のプラグインバージョンを取得
+# Get current plugin version
 get_plugin_version() {
   cat "$VERSION_FILE" 2>/dev/null || echo "unknown"
 }
 
-# ファイルのSHA256ハッシュを取得
+# Get SHA256 hash of file
 get_file_hash() {
   local file="$1"
   if [ -f "$file" ]; then
@@ -51,7 +51,7 @@ get_file_hash() {
     elif command -v shasum >/dev/null 2>&1; then
       shasum -a 256 "$file" | cut -d' ' -f1
     else
-      # フォールバック: md5
+      # Fallback: md5
       md5sum "$file" 2>/dev/null | cut -d' ' -f1 || md5 -q "$file" 2>/dev/null || echo "no-hash"
     fi
   else
@@ -59,7 +59,7 @@ get_file_hash() {
   fi
 }
 
-# generated-files.json を読み込み
+# Load generated-files.json
 load_generated_files() {
   if [ -f "$GENERATED_FILES" ]; then
     cat "$GENERATED_FILES"
@@ -68,14 +68,14 @@ load_generated_files() {
   fi
 }
 
-# generated-files.json を保存
+# Save generated-files.json
 save_generated_files() {
   local content="$1"
   mkdir -p "$STATE_DIR"
   echo "$content" > "$GENERATED_FILES"
 }
 
-# template-registry.json から tracked=true のテンプレート一覧を取得
+# Get list of tracked=true templates from template-registry.json
 get_tracked_templates() {
   if [ ! -f "$REGISTRY_FILE" ]; then
     echo "[]"
@@ -85,20 +85,20 @@ get_tracked_templates() {
   if command -v jq >/dev/null 2>&1; then
     jq -r '.templates | to_entries | map(select(.value.tracked == true)) | .[].key' "$REGISTRY_FILE" 2>/dev/null
   else
-    # jq がない場合は基本的なテンプレートのみ
+    # Only basic templates when jq is not available
     echo "CLAUDE.md.template"
     echo "AGENTS.md.template"
     echo "Plans.md.template"
   fi
 }
 
-# テンプレートの出力先パスを取得
+# Get template output path
 get_output_path() {
   local template="$1"
   if command -v jq >/dev/null 2>&1; then
     jq -r ".templates[\"$template\"].output // \"\"" "$REGISTRY_FILE" 2>/dev/null
   else
-    # jq がない場合の基本マッピング
+    # Basic mapping when jq is not available
     case "$template" in
       "CLAUDE.md.template") echo "CLAUDE.md" ;;
       "AGENTS.md.template") echo "AGENTS.md" ;;
@@ -108,7 +108,7 @@ get_output_path() {
   fi
 }
 
-# テンプレートのバージョンを取得
+# Get template version
 get_template_version() {
   local template="$1"
   if command -v jq >/dev/null 2>&1; then
@@ -118,7 +118,7 @@ get_template_version() {
   fi
 }
 
-# 初期化: 既存ファイルの状態を記録
+# Init: record state of existing files
 cmd_init() {
   local plugin_version
   plugin_version=$(get_plugin_version)
@@ -136,7 +136,7 @@ cmd_init() {
       local file_hash
       file_hash=$(get_file_hash "$output_path")
 
-      # 既存ファイルは templateVersion: "unknown" で記録
+      # Record existing files with templateVersion: "unknown"
       if command -v jq >/dev/null 2>&1; then
         result=$(echo "$result" | jq --arg path "$output_path" --arg hash "$file_hash" \
           '.files[$path] = {"templateVersion": "unknown", "fileHash": $hash, "recordedAt": (now | strftime("%Y-%m-%dT%H:%M:%SZ"))}')
@@ -145,10 +145,10 @@ cmd_init() {
   done < <(get_tracked_templates)
 
   save_generated_files "$result"
-  echo "生成ファイルを初期化しました。$(echo "$result" | jq '.files | length') 件のファイルを記録。"
+  echo "Generated files initialized. $(echo "$result" | jq '.files | length') files recorded."
 }
 
-# チェック: 更新が必要なファイルを検出（JSON出力）
+# Check: detect files that need updating (JSON output)
 cmd_check() {
   local generated
   generated=$(load_generated_files)
@@ -163,7 +163,7 @@ cmd_check() {
     last_checked="unknown"
   fi
 
-  # プラグインバージョンが変わっていない場合はスキップ
+  # Skip if plugin version hasn't changed
   if [ "$last_checked" = "$plugin_version" ]; then
     echo '{"needsCheck": false, "reason": "Plugin version unchanged"}'
     return
@@ -183,7 +183,7 @@ cmd_check() {
     local template_version
     template_version=$(get_template_version "$template")
 
-    # ファイルが存在しない場合は needsInstall として報告
+    # Report as needsInstall if file doesn't exist
     if [ ! -f "$output_path" ]; then
       if command -v jq >/dev/null 2>&1; then
         installs_details=$(echo "$installs_details" | jq --arg path "$output_path" \
@@ -198,14 +198,14 @@ cmd_check() {
     local current_hash
     current_hash=$(get_file_hash "$output_path")
 
-    # Phase B: フロントマター優先でバージョンを取得
+    # Phase B: get version with frontmatter priority
     local frontmatter_version
     frontmatter_version=$(get_file_version "$output_path" "$GENERATED_FILES")
 
     if [ -n "$frontmatter_version" ] && [ "$frontmatter_version" != "unknown" ]; then
       recorded_version="$frontmatter_version"
     elif command -v jq >/dev/null 2>&1; then
-      # フォールバック: generated-files.json から取得
+      # Fallback: get from generated-files.json
       recorded_version=$(echo "$generated" | jq -r ".files[\"$output_path\"].templateVersion // \"unknown\"")
     fi
 
@@ -213,7 +213,7 @@ cmd_check() {
       recorded_hash=$(echo "$generated" | jq -r ".files[\"$output_path\"].fileHash // \"\"")
     fi
 
-    # バージョン比較（unknown は常に古いとみなす）
+    # Version comparison (unknown is always considered old)
     local needs_update=false
     if [ "$recorded_version" = "unknown" ]; then
       needs_update=true
@@ -243,7 +243,7 @@ cmd_check() {
     installs_count=$(echo "$installs_details" | jq 'length')
   fi
 
-  # lastCheckedPluginVersion を更新
+  # Update lastCheckedPluginVersion
   if command -v jq >/dev/null 2>&1; then
     generated=$(echo "$generated" | jq --arg v "$plugin_version" '.lastCheckedPluginVersion = $v')
     save_generated_files "$generated"
@@ -262,7 +262,7 @@ cmd_check() {
   fi
 }
 
-# ステータス: 人間向け詳細表示
+# Status: human-readable detailed display
 cmd_status() {
   local generated
   generated=$(load_generated_files)
@@ -270,18 +270,18 @@ cmd_status() {
   local plugin_version
   plugin_version=$(get_plugin_version)
 
-  echo "=== テンプレート追跡状況 ==="
+  echo "=== Template Tracking Status ==="
   echo ""
-  echo "プラグインバージョン: $plugin_version"
+  echo "Plugin version: $plugin_version"
 
   if command -v jq >/dev/null 2>&1; then
     local last_checked
-    last_checked=$(echo "$generated" | jq -r '.lastCheckedPluginVersion // "未チェック"')
-    echo "最終チェック時: $last_checked"
+    last_checked=$(echo "$generated" | jq -r '.lastCheckedPluginVersion // "unchecked"'
+    echo "Last checked: $last_checked"
   fi
   echo ""
 
-  printf "%-40s %-12s %-12s %-10s %s\n" "ファイル" "記録版" "最新版" "状態" "ソース"
+  printf "%-40s %-12s %-12s %-10s %s\n" "File" "Recorded" "Latest" "Status" "Source"
   printf "%-40s %-12s %-12s %-10s %s\n" "--------" "------" "------" "----" "------"
 
   while IFS= read -r template; do
@@ -295,7 +295,7 @@ cmd_status() {
     template_version=$(get_template_version "$template")
 
     if [ ! -f "$output_path" ]; then
-      printf "%-40s %-12s %-12s %-10s\n" "$output_path" "-" "$template_version" "未生成"
+      printf "%-40s %-12s %-12s %-10s\n" "$output_path" "-" "$template_version" "Not generated"
       continue
     fi
 
@@ -304,14 +304,14 @@ cmd_status() {
     local current_hash
     current_hash=$(get_file_hash "$output_path")
 
-    # Phase B: フロントマター優先でバージョンを取得
+    # Phase B: get version with frontmatter priority
     local frontmatter_version
     frontmatter_version=$(get_file_version "$output_path" "$GENERATED_FILES")
 
     if [ -n "$frontmatter_version" ] && [ "$frontmatter_version" != "unknown" ]; then
       recorded_version="$frontmatter_version"
     elif command -v jq >/dev/null 2>&1; then
-      # フォールバック: generated-files.json から取得
+      # Fallback: get from generated-files.json
       recorded_version=$(echo "$generated" | jq -r ".files[\"$output_path\"].templateVersion // \"unknown\"")
     fi
 
@@ -319,10 +319,10 @@ cmd_status() {
       recorded_hash=$(echo "$generated" | jq -r ".files[\"$output_path\"].fileHash // \"\"")
     fi
 
-    local status="✅ 最新"
+    local status="Up to date"
     local version_source=""
 
-    # バージョンソースを表示用に記録
+    # Record version source for display
     if has_frontmatter "$output_path" 2>/dev/null; then
       version_source="[FM]"
     else
@@ -330,12 +330,12 @@ cmd_status() {
     fi
 
     if [ "$recorded_version" = "unknown" ]; then
-      status="⚠️ 要確認"
+      status="Needs review"
     elif [ "$recorded_version" != "$template_version" ]; then
       if [ -n "$recorded_hash" ] && [ "$recorded_hash" != "$current_hash" ]; then
-        status="🔧 マージ要"
+        status="Merge needed"
       else
-        status="🔄 上書き可"
+        status="Can overwrite"
       fi
     fi
 
@@ -343,32 +343,32 @@ cmd_status() {
   done < <(get_tracked_templates)
 
   echo ""
-  echo "凡例:"
-  echo "  ✅ 最新     : 更新不要"
-  echo "  🔄 上書き可 : ローカライズなし、上書きで更新可能"
-  echo "  🔧 マージ要 : ローカライズあり、マージが必要"
-  echo "  ⚠️ 要確認   : バージョン不明、確認推奨"
+  echo "Legend:"
+  echo "  Up to date  : No update needed"
+  echo "  Can overwrite : No customization, can update by overwriting"
+  echo "  Merge needed : Customized, manual merge required"
+  echo "  Needs review : Unknown version, review recommended"
   echo ""
-  echo "ソース:"
-  echo "  [FM] : フロントマターから取得（優先）"
-  echo "  [GF] : generated-files.json から取得（フォールバック）"
+  echo "Source:"
+  echo "  [FM] : From frontmatter (priority)"
+  echo "  [GF] : From generated-files.json (fallback)"
 }
 
-# ファイルを最新テンプレートで更新（記録も更新）
+# Update file with latest template (also update record)
 cmd_record() {
   local file_path="$1"
 
   if [ -z "$file_path" ]; then
-    echo "使用方法: template-tracker.sh record <file_path>"
+    echo "Usage: template-tracker.sh record <file_path>"
     exit 1
   fi
 
   if [ ! -f "$file_path" ]; then
-    echo "エラー: ファイルが見つかりません: $file_path"
+    echo "Error: file not found: $file_path"
     exit 1
   fi
 
-  # template-registry.json から該当するテンプレートを探す
+  # Find matching template from template-registry.json
   local template_version=""
   while IFS= read -r template; do
     [ -z "$template" ] && continue
@@ -383,7 +383,7 @@ cmd_record() {
   done < <(get_tracked_templates)
 
   if [ -z "$template_version" ]; then
-    echo "エラー: テンプレートが見つかりません: $file_path"
+    echo "Error: Template not found: $file_path"
     exit 1
   fi
 
@@ -398,14 +398,14 @@ cmd_record() {
       --arg version "$template_version" --arg hash "$file_hash" \
       '.files[$path] = {"templateVersion": $version, "fileHash": $hash, "recordedAt": (now | strftime("%Y-%m-%dT%H:%M:%SZ"))}')
     save_generated_files "$generated"
-    echo "記録完了: $file_path (バージョン: $template_version)"
+    echo "Recorded: $file_path (version: $template_version)"
   else
-    echo "エラー: この操作には jq が必要です"
+    echo "Error: jq is required for this operation"
     exit 1
   fi
 }
 
-# メイン
+# Main
 case "${1:-}" in
   init)
     cmd_init
@@ -420,13 +420,13 @@ case "${1:-}" in
     cmd_record "$2"
     ;;
   *)
-    echo "使用方法: template-tracker.sh {init|check|status|record <file>}"
+    echo "Usage: template-tracker.sh {init|check|status|record <file>}"
     echo ""
-    echo "コマンド:"
-    echo "  init   - generated-files.json を現在のファイル状態で初期化"
-    echo "  check  - テンプレート更新をチェック（SessionStart 用 JSON 出力）"
-    echo "  status - 詳細状態を表示（人間向け）"
-    echo "  record - ファイルの現在状態を記録"
+    echo "Commands:"
+    echo "  init   - Initialize generated-files.json with current file state"
+    echo "  check  - Check template updates (JSON output for SessionStart)"
+    echo "  status - Show detailed status (human-readable)"
+    echo "  record - Record current state of file"
     exit 1
     ;;
 esac

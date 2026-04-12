@@ -62,7 +62,7 @@ cp "${ROOT_DIR}/scripts/session-resume.sh" "${TMP_DIR}/scripts/session-resume.sh
 cp "${ROOT_DIR}/scripts/lib/progress-snapshot.sh" "${TMP_DIR}/scripts/lib/progress-snapshot.sh"
 
 cat > "${TMP_DIR}/Plans.md" <<'EOF'
-| Task | 内容 | DoD | Depends | Status |
+| Task | Description | DoD | Depends | Status |
 |------|------|-----|---------|--------|
 | 1.0 | sample | done | - | cc:WIP |
 EOF

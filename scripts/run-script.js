@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 /**
  * run-script.js
- * Windows/Mac/Linux クロスプラットフォーム対応 bash スクリプトランナー
+ * Cross-platform bash script runner for Windows/Mac/Linux
  *
- * 目的:
- * - Windows 環境で ${CLAUDE_PLUGIN_ROOT} のパス問題を解決
- * - C:\Users\... → /c/Users/... 形式に変換して bash に渡す
+ * Purpose:
+ * - Resolve ${CLAUDE_PLUGIN_ROOT} path issues on Windows
+ * - Convert C:\Users\... to /c/Users/... format for bash
  *
- * 使用方法:
+ * Usage:
  *   node run-script.js <script-name> [args...]
- *   例: node run-script.js session-init
+ *   Example: node run-script.js session-init
  *       node run-script.js pretooluse-guard
  *
- * hooks.json での使用:
+ * Usage in hooks.json:
  *   "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/run-script.js session-init"
  */
 
@@ -20,21 +20,21 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-// プラットフォーム検出
+// Platform detection
 const isWindows = process.platform === 'win32';
 
 /**
- * Windows パスを MSYS/Git Bash 形式に変換
+ * Convert Windows path to MSYS/Git Bash format
  * C:\Users\foo → /c/Users/foo
  * \\server\share → //server/share
  */
 function toMsysPath(windowsPath) {
   if (!windowsPath) return windowsPath;
 
-  // バックスラッシュをスラッシュに変換
+  // Convert backslashes to forward slashes
   let msysPath = windowsPath.replace(/\\/g, '/');
 
-  // ドライブレター変換: C:/ → /c/
+  // Drive letter conversion: C:/ -> /c/
   const driveMatch = msysPath.match(/^([A-Za-z]):\//);
   if (driveMatch) {
     msysPath = '/' + driveMatch[1].toLowerCase() + msysPath.slice(2);
@@ -44,14 +44,14 @@ function toMsysPath(windowsPath) {
 }
 
 /**
- * bash 実行ファイルのパスを検出
+ * Detect bash executable path
  */
 function findBash() {
   if (!isWindows) {
     return 'bash';
   }
 
-  // Windows: Git Bash の bash を探す
+  // Windows: Look for Git Bash's bash
   const possiblePaths = [
     'C:\\Program Files\\Git\\bin\\bash.exe',
     'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
@@ -67,12 +67,12 @@ function findBash() {
     }
   }
 
-  // フォールバック: PATH から bash を使用
+  // Fallback: use bash from PATH
   return 'bash';
 }
 
 /**
- * メイン処理
+ * Main processing
  */
 function main() {
   const args = process.argv.slice(2);
@@ -86,50 +86,50 @@ function main() {
   const scriptName = args[0];
   const scriptArgs = args.slice(1);
 
-  // スクリプトディレクトリを取得
+  // Get script directory
   const scriptsDir = __dirname;
 
-  // スクリプトパスを構築
+  // Build script path
   let scriptPath = path.join(scriptsDir, scriptName);
 
-  // .sh 拡張子がなければ追加
+  // Add .sh extension if missing
   if (!scriptPath.endsWith('.sh')) {
     scriptPath += '.sh';
   }
 
-  // スクリプトの存在確認
+  // Verify script exists
   if (!fs.existsSync(scriptPath)) {
     console.error(`Error: Script not found: ${scriptPath}`);
     process.exit(1);
   }
 
-  // bash 実行ファイルを検出
+  // Detect bash executable
   const bashPath = findBash();
 
-  // Windows の場合はパスを MSYS 形式に変換
+  // Convert path to MSYS format on Windows
   let bashScriptPath = scriptPath;
   if (isWindows) {
     bashScriptPath = toMsysPath(scriptPath);
   }
 
-  // 環境変数の準備
+  // Prepare environment variables
   const env = { ...process.env };
 
   if (isWindows) {
-    // MSYS のパス変換を無効化（二重変換を防ぐ）
+    // Disable MSYS path conversion (prevent double conversion)
     env.MSYS_NO_PATHCONV = '1';
     env.MSYS2_ARG_CONV_EXCL = '*';
 
-    // CLAUDE_PLUGIN_ROOT も変換
+    // Also convert CLAUDE_PLUGIN_ROOT
     if (env.CLAUDE_PLUGIN_ROOT) {
       env.CLAUDE_PLUGIN_ROOT = toMsysPath(env.CLAUDE_PLUGIN_ROOT);
     }
   }
 
-  // bash スクリプトを実行
+  // Execute bash script
   const child = spawn(bashPath, [bashScriptPath, ...scriptArgs], {
     env,
-    stdio: 'inherit',  // stdin/stdout/stderr を透過的に転送
+    stdio: 'inherit',  // Transparently forward stdin/stdout/stderr
     shell: false,
   });
 
