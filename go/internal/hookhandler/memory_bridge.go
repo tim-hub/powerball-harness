@@ -1,12 +1,28 @@
 package hookhandler
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 )
+
+// MemoryBridgeClient は harness-mem デーモンへの HTTP 連携を行う。
+// harness-mem が起動していない環境では fail-silent で動作し、
+// 既存の JSONL ログのみが記録される。
+type MemoryBridgeClient struct {
+	// HTTPClient はテスト用 DI。nil の場合は 2s timeout のデフォルトクライアントを使用。
+	HTTPClient *http.Client
+	// BaseURL はテスト用 override。空の場合は環境変数から構築。
+	BaseURL string
+}
+
+// defaultMemBridgeClient はパッケージレベルのデフォルトインスタンス。
+var defaultMemBridgeClient = &MemoryBridgeClient{}
 
 // memoryBridgeEvent represents a dispatched memory bridge event written to the
 // event log. Actual MCP calls are deferred to future implementation.
@@ -26,22 +42,54 @@ type memoryBridgeInput struct {
 
 // validTargets lists the recognised dispatch targets.
 var validTargets = map[string]bool{
-	"session-start":  true,
-	"user-prompt":    true,
-	"post-tool-use":  true,
-	"stop":           true,
-	"codex-notify":   true,
+	"session-start": true,
+	"user-prompt":   true,
+	"post-tool-use": true,
+	"stop":          true,
+	"codex-notify":  true,
+}
+
+// bridgeToEventType maps hook target names to harness-mem event_type values.
+var bridgeToEventType = map[string]string{
+	"session-start": "session_start",
+	"user-prompt":   "user_prompt",
+	"post-tool-use": "tool_use",
+	"codex-notify":  "checkpoint",
+	// "stop" は /v1/sessions/finalize を使うため、このマップには含まない。
+}
+
+// --- harness-mem API request types ---
+
+type harnessMemEvent struct {
+	Platform  string `json:"platform"`
+	Project   string `json:"project"`
+	SessionID string `json:"session_id"`
+	EventType string `json:"event_type"`
+	TS        string `json:"ts,omitempty"`
+}
+
+type harnessMemRecordRequest struct {
+	Event harnessMemEvent `json:"event"`
+}
+
+type harnessMemFinalizeRequest struct {
+	SessionID string `json:"session_id"`
+	Platform  string `json:"platform,omitempty"`
+	Project   string `json:"project,omitempty"`
 }
 
 // HandleMemoryBridge ports scripts/hook-handlers/memory-bridge.sh.
 //
-// Dispatches one of the four known event targets (session-start, user-prompt,
-// post-tool-use, stop). The real MCP call (harness-mem-bridge) is deferred;
-// for now only an event log entry is written.
-//
-// Usage: the target is read from the JSON field "hook_event_name" which is
-// populated by the hooks dispatcher.  Unknown targets exit 0 (fail-open).
+// Dispatches one of the five known event targets (session-start, user-prompt,
+// post-tool-use, stop, codex-notify). If harness-mem is running on localhost,
+// events are also POSTed to the HTTP API. Unknown targets exit 0 (fail-open).
 func HandleMemoryBridge(in io.Reader, out io.Writer) error {
+	return defaultMemBridgeClient.Handle(in, out)
+}
+
+// Handle processes a memory bridge event: validates the target, writes the
+// JSONL log, POSTs to harness-mem (best-effort), and returns approve.
+func (c *MemoryBridgeClient) Handle(in io.Reader, out io.Writer) error {
 	data, err := io.ReadAll(in)
 	if err != nil {
 		return approveMemoryBridge(out, "")
@@ -59,13 +107,100 @@ func HandleMemoryBridge(in io.Reader, out io.Writer) error {
 		return approveMemoryBridge(out, target)
 	}
 
-	// Log the event (MCP call to be implemented in the future).
+	// Log the event (always, regardless of harness-mem availability).
 	if logErr := logMemoryBridgeEvent(target, input.SessionID, input.CWD); logErr != nil {
 		// Non-fatal: the hook must not block on log failures.
 		fmt.Fprintf(os.Stderr, "[claude-code-harness] memory-bridge log error: %v\n", logErr)
 	}
 
+	// POST to harness-mem (best-effort, sync with 2s timeout).
+	c.postToHarnessMem(target, input)
+
 	return approveMemoryBridge(out, target)
+}
+
+// postToHarnessMem は harness-mem デーモンにイベントを HTTP POST する。
+// 接続失敗・タイムアウト・エラーレスポンスは全て stderr ログのみで無視する。
+// harness-mem が起動していない環境ではコネクション拒否で即座に返る。
+func (c *MemoryBridgeClient) postToHarnessMem(target string, input memoryBridgeInput) {
+	baseURL := c.BaseURL
+	if baseURL == "" {
+		host := os.Getenv("HARNESS_MEM_HOST")
+		if host == "" {
+			host = "127.0.0.1"
+		}
+		port := os.Getenv("HARNESS_MEM_PORT")
+		if port == "" {
+			port = "37888"
+		}
+		baseURL = "http://" + host + ":" + port
+	}
+
+	project := filepath.Base(input.CWD)
+	if project == "" || project == "." || project == "/" {
+		project = "unknown"
+	}
+
+	var (
+		url     string
+		payload interface{}
+	)
+
+	if target == "stop" {
+		url = baseURL + "/v1/sessions/finalize"
+		payload = harnessMemFinalizeRequest{
+			SessionID: input.SessionID,
+			Platform:  "claude",
+			Project:   project,
+		}
+	} else {
+		url = baseURL + "/v1/events/record"
+		eventType := bridgeToEventType[target]
+		if eventType == "" {
+			eventType = target // fallback (should not happen for valid targets)
+		}
+		payload = harnessMemRecordRequest{
+			Event: harnessMemEvent{
+				Platform:  "claude",
+				Project:   project,
+				SessionID: input.SessionID,
+				EventType: eventType,
+				TS:        time.Now().UTC().Format(time.RFC3339),
+			},
+		}
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+
+	client := c.HTTPClient
+	if client == nil {
+		client = &http.Client{Timeout: 2 * time.Second}
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	if token := os.Getenv("HARNESS_MEM_ADMIN_TOKEN"); token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		// Connection refused, timeout, etc. — expected when harness-mem is not running.
+		fmt.Fprintf(os.Stderr, "[claude-code-harness] harness-mem POST failed (target=%s): %v\n", target, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		fmt.Fprintf(os.Stderr, "[claude-code-harness] harness-mem HTTP %d for %s\n", resp.StatusCode, target)
+	}
 }
 
 // approveMemoryBridge writes the standard approve response.

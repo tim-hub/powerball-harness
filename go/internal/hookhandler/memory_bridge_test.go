@@ -3,11 +3,18 @@ package hookhandler
 import (
 	"bytes"
 	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 )
+
+// --- Existing tests (unchanged) ---
 
 func TestHandleMemoryBridge_EmptyInput(t *testing.T) {
 	var out bytes.Buffer
@@ -92,6 +99,182 @@ func TestHandleMemoryBridge_LogEntry_Format(t *testing.T) {
 	}
 }
 
+// --- New tests for harness-mem HTTP integration ---
+
+func TestMemoryBridgeClient_PostEvents(t *testing.T) {
+	var mu sync.Mutex
+	received := make(map[string][]byte) // path -> body
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		mu.Lock()
+		received[r.URL.Path] = body
+		mu.Unlock()
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"ok":true}`))
+	}))
+	defer server.Close()
+
+	dir := t.TempDir()
+	t.Setenv("HARNESS_PROJECT_ROOT", dir)
+
+	tests := []struct {
+		target    string
+		wantPath  string
+		wantType  string // event_type in the request body
+		isFinalize bool
+	}{
+		{"session-start", "/v1/events/record", "session_start", false},
+		{"user-prompt", "/v1/events/record", "user_prompt", false},
+		{"post-tool-use", "/v1/events/record", "tool_use", false},
+		{"codex-notify", "/v1/events/record", "checkpoint", false},
+		{"stop", "/v1/sessions/finalize", "", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.target, func(t *testing.T) {
+			mu.Lock()
+			received = make(map[string][]byte) // reset
+			mu.Unlock()
+
+			c := &MemoryBridgeClient{
+				HTTPClient: server.Client(),
+				BaseURL:    server.URL,
+			}
+			var out bytes.Buffer
+			payload := `{"hook_event_name":"` + tt.target + `","session_id":"sess-42","cwd":"` + dir + `/myproject"}`
+			if err := c.Handle(strings.NewReader(payload), &out); err != nil {
+				t.Fatalf("Handle error: %v", err)
+			}
+			assertApprove(t, out.String())
+
+			mu.Lock()
+			body, ok := received[tt.wantPath]
+			mu.Unlock()
+
+			if !ok {
+				t.Fatalf("no POST received at %s; received paths: %v", tt.wantPath, keys(received))
+			}
+
+			if tt.isFinalize {
+				var req harnessMemFinalizeRequest
+				if err := json.Unmarshal(body, &req); err != nil {
+					t.Fatalf("finalize body parse error: %v\nbody: %s", err, body)
+				}
+				if req.SessionID != "sess-42" {
+					t.Errorf("SessionID = %q, want sess-42", req.SessionID)
+				}
+				if req.Platform != "claude" {
+					t.Errorf("Platform = %q, want claude", req.Platform)
+				}
+				if req.Project != "myproject" {
+					t.Errorf("Project = %q, want myproject", req.Project)
+				}
+			} else {
+				var req harnessMemRecordRequest
+				if err := json.Unmarshal(body, &req); err != nil {
+					t.Fatalf("record body parse error: %v\nbody: %s", err, body)
+				}
+				if req.Event.EventType != tt.wantType {
+					t.Errorf("EventType = %q, want %q", req.Event.EventType, tt.wantType)
+				}
+				if req.Event.SessionID != "sess-42" {
+					t.Errorf("SessionID = %q, want sess-42", req.Event.SessionID)
+				}
+				if req.Event.Platform != "claude" {
+					t.Errorf("Platform = %q, want claude", req.Event.Platform)
+				}
+				if req.Event.Project != "myproject" {
+					t.Errorf("Project = %q, want myproject", req.Event.Project)
+				}
+				if req.Event.TS == "" {
+					t.Error("TS is empty")
+				}
+			}
+		})
+	}
+}
+
+func TestMemoryBridgeClient_StopUsesFinalize(t *testing.T) {
+	var receivedPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedPath = r.URL.Path
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"ok":true}`))
+	}))
+	defer server.Close()
+
+	dir := t.TempDir()
+	t.Setenv("HARNESS_PROJECT_ROOT", dir)
+
+	c := &MemoryBridgeClient{
+		HTTPClient: server.Client(),
+		BaseURL:    server.URL,
+	}
+	var out bytes.Buffer
+	payload := `{"hook_event_name":"stop","session_id":"sess-99","cwd":"` + dir + `"}`
+	if err := c.Handle(strings.NewReader(payload), &out); err != nil {
+		t.Fatalf("Handle error: %v", err)
+	}
+
+	if receivedPath != "/v1/sessions/finalize" {
+		t.Errorf("stop target routed to %q, want /v1/sessions/finalize", receivedPath)
+	}
+}
+
+func TestMemoryBridgeClient_ServerDown_NoError(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HARNESS_PROJECT_ROOT", dir)
+
+	// Use a client with very short timeout pointing at a closed port.
+	c := &MemoryBridgeClient{
+		HTTPClient: &http.Client{Timeout: 100 * time.Millisecond},
+		BaseURL:    "http://127.0.0.1:1", // port 1: connection refused
+	}
+	var out bytes.Buffer
+	payload := `{"hook_event_name":"user-prompt","session_id":"s1","cwd":"` + dir + `"}`
+	if err := c.Handle(strings.NewReader(payload), &out); err != nil {
+		t.Fatalf("Handle should not error when harness-mem is down: %v", err)
+	}
+	assertApprove(t, out.String())
+
+	// JSONL log must still be written even when harness-mem is unreachable.
+	logPath := filepath.Join(dir, ".claude", "state", "memory-bridge-events.jsonl")
+	if _, err := os.Stat(logPath); err != nil {
+		t.Fatal("JSONL log should still be written when harness-mem is down")
+	}
+}
+
+func TestMemoryBridgeClient_BearerToken(t *testing.T) {
+	var receivedAuth string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedAuth = r.Header.Get("Authorization")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"ok":true}`))
+	}))
+	defer server.Close()
+
+	dir := t.TempDir()
+	t.Setenv("HARNESS_PROJECT_ROOT", dir)
+	t.Setenv("HARNESS_MEM_ADMIN_TOKEN", "secret-token-xyz")
+
+	c := &MemoryBridgeClient{
+		HTTPClient: server.Client(),
+		BaseURL:    server.URL,
+	}
+	var out bytes.Buffer
+	payload := `{"hook_event_name":"session-start","session_id":"s1","cwd":"` + dir + `"}`
+	if err := c.Handle(strings.NewReader(payload), &out); err != nil {
+		t.Fatalf("Handle error: %v", err)
+	}
+
+	if receivedAuth != "Bearer secret-token-xyz" {
+		t.Errorf("Authorization = %q, want %q", receivedAuth, "Bearer secret-token-xyz")
+	}
+}
+
+// --- helpers ---
+
 // assertApprove verifies the output is a valid JSON approve response.
 func assertApprove(t *testing.T, output string) {
 	t.Helper()
@@ -106,4 +289,13 @@ func assertApprove(t *testing.T, output string) {
 	if resp["decision"] != "approve" {
 		t.Errorf("decision = %q, want approve", resp["decision"])
 	}
+}
+
+// keys returns the keys of a map for error messages.
+func keys(m map[string][]byte) []string {
+	ks := make([]string, 0, len(m))
+	for k := range m {
+		ks = append(ks, k)
+	}
+	return ks
 }

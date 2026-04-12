@@ -65,7 +65,7 @@ harness-go/
 │   ├── hookhandler/             # Go ports of shell hook handlers (40+ handlers)
 │   │   ├── emit_agent_trace.go  # OTel span export (sync HTTP POST, 3s timeout, JSONL fallback)
 │   │   ├── session_auto_broadcast.go  # Inter-session file-based broadcast
-│   │   ├── memory_bridge.go     # Memory bridge (JSONL logging; MCP call は将来実装)
+│   │   ├── memory_bridge.go     # Memory bridge (JSONL logging + harness-mem HTTP POST)
 │   │   ├── task_completed.go    # TaskCompleted lifecycle + escalation + timeline
 │   │   ├── auto_test_runner.go  # Auto test execution on Write/Edit
 │   │   ├── ci_status_checker.go # CI status polling
@@ -449,16 +449,27 @@ bin/harness version                 # Version info
 
 ### Memory Bridge の内蔵
 
-現行は `memory-bridge.sh` が SessionStart / UserPromptSubmit / PostToolUse / Stop の 4 箇所で呼ばれ、
-harness-mem にファイルベースで通知している。Go binary ではこれを各 hook handler の内部に統合する:
+`hookhandler/memory_bridge.go` が 5 つのイベントターゲットを処理する。
+JSONL ログは常に記録し、harness-mem デーモンが起動している場合は HTTP POST で連携する。
 
-- `hook session-start` → `session/start.go` 内で memory bridge init
-- `hook user-prompt` → `event/prompt.go` 内で memory bridge user-prompt + policy injection + fix-proposal-injector（pending-fix-proposals.jsonl 再提示）
-- `hook pretool` → `guardrail/pretool.go` 内で inbox check（inter-session broadcast の未読メッセージ再注入）+ skills gate（スキル未実行の Write/Edit 拒否）
-- `hook posttool` → `event/posttool.go` 内で memory bridge post-tool-use（ツール名・結果サマリーを記録）+ track-changes（review_status リセット）
-- `hook stop` → `session/stop.go` 内で memory bridge stop
+**イベントフロー**:
 
-外部の `memory-bridge.sh` は不要になるが、harness-mem プロセスとのファイルベース通知プロトコルは維持する。
+| hook target | harness-mem endpoint | event_type |
+|------------|---------------------|------------|
+| session-start | POST /v1/events/record | session_start |
+| user-prompt | POST /v1/events/record | user_prompt |
+| post-tool-use | POST /v1/events/record | tool_use |
+| stop | POST /v1/sessions/finalize | (finalize) |
+| codex-notify | POST /v1/events/record | checkpoint |
+
+**harness-mem 未導入時の動作**: HTTP POST は `connection refused` で即座に失敗し、
+stderr にログを出力して approve を返す。JSONL ログのみが記録される。
+レイテンシ追加はコネクション拒否の数ミリ秒のみ。
+
+**設定**:
+- `HARNESS_MEM_HOST` (default: 127.0.0.1)
+- `HARNESS_MEM_PORT` (default: 37888)
+- `HARNESS_MEM_ADMIN_TOKEN` (optional: Bearer ヘッダに付与)
 
 ## Guardrail Engine Design
 
@@ -653,18 +664,22 @@ Go binary (command) が高速にガードレール判定を返し、agent hook (
 
 ## MCP Server の扱い
 
-**決定: 分離プロセス。Go binary に内蔵しない。**
+**決定: 分離プロセス。Go binary に内蔵しない。HTTP API で連携。**
 
 理由:
 - harness-mem は SQLite ベースの永続ストア。Go で CGO なしの SQLite は制約が多い
 - MCP server は常駐プロセス。hook handler は短命プロセス。ライフサイクルが異なる
-- 現行の harness-mem (Node.js) をそのまま使い、Go binary は `memory/bridge.go` でファイルベースの連携のみ行う
+- Go binary は `hookhandler/memory_bridge.go` で harness-mem の HTTP API に直接 POST する
 
 ```
-bin/harness hook session-start → bridge.go → harness-mem にファイル経由で通知
-bin/harness hook stop → bridge.go → harness-mem にセッション終了を通知
+bin/harness hook session-start → memory_bridge.go → JSONL log + POST /v1/events/record
+bin/harness hook user-prompt   → memory_bridge.go → JSONL log + POST /v1/events/record
+bin/harness hook post-tool-use → memory_bridge.go → JSONL log + POST /v1/events/record
+bin/harness hook stop          → memory_bridge.go → JSONL log + POST /v1/sessions/finalize
+bin/harness hook codex-notify  → memory_bridge.go → JSONL log + POST /v1/events/record
 ```
 
+harness-mem が未起動の場合は connection refused で即座にフォールバック（JSONL のみ）。
 将来 Go 純粋の MCP server が必要になった場合は、`modernc.org/sqlite` (CGO-free) で別バイナリとして実装する。
 
 ## Performance Comparison (Estimated)
