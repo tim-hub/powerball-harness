@@ -1,10 +1,11 @@
 {
-  "name": "powerball-harness",
+  "name": "powerball-harness-marketplace",
   "metadata": {
     "description": "Marketplace for distributing and installing the claude-code-harness plugin"
   },
+  "version": "1.0.0",
   "owner": {
-    "name": "powerball-harness"
+    "name": "tim-hub"
   },
   "plugins": [
     {

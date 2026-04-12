@@ -65,7 +65,7 @@ claude
 
 # Add the marketplace source & install
 /plugin marketplace add tim-hub/powerball-harness
-/plugin install cc-harness@cc-harness-marketplace
+/plugin install harness@powerball-harness-marketplace
 
 # Initialize your project
 /harness-setup
