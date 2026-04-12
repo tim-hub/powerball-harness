@@ -15,7 +15,7 @@
         "name": "tim-hub",
         "url": "https://github.com/tim-hub"
       },
-        "version": "3.17.1",
+        "version": "3.17.2",
       "homepage": "https://github.com/tim-hub/claude-code-harness",
       "repository": "https://github.com/tim-hub/claude-code-harness",
       "license": "MIT",
