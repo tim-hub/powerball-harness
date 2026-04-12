@@ -238,6 +238,7 @@ v4 unifies 42 skills into **5 verb skills**. Start with the verbs first, then ad
 | `/harness-release` | CHANGELOG, tag, GitHub Release | `/release-har`, `/handoff` |
 | `/harness-setup` | Initialize project | `/harness-init`, `/setup` |
 | `/memory` | Manage SSOT files | — |
+| `harness doctor --residue` | Detect stale references to deleted code | — |
 
 ---
 
@@ -444,6 +445,7 @@ Skill packs can teach a prompt. Harness also enforces behavior at runtime.
 | `harness-*` commands missing on Windows | Update or reinstall the plugin. Public command skills now ship as real directories, so `core.symlinks=false` no longer hides them. |
 | Plugin not loading | Clear cache: `rm -rf ~/.claude/plugins/cache/claude-code-harness-marketplace/` and restart |
 | Hooks not working | Run `bin/harness doctor` to diagnose (Go binary, no Node.js needed) |
+| Stale v3 references after migration | Run `bin/harness doctor --residue` — auto-detects leftover references to deleted code |
 
 For more help, [open an issue](https://github.com/Chachamaru127/claude-code-harness/issues).
 

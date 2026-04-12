@@ -6,6 +6,47 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.0.2] - 2026-04-12
+
+### テーマ: 大規模移行後の「見えない残骸」を自動検出する仕組み
+
+**v4.0.0 の TS→Go 全面移行後、テスト・ドキュメント・スキル定義に残った 13 件の「旧世界の参照」が偶然発見されるまで気づけなかった。今後はこの種の問題を Harness が自動的に発見し、リリース前にブロックします。**
+
+---
+
+#### 1. Migration Residue Scanner の導入
+
+**今まで**: 大きな migration (v3→v4 など) の後、「削除したはずのファイルやコンセプトへの参照」がコードのあちこちに残ります。テストスクリプトが消えたファイルを grep し続ける、README が「Node.js 18+ が必要」と書いたまま、スキルの見出しに `(v3)` が残る — これらは**テストを通過し、レビューをすり抜け、ユーザーの目に触れて初めて気づく**種類のバグでした。v4.0.0 リリース後の 2 日間で 13 件がこのパターンで偶然発見されました。
+
+**今後**: `.claude/rules/deleted-concepts.yaml` に「削除済みのパスと概念」を登録し、`scripts/check-residue.sh` がリポジトリ全体をスキャンして残骸を検出します。歴史記述 (CHANGELOG 等) は allowlist で除外されるので、false positive はゼロです。
+
+3 つの検証ポイントで自動実行されます:
+- **開発中**: `bin/harness doctor --residue` で手動チェック
+- **PR ごと**: `validate-plugin.sh` のセクション 9 で自動チェック
+- **リリース前**: `harness-release` の preflight で自動ブロック
+
+```
+$ bin/harness doctor --residue
+✓ No migration residue detected
+```
+
+#### 2. v3 残骸の最終クリーンアップ
+
+**今まで**: Scanner 導入時に発見された追加の v3 残骸 5 件 — `harness-release` SKILL.md のガードレール参照が旧 TypeScript パスのまま (3 mirror)、TS↔Go クロスバリデーションテストが TS 削除後も存続 (374 行)、Codex スキルの H1 に `(v3)` サフィックスが残存。
+
+**今後**: Scanner が検出した全件を修正。`tests/cross-validate-guardrails.sh` (TS engine 必須の dead test) を完全削除。Scanner clean state (0 件) を達成し、今後の残骸混入を自動ブロックする体制が整いました。
+
+#### 3. 運用ルールの文書化 (migration-policy.md)
+
+次回の major migration で同じ失敗を繰り返さないための 5 つのルール:
+1. 削除 PR と deleted-concepts.yaml 更新を同時に出す (遅延禁止)
+2. allowlist は歴史記述・移行ガイド・個別文脈の 3 原則で運用
+3. retroactive validation (過去 commit に遡って検出力を検証)
+4. HEAD での false positive は常にゼロを保つ
+5. CI + release preflight で merge 前に 0 件を保証
+
+---
+
 ## [4.0.1] - 2026-04-11
 
 ### テーマ: CC 2.1.89-2.1.100 追従 — Go v4 セキュリティハードニング
