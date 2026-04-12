@@ -145,3 +145,30 @@ deleted_concepts:
       - "skills/generate-video/"  # 動画生成スキルは Node.js を使う可能性
       - "opencode/"
       - ".claude/rules/migration-policy.md"  # Phase 40 歴史記述（事例付録に旧ランタイム要件を含む）
+
+  - term: "claude-mem"
+    term_ja: null
+    replacement: "harness-mem"
+    replacement_ja: "harness-mem"
+    deleted_in: "v4.0.3"
+    reason: "サードパーティ claude-mem (thedotmack) への依存を廃止。セッション記憶は Harness 純正の harness-mem に統一。claude-mem は commands/*/CLAUDE.md を自動生成するため skill 誤登録を引き起こす"
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/worktrees/"
+      - ".claude/state/"
+      - "out/"
+      - "output/"
+      - "Plans.md"
+      - "docs/social/"  # v3 時代の SNS 投稿
+      - "docs/CLAUDE-feature-table.md"  # 歴史的な CC 互換性記録
+      - ".claude/rules/"  # migration-policy など歴史記述
+      - "**/CLAUDE.md"  # claude-mem が生成するファイルは gitignore で除外済み。ローカルの untracked ファイルはスキャン外として扱う
+      - "harness-ui-archive/"  # アーカイブ済み UI プロジェクト（claude-mem 依存の旧機能。再利用しない）
+      - ".claude/Plans.md"  # ローカル Plans.md
+      - ".claude/memory/"  # ローカル memory archive (decisions.md, patterns.md)
+      - ".claude/agent-memory/"  # ローカル agent memory
+      - ".claude/plugins/cache/"  # プラグインキャッシュ
+      - ".cursor/"  # Cursor IDE ローカル設定
+      - "docs/design/"  # UI 設計ドキュメント（claude-mem 依存の旧機能設計）
+      - "docs/research/"  # リサーチドキュメント（claude-mem 統合調査を含む）
