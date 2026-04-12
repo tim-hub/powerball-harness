@@ -5,7 +5,7 @@
 # Set up Harness for opencode.ai without Claude Code
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/Chachamaru127/claude-code-harness/main/scripts/setup-opencode.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/tim-hub/powerball-harness/main/scripts/setup-opencode.sh | bash
 #
 # Or:
 #   ./setup-opencode.sh
@@ -31,7 +31,7 @@ echo '                    for opencode.ai'
 echo -e "${NC}"
 
 # Variables
-HARNESS_REPO="https://github.com/Chachamaru127/claude-code-harness.git"
+HARNESS_REPO="https://github.com/tim-hub/powerball-harness.git"
 HARNESS_BRANCH="main"
 TEMP_DIR=$(mktemp -d)
 PROJECT_DIR=$(pwd)
@@ -178,7 +178,7 @@ print_success() {
     echo "  1. Start opencode: ${BLUE}opencode${NC}"
     echo "  2. Run commands:   ${BLUE}/plan-with-agent${NC}, ${BLUE}/work${NC}, ${BLUE}/harness-review${NC}"
     echo ""
-    echo "Documentation: https://github.com/Chachamaru127/claude-code-harness"
+    echo "Documentation: https://github.com/tim-hub/powerball-harness"
     echo ""
 }
 

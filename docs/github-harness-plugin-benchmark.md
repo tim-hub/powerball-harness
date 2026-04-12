@@ -17,7 +17,7 @@ As of 2026-03-06, the targets are publicly available repos on GitHub that claim 
 |------|--------------|------------------|
 | [obra/superpowers](https://github.com/obra/superpowers) | 71,993 | The most popular workflow / skills plugin. Essential comparison target |
 | [gotalab/cc-sdd](https://github.com/gotalab/cc-sdd) | 2,770 | A popular Claude Code harness emphasizing requirements-driven development flow |
-| [Chachamaru127/claude-code-harness](https://github.com/Chachamaru127/claude-code-harness) | 232 | This repo |
+| [tim-hub/powerball-harness](https://github.com/tim-hub/powerball-harness) | 232 | This repo |
 
 ## User-Visible Comparison Table
 
@@ -112,4 +112,4 @@ For README and landing pages, the following wording is natural:
 
 - [obra/superpowers](https://github.com/obra/superpowers)
 - [gotalab/cc-sdd](https://github.com/gotalab/cc-sdd)
-- [Chachamaru127/claude-code-harness](https://github.com/Chachamaru127/claude-code-harness)
+- [tim-hub/powerball-harness](https://github.com/tim-hub/powerball-harness)

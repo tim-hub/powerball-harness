@@ -148,7 +148,7 @@ else
   ERRORS=$((ERRORS + 1))
 fi
 
-if grep -Eq "^\[$CURRENT_VERSION\]: https://github.com/Chachamaru127/claude-code-harness/compare/v" CHANGELOG.md; then
+if grep -Eq "^\[$CURRENT_VERSION\]: https://github.com/tim-hub/powerball-harness/compare/v" CHANGELOG.md; then
   echo "✅ CHANGELOG compare link present."
 else
   echo "❌ CHANGELOG compare link is missing."

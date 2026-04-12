@@ -209,7 +209,7 @@ opencode.ai compatible version of Claude Code Harness.
 
 \`\`\`bash
 # Clone Harness
-git clone https://github.com/Chachamaru127/claude-code-harness.git
+git clone https://github.com/tim-hub/powerball-harness.git
 
 # Copy files for opencode
 cp -r claude-code-harness/opencode/commands/ your-project/.opencode/commands/
@@ -279,7 +279,7 @@ The following tools are available via the MCP server:
 
 ## Related Links
 
-- [Claude Code Harness](https://github.com/Chachamaru127/claude-code-harness)
+- [Claude Code Harness](https://github.com/tim-hub/powerball-harness)
 - [OpenCode Documentation](https://opencode.ai/docs/)
 `;
 

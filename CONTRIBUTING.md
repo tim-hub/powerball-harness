@@ -6,7 +6,7 @@ Thank you for your interest in contributing to **claude-code-harness**! This doc
 
 ### Reporting Issues
 
-1. Check if the issue already exists in [GitHub Issues](https://github.com/Chachamaru127/claude-code-harness/issues)
+1. Check if the issue already exists in [GitHub Issues](https://github.com/tim-hub/powerball-harness/issues)
 2. If not, create a new issue with:
    - Clear title describing the problem
    - Steps to reproduce

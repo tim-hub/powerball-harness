@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/claude-harness-logo-with-text.png" alt="Claude Harness" width="400">
+  <img src="docs/images/claude-harness-logo-with-text.png" alt="Powerball Harness" width="400">
 </p>
 
 <p align="center">
@@ -8,15 +8,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/tim-hub/claude-code-harness/releases/latest"><img src="https://img.shields.io/github/v/release/tim-hub/claude-code-harness?display_name=tag&sort=semver" alt="Latest Release"></a>
+  <a href="https://github.com/tim-hub/powerball-harness/releases/latest"><img src="https://img.shields.io/github/v/release/tim-hub/powerball-harness?display_name=tag&sort=semver" alt="Latest Release"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License"></a>
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
   <img src="https://img.shields.io/badge/Skills-5_Verbs-orange.svg" alt="Skills">
   <img src="https://img.shields.io/badge/Core-TypeScript-blue.svg" alt="TypeScript Core">
-</p>
-
-<p align="center">
-  English
 </p>
 
 ---
@@ -59,32 +55,20 @@ Supported baseline and latest verified snapshot: see [Claude Code Compatibility]
 
 ## Install in 30 Seconds
 
-### Option 1: From Marketplace
+### From Marketplace
 
 ```bash
 # Start Claude Code in your project
 claude
 
 # Add the marketplace source & install
-/plugin marketplace add tim-hub/claude-code-harness
+/plugin marketplace add tim-hub/powerball-harness
 /plugin install cc-harness@cc-harness-marketplace
 
 # Initialize your project
 /harness-setup
 ```
 
-### Option 3: Manual (Clone)
-
-```bash
-# Clone the repository
-git clone https://github.com/tim-hub/claude-code-harness.git ~/.claude/plugins/claude-code-harness
-
-# Start Claude Code in your project
-claude
-
-# Initialize your project
-/harness-setup
-```
 
 ### Verify Installation
 
@@ -370,7 +354,7 @@ Skill packs can teach a prompt. Harness also enforces behavior at runtime.
 | Plugin not loading | Clear cache: `rm -rf ~/.claude/plugins/cache/claude-code-harness-marketplace/` and restart |
 | Hooks not working | Ensure Node.js 18+ is installed |
 
-For more help, [open an issue](https://github.com/tim-hub/claude-code-harness/issues).
+For more help, [open an issue](https://github.com/tim-hub/powerball-harness/issues).
 
 ---
 
@@ -446,3 +430,9 @@ Issues and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 **MIT License** — Free to use, modify, commercialize.
 
 [Full License](LICENSE.md)
+
+---
+
+## Origin
+
+This project was originally forked from [Chachamaru127/claude-code-harness](https://github.com/Chachamaru127/claude-code-harness). It has since diverged significantly from the original and is maintained independently.

@@ -13,7 +13,7 @@ All features from Claude Code 2.1.50 through 2.1.74 have been organized, consoli
 
 "How should I use this feature?" -- the answer is right here.
 
-github.com/Chachamaru127/claude-code-harness
+github.com/tim-hub/powerball-harness
 
 #ClaudeCode #AIDevTools #Harness
 
@@ -99,7 +99,7 @@ This plugin uses Harness itself to improve itself.
 Dogfooding taken to the extreme.
 
 Want to try it?
-github.com/Chachamaru127/claude-code-harness
+github.com/tim-hub/powerball-harness
 
 Stars are appreciated!
 

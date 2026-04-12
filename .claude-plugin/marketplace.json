@@ -1,14 +1,14 @@
 {
-  "name": "cc-harness-marketplace",
+  "name": "powerball-harness",
   "metadata": {
     "description": "Marketplace for distributing and installing the claude-code-harness plugin"
   },
   "owner": {
-    "name": "tim-hub"
+    "name": "powerball-harness"
   },
   "plugins": [
     {
-      "name": "cc-harness",
+      "name": "harness",
       "source": "./",
       "description": "A harness for solo developers (Vibecoders) to handle full-cycle contract development.",
       "author": {
@@ -16,8 +16,8 @@
         "url": "https://github.com/tim-hub"
       },
         "version": "3.17.2",
-      "homepage": "https://github.com/tim-hub/claude-code-harness",
-      "repository": "https://github.com/tim-hub/claude-code-harness",
+      "homepage": "https://github.com/tim-hub/powerball-harness",
+      "repository": "https://github.com/tim-hub/powerball-harness",
       "license": "MIT",
       "keywords": [
         "claude-code",

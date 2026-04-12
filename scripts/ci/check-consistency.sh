@@ -98,8 +98,8 @@ if [ -f "$VERSION_FILE" ] && [ -f "$PLUGIN_JSON" ]; then
   fi
 fi
 
-LATEST_RELEASE_URL="https://github.com/Chachamaru127/claude-code-harness/releases/latest"
-LATEST_RELEASE_BADGE="https://img.shields.io/github/v/release/Chachamaru127/claude-code-harness?display_name=tag&sort=semver"
+LATEST_RELEASE_URL="https://github.com/tim-hub/powerball-harness/releases/latest"
+LATEST_RELEASE_BADGE="https://img.shields.io/github/v/release/tim-hub/powerball-harness?display_name=tag&sort=semver"
 
 # ================================
 # 4. Expected skill file structure

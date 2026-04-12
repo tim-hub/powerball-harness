@@ -44,7 +44,7 @@ Hooks - Technically blocked
 
 No more broken tests.
 
-github.com/Chachamaru127/claude-code-harness
+github.com/tim-hub/powerball-harness
 
 #ClaudeCode #AIDev #QualityAssurance
 ```
@@ -71,7 +71,7 @@ Claude harness uses these to:
 - Auto-remind about skills
 
 Details:
-github.com/Chachamaru127/claude-code-harness
+github.com/tim-hub/powerball-harness
 
 #ClaudeCode #Hooks #AIDev
 ```
@@ -348,7 +348,7 @@ in the Plan -> Work -> Review pattern.
 
 If you're doing it all solo, this is it.
 
-github.com/Chachamaru127/claude-code-harness
+github.com/tim-hub/powerball-harness
 
 #ClaudeCode #AIDev
 ```
