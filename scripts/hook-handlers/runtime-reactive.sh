@@ -133,7 +133,7 @@ case "${HOOK_EVENT_NAME}" in
     esac
     ;;
   CwdChanged)
-    MESSAGE="The working directory has changed. If you have moved to a different repository or worktree, please re-check AGENTS.md, Plans.md, and local rules."
+    MESSAGE="Working directory has been switched. If you have moved to a different repository or worktree, please re-check AGENTS.md, Plans.md, and local rules."
     ;;
 esac
 

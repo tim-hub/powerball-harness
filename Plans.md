@@ -544,7 +544,7 @@ Purpose: Update all test scripts to v4 patterns (Go binary, no TypeScript refs)
 | 37.6.1 | Sync `tests/validate-plugin.sh` and `tests/validate-plugin-v3.sh` from upstream — update to reference Go guardrails instead of TypeScript | Tests reference `go/internal/guardrail/rules.go` | 37.1, 37.2 | cc:done |
 | 37.6.2 | Sync all modified test scripts (30+ files) from upstream (translate JP→EN): hook wiring tests, integration tests, guardrail tests | All test scripts match upstream v4 patterns, English only | 37.6.1 | cc:done |
 | 37.6.3 | Sync test fixtures from upstream: `tests/fixtures/` | Fixtures match upstream | 37.6.2 | cc:done |
-| 37.6.4 | Run `./tests/validate-plugin.sh` and verify 43+ pass / 0 fail | Test suite green | 37.6.2 | cc:TODO |
+| 37.6.4 | Run `./tests/validate-plugin.sh` and verify 43+ pass / 0 fail | Test suite green | 37.6.2 | cc:done |
 
 ---
 
