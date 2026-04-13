@@ -1,0 +1,18 @@
+---
+description: Actively seek and use relevant Skills/Subagents for all tasks
+alwaysApply: true
+---
+
+# Actively Use Skills and Subagents
+
+## When to Use Each
+
+- **Skill**: Tasks requiring specialized knowledge → read `SKILL.md` before starting and apply the steps/constraints directly. Don't just declare intent — actually follow through.
+- **Subagent**: Tasks that benefit from an isolated context (refactoring, review, broad exploration), or when parallel execution is desired.
+
+※ Both can be combined. Skills knowledge can be passed to a Subagent for execution.
+※ For small tasks with no matching Skill/Subagent, proceed with the normal flow.
+
+## Declare Usage Explicitly
+
+State in one line which Skill/Subagent you are using and why before proceeding.
