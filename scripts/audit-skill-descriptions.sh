@@ -103,7 +103,13 @@ report_violation() {
   local file="$1"
   local kind="$2"
   local snippet="$3"
-  local rel="${file#${REPO_ROOT}/}"
+  # Strip REPO_ROOT/ prefix safely (glob-safe on bash 3.2+).
+  # Using ${file#pattern} would treat glob metachars in REPO_ROOT as wildcards;
+  # the [[ == ]] literal compare + substring slice avoids that entirely.
+  local rel="$file"
+  if [[ "$file" == "${REPO_ROOT}/"* ]]; then
+    rel="${file:${#REPO_ROOT}+1}"
+  fi
   printf '%s\t%s\t%s\n' "$rel" "$kind" "$(truncate_snippet "$snippet")"
   VIOLATION_COUNT=$((VIOLATION_COUNT + 1))
 }
