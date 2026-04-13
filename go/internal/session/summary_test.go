@@ -20,7 +20,7 @@ func TestSummaryHandler_NoSessionFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// 出力なし（早期リターン）
+	// No output (early return)
 	if out.Len() != 0 {
 		t.Errorf("expected no output, got %q", out.String())
 	}
@@ -33,7 +33,7 @@ func TestSummaryHandler_AlreadyLogged(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// memory_logged=true のセッションファイルを作成
+	// Create a session file with memory_logged=true
 	sess := map[string]interface{}{
 		"session_id":    "sess-001",
 		"state":         "stopped",
@@ -51,7 +51,7 @@ func TestSummaryHandler_AlreadyLogged(t *testing.T) {
 	if err := h.Handle(strings.NewReader(`{}`), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// 二重実行防止のため出力なし
+	// No output to prevent double execution
 	if out.Len() != 0 {
 		t.Errorf("expected no output for already-logged session, got %q", out.String())
 	}
@@ -67,7 +67,7 @@ func TestSummaryHandler_WritesSessionLog(t *testing.T) {
 
 	fixedTime := time.Date(2026, 4, 5, 12, 30, 0, 0, time.UTC)
 
-	// セッションファイルを作成
+	// Create session file
 	sess := map[string]interface{}{
 		"session_id":   "sess-test-001",
 		"state":        "running",
@@ -100,7 +100,7 @@ func TestSummaryHandler_WritesSessionLog(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// session-log.md が作成されたか
+	// Verify session-log.md was created
 	logFile := filepath.Join(memoryDir, "session-log.md")
 	logData, err := os.ReadFile(logFile)
 	if err != nil {
@@ -124,7 +124,7 @@ func TestSummaryHandler_WritesSessionLog(t *testing.T) {
 		t.Errorf("expected important file in log")
 	}
 
-	// session.json に memory_logged=true が設定されたか
+	// Verify memory_logged=true was set in session.json
 	updatedData, _ := os.ReadFile(sessionFile)
 	var updatedSess map[string]interface{}
 	if err := json.Unmarshal(updatedData, &updatedSess); err != nil {
@@ -146,8 +146,8 @@ func TestSummaryHandler_WritesWIPTasks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Plans.md を作成
-	plans := "| task1 | cc:WIP |\n| task2 | pm:依頼中 |\n| task3 | cc:TODO |\n"
+	// Create Plans.md
+	plans := "| task1 | cc:WIP |\n| task2 | pm:pending |\n| task3 | cc:TODO |\n"
 	plansFile := filepath.Join(dir, "Plans.md")
 	if err := os.WriteFile(plansFile, []byte(plans), 0644); err != nil {
 		t.Fatal(err)
@@ -186,7 +186,7 @@ func TestSummaryHandler_WritesWIPTasks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// WIP タスクが含まれているか
+	// Verify WIP tasks are included
 	if !strings.Contains(string(logData), "cc:WIP") {
 		t.Errorf("expected WIP tasks in session log")
 	}
@@ -224,7 +224,7 @@ func TestSummaryHandler_ArchivesSession(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// アーカイブファイルが作成されているか
+	// Verify archive file was created
 	archiveFile := filepath.Join(stateDir, "sessions", "sess-archive-001.json")
 	if _, err := os.Stat(archiveFile); err != nil {
 		t.Errorf("archive file not created: %v", err)
@@ -260,7 +260,7 @@ func TestSummaryHandler_EnsureSessionLog(t *testing.T) {
 
 	h := &SummaryHandler{}
 
-	// ファイルが作成されるか
+	// Verify file is created
 	if err := h.ensureSessionLog(logFile); err != nil {
 		t.Fatalf("ensureSessionLog failed: %v", err)
 	}
@@ -273,7 +273,7 @@ func TestSummaryHandler_EnsureSessionLog(t *testing.T) {
 		t.Errorf("expected Session Log header, got:\n%s", data)
 	}
 
-	// 2 回目は何もしない（上書きしない）
+	// Second call does nothing (does not overwrite)
 	if err := os.WriteFile(logFile, []byte("custom content"), 0644); err != nil {
 		t.Fatal(err)
 	}

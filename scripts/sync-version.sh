@@ -1,10 +1,10 @@
 #!/bin/bash
-# sync-version.sh - release metadata の VERSION / plugin.json を同期
+# sync-version.sh - Sync VERSION / plugin.json release metadata
 #
-# 使い方:
-#   ./scripts/sync-version.sh check    # 不一致をチェック
-#   ./scripts/sync-version.sh sync     # plugin.json を VERSION に合わせる
-#   ./scripts/sync-version.sh bump     # release 用に patch version を上げる
+# Usage:
+#   ./scripts/sync-version.sh check    # Check for mismatches
+#   ./scripts/sync-version.sh sync     # Sync plugin.json to VERSION
+#   ./scripts/sync-version.sh bump     # Bump patch version for release
 
 set -euo pipefail
 
@@ -12,7 +12,7 @@ VERSION_FILE="VERSION"
 PLUGIN_JSON=".claude-plugin/plugin.json"
 HARNESS_TOML="harness.toml"
 
-# 現在のバージョンを取得
+# Get current version
 get_version() {
     cat "$VERSION_FILE" | tr -d '\n'
 }
@@ -25,7 +25,7 @@ get_toml_version() {
     grep '^version' "$HARNESS_TOML" | sed 's/.*= "\([^"]*\)".*/\1/'
 }
 
-# バージョン不一致チェック
+# Version mismatch check
 check_version() {
     local v1=$(get_version)
     local v2=$(get_plugin_version)
@@ -36,26 +36,26 @@ check_version() {
 
     local ok=true
     if [ "$v1" != "$v2" ]; then
-        echo "❌ バージョン不一致:"
+        echo "❌ Version mismatch:"
         echo "   VERSION:      $v1"
         echo "   plugin.json:  $v2"
         ok=false
     fi
     if [ -n "$v3" ] && [ "$v1" != "$v3" ]; then
-        echo "❌ バージョン不一致:"
+        echo "❌ Version mismatch:"
         echo "   VERSION:      $v1"
         echo "   harness.toml: $v3"
         ok=false
     fi
 
     if [ "$ok" = true ]; then
-        echo "✅ バージョン一致: $v1"
+        echo "✅ Versions match: $v1"
         return 0
     fi
     return 1
 }
 
-# plugin.json + harness.toml を VERSION に同期
+# Sync plugin.json + harness.toml to VERSION
 sync_version() {
     local version=$(get_version)
     local current=$(get_plugin_version)
@@ -66,10 +66,10 @@ sync_version() {
         else
             sed -i "s/\"version\": \"$current\"/\"version\": \"$version\"/" "$PLUGIN_JSON"
         fi
-        echo "✅ plugin.json を更新: $current → $version"
+        echo "✅ Updated plugin.json: $current → $version"
     fi
 
-    # harness.toml の同期
+    # Sync harness.toml
     if [ -f "$HARNESS_TOML" ]; then
         local toml_ver=$(get_toml_version)
         if [ "$version" != "$toml_ver" ]; then
@@ -78,14 +78,14 @@ sync_version() {
             else
                 sed -i "s/^version = \"$toml_ver\"/version = \"$version\"/" "$HARNESS_TOML"
             fi
-            echo "✅ harness.toml を更新: $toml_ver → $version"
+            echo "✅ Updated harness.toml: $toml_ver → $version"
         fi
     fi
 
-    echo "✅ 同期完了: $version"
+    echo "✅ Sync complete: $version"
 }
 
-# パッチバージョンを上げる
+# Bump patch version
 bump_version() {
     local current=$(get_version)
     local major=$(echo "$current" | cut -d. -f1)
@@ -96,12 +96,12 @@ bump_version() {
     local new_version="$major.$minor.$new_patch"
 
     echo "$new_version" > "$VERSION_FILE"
-    echo "✅ VERSION を更新: $current → $new_version"
+    echo "✅ Updated VERSION: $current → $new_version"
 
     sync_version
 }
 
-# メイン
+# Main
 case "${1:-check}" in
     check)
         check_version

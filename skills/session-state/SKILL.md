@@ -1,32 +1,30 @@
 ---
 name: session-state
-description: "SESSION_ORCHESTRATION.md に基づくセッション状態遷移管理。/work フェーズ境界での状態更新、エラー時の escalated 遷移、セッション再開時の initialized 復帰を制御。Internal workflow use only. Do NOT load for: user session management, login state, app state handling."
-description-en: "Manages session state transitions per SESSION_ORCHESTRATION.md. Controls state updates at /work phase boundaries, escalated transitions on error, and initialized restoration on session resume. Internal workflow use only. Do NOT load for: user session management, login state, app state handling."
-description-ja: "SESSION_ORCHESTRATION.md に基づくセッション状態遷移管理。/work フェーズ境界での状態更新、エラー時の escalated 遷移、セッション再開時の initialized 復帰を制御。Internal workflow use only. Do NOT load for: user session management, login state, app state handling."
+description: "Auto-triggered by the orchestration system at /work phase boundaries. Do NOT load for: user-facing session management, login state, app state handling, or direct user requests. Internal workflow skill — manages session state transitions per SESSION_ORCHESTRATION.md, escalated transitions on error, and initialized restoration on session resume."
 allowed-tools: ["Read", "Bash"]
 user-invocable: false
 ---
 
 # Session State Skill
 
-セッション状態の遷移を管理する内部スキル。
-`docs/SESSION_ORCHESTRATION.md` に定義された状態機械に従って遷移を検証・実行する。
+An internal skill that manages session state transitions.
+Validates and executes transitions according to the state machine defined in `docs/SESSION_ORCHESTRATION.md`.
 
-## 機能詳細
+## Feature Details
 
-| 機能 | 詳細 |
-|------|------|
-| **状態遷移** | See [references/state-transition.md](${CLAUDE_SKILL_DIR}/references/state-transition.md) |
+| Feature | Details |
+|---------|---------|
+| **State transitions** | See [references/state-transition.md](${CLAUDE_SKILL_DIR}/references/state-transition.md) |
 
-## 使用タイミング
+## When to Use
 
-- `/work` フェーズ境界での状態更新
-- エラー発生時の `escalated` 遷移
-- セッション終了時の `stopped` 遷移
-- セッション再開時の `initialized` 復帰
+- State updates at `/work` phase boundaries
+- `escalated` transition on error
+- `stopped` transition at session end
+- `initialized` restoration on session resume
 
-## 注意事項
+## Notes
 
-- このスキルは内部使用専用です
-- ユーザーが直接呼び出すことは想定していません
-- 状態遷移ルールは `docs/SESSION_ORCHESTRATION.md` で定義
+- This skill is for internal use only
+- Not intended to be invoked directly by users
+- State transition rules are defined in `docs/SESSION_ORCHESTRATION.md`

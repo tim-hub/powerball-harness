@@ -11,40 +11,30 @@ import (
 	"time"
 )
 
-// UsageTrackerHandler は PostToolUse フックハンドラ（使用状況追跡）。
-// Skill / SlashCommand / Task ツールの使用を .claude/state/usage-stats.jsonl に記録する。
-// JSONL ファイルが 100KB を超えた場合は .bak にリネームしてローテーションする。
 //
-// shell 版: scripts/usage-tracker.sh
 type UsageTrackerHandler struct {
-	// ProjectRoot はプロジェクトルートのパス。空の場合は cwd を使用する。
 	ProjectRoot string
 }
 
-// usageTrackerInput は PostToolUse フックの stdin JSON。
 type usageTrackerInput struct {
 	ToolName  string          `json:"tool_name"`
 	ToolInput json.RawMessage `json:"tool_input"`
 	CWD       string          `json:"cwd"`
 }
 
-// skillToolInput は Skill ツールの tool_input。
 type skillToolInput struct {
 	Skill string `json:"skill"`
 }
 
-// slashCommandInput は SlashCommand ツールの tool_input。
 type slashCommandInput struct {
 	Command string `json:"command"`
 	Name    string `json:"name"`
 }
 
-// taskToolInput は Task ツールの tool_input。
 type taskToolInput struct {
 	SubagentType string `json:"subagent_type"`
 }
 
-// usageEntry は usage-stats.jsonl の 1 行エントリ。
 type usageEntry struct {
 	Type      string `json:"type"`
 	Name      string `json:"name"`
@@ -52,7 +42,6 @@ type usageEntry struct {
 	Timestamp string `json:"timestamp"`
 }
 
-// usageTrackerResponse は UsageTracker フックのレスポンス。
 type usageTrackerResponse struct {
 	Continue bool `json:"continue"`
 }
@@ -62,15 +51,12 @@ const (
 	usageMaxSizeBytes = 100 * 1024 // 100KB
 )
 
-// Handle は stdin から PostToolUse ペイロードを読み取り、使用状況を記録する。
-// エラーが発生しても常に {"continue":true} を返す（使用追跡はメインフローをブロックしない）。
 func (h *UsageTrackerHandler) Handle(r io.Reader, w io.Writer) error {
 	data, _ := io.ReadAll(r)
 
 	if len(data) > 0 {
 		var inp usageTrackerInput
 		if err := json.Unmarshal(data, &inp); err == nil && inp.ToolName != "" {
-			// プロジェクトルートを決定（CWD フィールド優先）
 			projectRoot := h.resolveProjectRoot(inp.CWD)
 			h.track(inp, projectRoot)
 		}
@@ -79,8 +65,6 @@ func (h *UsageTrackerHandler) Handle(r io.Reader, w io.Writer) error {
 	return writeUsageJSON(w, usageTrackerResponse{Continue: true})
 }
 
-// resolveProjectRoot は記録先のプロジェクトルートを決定する。
-// inp.CWD → git rev-parse → h.ProjectRoot → os.Getwd() の順で試みる。
 func (h *UsageTrackerHandler) resolveProjectRoot(cwd string) string {
 	if cwd != "" {
 		if root, err := gitRepoRoot(cwd); err == nil {
@@ -95,7 +79,6 @@ func (h *UsageTrackerHandler) resolveProjectRoot(cwd string) string {
 	return wd
 }
 
-// gitRepoRoot は指定ディレクトリから git リポジトリルートを返す。
 func gitRepoRoot(dir string) (string, error) {
 	cmd := exec.Command("git", "-C", dir, "rev-parse", "--show-toplevel")
 	out, err := cmd.Output()
@@ -105,7 +88,6 @@ func gitRepoRoot(dir string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// track は tool_name に応じて使用状況を記録する。
 func (h *UsageTrackerHandler) track(inp usageTrackerInput, projectRoot string) {
 	var entry *usageEntry
 
@@ -122,7 +104,6 @@ func (h *UsageTrackerHandler) track(inp usageTrackerInput, projectRoot string) {
 		return
 	}
 
-	// JSONL ファイルに追記
 	stateDir := filepath.Join(projectRoot, ".claude", "state")
 	if err := os.MkdirAll(stateDir, 0700); err != nil {
 		return
@@ -131,8 +112,6 @@ func (h *UsageTrackerHandler) track(inp usageTrackerInput, projectRoot string) {
 	h.appendEntry(statsFile, entry)
 }
 
-// trackSkill は Skill ツールの使用を記録し、エントリを返す。
-// sync-ssot-from-memory / memory スキルの場合は ssot-synced フラグも作成する。
 func (h *UsageTrackerHandler) trackSkill(inp usageTrackerInput, projectRoot string) *usageEntry {
 	var toolIn skillToolInput
 	if err := json.Unmarshal(inp.ToolInput, &toolIn); err != nil || toolIn.Skill == "" {
@@ -142,7 +121,6 @@ func (h *UsageTrackerHandler) trackSkill(inp usageTrackerInput, projectRoot stri
 	// "claude-code-harness:impl" → "impl"
 	baseName := extractBaseName(toolIn.Skill, ":")
 
-	// SSOT 同期フラグ
 	if baseName == "sync-ssot-from-memory" || baseName == "memory" ||
 		strings.Contains(toolIn.Skill, "sync-ssot-from-memory") ||
 		strings.Contains(toolIn.Skill, ":memory") {
@@ -157,7 +135,6 @@ func (h *UsageTrackerHandler) trackSkill(inp usageTrackerInput, projectRoot stri
 	}
 }
 
-// trackSlashCommand は SlashCommand ツールの使用を記録し、エントリを返す。
 func (h *UsageTrackerHandler) trackSlashCommand(inp usageTrackerInput, projectRoot string) *usageEntry {
 	var toolIn slashCommandInput
 	if err := json.Unmarshal(inp.ToolInput, &toolIn); err != nil {
@@ -172,10 +149,8 @@ func (h *UsageTrackerHandler) trackSlashCommand(inp usageTrackerInput, projectRo
 		return nil
 	}
 
-	// 先頭の "/" を除去
 	baseName := strings.TrimPrefix(cmdName, "/")
 
-	// SSOT 同期フラグ
 	if strings.Contains(baseName, "sync-ssot-from-memory") || baseName == "memory" {
 		h.touchSSOTFlag(projectRoot)
 	}
@@ -188,7 +163,6 @@ func (h *UsageTrackerHandler) trackSlashCommand(inp usageTrackerInput, projectRo
 	}
 }
 
-// trackTask は Task ツールの使用を記録し、エントリを返す。
 func (h *UsageTrackerHandler) trackTask(inp usageTrackerInput) *usageEntry {
 	var toolIn taskToolInput
 	if err := json.Unmarshal(inp.ToolInput, &toolIn); err != nil || toolIn.SubagentType == "" {
@@ -203,7 +177,6 @@ func (h *UsageTrackerHandler) trackTask(inp usageTrackerInput) *usageEntry {
 	}
 }
 
-// touchSSOTFlag は .claude/state/.ssot-synced-this-session フラグファイルを作成する。
 func (h *UsageTrackerHandler) touchSSOTFlag(projectRoot string) {
 	stateDir := filepath.Join(projectRoot, ".claude", "state")
 	_ = os.MkdirAll(stateDir, 0700)
@@ -211,10 +184,7 @@ func (h *UsageTrackerHandler) touchSSOTFlag(projectRoot string) {
 	_ = os.WriteFile(flag, []byte(""), 0600)
 }
 
-// appendEntry は entry を JSONL ファイルに追記する。
-// ファイルサイズが 100KB を超えていたら .bak にリネームしてから新規作成する。
 func (h *UsageTrackerHandler) appendEntry(statsFile string, entry *usageEntry) {
-	// ローテーション判定
 	if fi, err := os.Stat(statsFile); err == nil && fi.Size() > usageMaxSizeBytes {
 		bakFile := statsFile + ".bak"
 		_ = os.Rename(statsFile, bakFile)
@@ -233,13 +203,11 @@ func (h *UsageTrackerHandler) appendEntry(statsFile string, entry *usageEntry) {
 	_, _ = fmt.Fprintf(f, "%s\n", line)
 }
 
-// extractBaseName はコロンまたはスラッシュで区切られた文字列の末尾セグメントを返す。
 func extractBaseName(s, sep string) string {
 	parts := strings.Split(s, sep)
 	return parts[len(parts)-1]
 }
 
-// digest は raw JSON バイトの先頭 100 文字を返す（ログ用）。
 func digest(raw json.RawMessage) string {
 	s := string(raw)
 	if len(s) > 100 {
@@ -248,12 +216,10 @@ func digest(raw json.RawMessage) string {
 	return s
 }
 
-// nowISO は現在時刻を RFC3339 形式で返す。
 func nowISO() string {
 	return time.Now().UTC().Format(time.RFC3339)
 }
 
-// writeUsageJSON は v を JSON として w に書き出す。
 func writeUsageJSON(w io.Writer, v interface{}) error {
 	data, err := json.Marshal(v)
 	if err != nil {

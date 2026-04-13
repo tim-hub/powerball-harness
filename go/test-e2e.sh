@@ -33,7 +33,7 @@ echo ""
 echo "=== PostToolUse: tampering ==="
 result=$(echo '{"tool_name":"Write","tool_input":{"file_path":"test.spec.ts","content":"it.skip(\"broken\", () => {})"}}' | "$H" hook post-tool 2>/dev/null)
 echo "$result"
-echo "$result" | grep -q 'テスト改ざん' && echo "PASS" || echo "FAIL"
+echo "$result" | grep -q 'Test tampering' && echo "PASS" || echo "FAIL"
 
 echo ""
 echo "=== PermissionRequest: safe git ==="

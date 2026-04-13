@@ -1,30 +1,30 @@
 #!/bin/bash
 # test-update-notification.sh
-# 既存ユーザー向けアップデート通知機能の検証テスト
+# Validation tests for the update notification feature for existing users
 #
-# テスト対象:
-# - session-init.sh の新規ルール検出
-# - session-init.sh の古いフック設定検出
-# - template-tracker.sh の needsInstall 報告
-# - harness-update.md の hooks 検出ロジック
+# Test targets:
+# - session-init.sh new rule detection
+# - session-init.sh old hook configuration detection
+# - template-tracker.sh needsInstall reporting
+# - harness-update.md hooks detection logic
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# カウンター
+# Counters
 PASSED=0
 FAILED=0
 TOTAL=0
 
-# カラー出力
+# Color output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
-# テスト関数
+# Test function
 assert_file_contains() {
   local file="$1"
   local pattern="$2"
@@ -73,119 +73,119 @@ assert_script_runs() {
 }
 
 echo "=================================================="
-echo "既存ユーザー向けアップデート通知機能の検証"
+echo "Update notification feature validation for existing users"
 echo "=================================================="
 echo ""
 
 # ============================================
-# session-init.sh の検証
+# session-init.sh validation
 # ============================================
 echo "## session-init.sh"
 echo ""
 
 assert_script_runs \
   "scripts/session-init.sh" \
-  "session-init.sh の構文が正しい"
+  "session-init.sh syntax is correct"
 
 assert_file_contains \
   "scripts/session-init.sh" \
   "QUALITY_RULES.*test-quality.md.*implementation-quality.md" \
-  "品質保護ルールのチェックロジックがある"
+  "quality protection rules check logic exists"
 
 assert_file_contains \
   "scripts/session-init.sh" \
   "MISSING_RULES_INFO" \
-  "未導入ルールの通知変数がある"
+  "missing rules notification variable exists"
 
 assert_file_contains \
   "scripts/session-init.sh" \
   "OLD_HOOKS_INFO" \
-  "古いフック設定の検出変数がある"
+  "old hook configuration detection variable exists"
 
 assert_file_contains \
   "scripts/session-init.sh" \
   "jq.*\.hooks" \
-  "hooks セクションの検出ロジックがある"
+  "hooks section detection logic exists"
 
 assert_file_contains \
   "scripts/session-init.sh" \
   "INSTALLS_COUNT" \
-  "新規インストール件数の処理がある"
+  "new install count processing exists"
 
 echo ""
 
 # ============================================
-# template-tracker.sh の検証
+# template-tracker.sh validation
 # ============================================
 echo "## template-tracker.sh"
 echo ""
 
 assert_script_runs \
   "scripts/template-tracker.sh" \
-  "template-tracker.sh の構文が正しい"
+  "template-tracker.sh syntax is correct"
 
 assert_file_contains \
   "scripts/template-tracker.sh" \
   "installs_details" \
-  "インストール詳細の追跡変数がある"
+  "install details tracking variable exists"
 
 assert_file_contains \
   "scripts/template-tracker.sh" \
   "installsCount" \
-  "installsCount の出力がある"
+  "installsCount output exists"
 
 assert_file_contains \
   "scripts/template-tracker.sh" \
   "installs_count" \
-  "インストール件数のカウントがある"
+  "install count tracking exists"
 
 echo ""
 
 # ============================================
-# harness-update.md の検証
+# harness-update.md validation
 # ============================================
 echo "## harness-update.md"
 echo ""
 
-# harness-update スキルの検証（v2.17.0+ スキル移行後）
+# harness-update skill validation (after v2.17.0+ skill migration)
 assert_file_contains \
   "skills/harness-update/SKILL.md" \
   "hook|Hook|plugin" \
-  "harness-update にフック関連の説明がある"
+  "harness-update has hook-related description"
 
 assert_file_contains \
   "skills/harness-update/SKILL.md" \
   "Breaking Changes|breaking-changes|deprecated" \
-  "harness-update に破壊的変更検出がある"
+  "harness-update has breaking change detection"
 
 assert_file_contains \
   "skills/harness-update/SKILL.md" \
   "backup|Backup" \
-  "harness-update にバックアップ機能がある"
+  "harness-update has backup functionality"
 
 assert_file_contains \
   "skills/harness-update/SKILL.md" \
   "verification|Verification|検証" \
-  "harness-update に検証機能がある"
+  "harness-update has verification functionality"
 
 echo ""
 
 # ============================================
-# 結果サマリー
+# Results summary
 # ============================================
 echo "=================================================="
-echo "テスト結果"
+echo "Test Results"
 echo "=================================================="
 echo ""
-echo "合計: $TOTAL"
-echo -e "成功: ${GREEN}$PASSED${NC}"
-echo -e "失敗: ${RED}$FAILED${NC}"
+echo "Total: $TOTAL"
+echo -e "Passed: ${GREEN}$PASSED${NC}"
+echo -e "Failed: ${RED}$FAILED${NC}"
 echo ""
 
 if [ $FAILED -eq 0 ]; then
-  echo -e "${GREEN}✓ すべてのテストが成功しました${NC}"
+  echo -e "${GREEN}✓ All tests passed${NC}"
   exit 0
 else
-  echo -e "${RED}✗ $FAILED 件のテストが失敗しました${NC}"
+  echo -e "${RED}✗ $FAILED test(s) failed${NC}"
   exit 1
 fi

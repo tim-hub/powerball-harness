@@ -1,39 +1,39 @@
 # Social Content
 
-このディレクトリは、X などの外向き発信用コンテンツの正本を置く場所です。
+This directory stores authoritative content for external communications on X and other platforms.
 
-## 置くもの
+## What Goes Here
 
-- 投稿文
-- スレッド原稿
-- 画像生成プロンプト
-- alt テキスト
-- 投稿メモ
+- Post text
+- Thread manuscripts
+- Image generation prompts
+- Alt text
+- Post notes
 
-補足:
-- `x-article` の生成途中 package は `out/social/<slug>/` にまとまる
-- その中には `article.md`、画像、品質レポート、API 応答が入る
-- `docs/social/` は公開用に昇格させた正本を置く場所として使う
+Supplementary notes:
+- In-progress `x-article` packages go to `out/social/<slug>/`
+- These contain `article.md`, images, quality reports, and API responses
+- `docs/social/` is used for authoritative content that has been promoted for publication
 
-## 置かないもの
+## What Does NOT Go Here
 
-- 生成済み画像
-- 候補レンダリング
-- 比較用の派生画像
-- 一時出力
+- Generated images
+- Candidate renderings
+- Derivative comparison images
+- Temporary output
 
-それらは `out/social/` に置きます。
+Those go to `out/social/`.
 
-`out/x-post/` や `out/x-promo/` などの旧ディレクトリは互換のため残っていますが、新しい social 系成果物は `out/social/` を優先します。
+Legacy directories `out/x-post/` and `out/x-promo/` remain for compatibility, but new social artifacts should go to `out/social/`.
 
-## 命名ルール
+## Naming Conventions
 
-- 更新紹介: `claude-code-<version>-harness-update.md`
-- 一般告知: `harness-<topic>-x-post.md`
-- 連番よりもテーマ名優先
+- Update introductions: `claude-code-<version>-harness-update.md`
+- General announcements: `harness-<topic>-x-post.md`
+- Topic names are preferred over sequential numbering
 
-## 運用ルール
+## Operational Rules
 
-- 投稿前に文面を直すなら、このディレクトリの原稿を更新する
-- 画像生成後の成果物だけ `out/social/` に追加する
-- 迷ったら `docs/content-layout.md` を正本ルールとして参照する
+- When editing post text before publishing, update the manuscript in this directory
+- Only add post-generation artifacts to `out/social/`
+- When in doubt, refer to `docs/content-layout.md` as the authoritative layout rules

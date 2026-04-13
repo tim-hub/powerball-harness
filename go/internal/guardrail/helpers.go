@@ -74,7 +74,7 @@ func isProtectedPath(filePath string) bool {
 // ---------------------------------------------------------------------------
 
 func isUnderProjectRoot(filePath, projectRoot string) bool {
-	// 相対パスは projectRoot を基準に解決
+	// Resolve relative paths relative to projectRoot
 	resolved := filePath
 	if !filepath.IsAbs(filePath) {
 		resolved = filepath.Join(projectRoot, filePath)

@@ -1,38 +1,36 @@
-# v3 アーキテクチャ詳細
+# v3 Architecture Details
 
-## ディレクトリ構造
+## Directory Structure
 
 ```
 claude-code-harness/
-├── core/           # TypeScript コアエンジン
+├── core/           # TypeScript core engine
 │   ├── src/
-│   │   ├── index.ts          # stdin → route → stdout パイプライン
-│   │   ├── types.ts          # 型定義（HookInput, HookResult 等）
-│   │   ├── guardrails/       # ガードレールエンジン
-│   │   │   ├── rules.ts      # 宣言的ルールテーブル (R01-R13)
-│   │   │   ├── pre-tool.ts   # PreToolUse フック
-│   │   │   ├── post-tool.ts  # PostToolUse フック
-│   │   │   ├── permission.ts # PermissionRequest フック
-│   │   │   └── tampering.ts  # 改ざん検出
-│   │   └── state/            # セッション・タスク状態管理
-│   │       ├── schema.ts     # DB スキーマ定義
-│   │       ├── store.ts      # HarnessStore (SQLite)
-│   │       └── migration.ts  # マイグレーション
+│   │   ├── index.ts          # stdin → route → stdout pipeline
+│   │   ├── types.ts          # Type definitions (HookInput, HookResult, etc.)
+│   │   └── guardrails/       # Guardrail engine
+│   │       ├── rules.ts      # Declarative rule table (R01-R09)
+│   │       ├── pre-tool.ts   # PreToolUse hook
+│   │       ├── post-tool.ts  # PostToolUse hook
+│   │       ├── permission.ts # PermissionRequest hook
+│   │       └── tampering.ts  # Tampering detection
 │   ├── package.json          # standalone TypeScript package
 │   └── tsconfig.json         # strict, NodeNext ESM
-├── skills/         # 5動詞スキル（SSOT）
-│   ├── plan/       # planning + plans-management + sync-status 統合
-│   ├── execute/    # work + breezing + codex 統合
-│   ├── review/     # harness-review + codex-review 統合
-│   ├── release/    # release-har + handoff 統合
-│   ├── setup/      # harness-init + harness-mem 統合
-│   └── extensions/ # 拡張パック
-├── agents/         # 3エージェント（11→3 統合）
-│   ├── worker.md        # 実装担当
-│   ├── reviewer.md      # レビュー担当（Read-only）
-│   ├── scaffolder.md    # 足場・状態更新担当
-│   └── team-composition.md  # チーム構成ガイド
-├── hooks/          # 薄いシム（→ core/src/index.ts に委譲）
+├── skills/         # Named skills (harness-work, harness-plan, breezing, etc.)
+├── codex/          # Codex CLI distribution (symlinked skills)
+│   └── .codex/
+│       ├── config.toml       # Multi-agent config
+│       ├── rules/            # Codex guardrail rules
+│       └── skills/           # Symlinks → ../../../skills/
+├── agents/         # 6 agents (3 core + 3 specialized)
+│   ├── worker.md             # Implementation agent
+│   ├── reviewer.md           # Review agent (Read-only)
+│   ├── scaffolder.md         # Scaffolding and state update agent
+│   ├── team-composition.md   # Team composition guide
+│   ├── ci-cd-fixer.md        # CI/CD failure recovery
+│   └── video-scene-generator.md # Remotion video generation
+├── hooks/          # Thin shims (→ delegates to core/src/index.ts)
+├── scripts/        # Hook handlers, session management, Codex companion
 └── .claude/
     └── agent-memory/
         ├── claude-code-harness-worker/
@@ -40,40 +38,30 @@ claude-code-harness/
         └── claude-code-harness-scaffolder/
 ```
 
-## 5動詞スキル マッピング
+## Agent Consolidation History
 
-| v3 スキル | 統合元（旧スキル） |
-|----------|----------------|
-| `plan` | planning, plans-management, sync-status |
-| `execute` | work, impl, breezing, parallel-workflows, ci |
-| `review` | harness-review, codex-review, verify, troubleshoot |
-| `release` | release-har, x-release-harness, handoff |
-| `setup` | setup, harness-init, harness-update, maintenance |
-
-## 3エージェント マッピング
-
-| v3 エージェント | 統合元（旧エージェント） |
+| v3 Agent | Consolidated From (Legacy Agents) |
 |--------------|------------------|
 | `worker` | task-worker, codex-implementer, error-recovery |
 | `reviewer` | code-reviewer, plan-critic, plan-analyst |
 | `scaffolder` | project-analyzer, project-scaffolder, project-state-updater |
 
-## TypeScript 設定
+## TypeScript Configuration
 
-- `exactOptionalPropertyTypes: true` — optional フィールドに conditional assignment を使う
-- `noUncheckedIndexedAccess: true` — 配列アクセスは undefined チェック必須
-- `NodeNext` モジュール解決 — ESM
-- `better-sqlite3` は `optionalDependencies`（Node 24 compat）
+- `exactOptionalPropertyTypes: true` — Use conditional assignment for optional fields
+- `noUncheckedIndexedAccess: true` — Array access requires undefined checks
+- `NodeNext` module resolution — ESM
+- `better-sqlite3` is in `optionalDependencies` (Node 24 compat)
 
-## Mirror 構成
+## Codex Symlink Structure
 
-`codex/.codex/skills/` と `opencode/skills/` の5動詞スキルは `skills/` からの mirror コピー:
+Skills in `codex/.codex/skills/` are symlinks to `../../../skills/`:
 
 ```bash
-# skills/ が SSOT。codex, opencode は mirror
-skills/plan -> codex/.codex/skills/plan
-skills/execute -> opencode/skills/execute
+codex/.codex/skills/harness-work -> ../../../skills/harness-work
+codex/.codex/skills/harness-plan -> ../../../skills/harness-plan
+codex/.codex/skills/breezing     -> ../../../skills/breezing
 # ...etc
 ```
 
-`check-consistency.sh` が mirror の一致を検証する。
+`check-consistency.sh` validates symlink integrity.

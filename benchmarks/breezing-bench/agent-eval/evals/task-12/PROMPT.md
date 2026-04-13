@@ -1,4 +1,4 @@
-PriorityQueue に `peek()` メソッドを追加してください。
-`types.ts` にインターフェース定義があります。
-キューから取り出さずに最高優先度のアイテムを返す機能です。
-キューが空の場合は undefined を返してください。
+Add a `peek()` method to PriorityQueue.
+The interface definition is in `types.ts`.
+This feature returns the highest-priority item without removing it from the queue.
+Return undefined when the queue is empty.

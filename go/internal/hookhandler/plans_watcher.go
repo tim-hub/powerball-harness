@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-// plansWatcherInput は plans-watcher.sh に渡される stdin JSON。
+// plansWatcherInput is the stdin JSON passed to plans-watcher.sh.
 type plansWatcherInput struct {
 	ToolName string `json:"tool_name"`
 	CWD      string `json:"cwd"`
@@ -24,16 +24,16 @@ type plansWatcherInput struct {
 	} `json:"tool_response"`
 }
 
-// plansStateFile は前回の状態を保存するファイルのパス。
+// plansStateFile is the path to the file that stores the previous state.
 const plansStateFile = ".claude/state/plans-state.json"
 
-// pmNotificationFile は PM 通知ファイルのパス。
+// pmNotificationFile is the path to the PM notification file.
 const pmNotificationFile = ".claude/state/pm-notification.md"
 
-// cursorNotificationFile は互換用 cursor 通知ファイルのパス。
+// cursorNotificationFile is the path to the compatibility cursor notification file.
 const cursorNotificationFile = ".claude/state/cursor-notification.md"
 
-// plansState は Plans.md のマーカー集計状態。
+// plansState holds the aggregated marker counts from Plans.md.
 type plansState struct {
 	Timestamp   string `json:"timestamp"`
 	PmPending   int    `json:"pm_pending"`
@@ -43,14 +43,14 @@ type plansState struct {
 	PmConfirmed int    `json:"pm_confirmed"`
 }
 
-// plansFileNames は検索対象の Plans.md ファイル名候補。
+// plansFileNames lists the candidate Plans.md file names to search for.
 var plansFileNames = []string{"Plans.md", "plans.md", "PLANS.md", "PLANS.MD"}
 
-// HandlePlansWatcher は plans-watcher.sh の Go 移植。
+// HandlePlansWatcher is the Go port of plans-watcher.sh.
 //
-// PostToolUse Write/Edit イベントで呼び出され、Plans.md への変更を検出する。
-// WIP/TODO/done マーカーの集計サマリを生成し、PM 通知ファイルに書き込む。
-// Plans.md 以外のファイルはスキップ。
+// Called on PostToolUse Write/Edit events to detect changes to Plans.md.
+// Generates an aggregated summary of WIP/TODO/done markers and writes a PM notification file.
+// Files other than Plans.md are skipped.
 func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 	data, err := io.ReadAll(in)
 	if err != nil {
@@ -66,7 +66,7 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 		return emptyPostToolOutput(out)
 	}
 
-	// 変更されたファイルパスを取得
+	// get the changed file path
 	changedFile := input.ToolInput.FilePath
 	if changedFile == "" {
 		changedFile = input.ToolResponse.FilePath
@@ -76,7 +76,7 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 		return emptyPostToolOutput(out)
 	}
 
-	// CWD があれば相対パスに変換
+	// convert to relative path if CWD is available
 	if input.CWD != "" {
 		changedFile = makeRelativePath(
 			normalizePathSeparators(changedFile),
@@ -84,9 +84,9 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 		)
 	}
 
-	// Plans.md ファイルを探す（設定ファイルの plansDirectory 対応）
-	// input.CWD が存在する場合はそれを projectRoot として使用する。
-	// フックプロセスの CWD が input.CWD と異なる場合に誤った Plans.md を参照する問題を修正。
+	// locate the Plans.md file (supports plansDirectory in config)
+	// Use input.CWD as projectRoot when available.
+	// Fixes an issue where the hook process CWD differs from input.CWD, causing the wrong Plans.md to be referenced.
 	projectRoot := input.CWD
 	if projectRoot == "" {
 		projectRoot = resolveProjectRoot()
@@ -96,27 +96,27 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 		return emptyPostToolOutput(out)
 	}
 
-	// 変更されたファイルが Plans.md でない場合はスキップ（完全パスで厳密比較）
+	// skip if the changed file is not Plans.md (strict full-path comparison)
 	if !isPlansFileWithRoot(changedFile, plansFile, projectRoot) {
 		return emptyPostToolOutput(out)
 	}
 
-	// 現在の状態を集計
+	// aggregate the current state
 	current, err := collectPlansState(plansFile)
 	if err != nil {
 		return emptyPostToolOutput(out)
 	}
 
-	// 前回の状態を読み込む
+	// load the previous state
 	prev := loadPrevPlansState()
 
-	// 状態を保存
+	// save the current state
 	stateDir := filepath.Dir(plansStateFile)
 	if mkErr := os.MkdirAll(stateDir, 0o755); mkErr == nil {
 		savePlansState(current)
 	}
 
-	// 変更の種類を判定
+	// determine the type of change
 	hasNewTasks := current.PmPending > prev.PmPending
 	hasCompletedTasks := current.CcDone > prev.CcDone
 
@@ -124,12 +124,12 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 		return emptyPostToolOutput(out)
 	}
 
-	// PM 通知ファイルを生成
+	// generate the PM notification file
 	if err := writePMNotification(current, hasNewTasks, hasCompletedTasks); err != nil {
 		fmt.Fprintf(os.Stderr, "[plans-watcher] write notification: %v\n", err)
 	}
 
-	// systemMessage で通知サマリを出力
+	// output the notification summary via systemMessage
 	summary := buildSummaryMessage(current, hasNewTasks, hasCompletedTasks)
 	o := postToolOutput{}
 	o.HookSpecificOutput.HookEventName = "PostToolUse"
@@ -137,7 +137,7 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 	return writeJSON(out, o)
 }
 
-// findPlansFile は現在のディレクトリで Plans.md を探す。
+// findPlansFile searches the current directory for a Plans.md file.
 func findPlansFile() string {
 	for _, name := range plansFileNames {
 		if _, err := os.Stat(name); err == nil {
@@ -147,36 +147,36 @@ func findPlansFile() string {
 	return ""
 }
 
-// isPlansFile は変更されたファイルが Plans.md かどうかを判定する。
+// isPlansFile returns true if the changed file is Plans.md.
 //
-// 判定ロジック:
-//  1. filepath.Clean による完全一致（相対パス・絶対パス双方に対応）
-//  2. changedFile が相対パスの場合、projectRoot で絶対パスに変換して再比較
+// Matching logic:
+//  1. Exact match after filepath.Clean (handles both relative and absolute paths)
+//  2. If changedFile is a relative path, convert to absolute using projectRoot before comparing
 //
-// 旧実装にあった basename による大文字小文字を区別しないフォールバックは削除した。
-// basename のみの比較では別ディレクトリにある同名ファイル（例: /tmp/other/Plans.md）
-// が誤ってマッチするため、フルパスでの厳密一致のみを採用する。
+// The case-insensitive basename fallback from the old implementation has been removed.
+// Basename-only comparison would incorrectly match files with the same name in different
+// directories (e.g. /tmp/other/Plans.md), so only strict full-path matching is used.
 func isPlansFile(changedFile, plansFile string) bool {
-	// filepath.Clean で正規化して完全一致
+	// normalize with filepath.Clean and check for exact match
 	if filepath.Clean(changedFile) == filepath.Clean(plansFile) {
 		return true
 	}
 	return false
 }
 
-// isPlansFileWithRoot は changedFile が相対パスの場合に projectRoot を補完して比較する。
-// HandlePlansWatcher から呼び出す際に使用する。
+// isPlansFileWithRoot supplements changedFile with projectRoot when it is a relative path.
+// Used when called from HandlePlansWatcher.
 func isPlansFileWithRoot(changedFile, plansFile, projectRoot string) bool {
-	// changedFile が絶対パスの場合はそのまま比較
+	// if changedFile is absolute, compare directly
 	if filepath.IsAbs(changedFile) {
 		return isPlansFile(changedFile, plansFile)
 	}
-	// 相対パスの場合は projectRoot を基点に絶対パスへ変換
+	// if relative, convert to absolute using projectRoot
 	absChanged := filepath.Join(projectRoot, changedFile)
 	return isPlansFile(absChanged, plansFile)
 }
 
-// countMarker は Plans.md 内の marker 文字列の出現回数を返す。
+// countMarker returns the number of occurrences of the marker string in Plans.md.
 func countMarker(plansFile, marker string) int {
 	data, err := os.ReadFile(plansFile)
 	if err != nil {
@@ -186,17 +186,17 @@ func countMarker(plansFile, marker string) int {
 	return len(re.FindAllIndex(data, -1))
 }
 
-// collectPlansState は Plans.md のマーカーを集計する。
+// collectPlansState aggregates the markers in Plans.md.
 func collectPlansState(plansFile string) (plansState, error) {
 	if _, err := os.Stat(plansFile); err != nil {
 		return plansState{}, fmt.Errorf("plans file not found: %w", err)
 	}
 
-	pmPending := countMarker(plansFile, "pm:依頼中") + countMarker(plansFile, "cursor:依頼中")
+	pmPending := countMarker(plansFile, "pm:pending") + countMarker(plansFile, "cursor:pending")
 	ccTodo := countMarker(plansFile, "cc:TODO")
 	ccWip := countMarker(plansFile, "cc:WIP")
-	ccDone := countMarker(plansFile, "cc:完了")
-	pmConfirmed := countMarker(plansFile, "pm:確認済") + countMarker(plansFile, "cursor:確認済")
+	ccDone := countMarker(plansFile, "cc:done")
+	pmConfirmed := countMarker(plansFile, "pm:confirmed") + countMarker(plansFile, "cursor:confirmed")
 
 	return plansState{
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),
@@ -208,7 +208,7 @@ func collectPlansState(plansFile string) (plansState, error) {
 	}, nil
 }
 
-// loadPrevPlansState は前回保存した状態を読み込む。存在しない場合はゼロ値を返す。
+// loadPrevPlansState loads the previously saved state. Returns zero value if not found.
 func loadPrevPlansState() plansState {
 	data, err := os.ReadFile(plansStateFile)
 	if err != nil {
@@ -221,7 +221,7 @@ func loadPrevPlansState() plansState {
 	return state
 }
 
-// savePlansState は現在の状態をファイルに保存する。
+// savePlansState saves the current state to a file.
 func savePlansState(state plansState) {
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
@@ -230,36 +230,36 @@ func savePlansState(state plansState) {
 	os.WriteFile(plansStateFile, append(data, '\n'), 0o644)
 }
 
-// buildSummaryMessage は通知サマリ文字列を構築する。
+// buildSummaryMessage constructs the notification summary string.
 func buildSummaryMessage(state plansState, hasNewTasks, hasCompletedTasks bool) string {
 	var sb strings.Builder
 
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-	sb.WriteString("Plans.md 更新検知\n")
+	sb.WriteString("Plans.md update detected\n")
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 
 	if hasNewTasks {
-		sb.WriteString("新規タスク: PM から依頼あり\n")
-		sb.WriteString("   → /sync-status で状況を確認し、/work で着手してください\n")
+		sb.WriteString("New tasks: requested by PM\n")
+		sb.WriteString("   → Check status with /sync-status, then start work with /work\n")
 	}
 
 	if hasCompletedTasks {
-		sb.WriteString("タスク完了: PM へ報告可能\n")
-		sb.WriteString("   → /handoff-to-pm-claude（または /handoff-to-cursor）で報告してください\n")
+		sb.WriteString("Tasks completed: ready to report to PM\n")
+		sb.WriteString("   → Report with /handoff-to-pm-claude (or /handoff-to-cursor)\n")
 	}
 
-	sb.WriteString("\n現在のステータス:\n")
-	sb.WriteString("   pm:依頼中      : " + strconv.Itoa(state.PmPending) + " 件\n")
-	sb.WriteString("   cc:TODO        : " + strconv.Itoa(state.CcTodo) + " 件\n")
-	sb.WriteString("   cc:WIP         : " + strconv.Itoa(state.CcWip) + " 件\n")
-	sb.WriteString("   cc:完了        : " + strconv.Itoa(state.CcDone) + " 件\n")
-	sb.WriteString("   pm:確認済      : " + strconv.Itoa(state.PmConfirmed) + " 件\n")
+	sb.WriteString("\nCurrent status:\n")
+	sb.WriteString("   pm:pending      : " + strconv.Itoa(state.PmPending) + "\n")
+	sb.WriteString("   cc:TODO        : " + strconv.Itoa(state.CcTodo) + "\n")
+	sb.WriteString("   cc:WIP         : " + strconv.Itoa(state.CcWip) + "\n")
+	sb.WriteString("   cc:done        : " + strconv.Itoa(state.CcDone) + "\n")
+	sb.WriteString("   pm:confirmed      : " + strconv.Itoa(state.PmConfirmed) + "\n")
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
 	return sb.String()
 }
 
-// writePMNotification は PM 通知ファイルを生成する。
+// writePMNotification generates the PM notification file.
 func writePMNotification(state plansState, hasNewTasks, hasCompletedTasks bool) error {
 	stateDir := filepath.Dir(pmNotificationFile)
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
@@ -269,29 +269,29 @@ func writePMNotification(state plansState, hasNewTasks, hasCompletedTasks bool) 
 	ts := time.Now().Format("2006-01-02 15:04:05")
 
 	var sb strings.Builder
-	sb.WriteString("# PM への通知\n\n")
-	sb.WriteString("**生成日時**: " + ts + "\n\n")
-	sb.WriteString("## ステータス変更\n\n")
+	sb.WriteString("# Notification to PM\n\n")
+	sb.WriteString("**Generated at**: " + ts + "\n\n")
+	sb.WriteString("## Status changes\n\n")
 
 	if hasNewTasks {
-		sb.WriteString("### 新規タスク\n\n")
-		sb.WriteString("PM から新しいタスクが依頼されました（pm:依頼中 / 互換: cursor:依頼中）。\n\n")
+		sb.WriteString("### New tasks\n\n")
+		sb.WriteString("New tasks have been requested by PM (pm:pending / compat: cursor:pending).\n\n")
 	}
 
 	if hasCompletedTasks {
-		sb.WriteString("### 完了タスク\n\n")
-		sb.WriteString("Impl Claude がタスクを完了しました。レビューをお願いします（cc:完了）。\n\n")
+		sb.WriteString("### Completed tasks\n\n")
+		sb.WriteString("Impl Claude has completed tasks. Please review (cc:done).\n\n")
 	}
 
 	sb.WriteString("---\n\n")
-	sb.WriteString("**次のアクション**: PM Claude でレビューし、必要なら再依頼（/handoff-to-impl-claude）。\n")
+	sb.WriteString("**Next action**: Review in PM Claude and re-delegate if needed (/handoff-to-impl-claude).\n")
 
 	content := []byte(sb.String())
 	if err := os.WriteFile(pmNotificationFile, content, 0o644); err != nil {
 		return fmt.Errorf("write pm-notification.md: %w", err)
 	}
 
-	// 互換: cursor-notification.md にもコピー
+	// compat: also copy to cursor-notification.md
 	_ = os.WriteFile(cursorNotificationFile, content, 0o644)
 
 	return nil

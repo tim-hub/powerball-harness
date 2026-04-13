@@ -46,8 +46,8 @@
     <text x="84" y="76" class="cardTitle">Runtime guardrails</text>
     <text x="84" y="94" class="cardBody">Risky actions are checked on the path.</text>
     <text x="28" y="132" class="cardBody">The flow is not protected by reminders</text>
-    <text x="28" y="149" class="cardBody">alone. A Go-native engine with 13 rules</text>
-    <text x="28" y="166" class="cardBody">guards the actual execution path.</text>
+    <text x="28" y="149" class="cardBody">alone. TypeScript hooks and rules guard</text>
+    <text x="28" y="166" class="cardBody">the actual execution path.</text>
   </g>
 
   <g transform="translate(660 92)" filter="url(#shadowWhyEn)">

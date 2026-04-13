@@ -11,26 +11,26 @@ import (
 	"time"
 )
 
-// MonitorHandler は SessionStart フックハンドラ（プロジェクト状態収集）。
-// セッション開始時にプロジェクト状態を収集し、session.json と tooling-policy.json を生成する。
+// MonitorHandler is the SessionStart hook handler (project state collection).
+// Collects project state at session start and generates session.json and tooling-policy.json.
 //
-// shell 版: scripts/session-monitor.sh
+// Shell equivalent: scripts/session-monitor.sh
 type MonitorHandler struct {
-	// StateDir はステートディレクトリのパス。空の場合は cwd から推定する。
+	// StateDir is the state directory path. If empty, it is inferred from cwd.
 	StateDir string
-	// PlansFile は Plans.md のパス。空の場合は projectRoot/Plans.md を使う。
+	// PlansFile is the path to Plans.md. If empty, projectRoot/Plans.md is used.
 	PlansFile string
-	// now は現在時刻の注入関数（テスト用）。nil の場合は time.Now() を使う。
+	// now is a time injection function for testing. If nil, time.Now() is used.
 	now func() time.Time
 }
 
-// monitorInput は SessionStart フックの stdin JSON。
+// monitorInput is the stdin JSON for the SessionStart hook.
 type monitorInput struct {
 	SessionID string `json:"session_id,omitempty"`
 	CWD       string `json:"cwd,omitempty"`
 }
 
-// sessionStateJSON は session.json の完全なスキーマ。
+// sessionStateJSON is the complete schema for session.json.
 type sessionStateJSON struct {
 	SessionID    string            `json:"session_id"`
 	ParentID     interface{}       `json:"parent_session_id"`
@@ -71,8 +71,8 @@ type plansStateJSON struct {
 	CompletedTasks int    `json:"completed_tasks"`
 }
 
-// toolingPolicyJSON は tooling-policy.json のスキーマ（簡略版）。
-// LSP/MCP 検出の重い外部コマンド依存を避け、基本情報のみを生成する。
+// toolingPolicyJSON is the schema for tooling-policy.json (simplified).
+// Only generates basic information to avoid heavy external command dependencies for LSP/MCP detection.
 type toolingPolicyJSON struct {
 	LSP     lspPolicyJSON     `json:"lsp"`
 	Plugins pluginPolicyJSON  `json:"plugins"`
@@ -107,8 +107,8 @@ type skillsPolicyJSON struct {
 	DecisionRequired bool         `json:"decision_required"`
 }
 
-// Handle は stdin から SessionStart ペイロードを読み取り、
-// session.json と tooling-policy.json を生成して stdout に状態サマリーを書き出す。
+// Handle reads the SessionStart payload from stdin, generates session.json and
+// tooling-policy.json, and writes a state summary to stdout.
 func (h *MonitorHandler) Handle(r io.Reader, w io.Writer) error {
 	data, _ := io.ReadAll(r)
 
@@ -128,7 +128,7 @@ func (h *MonitorHandler) Handle(r io.Reader, w io.Writer) error {
 		stateDir = filepath.Join(projectRoot, ".claude", "state")
 	}
 
-	// シンボリックリンクチェック
+	// Symlink check
 	if isSymlink(stateDir) || isSymlink(filepath.Dir(stateDir)) {
 		fmt.Fprintf(os.Stderr, "[session-monitor] Warning: symlink detected in state directory path, aborting\n")
 		return nil
@@ -146,25 +146,25 @@ func (h *MonitorHandler) Handle(r io.Reader, w io.Writer) error {
 	now := h.currentTime()
 	nowStr := now.UTC().Format(time.RFC3339)
 
-	// プロジェクト情報を収集
+	// Collect project information
 	projectName := filepath.Base(projectRoot)
 	gitState := h.collectGitState(projectRoot)
 	plansState := h.collectPlansState(plansFile)
 
-	// session.json を生成（resume/新規を判定）
+	// Generate session.json (determine resume vs new session)
 	sessionFile := filepath.Join(stateDir, "session.json")
 	h.generateSessionFile(sessionFile, projectRoot, projectName, nowStr, gitState, plansState)
 
-	// tooling-policy.json を生成
+	// Generate tooling-policy.json
 	policyFile := filepath.Join(stateDir, "tooling-policy.json")
 	h.generateToolingPolicy(policyFile)
 
-	// サマリーを stdout に出力
+	// Write summary to stdout
 	h.writeSummary(w, projectName, gitState, plansState)
 	return nil
 }
 
-// collectGitState は git 情報を収集する。
+// collectGitState collects git information.
 func (h *MonitorHandler) collectGitState(projectRoot string) gitStateJSON {
 	gitDir := filepath.Join(projectRoot, ".git")
 	if _, err := os.Stat(gitDir); err != nil {
@@ -175,16 +175,16 @@ func (h *MonitorHandler) collectGitState(projectRoot string) gitStateJSON {
 		}
 	}
 
-	// HEAD からブランチ名を読み取る
+	// Read branch name from HEAD
 	branch := h.readGitBranch(projectRoot)
 	return gitStateJSON{
 		Branch:             branch,
-		UncommittedChanges: 0, // 重い操作を避けるため 0 固定
+		UncommittedChanges: 0, // Fixed at 0 to avoid expensive operations
 		LastCommit:         h.readGitLastCommit(projectRoot),
 	}
 }
 
-// readGitBranch は .git/HEAD からブランチ名を読み取る。
+// readGitBranch reads the branch name from .git/HEAD.
 func (h *MonitorHandler) readGitBranch(projectRoot string) string {
 	headFile := filepath.Join(projectRoot, ".git", "HEAD")
 	data, err := os.ReadFile(headFile)
@@ -196,14 +196,14 @@ func (h *MonitorHandler) readGitBranch(projectRoot string) string {
 	if strings.HasPrefix(line, "ref: refs/heads/") {
 		return strings.TrimPrefix(line, "ref: refs/heads/")
 	}
-	// detached HEAD: SHA のみ
+	// Detached HEAD: SHA only
 	if len(line) >= 7 {
 		return line[:7]
 	}
 	return "unknown"
 }
 
-// readGitLastCommit は .git/refs/heads/<branch> から最新コミット SHA を読み取る。
+// readGitLastCommit reads the latest commit SHA from .git/refs/heads/<branch>.
 func (h *MonitorHandler) readGitLastCommit(projectRoot string) string {
 	headFile := filepath.Join(projectRoot, ".git", "HEAD")
 	data, err := os.ReadFile(headFile)
@@ -216,7 +216,7 @@ func (h *MonitorHandler) readGitLastCommit(projectRoot string) string {
 		refFile := filepath.Join(projectRoot, ".git", filepath.FromSlash(ref))
 		refData, err := os.ReadFile(refFile)
 		if err != nil {
-			// packed-refs をフォールバックで確認
+			// Fall back to checking packed-refs
 			return h.readPackedRef(projectRoot, ref)
 		}
 		sha := strings.TrimSpace(string(refData))
@@ -225,14 +225,14 @@ func (h *MonitorHandler) readGitLastCommit(projectRoot string) string {
 		}
 		return sha
 	}
-	// detached HEAD
+	// Detached HEAD
 	if len(line) >= 7 {
 		return line[:7]
 	}
 	return "none"
 }
 
-// readPackedRef は .git/packed-refs から ref を検索する。
+// readPackedRef searches .git/packed-refs for a ref.
 func (h *MonitorHandler) readPackedRef(projectRoot, ref string) string {
 	packedFile := filepath.Join(projectRoot, ".git", "packed-refs")
 	data, err := os.ReadFile(packedFile)
@@ -250,7 +250,7 @@ func (h *MonitorHandler) readPackedRef(projectRoot, ref string) string {
 	return "none"
 }
 
-// collectPlansState は Plans.md の状態を収集する。
+// collectPlansState collects the state of Plans.md.
 func (h *MonitorHandler) collectPlansState(plansFile string) plansStateJSON {
 	fi, err := os.Stat(plansFile)
 	if err != nil {
@@ -259,8 +259,8 @@ func (h *MonitorHandler) collectPlansState(plansFile string) plansStateJSON {
 
 	wipCount := countMatches(plansFile, "cc:WIP")
 	todoCount := countMatches(plansFile, "cc:TODO")
-	pendingCount := countMatches(plansFile, "pm:依頼中", "cursor:依頼中")
-	completedCount := countMatches(plansFile, "cc:完了")
+	pendingCount := countMatches(plansFile, "pm:pending", "cursor:pending")
+	completedCount := countMatches(plansFile, "cc:done")
 
 	return plansStateJSON{
 		Exists:         true,
@@ -272,7 +272,7 @@ func (h *MonitorHandler) collectPlansState(plansFile string) plansStateJSON {
 	}
 }
 
-// generateSessionFile は session.json を生成する（resume/新規を判定）。
+// generateSessionFile generates session.json (determining resume vs new session).
 func (h *MonitorHandler) generateSessionFile(
 	sessionFile, projectRoot, projectName, nowStr string,
 	git gitStateJSON,
@@ -285,11 +285,11 @@ func (h *MonitorHandler) generateSessionFile(
 	resumeMode := false
 	var existing sessionStateJSON
 
-	// 既存セッションを読み込む
+	// Load existing session
 	if data, err := os.ReadFile(sessionFile); err == nil {
 		if json.Unmarshal(data, &existing) == nil {
-			// ended_at が設定されていないなら resume モード
-			// ここでは EventSeq > 0 かつ State が active 系なら resume
+			// Resume mode when ended_at is not set
+			// Here: resume when EventSeq > 0 and State is an active variant
 			if existing.SessionID != "" && existing.State != "stopped" && existing.State != "completed" && existing.State != "failed" {
 				resumeMode = true
 			}
@@ -304,7 +304,7 @@ func (h *MonitorHandler) generateSessionFile(
 	var sess sessionStateJSON
 
 	if resumeMode {
-		// 既存セッションを更新
+		// Update existing session
 		existing.CWD = projectRoot
 		existing.ProjectName = projectName
 		existing.UpdatedAt = nowStr
@@ -313,7 +313,7 @@ func (h *MonitorHandler) generateSessionFile(
 		existing.StateVersion = 1
 		sess = existing
 	} else {
-		// 新規セッション
+		// New session
 		sessionID := fmt.Sprintf("session-%d", time.Now().UnixNano())
 		resumeToken := fmt.Sprintf("resume-%d", time.Now().UnixNano())
 		parentID := interface{}(nil)
@@ -353,9 +353,9 @@ func (h *MonitorHandler) generateSessionFile(
 	_ = writeFileAtomic(sessionFile, append(data, '\n'), 0600)
 }
 
-// generateToolingPolicy は tooling-policy.json を生成する。
-// 重い外部コマンド依存（claude plugin list, MCP サーバー検索等）は避け、
-// 基本的なスキャフォールドのみを生成する。
+// generateToolingPolicy generates tooling-policy.json.
+// Avoids heavy external command dependencies (claude plugin list, MCP server search, etc.)
+// and generates only a basic scaffold.
 func (h *MonitorHandler) generateToolingPolicy(policyFile string) {
 	if isSymlink(policyFile) {
 		return
@@ -395,18 +395,18 @@ func (h *MonitorHandler) generateToolingPolicy(policyFile string) {
 	_ = writeFileAtomic(policyFile, append(data, '\n'), 0644)
 }
 
-// writeSummary はセッション状態サマリーを w に書き出す。
+// writeSummary writes the session state summary to w.
 func (h *MonitorHandler) writeSummary(w io.Writer, projectName string, git gitStateJSON, plans plansStateJSON) {
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "セッション開始 - プロジェクト状態")
+	fmt.Fprintln(w, "Session started - Project state")
 	fmt.Fprintln(w, strings.Repeat("─", 36))
-	fmt.Fprintf(w, "プロジェクト: %s\n", projectName)
-	fmt.Fprintf(w, "ブランチ: %s\n", git.Branch)
+	fmt.Fprintf(w, "Project: %s\n", projectName)
+	fmt.Fprintf(w, "Branch: %s\n", git.Branch)
 
 	if plans.Exists {
 		total := plans.WIPTasks + plans.TODOTasks + plans.PendingTasks
 		if total > 0 {
-			fmt.Fprintf(w, "Plans.md: WIP %d件 / TODO %d件\n", plans.WIPTasks, plans.TODOTasks+plans.PendingTasks)
+			fmt.Fprintf(w, "Plans.md: WIP %d / TODO %d\n", plans.WIPTasks, plans.TODOTasks+plans.PendingTasks)
 		}
 	}
 
@@ -414,7 +414,7 @@ func (h *MonitorHandler) writeSummary(w io.Writer, projectName string, git gitSt
 	fmt.Fprintln(w, "")
 }
 
-// currentTime は現在時刻を返す。
+// currentTime returns the current time.
 func (h *MonitorHandler) currentTime() time.Time {
 	if h.now != nil {
 		return h.now()
@@ -422,12 +422,12 @@ func (h *MonitorHandler) currentTime() time.Time {
 	return time.Now()
 }
 
-// formatInt は int をポインタで返す（tooling-policy の null 値用）。
+// formatInt returns an int as a pointer (used for null values in tooling-policy).
 func formatInt(v int) *int {
 	return &v
 }
 
-// atoi は文字列を int に変換する。
+// atoi converts a string to int.
 func atoi(s string) int {
 	v, _ := strconv.Atoi(strings.TrimSpace(s))
 	return v

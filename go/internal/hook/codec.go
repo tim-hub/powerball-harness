@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
+	"github.com/tim-hub/powerball-harness/go/pkg/hookproto"
 )
 
 // ReadInput reads and parses the hook input JSON from the given reader.

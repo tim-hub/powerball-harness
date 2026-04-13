@@ -3,86 +3,86 @@ _harness_template: "Plans.md.template"
 _harness_version: "2.5.27"
 ---
 
-# Plans.md - タスク管理
+# Plans.md - Task Management
 
-> **プロジェクト**: {{PROJECT_NAME}}
-> **最終更新**: {{DATE}}
-> **更新者**: Claude Code
-
----
-
-## 🔴 進行中のタスク
-
-<!-- cc:WIP のタスクをここに記載 -->
-
-（現在なし）
+> **Project**: {{PROJECT_NAME}}
+> **Last updated**: {{DATE}}
+> **Updated by**: Claude Code
 
 ---
 
-## 🟡 未着手のタスク
+## In Progress
 
-<!-- cc:TODO, pm:依頼中（互換: cursor:依頼中） のタスクをここに記載 -->
+<!-- Tasks with cc:WIP go here -->
 
-- [ ] プロジェクト初期セットアップ `cc:TODO`
-  - 基本的なディレクトリ構造の作成
-  - 依存関係のインストール
+(None currently)
 
 ---
 
-## 🟢 完了タスク
+## Pending
 
-<!-- cc:完了, pm:確認済（互換: cursor:確認済） のタスクをここに記載 -->
+<!-- Tasks with cc:TODO, pm:requested (compat: cursor:requested) go here -->
 
-- [x] 2-Agent / 2-Claude ワークフロー導入 `pm:確認済` ({{DATE}})
-
----
-
-## 📦 アーカイブ
-
-<!-- 古い完了タスクはここに移動 -->
+- [ ] Initial project setup `cc:TODO`
+  - Create basic directory structure
+  - Install dependencies
 
 ---
 
-## マーカー凡例
+## Completed
 
-| マーカー | 意味 |
-|---------|------|
-| `pm:依頼中` | PM から依頼されたタスク（ソロPM Claude / Cursor PM 共通） |
-| `cc:TODO` | Claude Code 未着手 |
-| `cc:WIP` | Claude Code 作業中 |
-| `cc:完了` | Claude Code 完了（確認待ち） |
-| `pm:確認済` | PM 確認完了 |
-| `cursor:依頼中` | （互換）`pm:依頼中` と同義 |
-| `cursor:確認済` | （互換）`pm:確認済` と同義 |
-| `blocked` | ブロック中（理由を併記） |
+<!-- Tasks with cc:done, pm:confirmed (compat: cursor:confirmed) go here -->
+
+- [x] Introduce 2-Agent / 2-Claude workflow `pm:confirmed` ({{DATE}})
 
 ---
 
-## 拡張記法（オプション）
+## Archive
 
-大規模タスクの管理には、以下の記法を**オプションで**使用できます。
+<!-- Move old completed tasks here -->
 
-### タスク ID / 依存関係 / 並列可
+---
+
+## Marker Legend
+
+| Marker | Meaning |
+|--------|---------|
+| `pm:requested` | Task requested by PM (Solo PM Claude / Cursor PM shared) |
+| `cc:TODO` | Claude Code not started |
+| `cc:WIP` | Claude Code in progress |
+| `cc:done` | Claude Code completed (awaiting confirmation) |
+| `pm:confirmed` | PM confirmation completed |
+| `cursor:requested` | (compat) Same as `pm:requested` |
+| `cursor:confirmed` | (compat) Same as `pm:confirmed` |
+| `blocked` | Blocked (include reason) |
+
+---
+
+## Extended Notation (Optional)
+
+For managing large-scale tasks, the following notation can be used **optionally**.
+
+### Task ID / Dependencies / Parallelizable
 
 ```markdown
-- [ ] T001: 認証機能 `cc:TODO`
-- [ ] T002: ユーザーAPI `cc:TODO` depends:T001
-- [ ] T003: 商品API `cc:TODO` [P]
-- [ ] T004: 注文API `cc:TODO` depends:T001,T003
+- [ ] T001: Authentication feature `cc:TODO`
+- [ ] T002: User API `cc:TODO` depends:T001
+- [ ] T003: Product API `cc:TODO` [P]
+- [ ] T004: Order API `cc:TODO` depends:T001,T003
 ```
 
-| 記法 | 意味 | 例 |
-|------|------|-----|
-| `T001:` | タスクID（任意） | 参照・依存指定に利用 |
-| `depends:ID` | 依存タスク | `depends:T001,T002` |
-| `[P]` | 並列可（Parallelizable） | 他タスクと同時実行可 |
+| Notation | Meaning | Example |
+|----------|---------|---------|
+| `T001:` | Task ID (optional) | Used for references and dependency specification |
+| `depends:ID` | Dependent task | `depends:T001,T002` |
+| `[P]` | Parallelizable | Can run concurrently with other tasks |
 
-**注意**: これらはオプションです。従来形式（ID/depends/[P] なし）でも問題なく動作します。
+**Note**: These are optional. The traditional format (without ID/depends/[P]) works as before.
 
 ---
 
-## 最終更新情報
+## Last Updated
 
-- **更新日時**: {{DATE}}
-- **最終セッション担当**: Claude Code
-- **ブランチ**: main
+- **Date**: {{DATE}}
+- **Last session by**: Claude Code
+- **Branch**: main

@@ -24,15 +24,15 @@ if (!fs.existsSync(plansFile)) {
 
 function parseTaskRow(markdown, targetTaskId) {
   const lines = markdown.split('\n');
-  // エスケープされた pipe `\|` をプレースホルダに置換してパース後に復元する
+  // Replace escaped pipes `\|` with a placeholder before parsing, then restore
   const PIPE_PLACEHOLDER = '\x00PIPE\x00';
   const escapePipes = (s) => s.replace(/\\\|/g, PIPE_PLACEHOLDER);
   const restorePipes = (s) => s.replace(new RegExp(PIPE_PLACEHOLDER, 'g'), '|');
 
-  // ヘッダー行のカラム位置を検出して正確な分割に使う
-  // Plans.md の想定カラム: | Task | 内容 | DoD | Depends | Status |
-  // ヘッダーの区切り線 (|---|---|...) から物理カラム数を判定
-  let headerColCount = 5; // デフォルト
+  // Detect column positions from the header row for accurate splitting
+  // Expected Plans.md columns: | Task | Content | DoD | Depends | Status |
+  // Determine physical column count from the separator line (|---|---|...)
+  let headerColCount = 5; // default
   for (const line of lines) {
     const trimmed = line.trim();
     if (/^\|[\s-]+\|/.test(trimmed)) {
@@ -45,9 +45,9 @@ function parseTaskRow(markdown, targetTaskId) {
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed.startsWith('|')) continue;
-    if (/^\|[\s-]+\|/.test(trimmed)) continue; // 区切り行をスキップ
+    if (/^\|[\s-]+\|/.test(trimmed)) continue; // skip separator row
 
-    // エスケープされた `\|` を保護してから split
+    // Protect escaped `\|` before split
     const inner = escapePipes(trimmed.replace(/^\|/, '').replace(/\|$/, ''));
     const parts = inner.split('|');
     if (parts.length < 5) continue;
@@ -55,25 +55,25 @@ function parseTaskRow(markdown, targetTaskId) {
     const taskId = parts[0].trim();
     if (taskId !== targetTaskId) continue;
 
-    // 右端2カラム（depends, status）は固定。`|` を含まない短い値。
+    // Rightmost 2 columns (depends, status) are fixed. They do not contain `|`.
     const status = parts[parts.length - 1].trim();
     const depends = parts[parts.length - 2].trim();
 
-    // 残りの parts[1..n-3] を title と dod に分割。
-    // ヘッダーカラム数から middle のカラム数（title + dod = headerColCount - 3）を判定
+    // Split parts[1..n-3] into title and dod.
+    // Use header column count to determine middle column count (title + dod = headerColCount - 3)
     const middleParts = parts.slice(1, parts.length - 2);
-    const expectedMiddle = headerColCount - 3; // title + dod のカラム数（通常 2）
+    const expectedMiddle = headerColCount - 3; // number of title + dod columns (usually 2)
 
     let title, dod;
     if (expectedMiddle <= 1 || middleParts.length <= 1) {
-      // カラム数が少ない or 余分な `|` がない → 単純分割
+      // Few columns or no extra `|` — simple split
       title = middleParts[0] ? middleParts[0].trim() : '';
       dod = '';
     } else {
-      // middleParts を半分に分割: 前半 = title, 後半 = dod
-      // ただし正規テーブルでは `|` が1つだけ title/dod を区切るので
-      // 余分な `|` は全て title 側に帰属させる（title の方が `|` を含みやすい）
-      // dod は末尾1セル固定
+      // Split middleParts: first portion = title, last cell = dod
+      // In a standard table `|` separates title/dod exactly once,
+      // so any extra `|` belongs to the title side (title is more likely to contain `|`)
+      // dod is always the last single cell
       dod = middleParts[middleParts.length - 1].trim();
       title = middleParts.slice(0, middleParts.length - 1).join('|').trim();
     }
@@ -95,10 +95,10 @@ function toList(value) {
 
 function detectProfile(task) {
   const text = `${task.title} ${task.dod}`.toLowerCase();
-  if (/(browser|chrome|playwright|\bui\b|layout|responsive|スクリーンショット|画面|web アプリ|webアプリ)/.test(text)) {
+  if (/(browser|chrome|playwright|\bui\b|layout|responsive|screenshot|screen|web app|webapp)/.test(text)) {
     return 'browser';
   }
-  if (/(runtime|typecheck|lint|test|api|probe|integration|e2e|検証コマンド)/.test(text)) {
+  if (/(runtime|typecheck|lint|test|api|probe|integration|e2e|validation command)/.test(text)) {
     return 'runtime';
   }
   return 'static';
@@ -106,10 +106,10 @@ function detectProfile(task) {
 
 function detectBrowserMode(task) {
   const text = `${task.title} ${task.dod}`.toLowerCase();
-  if (/(browser_mode\s*:\s*exploratory|\bexploratory\b|探索モード|探索的)/.test(text)) {
+  if (/(browser_mode\s*:\s*exploratory|\bexploratory\b|exploratory mode|exploratory)/.test(text)) {
     return 'exploratory';
   }
-  if (/(browser_mode\s*:\s*scripted|\bscripted\b|定型|決め打ち)/.test(text)) {
+  if (/(browser_mode\s*:\s*scripted|\bscripted\b|scripted|fixed)/.test(text)) {
     return 'scripted';
   }
   return 'scripted';
@@ -119,9 +119,9 @@ function detectRiskFlags(task) {
   const text = `${task.title} ${task.dod}`.toLowerCase();
   const flags = [];
   if (/\[needs-spike\]/.test(task.title) || /\[needs-spike\]/.test(task.dod)) flags.push('needs-spike');
-  if (/(security|auth|permission|secret|guardrail|セキュリティ|権限)/.test(text)) flags.push('security-sensitive');
-  if (/(migration|schema|state|resume|session|artifact|マイグレーション|セッション|再開)/.test(text)) flags.push('state-migration');
-  if (/(browser|ui|layout|responsive|playwright|chrome|画面|レイアウト)/.test(text)) flags.push('ux-regression');
+  if (/(security|auth|permission|secret|guardrail)/.test(text)) flags.push('security-sensitive');
+  if (/(migration|schema|state|resume|session|artifact)/.test(text)) flags.push('state-migration');
+  if (/(browser|ui|layout|responsive|playwright|chrome|screen|layout)/.test(text)) flags.push('ux-regression');
   return [...new Set(flags)];
 }
 
@@ -150,8 +150,8 @@ function hasPlaywrightBasis(root) {
     }
   }
 
-  // グローバル CLI (`command -v playwright`) には依存しない。
-  // repo-based 検出（package.json の deps）のみで判定する。
+  // Do not rely on global CLI (`command -v playwright`).
+  // Detect only via repo-based check (package.json deps) for deterministic results.
   return false;
 }
 
@@ -159,8 +159,8 @@ function hasAgentBrowser() {
   if (process.env.HARNESS_BROWSER_REVIEW_DISABLE_AGENT_BROWSER) {
     return false;
   }
-  // グローバル CLI に依存しない（環境差で contract が変わることを防止）
-  // agent-browser は generate-browser-review-artifact.sh 実行時に検出する
+  // Do not rely on global CLI (prevents environment-dependent contract changes)
+  // agent-browser is detected at generate-browser-review-artifact.sh execution time
   return false;
 }
 
@@ -171,22 +171,22 @@ function detectExplicitBrowserRoute(task) {
 }
 
 function detectBrowserRoute(task, root, browserMode) {
-  // タスクに明示的な route 指定がある場合のみ contract に焼き込む。
-  // それ以外は null を返し、generate-browser-review-artifact.sh が
-  // 実行時の環境で route を決定する（contract の環境依存を排除）。
+  // Only bake explicit route specifications from the task into the contract.
+  // Otherwise return null and let generate-browser-review-artifact.sh
+  // determine the route at runtime (eliminates environment dependency from contract).
   const explicitRoute = detectExplicitBrowserRoute(task);
   if (explicitRoute) {
     return explicitRoute;
   }
 
-  // exploratory モードは実行時に agent-browser 優先で解決するため焼き込まない
+  // exploratory mode resolves at runtime (agent-browser preferred), so don't bake it in
   if (browserMode === 'exploratory') return null;
 
-  // scripted モードでは repo-based の検出結果を contract に焼き込む
-  // （package.json の deps は環境非依存 → deterministic）
+  // scripted mode: bake in repo-based detection result
+  // (package.json deps are environment-independent → deterministic)
   if (hasPlaywrightBasis(root)) return 'playwright';
 
-  // それでも解決できなければ null（artifact 生成時に実行環境で解決）
+  // Still unresolved — return null (resolved at artifact generation time)
   return null;
 }
 
@@ -197,13 +197,13 @@ function pickRuntimeCommands(root) {
     try {
       const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
       const scripts = pkg.scripts || {};
-      // CI=true で watch mode を抑制（Jest/Vitest 互換）
+      // Suppress watch mode with CI=true (Jest/Vitest compatible)
       if (scripts.test) commands.push({ label: 'package-test', command: 'CI=true npm test' });
       if (scripts.lint) commands.push({ label: 'package-lint', command: 'npm run lint' });
       if (scripts.typecheck) commands.push({ label: 'package-typecheck', command: 'npm run typecheck' });
       if (scripts['test:e2e']) commands.push({ label: 'package-e2e', command: 'npm run test:e2e' });
     } catch (error) {
-      // パース失敗時は exit 1 で明示的に失敗させる（runtime gate すり抜け防止）
+      // On parse failure, exit 1 explicitly (prevent runtime gate bypass)
       commands.push({ label: 'package-parse-error', command: `echo "ERROR: package.json parse failed: ${error.message.replace(/"/g, '\\"')}" >&2; exit 1` });
     }
   }
@@ -222,7 +222,7 @@ function pickRuntimeCommands(root) {
     }
   }
 
-  // shell-repo fallback: package.json 等がなくても validate-plugin.sh / check-consistency.sh があれば使う
+  // shell-repo fallback: use validate-plugin.sh / check-consistency.sh if no package.json etc.
   if (commands.length === 0) {
     const shellFallbacks = [
       { path: 'tests/validate-plugin.sh', label: 'validate-plugin', command: './tests/validate-plugin.sh' },

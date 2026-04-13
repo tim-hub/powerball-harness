@@ -1,4 +1,4 @@
-module github.com/Chachamaru127/claude-code-harness/go
+module github.com/tim-hub/powerball-harness/go
 
 go 1.25.0
 

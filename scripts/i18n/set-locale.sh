@@ -109,7 +109,7 @@ description-en: ${en_value}
 
 # Process all skill directories
 process_skill_dir "$PROJECT_ROOT/skills" "skills"
-# skills/ が SSOT
+# skills/ is the SSOT
 process_skill_dir "$PROJECT_ROOT/opencode/skills" "opencode/skills"
 process_skill_dir "$PROJECT_ROOT/codex/.codex/skills" "codex/.codex/skills"
 process_skill_dir "$PROJECT_ROOT/.opencode/skills" ".opencode/skills"

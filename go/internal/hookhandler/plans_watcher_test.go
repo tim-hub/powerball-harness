@@ -50,12 +50,12 @@ func TestHandlePlansWatcher_NonPlansFile(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// Plans.md を作成しておく
+	// pre-create Plans.md
 	if err := os.WriteFile("Plans.md", []byte("# Plans\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	// Plans.md 以外のファイルを編集した場合はスキップ
+	// skip when a file other than Plans.md is edited
 	input := `{"tool_name":"Write","tool_input":{"file_path":"src/main.go"}}`
 	var out bytes.Buffer
 	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
@@ -81,7 +81,7 @@ func TestHandlePlansWatcher_NoPlansFile(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// Plans.md が存在しない場合はスキップ
+	// skip when Plans.md does not exist
 	input := `{"tool_name":"Write","tool_input":{"file_path":"Plans.md"}}`
 	var out bytes.Buffer
 	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
@@ -107,13 +107,12 @@ func TestHandlePlansWatcher_NewTaskDetected(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// Plans.md に pm:依頼中 を含む内容を作成
-	plansContent := "| Task 1 | 実装A | DoD | - | pm:依頼中 |\n"
+	plansContent := "| Task 1 | TaskA | DoD | - | pm:pending |\n"
 	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	// 前回の状態（pm_pending=0）を保存
+	// save the previous state (pm_pending=0)
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -133,19 +132,19 @@ func TestHandlePlansWatcher_NewTaskDetected(t *testing.T) {
 		t.Fatalf("invalid JSON output: %v, raw: %s", jsonErr, out.String())
 	}
 
-	// 新規タスクが検出されること
-	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "新規タスク") {
-		t.Errorf("expected '新規タスク' in additionalContext, got %q",
+	// new tasks should be detected
+	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "New tasks") {
+		t.Errorf("expected 'New tasks' in additionalContext, got %q",
 			result.HookSpecificOutput.AdditionalContext)
 	}
 
-	// pm-notification.md が作成されること
+	// pm-notification.md should be created
 	data, err := os.ReadFile(pmNotificationFile)
 	if err != nil {
 		t.Fatalf("pm-notification.md not created: %v", err)
 	}
-	if !strings.Contains(string(data), "新規タスク") {
-		t.Errorf("pm-notification.md should contain '新規タスク', got: %s", string(data))
+	if !strings.Contains(string(data), "New tasks") {
+		t.Errorf("pm-notification.md should contain 'New tasks', got: %s", string(data))
 	}
 }
 
@@ -160,13 +159,12 @@ func TestHandlePlansWatcher_CompletedTaskDetected(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// Plans.md に cc:完了 を含む内容を作成
-	plansContent := "| Task 1 | 実装A | DoD | - | cc:完了 |\n"
+	plansContent := "| Task 1 | TaskA | DoD | - | cc:done |\n"
 	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	// 前回の状態（cc_done=0）を保存
+	// save the previous state (cc_done=0)
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -186,8 +184,8 @@ func TestHandlePlansWatcher_CompletedTaskDetected(t *testing.T) {
 		t.Fatalf("invalid JSON output: %v", jsonErr)
 	}
 
-	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "タスク完了") {
-		t.Errorf("expected 'タスク完了' in additionalContext, got %q",
+	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "Tasks completed") {
+		t.Errorf("expected 'Tasks completed' in additionalContext, got %q",
 			result.HookSpecificOutput.AdditionalContext)
 	}
 }
@@ -203,8 +201,8 @@ func TestHandlePlansWatcher_NoChange(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// 変化なし（cc:TODO 1件のまま）
-	plansContent := "| Task 1 | 実装A | DoD | - | cc:TODO |\n"
+	// no change (cc:TODO stays at 1)
+	plansContent := "| Task 1 | TaskA | DoD | - | cc:TODO |\n"
 	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -228,7 +226,7 @@ func TestHandlePlansWatcher_NoChange(t *testing.T) {
 		t.Fatalf("invalid JSON output: %v", jsonErr)
 	}
 
-	// 変化がない場合は通知なし
+	// no notification when there is no change
 	if result.HookSpecificOutput.AdditionalContext != "" {
 		t.Errorf("expected empty context for no change, got %q", result.HookSpecificOutput.AdditionalContext)
 	}
@@ -245,11 +243,11 @@ func TestHandlePlansWatcher_StatusSummary(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// 複数マーカーを含む Plans.md
+	// Plans.md with multiple markers
 	plansContent := "| Task 1 | A | DoD | - | cc:TODO |\n" +
 		"| Task 2 | B | DoD | - | cc:WIP |\n" +
-		"| Task 3 | C | DoD | - | cc:完了 |\n" +
-		"| Task 4 | D | DoD | - | pm:依頼中 |\n"
+		"| Task 3 | C | DoD | - | cc:done |\n" +
+		"| Task 4 | D | DoD | - | pm:pending |\n"
 	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -274,31 +272,31 @@ func TestHandlePlansWatcher_StatusSummary(t *testing.T) {
 	}
 
 	ctx := result.HookSpecificOutput.AdditionalContext
-	// サマリにステータスカウントが含まれること
+	// summary should contain status counts
 	if !strings.Contains(ctx, "cc:TODO") {
 		t.Errorf("expected 'cc:TODO' in summary, got %q", ctx)
 	}
 	if !strings.Contains(ctx, "cc:WIP") {
 		t.Errorf("expected 'cc:WIP' in summary, got %q", ctx)
 	}
-	if !strings.Contains(ctx, "cc:完了") {
-		t.Errorf("expected 'cc:完了' in summary, got %q", ctx)
+	if !strings.Contains(ctx, "cc:done") {
+		t.Errorf("expected 'cc:done' in summary, got %q", ctx)
 	}
 }
 
 func TestIsPlansFile(t *testing.T) {
-	// isPlansFile は filepath.Clean による厳密一致のみ。
-	// projectRoot を加味した比較は isPlansFileWithRoot で行う。
+	// isPlansFile uses strict filepath.Clean matching only.
+	// Comparison factoring in projectRoot is done by isPlansFileWithRoot.
 	cases := []struct {
 		changed  string
 		plans    string
 		expected bool
 	}{
-		// 完全一致（相対パス）
+		// exact match (relative path)
 		{"Plans.md", "Plans.md", true},
-		// 完全一致（絶対パス）
+		// exact match (absolute path)
 		{"/home/user/project/Plans.md", "/home/user/project/Plans.md", true},
-		// フルパスが異なれば不一致（別ディレクトリの同名ファイルは false）
+		// different full paths are not equal (file with same name in another dir is false)
 		{"docs/Plans.md", "Plans.md", false},
 		{"/home/user/project/Plans.md", "Plans.md", false},
 		{"src/main.go", "Plans.md", false},
@@ -313,7 +311,7 @@ func TestIsPlansFile(t *testing.T) {
 }
 
 func TestIsPlansFileWithRoot(t *testing.T) {
-	// isPlansFileWithRoot は projectRoot を使って相対パスを解決する。
+	// isPlansFileWithRoot resolves relative paths using projectRoot.
 	projectRoot := "/home/user/project"
 	cases := []struct {
 		changedFile string
@@ -321,17 +319,17 @@ func TestIsPlansFileWithRoot(t *testing.T) {
 		expected    bool
 		desc        string
 	}{
-		// 相対パス → projectRoot で解決して一致
+		// relative path resolved via projectRoot to match
 		{"Plans.md", "/home/user/project/Plans.md", true, "relative path match"},
-		// 絶対パスで一致
+		// absolute path match
 		{"/home/user/project/Plans.md", "/home/user/project/Plans.md", true, "absolute path match"},
-		// 別ディレクトリの相対パス（Plans.md だが plansFile は projectRoot 直下）
+		// relative path in different directory (Plans.md but plansFile is directly under projectRoot)
 		{"docs/Plans.md", "/home/user/project/Plans.md", false, "subdirectory mismatch"},
-		// 別ディレクトリの相対パスが plansFile と一致する場合
+		// relative path in different directory that matches plansFile
 		{"docs/Plans.md", "/home/user/project/docs/Plans.md", true, "subdirectory match"},
-		// 全く別のファイル
+		// completely different file
 		{"src/main.go", "/home/user/project/Plans.md", false, "non plans file"},
-		// 別プロジェクトの同名ファイル（絶対パス）
+		// same-name file in a different project (absolute path)
 		{"/tmp/other/Plans.md", "/home/user/project/Plans.md", false, "different project Plans.md"},
 	}
 	for _, tc := range cases {
@@ -354,7 +352,7 @@ func TestCountMarker(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	content := "cc:TODO\ncc:TODO\ncc:WIP\ncc:完了\npm:依頼中\n"
+	content := "cc:TODO\ncc:TODO\ncc:WIP\ncc:done\npm:pending\n"
 	if err := os.WriteFile("Plans.md", []byte(content), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -365,9 +363,9 @@ func TestCountMarker(t *testing.T) {
 	}{
 		{"cc:TODO", 2},
 		{"cc:WIP", 1},
-		{"cc:完了", 1},
-		{"pm:依頼中", 1},
-		{"pm:確認済", 0},
+		{"cc:done", 1},
+		{"pm:pending", 1},
+		{"pm:confirmed", 0},
 	}
 	for _, c := range cases {
 		got := countMarker("Plans.md", c.marker)
@@ -388,8 +386,7 @@ func TestHandlePlansWatcher_CursorCompatMarker(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// cursor:依頼中 が pm:依頼中 と同義で扱われること
-	plansContent := "| Task 1 | A | DoD | - | cursor:依頼中 |\n"
+	plansContent := "| Task 1 | A | DoD | - | cursor:pending |\n"
 	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -413,15 +410,14 @@ func TestHandlePlansWatcher_CursorCompatMarker(t *testing.T) {
 		t.Fatalf("invalid JSON output: %v", jsonErr)
 	}
 
-	// cursor:依頼中 も新規タスクとして検出されること
-	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "新規タスク") {
-		t.Errorf("expected '新規タスク' for cursor:依頼中, got %q",
+	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "New tasks") {
+		t.Errorf("expected 'New tasks' for cursor:pending, got %q",
 			result.HookSpecificOutput.AdditionalContext)
 	}
 }
 
-// TestHandlePlansWatcher_CustomPlansDirectory は plansDirectory 設定があるとき
-// カスタムディレクトリの Plans.md を正しく検出することを確認する。
+// TestHandlePlansWatcher_CustomPlansDirectory verifies that Plans.md in a custom directory
+// is correctly detected when the plansDirectory setting is configured.
 func TestHandlePlansWatcher_CustomPlansDirectory(t *testing.T) {
 	tmpDir := t.TempDir()
 	origDir, err := os.Getwd()
@@ -433,22 +429,22 @@ func TestHandlePlansWatcher_CustomPlansDirectory(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// 設定ファイルを作成（plansDirectory: docs）
+	// create config file (plansDirectory: docs)
 	configContent := "plansDirectory: docs\n"
 	if err := os.WriteFile(harnessConfigFileName, []byte(configContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	// docs/Plans.md を作成
+	// create docs/Plans.md
 	if err := os.MkdirAll("docs", 0o755); err != nil {
 		t.Fatal(err)
 	}
-	plansContent := "| Task 1 | 実装A | DoD | - | pm:依頼中 |\n"
+	plansContent := "| Task 1 | TaskA | DoD | - | pm:pending |\n"
 	if err := os.WriteFile("docs/Plans.md", []byte(plansContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	// 前回の状態（pm_pending=0）を保存
+	// save previous state (pm_pending=0)
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -457,7 +453,7 @@ func TestHandlePlansWatcher_CustomPlansDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// docs/Plans.md を変更したイベントを送信
+	// send event indicating docs/Plans.md was modified
 	input := `{"tool_name":"Edit","tool_input":{"file_path":"docs/Plans.md"}}`
 	var out bytes.Buffer
 	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
@@ -469,15 +465,15 @@ func TestHandlePlansWatcher_CustomPlansDirectory(t *testing.T) {
 		t.Fatalf("invalid JSON output: %v, raw: %s", jsonErr, out.String())
 	}
 
-	// 新規タスクが検出されること（カスタムパスの Plans.md が認識される）
-	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "新規タスク") {
-		t.Errorf("expected '新規タスク' in additionalContext for custom plansDirectory, got %q",
+	// new tasks should be detected (custom plansDirectory Plans.md is recognized)
+	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "New tasks") {
+		t.Errorf("expected 'New tasks' in additionalContext for custom plansDirectory, got %q",
 			result.HookSpecificOutput.AdditionalContext)
 	}
 }
 
-// TestIsPlansFile_CustomPath はカスタムパスの Plans.md に対して
-// isPlansFileWithRoot が正しく動作することを確認する（P2修正: 別ディレクトリ同名ファイルを誤マッチしない）。
+// TestIsPlansFile_CustomPath verifies that isPlansFileWithRoot works correctly
+// for a custom-path Plans.md (P2 fix: same-name files in other directories must not be falsely matched).
 func TestIsPlansFile_CustomPath(t *testing.T) {
 	projectRoot := "/project"
 	cases := []struct {
@@ -486,18 +482,18 @@ func TestIsPlansFile_CustomPath(t *testing.T) {
 		want        bool
 		desc        string
 	}{
-		// 完全一致（相対パスをprojectRootで解決）
+		// exact match (resolve relative path with projectRoot)
 		{"Plans.md", "/project/Plans.md", true, "exact match via projectRoot"},
-		// カスタムディレクトリの Plans.md が plansFile と一致
+		// custom directory Plans.md matches plansFile
 		{"docs/Plans.md", "/project/docs/Plans.md", true, "custom subdir match"},
-		// 別ディレクトリの同名ファイルは誤マッチしない（修正の核心）
+		// same-name file in a different directory must not be falsely matched (core of the fix)
 		{"docs/Plans.md", "/project/Plans.md", false, "subdirectory mismatch - must not match"},
-		// 全く別のファイル
+		// completely different file
 		{"src/main.go", "/project/Plans.md", false, "non plans file"},
 		{"README.md", "/project/Plans.md", false, "readme not plans"},
-		// ファイル名が Plans.md に似ているが別ファイル
+		// file name resembles Plans.md but is a different file
 		{"Plans.md.bak", "/project/Plans.md", false, "backup file not matched"},
-		// 絶対パスで別プロジェクトの Plans.md
+		// absolute path to Plans.md in a different project
 		{"/tmp/other/Plans.md", "/project/Plans.md", false, "different project Plans.md must not match"},
 	}
 
@@ -510,53 +506,53 @@ func TestIsPlansFile_CustomPath(t *testing.T) {
 	}
 }
 
-// TestHandlePlansWatcher_CWDFromInput は input.CWD が存在する場合に
-// resolveProjectRoot() の代わりに input.CWD が projectRoot として使用されることを確認する。
-// フックプロセスの CWD が input.CWD と異なる場合に Plans.md を正しく検出できることを検証。
+// TestHandlePlansWatcher_CWDFromInput verifies that when input.CWD is present,
+// it is used as projectRoot instead of resolveProjectRoot().
+// Validates that Plans.md is correctly detected when the hook process CWD differs from input.CWD.
 func TestHandlePlansWatcher_CWDFromInput(t *testing.T) {
-	// プロジェクトディレクトリ（Plans.md が存在する）
+	// project directory (where Plans.md exists)
 	projectDir := t.TempDir()
-	// フックプロセスの CWD（プロジェクトとは異なるディレクトリ）
+	// hook process CWD (a directory different from the project)
 	hookCWD := t.TempDir()
 
 	origDir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
-	// フックプロセスは hookCWD にいる（プロジェクトルートではない）
+	// hook process is in hookCWD (not the project root)
 	if err := os.Chdir(hookCWD); err != nil {
 		t.Fatal(err)
 	}
 	defer os.Chdir(origDir)
 
-	// projectDir に Plans.md を作成
-	plansContent := "| Task 1 | 実装A | DoD | - | cc:完了 |\n"
+	// create Plans.md in projectDir
+	plansContent := "| Task 1 | TaskA | DoD | - | cc:done |\n"
 	plansPath := filepath.Join(projectDir, "Plans.md")
 	if err := os.WriteFile(plansPath, []byte(plansContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	// projectDir に .claude/state を作成
+	// create .claude/state in projectDir
 	stateDir := filepath.Join(projectDir, ".claude", "state")
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
-	// input に cwd フィールドを含める（projectDir を指定）
+	// include cwd field in input (pointing to projectDir)
 	inputJSON := `{"tool_name":"Edit","cwd":"` + projectDir + `","tool_input":{"file_path":"Plans.md"}}`
 	var out bytes.Buffer
 	if err := HandlePlansWatcher(strings.NewReader(inputJSON), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// hookCWD に Plans.md がないにもかかわらず、projectDir の Plans.md が検出されること
-	// エラーなく処理されることを確認（Plans.md が見つかって状態集計まで進む）
+	// even though hookCWD has no Plans.md, projectDir's Plans.md should be detected
+	// verify error-free processing (Plans.md is found and state aggregation proceeds)
 	var result postToolOutput
 	if jsonErr := json.Unmarshal(out.Bytes(), &result); jsonErr != nil {
 		t.Fatalf("invalid JSON output: %v, raw: %s", jsonErr, out.String())
 	}
-	// 正常に処理されること（hookCWD に Plans.md がない場合は emptyPostToolOutput のはずだが
-	// input.CWD を使えば projectDir の Plans.md が見つかる）
+	// should process successfully (when hookCWD has no Plans.md, emptyPostToolOutput would be expected,
+	// but using input.CWD allows Plans.md in projectDir to be found)
 	if out.Len() == 0 {
 		t.Error("expected non-empty output when input.CWD points to project with Plans.md")
 	}

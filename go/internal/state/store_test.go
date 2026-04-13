@@ -8,15 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Chachamaru127/claude-code-harness/go/internal/state"
+	"github.com/tim-hub/powerball-harness/go/internal/state"
 )
 
 // ============================================================
-// テストヘルパー
+// Test helpers
 // ============================================================
 
-// newTestStore はテスト用の一時 DB ファイルを作成し、HarnessStore を返す。
-// t.Cleanup で自動的にクローズ・削除される。
+// newTestStore creates a temporary DB file for testing and returns a HarnessStore.
+// Automatically closed and removed via t.Cleanup.
 func newTestStore(t *testing.T) *state.HarnessStore {
 	t.Helper()
 	dir := t.TempDir()
@@ -34,19 +34,19 @@ func newTestStore(t *testing.T) *state.HarnessStore {
 	return store
 }
 
-// nowISO は現在時刻を ISO 8601 UTC 文字列で返す。
+// nowISO returns the current time as an ISO 8601 UTC string.
 func nowISO() string {
 	return time.Now().UTC().Format(time.RFC3339)
 }
 
 // ============================================================
-// スキーマ初期化テスト
+// Schema initialization tests
 // ============================================================
 
 func TestSchemaInit(t *testing.T) {
 	store := newTestStore(t)
 
-	// schema_meta にバージョンが記録されていること
+	// Version should be recorded in schema_meta
 	version, err := store.GetMeta("version")
 	if err != nil {
 		t.Fatalf("GetMeta: %v", err)
@@ -60,7 +60,7 @@ func TestSchemaInit(t *testing.T) {
 }
 
 func TestSchemaInit_Idempotent(t *testing.T) {
-	// 同じパスで 2 回 NewHarnessStore を呼んでも問題ないこと
+	// Calling NewHarnessStore twice on the same path should not cause issues
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "idempotent.db")
 
@@ -83,7 +83,7 @@ func TestSchemaInit_Idempotent(t *testing.T) {
 }
 
 // ============================================================
-// セッション管理テスト
+// Session management tests
 // ============================================================
 
 func TestSession_UpsertAndGet(t *testing.T) {
@@ -136,7 +136,7 @@ func TestSession_UpsertUpdatesExisting(t *testing.T) {
 		t.Fatalf("UpsertSession (insert): %v", err)
 	}
 
-	// モードを更新
+	// Update the mode
 	session.Mode = state.SessionModeBreezing
 	if err := store.UpsertSession(session); err != nil {
 		t.Fatalf("UpsertSession (update): %v", err)
@@ -190,14 +190,14 @@ func TestSession_EndSession(t *testing.T) {
 }
 
 // ============================================================
-// シグナル管理テスト
+// Signal management tests
 // ============================================================
 
 func TestSignal_SendAndReceive(t *testing.T) {
 	store := newTestStore(t)
 
-	// 前提: セッションを先に登録する（FK 制約のため sessions への INSERT は不要だが
-	// work_states には必要。signals は直接 from_session_id を持つため sessions 不要）
+	// Note: sessions does not need to be inserted first for signals (no FK on from_session_id),
+	// but work_states does require it. Signals carry from_session_id directly.
 
 	toSession := "sess-receiver"
 	sig := state.Signal{
@@ -215,7 +215,7 @@ func TestSignal_SendAndReceive(t *testing.T) {
 		t.Errorf("expected positive ID, got %d", id)
 	}
 
-	// receiver が受信する
+	// receiver receives the signal
 	received, err := store.ReceiveSignals("sess-receiver")
 	if err != nil {
 		t.Fatalf("ReceiveSignals: %v", err)
@@ -230,7 +230,7 @@ func TestSignal_SendAndReceive(t *testing.T) {
 		t.Errorf("Payload[data] = %v, want 42", received[0].Payload["data"])
 	}
 
-	// 2 回目は消費済みなので空になること
+	// 2nd call should be empty since signals are consumed
 	received2, err := store.ReceiveSignals("sess-receiver")
 	if err != nil {
 		t.Fatalf("ReceiveSignals (2nd): %v", err)
@@ -243,7 +243,7 @@ func TestSignal_SendAndReceive(t *testing.T) {
 func TestSignal_Broadcast(t *testing.T) {
 	store := newTestStore(t)
 
-	// ブロードキャスト（to_session_id = nil）
+	// Broadcast (to_session_id = nil)
 	sig := state.Signal{
 		Type:          "broadcast.event",
 		FromSessionID: "sess-broadcaster",
@@ -255,7 +255,7 @@ func TestSignal_Broadcast(t *testing.T) {
 		t.Fatalf("SendSignal broadcast: %v", err)
 	}
 
-	// どのセッションでも受信できること（送信者以外）
+	// Any session (other than the sender) should be able to receive the signal
 	received, err := store.ReceiveSignals("sess-anyone")
 	if err != nil {
 		t.Fatalf("ReceiveSignals: %v", err)
@@ -278,7 +278,7 @@ func TestSignal_SenderDoesNotReceiveOwn(t *testing.T) {
 		t.Fatalf("SendSignal: %v", err)
 	}
 
-	// 送信者自身は受信しないこと
+	// The sender should not receive its own signal
 	received, err := store.ReceiveSignals("sess-self")
 	if err != nil {
 		t.Fatalf("ReceiveSignals: %v", err)
@@ -289,7 +289,7 @@ func TestSignal_SenderDoesNotReceiveOwn(t *testing.T) {
 }
 
 // ============================================================
-// タスク失敗管理テスト
+// Task failure management tests
 // ============================================================
 
 func TestTaskFailure_RecordAndGet(t *testing.T) {
@@ -360,7 +360,7 @@ func TestTaskFailure_MultipleAttempts(t *testing.T) {
 	if len(failures) != 3 {
 		t.Fatalf("expected 3 failures, got %d", len(failures))
 	}
-	// 時刻順に並んでいること
+	// Results should be ordered by time
 	if failures[0].Attempt != 1 || failures[2].Attempt != 3 {
 		t.Errorf("failures not ordered by attempt: %v", failures)
 	}
@@ -379,13 +379,13 @@ func TestTaskFailure_GetNotFound(t *testing.T) {
 }
 
 // ============================================================
-// work_states 管理テスト
+// work_states management tests
 // ============================================================
 
 func TestWorkState_SetAndGet(t *testing.T) {
 	store := newTestStore(t)
 
-	// sessions テーブルへ先に INSERT（FK 制約があるため）
+	// Insert into sessions first (required by FK constraint)
 	if err := store.UpsertSession(state.SessionState{
 		SessionID:   "sess-work",
 		Mode:        state.SessionModeWork,
@@ -451,12 +451,12 @@ func TestWorkState_Upsert(t *testing.T) {
 		t.Fatalf("UpsertSession: %v", err)
 	}
 
-	// 初回設定
+	// Initial set
 	if err := store.SetWorkState("sess-upsert", state.WorkStateOptions{CodexMode: false}); err != nil {
 		t.Fatalf("SetWorkState (1st): %v", err)
 	}
 
-	// 更新
+	// Update
 	if err := store.SetWorkState("sess-upsert", state.WorkStateOptions{CodexMode: true}); err != nil {
 		t.Fatalf("SetWorkState (2nd): %v", err)
 	}
@@ -473,8 +473,8 @@ func TestWorkState_Upsert(t *testing.T) {
 func TestWorkState_CleanExpired(t *testing.T) {
 	store := newTestStore(t)
 
-	// CleanExpiredWorkStates はタイムスタンプを直接操作できないため、
-	// 空の DB で呼び出して 0 件を確認する（ロジックの動作検証）
+	// Since CleanExpiredWorkStates cannot manipulate timestamps directly,
+	// call it on an empty DB and verify 0 deletions (logic smoke test)
 	n, err := store.CleanExpiredWorkStates()
 	if err != nil {
 		t.Fatalf("CleanExpiredWorkStates: %v", err)
@@ -485,7 +485,7 @@ func TestWorkState_CleanExpired(t *testing.T) {
 }
 
 // ============================================================
-// schema_meta キー/バリュー管理テスト
+// schema_meta key/value management tests
 // ============================================================
 
 func TestMeta_SetAndGet(t *testing.T) {
@@ -533,7 +533,7 @@ func TestMeta_GetNotFound(t *testing.T) {
 }
 
 // ============================================================
-// assumptions テスト
+// assumptions tests
 // ============================================================
 
 func TestAssumption_RecordAndGet(t *testing.T) {
@@ -576,11 +576,11 @@ func TestAssumption_RecordAndGet(t *testing.T) {
 }
 
 // ============================================================
-// 並列アクセステスト
+// Concurrent access tests
 // ============================================================
 
-// TestConcurrentAccess は 3 goroutine が並列で INSERT/SELECT しても
-// デッドロックが発生しないことを確認する。
+// TestConcurrentAccess verifies that 3 goroutines performing concurrent INSERT/SELECT
+// operations do not deadlock.
 func TestConcurrentAccess(t *testing.T) {
 	store := newTestStore(t)
 
@@ -608,7 +608,7 @@ func TestConcurrentAccess(t *testing.T) {
 					return
 				}
 
-				// SELECT（自分以外が送信したもの）
+				// SELECT (signals sent by others)
 				receiver := fmt.Sprintf("sess-receiver-%d-%d", gID, i)
 				if _, err := store.ReceiveSignals(receiver); err != nil {
 					errCh <- fmt.Errorf("g%d ReceiveSignals %d: %w", gID, i, err)
@@ -629,12 +629,12 @@ func TestConcurrentAccess(t *testing.T) {
 }
 
 // ============================================================
-// パスと DB ファイル作成テスト
+// Path and DB file creation tests
 // ============================================================
 
 func TestNewHarnessStore_CreatesDirectory(t *testing.T) {
 	dir := t.TempDir()
-	// 存在しないサブディレクトリの下に DB を作成する
+	// Create a DB under a non-existent subdirectory
 	dbPath := filepath.Join(dir, "sub", "deep", "state.db")
 
 	store, err := state.NewHarnessStore(dbPath)
@@ -649,7 +649,7 @@ func TestNewHarnessStore_CreatesDirectory(t *testing.T) {
 }
 
 func TestResolveStatePath(t *testing.T) {
-	// 環境変数を設定して優先順位を確認する
+	// Set environment variables to verify priority order
 	t.Run("CLAUDE_PLUGIN_DATA takes priority", func(t *testing.T) {
 		t.Setenv("CLAUDE_PLUGIN_DATA", "/plugin/data")
 

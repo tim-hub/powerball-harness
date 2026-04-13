@@ -37,7 +37,7 @@ func TestClearPendingHandler_DeletesPendingFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// .pending ファイルを作成
+	// create .pending files
 	pendingFiles := []string{"skill-a.pending", "skill-b.pending", "skill-c.pending"}
 	for _, name := range pendingFiles {
 		if err := os.WriteFile(filepath.Join(pendingDir, name), []byte("pending"), 0600); err != nil {
@@ -45,7 +45,7 @@ func TestClearPendingHandler_DeletesPendingFiles(t *testing.T) {
 		}
 	}
 
-	// .pending 以外のファイル（削除しないはず）
+	// non-.pending file (should not be deleted)
 	otherFile := filepath.Join(pendingDir, "skill-a.json")
 	if err := os.WriteFile(otherFile, []byte(`{}`), 0600); err != nil {
 		t.Fatal(err)
@@ -67,14 +67,14 @@ func TestClearPendingHandler_DeletesPendingFiles(t *testing.T) {
 		t.Errorf("expected continue=true")
 	}
 
-	// .pending ファイルが削除されているか確認
+	// verify that .pending files were deleted
 	for _, name := range pendingFiles {
 		if _, err := os.Stat(filepath.Join(pendingDir, name)); err == nil {
 			t.Errorf("expected %s to be deleted", name)
 		}
 	}
 
-	// .json ファイルは保持されているか確認
+	// verify that the .json file is retained
 	if _, err := os.Stat(otherFile); err != nil {
 		t.Errorf("skill-a.json should not be deleted")
 	}
@@ -87,7 +87,7 @@ func TestClearPendingHandler_EmptyPendingDir(t *testing.T) {
 	if err := os.MkdirAll(pendingDir, 0700); err != nil {
 		t.Fatal(err)
 	}
-	// 空ディレクトリ（.pending ファイルなし）
+	// empty directory (no .pending files)
 
 	h := &ClearPendingHandler{ProjectRoot: dir}
 
@@ -112,7 +112,7 @@ func TestClearPendingHandler_EmptyInput(t *testing.T) {
 	h := &ClearPendingHandler{ProjectRoot: dir}
 
 	var out bytes.Buffer
-	// 空の stdin でもエラーにならないこと
+	// should not error even with empty stdin
 	err := h.Handle(strings.NewReader(""), &out)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -140,13 +140,13 @@ func TestClearPendingHandler_MultipleRuns(t *testing.T) {
 
 	h := &ClearPendingHandler{ProjectRoot: dir}
 
-	// 1 回目: ファイルを削除
+	// 1st run: delete the file
 	var out1 bytes.Buffer
 	if err := h.Handle(strings.NewReader(`{}`), &out1); err != nil {
 		t.Fatal(err)
 	}
 
-	// 2 回目: 既に削除済み → エラーにならないこと
+	// 2nd run: already deleted → should not error
 	var out2 bytes.Buffer
 	if err := h.Handle(strings.NewReader(`{}`), &out2); err != nil {
 		t.Fatalf("second run should not error: %v", err)

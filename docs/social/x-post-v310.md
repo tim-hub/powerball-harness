@@ -1,146 +1,146 @@
-# Claude Code Harness v3.10 — X (Twitter) ポストツリー
+# Claude Code Harness v3.10 — X (Twitter) Post Thread
 
-> **投稿タイミング**: 平日 19:00〜21:00（エンジニア帰宅後のゴールデンタイム）
-> **ターゲット**: AI支援開発に関心のある日本人開発者
+> **Posting time**: Weekdays 19:00-21:00 (golden hour after engineers get home)
+> **Target**: Japanese developers interested in AI-assisted development
 
 ---
 
-### 🧵 1/6
+### 1/6
 
-Claude Code を「Plan → Work → Review」で自律運用する Harness、v3.10 になりました。
+Claude Code Harness, which autonomously operates Claude Code in a "Plan -> Work -> Review" flow, has reached v3.10.
 
-Claude Code 2.1.50〜2.1.74 の全機能を整理し、50以上のエントリを1つの Feature Table に集約。
+All features from Claude Code 2.1.50 through 2.1.74 have been organized, consolidating 50+ entries into a single Feature Table.
 
-「この機能、どう使えばいいの？」の答えがここにあります。
+"How should I use this feature?" -- the answer is right here.
 
-🔗 github.com/Chachamaru127/claude-code-harness
+github.com/tim-hub/powerball-harness
 
 #ClaudeCode #AIDevTools #Harness
 
 ---
 
-### 🧵 2/6
+### 2/6
 
-⚡ Auto Mode 対応
+Auto Mode Support
 
-Claude Code の Research Preview として始まった Auto Mode。
+Auto Mode started as a Claude Code Research Preview.
 
-Harness では bypassPermissions → Auto Mode への段階移行を整理しました。
+Harness has organized the gradual migration from bypassPermissions to Auto Mode.
 
-・shipped default は bypassPermissions を維持
-・--auto-mode は opt-in で段階導入
-・Hooks 多層防御との併用で安全に自律運用
+- Shipped default maintains bypassPermissions
+- --auto-mode is opt-in for gradual adoption
+- Multi-layer defense combined with Hooks for safe autonomous operation
 
-「安全な AI 自律運用」の現実的な橋渡し。
+A realistic bridge to "safe AI autonomous operation."
 
 #ClaudeCode #AutoMode #AIDevTools
 
 ---
 
-### 🧵 3/6
+### 3/6
 
-🤖 Agent Teams が進化
+Agent Teams Evolution
 
-SubagentStart / SubagentStop に matcher を追加。Worker・Reviewer・Scaffolder・Video Generator の起動と停止を個別にトラッキングできるようになりました。
+Added matchers to SubagentStart / SubagentStop. You can now individually track the startup and shutdown of Worker, Reviewer, Scaffolder, and Video Generator.
 
-さらに：
-・タスク依存関係の自動管理
-・5-6 tasks/teammate の公式ベストプラクティス準拠
-・permissionMode をエージェント定義に宣言的に記述
+Additionally:
+- Automatic task dependency management
+- Following official best practice of 5-6 tasks/teammate
+- Declarative permissionMode in agent definitions
 
-チームの見える化と制御が一段上に。
+Team visibility and control taken to the next level.
 
 #ClaudeCode #AgentTeams #Harness
 
 ---
 
-### 🧵 4/6
+### 4/6
 
-🛠️ 開発体験が大幅に向上
+Major Developer Experience Improvements
 
-📊 Status Line — コンテキスト使用率・コスト・git状態を常時表示。90%超えは赤で警告。
+Status Line -- Always displays context usage, cost, and git status. Red warning above 90%.
 
-⏪ Checkpointing — `/rewind` でセッション内の任意ポイントに巻き戻し。デバッグ迷子からの脱出に。
+Checkpointing -- `/rewind` to roll back to any point within a session. Escape from debugging dead ends.
 
-🔒 Sandboxing — OS レベルのファイルシステム/ネットワーク隔離。bypassPermissions の補完レイヤー。
+Sandboxing -- OS-level filesystem/network isolation. A complementary layer to bypassPermissions.
 
-地味だけど毎日使う機能。
+Subtle but used every day.
 
 #ClaudeCode #DevEx #AIDevTools
 
 ---
 
-### 🧵 5/6
+### 5/6
 
-📖 Feature Table 完全版
+Complete Feature Table
 
-Claude Code 2.1.50〜2.1.74 の機能を Harness がどう活用しているか、1つのテーブルに集約。
+How Harness utilizes features from Claude Code 2.1.50 through 2.1.74, consolidated into one table.
 
-50+エントリ、1,000行超。
+50+ entries, over 1,000 lines.
 
-Agent Memory, Worktree, Hooks, Chrome Integration, LSP統合, 1M Context...
+Agent Memory, Worktree, Hooks, Chrome Integration, LSP Integration, 1M Context...
 
-開発者のための「Claude Code 機能辞典」。
+A "Claude Code Feature Dictionary" for developers.
 
-🔗 docs/CLAUDE-feature-table.md
+docs/CLAUDE-feature-table.md
 
 #ClaudeCode #Harness #AIDevTools
 
 ---
 
-### 🧵 6/6
+### 6/6
 
-🔄 Harness は self-referential
+Harness is Self-Referential
 
-このプラグイン自体が、自分自身の改善に Harness を使っています。
+This plugin uses Harness itself to improve itself.
 
-`/breezing` で Agent Teams 起動 → Worker が実装 → Reviewer がレビュー → Harness 自身のコードを書く。
+`/breezing` launches Agent Teams -> Worker implements -> Reviewer reviews -> writing Harness's own code.
 
-ドッグフーディングの極み。
+Dogfooding taken to the extreme.
 
-試してみたい方👇
-🔗 github.com/Chachamaru127/claude-code-harness
+Want to try it?
+github.com/tim-hub/powerball-harness
 
-⭐ いただけると励みになります
+Stars are appreciated!
 
 #ClaudeCode #AIDevTools #Harness
 
 ---
 
-## 画像プロンプト候補（Nano Banana Pro / Gemini 画像生成用）
+## Image Prompt Candidates (for Nano Banana Pro / Gemini image generation)
 
-### Post 1 用
+### Post 1
 
 ```
-A sleek infographic showing the "Plan → Work → Review" cycle as three interconnected nodes in a circular flow diagram. Dark background with blue and purple gradient accents. Text "v3.10" prominently displayed. "50+ Features" badge in the corner. Modern tech aesthetic, clean lines, minimal design. Japanese text labels for each node: 計画, 実装, レビュー. 16:9 aspect ratio.
+A sleek infographic showing the "Plan -> Work -> Review" cycle as three interconnected nodes in a circular flow diagram. Dark background with blue and purple gradient accents. Text "v3.10" prominently displayed. "50+ Features" badge in the corner. Modern tech aesthetic, clean lines, minimal design. Labels for each node: Plan, Work, Review. 16:9 aspect ratio.
 ```
 
-### Post 2 用
+### Post 2
 
 ```
 A diagram showing a migration path from "bypassPermissions" to "Auto Mode" with a bridge metaphor. Left side labeled "Current: bypassPermissions" in blue, right side "Future: Auto Mode" in green, bridge in the middle with safety guardrails. Shield icons representing Hooks defense layers. Dark tech background. 16:9 aspect ratio.
 ```
 
-### Post 3 用
+### Post 3
 
 ```
 Four agent icons (Worker, Reviewer, Scaffolder, Video Generator) arranged around a central monitoring dashboard with tracking lines for each role. Each agent has a distinct color: Worker in blue, Reviewer in green, Scaffolder in orange, Video Generator in magenta. Metrics and status indicators floating around each agent. "SubagentStart/Stop" label. Dark background, modern UI style. 16:9 aspect ratio.
 ```
 
-### Post 4 用
+### Post 4
 
 ```
 A developer's terminal screen showing three feature panels: Left panel shows a status bar with context usage meter (gradient from green to yellow to red at 90%), cost counter, and git branch. Center panel shows a timeline with rewind points marked as checkpoints. Right panel shows a sandbox container with lock icon. Dark theme terminal aesthetic. "DevEx" header text. 16:9 aspect ratio.
 ```
 
-### Post 5 用
+### Post 5
 
 ```
 A large reference book or encyclopedia open to a two-page spread, with a dense feature table visible on the pages. "50+" floating above the book as a badge. Small icons representing different features scattered around: gears, terminal, brain, shield, git branch. Title "Claude Code Feature Dictionary" on the cover. Blue and purple color scheme, dark background. 16:9 aspect ratio.
 ```
 
-### Post 6 用
+### Post 6
 
 ```
-An ouroboros (snake eating its own tail) reimagined as a code loop: a plugin icon that points to itself with arrows labeled "improve". The cycle shows: "Harness writes code" → "Code improves Harness" → repeat. GitHub star icon in the corner with a sparkle effect. "Self-Referential" label. Minimal, modern design with dark background and accent colors. 16:9 aspect ratio.
+An ouroboros (snake eating its own tail) reimagined as a code loop: a plugin icon that points to itself with arrows labeled "improve". The cycle shows: "Harness writes code" -> "Code improves Harness" -> repeat. GitHub star icon in the corner with a sparkle effect. "Self-Referential" label. Minimal, modern design with dark background and accent colors. 16:9 aspect ratio.
 ```

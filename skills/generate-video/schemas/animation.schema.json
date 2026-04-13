@@ -2,56 +2,56 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://claude-code-harness.com/schemas/animation.schema.json",
   "title": "Animation Schema",
-  "description": "アニメーション設定のスキーマ。トランジション、イージング、スプリング物理演算パラメータを定義します。",
+  "description": "Schema for animation settings. Defines transitions, easing, and spring physics parameters.",
   "version": "1.0.0",
   "type": "object",
   "required": ["type", "duration_ms"],
   "properties": {
     "type": {
       "type": "string",
-      "description": "アニメーションの種類",
+      "description": "Animation type",
       "enum": ["fade", "slide_in", "zoom", "cut", "spring", "rotate", "scale"]
     },
     "duration_ms": {
       "type": "integer",
-      "description": "アニメーションの長さ（ミリ秒）",
+      "description": "Animation duration (milliseconds)",
       "minimum": 0,
       "maximum": 10000
     },
     "easing": {
       "type": "string",
-      "description": "イージング関数（springタイプの場合は無視される）",
+      "description": "Easing function (ignored for spring type)",
       "enum": ["linear", "easeIn", "easeOut", "easeInOut", "easeInQuad", "easeOutQuad", "easeInOutQuad", "easeInCubic", "easeOutCubic", "easeInOutCubic"],
       "default": "easeInOut"
     },
     "spring": {
       "type": "object",
-      "description": "スプリング物理演算パラメータ（typeがspringの場合のみ適用）",
+      "description": "Spring physics parameters (only applied when type is spring)",
       "properties": {
         "damping": {
           "type": "number",
-          "description": "ダンピング（減衰係数）。値が大きいほど早く止まる",
+          "description": "Damping (decay coefficient). Higher values stop faster",
           "minimum": 1,
           "maximum": 500,
           "default": 200
         },
         "stiffness": {
           "type": "number",
-          "description": "スティフネス（バネの硬さ）。値が大きいほど反発が強い",
+          "description": "Stiffness (spring rigidity). Higher values produce stronger bounce",
           "minimum": 1,
           "maximum": 500,
           "default": 100
         },
         "mass": {
           "type": "number",
-          "description": "質量。値が大きいほど動きが重くなる",
+          "description": "Mass. Higher values produce heavier motion",
           "minimum": 0.1,
           "maximum": 10,
           "default": 1
         },
         "overshoot_clamping": {
           "type": "boolean",
-          "description": "オーバーシュート（行き過ぎ）を抑制するか",
+          "description": "Whether to suppress overshoot (overshooting)",
           "default": false
         }
       },
@@ -59,13 +59,13 @@
     },
     "delay_ms": {
       "type": "integer",
-      "description": "アニメーション開始前の遅延（ミリ秒）",
+      "description": "Delay before animation start (milliseconds)",
       "minimum": 0,
       "default": 0
     },
     "from": {
       "type": "object",
-      "description": "アニメーション開始時の値",
+      "description": "Values at animation start",
       "properties": {
         "opacity": {
           "type": "number",
@@ -74,27 +74,27 @@
         },
         "x": {
           "type": "number",
-          "description": "X座標オフセット（ピクセル）"
+          "description": "X-coordinate offset (pixels)"
         },
         "y": {
           "type": "number",
-          "description": "Y座標オフセット（ピクセル）"
+          "description": "Y-coordinate offset (pixels)"
         },
         "scale": {
           "type": "number",
-          "description": "スケール値",
+          "description": "Scale value",
           "minimum": 0
         },
         "rotate": {
           "type": "number",
-          "description": "回転角度（度数法）"
+          "description": "Rotation angle (degrees)"
         }
       },
       "additionalProperties": false
     },
     "to": {
       "type": "object",
-      "description": "アニメーション終了時の値",
+      "description": "Values at animation end",
       "properties": {
         "opacity": {
           "type": "number",
@@ -103,31 +103,31 @@
         },
         "x": {
           "type": "number",
-          "description": "X座標オフセット（ピクセル）"
+          "description": "X-coordinate offset (pixels)"
         },
         "y": {
           "type": "number",
-          "description": "Y座標オフセット（ピクセル）"
+          "description": "Y-coordinate offset (pixels)"
         },
         "scale": {
           "type": "number",
-          "description": "スケール値",
+          "description": "Scale value",
           "minimum": 0
         },
         "rotate": {
           "type": "number",
-          "description": "回転角度（度数法）"
+          "description": "Rotation angle (degrees)"
         }
       },
       "additionalProperties": false
     },
     "interpolate": {
       "type": "object",
-      "description": "Remotion interpolate関数の詳細設定",
+      "description": "Detailed settings for the Remotion interpolate function",
       "properties": {
         "input_range": {
           "type": "array",
-          "description": "入力範囲（フレーム数の配列）",
+          "description": "Input range (array of frame numbers)",
           "items": {
             "type": "number"
           },
@@ -135,7 +135,7 @@
         },
         "output_range": {
           "type": "array",
-          "description": "出力範囲（値の配列）",
+          "description": "Output range (array of values)",
           "items": {
             "type": "number"
           },
@@ -143,13 +143,13 @@
         },
         "extrapolate_left": {
           "type": "string",
-          "description": "範囲外（左）の補外方法",
+          "description": "Left extrapolation method (out of range)",
           "enum": ["clamp", "extend", "identity"],
           "default": "clamp"
         },
         "extrapolate_right": {
           "type": "string",
-          "description": "範囲外（右）の補外方法",
+          "description": "Right extrapolation method (out of range)",
           "enum": ["clamp", "extend", "identity"],
           "default": "clamp"
         }
@@ -158,22 +158,22 @@
     },
     "loop": {
       "type": "object",
-      "description": "ループ設定（オプション）",
+      "description": "Loop settings (optional)",
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "ループを有効にするか",
+          "description": "Whether to enable looping",
           "default": false
         },
         "count": {
           "type": "integer",
-          "description": "ループ回数（0で無限ループ）",
+          "description": "Loop count (0 for infinite loop)",
           "minimum": 0,
           "default": 0
         },
         "reverse": {
           "type": "boolean",
-          "description": "往復ループ（前進→後退）にするか",
+          "description": "Whether to use ping-pong loop (forward then reverse)",
           "default": false
         }
       },

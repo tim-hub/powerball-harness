@@ -1,419 +1,419 @@
-# Claude harness 紹介用 X投稿集
+# Claude harness Introductory X Post Collection
 
-> **注意**: このファイルは `.gitignore` で除外されています（ローカル専用）
+> **Note**: This file is excluded via `.gitignore` (local use only)
 
-各投稿には対応するスライド番号を記載。
-`notebooklm-slides-for-x-posts.yaml` で一括生成できます。
+Each post includes a corresponding slide number.
+Slides can be batch-generated with `notebooklm-slides-for-x-posts.yaml`.
 
 ---
 
-## 投稿一覧
+## Post List
 
-| ID | ターゲット | タイプ | スライド |
+| ID | Target | Type | Slide |
 |----|-----------|--------|---------|
-| E1 | エンジニア | 問題提起 | slide_E1 |
-| E2 | エンジニア | 技術詳細 | slide_E2 |
-| E3 | エンジニア | Before/After | slide_E3 |
-| V1 | バイブコーダー | 共感 | slide_V1 |
-| V2 | バイブコーダー | 具体例 | slide_V2 |
-| V3 | バイブコーダー | 安心感 | slide_V3 |
-| N1 | 興味ある人 | ハードル下げ | slide_N1 |
-| N2 | 興味ある人 | 不安解消 | slide_N2 |
-| N3 | 興味ある人 | 行動促進 | slide_N3 |
-| R1 | 再チャレンジ | 共感 | slide_R1 |
-| R2 | 再チャレンジ | 改善点 | slide_R2 |
-| R3 | 再チャレンジ | 励まし | slide_R3 |
-| G1 | 汎用 | 概要 | slide_G1 |
-| G2 | 汎用 | 価値訴求 | slide_G2 |
+| E1 | Engineers | Problem statement | slide_E1 |
+| E2 | Engineers | Technical details | slide_E2 |
+| E3 | Engineers | Before/After | slide_E3 |
+| V1 | Vibe coders | Empathy | slide_V1 |
+| V2 | Vibe coders | Concrete examples | slide_V2 |
+| V3 | Vibe coders | Reassurance | slide_V3 |
+| N1 | Interested newcomers | Lowering barriers | slide_N1 |
+| N2 | Interested newcomers | Addressing concerns | slide_N2 |
+| N3 | Interested newcomers | Call to action | slide_N3 |
+| R1 | Returning users | Empathy | slide_R1 |
+| R2 | Returning users | Improvements | slide_R2 |
+| R3 | Returning users | Encouragement | slide_R3 |
+| G1 | General | Overview | slide_G1 |
+| G2 | General | Value proposition | slide_G2 |
 
 ---
 
-## エンジニア向け（E1〜E3）
+## For Engineers (E1-E3)
 
-### E1: 問題提起型
+### E1: Problem Statement
 
 ```
-【投稿文】
+[Post text]
 
-AIがテスト失敗を「テスト修正」で解決しようとする問題、解決しました。
+Solved the problem of AI "fixing" test failures by modifying the tests themselves.
 
-Claude harness の3層防御:
-📜 Rules - 常時適用
-🎯 Skills - 文脈に応じて自動発動
-🔒 Hooks - 技術的にブロック
+Claude harness's 3-layer defense:
+Rules - Always active
+Skills - Auto-triggered based on context
+Hooks - Technically blocked
 
-もうテストを壊されない。
+No more broken tests.
 
-🔗 github.com/Chachamaru127/claude-code-harness
+github.com/tim-hub/powerball-harness
 
-#ClaudeCode #AI開発 #品質保証
+#ClaudeCode #AIDev #QualityAssurance
 ```
 
-**添付**: slide_E1（3層防御の図解）
-**タイミング**: 平日 19:00-21:00
-**フック**: 問題提起で共感を引く
+**Attachment**: slide_E1 (3-layer defense diagram)
+**Timing**: Weekdays 19:00-21:00
+**Hook**: Draw empathy through problem statement
 
 ---
 
-### E2: 技術詳細型
+### E2: Technical Details
 
 ```
-【投稿文】
+[Post text]
 
-Claude Code の Hooks、使ってますか？
+Are you using Claude Code's Hooks?
 
-PreToolUse → ツール実行前に検証
-PostToolUse → 実行後の処理
+PreToolUse -> Validate before tool execution
+PostToolUse -> Process after execution
 
-Claude harness はこれで:
-・テスト改ざんをブロック
-・品質チェックを自動実行
-・スキルを自動でリマインド
+Claude harness uses these to:
+- Block test tampering
+- Auto-run quality checks
+- Auto-remind about skills
 
-詳しくは👇
-github.com/Chachamaru127/claude-code-harness
+Details:
+github.com/tim-hub/powerball-harness
 
-#ClaudeCode #Hooks #AI開発
+#ClaudeCode #Hooks #AIDev
 ```
 
-**添付**: slide_E2（Hooks フロー図）
-**タイミング**: 平日 12:00-13:00
-**フック**: 技術的好奇心を刺激
+**Attachment**: slide_E2 (Hooks flow diagram)
+**Timing**: Weekdays 12:00-13:00
+**Hook**: Stimulate technical curiosity
 
 ---
 
-### E3: Before/After型
+### E3: Before/After
 
 ```
-【投稿文】
+[Post text]
 
-Sonnet 4 が生成した「実装」がこれ👇
+Here's what Sonnet 4 generated as "implementation":
 
 def slugify(text):
     answers = {"HelloWorld": "hello-world"}
     return answers.get(text, "")
 
-テスト通ったけど、ただのハードコード。
+Tests passed, but it's just hardcoded values.
 
-Claude harness なら、この「形骸化実装」も検出してブロックします。
+Claude harness detects and blocks this kind of "hollow implementation" too.
 
-#ClaudeCode #テスト駆動開発
+#ClaudeCode #TestDrivenDevelopment
 ```
 
-**添付**: slide_E3（実際のコード例 + ブロック画面）
-**タイミング**: 平日 19:00-21:00
-**フック**: 実例で「あるある」を引く
+**Attachment**: slide_E3 (actual code example + block screen)
+**Timing**: Weekdays 19:00-21:00
+**Hook**: Draw recognition through real examples
 
 ---
 
-## バイブコーダー向け（V1〜V3）
+## For Vibe Coders (V1-V3)
 
-### V1: 共感型
+### V1: Empathy
 
 ```
-【投稿文】
+[Post text]
 
-「アプリのアイデアはあるけど、プログラミングが...」
+"I have an app idea, but coding is..."
 
-大丈夫。Claude harness なら日本語で話すだけ。
+Don't worry. With Claude harness, you just talk in your language.
 
-あなた「予約管理アプリ作りたい」
-Claude「計画立てますね。名前と日付入れる画面でいい？」
+You: "I want to make a reservation management app"
+Claude: "I'll create a plan. A screen for entering names and dates, sound good?"
 
-コードは全部AIが書きます。
+AI writes all the code.
 
-#バイブコーダー #ノーコード #AI開発
+#VibeCoder #NoCoding #AIDev
 ```
 
-**添付**: slide_V1（会話イメージ図）
-**タイミング**: 土日 10:00-12:00
-**フック**: 共感から入る
+**Attachment**: slide_V1 (conversation image)
+**Timing**: Weekends 10:00-12:00
+**Hook**: Lead with empathy
 
 ---
 
-### V2: 具体例型
+### V2: Concrete Examples
 
 ```
-【投稿文】
+[Post text]
 
-プログラミング知識ゼロで作れるアプリ:
+Apps you can build with zero programming knowledge:
 
-✅ 予約管理アプリ
-✅ 家計簿アプリ
-✅ ToDoリスト
-✅ ポートフォリオサイト
+- Reservation management app
+- Expense tracker app
+- ToDo list
+- Portfolio site
 
-Claude harness を使えば、「こんなの作りたい」と言うだけ。
+With Claude harness, just say "I want to make something like this."
 
-Plan → Work → Review
-この3ステップでアイデアが形に。
+Plan -> Work -> Review
+Three steps from idea to reality.
 
-#バイブコーダー #AI開発
+#VibeCoder #AIDev
 ```
 
-**添付**: slide_V2（作れるアプリ一覧）
-**タイミング**: 土日 10:00-12:00
-**フック**: 具体例でイメージ膨らむ
+**Attachment**: slide_V2 (app examples list)
+**Timing**: Weekends 10:00-12:00
+**Hook**: Expand imagination with concrete examples
 
 ---
 
-### V3: 安心感型
+### V3: Reassurance
 
 ```
-【投稿文】
+[Post text]
 
-「AIでアプリ作ると変なコードが生成されそう...」
+"AI might generate weird code..."
 
-Claude harness には品質ガードレールがあります:
+Claude harness has quality guardrails:
 
-🛡️ おかしなコードは自動でストップ
-🧠 前回の会話を覚えてる
-🆘 困ったらAIが教えてくれる
+Auto-stops suspicious code
+Remembers previous conversations
+AI helps when you're stuck
 
-初心者でも安心。
+Safe even for beginners.
 
-#バイブコーダー #AI開発 #初心者歓迎
+#VibeCoder #AIDev #BeginnersWelcome
 ```
 
-**添付**: slide_V3（ガードレール図解）
-**タイミング**: 平日 12:00-13:00
-**フック**: 不安を先回りして解消
+**Attachment**: slide_V3 (guardrail diagram)
+**Timing**: Weekdays 12:00-13:00
+**Hook**: Proactively address concerns
 
 ---
 
-## 興味あるけど未使用者向け（N1〜N3）
+## For Interested But Not Yet Using (N1-N3)
 
-### N1: ハードル下げ型
+### N1: Lowering Barriers
 
 ```
-【投稿文】
+[Post text]
 
-Claude Code + harness、5分で始められます。
+Claude Code + harness, ready in 5 minutes.
 
-1️⃣ Claude Code インストール（2分）
-2️⃣ harness プラグイン追加（1分）
-3️⃣ /harness-init（2分）
+1. Install Claude Code (2 min)
+2. Add harness plugin (1 min)
+3. /harness-init (2 min)
 
-覚えるコマンドは3つだけ。
+Only 3 commands to remember.
 
-思ってるより簡単です。
+Easier than you think.
 
-#ClaudeCode #AI開発
+#ClaudeCode #AIDev
 ```
 
-**添付**: slide_N1（3ステップ図解）
-**タイミング**: 平日 19:00-21:00
-**フック**: 数字でハードル下げる
+**Attachment**: slide_N1 (3-step diagram)
+**Timing**: Weekdays 19:00-21:00
+**Hook**: Lower barriers with numbers
 
 ---
 
-### N2: 不安解消型
+### N2: Addressing Concerns
 
 ```
-【投稿文】
+[Post text]
 
-Claude Code、気になってるけど...
+Curious about Claude Code, but...
 
-「難しそう」→ インストール1コマンド
-「英語が」→ 全部日本語OK
-「お金が」→ 月$20から。プラグイン無料
-「何から」→ /harness-init だけ
+"Seems hard" -> One command to install
+"It's in English" -> Works fully in Japanese
+"Expensive" -> From $20/month. Plugin is free
+"Where to start" -> Just /harness-init
 
-一歩踏み出せば、AIが導いてくれます。
+Take one step, and AI will guide you.
 
-#ClaudeCode #AI開発
+#ClaudeCode #AIDev
 ```
 
-**添付**: slide_N2（Q&A形式の図）
-**タイミング**: 平日 12:00-13:00
-**フック**: 不安を列挙して解消
+**Attachment**: slide_N2 (Q&A format diagram)
+**Timing**: Weekdays 12:00-13:00
+**Hook**: List and address concerns
 
 ---
 
-### N3: 行動促進型
+### N3: Call to Action
 
 ```
-【投稿文】
+[Post text]
 
-今日、Claude Code 試してみませんか？
+Want to try Claude Code today?
 
-最初のプロジェクトにおすすめ:
-・自己紹介ページ（30分）
-・カウンターアプリ（1時間）
-・ToDoリスト（2時間）
+Recommended first projects:
+- Self-introduction page (30 min)
+- Counter app (1 hour)
+- ToDo list (2 hours)
 
-エラーが出ても大丈夫。
-「エラー出た」と伝えるだけでAIが修正します。
+Errors are okay.
+Just say "got an error" and AI fixes it.
 
-#ClaudeCode #今日から始める
+#ClaudeCode #StartToday
 ```
 
-**添付**: slide_N3（おすすめプロジェクト一覧）
-**タイミング**: 土日 10:00-12:00
-**フック**: 具体的な行動を促す
+**Attachment**: slide_N3 (recommended projects list)
+**Timing**: Weekends 10:00-12:00
+**Hook**: Prompt specific action
 
 ---
 
-## 再チャレンジ者向け（R1〜R3）
+## For Returning Users (R1-R3)
 
-### R1: 共感型
+### R1: Empathy
 
 ```
-【投稿文】
+[Post text]
 
-「前にClaude Code試したけど、うまくいかなかった...」
+"I tried Claude Code before, but it didn't work out..."
 
-わかります。でも v2.6 で大きく変わりました:
+We understand. But v2.6 changed things significantly:
 
-❌ 以前: 何すべきか自分で考える
-✅ 今: Skills が自動で案内
+Before: Figure out what to do yourself
+Now: Skills auto-guide you
 
-❌ 以前: 毎回ゼロから説明
-✅ 今: Claude-mem が記憶
+Before: Explain from scratch every time
+Now: Claude-mem remembers
 
-もう一度、試してみませんか？
+Want to try again?
 
-#ClaudeCode #再挑戦
+#ClaudeCode #TryAgain
 ```
 
-**添付**: slide_R1（Before/After比較）
-**タイミング**: 平日 19:00-21:00
-**フック**: 過去の経験を認めてから提案
+**Attachment**: slide_R1 (Before/After comparison)
+**Timing**: Weekdays 19:00-21:00
+**Hook**: Acknowledge past experience before proposing
 
 ---
 
-### R2: 改善点型
+### R2: Improvements
 
 ```
-【投稿文】
+[Post text]
 
-Claude harness v2.6 の改善点:
+Claude harness v2.6 improvements:
 
-🎯 Skills Gate - スキル自動起動
-🧠 Claude-mem - セッション跨ぎで記憶
-📊 session-init - 何すべきかAIが教える
-🔄 /harness-update - 設定保持したまま更新
+Skills Gate - Auto-launch skills
+Claude-mem - Memory across sessions
+session-init - AI tells you what to do
+/harness-update - Update while preserving settings
 
-以前挫折した人も、今なら大丈夫。
+If you gave up before, now's a good time.
 
-#ClaudeCode #AI開発
+#ClaudeCode #AIDev
 ```
 
-**添付**: slide_R2（改善点リスト）
-**タイミング**: 平日 12:00-13:00
-**フック**: 具体的な改善点を列挙
+**Attachment**: slide_R2 (improvements list)
+**Timing**: Weekdays 12:00-13:00
+**Hook**: List concrete improvements
 
 ---
 
-### R3: 励まし型
+### R3: Encouragement
 
 ```
-【投稿文】
+[Post text]
 
-「AI開発、また失敗するかも...」
+"Maybe I'll fail at AI development again..."
 
-今度は違います。
+This time is different.
 
-迷ったら → /sync-status で案内
-エラーなら → troubleshoot スキルが自動起動
-忘れても → Claude-mem が覚えてる
+Lost? -> /sync-status guides you
+Error? -> troubleshoot skill auto-launches
+Forgot? -> Claude-mem remembers
 
-以前の経験を活かして、今度はうまくいく。
+Use your past experience. This time it'll work.
 
-#ClaudeCode #再挑戦
+#ClaudeCode #TryAgain
 ```
 
-**添付**: slide_R3（サポート機能図解）
-**タイミング**: 土日 10:00-12:00
-**フック**: 不安を認めて励ます
+**Attachment**: slide_R3 (support features diagram)
+**Timing**: Weekends 10:00-12:00
+**Hook**: Acknowledge anxiety and encourage
 
 ---
 
-## 汎用（G1〜G2）
+## General (G1-G2)
 
-### G1: 概要型
+### G1: Overview
 
 ```
-【投稿文】
+[Post text]
 
-Claude harness とは？
+What is Claude harness?
 
-Plan → Work → Review の型で
-Claude Code を自律運用するプラグイン。
+A plugin that autonomously operates Claude Code
+in the Plan -> Work -> Review pattern.
 
-✅ 計画を自動作成
-✅ 実装を自動実行
-✅ 品質を自動チェック
-✅ セッション跨ぎで学習
+- Auto-creates plans
+- Auto-executes implementation
+- Auto-checks quality
+- Learns across sessions
 
-一人で全部やるなら、これ一択。
+If you're doing it all solo, this is it.
 
-🔗 github.com/Chachamaru127/claude-code-harness
+github.com/tim-hub/powerball-harness
 
-#ClaudeCode #AI開発
+#ClaudeCode #AIDev
 ```
 
-**添付**: slide_G1（全体像図）
-**タイミング**: 平日 19:00-21:00
-**フック**: 簡潔に全体像を伝える
+**Attachment**: slide_G1 (overall diagram)
+**Timing**: Weekdays 19:00-21:00
+**Hook**: Concisely convey the big picture
 
 ---
 
-### G2: 価値訴求型
+### G2: Value Proposition
 
 ```
-【投稿文】
+[Post text]
 
-Claude harness を使うと:
+With Claude harness:
 
-⏰ 時間: 計画立案が5分で終わる
-📝 品質: テスト改ざんを自動ブロック
-🧠 学習: 過去のミスを繰り返さない
-🔄 継続: セッション跨ぎで文脈維持
+Time: Planning done in 5 minutes
+Quality: Test tampering auto-blocked
+Learning: Past mistakes not repeated
+Continuity: Context maintained across sessions
 
-一人開発の生産性が変わる。
+Solo development productivity transformed.
 
-#ClaudeCode #生産性向上
+#ClaudeCode #Productivity
 ```
 
-**添付**: slide_G2（価値4点図）
-**タイミング**: 平日 12:00-13:00
-**フック**: 具体的なメリットを列挙
+**Attachment**: slide_G2 (4 value points diagram)
+**Timing**: Weekdays 12:00-13:00
+**Hook**: List concrete benefits
 
 ---
 
-## 投稿スケジュール例
+## Example Posting Schedule
 
 ### Week 1
 
-| 曜日 | 投稿 | ターゲット |
+| Day | Post | Target |
 |------|------|-----------|
-| 月 | G1 | 汎用（概要） |
-| 火 | E1 | エンジニア |
-| 水 | V1 | バイブコーダー |
-| 木 | N1 | 興味ある人 |
-| 金 | R1 | 再チャレンジ |
-| 土 | V2 | バイブコーダー |
-| 日 | N3 | 興味ある人 |
+| Mon | G1 | General (overview) |
+| Tue | E1 | Engineers |
+| Wed | V1 | Vibe coders |
+| Thu | N1 | Interested newcomers |
+| Fri | R1 | Returning users |
+| Sat | V2 | Vibe coders |
+| Sun | N3 | Interested newcomers |
 
 ### Week 2
 
-| 曜日 | 投稿 | ターゲット |
+| Day | Post | Target |
 |------|------|-----------|
-| 月 | G2 | 汎用（価値） |
-| 火 | E2 | エンジニア |
-| 水 | V3 | バイブコーダー |
-| 木 | N2 | 興味ある人 |
-| 金 | R2 | 再チャレンジ |
-| 土 | E3 | エンジニア |
-| 日 | R3 | 再チャレンジ |
+| Mon | G2 | General (value) |
+| Tue | E2 | Engineers |
+| Wed | V3 | Vibe coders |
+| Thu | N2 | Interested newcomers |
+| Fri | R2 | Returning users |
+| Sat | E3 | Engineers |
+| Sun | R3 | Returning users |
 
 ---
 
-## 投稿時の注意
+## Posting Guidelines
 
-1. **画像は必ず添付**（対応スライドを使用）
-2. **10分以内に1いいねなければ削除検討**
-3. **URLは短縮せずそのまま貼る**
-4. **ハッシュタグは2-3個**
-5. **プロフィールキーワードを含める**
+1. **Always attach an image** (use the corresponding slide)
+2. **Consider deleting if no likes within 10 minutes**
+3. **Paste URLs directly without shortening**
+4. **Use 2-3 hashtags**
+5. **Include profile keywords**

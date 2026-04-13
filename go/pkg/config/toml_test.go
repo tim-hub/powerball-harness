@@ -3,7 +3,7 @@ package config_test
 import (
 	"testing"
 
-	"github.com/Chachamaru127/claude-code-harness/go/pkg/config"
+	"github.com/tim-hub/powerball-harness/go/pkg/config"
 )
 
 // ---------------------------------------------------------------------------
@@ -15,8 +15,8 @@ var fullTOML = []byte(`
 name = "claude-code-harness"
 version = "3.17.0"
 description = "Claude harness"
-author = "Chachamaru"
-homepage = "https://github.com/Chachamaru127/claude-code-harness"
+author = "tim-hub"
+homepage = "https://github.com/tim-hub/powerball-harness"
 
 [agent]
 default = "security-reviewer"
@@ -64,10 +64,10 @@ func TestParse_Full(t *testing.T) {
 	if cfg.Project.Description != "Claude harness" {
 		t.Errorf("project.description = %q, want %q", cfg.Project.Description, "Claude harness")
 	}
-	if cfg.Project.Author != "Chachamaru" {
-		t.Errorf("project.author = %q, want %q", cfg.Project.Author, "Chachamaru")
+	if cfg.Project.Author != "tim-hub" {
+		t.Errorf("project.author = %q, want %q", cfg.Project.Author, "tim-hub")
 	}
-	if cfg.Project.Homepage != "https://github.com/Chachamaru127/claude-code-harness" {
+	if cfg.Project.Homepage != "https://github.com/tim-hub/powerball-harness" {
 		t.Errorf("project.homepage = %q", cfg.Project.Homepage)
 	}
 

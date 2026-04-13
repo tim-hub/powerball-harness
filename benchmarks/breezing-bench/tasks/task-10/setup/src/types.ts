@@ -32,8 +32,8 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-// NOTE: Express は使わず、純粋な関数ベースの API ハンドラを実装すること
-// (テスト容易性のため)
+// NOTE: Do not use Express; implement as pure function-based API handlers
+// (for testability)
 export interface BookStore {
   create(input: CreateBookInput): Book;
   getById(id: string): Book | undefined;

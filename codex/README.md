@@ -9,7 +9,7 @@ Codex CLI compatible distribution of Claude Code Harness.
 No file copy needed. Add skill paths directly to `config.toml`:
 
 ```bash
-git clone https://github.com/Chachamaru127/claude-code-harness.git
+git clone https://github.com/tim-hub/powerball-harness.git
 
 # Add to ~/.codex/config.toml (or .codex/config.toml for project-local):
 cat >> "${CODEX_HOME:-$HOME/.codex}/config.toml" <<TOML
@@ -75,7 +75,7 @@ If you use Claude Code Harness, run:
 ### Option 2: Manual (user-based)
 
 ```bash
-git clone https://github.com/Chachamaru127/claude-code-harness.git
+git clone https://github.com/tim-hub/powerball-harness.git
 
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 BACKUP_ROOT="$CODEX_HOME/backups/manual-codex-setup"

@@ -1,11 +1,7 @@
 package hookhandler
 
 // notification_handler.go
-// notification-handler.sh の Go 移植。
 //
-// Notification イベント (permission_prompt, idle_prompt, auth_success 等) を
-// .claude/state/notification-events.jsonl に記録する。
-// 通知ハンドラはブロックしない（常に approve）。
 
 import (
 	"encoding/json"
@@ -17,7 +13,6 @@ import (
 	"time"
 )
 
-// notificationInput は Notification フックの stdin JSON。
 type notificationInput struct {
 	NotificationType string `json:"notification_type"`
 	Type             string `json:"type"`
@@ -26,7 +21,6 @@ type notificationInput struct {
 	AgentType        string `json:"agent_type"`
 }
 
-// notificationLogEntry は notification-events.jsonl の1エントリ。
 type notificationLogEntry struct {
 	Event            string `json:"event"`
 	NotificationType string `json:"notification_type"`
@@ -35,25 +29,18 @@ type notificationLogEntry struct {
 	Timestamp        string `json:"timestamp"`
 }
 
-// HandleNotification は notification-handler.sh の Go 移植。
 //
-// Notification フックで呼び出され、通知イベントを
-// .claude/state/notification-events.jsonl に記録する。
-// 通知ハンドラは常に approve を返す（ブロックしない）。
 func HandleNotification(in io.Reader, out io.Writer) error {
 	data, err := io.ReadAll(in)
 	if err != nil || len(strings.TrimSpace(string(data))) == 0 {
-		// 入力なし: 正常終了（exit 0 相当）
 		return nil
 	}
 
 	var input notificationInput
 	if jsonErr := json.Unmarshal(data, &input); jsonErr != nil {
-		// パース失敗でも通過（通知ハンドラはブロックしない）
 		return nil
 	}
 
-	// notification_type の解決（type / matcher でフォールバック）
 	notificationType := input.NotificationType
 	if notificationType == "" {
 		notificationType = input.Type
@@ -62,14 +49,11 @@ func HandleNotification(in io.Reader, out io.Writer) error {
 		notificationType = input.Matcher
 	}
 
-	// ステートディレクトリを確保
 	stateDir := resolveNotificationStateDir()
 	if mkErr := ensureNotificationStateDir(stateDir); mkErr != nil {
-		// ディレクトリ作成失敗でも通過
 		return nil
 	}
 
-	// JSONL に記録
 	logFile := filepath.Join(stateDir, "notification-events.jsonl")
 	entry := notificationLogEntry{
 		Event:            "notification",
@@ -79,11 +63,9 @@ func HandleNotification(in io.Reader, out io.Writer) error {
 		Timestamp:        time.Now().UTC().Format(time.RFC3339),
 	}
 	if logErr := appendNotificationLog(logFile, entry); logErr != nil {
-		// ログ書き込み失敗は無視
 		_ = logErr
 	}
 
-	// Breezing バックグラウンド Worker に関する重要通知を stderr に出力（デバッグ用）
 	if notificationType == "permission_prompt" && input.AgentType != "" {
 		fmt.Fprintf(os.Stderr, "Notification: permission_prompt for agent_type=%s\n", input.AgentType)
 	}
@@ -93,12 +75,9 @@ func HandleNotification(in io.Reader, out io.Writer) error {
 			input.AgentType)
 	}
 
-	// 通知ハンドラは常に正常終了（approve）
 	return nil
 }
 
-// resolveNotificationStateDir は環境変数を考慮してステートディレクトリを返す。
-// CLAUDE_PLUGIN_DATA が設定されている場合はプロジェクトスコープに切り替える。
 func resolveNotificationStateDir() string {
 	pluginData := os.Getenv("CLAUDE_PLUGIN_DATA")
 	if pluginData != "" {
@@ -123,11 +102,9 @@ func resolveNotificationStateDir() string {
 	return filepath.Join(projectRoot, ".claude", "state")
 }
 
-// ensureNotificationStateDir はディレクトリを作成し、シンボリックリンクを拒否する。
 func ensureNotificationStateDir(stateDir string) error {
 	parent := filepath.Dir(stateDir)
 
-	// シンボリックリンクチェック（セキュリティ）
 	if isSymlink(parent) || isSymlink(stateDir) {
 		return fmt.Errorf("symlinked state path refused: %s", stateDir)
 	}
@@ -136,7 +113,6 @@ func ensureNotificationStateDir(stateDir string) error {
 		return fmt.Errorf("mkdir state dir: %w", mkErr)
 	}
 
-	// 作成後も検証
 	info, statErr := os.Lstat(stateDir)
 	if statErr != nil {
 		return fmt.Errorf("stat state dir: %w", statErr)
@@ -147,9 +123,7 @@ func ensureNotificationStateDir(stateDir string) error {
 	return nil
 }
 
-// appendNotificationLog は JSONL ファイルに1エントリ追記し、ローテーションする。
 func appendNotificationLog(logFile string, entry notificationLogEntry) error {
-	// シンボリックリンクチェック
 	if isSymlink(logFile) {
 		return fmt.Errorf("symlinked log file refused: %s", logFile)
 	}
@@ -169,17 +143,13 @@ func appendNotificationLog(logFile string, entry notificationLogEntry) error {
 		return fmt.Errorf("write log entry: %w", writeErr)
 	}
 
-	// ローテーション: 500行超なら400行に切り詰め
 	return rotateJSONL(logFile, 500, 400)
 }
 
-// shortHashNotification はプロジェクトルートパスの短縮ハッシュ（12文字）を返す。
-// bash の shasum -a 256 | cut -c1-12 と同等。
 func shortHashNotification(input string) string {
 	if input == "" {
 		return "default"
 	}
-	// 簡易ハッシュ: FNV-1a ベース（外部依存なし）
 	var h uint64 = 14695981039346656037
 	for i := 0; i < len(input); i++ {
 		h ^= uint64(input[i])

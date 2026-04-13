@@ -1,9 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "_harness_template": "claude/settings.security.json.template",
-  "_harness_version": "3.17.1",
-  "_harness_note": "Project-level settings template. Plugin defaults (.claude-plugin/settings.json) provide baseline deny/ask; this template adds defense-in-depth at project scope.",
-  "language": "japanese",
+  "_harness_version": "2.21.1",
+  "_harness_note": "Project-level settings template. Plugin defaults (.claude-plugin/settings.json) provide baseline deny/ask only; allow rules belong here at project scope.",
+  "language": "english",
   "permissions": {
     "allow": [
       "Bash(npm test:*)",
@@ -28,28 +28,6 @@
       "Bash(mysql:*)",
       "Bash(mongod:*)",
       "Bash(mongo:*)",
-      "mcp__codex__*",
-      "Edit(.claude/settings*)",
-      "Write(.claude/settings*)",
-      "MultiEdit(.claude/settings*)",
-      "Edit(.claude-plugin/settings*)",
-      "Write(.claude-plugin/settings*)",
-      "MultiEdit(.claude-plugin/settings*)",
-      "Edit(.eslintrc*)",
-      "Write(.eslintrc*)",
-      "MultiEdit(.eslintrc*)",
-      "Edit(eslint.config.*)",
-      "Write(eslint.config.*)",
-      "MultiEdit(eslint.config.*)",
-      "Edit(biome.json)",
-      "Write(biome.json)",
-      "MultiEdit(biome.json)",
-      "Edit(tsconfig*.json)",
-      "Write(tsconfig*.json)",
-      "MultiEdit(tsconfig*.json)",
-      "Edit(.github/workflows/*)",
-      "Write(.github/workflows/*)",
-      "MultiEdit(.github/workflows/*)",
       "Read(./.env)",
       "Read(./.env.*)",
       "Read(./secrets/**)",
@@ -63,15 +41,6 @@
     ],
     "ask": [
       "Bash(rm -r:*)",
-      "Bash(git reset --hard:*)",
-      "Bash(git push -f:*)",
-      "Bash(git push --force:*)",
-      "Bash(git push --force-with-lease:*)",
-      "Bash(git clean -f:*)",
-      "Bash(git clean -fdx:*)",
-      "Bash(git clean -fx:*)",
-      "Bash(git rebase:*)",
-      "Bash(git merge:*)",
       "Bash(npm install:*)",
       "Bash(npm exec:*)",
       "Bash(npx:*)",
@@ -80,30 +49,16 @@
       "Bash(npm run dev:*)",
       "Bash(npm run start:*)",
       "Bash(bun run dev:*)",
-      "Bash(bun run start:*)"
+      "Bash(bun run start:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push --force-with-lease:*)",
+      "Bash(git clean -f:*)",
+      "Bash(git clean -fdx:*)",
+      "Bash(git clean -fx:*)",
+      "Bash(git rebase:*)",
+      "Bash(git merge:*)"
     ]
-  },
-  "sandbox": {
-    "failIfUnavailable": true,
-    "filesystem": {
-      "denyRead": [
-        ".env",
-        ".env.*",
-        "!.env.example",
-        "secrets/**",
-        "**/*.pem",
-        "**/*.key",
-        "**/*id_rsa*",
-        "**/*id_ed25519*",
-        "**/.aws/**",
-        "**/.ssh/**"
-      ],
-      "allowRead": [
-        ".env.example",
-        ".env.sample",
-        "config/public-*",
-        "docs/**"
-      ]
-    }
   }
 }

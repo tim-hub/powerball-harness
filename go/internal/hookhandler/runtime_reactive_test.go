@@ -9,7 +9,6 @@ import (
 	"testing"
 )
 
-// assertReactiveApprove は approve レスポンスを検証するヘルパー。
 func assertReactiveApprove(t *testing.T, output, wantReason string) {
 	t.Helper()
 	output = strings.TrimSpace(output)
@@ -28,7 +27,6 @@ func assertReactiveApprove(t *testing.T, output, wantReason string) {
 	}
 }
 
-// assertReactiveHookOutput は hookSpecificOutput レスポンスを検証するヘルパー。
 func assertReactiveHookOutput(t *testing.T, output, wantEvent, wantContextSubstr string) {
 	t.Helper()
 	output = strings.TrimSpace(output)
@@ -83,7 +81,6 @@ func TestHandleRuntimeReactive_FileChanged_Plansmd(t *testing.T) {
 func TestHandleRuntimeReactive_FileChanged_PlansmdWithPath(t *testing.T) {
 	dir := t.TempDir()
 
-	// プロジェクトルートを含む絶対パスの場合
 	payload := `{"hook_event_name":"FileChanged","file_path":"` + dir + `/Plans.md","cwd":"` + dir + `"}`
 	var out bytes.Buffer
 	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
@@ -100,7 +97,7 @@ func TestHandleRuntimeReactive_FileChanged_AgentsMd(t *testing.T) {
 	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertReactiveHookOutput(t, out.String(), "FileChanged", "Harness 設定")
+	assertReactiveHookOutput(t, out.String(), "FileChanged", "Harness configuration")
 }
 
 func TestHandleRuntimeReactive_FileChanged_ClaudeRules(t *testing.T) {
@@ -111,7 +108,7 @@ func TestHandleRuntimeReactive_FileChanged_ClaudeRules(t *testing.T) {
 	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertReactiveHookOutput(t, out.String(), "FileChanged", "Harness 設定")
+	assertReactiveHookOutput(t, out.String(), "FileChanged", "Harness configuration")
 }
 
 func TestHandleRuntimeReactive_FileChanged_HooksJson(t *testing.T) {
@@ -122,7 +119,7 @@ func TestHandleRuntimeReactive_FileChanged_HooksJson(t *testing.T) {
 	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertReactiveHookOutput(t, out.String(), "FileChanged", "Harness 設定")
+	assertReactiveHookOutput(t, out.String(), "FileChanged", "Harness configuration")
 }
 
 func TestHandleRuntimeReactive_FileChanged_SettingsJson(t *testing.T) {
@@ -133,7 +130,7 @@ func TestHandleRuntimeReactive_FileChanged_SettingsJson(t *testing.T) {
 	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertReactiveHookOutput(t, out.String(), "FileChanged", "Harness 設定")
+	assertReactiveHookOutput(t, out.String(), "FileChanged", "Harness configuration")
 }
 
 func TestHandleRuntimeReactive_FileChanged_UnrelatedFile(t *testing.T) {
@@ -144,7 +141,6 @@ func TestHandleRuntimeReactive_FileChanged_UnrelatedFile(t *testing.T) {
 	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// 無関係ファイルの場合は approve を返す
 	assertReactiveApprove(t, out.String(), "Reactive hook tracked")
 }
 
@@ -156,7 +152,7 @@ func TestHandleRuntimeReactive_CwdChanged(t *testing.T) {
 	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertReactiveHookOutput(t, out.String(), "CwdChanged", "作業ディレクトリが切り替わりました")
+	assertReactiveHookOutput(t, out.String(), "CwdChanged", "Working directory has changed")
 }
 
 func TestHandleRuntimeReactive_TaskCreated(t *testing.T) {
@@ -167,7 +163,6 @@ func TestHandleRuntimeReactive_TaskCreated(t *testing.T) {
 	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// TaskCreated はログのみ → approve を返す
 	assertReactiveApprove(t, out.String(), "Reactive hook tracked")
 }
 
@@ -180,7 +175,6 @@ func TestHandleRuntimeReactive_WritesLogFile(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// ログファイルが作成されているか確認
 	logFile := filepath.Join(dir, ".claude", "state", "runtime-reactive.jsonl")
 	data, err := os.ReadFile(logFile)
 	if err != nil {
@@ -198,13 +192,12 @@ func TestHandleRuntimeReactive_WritesLogFile(t *testing.T) {
 func TestHandleRuntimeReactive_AlternativeFieldNames(t *testing.T) {
 	dir := t.TempDir()
 
-	// event_name と path の代替フィールドを使う
 	payload := `{"event_name":"FileChanged","path":"CLAUDE.md","project_root":"` + dir + `"}`
 	var out bytes.Buffer
 	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertReactiveHookOutput(t, out.String(), "FileChanged", "Harness 設定")
+	assertReactiveHookOutput(t, out.String(), "FileChanged", "Harness configuration")
 }
 
 func TestNormalizeReactivePath(t *testing.T) {

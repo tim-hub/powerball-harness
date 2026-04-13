@@ -11,25 +11,25 @@ import (
 	"strings"
 )
 
-// FixProposalInjectorHandler は UserPromptSubmit フックハンドラ。
-// pending-fix-proposals.jsonl を読み込み、未表示の提案をユーザーに通知する。
-// "approve fix" / "reject fix" コマンドを解釈して Plans.md に反映する。
+// FixProposalInjectorHandler is the UserPromptSubmit hook handler.
+// It reads pending-fix-proposals.jsonl and notifies the user of unseen proposals.
+// It also interprets "approve fix" / "reject fix" commands and applies them to Plans.md.
 //
-// shell 版: scripts/hook-handlers/fix-proposal-injector.sh
+// shell counterpart: scripts/hook-handlers/fix-proposal-injector.sh
 type FixProposalInjectorHandler struct {
-	// ProjectRoot はプロジェクトルートのパス。空の場合は cwd を使用する。
+	// ProjectRoot is the project root path. Falls back to cwd when empty.
 	ProjectRoot string
-	// PlansPath は Plans.md のパス。空の場合は ProjectRoot/Plans.md を使用する。
+	// PlansPath is the path to Plans.md. Falls back to ProjectRoot/Plans.md when empty.
 	PlansPath string
 }
 
-// fixProposalInjectorInput は UserPromptSubmit フックの stdin JSON。
+// fixProposalInjectorInput is the stdin JSON for the UserPromptSubmit hook.
 type fixProposalInjectorInput struct {
 	Prompt string `json:"prompt"`
 }
 
-// fixProposalInjectorOutput は UserPromptSubmit フックのレスポンス。
-// systemMessage でユーザーに通知する。
+// fixProposalInjectorOutput is the response for the UserPromptSubmit hook.
+// Notifies the user via systemMessage.
 type fixProposalInjectorOutput struct {
 	SystemMessage string `json:"systemMessage,omitempty"`
 }
@@ -39,8 +39,8 @@ const (
 	fixProposalMaxLines     = 500
 )
 
-// Handle は stdin から UserPromptSubmit ペイロードを読み取り、
-// fix proposal を通知・処理する。
+// Handle reads the UserPromptSubmit payload from stdin and
+// notifies/processes fix proposals.
 func (h *FixProposalInjectorHandler) Handle(r io.Reader, w io.Writer) error {
 	data, _ := io.ReadAll(r)
 	if len(data) == 0 {
@@ -56,15 +56,15 @@ func (h *FixProposalInjectorHandler) Handle(r io.Reader, w io.Writer) error {
 	stateDir := filepath.Join(projectRoot, ".claude", "state")
 	proposalsFile := filepath.Join(stateDir, pendingFixProposalsFile)
 
-	// proposals ファイルが存在しない場合はスキップ
+	// Skip if the proposals file does not exist.
 	if _, err := os.Stat(proposalsFile); os.IsNotExist(err) {
 		return nil
 	}
 
-	// symlink チェック（isSymlink は notification_handler.go で定義済み）
+	// Symlink check (isSymlink is defined in notification_handler.go).
 	if hasFixSymlinkComponent(stateDir, projectRoot) || isSymlink(proposalsFile) {
 		return writeFixProposalJSON(w, fixProposalInjectorOutput{
-			SystemMessage: "⚠️ fix proposal state path が symlink のため処理を中止しました。",
+			SystemMessage: "⚠️ fix proposal state path is a symlink — aborting.",
 		})
 	}
 
@@ -72,17 +72,17 @@ func (h *FixProposalInjectorHandler) Handle(r io.Reader, w io.Writer) error {
 	if _, err := os.Stat(plansPath); err == nil {
 		if hasFixSymlinkComponent(plansPath, projectRoot) {
 			return writeFixProposalJSON(w, fixProposalInjectorOutput{
-				SystemMessage: "⚠️ Plans.md path が symlink のため fix proposal を反映できません。",
+				SystemMessage: "⚠️ Plans.md path is a symlink — cannot apply fix proposal.",
 			})
 		}
 	}
 
-	// プロンプトを解析してアクションを決定
+	// Parse prompt to determine action.
 	firstLine := strings.TrimSpace(strings.SplitN(inp.Prompt, "\n", 2)[0])
 	lower := strings.ToLower(firstLine)
 	action, targetID := parseFixProposalAction(lower, firstLine)
 
-	// pending な proposals を読み込む
+	// Load pending proposals.
 	proposals, err := loadPendingFixProposals(proposalsFile)
 	if err != nil || len(proposals) == 0 {
 		return nil
@@ -90,28 +90,28 @@ func (h *FixProposalInjectorHandler) Handle(r io.Reader, w io.Writer) error {
 
 	pendingCount := len(proposals)
 
-	// アクションがあり、target が未指定で複数 proposal がある場合はエラー
+	// Error if an action is requested but no target ID is given and there are multiple proposals.
 	if action != "" && targetID == "" && pendingCount != 1 {
 		return writeFixProposalJSON(w, fixProposalInjectorOutput{
 			SystemMessage: fmt.Sprintf(
-				"⚠️ 未処理の fix proposal が %d 件あります。approve fix <task_id> または reject fix <task_id> を使って対象を明示してください。",
+				"⚠️ There are %d unprocessed fix proposals. Use 'approve fix <task_id>' or 'reject fix <task_id>' to specify the target.",
 				pendingCount,
 			),
 		})
 	}
 
-	// 対象 proposal を選択
+	// Select target proposal.
 	proposal, found := selectFixProposal(proposals, targetID)
 	if !found {
 		if targetID != "" {
 			return writeFixProposalJSON(w, fixProposalInjectorOutput{
-				SystemMessage: fmt.Sprintf("⚠️ 指定された fix proposal が見つかりません: %s", targetID),
+				SystemMessage: fmt.Sprintf("⚠️ Specified fix proposal not found: %s", targetID),
 			})
 		}
 		return nil
 	}
 
-	// approve 処理
+	// Approve processing.
 	if action == "approve" {
 		applyResult := applyFixProposalToPlans(plansPath, proposal)
 		if applyResult == "applied" || applyResult == "already_present" {
@@ -119,33 +119,33 @@ func (h *FixProposalInjectorHandler) Handle(r io.Reader, w io.Writer) error {
 				_ = err
 			}
 			return writeFixProposalJSON(w, fixProposalInjectorOutput{
-				SystemMessage: fmt.Sprintf("✅ fix proposal を反映しました: %s\n内容: %s", proposal.FixTaskID, proposal.ProposalSubject),
+				SystemMessage: fmt.Sprintf("✅ Fix proposal applied: %s\nContent: %s", proposal.FixTaskID, proposal.ProposalSubject),
 			})
 		} else if applyResult == "plans_missing" {
 			return writeFixProposalJSON(w, fixProposalInjectorOutput{
-				SystemMessage: "⚠️ fix proposal を反映できませんでした。Plans.md が見つかりません。",
+				SystemMessage: "⚠️ Could not apply fix proposal. Plans.md not found.",
 			})
 		} else {
 			return writeFixProposalJSON(w, fixProposalInjectorOutput{
-				SystemMessage: fmt.Sprintf("⚠️ fix proposal の反映に失敗しました。対象タスク %s が Plans.md で見つかりません。", proposal.SourceTaskID),
+				SystemMessage: fmt.Sprintf("⚠️ Failed to apply fix proposal. Source task %s not found in Plans.md.", proposal.SourceTaskID),
 			})
 		}
 	}
 
-	// reject 処理
+	// Reject processing.
 	if action == "reject" {
 		_ = consumeFixProposal(proposalsFile, proposal.SourceTaskID)
 		return writeFixProposalJSON(w, fixProposalInjectorOutput{
-			SystemMessage: fmt.Sprintf("ℹ️ fix proposal を却下しました: %s", proposal.FixTaskID),
+			SystemMessage: fmt.Sprintf("ℹ️ Fix proposal rejected: %s", proposal.FixTaskID),
 		})
 	}
 
-	// アクションなし → リマインダーを表示
+	// No action → show reminder.
 	reminder := buildFixProposalReminder(proposal, pendingCount)
 	return writeFixProposalJSON(w, fixProposalInjectorOutput{SystemMessage: reminder})
 }
 
-// resolveProjectRoot はプロジェクトルートを解決する。
+// resolveProjectRoot resolves the project root path.
 func (h *FixProposalInjectorHandler) resolveProjectRoot() string {
 	if h.ProjectRoot != "" {
 		return h.ProjectRoot
@@ -154,19 +154,19 @@ func (h *FixProposalInjectorHandler) resolveProjectRoot() string {
 	return wd
 }
 
-// resolvePlansPath は Plans.md のパスを解決する。
-// PlansPath が明示されている場合はそれを使用し、そうでなければ
-// 設定ファイルの plansDirectory を考慮してパスを解決する。
-// Plans.md が存在しない場合も（apply 時に plans_missing を返すため）フルパスを返す。
+// resolvePlansPath resolves the path to Plans.md.
+// Uses PlansPath when explicitly set; otherwise resolves via the config's plansDirectory.
+// Always returns a full path even if Plans.md does not exist
+// (so that apply can return plans_missing).
 func (h *FixProposalInjectorHandler) resolvePlansPath(projectRoot string) string {
 	if h.PlansPath != "" {
 		return h.PlansPath
 	}
-	// 存在する Plans.md のパスを取得
+	// Get the path of an existing Plans.md.
 	if p := resolvePlansPath(projectRoot); p != "" {
 		return p
 	}
-	// 存在しない場合は設定の plansDirectory を考慮したデフォルトパスを返す
+	// Fall back to a default path that respects the configured plansDirectory.
 	plansDir := readPlansDirectoryFromConfig(projectRoot)
 	if plansDir != "" {
 		return filepath.Join(projectRoot, plansDir, "Plans.md")
@@ -174,7 +174,7 @@ func (h *FixProposalInjectorHandler) resolvePlansPath(projectRoot string) string
 	return filepath.Join(projectRoot, "Plans.md")
 }
 
-// parseFixProposalAction はプロンプト行からアクションと対象 ID を解析する。
+// parseFixProposalAction parses the action and target ID from a prompt line.
 func parseFixProposalAction(lower, original string) (action, targetID string) {
 	switch {
 	case lower == "approve fix" || strings.HasPrefix(lower, "approve fix "):
@@ -189,16 +189,16 @@ func parseFixProposalAction(lower, original string) (action, targetID string) {
 		if m := re.FindStringSubmatch(original); m != nil {
 			targetID = strings.TrimSpace(m[1])
 		}
-	case lower == "yes" || lower == "はい" || lower == "承認":
+	case lower == "yes" || lower == "approve":
 		action = "approve"
-	case lower == "no" || lower == "いいえ" || lower == "却下":
+	case lower == "no" || lower == "reject":
 		action = "reject"
 	}
 	return action, targetID
 }
 
-// loadPendingFixProposals は JSONL ファイルから status=pending の fixProposal を読み込む。
-// fixProposal 型は task_completed_escalation.go で定義されている。
+// loadPendingFixProposals loads fixProposal entries with status=pending from a JSONL file.
+// The fixProposal type is defined in task_completed_escalation.go.
 func loadPendingFixProposals(path string) ([]fixProposal, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -224,8 +224,8 @@ func loadPendingFixProposals(path string) ([]fixProposal, error) {
 	return result, scanner.Err()
 }
 
-// selectFixProposal は proposals から selector に一致する fixProposal を返す。
-// selector が空の場合は最初の fixProposal を返す。
+// selectFixProposal returns the fixProposal matching selector from proposals.
+// Returns the first proposal when selector is empty.
 func selectFixProposal(proposals []fixProposal, selector string) (fixProposal, bool) {
 	if len(proposals) == 0 {
 		return fixProposal{}, false
@@ -241,7 +241,7 @@ func selectFixProposal(proposals []fixProposal, selector string) (fixProposal, b
 	return fixProposal{}, false
 }
 
-// consumeFixProposal は JSONL から指定 source_task_id の行を削除する。
+// consumeFixProposal removes the line with the given source_task_id from the JSONL file.
 func consumeFixProposal(path, sourceTaskID string) error {
 	f, err := os.Open(path)
 	if err != nil {
@@ -260,7 +260,7 @@ func consumeFixProposal(path, sourceTaskID string) error {
 			continue
 		}
 		if p.SourceTaskID == sourceTaskID {
-			continue // 削除対象をスキップ
+			continue // Skip the entry to be removed.
 		}
 		remaining = append(remaining, p)
 	}
@@ -269,7 +269,7 @@ func consumeFixProposal(path, sourceTaskID string) error {
 		return err
 	}
 
-	// ファイルを書き直す（JSONL ローテーション: 500 行超なら末尾から切り捨て）
+	// Rewrite the file (JSONL rotation: trim from the tail when over 500 lines).
 	if len(remaining) > fixProposalMaxLines {
 		remaining = remaining[len(remaining)-fixProposalMaxLines:]
 	}
@@ -287,8 +287,8 @@ func consumeFixProposal(path, sourceTaskID string) error {
 	return os.Rename(tmp, path)
 }
 
-// applyFixProposalToPlans は proposal を Plans.md の source_task_id 行の直後に挿入する。
-// 戻り値: "applied" / "already_present" / "plans_missing" / "source_not_found"
+// applyFixProposalToPlans inserts the proposal into Plans.md immediately after the source_task_id row.
+// Returns: "applied" / "already_present" / "plans_missing" / "source_not_found"
 func applyFixProposalToPlans(plansPath string, proposal fixProposal) string {
 	rawData, err := os.ReadFile(plansPath)
 	if err != nil {
@@ -297,13 +297,13 @@ func applyFixProposalToPlans(plansPath string, proposal fixProposal) string {
 
 	text := string(rawData)
 
-	// fix_task_id が既に存在するか確認
+	// Check whether fix_task_id already exists.
 	fixPattern := regexp.MustCompile(`(?m)^\|\s*` + regexp.QuoteMeta(proposal.FixTaskID) + `\s*\|`)
 	if fixPattern.MatchString(text) {
 		return "already_present"
 	}
 
-	// source_task_id の行を探して直後に挿入
+	// Find the source_task_id row and insert immediately after it.
 	sourcePattern := regexp.MustCompile(`(?m)^\|\s*` + regexp.QuoteMeta(proposal.SourceTaskID) + `\s*\|`)
 
 	subject := strings.ReplaceAll(proposal.ProposalSubject, "|", "/")
@@ -342,23 +342,23 @@ func applyFixProposalToPlans(plansPath string, proposal fixProposal) string {
 	return "applied"
 }
 
-// buildFixProposalReminder はリマインダーメッセージを構築する。
+// buildFixProposalReminder builds the reminder message.
 func buildFixProposalReminder(proposal fixProposal, pendingCount int) string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("[FIX PROPOSAL] 未処理の修正タスク案があります (%d件)\n", pendingCount))
-	sb.WriteString(fmt.Sprintf("対象: %s — %s\n", proposal.FixTaskID, proposal.ProposalSubject))
-	sb.WriteString(fmt.Sprintf("失敗カテゴリ: %s\n", proposal.FailureCategory))
+	sb.WriteString(fmt.Sprintf("[FIX PROPOSAL] There are %d unprocessed fix task proposals\n", pendingCount))
+	sb.WriteString(fmt.Sprintf("Target: %s — %s\n", proposal.FixTaskID, proposal.ProposalSubject))
+	sb.WriteString(fmt.Sprintf("Failure category: %s\n", proposal.FailureCategory))
 	sb.WriteString(fmt.Sprintf("DoD: %s\n", proposal.DoD))
 	if proposal.RecommendedAction != "" {
-		sb.WriteString(fmt.Sprintf("推奨アクション: %s\n", proposal.RecommendedAction))
+		sb.WriteString(fmt.Sprintf("Recommended action: %s\n", proposal.RecommendedAction))
 	}
-	sb.WriteString(fmt.Sprintf("承認: approve fix %s\n", proposal.SourceTaskID))
-	sb.WriteString(fmt.Sprintf("却下: reject fix %s", proposal.SourceTaskID))
+	sb.WriteString(fmt.Sprintf("Approve: approve fix %s\n", proposal.SourceTaskID))
+	sb.WriteString(fmt.Sprintf("Reject: reject fix %s", proposal.SourceTaskID))
 	return sb.String()
 }
 
-// hasFixSymlinkComponent はパスがプロジェクトルート内でシンボリックリンクコンポーネントを含むか確認する。
-// isSymlink は userprompt_track_command.go (notification_handler.go) で定義済み。
+// hasFixSymlinkComponent reports whether path contains a symlink component within the project root.
+// isSymlink is defined in userprompt_track_command.go (notification_handler.go).
 func hasFixSymlinkComponent(path, root string) bool {
 	path = strings.TrimSuffix(path, "/")
 	root = strings.TrimSuffix(root, "/")
@@ -376,7 +376,7 @@ func hasFixSymlinkComponent(path, root string) bool {
 	return isSymlink(root)
 }
 
-// writeFixProposalJSON は v を JSON として w に書き出す。
+// writeFixProposalJSON serializes v as JSON and writes it to w.
 func writeFixProposalJSON(w io.Writer, v interface{}) error {
 	data, err := json.Marshal(v)
 	if err != nil {

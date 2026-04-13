@@ -1,11 +1,11 @@
-# /work ワークフロー定義
-# Plans.md の計画を実行し、実際のコードを生成
+# /work workflow definition
+# Executes plans from Plans.md and generates actual code
 
 phase: work
-description: "計画されたタスクを実行し、動くコードを生成するフェーズ"
+description: "Phase that executes planned tasks and generates working code"
 
 steps:
-  # Step 1: 現在のタスク状況を確認
+  # Step 1: Check current task status
   - id: read-context
     skill: core-read-repo-context
     input:
@@ -17,7 +17,7 @@ steps:
         - git_status
     mode: required
 
-  # Step 1.5: /workコマンドのフラグ解析
+  # Step 1.5: Parse /work command flags
   - id: parse-work-flags
     skill: parse-work-flags
     input:
@@ -38,7 +38,7 @@ steps:
         - fork_reason
     mode: required
 
-  # Step 1.6: セッション再開/分岐制御（指定時のみ）
+  # Step 1.6: Session resume/fork control (only when specified)
   - id: session-control
     skill: session-control
     condition: "resume_latest == true || resume_session_id != '' || fork_session_id != '' || fork_reason != ''"
@@ -50,7 +50,7 @@ steps:
         - fork_reason
     mode: required
 
-  # Step 2: 実行対象タスクの特定
+  # Step 2: Identify tasks to execute
   - id: identify-tasks
     skill: plans-management
     input:
@@ -64,15 +64,15 @@ steps:
         - current_phase
     mode: required
 
-  # Step 2.5: タスク開始時のマーカー更新（/start-task 相当の機能を吸収）
-  # pm:依頼中 / cursor:依頼中 / cc:TODO → cc:WIP に自動遷移
+  # Step 2.5: Update marker to WIP at task start (absorbs /start-task equivalent)
+  # pm:requested / cursor:requested / cc:TODO → auto-transition to cc:WIP
   - id: update-marker-to-wip
     skill: plans-management
     input:
       files:
         - Plans.md
       action: update_marker
-      from: "pm:依頼中|cursor:依頼中|cc:TODO"
+      from: "pm:requested|cursor:requested|cc:TODO"
       to: "cc:WIP"
       target: target_tasks
     output:
@@ -80,12 +80,12 @@ steps:
         - Plans.md
     mode: required
 
-  # Step 3: タスクの実行（--fullモード分岐）
-  # --fullモード: Phase1〜4を実行
-  # 通常モード: 既存のexecute-taskフローを実行
+  # Step 3: Execute tasks (--full mode branch)
+  # --full mode: Execute Phase 1-4
+  # Normal mode: Execute existing execute-task flow
 
-  # === Phase 1: 依存グラフ構築とtask-worker並列起動（--full時のみ） ===
-  # Step 3.1: 依存グラフ構築
+  # === Phase 1: Build dependency graph and launch task-workers in parallel (--full only) ===
+  # Step 3.1: Build dependency graph
   - id: build-dependency-graph
     skill: build-dependency-graph
     condition: "full_mode == true"
@@ -100,7 +100,7 @@ steps:
         - task_files
     mode: required
 
-  # Step 3.2: worktree準備（isolation=worktree時のみ）
+  # Step 3.2: Prepare worktrees (only when isolation=worktree)
   - id: setup-worktrees
     skill: setup-worktrees
     condition: "full_mode == true && isolation_mode == 'worktree'"
@@ -116,7 +116,7 @@ steps:
         - worktree_branches
     mode: required
 
-  # Step 3.3: task-worker並列起動
+  # Step 3.3: Launch task-workers in parallel
   - id: run-task-workers
     skill: run-task-workers
     condition: "full_mode == true"
@@ -138,7 +138,7 @@ steps:
         - changed_files
     mode: required
 
-  # Step 3.4: worktreeマージ（isolation=worktree時のみ）
+  # Step 3.4: Merge worktrees (only when isolation=worktree)
   - id: merge-worktrees
     skill: merge-worktrees
     condition: "full_mode == true && isolation_mode == 'worktree'"
@@ -155,7 +155,7 @@ steps:
         - conflict_files
     mode: required
 
-  # Step 3.5: レビューモードの決定（Phase2用）
+  # Step 3.5: Determine review mode (for Phase 2)
   - id: determine-review-mode
     skill: determine-review-mode
     condition: "full_mode == true && skip_cross_review == false"
@@ -167,7 +167,7 @@ steps:
         - review_mode
     mode: required
 
-  # === Phase 2: クロスレビュー（--full時、skip_cross_review=false時のみ） ===
+  # === Phase 2: Cross-review (--full only, when skip_cross_review=false) ===
   - id: cross-review
     skill: harness-review
     condition: "full_mode == true && skip_cross_review == false"
@@ -184,8 +184,8 @@ steps:
         - review_issues
     mode: required
 
-  # === Phase 3: コミット実行（--full時のみ） ===
-  # Step 3.6: コミット実行
+  # === Phase 3: Commit execution (--full only) ===
+  # Step 3.6: Execute commit
   - id: execute-commit
     skill: execute-commit
     condition: "full_mode == true && commit_strategy != 'task'"
@@ -202,7 +202,7 @@ steps:
         - commit_message
     mode: required
 
-  # === Phase 4: Deploy（--full時、deploy_after_commit=true時のみ） ===
+  # === Phase 4: Deploy (--full only, when deploy_after_commit=true) ===
   - id: deploy
     skill: deploy
     condition: "full_mode == true && deploy_after_commit == true"
@@ -217,8 +217,8 @@ steps:
         - deploy_status
     mode: required
 
-  # === 通常モード（--full未指定時）: 既存フロー ===
-  # Step 3: タスクの実行（ループ）
+  # === Normal mode (when --full is not specified): existing flow ===
+  # Step 3: Execute tasks (loop)
   - id: execute-task
     skill: work-impl-feature
     condition: "full_mode == false"
@@ -235,7 +235,7 @@ steps:
     mode: required
     loop: target_tasks
 
-  # Step 4: 動作確認
+  # Step 4: Verify build
   - id: verify-build
     skill: verify-build
     condition: "full_mode == false"
@@ -245,7 +245,7 @@ steps:
         - npm run dev
     mode: optional
 
-  # Step 5: セルフレビュー（オプション）
+  # Step 5: Self-review (optional)
   - id: self-review
     skill: review-changes
     condition: "full_mode == false"
@@ -254,27 +254,27 @@ steps:
         - git_diff
     mode: optional
 
-# 成功時の出力
+# Output on success
 on_success:
   message: |
-    ✅ フェーズ完了！
+    ✅ Phase complete!
 
-    **完了したタスク:**
+    **Completed tasks:**
     {{completed_tasks}}
 
-    **生成されたファイル:**
+    **Generated files:**
     {{created_files}}
 
-    次にやること：
-    - 「動かして」→ 動作確認
-    - 「レビューして」→ コード品質チェック
-    - 「次のフェーズへ」→ 続きを実行
+    Next steps:
+    - "Run it" → verify behavior
+    - "Review it" → code quality check
+    - "Next phase" → continue execution
 
-# エラー時の出力
+# Output on error
 on_error:
   skill: error-recovery
   max_retries: 3
   message: |
-    ⚠️ 実行中にエラーが発生しました。
+    ⚠️ An error occurred during execution.
 
-    自動修正を試みています...
+    Attempting automatic recovery...

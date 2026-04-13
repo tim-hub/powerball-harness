@@ -54,7 +54,6 @@ func TestWorktreeRemoveHandler_NoSessionID(t *testing.T) {
 func TestWorktreeRemoveHandler_CleansWorktreeInfo(t *testing.T) {
 	dir := t.TempDir()
 
-	// worktree-info.json を作成
 	stateDir := filepath.Join(dir, ".claude", "state")
 	if err := os.MkdirAll(stateDir, 0700); err != nil {
 		t.Fatal(err)
@@ -84,7 +83,6 @@ func TestWorktreeRemoveHandler_CleansWorktreeInfo(t *testing.T) {
 		t.Errorf("expected 'cleaned up' in reason, got %q", resp.Reason)
 	}
 
-	// worktree-info.json が削除されているか確認
 	if _, err := os.Stat(infoFile); err == nil {
 		t.Errorf("expected worktree-info.json to be deleted")
 	}
@@ -111,12 +109,10 @@ func TestWorktreeRemoveHandler_NoCWD(t *testing.T) {
 
 func TestWorktreeRemoveHandler_MissingWorktreeInfo(t *testing.T) {
 	dir := t.TempDir()
-	// .claude/state ディレクトリを作らず worktree-info.json なし
 	h := &WorktreeRemoveHandler{}
 	input := `{"session_id":"sess-002","cwd":"` + dir + `"}`
 
 	var out bytes.Buffer
-	// ファイルが存在しなくてもエラーにならないこと
 	err := h.Handle(strings.NewReader(input), &out)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

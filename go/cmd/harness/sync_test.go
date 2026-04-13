@@ -63,8 +63,8 @@ var fullTOML = `
 name = "claude-code-harness"
 version = "3.17.0"
 description = "Claude harness"
-author = "Chachamaru"
-homepage = "https://github.com/Chachamaru127/claude-code-harness"
+author = "tim-hub"
+homepage = "https://github.com/tim-hub/powerball-harness"
 
 [agent]
 default = "security-reviewer"
@@ -111,10 +111,10 @@ func TestSync_GeneratesPluginJSON(t *testing.T) {
 	if v["description"] != "Claude harness" {
 		t.Errorf("plugin.json description = %v, want 'Claude harness'", v["description"])
 	}
-	if v["author"] != "Chachamaru" {
-		t.Errorf("plugin.json author = %v, want Chachamaru", v["author"])
+	if v["author"] != "tim-hub" {
+		t.Errorf("plugin.json author = %v, want tim-hub", v["author"])
 	}
-	if v["homepage"] != "https://github.com/Chachamaru127/claude-code-harness" {
+	if v["homepage"] != "https://github.com/tim-hub/powerball-harness" {
 		t.Errorf("plugin.json homepage = %v", v["homepage"])
 	}
 	// CC 2.1.94+: skills field must be ["./"] so frontmatter `name` drives

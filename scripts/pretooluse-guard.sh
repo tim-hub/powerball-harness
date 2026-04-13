@@ -41,8 +41,8 @@ fi
 
 detect_lang() {
   # Default to Japanese for this harness (can be overridden).
-  # - CLAUDE_CODE_HARNESS_LANG=en で英語
-  # - CLAUDE_CODE_HARNESS_LANG=ja で日本語
+  # - CLAUDE_CODE_HARNESS_LANG=en for English
+  # - CLAUDE_CODE_HARNESS_LANG=ja for Japanese
   if [ -n "${CLAUDE_CODE_HARNESS_LANG:-}" ]; then
     echo "${CLAUDE_CODE_HARNESS_LANG}"
     return 0
@@ -53,10 +53,10 @@ detect_lang() {
 LANG_CODE="$(detect_lang)"
 
 # ===== Work Mode Detection =====
-# /work (auto-iteration) 実行中は特定の確認プロンプトをスキップ
-# セキュリティ: 有効期限（24時間）でバイパスを制限
-# Note: CWD は後で JSON から取得されるため、ここでは初期化のみ
-# 後方互換: ultrawork-active.json も work-active.json として検出
+# Skip certain confirmation prompts while /work (auto-iteration) is running
+# Security: bypass is limited by a TTL (24 hours)
+# Note: CWD is fetched from JSON later; this block is initialization only
+# Backward compat: ultrawork-active.json is also detected as work-active.json
 
 WORK_MODE="false"
 WORK_BYPASS_RM_RF="false"
@@ -64,14 +64,14 @@ WORK_BYPASS_GIT_PUSH="false"
 WORK_MAX_AGE_HOURS=24
 
 # ===== Codex Mode Detection =====
-# --codex モード時は Claude は PM 役であり、Edit/Write は禁止
-# （実装は Codex Worker に委譲）
-# work-active.json の codex_mode: true で検出
+# In --codex mode Claude acts as the PM, and Edit/Write is prohibited
+# (implementation is delegated to Codex Worker)
+# Detected via codex_mode: true in work-active.json
 CODEX_MODE="false"
 
 # ===== Breezing Role Guard =====
-# Agent Teams Teammate のロールベースアクセス制御
-# session_id / agent_id でセッションを識別し、ロールに応じて Write/Edit を制限
+# Role-based access control for Agent Teams Teammates
+# Identifies sessions by session_id / agent_id and restricts Write/Edit based on role
 BREEZING_ROLE=""
 BREEZING_OWNS=""
 SESSION_ID=""
@@ -80,17 +80,17 @@ AGENT_TYPE=""
 BREEZING_ROLE_KEY=""
 
 # ===== Breezing-Codex Mode Detection =====
-# breezing-codex モード (impl_mode: "codex") 時は直接の Write/Edit をブロック
-# （実装は codex exec (CLI) 経由で Codex Implementer に委譲）
+# In breezing-codex mode (impl_mode: "codex"), direct Write/Edit is blocked
+# (implementation is delegated to Codex Implementer via codex exec CLI)
 BREEZING_CODEX_MODE="false"
 
-# Work モード検出関数（CWD 取得後に呼び出す）
-# work-active.json を優先、後方互換で ultrawork-active.json もフォールバック
+# Work mode detection function (called after CWD is available)
+# Prefers work-active.json; falls back to ultrawork-active.json for backward compatibility
 check_work_mode() {
   local cwd_path="$1"
   local active_file="${cwd_path}/.claude/state/work-active.json"
 
-  # 後方互換: work-active.json がなければ ultrawork-active.json を試行
+  # Backward compat: fall back to ultrawork-active.json if work-active.json is absent
   if [ ! -f "$active_file" ]; then
     active_file="${cwd_path}/.claude/state/ultrawork-active.json"
   fi
@@ -106,16 +106,16 @@ check_work_mode() {
   is_active=$(jq -r '.active // false' "$active_file" 2>/dev/null || echo "false")
   [ "$is_active" != "true" ] && return
 
-  # 有効期限チェック（started_at から 24 時間以内か）
+  # TTL check (within 24 hours of started_at)
   local started_at
   started_at=$(jq -r '.started_at // empty' "$active_file" 2>/dev/null)
   [ -z "$started_at" ] && return
 
-  # ISO8601 パース（macOS/Linux 両対応）
-  # Z suffix を除去してパース
+  # ISO8601 parsing (compatible with both macOS and Linux)
+  # Strip Z suffix before parsing
   local started_clean="${started_at%%Z*}"
-  started_clean="${started_clean%%+*}"  # タイムゾーンオフセットも除去
-  started_clean="${started_clean%%.*}"  # ミリ秒も除去
+  started_clean="${started_clean%%+*}"  # also strip timezone offset
+  started_clean="${started_clean%%.*}"  # also strip milliseconds
 
   local started_epoch=0
   local current_epoch
@@ -133,7 +133,7 @@ check_work_mode() {
     return
   fi
 
-  # 未来時刻チェック（改ざん防止）
+  # Future-time check (tamper prevention)
   if [ "$started_epoch" -gt "$current_epoch" ]; then
     echo "[work] Warning: started_at is in the future, guard bypass disabled" >&2
     return
@@ -164,12 +164,12 @@ check_work_mode() {
   fi
 }
 
-# Codex モード検出関数（CWD 取得後に呼び出す）
-# work-active.json に codex_mode: true がある場合、Claude の Edit/Write をブロック
-# 前提: WORK_MODE が true かつ TTL が有効な場合のみ CODEX_MODE を設定
-# Performance: check_work_mode でキャッシュ済みの値を優先使用
+# Codex mode detection function (called after CWD is available)
+# Blocks Claude's Edit/Write when codex_mode: true is set in work-active.json
+# Prerequisite: CODEX_MODE is set only when WORK_MODE is true and TTL is valid
+# Performance: prefer cached value from check_work_mode
 check_codex_mode() {
-  # Work モードが有効でない場合はスキップ（TTL 切れ等を考慮）
+  # Skip if work mode is not active (e.g. TTL expired)
   [ "$WORK_MODE" != "true" ] && return
 
   # Use cached value from check_work_mode if available (avoids re-reading file)
@@ -182,7 +182,7 @@ check_codex_mode() {
   local cwd_path="$1"
   local active_file="${cwd_path}/.claude/state/work-active.json"
 
-  # 後方互換: work-active.json がなければ ultrawork-active.json を試行
+  # Backward compat: fall back to ultrawork-active.json if work-active.json is absent
   if [ ! -f "$active_file" ]; then
     active_file="${cwd_path}/.claude/state/ultrawork-active.json"
   fi
@@ -207,8 +207,8 @@ except:
   [ "$is_codex" = "true" ] && CODEX_MODE="true"
 }
 
-# Breezing ロール検出関数（CWD + SESSION_ID/AGENT_ID 取得後に呼び出す）
-# .claude/state/breezing-session-roles.json から role を検索
+# Breezing role detection function (called after CWD and SESSION_ID/AGENT_ID are available)
+# Looks up the role from .claude/state/breezing-session-roles.json
 check_breezing_role() {
   local cwd_path="$1"
   local roles_file="${cwd_path}/.claude/state/breezing-session-roles.json"
@@ -236,8 +236,8 @@ check_breezing_role() {
   done
 }
 
-# Breezing-Codex モード検出関数（CWD 取得後に呼び出す）
-# breezing-active.json に impl_mode: "codex" がある場合、直接の Write/Edit をブロック
+# Breezing-Codex mode detection function (called after CWD is available)
+# Blocks direct Write/Edit when impl_mode: "codex" is set in breezing-active.json
 check_breezing_codex_mode() {
   local cwd_path="$1"
   local active_file="${cwd_path}/.claude/state/breezing-active.json"
@@ -269,21 +269,21 @@ except:
   [ "$is_codex" = "true" ] && BREEZING_CODEX_MODE="true"
 }
 
-# Breezing ロール登録 Write の検出と処理
-# Teammate の最初の Write (breezing-role-*.json) で session_id / agent_id → role を登録
+# Detect and handle Breezing role registration Writes
+# Registers session_id / agent_id → role on the Teammate's first Write to breezing-role-*.json
 try_register_breezing_role() {
   local file_path="$1"
   local cwd_path="$2"
   local roles_file="${cwd_path}/.claude/state/breezing-session-roles.json"
 
-  # breezing-role-*.json への Write のみ対象
+  # Only target Writes to breezing-role-*.json
   BASENAME_ROLE="${file_path##*/}"
   case "$BASENAME_ROLE" in
     breezing-role-*.json) ;;
     *) return 1 ;;
   esac
 
-  # パスが .claude/state/ 配下であることを確認
+  # Verify the path is under .claude/state/
   case "$file_path" in
     .claude/state/breezing-role-*.json|*/.claude/state/breezing-role-*.json) ;;
     *) return 1 ;;
@@ -295,7 +295,7 @@ try_register_breezing_role() {
     return 1
   fi
 
-  # tool_input.content からロール情報を抽出
+  # Extract role information from tool_input.content
   local content role owns
   content=$(echo "$INPUT" | jq -r '.tool_input.content // empty' 2>/dev/null)
   [ -z "$content" ] && return 1
@@ -303,7 +303,7 @@ try_register_breezing_role() {
   role=$(echo "$content" | jq -r '.role // empty' 2>/dev/null)
   [ -z "$role" ] && return 1
 
-  # セキュリティ: role は既知の値のみ許可
+  # Security: only allow known role values
   case "$role" in
     reviewer|implementer|lead) ;;
     *) return 1 ;;
@@ -311,7 +311,7 @@ try_register_breezing_role() {
 
   owns=$(echo "$content" | jq -c '.owns // []' 2>/dev/null || echo '[]')
 
-  # session_id → role マッピングを登録
+  # Register session_id → role mapping
   mkdir -p "${cwd_path}/.claude/state" 2>/dev/null || true
 
   if [ ! -f "$roles_file" ]; then
@@ -355,18 +355,18 @@ msg() {
     return 0
   fi
 
-  # ja (default)
+  # ja (default) — kept as English equivalents for consistency
   case "$key" in
-    deny_path_traversal) echo "ブロック: パストラバーサルの疑い（file_path: $arg）" ;;
-    ask_write_outside_project) echo "確認: プロジェクト外への書き込み（file_path: $arg）" ;;
-    deny_protected_path) echo "ブロック: 保護対象パスへの操作（path: $arg）" ;;
-    deny_sudo) echo "ブロック: sudo はフック経由では許可していません" ;;
-    ask_git_push) echo "確認: git push を実行しようとしています（command: $arg）" ;;
-    ask_rm_rf) echo "確認: rm -rf を実行しようとしています（command: $arg）" ;;
-    deny_git_commit_no_review) echo "ブロック: コミット前に /harness-review を実行してください。レビュー後、再度 git commit を実行できます。" ;;
-    deny_codex_mode) echo "[Codex Mode] --codex モードでは Claude は PM 役です。直接の Edit/Write は禁止されています。実装は codex exec (CLI) 経由で Codex Worker に委譲してください。" ;;
-    deny_breezing_codex_mode) echo "[Breezing-Codex] codex 実装モードでは直接の Edit/Write は禁止されています。実装は codex exec (CLI) 経由で行ってください。" ;;
-    deny_codex_mcp) echo "ブロック: Codex MCP は廃止されました。代わりに 'codex exec' (Bash) を使用してください。詳細: .claude/rules/codex-cli-only.md" ;;
+    deny_path_traversal) echo "Blocked: path traversal detected (file_path: $arg)" ;;
+    ask_write_outside_project) echo "Confirm: writing outside the project directory (file_path: $arg)" ;;
+    deny_protected_path) echo "Blocked: operation on a protected path (path: $arg)" ;;
+    deny_sudo) echo "Blocked: sudo is not allowed via hooks" ;;
+    ask_git_push) echo "Confirm: about to run git push (command: $arg)" ;;
+    ask_rm_rf) echo "Confirm: about to run rm -rf (command: $arg)" ;;
+    deny_git_commit_no_review) echo "Blocked: run /harness-review before committing. After the review, run git commit again." ;;
+    deny_codex_mode) echo "[Codex Mode] Claude is acting as PM in --codex mode. Direct Edit/Write is prohibited. Delegate implementation to Codex Worker via codex exec (CLI)." ;;
+    deny_breezing_codex_mode) echo "[Breezing-Codex] Direct Edit/Write is prohibited in codex implementation mode. Use codex exec (CLI) instead." ;;
+    deny_codex_mcp) echo "Blocked: Codex MCP is deprecated. Use 'codex exec' (Bash) instead. See .claude/rules/codex-cli-only.md" ;;
     *) echo "$key $arg" ;;
   esac
 }
@@ -424,7 +424,7 @@ fi
 
 [ -z "$TOOL_NAME" ] && exit 0
 
-# ===== Work モード検出実行（CWD 取得後） =====
+# ===== Execute work mode detection (after CWD is available) =====
 if [ -n "$CWD" ]; then
   check_work_mode "$CWD"
   check_codex_mode "$CWD"
@@ -432,7 +432,7 @@ if [ -n "$CWD" ]; then
   check_breezing_codex_mode "$CWD"
 fi
 
-# ===== Cost Control: セッション単位でツール呼び出し数を追跡 =====
+# ===== Cost Control: track tool call count per session =====
 CONFIG_FILE=".claude-code-harness.config.yaml"
 STATE_DIR=".claude/state"
 COST_STATE_FILE="$STATE_DIR/cost-state.json"
@@ -440,7 +440,7 @@ COST_STATE_FILE="$STATE_DIR/cost-state.json"
 check_cost_control() {
   local tool="$1"
 
-  # cost_control.enabled チェック
+  # Check cost_control.enabled
   if [ ! -f "$CONFIG_FILE" ]; then
     return 0
   fi
@@ -451,7 +451,7 @@ check_cost_control() {
     return 0
   fi
 
-  # cost-state.json がなければ初期化
+  # Initialize cost-state.json if it does not exist
   # Security: refuse if state dir or file is a symlink (prevents symlink-based overwrites)
   if [ -L "$STATE_DIR" ] || [ -L "$COST_STATE_FILE" ]; then
     return 0
@@ -462,60 +462,60 @@ check_cost_control() {
   fi
 
   if command -v jq >/dev/null 2>&1; then
-    # 現在のカウントを取得
+    # Get current counts
     local total_calls edit_calls bash_calls
     total_calls=$(jq -r '.total_tool_calls // 0' "$COST_STATE_FILE" 2>/dev/null || echo 0)
     edit_calls=$(jq -r '.edit_calls // 0' "$COST_STATE_FILE" 2>/dev/null || echo 0)
     bash_calls=$(jq -r '.bash_calls // 0' "$COST_STATE_FILE" 2>/dev/null || echo 0)
 
-    # 設定から上限を取得
+    # Get limits from configuration
     local total_limit edit_limit bash_limit warn_percent
     total_limit=$(grep -A5 "session_limits:" "$CONFIG_FILE" 2>/dev/null | grep "total_tool_calls:" | awk '{print $2}' || echo 500)
     edit_limit=$(grep -A5 "session_limits:" "$CONFIG_FILE" 2>/dev/null | grep "edit_calls:" | awk '{print $2}' || echo 100)
     bash_limit=$(grep -A5 "session_limits:" "$CONFIG_FILE" 2>/dev/null | grep "bash_calls:" | awk '{print $2}' || echo 200)
     warn_percent=$(grep "warn_threshold_percent:" "$CONFIG_FILE" 2>/dev/null | awk '{print $2}' || echo 80)
 
-    # カウントをインクリメント
+    # Increment counts
     total_calls=$((total_calls + 1))
     case "$tool" in
       Write|Edit) edit_calls=$((edit_calls + 1)) ;;
       Bash) bash_calls=$((bash_calls + 1)) ;;
     esac
 
-    # cost-state.json を更新
+    # Update cost-state.json
     jq --argjson t "$total_calls" --argjson e "$edit_calls" --argjson b "$bash_calls" \
       '.total_tool_calls = $t | .edit_calls = $e | .bash_calls = $b' \
       "$COST_STATE_FILE" > "${COST_STATE_FILE}.tmp" && mv "${COST_STATE_FILE}.tmp" "$COST_STATE_FILE"
 
-    # 上限チェック
+    # Limit check
     if [ "$total_calls" -ge "$total_limit" ]; then
-      echo "[Cost Control] セッションのツール呼び出し上限 ($total_limit) に達しました。新しいセッションを開始してください。"
+      echo "[Cost Control] Session tool call limit ($total_limit) reached. Please start a new session."
       return 1
     fi
 
     case "$tool" in
       Write|Edit)
         if [ "$edit_calls" -ge "$edit_limit" ]; then
-          echo "[Cost Control] Edit/Write 呼び出し上限 ($edit_limit) に達しました。"
+          echo "[Cost Control] Edit/Write call limit ($edit_limit) reached."
           return 1
         fi
         ;;
       Bash)
         if [ "$bash_calls" -ge "$bash_limit" ]; then
-          echo "[Cost Control] Bash 呼び出し上限 ($bash_limit) に達しました。"
+          echo "[Cost Control] Bash call limit ($bash_limit) reached."
           return 1
         fi
         ;;
     esac
 
-    # 警告閾値チェック（additionalContext で警告）
+    # Warning threshold check (warn via additionalContext)
     local warn_total=$((total_limit * warn_percent / 100))
     local warn_edit=$((edit_limit * warn_percent / 100))
     local warn_bash=$((bash_limit * warn_percent / 100))
 
     local warnings=""
     if [ "$total_calls" -ge "$warn_total" ] && [ "$total_calls" -lt "$total_limit" ]; then
-      warnings="${warnings}[Cost Warning] 総ツール呼び出し: ${total_calls}/${total_limit} (${warn_percent}%超過)\n"
+      warnings="${warnings}[Cost Warning] Total tool calls: ${total_calls}/${total_limit} (exceeds ${warn_percent}%)\n"
     fi
     case "$tool" in
       Write|Edit)
@@ -532,14 +532,14 @@ check_cost_control() {
 
     if [ -n "$warnings" ]; then
       echo -e "$warnings"
-      return 2  # 警告あり（ブロックではない）
+      return 2  # warning present (not a block)
     fi
   fi
 
   return 0
 }
 
-# コスト制御チェックは emit_deny 定義後に実行（後方で実行）
+# Cost control check is run after emit_deny is defined (executed below)
 
 emit_decision() {
   local decision="$1"
@@ -589,45 +589,45 @@ emit_deny() {
 }
 emit_ask() { emit_decision "ask" "$1"; }
 
-# ===== Codex MCP ブロック（廃止済み） =====
-# MCP サーバーは削除済み。テキスト修正をすり抜けた場合のフェイルセーフ。
+# ===== Codex MCP block (deprecated) =====
+# MCP server has been removed. This is a failsafe in case the text fix is bypassed.
 if [[ "$TOOL_NAME" == mcp__codex__* ]]; then
   emit_deny "$(msg deny_codex_mcp)"
   exit 0
 fi
 
-# ===== コスト制御チェック実行 =====
+# ===== Execute cost control check =====
 COST_CHECK_MSG=""
 COST_CHECK_MSG=$(check_cost_control "$TOOL_NAME")
 COST_CHECK_RESULT=$?
 
 if [ "$COST_CHECK_RESULT" -eq 1 ]; then
-  # 上限到達 → deny
+  # Limit reached → deny
   emit_deny "$COST_CHECK_MSG"
   exit 0
 fi
-# 警告 (result=2) の場合は後続処理で additionalContext に含める
+# For warnings (result=2), include them in additionalContext in subsequent processing
 
-# ===== additionalContext ガイドライン生成 (Claude Code v2.1.9+) =====
-# Write/Edit 操作時にファイルパスに応じたガイドラインを返す
+# ===== Generate additionalContext guidelines (Claude Code v2.1.9+) =====
+# Return guidelines based on the file path for Write/Edit operations
 
-TEST_QUALITY_GUIDELINE="【テスト品質ガイドライン】
-- it.skip() / test.skip() への変更禁止
-- アサーションの削除・緩和禁止
-- eslint-disable コメントの追加禁止"
+TEST_QUALITY_GUIDELINE="[Test Quality Guidelines]
+- Do not change tests to it.skip() / test.skip()
+- Do not remove or weaken assertions
+- Do not add eslint-disable comments"
 
-IMPL_QUALITY_GUIDELINE="【実装品質ガイドライン】
-- テスト期待値のハードコード禁止
-- スタブ・モック・空実装禁止
-- 意味のあるロジックを実装すること"
+IMPL_QUALITY_GUIDELINE="[Implementation Quality Guidelines]
+- Do not hardcode test expected values
+- Do not use stubs, mocks, or empty implementations
+- Implement meaningful logic"
 
-# ファイルパスに応じたガイドラインを返す
-# 引数: $1 = ファイルパス（相対または絶対）
-# 戻り値: ガイドライン文字列（該当なしの場合は空）
+# Return guidelines based on file path
+# Argument: $1 = file path (relative or absolute)
+# Returns: guideline string (empty if no match)
 get_guideline_for_path() {
   local path="$1"
 
-  # テストファイルパターン
+  # Test file patterns
   case "$path" in
     tests/*|test/*|__tests__/*|*.spec.ts|*.spec.tsx|*.spec.js|*.spec.jsx|*.test.ts|*.test.tsx|*.test.js|*.test.jsx)
       echo "$TEST_QUALITY_GUIDELINE"
@@ -635,7 +635,7 @@ get_guideline_for_path() {
       ;;
   esac
 
-  # 実装ファイルパターン
+  # Implementation file patterns
   case "$path" in
     src/*.ts|src/*.tsx|src/*.js|src/*.jsx|lib/*.ts|lib/*.tsx|lib/*.js|lib/*.jsx)
       echo "$IMPL_QUALITY_GUIDELINE"
@@ -643,13 +643,13 @@ get_guideline_for_path() {
       ;;
   esac
 
-  # 該当なし
+  # No match
   echo ""
 }
 
-# additionalContext 付きで明示的に "allow" を返す
-# permissionDecision を省略すると曖昧な動作になり bypass mode でもプロンプトが出る
-# permissionDecision: "allow" で明示的に許可することでプロンプトを回避
+# Explicitly return "allow" with additionalContext
+# Omitting permissionDecision causes ambiguous behavior and shows a prompt even in bypass mode
+# Explicitly setting permissionDecision: "allow" avoids the prompt
 emit_approve_with_context() {
   local context="$1"
   if [ -n "$context" ]; then
@@ -663,7 +663,7 @@ print(json.dumps({"hookSpecificOutput":{"hookEventName":"PreToolUse","permission
 '
     fi
   fi
-  # 空の context の場合は何も出力しない（デフォルト動作）
+  # Output nothing for empty context (default behavior)
 }
 
 is_path_traversal() {
@@ -750,37 +750,37 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
     fi
   fi
 
-  # ===== Codex Mode: PM は Edit/Write 禁止（Plans.md は許可） =====
+  # ===== Codex Mode: Edit/Write prohibited for PM (Plans.md is allowed) =====
   if [ "$CODEX_MODE" = "true" ]; then
-    # Plans.md の状態マーカー更新は許可（PM の正当な操作）
-    # パターンを厳格化: 正確に "Plans.md" で終わる場合のみ許可
-    # シンボリックリンクは拒否（セキュリティ対策）
+    # Allow status marker updates to Plans.md (legitimate PM operation)
+    # Stricter pattern: allow only paths that end exactly with "Plans.md"
+    # Symlinks are denied (security measure)
     if [ -L "$FILE_PATH" ]; then
       emit_deny "[Codex Mode] Symbolic links are not allowed for Plans.md"
       exit 0
     fi
-    # 関数外なので local は使わない
+    # Cannot use local outside a function
     BASENAME_FILE="${FILE_PATH##*/}"
     if [ "$BASENAME_FILE" = "Plans.md" ]; then
-      : # 許可（正確に Plans.md のみ）
+      : # Allow (exactly Plans.md only)
     else
       emit_deny "$(msg deny_codex_mode)"
       exit 0
     fi
   fi
 
-  # ===== Breezing-Codex Mode: 直接の Edit/Write をブロック =====
+  # ===== Breezing-Codex Mode: block direct Edit/Write =====
   if [ "$BREEZING_CODEX_MODE" = "true" ]; then
     if [ -L "$FILE_PATH" ]; then
       emit_deny "[Breezing-Codex] Symbolic links are not allowed"
       exit 0
     fi
-    # 許可リスト: breezing 関連 state, review state, *.md (ドキュメント)
-    # セキュリティ: ultrawork-active.json 等の制御ファイルは許可しない
+    # Allow list: breezing-related state, review state, *.md (documentation)
+    # Security: do not allow control files such as ultrawork-active.json
     case "$FILE_PATH" in
-      .claude/state/breezing*|*/.claude/state/breezing*) ;; # breezing state は許可
-      .claude/state/review*|*/.claude/state/review*) ;; # review state は許可
-      *.md) ;; # ドキュメントファイルは許可
+      .claude/state/breezing*|*/.claude/state/breezing*) ;; # breezing state is allowed
+      .claude/state/review*|*/.claude/state/review*) ;; # review state is allowed
+      *.md) ;; # documentation files are allowed
       *)
         emit_deny "$(msg deny_breezing_codex_mode)"
         exit 0
@@ -788,50 +788,50 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
     esac
   fi
 
-  # ===== Breezing Role Guard: Teammate のロールベースアクセス制御 =====
+  # ===== Breezing Role Guard: role-based access control for Teammates =====
   if { [ -n "$SESSION_ID" ] || [ -n "$AGENT_ID" ]; } && [ -n "$CWD" ]; then
-    # ロール登録 Write の検出（breezing-role-*.json への Write は登録処理）
+    # Detect role registration Writes (Writes to breezing-role-*.json are handled as registration)
     if try_register_breezing_role "$FILE_PATH" "$CWD" 2>/dev/null; then
-      exit 0  # 登録 Write は許可
+      exit 0  # Allow registration Writes
     fi
 
-    # Reviewer: Write/Edit をブロック（.claude/state/ は許可）
+    # Reviewer: block Write/Edit (.claude/state/ is allowed)
     if [ "$BREEZING_ROLE" = "reviewer" ]; then
       case "$FILE_PATH" in
-        .claude/state/*|*/.claude/state/*) ;; # state ファイルは許可
+        .claude/state/*|*/.claude/state/*) ;; # state files are allowed
         *)
-          emit_deny "[Breezing] Reviewer は Read-only です。コードの修正は Implementer の責務です。"
+          emit_deny "[Breezing] Reviewer is read-only. Code modifications are the Implementer's responsibility."
           exit 0
           ;;
       esac
     fi
 
-    # Implementer: owns 外のファイルへの Write/Edit をブロック
+    # Implementer: block Write/Edit to files outside owns
     if [ "$BREEZING_ROLE" = "implementer" ] && [ -n "$BREEZING_OWNS" ] && [ "$BREEZING_OWNS" != "null" ]; then
-      # .claude/state/ は常に許可
+      # Always allow .claude/state/
       case "$FILE_PATH" in
-        .claude/state/*|*/.claude/state/*) ;; # state ファイルは許可
-        *.md) ;; # ドキュメントファイルは許可
+        .claude/state/*|*/.claude/state/*) ;; # state files are allowed
+        *.md) ;; # documentation files are allowed
         *)
-          # owns パスとのマッチング
+          # Match against owns paths
           BREEZING_FILE_ALLOWED="false"
 
-          # CWD からの相対パスを計算（REL_PATH はこの時点で未定義のため）
+          # Compute relative path from CWD (REL_PATH is not defined at this point)
           BREEZING_REL_PATH="$FILE_PATH"
           if [ -n "$CWD" ]; then
             BREEZING_REL_PATH="${FILE_PATH#${CWD}/}"
           fi
 
-          # jq で owns 配列を取得してマッチング
+          # Fetch owns array via jq and match
           if [ -f "${CWD}/.claude/state/breezing-session-roles.json" ]; then
             ROLE_KEY="${BREEZING_ROLE_KEY:-$SESSION_ID}"
             while IFS= read -r OWNED_PATTERN; do
               [ -z "$OWNED_PATTERN" ] && continue
-              # 絶対パスでマッチング
+              # Match by absolute path
               case "$FILE_PATH" in
                 $OWNED_PATTERN*) BREEZING_FILE_ALLOWED="true"; break ;;
               esac
-              # 相対パスでもマッチング
+              # Also match by relative path
               case "$BREEZING_REL_PATH" in
                 $OWNED_PATTERN*) BREEZING_FILE_ALLOWED="true"; break ;;
               esac
@@ -840,7 +840,7 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
           fi
 
           if [ "$BREEZING_FILE_ALLOWED" = "false" ]; then
-            emit_deny "[Breezing] このファイルは owns 範囲外です: $FILE_PATH"
+            emit_deny "[Breezing] This file is outside the owns scope: $FILE_PATH"
             exit 0
           fi
           ;;
@@ -865,7 +865,7 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
   REL_PATH="$NORM_FILE_PATH"
   if [ -n "$NORM_CWD" ] && is_path_under "$NORM_FILE_PATH" "$NORM_CWD"; then
     # Remove the CWD prefix to get relative path
-    # 関数外なので local は使わない
+    # Cannot use local outside a function
     CWD_WITH_SLASH="${NORM_CWD%/}/"
     if [[ "$NORM_FILE_PATH" == "$CWD_WITH_SLASH"* ]]; then
       REL_PATH="${NORM_FILE_PATH#$CWD_WITH_SLASH}"
@@ -877,7 +877,7 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
     exit 0
   fi
 
-  # ===== LSP/Skills ゲート (Phase0+) =====
+  # ===== LSP/Skills Gate (Phase0+) =====
   STATE_DIR=".claude/state"
   SESSION_FILE="$STATE_DIR/session.json"
   TOOLING_POLICY_FILE="$STATE_DIR/tooling-policy.json"
@@ -885,37 +885,37 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
   SKILLS_CONFIG_FILE="$STATE_DIR/skills-config.json"
   SESSION_SKILLS_USED_FILE="$STATE_DIR/session-skills-used.json"
 
-  # デフォルト除外パターン（policy file がなくても適用）
+  # Default exclusion patterns (applied even without a policy file)
   is_default_excluded() {
     local path="$1"
-    # .md, .txt, .json ファイルは常に除外（ドキュメント・設定ファイル）
+    # Always exclude .md, .txt, .json files (documentation and config files)
     case "$path" in
       *.md|*.txt|*.json) return 0 ;;
     esac
-    # .claude/ 配下は常に除外
+    # Always exclude paths under .claude/
     case "$path" in
       .claude/*) return 0 ;;
     esac
-    # docs/, templates/, benchmarks/ は常に除外
+    # Always exclude docs/, templates/, benchmarks/
     case "$path" in
       docs/*|templates/*|benchmarks/*) return 0 ;;
     esac
     return 1
   }
 
-  # 除外パスチェック関数
+  # Excluded path check function
   is_excluded_path() {
     local path="$1"
     local policy_file="$2"
 
-    # まずデフォルト除外をチェック
+    # Check default exclusions first
     is_default_excluded "$path" && return 0
 
-    # policy file がなければデフォルトのみで判定終了
+    # If no policy file, decision is based on defaults only
     [ ! -f "$policy_file" ] && return 1
 
     if command -v jq >/dev/null 2>&1; then
-      # skills_gate.exclude_paths をチェック
+      # Check skills_gate.exclude_paths
       local exclude_paths
       exclude_paths=$(jq -r '.skills_gate.exclude_paths[]? // empty' "$policy_file" 2>/dev/null)
 
@@ -932,7 +932,7 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
         esac
       done <<< "$exclude_paths"
 
-      # exclude_extensions をチェック
+      # Check exclude_extensions
       local exclude_exts
       exclude_exts=$(jq -r '.skills_gate.exclude_extensions[]? // empty' "$policy_file" 2>/dev/null)
       local file_ext=".${path##*.}"
@@ -946,18 +946,18 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
     return 1
   }
 
-  # ===== Skills Gate: セッション単位でスキル使用をチェック =====
-  # skills-config.json が存在し、enabled=true の場合のみゲートを適用
+  # ===== Skills Gate: check skill usage per session =====
+  # Apply the gate only when skills-config.json exists and enabled=true
   if [ -f "$SKILLS_CONFIG_FILE" ]; then
     if command -v jq >/dev/null 2>&1; then
       SKILLS_GATE_ACTIVE=$(jq -r '.enabled // false' "$SKILLS_CONFIG_FILE" 2>/dev/null || echo "false")
       
       if [ "$SKILLS_GATE_ACTIVE" = "true" ]; then
-        # 除外パスチェック
+        # Excluded path check
         if is_excluded_path "$REL_PATH" "$SKILLS_POLICY_FILE"; then
-          : # 除外パス → スキップ
+          : # Excluded path → skip
         else
-          # session-skills-used.json をチェック
+          # Check session-skills-used.json
           SKILL_USED_THIS_SESSION="false"
           if [ -f "$SESSION_SKILLS_USED_FILE" ]; then
             USED_COUNT=$(jq -r '.used | length' "$SESSION_SKILLS_USED_FILE" 2>/dev/null || echo "0")
@@ -967,18 +967,18 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
           fi
           
           if [ "$SKILL_USED_THIS_SESSION" = "false" ]; then
-            # スキル未使用 → ブロック
+            # Skill not used → block
             AVAILABLE_SKILLS=$(jq -r '.skills // [] | join(", ")' "$SKILLS_CONFIG_FILE" 2>/dev/null || echo "impl, harness-review")
-            DENY_MSG="[Skills Gate] コード編集前にスキルを使用してください。
+            DENY_MSG="[Skills Gate] Use a skill before editing code.
 
-このプロジェクトでは Skills Gate が有効です。
-コード変更前に Skill ツールで適切なスキルを呼び出してください。
+Skills Gate is enabled in this project.
+Call the appropriate skill with the Skill tool before code changes.
 
-利用可能なスキル: ${AVAILABLE_SKILLS}
+Available skills: ${AVAILABLE_SKILLS}
 
-例: Skill ツールで 'impl' や 'harness-review' を呼び出す
+Example: call 'impl' or 'harness-review' using the Skill tool.
 
-スキルを使用後、再度 Write/Edit を実行してください。"
+After using the skill, run Write/Edit again."
             emit_deny "$DENY_MSG"
             exit 0
           fi
@@ -987,7 +987,7 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
     fi
   fi
 
-  # ===== LSP Gate: セマンティック変更時にLSP使用を推奨 =====
+  # ===== LSP Gate: recommend LSP use for semantic changes =====
   if [ -f "$SESSION_FILE" ] && [ -f "$TOOLING_POLICY_FILE" ]; then
     if command -v jq >/dev/null 2>&1; then
       CURRENT_PROMPT_SEQ=$(jq -r '.prompt_seq // 0' "$SESSION_FILE" 2>/dev/null || echo 0)
@@ -1000,14 +1000,14 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
 
       if [ "$INTENT" = "semantic" ] && [ "$LSP_AVAILABLE" = "true" ] && [ "$LSP_AVAILABLE_FOR_EXT" = "true" ]; then
         if [ "$LSP_LAST_USED_SEQ" != "$CURRENT_PROMPT_SEQ" ]; then
-          DENY_MSG="[LSP Policy] コード変更前にLSPツールを使って影響範囲を分析してください。
+          DENY_MSG="[LSP Policy] Use LSP tools to analyze the impact scope before code changes.
 
-推奨LSPツール:
-- Go-to-definition でシンボルの定義を確認
-- Find-references で使用箇所を確認
-- Diagnostics で型エラーを検出
+Recommended LSP tools:
+- Go-to-definition: verify symbol definitions
+- Find-references: check usage locations
+- Diagnostics: detect type errors
 
-LSPツールを使って変更の影響範囲を把握してから、再度 Write/Edit を実行してください。"
+Use LSP tools to understand the impact of your changes, then run Write/Edit again."
           emit_deny "$DENY_MSG"
           exit 0
         fi
@@ -1015,8 +1015,8 @@ LSPツールを使って変更の影響範囲を把握してから、再度 Writ
     fi
   fi
 
-  # ===== additionalContext 出力 (Claude Code v2.1.9+) =====
-  # すべてのガードを通過した場合、ファイルパスに応じたガイドラインを返す
+  # ===== additionalContext output (Claude Code v2.1.9+) =====
+  # Return guidelines based on file path when all guards have been passed
   GUIDELINE="$(get_guideline_for_path "$REL_PATH")"
   if [ -n "$GUIDELINE" ]; then
     emit_approve_with_context "$GUIDELINE"
@@ -1034,91 +1034,91 @@ if [ "$TOOL_NAME" = "Bash" ]; then
     exit 0
   fi
 
-  # ===== Breezing Role Guard: Bash コマンド制限 =====
+  # ===== Breezing Role Guard: Bash command restrictions =====
   if [ -n "$BREEZING_ROLE" ]; then
-    # Reviewer: 書き込み系 Bash コマンドをブロック
+    # Reviewer: block write-type Bash commands
     if [ "$BREEZING_ROLE" = "reviewer" ]; then
-      # 読み取り専用コマンド（cat, grep, ls, git status/diff/log, echo）は許可
-      # 書き込み系（リダイレクト、sed -i、tee、mv、cp、rm、git commit/push）はブロック
-      # 2>&1（stderr→stdout）は読み取り安全なので除外
+      # Allow read-only commands (cat, grep, ls, git status/diff/log, echo)
+      # Block write-type (redirects, sed -i, tee, mv, cp, rm, git commit/push)
+      # Exclude 2>&1 (stderr->stdout) as it is read-safe
       BREEZING_SANITIZED_CMD=$(echo "$COMMAND" | sed 's/2>&1//g; s/>&2//g')
       if echo "$BREEZING_SANITIZED_CMD" | grep -Eq '(>|>>|2>|&>|(^|[[:space:]])tee([[:space:]]|$)|sed[[:space:]]+-i)'; then
-        emit_deny "[Breezing] Reviewer は書き込み系 Bash コマンドを実行できません。"
+        emit_deny "[Breezing] Reviewer cannot execute write-type Bash commands."
         exit 0
       fi
       if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])(mv|cp|rm|mkdir|touch)[[:space:]]'; then
-        emit_deny "[Breezing] Reviewer はファイル操作コマンドを実行できません。"
+        emit_deny "[Breezing] Reviewer cannot execute file operation commands."
         exit 0
       fi
       if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+(commit|push|add|checkout|reset|rebase|merge|cherry-pick)([[:space:]]|$)'; then
-        emit_deny "[Breezing] Reviewer は git 変更コマンドを実行できません。"
+        emit_deny "[Breezing] Reviewer cannot execute git mutation commands."
         exit 0
       fi
     fi
 
-    # Implementer: git commit をブロック（コミットは Lead のみ）
+    # Implementer: block git commit (only Lead may commit)
     if [ "$BREEZING_ROLE" = "implementer" ]; then
       if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+commit([[:space:]]|$)'; then
-        emit_deny "[Breezing] Implementer は git commit を実行できません。コミットは Lead が完了ステージで一括実行します。"
+        emit_deny "[Breezing] Implementer cannot run git commit. Commits are performed by Lead in the finalization stage."
         exit 0
       fi
       if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+push([[:space:]]|$)'; then
-        emit_deny "[Breezing] Implementer は git push を実行できません。"
+        emit_deny "[Breezing] Implementer cannot run git push."
         exit 0
       fi
     fi
   fi
 
-  # ===== Breezing-Codex Mode: Bash での書き込み系コマンドを制限 =====
+  # ===== Breezing-Codex Mode: restrict write-type Bash commands =====
   if [ "$BREEZING_CODEX_MODE" = "true" ]; then
-    # リダイレクト・インプレース編集をブロック（2>&1 は読み取り安全なので除外）
+    # Block redirects and in-place edits (exclude 2>&1 as it is read-safe)
     BREEZING_CODEX_SANITIZED_CMD=$(echo "$COMMAND" | sed 's/2>&1//g; s/>&2//g')
     if echo "$BREEZING_CODEX_SANITIZED_CMD" | grep -Eq '(>|>>|2>|&>|(^|[[:space:]])tee([[:space:]]|$)|sed[[:space:]]+-i|awk[[:space:]]+-i[[:space:]]+inplace)'; then
       emit_deny "$(msg deny_breezing_codex_mode)"
       exit 0
     fi
-    # ファイル操作コマンドをブロック
+    # Block file operation commands
     if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])(mv|cp|rm|mkdir|touch)[[:space:]]'; then
       emit_deny "[Breezing-Codex] File operation commands are prohibited in codex impl mode."
       exit 0
     fi
-    # git 変更コマンドをブロック
+    # Block git mutation commands
     if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+(commit|push|add|checkout|reset|rebase|merge|cherry-pick|apply|am|switch|restore|stash|pull|clean|rm|mv|submodule)([[:space:]]|$)'; then
       emit_deny "[Breezing-Codex] Git mutation commands are prohibited in codex impl mode."
       exit 0
     fi
   fi
 
-  # ===== Codex Mode: PM は Bash での書き込み系コマンドも制限 =====
+  # ===== Codex Mode: PM also restricted from write-type Bash commands =====
   if [ "$CODEX_MODE" = "true" ]; then
-    # 書き込み系パターンを検出
-    # - リダイレクト: >, >>, 2>, &>
-    # - tee コマンド
-    # - sed -i（in-place 編集）
+    # Detect write-type patterns:
+    # - Redirects: >, >>, 2>, &>
+    # - tee command
+    # - sed -i (in-place edit)
     # - awk -i inplace
-    # 注意: 読み取り専用コマンド（cat, grep, ls, git status 等）は許可
-    # 注意: rm は後の rm -rf ホワイトリストで処理するためここでは除外
-    # 2>&1（stderr→stdout）は読み取り安全なので除外
+    # Note: allow read-only commands (cat, grep, ls, git status, etc.)
+    # Note: rm is handled by the rm -rf allowlist below; excluded here to avoid ordering issues
+    # Exclude 2>&1 (stderr->stdout) as it is read-safe
     CODEX_SANITIZED_CMD=$(echo "$COMMAND" | sed 's/2>&1//g; s/>&2//g')
     if echo "$CODEX_SANITIZED_CMD" | grep -Eq '(>|>>|2>|&>|(^|[[:space:]])tee([[:space:]]|$)|sed[[:space:]]+-i|awk[[:space:]]+-i[[:space:]]+inplace)'; then
       emit_deny "$(msg deny_codex_mode)"
       exit 0
     fi
-    # mv, cp は確認を求める（ask）
-    # rm は後の rm -rf ホワイトリストで処理（順序問題を回避）
+    # Ask for confirmation on mv, cp (ask)
+    # rm is handled by the rm -rf allowlist (to avoid ordering issues)
     if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])(mv|cp)[[:space:]]'; then
-      emit_ask "[Codex Mode] PM モードでファイル操作（mv/cp）を実行しますか？実装は Codex Worker に委譲を推奨します。"
+      emit_ask "[Codex Mode] Run file operation (mv/cp) in PM mode? Recommend delegating implementation to Codex Worker."
       exit 0
     fi
   fi
 
-  # ===== Commit Guard: レビュー完了前のコミットをブロック =====
+  # ===== Commit Guard: block commits before review is complete =====
   if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+commit([[:space:]]|$)'; then
     REVIEW_STATE_FILE=".claude/state/review-approved.json"
     REVIEW_RESULT_FILE=".claude/state/review-result.json"
     COMMIT_GUARD_ENABLED="true"
 
-    # 設定ファイルで無効化されているかチェック
+    # Check if disabled in configuration file
     CONFIG_FILE=".claude-code-harness.config.yaml"
     if [ -f "$CONFIG_FILE" ] && command -v grep >/dev/null 2>&1; then
       if grep -q "commit_guard:[[:space:]]*false" "$CONFIG_FILE" 2>/dev/null; then
@@ -1127,7 +1127,7 @@ if [ "$TOOL_NAME" = "Bash" ]; then
     fi
 
     if [ "$COMMIT_GUARD_ENABLED" = "true" ]; then
-      # レビュー承認状態をチェック
+      # Check review approval status
       REVIEW_APPROVED="false"
       if command -v jq >/dev/null 2>&1; then
         if [ -f "$REVIEW_RESULT_FILE" ]; then
@@ -1151,88 +1151,88 @@ if [ "$TOOL_NAME" = "Bash" ]; then
         exit 0
       fi
 
-      # コミット後に承認状態をクリア（次回コミット前に再レビューを要求）
-      # Note: これは PostToolUse で行うべきだが、ここでは警告のみ
+      # Clear approval state after commit (require re-review before next commit)
+      # Note: this should ideally be done in PostToolUse; warning only here
     fi
   fi
 
   if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+push([[:space:]]|$)'; then
-    # Work モード中はバイパス可能
+    # Can be bypassed during Work mode
     if [ "$WORK_MODE" = "true" ] && [ "$WORK_BYPASS_GIT_PUSH" = "true" ]; then
-      : # スキップ（自動承認）
+      : # Skip (auto-approve)
     else
       emit_ask "$(msg ask_git_push "$COMMAND")"
       exit 0
     fi
   fi
 
-  # rm の危険な再帰削除パターンを検出
-  # 注意: rm -rf / rm -r -f のみバイパス対象。それ以外のフラグ組み合わせは確認を求める
+  # Detect dangerous recursive deletion pattern for rm
+  # Note: only rm -rf / rm -r -f are bypass candidates; other flag combinations require confirmation
   if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])rm[[:space:]]+-[a-z]*r[a-z]*[[:space:]]' || \
      echo "$COMMAND" | grep -Eiq '(^|[[:space:]])rm[[:space:]]+--recursive'; then
 
-    # ===== Work ホワイトリスト方式（Codex 承認済み） =====
-    # デフォルト: 確認を求める
+    # ===== Work allowlist approach (Codex approved) =====
+    # Default: ask for confirmation
     RM_AUTO_APPROVE="false"
 
-    # Work モードが有効で rm_rf バイパスが許可されている場合のみチェック
+    # Check only when Work mode is enabled and rm_rf bypass is allowed
     if [ "$WORK_MODE" = "true" ] && [ "$WORK_BYPASS_RM_RF" = "true" ]; then
 
-      # 0. 許可されるフラグ形式のみ（rm -rf または rm -r -f）
-      # rm -rfv, rm -fr, rm --recursive など他の形式は確認を求める
+      # 0. Only allowed flag forms (rm -rf or rm -r -f)
+      # Other forms such as rm -rfv, rm -fr, rm --recursive require confirmation
       if ! echo "$COMMAND" | grep -Eq '(^|[[:space:]])rm[[:space:]]+(-rf|-r[[:space:]]+-f)[[:space:]]+'; then
-        : # 確認を求める（許可されないフラグ形式）
-      # 1. 危険なシェル構文を含む場合は確認（* ? $ ( ) { } ; | & < > \ `）
+        : # Ask for confirmation (disallowed flag form)
+      # 1. Ask if dangerous shell syntax is present (* ? $ ( ) { } ; | & < > \ `)
       elif echo "$COMMAND" | grep -Eq '[\*\?\$\(\)\{\};|&<>\\`]'; then
-        : # 確認を求める
-      # 2. sudo/xargs/find を含む場合は確認
+        : # Ask for confirmation
+      # 2. Ask if sudo/xargs/find is present
       elif echo "$COMMAND" | grep -Eiq '(sudo|xargs|find)[[:space:]]'; then
-        : # 確認を求める
+        : # Ask for confirmation
       else
-        # rm ターゲットを抽出（フラグ部分を除去）
+        # Extract rm target (strip flag portion)
         RM_TARGET=$(echo "$COMMAND" | sed -E 's/^.*rm[[:space:]]+(-rf|-r[[:space:]]+-f)[[:space:]]+//' | sed 's/[[:space:]].*//')
 
-        # 3. 単一ターゲットチェック（スペースで複数指定されていないか）
+        # 3. Single target check (not multiple targets separated by spaces)
         RM_TARGET_COUNT=$(echo "$COMMAND" | sed -E 's/^.*rm[[:space:]]+(-rf|-fr|-r[[:space:]]+-f|-f[[:space:]]+-r)[[:space:]]+//' | wc -w | tr -d ' ')
         if [ "$RM_TARGET_COUNT" -eq 1 ]; then
 
-          # 4. 相対パスのみ（/ や ~ で始まらない）
-          # 5. 親参照なし（.. を含まない）
-          # 6. 末尾スラッシュなし
-          # 7. パス区切りなし（basename のみ許可）
-          # 8. . や // を含まない
+          # 4. Relative paths only (must not start with / or ~)
+          # 5. No parent references (must not contain ..)
+          # 6. No trailing slash
+          # 7. No path separators (basename only)
+          # 8. Must not contain . or //
           case "$RM_TARGET" in
             /*|~*|*..*)
-              : # 確認を求める
+              : # Ask for confirmation
               ;;
             */)
-              : # 確認を求める（末尾スラッシュ）
+              : # Ask for confirmation (trailing slash)
               ;;
             *//*|*/.*)
-              : # 確認を求める（// や /. を含む）
+              : # Ask for confirmation (contains // or /.)
               ;;
             */*)
-              : # 確認を求める（パス区切りを含む）
+              : # Ask for confirmation (contains path separator)
               ;;
             .)
-              : # 確認を求める（カレントディレクトリ）
+              : # Ask for confirmation (current directory)
               ;;
             *)
-              # 9. 保護パスチェック
+              # 9. Protected path check
               case "$RM_TARGET" in
                 .git*|.env*|*secrets*|*keys*|*.pem|*.key|*id_rsa*|*id_ed25519*|.ssh*|.npmrc*|.aws*|.gitmodules*)
-                  : # 確認を求める（保護パス）
+                  : # Ask for confirmation (protected path)
                   ;;
                 *)
-                  # 10. ホワイトリストチェック
+                  # 10. Allowlist check
                   if [ -n "$CWD" ]; then
                     WORK_FILE="$CWD/.claude/state/work-active.json"
-                    # 後方互換: work-active.json がなければ ultrawork-active.json を試行
+                    # Backward compat: fall back to ultrawork-active.json if work-active.json is absent
                     if [ ! -f "$WORK_FILE" ]; then
                       WORK_FILE="$CWD/.claude/state/ultrawork-active.json"
                     fi
                     if [ -f "$WORK_FILE" ] && command -v jq >/dev/null 2>&1; then
-                      # allowed_rm_paths からホワイトリストを取得
+                      # Get allowlist from allowed_rm_paths
                       ALLOWED_PATHS=$(jq -r '.allowed_rm_paths[]? // empty' "$WORK_FILE" 2>/dev/null)
                       if [ -n "$ALLOWED_PATHS" ]; then
                         while IFS= read -r ALLOWED; do
@@ -1252,23 +1252,23 @@ if [ "$TOOL_NAME" = "Bash" ]; then
       fi
     fi
 
-    # 自動承認でない場合は確認を求める
+    # Ask for confirmation if not auto-approved
     if [ "$RM_AUTO_APPROVE" != "true" ]; then
-      # Codex モード時は PM 用のメッセージを追加
+      # Add PM-specific message in Codex mode
       if [ "$CODEX_MODE" = "true" ]; then
-        emit_ask "[Codex Mode] PM モードで rm -rf を実行しますか？実装は Codex Worker に委譲を推奨します。($COMMAND)"
+        emit_ask "[Codex Mode] Run rm -rf in PM mode? Recommend delegating implementation to Codex Worker. ($COMMAND)"
       else
         emit_ask "$(msg ask_rm_rf "$COMMAND")"
       fi
       exit 0
     fi
-    # else: 自動承認（何も出力せずに通過）
+    # else: auto-approve (pass through without output)
   fi
 
-  # ===== Codex Mode: 単純な rm（-r なし）も確認 =====
+  # ===== Codex Mode: also ask for confirmation on plain rm (no -r) =====
   if [ "$CODEX_MODE" = "true" ]; then
     if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])rm[[:space:]]'; then
-      emit_ask "[Codex Mode] PM モードで rm を実行しますか？実装は Codex Worker に委譲を推奨します。"
+      emit_ask "[Codex Mode] Run rm in PM mode? Recommend delegating implementation to Codex Worker."
       exit 0
     fi
   fi

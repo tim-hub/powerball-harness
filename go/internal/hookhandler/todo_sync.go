@@ -9,36 +9,26 @@ import (
 	"time"
 )
 
-// TodoSyncHandler は PostToolUse フックハンドラ（TodoWrite と Plans.md の同期）。
-// TodoWrite の内容を解析し、状態カウントを記録・イベントログに追記する。
-// work-mode で全タスクが完了した場合は追加警告を出力する。
 //
-// shell 版: scripts/todo-sync.sh
 type TodoSyncHandler struct {
-	// ProjectRoot はプロジェクトルートのパス。空の場合は cwd を使用する。
 	ProjectRoot string
 }
 
-// todoSyncInput は PostToolUse フックの stdin JSON。
 type todoSyncInput struct {
 	ToolName  string        `json:"tool_name"`
 	ToolInput todoWriteBody `json:"tool_input"`
 }
 
-// todoWriteBody は TodoWrite ツールの tool_input。
 type todoWriteBody struct {
 	Todos []todoItem `json:"todos"`
 }
 
-// todoItem は TodoWrite の 1 件エントリ。
 type todoItem struct {
 	Status string `json:"status"`
 }
 
-// todoSyncStateFile は同期状態の保存先ファイル名。
 const todoSyncStateFile = "todo-sync-state.json"
 
-// Handle は stdin からペイロードを読み取り、TodoWrite の状態を記録・通知する。
 func (h *TodoSyncHandler) Handle(r io.Reader, w io.Writer) error {
 	data, _ := io.ReadAll(r)
 
@@ -51,7 +41,6 @@ func (h *TodoSyncHandler) Handle(r io.Reader, w io.Writer) error {
 		return nil
 	}
 
-	// TodoWrite 以外はスキップ
 	if inp.ToolName != "TodoWrite" {
 		return nil
 	}
@@ -61,16 +50,11 @@ func (h *TodoSyncHandler) Handle(r io.Reader, w io.Writer) error {
 		return nil
 	}
 
-	// プロジェクトルートを決定。
-	// os.Getwd() ではなく resolveProjectRoot() を使うことで monorepo の
-	// サブディレクトリから実行した場合でも .claude/state が正しく解決される
-	// （git rev-parse --show-toplevel 対応）。
 	projectRoot := h.ProjectRoot
 	if projectRoot == "" {
 		projectRoot = resolveProjectRoot()
 	}
 
-	// Plans.md が存在しない場合はスキップ（bash 版の動作と一致）
 	if resolvePlansPath(projectRoot) == "" {
 		return nil
 	}
@@ -78,7 +62,6 @@ func (h *TodoSyncHandler) Handle(r io.Reader, w io.Writer) error {
 	stateDir := filepath.Join(projectRoot, ".claude", "state")
 	_ = os.MkdirAll(stateDir, 0700)
 
-	// カウント集計
 	var pending, inProgress, done int
 	for _, t := range todos {
 		switch t.Status {
@@ -91,23 +74,18 @@ func (h *TodoSyncHandler) Handle(r io.Reader, w io.Writer) error {
 		}
 	}
 
-	// 同期状態ファイルに保存
 	h.saveSyncState(stateDir, todos)
 
-	// イベントログに追記
 	h.appendEventLog(stateDir, pending, inProgress, done)
 
-	// work-mode 警告チェック
 	workWarning := h.checkWorkModeWarning(stateDir, pending, inProgress, done)
 
-	// additionalContext として同期情報を出力
-	ctx := fmt.Sprintf("[TodoSync] Plans.md と同期: TODO=%d, WIP=%d, done=%d%s",
+	ctx := fmt.Sprintf("[TodoSync] synced with Plans.md: TODO=%d, WIP=%d, done=%d%s",
 		pending, inProgress, done, workWarning)
 
 	return writeTodoSyncOutput(w, ctx)
 }
 
-// saveSyncState は todos の状態を JSON ファイルに保存する。
 func (h *TodoSyncHandler) saveSyncState(stateDir string, todos []todoItem) {
 	type syncState struct {
 		SyncedAt string     `json:"synced_at"`
@@ -124,12 +102,9 @@ func (h *TodoSyncHandler) saveSyncState(stateDir string, todos []todoItem) {
 	_ = os.WriteFile(filepath.Join(stateDir, todoSyncStateFile), data, 0600)
 }
 
-// appendEventLog はイベントログ JSONL ファイルに同期イベントを追記する。
-// session.events.jsonl が存在する場合のみ追記する（bash の動作と一致）。
 func (h *TodoSyncHandler) appendEventLog(stateDir string, pending, inProgress, done int) {
 	eventLog := filepath.Join(stateDir, "session.events.jsonl")
 
-	// bash と同様に、ファイルが存在する場合のみ追記
 	if _, err := os.Stat(eventLog); err != nil {
 		return
 	}
@@ -166,14 +141,11 @@ func (h *TodoSyncHandler) appendEventLog(stateDir string, pending, inProgress, d
 	_, _ = fmt.Fprintf(f, "%s\n", line)
 }
 
-// checkWorkModeWarning は全完了かつ work-mode が有効な場合に警告文字列を返す。
 func (h *TodoSyncHandler) checkWorkModeWarning(stateDir string, pending, inProgress, done int) string {
-	// 全タスク完了（pending=0, in_progress=0, completed>0）でなければスキップ
 	if pending != 0 || inProgress != 0 || done == 0 {
 		return ""
 	}
 
-	// work-active.json または ultrawork-active.json の存在を確認
 	workFile := filepath.Join(stateDir, "work-active.json")
 	if _, err := os.Stat(workFile); err != nil {
 		workFile = filepath.Join(stateDir, "ultrawork-active.json")
@@ -182,7 +154,6 @@ func (h *TodoSyncHandler) checkWorkModeWarning(stateDir string, pending, inProgr
 		}
 	}
 
-	// review_status を確認
 	data, err := os.ReadFile(workFile)
 	if err != nil {
 		return ""
@@ -198,11 +169,10 @@ func (h *TodoSyncHandler) checkWorkModeWarning(stateDir string, pending, inProgr
 		return ""
 	}
 
-	return fmt.Sprintf("\n\n⚠️ **work 完了前チェック**: review_status=%s\n→ 完了処理の前に /harness-review で APPROVE を取得してください",
+	return fmt.Sprintf("\n\n⚠️ **pre-completion check**: review_status=%s\n→ Run /harness-review to get APPROVE before completing",
 		state.ReviewStatus)
 }
 
-// writeTodoSyncOutput は additionalContext を JSON として w に書き出す。
 func writeTodoSyncOutput(w io.Writer, ctx string) error {
 	type hookOutput struct {
 		AdditionalContext string `json:"additionalContext"`

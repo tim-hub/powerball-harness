@@ -13,19 +13,19 @@ JSON Schema definitions for the video generation workflow. These schemas define 
 ## Schema Overview
 
 ```
-Scenario (高レベル構造)
-    │
-    ├── Section 1 (イントロ)
-    │   ├── Scene 1.1
-    │   └── Scene 1.2
-    │
-    ├── Section 2 (デモ)
-    │   ├── Scene 2.1
-    │   ├── Scene 2.2
-    │   └── Scene 2.3
-    │
-    └── Section 3 (CTA)
-        └── Scene 3.1
+Scenario (High-level structure)
+    |
+    +-- Section 1 (Intro)
+    |   +-- Scene 1.1
+    |   +-- Scene 1.2
+    |
+    +-- Section 2 (Demo)
+    |   +-- Scene 2.1
+    |   +-- Scene 2.2
+    |   +-- Scene 2.3
+    |
+    +-- Section 3 (CTA)
+        +-- Scene 3.1
 
 Video Script = Metadata + Scenes + Output Settings
 ```

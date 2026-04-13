@@ -16,7 +16,7 @@ func TestPreCompactSave_BasicOutput(t *testing.T) {
 		StateDir:  filepath.Join(dir, "state"),
 		PlansFile: filepath.Join(dir, "Plans.md"),
 	}
-	// Plans.md なし
+	// no Plans.md
 	var buf bytes.Buffer
 	if err := h.Handle(strings.NewReader("{}"), &buf); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -52,7 +52,7 @@ func TestPreCompactSave_SavesArtifact(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// handoff-artifact.json が生成されていることを確認
+	// verify handoff-artifact.json is generated
 	artifactPath := filepath.Join(stateDir, "handoff-artifact.json")
 	data, err := os.ReadFile(artifactPath)
 	if err != nil {
@@ -78,7 +78,7 @@ func TestPreCompactSave_WIPTasksExtracted(t *testing.T) {
 
 	content := "| 1 | Feature X | In progress | none | `cc:WIP` |\n" +
 		"| 2 | Feature Y | Not started | none | cc:TODO |\n" +
-		"| 3 | Done | Completed | none | cc:完了 |\n"
+		"| 3 | Done | Completed | none | cc:done |\n"
 	if err := os.WriteFile(plansFile, []byte(content), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +101,7 @@ func TestPreCompactSave_WIPTasksExtracted(t *testing.T) {
 	if !resp.Continue {
 		t.Errorf("expected continue=true")
 	}
-	// レスポンスメッセージに WIP タスク数が含まれることを確認
+	// verify response message contains WIP task count
 	if !strings.Contains(resp.Message, "WIP task") {
 		t.Errorf("expected WIP task count in message, got: %s", resp.Message)
 	}
@@ -122,7 +122,7 @@ func TestPreCompactSave_SavesLegacySnapshot(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// precompact-snapshot.json が生成されていることを確認
+	// verify precompact-snapshot.json is generated
 	snapshotPath := filepath.Join(stateDir, "precompact-snapshot.json")
 	data, err := os.ReadFile(snapshotPath)
 	if err != nil {
@@ -148,7 +148,7 @@ func TestPreCompactSave_SecuritySymlinkCheck(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// artifact path をシンボリックリンクにする
+	// make artifact path a symbolic link
 	target := filepath.Join(dir, "evil.json")
 	if err := os.WriteFile(target, []byte("{}"), 0600); err != nil {
 		t.Fatal(err)
@@ -198,7 +198,7 @@ func TestPreCompactSave_PlanRowParsing(t *testing.T) {
 		},
 		{
 			name:    "completed task only",
-			content: "| 1 | Task A | DoD A | none | cc:完了 |\n",
+			content: "| 1 | Task A | DoD A | none | cc:done |\n",
 			wantWIP: 0,
 		},
 		{
@@ -238,7 +238,7 @@ func TestPreCompactSave_NextActionSelection(t *testing.T) {
 	if na == nil {
 		t.Fatal("expected next action, got nil")
 	}
-	// WIP が最優先
+	// WIP takes highest priority
 	if na.TaskID != "2" {
 		t.Errorf("expected WIP task (ID=2), got: %s", na.TaskID)
 	}
@@ -272,7 +272,7 @@ func TestPreCompactSave_OpenRisks(t *testing.T) {
 		t.Fatal("expected risks, got none")
 	}
 
-	// WIP リスクがあることを確認
+	// verify WIP risk is present
 	found := false
 	for _, r := range risks {
 		if r.Kind == "continuity" && strings.Contains(r.Summary, "WIP") {
@@ -285,15 +285,15 @@ func TestPreCompactSave_OpenRisks(t *testing.T) {
 	}
 }
 
-// TestBuildOpenRisks_SessionMetricsQualityRisk は session-metrics.json の
-// failed_checks が open_risks の quality リスクに変換されることを確認する（指摘3修正のテスト）。
+// TestBuildOpenRisks_SessionMetricsQualityRisk verifies that failed_checks in
+// session-metrics.json is converted to a quality risk in open_risks (fix for issue #3).
 func TestBuildOpenRisks_SessionMetricsQualityRisk(t *testing.T) {
 	h := &PreCompactSave{}
 	rows := []planRow{
 		{TaskID: "1", Title: "Task A", Tags: planTags{Wip: true}},
 	}
 
-	// session-metrics に failed_checks が 2 件あるケース
+	// case with 2 failed_checks in session-metrics
 	metrics := map[string]interface{}{
 		"failed_checks": []interface{}{
 			"lint check failed",
@@ -303,7 +303,7 @@ func TestBuildOpenRisks_SessionMetricsQualityRisk(t *testing.T) {
 
 	risks := h.buildOpenRisks(rows, nil, nil, metrics)
 
-	// quality リスクが含まれていることを確認
+	// verify quality risk is included
 	found := false
 	for _, r := range risks {
 		if r.Kind == "quality" && strings.Contains(r.Summary, "failed check") {
@@ -319,8 +319,8 @@ func TestBuildOpenRisks_SessionMetricsQualityRisk(t *testing.T) {
 	}
 }
 
-// TestBuildOpenRisks_SessionMetrics_failedChecks_Field は session-metrics の
-// failedChecks (camelCase) フィールドも quality risk に変換されることを確認する。
+// TestBuildOpenRisks_SessionMetrics_failedChecks_Field verifies that the
+// failedChecks (camelCase) field in session-metrics is also converted to a quality risk.
 func TestBuildOpenRisks_SessionMetrics_CamelCase(t *testing.T) {
 	h := &PreCompactSave{}
 
@@ -342,8 +342,7 @@ func TestBuildOpenRisks_SessionMetrics_CamelCase(t *testing.T) {
 	}
 }
 
-// TestBuildOpenRisks_NoMetrics は metrics が nil の場合に quality risk が
-// 追加されないことを確認する。
+// TestBuildOpenRisks_NoMetrics verifies that no quality risk is added when metrics is nil.
 func TestBuildOpenRisks_NoMetrics(t *testing.T) {
 	h := &PreCompactSave{}
 	rows := []planRow{
@@ -359,8 +358,8 @@ func TestBuildOpenRisks_NoMetrics(t *testing.T) {
 	}
 }
 
-// TestBuildOpenRisks_EmptyMetricsFailedChecks は failed_checks が空配列の場合に
-// quality risk が追加されないことを確認する。
+// TestBuildOpenRisks_EmptyMetricsFailedChecks verifies that no quality risk is added
+// when failed_checks is an empty array.
 func TestBuildOpenRisks_EmptyMetricsFailedChecks(t *testing.T) {
 	h := &PreCompactSave{}
 	rows := []planRow{
@@ -380,9 +379,9 @@ func TestBuildOpenRisks_EmptyMetricsFailedChecks(t *testing.T) {
 	}
 }
 
-// TestPreCompactSave_SessionMetricsOpenRisks は handoff-artifact.json の
-// open_risks に session-metrics.json の失敗が quality risk として含まれることを
-// end-to-end で確認する（指摘3修正の統合テスト）。
+// TestPreCompactSave_SessionMetricsOpenRisks verifies end-to-end that failures from
+// session-metrics.json appear as quality risks in handoff-artifact.json open_risks
+// (integration test for fix #3).
 func TestPreCompactSave_SessionMetricsOpenRisks(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, "state")
@@ -397,8 +396,8 @@ func TestPreCompactSave_SessionMetricsOpenRisks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// session-metrics.json に failed_checks を設定
-	// getSessionMetrics は repoRoot/.claude/state/session-metrics.json を読む
+	// set failed_checks in session-metrics.json
+	// getSessionMetrics reads from repoRoot/.claude/state/session-metrics.json
 	claudeStateDir := filepath.Join(dir, ".claude", "state")
 	if err := os.MkdirAll(claudeStateDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -430,7 +429,7 @@ func TestPreCompactSave_SessionMetricsOpenRisks(t *testing.T) {
 		t.Fatalf("invalid artifact JSON: %v", err)
 	}
 
-	// open_risks に quality リスクが含まれることを確認
+	// verify quality risk is included in open_risks
 	found := false
 	for _, r := range artifact.OpenRisks {
 		if r.Kind == "quality" && strings.Contains(r.Summary, "failed check") {
@@ -443,8 +442,8 @@ func TestPreCompactSave_SessionMetricsOpenRisks(t *testing.T) {
 	}
 }
 
-// TestBuildOpenRisks_ReviewStatusPassed は review_status="passed" のとき
-// リスクが追加されないことを確認する（bash/JS 版との対称性）。
+// TestBuildOpenRisks_ReviewStatusPassed verifies that no risk is added when
+// review_status="passed" (symmetric with bash/JS version).
 func TestBuildOpenRisks_ReviewStatusPassed(t *testing.T) {
 	h := &PreCompactSave{}
 
@@ -461,8 +460,8 @@ func TestBuildOpenRisks_ReviewStatusPassed(t *testing.T) {
 	}
 }
 
-// TestBuildOpenRisks_ReviewStatusFailed は review_status="failed" のとき
-// high severity の review リスクが追加されることを確認する。
+// TestBuildOpenRisks_ReviewStatusFailed verifies that a high-severity review risk
+// is added when review_status="failed".
 func TestBuildOpenRisks_ReviewStatusFailed(t *testing.T) {
 	h := &PreCompactSave{}
 
@@ -485,8 +484,8 @@ func TestBuildOpenRisks_ReviewStatusFailed(t *testing.T) {
 	}
 }
 
-// TestBuildOpenRisks_ReviewStatusPending は review_status="pending" のとき
-// medium severity の review リスクが追加されることを確認する。
+// TestBuildOpenRisks_ReviewStatusPending verifies that a medium-severity review risk
+// is added when review_status="pending".
 func TestBuildOpenRisks_ReviewStatusPending(t *testing.T) {
 	h := &PreCompactSave{}
 
@@ -508,8 +507,8 @@ func TestBuildOpenRisks_ReviewStatusPending(t *testing.T) {
 	}
 }
 
-// TestBuildFailedChecks_SingleObjectFailedChecks は failed_checks が
-// 単一の map オブジェクトのとき、配列にラップして処理されることを確認する（JS版との対称性）。
+// TestBuildFailedChecks_SingleObjectFailedChecks verifies that when failed_checks is
+// a single map object, it is wrapped in an array for processing (symmetric with JS version).
 func TestBuildFailedChecks_SingleObjectFailedChecks(t *testing.T) {
 	h := &PreCompactSave{}
 
@@ -537,8 +536,8 @@ func TestBuildFailedChecks_SingleObjectFailedChecks(t *testing.T) {
 	}
 }
 
-// TestBuildFailedChecks_ArrayFailedChecks は failed_checks が配列のとき
-// 従来通り全エントリが処理されることを確認する（回帰テスト）。
+// TestBuildFailedChecks_ArrayFailedChecks verifies that when failed_checks is an array,
+// all entries are processed as before (regression test).
 func TestBuildFailedChecks_ArrayFailedChecks(t *testing.T) {
 	h := &PreCompactSave{}
 
@@ -562,19 +561,19 @@ func TestBuildFailedChecks_ArrayFailedChecks(t *testing.T) {
 	}
 }
 
-// TestPreCompactSave_CustomPlansDirectory は plansDirectory 設定があるとき
-// resolvePlansPath 経由でカスタムディレクトリの Plans.md が読まれることを確認する（P1修正）。
+// TestPreCompactSave_CustomPlansDirectory verifies that when plansDirectory is configured,
+// Plans.md in the custom directory is read via resolvePlansPath (P1 fix).
 func TestPreCompactSave_CustomPlansDirectory(t *testing.T) {
 	dir := t.TempDir()
 
-	// 設定ファイルに plansDirectory: workspace を設定
+	// set plansDirectory: workspace in the config file
 	configContent := "plansDirectory: workspace\n"
 	configPath := filepath.Join(dir, harnessConfigFileName)
 	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	// workspace/ ディレクトリに Plans.md を配置
+	// place Plans.md in the workspace/ directory
 	workspaceDir := filepath.Join(dir, "workspace")
 	if err := os.MkdirAll(workspaceDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -589,11 +588,11 @@ func TestPreCompactSave_CustomPlansDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// PlansFile を空にして resolvePlansPath に委ねる（PlansFile="" → 設定を参照）
+	// leave PlansFile empty to delegate to resolvePlansPath (PlansFile="" → use config)
 	h := &PreCompactSave{
 		RepoRoot: dir,
 		StateDir: stateDir,
-		// PlansFile は意図的に設定しない
+		// intentionally not setting PlansFile
 	}
 
 	var buf bytes.Buffer
@@ -612,7 +611,7 @@ func TestPreCompactSave_CustomPlansDirectory(t *testing.T) {
 		t.Fatalf("invalid JSON: %v", err)
 	}
 
-	// WIP タスクが検出されていること（カスタムディレクトリの Plans.md が読まれた証拠）
+	// verify WIP tasks are detected (proof that Plans.md in the custom directory was read)
 	if len(artifact.WIPTasks) == 0 {
 		t.Error("expected WIP tasks from custom plansDirectory, got none")
 	}

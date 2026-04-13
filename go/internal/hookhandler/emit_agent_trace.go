@@ -15,44 +15,26 @@ import (
 	"time"
 )
 
-// EmitAgentTrace は emit-agent-trace.js の Go 移植。
-// PostToolUse フックで agent-trace.jsonl にトレース記録を追記する。
-// OTEL_EXPORTER_OTLP_ENDPOINT が設定されている場合は OTel Span を非同期 POST する。
 //
-// 元: scripts/emit-agent-trace.js
 type EmitAgentTrace struct {
-	// RepoRoot はリポジトリルートを指定する。
-	// 空の場合は cwd から自動検出する。
 	RepoRoot string
-	// StateDir はトレースファイルの場所を指定する。
-	// 空の場合は RepoRoot/.claude/state を使う。
 	StateDir string
-	// MaxFileSize はファイルローテーション閾値（バイト）。デフォルト 10MB。
 	MaxFileSize int64
-	// MaxGenerations はローテーション世代数。デフォルト 3。
 	MaxGenerations int
-	// HTTPClient は OTel エクスポート用 HTTP クライアント（テスト差し替え可能）。
 	HTTPClient *http.Client
-	// Now は現在時刻を返す関数（テスト用）。
 	Now func() string
 }
 
-// traceVersion は agent-trace のバージョン。
 const traceVersion = "0.3.0"
 
-// eatMaxFileSizeDefault はデフォルトのファイルサイズ上限（10MB）。
 const eatMaxFileSizeDefault int64 = 10 * 1024 * 1024
 
-// eatMaxGenerationsDefault はデフォルトのローテーション世代数。
 const eatMaxGenerationsDefault = 3
 
-// traceCacheTTL はプロジェクトメタデータのキャッシュ TTL。
 const traceCacheTTL = 60 * time.Second
 
-// vcsCacheTTL は VCS 情報のキャッシュ TTL。
 const vcsCacheTTL = 5 * time.Second
 
-// traceRecord は agent-trace.jsonl の 1 レコード。
 type traceRecord struct {
 	Version     string                 `json:"version"`
 	ID          string                 `json:"id"`
@@ -65,21 +47,18 @@ type traceRecord struct {
 	Metrics     *traceMetrics          `json:"metrics,omitempty"`
 }
 
-// traceFile はツールが操作したファイル情報。
 type traceFile struct {
 	Path   string `json:"path"`
 	Action string `json:"action"`
 	Range  string `json:"range"`
 }
 
-// traceVCS は VCS（Git）情報。
 type traceVCS struct {
 	Revision string `json:"revision"`
 	Branch   string `json:"branch"`
 	Dirty    bool   `json:"dirty"`
 }
 
-// traceAttribution はプラグイン帰属情報。
 type traceAttribution struct {
 	Plugin  string `json:"plugin"`
 	Version string `json:"version"`
@@ -87,42 +66,33 @@ type traceAttribution struct {
 	Author  string `json:"author,omitempty"`
 }
 
-// traceMetrics は Task ツールのメトリクス情報。
 type traceMetrics struct {
 	TokenCount *int64   `json:"tokenCount,omitempty"`
 	ToolUses   *int64   `json:"toolUses,omitempty"`
 	Duration   *float64 `json:"duration,omitempty"`
 }
 
-// tracerCache はトレーサーレベルのキャッシュ。
 type tracerCache struct {
 	mu sync.Mutex
 
-	// プロジェクトメタデータキャッシュ
 	projMeta     map[string]string
 	projMetaTime time.Time
 
-	// VCS キャッシュ
 	vcsInfo  *traceVCS
 	vcsTime  time.Time
 
-	// Attribution キャッシュ
 	attr     *traceAttribution
 	attrTime time.Time
 }
 
-// グローバルキャッシュ（プロセス内で共有）
 var eatCache = &tracerCache{}
 
-// Handle は PostToolUse 環境変数からトレースレコードを構築して JSONL に追記する。
-// r は未使用（環境変数から情報を取得）。
 func (e *EmitAgentTrace) Handle(r io.Reader, w io.Writer) error {
 	toolName := os.Getenv("CLAUDE_TOOL_NAME")
 	toolInput := os.Getenv("CLAUDE_TOOL_INPUT")
 	toolResult := os.Getenv("CLAUDE_TOOL_RESULT")
 	sessionID := os.Getenv("CLAUDE_SESSION_ID")
 
-	// Edit / Write / Task のみ対象
 	if !eatIsSupportedTool(toolName) {
 		return nil
 	}
@@ -137,7 +107,6 @@ func (e *EmitAgentTrace) Handle(r io.Reader, w io.Writer) error {
 		return nil
 	}
 
-	// パスを相対パスに変換
 	for i, f := range files {
 		if filepath.IsAbs(f.Path) {
 			rel, err := filepath.Rel(repoRoot, f.Path)
@@ -160,12 +129,10 @@ func (e *EmitAgentTrace) Handle(r io.Reader, w io.Writer) error {
 		rec.Metadata["sessionId"] = sessionID
 	}
 
-	// VCS 情報
 	if vcs := e.getVCSInfo(); vcs != nil {
 		rec.VCS = vcs
 	}
 
-	// プロジェクトメタデータ
 	meta := e.getProjectMetadata(repoRoot)
 	for k, v := range meta {
 		rec.Metadata[k] = v
@@ -176,7 +143,6 @@ func (e *EmitAgentTrace) Handle(r io.Reader, w io.Writer) error {
 		rec.Attribution = attr
 	}
 
-	// Task ツール専用フィールド
 	if toolName == "Task" {
 		if m := e.extractTaskMetrics(toolResult); m != nil {
 			rec.Metrics = m
@@ -191,17 +157,9 @@ func (e *EmitAgentTrace) Handle(r io.Reader, w io.Writer) error {
 	tracePath := filepath.Join(stateDir, "agent-trace.jsonl")
 
 	if err := e.appendTrace(repoRoot, stateDir, tracePath, &rec); err != nil {
-		// トレース失敗はサイレントに無視（ツール実行をブロックしない）
 		_, _ = fmt.Fprintf(os.Stderr, "[agent-trace] %v\n", err)
 	}
 
-	// OTel エクスポート（fire-and-forget）。
-	// wg.Wait() で完了を待つと collector が遅い場合に 3 秒ブロックする問題があった。
-	// JSONL 書き込み（本来の目的）は上記の appendTrace で同期的に完了済みなので、
-	// OTel POST はベストエフォートで goroutine に任せる。
-	// OTel がない環境（大多数）は影響なし。
-	// OTel がある環境ではプロセス終了時に goroutine が kill される可能性があるが、
-	// これは JS 版の detached child process と同等の「ベストエフォート」動作。
 	if endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"); endpoint != "" {
 		go e.emitOtelSpan(endpoint, &rec)
 	}
@@ -209,16 +167,13 @@ func (e *EmitAgentTrace) Handle(r io.Reader, w io.Writer) error {
 	return nil
 }
 
-// appendTrace はセキュリティチェックを行いトレースを追記する。
 func (e *EmitAgentTrace) appendTrace(repoRoot, stateDir, tracePath string, rec *traceRecord) error {
 	claudeDir := filepath.Join(repoRoot, ".claude")
 
-	// .claude シンボリックリンクチェック
 	if info, err := os.Lstat(claudeDir); err == nil && info.Mode()&os.ModeSymlink != 0 {
 		return fmt.Errorf(".claude symlink detected, refusing to write trace")
 	}
 
-	// stateDir 作成・セキュリティチェック
 	if info, err := os.Lstat(stateDir); err == nil {
 		if info.Mode()&os.ModeSymlink != 0 {
 			return fmt.Errorf("stateDir is symlink, refusing to write trace")
@@ -230,7 +185,6 @@ func (e *EmitAgentTrace) appendTrace(repoRoot, stateDir, tracePath string, rec *
 		}
 	}
 
-	// tracePath シンボリックリンクチェック
 	if info, err := os.Lstat(tracePath); err == nil {
 		if info.Mode()&os.ModeSymlink != 0 {
 			return fmt.Errorf("tracePath is symlink, refusing to write trace")
@@ -253,11 +207,8 @@ func (e *EmitAgentTrace) appendTrace(repoRoot, stateDir, tracePath string, rec *
 	}
 	defer f.Close()
 
-	// 既存ファイルの権限を 0600 に修正する（os.OpenFile の perm 引数は新規作成時のみ適用される）。
-	// JS 版は open 後に fchmodSync していた。
 	_ = f.Chmod(0600)
 
-	// 開いた fd が通常ファイルであることを確認
 	info, err := f.Stat()
 	if err != nil || !info.Mode().IsRegular() {
 		return fmt.Errorf("opened fd is not a regular file")
@@ -269,7 +220,6 @@ func (e *EmitAgentTrace) appendTrace(repoRoot, stateDir, tracePath string, rec *
 	return nil
 }
 
-// rotateIfNeeded はファイルサイズが上限を超えた場合にローテーションする。
 func (e *EmitAgentTrace) rotateIfNeeded(tracePath string) {
 	maxSize := e.MaxFileSize
 	if maxSize == 0 {
@@ -285,22 +235,19 @@ func (e *EmitAgentTrace) rotateIfNeeded(tracePath string) {
 		return
 	}
 
-	// ロックファイルで同時ローテーション防止
 	lockPath := tracePath + ".lock"
 	lockF, err := os.OpenFile(lockPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
-		return // 別プロセスがローテーション中
+		return
 	}
 	lockF.Close()
 	defer os.Remove(lockPath)
 
-	// サイズ再確認
 	info, err = os.Stat(tracePath)
 	if err != nil || info.Size() < maxSize {
 		return
 	}
 
-	// 世代ローテーション
 	for i := maxGen - 1; i >= 1; i-- {
 		oldPath := fmt.Sprintf("%s.%d", tracePath, i)
 		newPath := fmt.Sprintf("%s.%d", tracePath, i+1)
@@ -315,7 +262,6 @@ func (e *EmitAgentTrace) rotateIfNeeded(tracePath string) {
 	_ = os.Rename(tracePath, tracePath+".1")
 }
 
-// parseToolInput はツール入力からファイル情報を抽出する。
 func (e *EmitAgentTrace) parseToolInput(toolName, toolInput, repoRoot string) []traceFile {
 	if toolInput == "" {
 		return nil
@@ -336,9 +282,6 @@ func (e *EmitAgentTrace) parseToolInput(toolName, toolInput, repoRoot string) []
 			}
 		}
 	case "Write":
-		// PostToolUse 時点ではファイルが既に書き込まれているため os.Stat は常に成功し
-		// create/modify を区別できない。tool_name ベースで判定する。
-		// Write = 新規作成、Edit/MultiEdit = 既存ファイルの修正。
 		if fp, ok := input["file_path"].(string); ok && fp != "" {
 			if eatIsPathWithinRepo(fp, repoRoot) {
 				files = append(files, traceFile{Path: fp, Action: "create", Range: "unknown"})
@@ -355,7 +298,6 @@ func (e *EmitAgentTrace) parseToolInput(toolName, toolInput, repoRoot string) []
 	return files
 }
 
-// extractTaskMetadata は Task ツール入力からメタデータを抽出する。
 func (e *EmitAgentTrace) extractTaskMetadata(toolInput string, rec *traceRecord) {
 	if toolInput == "" {
 		return
@@ -375,7 +317,6 @@ func (e *EmitAgentTrace) extractTaskMetadata(toolInput string, rec *traceRecord)
 	}
 }
 
-// extractTaskMetrics は Task ツール結果からメトリクスを抽出する。
 func (e *EmitAgentTrace) extractTaskMetrics(toolResult string) *traceMetrics {
 	if toolResult == "" {
 		return nil
@@ -413,7 +354,6 @@ func (e *EmitAgentTrace) extractTaskMetrics(toolResult string) *traceMetrics {
 	return m
 }
 
-// getVCSInfo は Git 情報を返す（キャッシュ付き）。
 func (e *EmitAgentTrace) getVCSInfo() *traceVCS {
 	eatCache.mu.Lock()
 	defer eatCache.mu.Unlock()
@@ -428,7 +368,6 @@ func (e *EmitAgentTrace) getVCSInfo() *traceVCS {
 	return vcs
 }
 
-// eatFetchVCSInfo は git status から VCS 情報を取得する。
 func eatFetchVCSInfo() *traceVCS {
 	out, err := eatRunGitCmd("status", "--porcelain=2", "-b", "-uno")
 	if err != nil || out == "" {
@@ -454,7 +393,6 @@ func eatFetchVCSInfo() *traceVCS {
 	return &traceVCS{Revision: revision, Branch: branch, Dirty: dirty}
 }
 
-// getProjectMetadata はプロジェクトメタデータを返す（キャッシュ付き）。
 func (e *EmitAgentTrace) getProjectMetadata(repoRoot string) map[string]string {
 	eatCache.mu.Lock()
 	defer eatCache.mu.Unlock()
@@ -472,7 +410,6 @@ func (e *EmitAgentTrace) getProjectMetadata(repoRoot string) map[string]string {
 	return meta
 }
 
-// getAttribution はプラグイン帰属情報を返す（キャッシュ付き）。
 func (e *EmitAgentTrace) getAttribution() *traceAttribution {
 	eatCache.mu.Lock()
 	defer eatCache.mu.Unlock()
@@ -487,7 +424,6 @@ func (e *EmitAgentTrace) getAttribution() *traceAttribution {
 	return attr
 }
 
-// eatFetchAttribution は plugin.json からプラグイン情報を読み込む。
 func eatFetchAttribution() *traceAttribution {
 	pluginRoot := os.Getenv("CLAUDE_PLUGIN_ROOT")
 	if pluginRoot == "" {
@@ -515,9 +451,6 @@ func eatFetchAttribution() *traceAttribution {
 	return attr
 }
 
-// emitOtelSpan は OTel Span を OTLP HTTP エンドポイントに POST する。
-// 呼び出し元は同期呼び出しを前提にする。HTTP client に 3s timeout が設定されているため
-// 長時間ブロックしない。失敗はサイレントに無視する。
 func (e *EmitAgentTrace) emitOtelSpan(otlpEndpoint string, rec *traceRecord) {
 	serviceVersion := eatReadServiceVersion()
 	spanJSON := eatBuildOtelSpanJSON(rec, serviceVersion)
@@ -552,7 +485,6 @@ func (e *EmitAgentTrace) emitOtelSpan(otlpEndpoint string, rec *traceRecord) {
 	}
 }
 
-// eatBuildOtelSpanJSON は OTel Span JSON を構築する。
 func eatBuildOtelSpanJSON(rec *traceRecord, serviceVersion string) map[string]interface{} {
 	endMs := int64(0)
 	if t, err := time.Parse(time.RFC3339, rec.Timestamp); err == nil {
@@ -560,7 +492,6 @@ func eatBuildOtelSpanJSON(rec *traceRecord, serviceVersion string) map[string]in
 	}
 	endNano := fmt.Sprintf("%d000000", endMs)
 
-	// UUID からトレース ID とスパン ID を導出
 	uuidHex := strings.ReplaceAll(rec.ID, "-", "")
 	traceID := uuidHex
 	spanID := uuidHex[:16]
@@ -638,7 +569,6 @@ func eatBuildOtelSpanJSON(rec *traceRecord, serviceVersion string) map[string]in
 	}
 }
 
-// eatReadServiceVersion は plugin.json または VERSION からバージョンを読み込む。
 func eatReadServiceVersion() string {
 	pluginRoot := os.Getenv("CLAUDE_PLUGIN_ROOT")
 	if pluginRoot == "" {
@@ -661,7 +591,6 @@ func eatReadServiceVersion() string {
 	return "0.0.0"
 }
 
-// eatGetProjectName はプロジェクト名を取得する。
 func eatGetProjectName(repoRoot string) string {
 	pkgPath := filepath.Join(repoRoot, "package.json")
 	if data, err := os.ReadFile(pkgPath); err == nil {
@@ -675,7 +604,6 @@ func eatGetProjectName(repoRoot string) string {
 	return filepath.Base(repoRoot)
 }
 
-// eatDetectProjectType はプロジェクトタイプを検出する。
 func eatDetectProjectType(repoRoot string) string {
 	checks := [][2]string{
 		{"next.config.js", "nextjs"},
@@ -701,7 +629,6 @@ func eatDetectProjectType(repoRoot string) string {
 	return "unknown"
 }
 
-// eatNormalizeAgentRole はエージェント名を harness ロールに正規化する。
 func eatNormalizeAgentRole(name string) string {
 	v := strings.ToLower(strings.TrimSpace(name))
 	if v == "" {
@@ -719,7 +646,6 @@ func eatNormalizeAgentRole(name string) string {
 	return v
 }
 
-// eatIsPathWithinRepo はパスがリポジトリ内かどうかを確認する。
 func eatIsPathWithinRepo(filePath, repoRoot string) bool {
 	if strings.Contains(filePath, "..") {
 		return false
@@ -730,16 +656,13 @@ func eatIsPathWithinRepo(filePath, repoRoot string) bool {
 		absPath = filepath.Join(repoRoot, filePath)
 	}
 
-	// リポジトリルートを実パスに解決
 	resolvedRepo, err := filepath.EvalSymlinks(repoRoot)
 	if err != nil {
 		resolvedRepo = repoRoot
 	}
 
-	// ファイルが存在する場合は実パスで確認
 	resolvedPath, err := filepath.EvalSymlinks(absPath)
 	if err != nil {
-		// ファイルが存在しない場合は親ディレクトリを確認
 		parentDir := filepath.Dir(absPath)
 		resolvedParent, err := filepath.EvalSymlinks(parentDir)
 		if err != nil {
@@ -753,29 +676,24 @@ func eatIsPathWithinRepo(filePath, repoRoot string) bool {
 		resolvedPath == resolvedRepo
 }
 
-// eatIsSupportedTool はトレース対象ツールかどうかを返す。
 func eatIsSupportedTool(toolName string) bool {
 	return toolName == "Edit" || toolName == "Write" || toolName == "MultiEdit" || toolName == "Task"
 }
 
-// eatGenerateUUID は UUID v4 を生成する。
 func eatGenerateUUID() string {
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {
-		// フォールバック: タイムスタンプベース
 		ts := time.Now().UnixNano()
 		for i := 0; i < 8; i++ {
 			b[i] = byte(ts >> (i * 8))
 		}
 	}
-	// UUID v4 フォーマット
 	b[6] = (b[6] & 0x0f) | 0x40
 	b[8] = (b[8] & 0x3f) | 0x80
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%12x",
 		b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
 }
 
-// getNow は現在時刻文字列を返す。
 func (e *EmitAgentTrace) getNow() string {
 	if e.Now != nil {
 		return e.Now()
@@ -784,7 +702,6 @@ func (e *EmitAgentTrace) getNow() string {
 }
 
 
-// getString はマップから文字列を取得する。見つからない場合はデフォルト値を返す。
 func getString(m map[string]interface{}, key, defaultVal string) string {
 	if v, ok := m[key].(string); ok && v != "" {
 		return v
@@ -792,7 +709,6 @@ func getString(m map[string]interface{}, key, defaultVal string) string {
 	return defaultVal
 }
 
-// eatRunGitCmd は git コマンドを実行して stdout を返す。
 func eatRunGitCmd(args ...string) (string, error) {
 	cmd := exec.Command("git", args...)
 	out, err := cmd.Output()

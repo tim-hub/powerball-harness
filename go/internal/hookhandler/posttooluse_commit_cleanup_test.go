@@ -16,7 +16,6 @@ func TestCommitCleanupHandler_EmptyInput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// サイレントクリーンアップ: 出力なし
 	if out.Len() != 0 {
 		t.Errorf("expected no output, got %q", out.String())
 	}
@@ -53,7 +52,6 @@ func TestCommitCleanupHandler_NotGitCommit(t *testing.T) {
 func TestCommitCleanupHandler_GitCommitSuccess_ClearsFiles(t *testing.T) {
 	dir := t.TempDir()
 
-	// レビューファイルを作成
 	stateDir := filepath.Join(dir, ".claude", "state")
 	if err := os.MkdirAll(stateDir, 0700); err != nil {
 		t.Fatal(err)
@@ -76,7 +74,6 @@ func TestCommitCleanupHandler_GitCommitSuccess_ClearsFiles(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// ファイルが削除されているか確認
 	if _, err := os.Stat(reviewState); err == nil {
 		t.Errorf("expected review-approved.json to be deleted")
 	}
@@ -88,7 +85,6 @@ func TestCommitCleanupHandler_GitCommitSuccess_ClearsFiles(t *testing.T) {
 func TestCommitCleanupHandler_GitCommitError_KeepsFiles(t *testing.T) {
 	dir := t.TempDir()
 
-	// レビューファイルを作成
 	stateDir := filepath.Join(dir, ".claude", "state")
 	if err := os.MkdirAll(stateDir, 0700); err != nil {
 		t.Fatal(err)
@@ -99,7 +95,6 @@ func TestCommitCleanupHandler_GitCommitError_KeepsFiles(t *testing.T) {
 	}
 
 	h := &CommitCleanupHandler{ProjectRoot: dir}
-	// エラーを含む tool_result
 	input := `{"tool_name":"Bash","tool_input":{"command":"git commit -m test"},"tool_result":"error: nothing to commit, working tree clean"}`
 
 	var out bytes.Buffer
@@ -108,7 +103,6 @@ func TestCommitCleanupHandler_GitCommitError_KeepsFiles(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// エラー時はファイルを保持
 	if _, err := os.Stat(reviewState); err != nil {
 		t.Errorf("expected review-approved.json to be kept on commit error")
 	}
@@ -121,7 +115,6 @@ func TestCommitCleanupHandler_NoReviewFiles_NoError(t *testing.T) {
 	input := `{"tool_name":"Bash","tool_input":{"command":"git commit -m test"},"tool_result":"[main abc1234] test"}`
 
 	var out bytes.Buffer
-	// レビューファイルが存在しなくてもエラーにならないこと
 	err := h.Handle(strings.NewReader(input), &out)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -194,8 +187,7 @@ func TestCommitCleanupHandler_StderrMessage(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// ログメッセージが出力されること
-	if !strings.Contains(out.String(), "レビュー承認状態をクリア") {
+	if !strings.Contains(out.String(), "Cleared review approval state") {
 		t.Errorf("expected cleanup log message, got %q", out.String())
 	}
 }

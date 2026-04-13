@@ -15,10 +15,7 @@
 //	harness hook session-monitor   — SessionStart: project state collection + session.json
 //	harness hook session-summary   — Stop: session summary to session-log.md
 //	harness hook ci-status         — PostToolUse: CI status check after push/PR
-//	harness hook subagent-start    — SubagentStart: エージェント起動追跡
-//	harness hook subagent-stop     — SubagentStop: エージェント停止追跡
 //	harness evidence collect       — Collect evidence (test results, build logs)
-//	harness status                 — 全追跡エージェントの状態表示
 //	harness version                — Print version
 //
 // Usage in hooks.json:
@@ -33,15 +30,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/Chachamaru127/claude-code-harness/go/internal/ci"
-	"github.com/Chachamaru127/claude-code-harness/go/internal/event"
-	"github.com/Chachamaru127/claude-code-harness/go/internal/guardrail"
-	"github.com/Chachamaru127/claude-code-harness/go/internal/hook"
-	"github.com/Chachamaru127/claude-code-harness/go/internal/hookhandler"
-	"github.com/Chachamaru127/claude-code-harness/go/internal/lifecycle"
-	"github.com/Chachamaru127/claude-code-harness/go/internal/session"
-	"github.com/Chachamaru127/claude-code-harness/go/internal/state"
-	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
+	"github.com/tim-hub/powerball-harness/go/internal/ci"
+	"github.com/tim-hub/powerball-harness/go/internal/event"
+	"github.com/tim-hub/powerball-harness/go/internal/guardrail"
+	"github.com/tim-hub/powerball-harness/go/internal/hook"
+	"github.com/tim-hub/powerball-harness/go/internal/hookhandler"
+	"github.com/tim-hub/powerball-harness/go/internal/lifecycle"
+	"github.com/tim-hub/powerball-harness/go/internal/session"
+	"github.com/tim-hub/powerball-harness/go/internal/state"
+	"github.com/tim-hub/powerball-harness/go/pkg/hookproto"
 )
 
 // version is set at build time via -ldflags.
@@ -119,7 +116,6 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  version                 Print version")
 }
 
-// runEvidence は evidence サブコマンドを実行する。
 func runEvidence(args []string) {
 	if len(args) == 0 {
 		fmt.Fprintln(os.Stderr, "Usage: harness evidence <collect>")
@@ -135,8 +131,6 @@ func runEvidence(args []string) {
 	}
 }
 
-// runEvidenceCollect は evidence collect サブコマンドを実行する。
-// stdin からコンテンツを読み取って .claude/state/evidence/{label}/ に保存する。
 func runEvidenceCollect(args []string) {
 	var label string
 	var contentFile string
@@ -163,7 +157,6 @@ func runEvidenceCollect(args []string) {
 	}
 
 	if contentFile != "" {
-		// ファイルから収集する場合
 		result := c.Collect(opts)
 		if result.Error != "" {
 			fmt.Fprintln(os.Stderr, "evidence collect error:", result.Error)
@@ -173,7 +166,6 @@ func runEvidenceCollect(args []string) {
 		return
 	}
 
-	// stdin から収集する場合
 	if err := c.CollectFromStdin(os.Stdin, os.Stdout, opts); err != nil {
 		fmt.Fprintln(os.Stderr, "evidence collect error:", err)
 		os.Exit(1)
@@ -208,7 +200,6 @@ func runHook(hookType string) {
 		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "permission-denied handler error: %v\n", err)
 		}
-	// --- CI ハンドラ ---
 	case "ci-status":
 		h := &ci.CIStatusHandler{}
 		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
@@ -475,25 +466,19 @@ func runPermission(input hookproto.HookInput) {
 	// No output = pass through to user prompt
 }
 
-// openTracker は SQLite ストアを使った AgentTracker を開いて返す。
-// DB 開放に失敗した場合はインメモリ tracker (store=nil) にフォールバックする。
 func openTracker() (*lifecycle.AgentTracker, func()) {
 	dbPath := state.ResolveStatePath("")
 	store, err := state.NewHarnessStore(dbPath)
 	if err != nil {
-		// DB が使えなくてもフックは継続できる（インメモリのみ）
 		return lifecycle.NewAgentTracker(nil), func() {}
 	}
 	tracker := lifecycle.NewAgentTracker(store)
 	return tracker, func() { store.Close() }
 }
 
-// runSubagentStart は SubagentStart フックを処理する。
-// stdin から HookInput を読み取り、AgentTracker にエージェントを登録する。
 func runSubagentStart() {
 	input, err := hook.ReadInput(os.Stdin)
 	if err != nil {
-		// 入力パースエラーは無視して通過（フックの安全原則）
 		return
 	}
 
@@ -503,11 +488,8 @@ func runSubagentStart() {
 	if err := tracker.HandleStart(input); err != nil {
 		fmt.Fprintf(os.Stderr, "subagent-start handler error: %v\n", err)
 	}
-	// SubagentStart は出力不要（通過フック）
 }
 
-// runSubagentStop は SubagentStop フックを処理する。
-// stdin から HookInput を読み取り、AgentTracker にエージェントの停止を記録する。
 func runSubagentStop() {
 	input, err := hook.ReadInput(os.Stdin)
 	if err != nil {
@@ -520,11 +502,8 @@ func runSubagentStop() {
 	if err := tracker.HandleStop(input); err != nil {
 		fmt.Fprintf(os.Stderr, "subagent-stop handler error: %v\n", err)
 	}
-	// SubagentStop は出力不要（通過フック）
 }
 
-// runStatus は全追跡中エージェントの状態テーブルを表示する。
-// SQLite ストアが利用可能な場合、永続化済みレコードを表示する。
 func runStatus(_ []string) {
 	dbPath := state.ResolveStatePath("")
 	store, err := state.NewHarnessStore(dbPath)
@@ -544,7 +523,6 @@ func runStatus(_ []string) {
 	printStatusTable(records)
 }
 
-// printStatusTable はエージェント状態テーブルを stdout に表示する。
 func printStatusTable(records []state.AgentStateRecord) {
 	if len(records) == 0 {
 		fmt.Println("Tracked Agents: (none)")
@@ -581,8 +559,6 @@ func printStatusTable(records []state.AgentStateRecord) {
 	fmt.Printf("\nTotal: %d active, %d failed, %d completed\n", active, failed, completed)
 }
 
-// formatDuration は AgentStateRecord から経過時間の文字列を生成する。
-// stopped_at があればその時刻まで、なければ現在時刻との差を返す。
 func formatDuration(rec state.AgentStateRecord) string {
 	startStr := rec.StartedAt
 	if startStr == "" {
@@ -622,8 +598,6 @@ func formatDuration(rec state.AgentStateRecord) string {
 	return fmt.Sprintf("%ds", s)
 }
 
-// formatRecovery はリカバリ試行回数を "N/3" 形式で返す。
-// リカバリがない場合は "-" を返す。
 func formatRecovery(rec state.AgentStateRecord) string {
 	if rec.RecoveryAttempts == 0 {
 		return "-"

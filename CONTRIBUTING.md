@@ -6,7 +6,7 @@ Thank you for your interest in contributing to **claude-code-harness**! This doc
 
 ### Reporting Issues
 
-1. Check if the issue already exists in [GitHub Issues](https://github.com/Chachamaru127/claude-code-harness/issues)
+1. Check if the issue already exists in [GitHub Issues](https://github.com/tim-hub/powerball-harness/issues)
 2. If not, create a new issue with:
    - Clear title describing the problem
    - Steps to reproduce
@@ -112,54 +112,54 @@ Use a version bump only when you are intentionally cutting a release.
 - **Local (recommended)**: run `./scripts/sync-version.sh check` before committing
 - **CI (recommended)**: run `./tests/validate-plugin.sh` and `./scripts/ci/check-consistency.sh` on PRs
 
-## CHANGELOG 記載ルール（必須）
+## CHANGELOG Rules (Required)
 
-**[Keep a Changelog](https://keepachangelog.com/ja/1.0.0/) フォーマットに準拠**
+**Follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format**
 
-各バージョンエントリには以下のセクションを使用:
+Use the following sections for each version entry:
 
 ```markdown
 ## [X.Y.Z] - YYYY-MM-DD
 
 ### Added
-- 新機能について
+- New features
 
 ### Changed
-- 既存機能の変更について
+- Changes to existing functionality
 
 ### Deprecated
-- 間もなく削除される機能について
+- Features soon to be removed
 
 ### Removed
-- 削除された機能について
+- Removed features
 
 ### Fixed
-- バグ修正について
+- Bug fixes
 
 ### Security
-- 脆弱性に関する場合
+- Security-related fixes
 
-#### Before/After（大きな変更時のみ）
+#### Before/After (for major changes only)
 
 | Before | After |
 |--------|-------|
-| 変更前の状態 | 変更後の状態 |
+| Previous state | New state |
 ```
 
-**セクション使い分け**:
+**Section guidelines**:
 
-| セクション | 使うとき |
-|------------|----------|
-| Added | 完全に新しい機能を追加したとき |
-| Changed | 既存機能の動作や体験を変更したとき |
-| Deprecated | 将来削除予定の機能を告知するとき |
-| Removed | 機能やコマンドを削除したとき |
-| Fixed | バグや不具合を修正したとき |
-| Security | セキュリティ関連の修正をしたとき |
+| Section | When to use |
+|---------|-------------|
+| Added | When adding completely new functionality |
+| Changed | When changing behavior or UX of existing features |
+| Deprecated | When announcing features slated for future removal |
+| Removed | When removing features or commands |
+| Fixed | When fixing bugs or issues |
+| Security | When making security-related fixes |
 
-**Before/After テーブル**: 大きな体験変化（コマンド廃止・統合、ワークフロー変更、破壊的変更）があるときのみ追加。軽微な修正では省略可。
+**Before/After table**: Only add when there is a significant experience change (command deprecation/consolidation, workflow changes, breaking changes). Omit for minor fixes.
 
-**バージョン比較リンク**: CHANGELOG.md 末尾に `[X.Y.Z]: https://github.com/.../compare/vPREV...vX.Y.Z` 形式で追加
+**Version comparison links**: Add to the end of CHANGELOG.md in the format `[X.Y.Z]: https://github.com/.../compare/vPREV...vX.Y.Z`
 
 ---
 

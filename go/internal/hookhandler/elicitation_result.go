@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// elicitationResultInput は ElicitationResult フックの stdin JSON ペイロード。
+// elicitationResultInput is the stdin JSON payload for the ElicitationResult hook.
 type elicitationResultInput struct {
 	MCPServerName string `json:"mcp_server_name"`
 	ServerName    string `json:"server_name"`
@@ -20,7 +20,7 @@ type elicitationResultInput struct {
 	Status        string `json:"status"`
 }
 
-// elicitationResultLogEntry は elicitation-events.jsonl に追記するエントリ。
+// elicitationResultLogEntry is the entry appended to elicitation-events.jsonl.
 type elicitationResultLogEntry struct {
 	Event         string `json:"event"`
 	MCPServer     string `json:"mcp_server"`
@@ -29,17 +29,17 @@ type elicitationResultLogEntry struct {
 	Timestamp     string `json:"timestamp"`
 }
 
-// ElicitationResultHandler は scripts/hook-handlers/elicitation-result.sh の Go 移植。
+// ElicitationResultHandler is the Go port of scripts/hook-handlers/elicitation-result.sh.
 //
-// ElicitationResult イベントを受け取り、軽量ロギングのみを行う。
-// 結果は .claude/state/elicitation-events.jsonl に追記される。
-// 常に approve を返す。
+// Receives ElicitationResult events and performs lightweight logging only.
+// Results are appended to .claude/state/elicitation-events.jsonl.
+// Always returns approve.
 type ElicitationResultHandler struct {
-	// ProjectRoot はプロジェクトルートのパス。空の場合は環境変数/CWD から解決。
+	// ProjectRoot is the project root path. Resolved from env vars/CWD when empty.
 	ProjectRoot string
 }
 
-// Handle は ElicitationResult フックを処理する。
+// Handle processes the ElicitationResult hook.
 func (h *ElicitationResultHandler) Handle(in io.Reader, out io.Writer) error {
 	data, err := io.ReadAll(in)
 	if err != nil || len(strings.TrimSpace(string(data))) == 0 {
@@ -57,12 +57,12 @@ func (h *ElicitationResultHandler) Handle(in io.Reader, out io.Writer) error {
 		})
 	}
 
-	// フィールド正規化
+	// Normalize fields.
 	mcpServer := firstNonEmpty(input.MCPServerName, input.ServerName, input.Matcher)
 	elicitationID := firstNonEmpty(input.ElicitationID, input.ID)
 	resultStatus := firstNonEmpty(input.ResultStatus, input.Status)
 
-	// プロジェクトルート解決
+	// Resolve project root.
 	projectRoot := h.ProjectRoot
 	if projectRoot == "" {
 		projectRoot = resolveProjectRoot()
@@ -70,7 +70,7 @@ func (h *ElicitationResultHandler) Handle(in io.Reader, out io.Writer) error {
 	stateDir := projectRoot + "/.claude/state"
 	logFile := stateDir + "/elicitation-events.jsonl"
 
-	// ログ記録
+	// Record log entry.
 	if err := os.MkdirAll(stateDir, 0o700); err == nil {
 		ts := time.Now().UTC().Format(time.RFC3339)
 		entry := elicitationResultLogEntry{
@@ -90,7 +90,7 @@ func (h *ElicitationResultHandler) Handle(in io.Reader, out io.Writer) error {
 		}
 	}
 
-	// 常に approve
+	// Always approve.
 	return writeJSON(out, elicitationDecision{
 		Decision: "approve",
 		Reason:   "ElicitationResult tracked",

@@ -9,7 +9,6 @@ import (
 	"testing"
 )
 
-// assertElicitationDecision は出力 JSON の decision と reason を検証するヘルパー。
 func assertElicitationDecision(t *testing.T, output, wantDecision, wantReasonContains string) {
 	t.Helper()
 	output = strings.TrimSpace(output)
@@ -47,7 +46,6 @@ func TestElicitationHandler_InvalidJSON(t *testing.T) {
 }
 
 func TestElicitationHandler_NormalSession_Approve(t *testing.T) {
-	// HARNESS_BREEZING_SESSION_ID が未設定 → 通常セッション → approve
 	t.Setenv("HARNESS_BREEZING_SESSION_ID", "")
 
 	dir := t.TempDir()
@@ -66,7 +64,6 @@ func TestElicitationHandler_NormalSession_Approve(t *testing.T) {
 }
 
 func TestElicitationHandler_BreezingSession_Deny(t *testing.T) {
-	// HARNESS_BREEZING_SESSION_ID が設定されている → Breezing → deny
 	t.Setenv("HARNESS_BREEZING_SESSION_ID", "session-breezing-42")
 
 	dir := t.TempDir()
@@ -118,13 +115,11 @@ func TestElicitationHandler_LogWritten(t *testing.T) {
 }
 
 func TestElicitationHandler_FallbackFields(t *testing.T) {
-	// server_name と id フォールバックのテスト
 	t.Setenv("HARNESS_BREEZING_SESSION_ID", "")
 
 	dir := t.TempDir()
 	h := &ElicitationHandler{ProjectRoot: dir}
 
-	// mcp_server_name なし → server_name を使う
 	payload := `{"server_name": "fallback-mcp", "id": "fb-001", "message": "hi"}`
 	var out bytes.Buffer
 	if err := h.Handle(strings.NewReader(payload), &out); err != nil {

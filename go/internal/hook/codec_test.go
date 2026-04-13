@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
+	"github.com/tim-hub/powerball-harness/go/pkg/hookproto"
 )
 
 func TestReadInput_Valid(t *testing.T) {

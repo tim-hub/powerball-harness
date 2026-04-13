@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// TestPostToolUseLogToolName_AlwaysContinue は常に continue=true を返すことを確認する。
+// TestPostToolUseLogToolName_AlwaysContinue verifies that continue=true is always returned.
 func TestPostToolUseLogToolName_AlwaysContinue(t *testing.T) {
 	dir := t.TempDir()
 	h := &PostToolUseLogToolNameHandler{ProjectRoot: dir}
@@ -29,7 +29,7 @@ func TestPostToolUseLogToolName_AlwaysContinue(t *testing.T) {
 	}
 }
 
-// TestPostToolUseLogToolName_EmptyInput は空入力でも continue=true を返すことを確認する。
+// TestPostToolUseLogToolName_EmptyInput verifies that continue=true is returned even for empty input.
 func TestPostToolUseLogToolName_EmptyInput(t *testing.T) {
 	dir := t.TempDir()
 	h := &PostToolUseLogToolNameHandler{ProjectRoot: dir}
@@ -49,7 +49,7 @@ func TestPostToolUseLogToolName_EmptyInput(t *testing.T) {
 	}
 }
 
-// TestPostToolUseLogToolName_Phase0Log は CC_HARNESS_PHASE0_LOG=1 の時に tool-events.jsonl に記録されることを確認する。
+// TestPostToolUseLogToolName_Phase0Log verifies that events are recorded in tool-events.jsonl when CC_HARNESS_PHASE0_LOG=1.
 func TestPostToolUseLogToolName_Phase0Log(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, ".claude", "state")
@@ -68,14 +68,14 @@ func TestPostToolUseLogToolName_Phase0Log(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// tool-events.jsonl が作成されていること
+	// verify tool-events.jsonl is created
 	logFile := filepath.Join(stateDir, toolEventsFile)
 	data, err := os.ReadFile(logFile)
 	if err != nil {
 		t.Fatalf("expected tool-events.jsonl to be created: %v", err)
 	}
 
-	// JSONL エントリを確認
+	// verify JSONL entry
 	var entry toolEventEntry
 	if err := json.Unmarshal(bytes.TrimRight(data, "\n"), &entry); err != nil {
 		t.Fatalf("invalid JSONL entry: %s", string(data))
@@ -98,7 +98,7 @@ func TestPostToolUseLogToolName_Phase0Log(t *testing.T) {
 	}
 }
 
-// TestPostToolUseLogToolName_Phase0LogDisabled は CC_HARNESS_PHASE0_LOG が未設定の時に記録しないことを確認する。
+// TestPostToolUseLogToolName_Phase0LogDisabled verifies that no recording occurs when CC_HARNESS_PHASE0_LOG is not set.
 func TestPostToolUseLogToolName_Phase0LogDisabled(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, ".claude", "state")
@@ -106,21 +106,20 @@ func TestPostToolUseLogToolName_Phase0LogDisabled(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// CC_HARNESS_PHASE0_LOG を未設定にする
+	// disable CC_HARNESS_PHASE0_LOG
 	t.Setenv("CC_HARNESS_PHASE0_LOG", "0")
 
 	h := &PostToolUseLogToolNameHandler{ProjectRoot: dir}
 	var out bytes.Buffer
 	_ = h.Handle(strings.NewReader(`{"tool_name":"Read"}`), &out)
 
-	// tool-events.jsonl が作成されていないこと
+	// verify tool-events.jsonl is NOT created
 	logFile := filepath.Join(stateDir, toolEventsFile)
 	if _, err := os.Stat(logFile); err == nil {
 		t.Errorf("expected tool-events.jsonl to NOT be created when Phase0 log is disabled")
 	}
 }
 
-// TestPostToolUseLogToolName_LSPTracking は LSP ツール使用が tooling-policy.json に記録されることを確認する。
 func TestPostToolUseLogToolName_LSPTracking(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, ".claude", "state")
@@ -128,7 +127,6 @@ func TestPostToolUseLogToolName_LSPTracking(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// session.json と tooling-policy.json を初期化
 	sessionData := `{"prompt_seq": 3}`
 	if err := os.WriteFile(filepath.Join(stateDir, "session.json"), []byte(sessionData), 0600); err != nil {
 		t.Fatal(err)
@@ -147,7 +145,6 @@ func TestPostToolUseLogToolName_LSPTracking(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// tooling-policy.json を確認
 	rawPolicy, err := os.ReadFile(filepath.Join(stateDir, "tooling-policy.json"))
 	if err != nil {
 		t.Fatalf("failed to read tooling-policy.json: %v", err)
@@ -172,7 +169,6 @@ func TestPostToolUseLogToolName_LSPTracking(t *testing.T) {
 	}
 }
 
-// TestPostToolUseLogToolName_NonLSPToolNoPolicy は LSP でないツールが tooling-policy.json を変更しないことを確認する。
 func TestPostToolUseLogToolName_NonLSPToolNoPolicy(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, ".claude", "state")
@@ -190,14 +186,12 @@ func TestPostToolUseLogToolName_NonLSPToolNoPolicy(t *testing.T) {
 	var out bytes.Buffer
 	_ = h.Handle(strings.NewReader(`{"tool_name":"Bash"}`), &out)
 
-	// tooling-policy.json は変更されていないこと
 	rawAfter, _ := os.ReadFile(policyPath)
 	if string(rawAfter) != policyData {
 		t.Errorf("expected policy to be unchanged for non-LSP tool, got: %s", string(rawAfter))
 	}
 }
 
-// TestPostToolUseLogToolName_SessionEventLog は重要ツールがセッションイベントに記録されることを確認する。
 func TestPostToolUseLogToolName_SessionEventLog(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, ".claude", "state")
@@ -205,7 +199,6 @@ func TestPostToolUseLogToolName_SessionEventLog(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// session.json を初期化
 	sessionData := `{"prompt_seq": 1, "event_seq": 0, "state": "executing"}`
 	if err := os.WriteFile(filepath.Join(stateDir, "session.json"), []byte(sessionData), 0600); err != nil {
 		t.Fatal(err)
@@ -220,7 +213,6 @@ func TestPostToolUseLogToolName_SessionEventLog(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// session-events.jsonl を確認
 	eventFile := filepath.Join(stateDir, sessionEventsFile)
 	data, err := os.ReadFile(eventFile)
 	if err != nil {
@@ -244,7 +236,6 @@ func TestPostToolUseLogToolName_SessionEventLog(t *testing.T) {
 	}
 }
 
-// TestPostToolUseLogToolName_SkillTracking は Skill ツール使用が session-skills-used.json に記録されることを確認する。
 func TestPostToolUseLogToolName_SkillTracking(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, ".claude", "state")
@@ -282,7 +273,6 @@ func TestPostToolUseLogToolName_SkillTracking(t *testing.T) {
 	}
 }
 
-// TestPostToolUseLogToolName_SkillTrackingMultiple は複数回のSkill使用が蓄積されることを確認する。
 func TestPostToolUseLogToolName_SkillTrackingMultiple(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, ".claude", "state")
@@ -312,7 +302,6 @@ func TestPostToolUseLogToolName_SkillTrackingMultiple(t *testing.T) {
 	}
 }
 
-// TestIsImportantTool は重要ツール判定のロジックを確認する。
 func TestIsImportantTool(t *testing.T) {
 	important := []string{"Write", "Edit", "Bash", "Task", "Skill", "SlashCommand"}
 	notImportant := []string{"Read", "Glob", "Grep", "harness_lsp_definition", "unknown"}
@@ -329,17 +318,14 @@ func TestIsImportantTool(t *testing.T) {
 	}
 }
 
-// TestNeedsRotation はローテーション判定ロジックを確認する。
 func TestNeedsRotation(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.jsonl")
 
-	// ファイルなし → ローテーション不要
 	if needsRotation(path, 100, 10) {
 		t.Error("expected false for non-existent file")
 	}
 
-	// 小さいファイル → ローテーション不要
 	if err := os.WriteFile(path, []byte("line1\nline2\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -347,41 +333,34 @@ func TestNeedsRotation(t *testing.T) {
 		t.Error("expected false for small file")
 	}
 
-	// サイズ超過 → ローテーション必要
 	if needsRotation(path, 5, 10) == false {
 		t.Error("expected true when file exceeds size limit")
 	}
 }
 
-// TestRotateLog はログローテーションの動作を確認する。
 func TestRotateLog(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.jsonl")
 
-	// ファイルを作成
 	if err := os.WriteFile(path, []byte("original content\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 
 	rotateLog(path, 5)
 
-	// .1 にリネームされていること
 	if _, err := os.Stat(path + ".1"); err != nil {
 		t.Errorf("expected %s.1 to exist after rotation", path)
 	}
-	// 新しいファイルが作成されていること
 	if _, err := os.Stat(path); err != nil {
 		t.Errorf("expected new %s to exist after rotation", path)
 	}
 
-	// 元の内容が .1 にある
 	data1, _ := os.ReadFile(path + ".1")
 	if !strings.Contains(string(data1), "original content") {
 		t.Errorf("expected original content in .1 file")
 	}
 }
 
-// TestBuildEventData はイベントデータ構築ロジックを確認する。
 func TestBuildEventData(t *testing.T) {
 	tests := []struct {
 		inp      logToolNameInput

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "description": "Sandbox 設定テンプレート - 操作感への影響を最小化しつつセキュリティを強化",
+  "description": "Sandbox settings template - enhance security while minimizing impact on usability",
   "sandbox": {
     "enabled": true,
     "autoAllowBashIfSandboxed": true,
@@ -38,9 +38,9 @@
     ]
   },
   "_notes": {
-    "purpose": "Claude Code Permissions ドキュメントに基づく推奨 Sandbox 設定",
-    "autoAllowBashIfSandboxed": "true にすることで Sandbox 有効時の許可プロンプトを最小化",
-    "excludedCommands": "Sandbox 外で実行が必要なコマンド（ホストシステムへのアクセスが必要）",
-    "allowedDomains": "開発に必要な外部サービスへのネットワークアクセスを許可"
+    "purpose": "Recommended Sandbox settings based on Claude Code Permissions documentation",
+    "autoAllowBashIfSandboxed": "Setting to true minimizes permission prompts when Sandbox is enabled",
+    "excludedCommands": "Commands that need to run outside the Sandbox (require host system access)",
+    "allowedDomains": "Allow network access to external services needed for development"
   }
 }

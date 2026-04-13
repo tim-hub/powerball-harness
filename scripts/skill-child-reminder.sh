@@ -1,14 +1,14 @@
 #!/bin/bash
 # skill-child-reminder.sh
-# PostToolUse hook: Skill ツール使用後に子スキルの読み込みをリマインド
+# PostToolUse hook: reminds the model to load child skills after a Skill tool is used
 #
-# Usage: PostToolUse hook から自動実行（matcher="Skill"）
+# Usage: auto-executed from the PostToolUse hook (matcher="Skill")
 # Input: stdin JSON (Claude Code hooks)
-# Output: リマインダーメッセージ（子スキルがある場合）
+# Output: reminder message (when child skills are present)
 
 set +e
 
-# stdin から JSON 入力を読み取る
+# Read JSON input from stdin
 INPUT=""
 if [ ! -t 0 ]; then
   INPUT="$(cat 2>/dev/null)"
@@ -16,7 +16,7 @@ fi
 
 [ -z "$INPUT" ] && exit 0
 
-# JSON からツール名とスキル名を抽出
+# Extract tool name and skill name from JSON
 TOOL_NAME=""
 SKILL_NAME=""
 
@@ -38,21 +38,21 @@ print(f"SKILL_NAME={shlex.quote(skill_name)}")
 ' 2>/dev/null)"
 fi
 
-# Skill ツール以外はスキップ
+# Skip if not the Skill tool
 [ "$TOOL_NAME" != "Skill" ] && exit 0
 [ -z "$SKILL_NAME" ] && exit 0
 
-# プラグインルートを取得
+# Get plugin root
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "$(realpath "$0")")")}"
 
-# スキル名からカテゴリを抽出（例: "claude-code-harness:impl" → "impl"）
+# Extract category from skill name (e.g. "claude-code-harness:impl" → "impl")
 SKILL_CATEGORY="${SKILL_NAME##*:}"
 
-# 子スキルディレクトリの存在確認
+# Check whether the child skills directory exists
 SKILL_DIR="${PLUGIN_ROOT}/skills/${SKILL_CATEGORY}"
 
 if [ -d "$SKILL_DIR" ]; then
-  # 子スキル（doc.md）の一覧を取得
+  # List child skills (doc.md files)
   CHILD_SKILLS=""
   for child_dir in "$SKILL_DIR"/*/; do
     if [ -f "${child_dir}doc.md" ]; then
@@ -61,18 +61,18 @@ if [ -d "$SKILL_DIR" ]; then
     fi
   done
 
-  # 子スキルがある場合のみリマインダーを出力
+  # Output reminder only when child skills are present
   if [ -n "$CHILD_SKILLS" ]; then
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "📚 Skill Hierarchy Reminder"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "「${SKILL_CATEGORY}」スキルには以下の子スキルがあります："
+    echo "The \"${SKILL_CATEGORY}\" skill has the following child skills:"
     echo ""
     echo -e "$CHILD_SKILLS"
     echo ""
-    echo "⚠️  ユーザーの意図に応じて、該当する doc.md を Read してください。"
+    echo "⚠️  Read the relevant doc.md based on the user's intent."
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
   fi

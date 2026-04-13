@@ -2,14 +2,14 @@
 
 package hookhandler
 
-// isProcessAlive は指定 PID のプロセスが生存しているかを確認する（Windows 実装）。
+// isProcessAlive checks whether the process with the given PID is alive (Windows implementation).
 //
-// Windows では Unix の syscall.Kill(pid, 0) に相当するシグナル 0 送信が
-// サポートされていない。os.Interrupt を実際に送信するとプロセスを終了させてしまうため禁止。
+// Windows does not support signal 0 (the equivalent of syscall.Kill(pid, 0) on Unix).
+// Sending os.Interrupt would actually terminate the process, so it is prohibited here.
 //
-// 安全側に倒す方針: Windows では processing フラグを削除しない（= alive とみなす）。
-// これは bash 版の `kill -0` が Git Bash でも動作しないことと同等の動作であり、
-// フラグが残っても次回セッション開始時に上書きされるため実害はない。
+// Fail-safe policy: on Windows, the processing flag is never removed (i.e., always treated as alive).
+// This matches the behavior of `kill -0` not working in Git Bash,
+// and leaving the flag behind is harmless because it is overwritten at the next session start.
 func isProcessAlive(_ int) bool {
 	return true
 }

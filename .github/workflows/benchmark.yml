@@ -4,17 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       tasks:
-        description: "実行するタスク（カンマ区切り、または 'all'）"
+        description: "Tasks to run (comma-separated, or 'all')"
         required: false
         default: "all"
         type: string
       trials:
-        description: "各タスクの試行回数"
+        description: "Number of trials per task"
         required: false
         default: "3"
         type: string
       mode:
-        description: "実行モード"
+        description: "Execution mode"
         required: false
         default: "both"
         type: choice
@@ -26,7 +26,7 @@ on:
 permissions:
   contents: read
 
-# 同時実行を防止（結果の混入を防ぐ）
+# Prevent concurrent runs (to avoid mixing results)
 concurrency:
   group: benchmark-${{ github.repository }}
   cancel-in-progress: false
@@ -169,12 +169,12 @@ jobs:
           echo "## Benchmark Results" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
-          # 最新の scorecard.md を表示
+          # Display the latest scorecard.md
           SCORECARD_MD=$(ls -t benchmarks/results/scorecard-*.md 2>/dev/null | head -1)
           if [ -n "$SCORECARD_MD" ] && [ -f "$SCORECARD_MD" ]; then
             cat "$SCORECARD_MD" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "Scorecard が生成されませんでした。" >> "$GITHUB_STEP_SUMMARY"
+            echo "Scorecard was not generated." >> "$GITHUB_STEP_SUMMARY"
           fi
 
           echo "" >> "$GITHUB_STEP_SUMMARY"
@@ -182,5 +182,5 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "### Artifacts" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "- benchmark-results-${{ github.run_id }}: 全結果（JSON, trace, output）" >> "$GITHUB_STEP_SUMMARY"
-          echo "- scorecard-${{ github.run_id }}: Scorecard（JSON, Markdown）" >> "$GITHUB_STEP_SUMMARY"
+          echo "- benchmark-results-${{ github.run_id }}: All results (JSON, trace, output)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- scorecard-${{ github.run_id }}: Scorecard (JSON, Markdown)" >> "$GITHUB_STEP_SUMMARY"

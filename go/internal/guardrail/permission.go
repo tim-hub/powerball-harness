@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
+	"github.com/tim-hub/powerball-harness/go/pkg/hookproto"
 )
 
 // ---------------------------------------------------------------------------

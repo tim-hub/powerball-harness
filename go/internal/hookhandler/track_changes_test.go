@@ -56,7 +56,6 @@ func TestHandleTrackChanges_RecordsEntry(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// JSONL ファイルが作成されること
 	data, err := os.ReadFile(changedFilesPath)
 	if err != nil {
 		t.Fatalf("changed-files.jsonl not created: %v", err)
@@ -150,7 +149,6 @@ func TestHandleTrackChanges_WindowsPathNormalization(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// Windows バックスラッシュを含むパス
 	input := `{"tool_name":"Write","tool_input":{"file_path":"src\\components\\App.tsx"}}`
 	var out bytes.Buffer
 	if err := HandleTrackChanges(strings.NewReader(input), &out); err != nil {
@@ -166,7 +164,6 @@ func TestHandleTrackChanges_WindowsPathNormalization(t *testing.T) {
 	if err := json.Unmarshal([]byte(strings.TrimSpace(string(data))), &entry); err != nil {
 		t.Fatalf("invalid JSONL entry: %v", err)
 	}
-	// バックスラッシュがスラッシュに変換されること
 	if strings.Contains(entry.File, "\\") {
 		t.Errorf("expected backslashes to be normalized, got %q", entry.File)
 	}
@@ -183,7 +180,6 @@ func TestHandleTrackChanges_CWDRelativePath(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// CWD 付きの絶対パスを相対パスに変換する
 	input := `{"tool_name":"Write","cwd":"/home/user/project","tool_input":{"file_path":"/home/user/project/src/main.go"}}`
 	var out bytes.Buffer
 	if err := HandleTrackChanges(strings.NewReader(input), &out); err != nil {
@@ -199,7 +195,6 @@ func TestHandleTrackChanges_CWDRelativePath(t *testing.T) {
 	if err := json.Unmarshal([]byte(strings.TrimSpace(string(data))), &entry); err != nil {
 		t.Fatalf("invalid JSONL entry: %v", err)
 	}
-	// 絶対パスが相対パスに変換されること
 	if entry.File != "src/main.go" {
 		t.Errorf("expected relative path src/main.go, got %q", entry.File)
 	}
@@ -216,14 +211,12 @@ func TestHandleTrackChanges_DedupWithin2Hours(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// 最初の記録
 	input := `{"tool_name":"Write","tool_input":{"file_path":"src/main.go"}}`
 	var out bytes.Buffer
 	if err := HandleTrackChanges(strings.NewReader(input), &out); err != nil {
 		t.Fatalf("first call error: %v", err)
 	}
 
-	// 2回目は dedup でスキップされること
 	out.Reset()
 	if err := HandleTrackChanges(strings.NewReader(input), &out); err != nil {
 		t.Fatalf("second call error: %v", err)
@@ -235,7 +228,6 @@ func TestHandleTrackChanges_DedupWithin2Hours(t *testing.T) {
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
-	// 2回目はスキップされるので1行のみ
 	if len(lines) != 1 {
 		t.Errorf("expected 1 line (dedup), got %d lines: %s", len(lines), data)
 	}
@@ -252,7 +244,6 @@ func TestHandleTrackChanges_ToolResponseFilePath(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// tool_response.filePath を使うケース
 	input := `{"tool_name":"Task","tool_response":{"filePath":"output/result.go"}}`
 	var out bytes.Buffer
 	if err := HandleTrackChanges(strings.NewReader(input), &out); err != nil {
@@ -284,12 +275,10 @@ func TestRotateIfNeeded(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// stateディレクトリを作成
 	if err := os.MkdirAll(filepath.Dir(changedFilesPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
 
-	// maxLines+10 行のファイルを作成
 	f, err := os.Create(changedFilesPath)
 	if err != nil {
 		t.Fatal(err)

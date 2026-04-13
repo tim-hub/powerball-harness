@@ -26,7 +26,7 @@ docs/design/
 !.claude/output-styles/
 .serena/
 .superset/
-# .mcp.json はプラグイン MCP 設定として配布に含める
+# .mcp.json is included in distribution as a plugin MCP configuration
 .github/mlc_config.json
 
 # Memory observation context files (auto-generated)
@@ -86,7 +86,7 @@ harness-ui/CLAUDE.md
 docs/FIX_PLAN_*.md
 docs/INVESTIGATION_REPORT_*.md
 docs/*TOKEN_REPORT*.md
-docs/チョウサレポート*.md
+docs/InvestigationReport*.md
 docs/claude-code-bypass-permissions-guide.md
 docs/constitution.md
 docs/update-summary-*.md
@@ -101,17 +101,17 @@ docs/MOSHI_REMOTE_SETUP.md
 .lsp.json
 *lsp*config*.json
 
-# アーカイブ済みスキル（統合・非推奨）
+# Archived skills (consolidated/deprecated)
 **/skills/_archived/
 
-# 開発用テストスキル
+# Development test skills
 skills/test-*/
 skills/zz-review-*/
 skills/zz-review-symlink
 opencode/skills/test-*/
 codex/.codex/skills/test-*/
 
-# 開発用スキル（非公開）
+# Development skills (private)
 skills/allow1/
 skills/claude-codex-upstream-update/
 skills/x-article/
@@ -136,7 +136,7 @@ codex/.codex/skills/x-release-harness/
 # Harness UI Archive (deprecated old implementation)
 /harness-ui-archive/
 
-# MCP Server（オプション機能、別途インストール）
+# MCP Server (optional feature, install separately)
 /mcp-server/
 .mcp.json
 
@@ -145,7 +145,7 @@ codex/.codex/skills/x-release-harness/
 /scripts/harness-memd
 /scripts/harness-mem-client.sh
 
-# スライド中間ファイル
+# Slide intermediate files
 docs/slides/
 docs/video/
 docs/images/slides/
@@ -161,25 +161,25 @@ docs/presentation/9.png
 docs/presentation/10.png
 docs/presentation/11.png
 
-# Playwright MCP (ローカルテスト用)
+# Playwright MCP (for local testing)
 .playwright-mcp/
 
-# Firecrawl 一時データ（ローカルのみ）
+# Firecrawl temporary data (local only)
 /.firecrawl/
 
-# Harness-mem 一時データ（ローカルのみ）
+# Harness-mem temporary data (local only)
 /.harness-mem/
 
-# 診断出力（一時ファイル）
+# Diagnostic output (temporary files)
 /output/
 
-# 調査・研究用ドキュメント（非公開）
+# Research/investigation documents (private)
 docs/research/
 
-# 一時的な画像ファイル
+# Temporary image files
 docs/images/image*.webp
 
-# マイグレーションスクリプト（一時的）
+# Migration scripts (temporary)
 scripts/migrate-usage-history.js
 .claude-plugin/CLAUDE.md
 
@@ -189,12 +189,12 @@ scripts/sandbox-test/.env
 # Local benchmark scratch
 benchmarks/evals-v3/scripts/mcp-empty.json
 
-# リリース告知資料（ローカルのみ）
+# Release announcement materials (local only)
 docs/releases/
 docs/notebooklm/work-full-slides-compact.yaml
 docs/notebooklm/work-full-slides-minimal.yaml
 
-# Remotion (動画生成) - ディレクトリ全体を除外
+# Remotion (video generation) - exclude entire directory
 /remotion/
 .remotion/
 out/
@@ -202,7 +202,7 @@ out/
 *.webm
 *.gif
 
-# Core engine (v3) — TypeScript エンジンは Go に移植済み。ディレクトリごと除外
+# Core engine (v3) — TypeScript engine ported to Go. Exclude entire directory
 /core/
 
 # Skills - node_modules and generated files

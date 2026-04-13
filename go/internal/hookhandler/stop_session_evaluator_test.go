@@ -9,7 +9,6 @@ import (
 	"testing"
 )
 
-// assertStopOK は出力 JSON の ok フィールドを検証するヘルパー。
 func assertStopOK(t *testing.T, output string, wantOK bool) {
 	t.Helper()
 	output = strings.TrimSpace(output)
@@ -35,7 +34,6 @@ func TestStopSessionEvaluator_EmptyInput(t *testing.T) {
 }
 
 func TestStopSessionEvaluator_NoStateFile(t *testing.T) {
-	// session.json が存在しない場合は ok: true
 	dir := t.TempDir()
 	h := &StopSessionEvaluatorHandler{ProjectRoot: dir}
 	var out bytes.Buffer
@@ -83,7 +81,6 @@ func TestStopSessionEvaluator_RecordsLastMessage(t *testing.T) {
 	}
 	assertStopOK(t, out.String(), true)
 
-	// session.json に last_message_length と last_message_hash が書き込まれているか確認
 	data, err := os.ReadFile(stateFile)
 	if err != nil {
 		t.Fatalf("session.json not readable: %v", err)
@@ -98,7 +95,6 @@ func TestStopSessionEvaluator_RecordsLastMessage(t *testing.T) {
 	if _, ok := m["last_message_hash"]; !ok {
 		t.Error("session.json missing last_message_hash")
 	}
-	// 平文メッセージが保存されていないことを確認
 	content := string(data)
 	if strings.Contains(content, "Hello from assistant") {
 		t.Error("session.json should not contain the raw message")
@@ -116,10 +112,9 @@ func TestStopSessionEvaluator_WIPTasksWarning(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Plans.md に cc:WIP タスクを含める
 	plansContent := `| 1 | impl foo | DoD | - | cc:WIP |
 | 2 | impl bar | DoD | - | cc:WIP |
-| 3 | impl baz | DoD | - | cc:完了 |
+| 3 | impl baz | DoD | - | cc:done |
 `
 	if err := os.WriteFile(filepath.Join(dir, "Plans.md"), []byte(plansContent), 0o644); err != nil {
 		t.Fatal(err)
@@ -136,11 +131,9 @@ func TestStopSessionEvaluator_WIPTasksWarning(t *testing.T) {
 	if err := json.Unmarshal([]byte(output), &resp); err != nil {
 		t.Fatalf("invalid JSON: %v\noutput: %s", err, output)
 	}
-	// ブロックはしない（ok: true）
 	if !resp.OK {
 		t.Errorf("ok = false, want true (WIP should not block stop)")
 	}
-	// systemMessage に警告が含まれていること
 	if !strings.Contains(resp.SystemMessage, "WIP") {
 		t.Errorf("systemMessage %q does not contain 'WIP'", resp.SystemMessage)
 	}
@@ -160,8 +153,7 @@ func TestStopSessionEvaluator_NoWIPTasksNoWarning(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// WIP なし
-	plansContent := `| 1 | done task | DoD | - | cc:完了 |`
+	plansContent := `| 1 | done task | DoD | - | cc:done |`
 	if err := os.WriteFile(filepath.Join(dir, "Plans.md"), []byte(plansContent), 0o644); err != nil {
 		t.Fatal(err)
 	}

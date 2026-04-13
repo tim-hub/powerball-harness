@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
+	"github.com/tim-hub/powerball-harness/go/pkg/hookproto"
 )
 
 // ---------------------------------------------------------------------------
@@ -56,7 +56,7 @@ func TestPreToolToOutput_ApproveNoMessage(t *testing.T) {
 func TestPreToolToOutput_ApproveWithSystemMessage(t *testing.T) {
 	result := hookproto.HookResult{
 		Decision:      hookproto.DecisionApprove,
-		SystemMessage: "警告: 機密ファイルを読み取っています",
+		SystemMessage: "Warning: reading a sensitive file",
 	}
 	out := PreToolToOutput(result)
 	if out == nil {

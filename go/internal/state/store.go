@@ -1,8 +1,8 @@
-// Package state は Harness v4 の SQLite 状態管理を提供する。
-// TypeScript の core/src/state/store.ts を Go に移植したもの。
+// Package state provides SQLite state management for Harness v4.
+// Ported from the TypeScript core/src/state/store.ts to Go.
 //
-// 使用するドライバ: modernc.org/sqlite (pure Go, CGO 不要)
-// WAL モードで並列読み取りを改善し、busy timeout 5s でロック競合を緩和する。
+// Driver used: modernc.org/sqlite (pure Go, no CGO required)
+// WAL mode improves parallel read throughput; busy timeout of 5s reduces lock contention.
 package state
 
 import (
@@ -13,14 +13,14 @@ import (
 	"path/filepath"
 	"time"
 
-	_ "modernc.org/sqlite" // SQLite ドライバ登録（副作用のみ使用）
+	_ "modernc.org/sqlite" // Register SQLite driver (side-effect only)
 )
 
 // ============================================================
-// 型定義
+// Type definitions
 // ============================================================
 
-// SessionMode はセッションの動作モードを表す。
+// SessionMode represents the operating mode of a session.
 type SessionMode string
 
 const (
@@ -30,7 +30,7 @@ const (
 	SessionModeBreezing SessionMode = "breezing"
 )
 
-// SessionState はセッションの状態を表す。
+// SessionState represents the state of a session.
 type SessionState struct {
 	SessionID   string                 `json:"session_id"`
 	Mode        SessionMode            `json:"mode"`
@@ -40,7 +40,7 @@ type SessionState struct {
 	Context     map[string]interface{} `json:"context,omitempty"`
 }
 
-// Signal はエージェント間のシグナルを表す。
+// Signal represents an inter-agent signal.
 type Signal struct {
 	ID            int64                  `json:"id,omitempty"`
 	Type          string                 `json:"type"`
@@ -50,7 +50,7 @@ type Signal struct {
 	Timestamp     string                 `json:"timestamp"` // ISO 8601
 }
 
-// TaskFailure はタスク失敗イベントを表す。
+// TaskFailure represents a task failure event.
 type TaskFailure struct {
 	TaskID    string  `json:"task_id"`
 	Severity  string  `json:"severity"` // warning | error | critical
@@ -60,7 +60,7 @@ type TaskFailure struct {
 	Attempt   int     `json:"attempt"`
 }
 
-// WorkState は work/codex モードの状態を表す。
+// WorkState represents the state of work/codex mode.
 type WorkState struct {
 	SessionID      string `json:"session_id"`
 	CodexMode      bool   `json:"codex_mode"`
@@ -70,7 +70,7 @@ type WorkState struct {
 	ExpiresAt      int64  `json:"expires_at"`
 }
 
-// Assumption はエージェントが記録した前提・仮定を表す。
+// Assumption represents an assumption or precondition recorded by an agent.
 type Assumption struct {
 	ID          int64    `json:"id,omitempty"`
 	SessionID   string   `json:"session_id"`
@@ -81,7 +81,7 @@ type Assumption struct {
 	ValidatedAt *string  `json:"validated_at,omitempty"`
 }
 
-// WorkStateOptions は SetWorkState のオプション引数。
+// WorkStateOptions is the option argument for SetWorkState.
 type WorkStateOptions struct {
 	CodexMode     bool
 	BypassRmRf    bool
@@ -90,24 +90,24 @@ type WorkStateOptions struct {
 }
 
 // ============================================================
-// パス解決
+// Path resolution
 // ============================================================
 
-// ResolveStatePath は State DB のパスを優先順位に従って解決する。
-// 優先順位:
+// ResolveStatePath resolves the state DB path according to priority order.
+// Priority:
 //  1. ${CLAUDE_PLUGIN_DATA}/state.db
 //  2. ${PROJECT_ROOT}/.harness/state.db
-//  3. フォールバック: ${PROJECT_ROOT}/.claude/state/state.db (読み取りのみの想定だが Open は試みる)
+//  3. Fallback: ${PROJECT_ROOT}/.claude/state/state.db (Open is attempted even though read-only is expected)
 func ResolveStatePath(projectRoot string) string {
-	// 1. CC v2.1.78+ で永続保証されるプラグインデータディレクトリ
+	// 1. Plugin data directory with persistence guarantees (CC v2.1.78+)
 	if pluginData := os.Getenv("CLAUDE_PLUGIN_DATA"); pluginData != "" {
 		return filepath.Join(pluginData, "state.db")
 	}
-	// 2. プロジェクトローカルの .harness ディレクトリ
+	// 2. Project-local .harness directory
 	if projectRoot != "" {
 		return filepath.Join(projectRoot, ".harness", "state.db")
 	}
-	// 3. フォールバック: カレントディレクトリ基準
+	// 3. Fallback: relative to current directory
 	cwd, err := os.Getwd()
 	if err != nil {
 		return ".harness/state.db"
@@ -119,32 +119,32 @@ func ResolveStatePath(projectRoot string) string {
 // HarnessStore
 // ============================================================
 
-// HarnessStore は Harness の SQLite 状態ストア。
-// TypeScript の HarnessStore クラスを 1:1 で移植した Go 実装。
+// HarnessStore is the Harness SQLite state store.
+// A 1:1 Go port of the TypeScript HarnessStore class.
 type HarnessStore struct {
 	db *sql.DB
 }
 
-// NewHarnessStore は指定したパスに SQLite DB を開き、スキーマを初期化した
-// HarnessStore を返す。
-// WAL モードと busy timeout 5s を設定してロック競合を緩和する。
+// NewHarnessStore opens a SQLite DB at the given path, initializes the schema,
+// and returns a HarnessStore.
+// Sets WAL mode and busy timeout of 5s to reduce lock contention.
 func NewHarnessStore(dbPath string) (*HarnessStore, error) {
-	// DB ファイルの親ディレクトリを作成（なければ）
+	// Create parent directory for the DB file if it does not exist
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0o755); err != nil {
 		return nil, fmt.Errorf("state: mkdir %s: %w", filepath.Dir(dbPath), err)
 	}
 
-	// database/sql 経由で modernc SQLite を開く
+	// Open modernc SQLite via database/sql
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("state: open db %s: %w", dbPath, err)
 	}
 
-	// SQLite の file-level ロックに合わせて接続数を制限する。
-	// WAL モードでは読み取り並列性は高いが、書き込みは直列化が必要。
+	// Limit connection count to match SQLite file-level locking.
+	// WAL mode allows parallel reads, but writes must be serialized.
 	db.SetMaxOpenConns(1)
 
-	// PRAGMA はプレースホルダーが使えないため Exec で直接実行する。
+	// PRAGMAs cannot use placeholders, so execute them directly via Exec.
 	if _, err := db.Exec("PRAGMA journal_mode = WAL"); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("state: set WAL mode: %w", err)
@@ -153,7 +153,7 @@ func NewHarnessStore(dbPath string) (*HarnessStore, error) {
 		db.Close()
 		return nil, fmt.Errorf("state: enable foreign_keys: %w", err)
 	}
-	// ロック待ちのタイムアウトを 5 秒に設定する（SPEC.md §6）
+	// Set lock wait timeout to 5 seconds (SPEC.md §6)
 	if _, err := db.Exec("PRAGMA busy_timeout = 5000"); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("state: set busy_timeout: %w", err)
@@ -168,30 +168,30 @@ func NewHarnessStore(dbPath string) (*HarnessStore, error) {
 	return store, nil
 }
 
-// Close は DB 接続を閉じる。
+// Close closes the DB connection.
 func (s *HarnessStore) Close() error {
 	return s.db.Close()
 }
 
 // ============================================================
-// スキーマ初期化
+// Schema initialization
 // ============================================================
 
-// initSchema は初回起動時に全 DDL を実行し、schema_meta にバージョンを記録する。
-// 既にバージョンが記録されている場合は何もしない（マイグレーションは将来実装）。
+// initSchema executes all DDL on first startup and records the version in schema_meta.
+// If a version is already recorded, this is a no-op (migrations are a future concern).
 func (s *HarnessStore) initSchema() error {
-	// schema_meta テーブルだけは必ず先に作成する
+	// Always create schema_meta first
 	if _, err := s.db.Exec(createSchemaMeta); err != nil {
 		return fmt.Errorf("create schema_meta: %w", err)
 	}
 
-	// バージョンチェック
+	// Version check
 	var version string
 	err := s.db.QueryRow("SELECT value FROM schema_meta WHERE key = 'version'").Scan(&version)
 
 	switch {
 	case err == sql.ErrNoRows:
-		// 初回: 全 DDL を実行してバージョンを記録する
+		// First run: execute all DDL and record the version
 		for _, ddl := range allDDL {
 			if _, execErr := s.db.Exec(ddl); execErr != nil {
 				return fmt.Errorf("exec ddl: %w", execErr)
@@ -206,7 +206,7 @@ func (s *HarnessStore) initSchema() error {
 	case err != nil:
 		return fmt.Errorf("read schema version: %w", err)
 	default:
-		// バージョンが記録済み — マイグレーションは将来実装
+		// Version already recorded — migrations are a future concern
 		_ = version
 	}
 
@@ -214,13 +214,13 @@ func (s *HarnessStore) initSchema() error {
 }
 
 // ============================================================
-// セッション管理
+// Session management
 // ============================================================
 
-// UpsertSession はセッションを登録または更新する。
-// TypeScript の upsertSession に対応。
+// UpsertSession registers or updates a session.
+// Corresponds to TypeScript's upsertSession.
 func (s *HarnessStore) UpsertSession(session SessionState) error {
-	// ISO 8601 文字列を Unix タイムスタンプ秒に変換
+	// Convert ISO 8601 string to Unix timestamp seconds
 	startedAt, err := parseISOToUnix(session.StartedAt)
 	if err != nil {
 		return fmt.Errorf("parse started_at: %w", err)
@@ -251,8 +251,8 @@ func (s *HarnessStore) UpsertSession(session SessionState) error {
 	return err
 }
 
-// EndSession はセッションを終了済みにする。
-// TypeScript の endSession に対応。
+// EndSession marks a session as ended.
+// Corresponds to TypeScript's endSession.
 func (s *HarnessStore) EndSession(sessionID string) error {
 	endedAt := time.Now().Unix()
 	_, err := s.db.Exec(
@@ -262,8 +262,8 @@ func (s *HarnessStore) EndSession(sessionID string) error {
 	return err
 }
 
-// GetSession はセッション情報を取得する。存在しない場合は nil を返す。
-// TypeScript の getSession に対応。
+// GetSession retrieves session information. Returns nil if not found.
+// Corresponds to TypeScript's getSession.
 func (s *HarnessStore) GetSession(sessionID string) (*SessionState, error) {
 	var (
 		sessionIDOut   string
@@ -307,11 +307,11 @@ func (s *HarnessStore) GetSession(sessionID string) (*SessionState, error) {
 }
 
 // ============================================================
-// シグナル管理
+// Signal management
 // ============================================================
 
-// SendSignal はシグナルを送信し、挿入した行の ID を返す。
-// TypeScript の sendSignal に対応。
+// SendSignal sends a signal and returns the inserted row ID.
+// Corresponds to TypeScript's sendSignal.
 func (s *HarnessStore) SendSignal(signal Signal) (int64, error) {
 	sentAt := time.Now().Unix()
 
@@ -325,7 +325,7 @@ func (s *HarnessStore) SendSignal(signal Signal) (int64, error) {
          VALUES (?, ?, ?, ?, ?)`,
 		signal.Type,
 		signal.FromSessionID,
-		signal.ToSessionID, // nil は SQL NULL として扱われる
+		signal.ToSessionID, // nil is treated as SQL NULL
 		string(payloadJSON),
 		sentAt,
 	)
@@ -341,10 +341,10 @@ func (s *HarnessStore) SendSignal(signal Signal) (int64, error) {
 	return id, nil
 }
 
-// ReceiveSignals は未消費のシグナルを受信し、消費済みにマークする。
-// 宛先が sessionId またはブロードキャスト（to_session_id IS NULL）のものを対象とする。
-// 自分自身が送信したシグナルは除外する。
-// TypeScript の receiveSignals に対応。
+// ReceiveSignals receives unconsumed signals and marks them as consumed.
+// Targets signals addressed to sessionId or broadcast (to_session_id IS NULL).
+// Excludes signals sent by the session itself.
+// Corresponds to TypeScript's receiveSignals.
 func (s *HarnessStore) ReceiveSignals(sessionID string) ([]Signal, error) {
 	rows, err := s.db.Query(
 		`SELECT id, type, from_session_id, to_session_id, payload_json, sent_at
@@ -403,9 +403,8 @@ func (s *HarnessStore) ReceiveSignals(sessionID string) ([]Signal, error) {
 		return []Signal{}, nil
 	}
 
-	// 受信したシグナルを消費済みにマークする
-	// database/sql は可変長プレースホルダーを直接サポートしないため、
-	// 動的に SQL を組み立てる。
+	// Mark received signals as consumed.
+	// database/sql does not natively support variadic placeholders, so build the SQL dynamically.
 	placeholders := buildPlaceholders(len(ids))
 	_, err = s.db.Exec(
 		"UPDATE signals SET consumed = 1 WHERE id IN ("+placeholders+")",
@@ -419,11 +418,11 @@ func (s *HarnessStore) ReceiveSignals(sessionID string) ([]Signal, error) {
 }
 
 // ============================================================
-// タスク失敗管理
+// Task failure management
 // ============================================================
 
-// RecordFailure はタスク失敗を記録し、挿入した行の ID を返す。
-// TypeScript の recordFailure に対応。
+// RecordFailure records a task failure and returns the inserted row ID.
+// Corresponds to TypeScript's recordFailure.
 func (s *HarnessStore) RecordFailure(failure TaskFailure, sessionID string) (int64, error) {
 	failedAt := time.Now().Unix()
 
@@ -434,7 +433,7 @@ func (s *HarnessStore) RecordFailure(failure TaskFailure, sessionID string) (int
 		sessionID,
 		failure.Severity,
 		failure.Message,
-		failure.Detail, // nil は SQL NULL として扱われる
+		failure.Detail, // nil is treated as SQL NULL
 		failedAt,
 		failure.Attempt,
 	)
@@ -450,8 +449,8 @@ func (s *HarnessStore) RecordFailure(failure TaskFailure, sessionID string) (int
 	return id, nil
 }
 
-// GetFailures はタスクの失敗履歴を取得する。
-// TypeScript の getFailures に対応。
+// GetFailures retrieves the failure history for a task.
+// Corresponds to TypeScript's getFailures.
 func (s *HarnessStore) GetFailures(taskID string) ([]TaskFailure, error) {
 	rows, err := s.db.Query(
 		`SELECT task_id, severity, message, detail, failed_at, attempt
@@ -503,11 +502,11 @@ func (s *HarnessStore) GetFailures(taskID string) ([]TaskFailure, error) {
 }
 
 // ============================================================
-// work_states 管理
+// work_states management
 // ============================================================
 
-// SetWorkState は work/codex モードを登録する（TTL 24 時間）。
-// TypeScript の setWorkState に対応。
+// SetWorkState registers a work/codex mode state (TTL 24 hours).
+// Corresponds to TypeScript's setWorkState.
 func (s *HarnessStore) SetWorkState(sessionID string, opts WorkStateOptions) error {
 	expiresAt := time.Now().Unix() + 24*3600
 
@@ -530,8 +529,8 @@ func (s *HarnessStore) SetWorkState(sessionID string, opts WorkStateOptions) err
 	return err
 }
 
-// GetWorkState は有効な work_state を取得する。期限切れの場合は nil を返す。
-// TypeScript の getWorkState に対応。
+// GetWorkState retrieves a valid work_state. Returns nil if expired.
+// Corresponds to TypeScript's getWorkState.
 func (s *HarnessStore) GetWorkState(sessionID string) (*WorkState, error) {
 	now := time.Now().Unix()
 
@@ -568,8 +567,8 @@ func (s *HarnessStore) GetWorkState(sessionID string) (*WorkState, error) {
 	}, nil
 }
 
-// CleanExpiredWorkStates は期限切れの work_states を削除し、削除件数を返す。
-// TypeScript の cleanExpiredWorkStates に対応。
+// CleanExpiredWorkStates deletes expired work_states and returns the number of rows deleted.
+// Corresponds to TypeScript's cleanExpiredWorkStates.
 func (s *HarnessStore) CleanExpiredWorkStates() (int64, error) {
 	now := time.Now().Unix()
 	result, err := s.db.Exec(
@@ -588,11 +587,11 @@ func (s *HarnessStore) CleanExpiredWorkStates() (int64, error) {
 }
 
 // ============================================================
-// schema_meta キー/バリュー管理
+// schema_meta key/value management
 // ============================================================
 
-// GetMeta は schema_meta テーブルから値を取得する。存在しない場合は "" を返す。
-// TypeScript の getMeta に対応。
+// GetMeta retrieves a value from the schema_meta table. Returns "" if not found.
+// Corresponds to TypeScript's getMeta.
 func (s *HarnessStore) GetMeta(key string) (string, error) {
 	var value string
 	err := s.db.QueryRow(
@@ -610,8 +609,8 @@ func (s *HarnessStore) GetMeta(key string) (string, error) {
 	return value, nil
 }
 
-// SetMeta は schema_meta テーブルに値を保存する（upsert）。
-// TypeScript の setMeta に対応。
+// SetMeta saves a value to the schema_meta table (upsert).
+// Corresponds to TypeScript's setMeta.
 func (s *HarnessStore) SetMeta(key, value string) error {
 	_, err := s.db.Exec(
 		`INSERT INTO schema_meta(key, value) VALUES (?, ?)
@@ -622,10 +621,10 @@ func (s *HarnessStore) SetMeta(key, value string) error {
 }
 
 // ============================================================
-// assumptions 管理（新規テーブル）
+// assumptions management (new table)
 // ============================================================
 
-// RecordAssumption はエージェントが記録した前提・仮定を保存し、挿入した行の ID を返す。
+// RecordAssumption saves an assumption or precondition recorded by an agent, and returns the inserted row ID.
 func (s *HarnessStore) RecordAssumption(a Assumption) (int64, error) {
 	createdAt := time.Now().Unix()
 
@@ -633,7 +632,7 @@ func (s *HarnessStore) RecordAssumption(a Assumption) (int64, error) {
 		`INSERT INTO assumptions(session_id, task_id, assumption, confidence, created_at)
          VALUES (?, ?, ?, ?, ?)`,
 		a.SessionID,
-		a.TaskID, // nil は SQL NULL として扱われる
+		a.TaskID, // nil is treated as SQL NULL
 		a.Assumption,
 		a.Confidence,
 		createdAt,
@@ -650,7 +649,7 @@ func (s *HarnessStore) RecordAssumption(a Assumption) (int64, error) {
 	return id, nil
 }
 
-// GetAssumptions はセッションに紐付く前提・仮定の一覧を返す。
+// GetAssumptions returns the list of assumptions associated with a session.
 func (s *HarnessStore) GetAssumptions(sessionID string) ([]Assumption, error) {
 	rows, err := s.db.Query(
 		`SELECT id, session_id, task_id, assumption, confidence, created_at, validated_at
@@ -707,10 +706,10 @@ func (s *HarnessStore) GetAssumptions(sessionID string) ([]Assumption, error) {
 }
 
 // ============================================================
-// agent_states 管理
+// agent_states management
 // ============================================================
 
-// AgentStateRecord は agent_states テーブルの 1 行を表す。
+// AgentStateRecord represents a single row in the agent_states table.
 type AgentStateRecord struct {
 	AgentID          string  `json:"agent_id"`
 	AgentType        string  `json:"agent_type"`
@@ -721,8 +720,8 @@ type AgentStateRecord struct {
 	RecoveryAttempts int     `json:"recovery_attempts"`
 }
 
-// UpsertAgentState はエージェント状態を登録または更新する。
-// 既存の agent_id がある場合は state, stopped_at, recovery_attempts を更新する。
+// UpsertAgentState registers or updates an agent state.
+// If agent_id already exists, updates state, stopped_at, and recovery_attempts.
 func (s *HarnessStore) UpsertAgentState(rec AgentStateRecord) error {
 	startedAt, err := parseISOToUnix(rec.StartedAt)
 	if err != nil {
@@ -756,8 +755,8 @@ func (s *HarnessStore) UpsertAgentState(rec AgentStateRecord) error {
 	return err
 }
 
-// GetAgentState は指定した agent_id のエージェント状態を取得する。
-// 存在しない場合は nil を返す。
+// GetAgentState retrieves the agent state for the given agent_id.
+// Returns nil if not found.
 func (s *HarnessStore) GetAgentState(agentID string) (*AgentStateRecord, error) {
 	var (
 		agentIDOut       string
@@ -798,8 +797,8 @@ func (s *HarnessStore) GetAgentState(agentID string) (*AgentStateRecord, error) 
 	return rec, nil
 }
 
-// ListAgentStates は全エージェント状態を started_at 昇順で返す。
-// onlyActive が true の場合、stopped_at が NULL のレコードのみを返す。
+// ListAgentStates returns all agent states ordered by started_at ascending.
+// If onlyActive is true, only records where stopped_at IS NULL are returned.
 func (s *HarnessStore) ListAgentStates(onlyActive bool) ([]AgentStateRecord, error) {
 	query := `SELECT agent_id, agent_type, session_id, state, started_at, stopped_at, recovery_attempts
               FROM agent_states`
@@ -854,25 +853,25 @@ func (s *HarnessStore) ListAgentStates(onlyActive bool) ([]AgentStateRecord, err
 }
 
 // ============================================================
-// ユーティリティ
+// Utilities
 // ============================================================
 
-// unixToISO は Unix タイムスタンプ秒を ISO 8601 UTC 文字列に変換する。
+// unixToISO converts a Unix timestamp in seconds to an ISO 8601 UTC string.
 func unixToISO(unixSec int64) string {
 	return time.Unix(unixSec, 0).UTC().Format(time.RFC3339)
 }
 
-// parseISOToUnix は ISO 8601 文字列を Unix タイムスタンプ秒に変換する。
+// parseISOToUnix converts an ISO 8601 string to a Unix timestamp in seconds.
 func parseISOToUnix(iso string) (int64, error) {
 	t, err := time.Parse(time.RFC3339, iso)
 	if err != nil {
-		// フォールバック: 現在時刻
+		// Fallback: use current time
 		return time.Now().Unix(), fmt.Errorf("parse time %q: %w", iso, err)
 	}
 	return t.Unix(), nil
 }
 
-// boolToInt は bool を SQLite の整数（0/1）に変換する。
+// boolToInt converts a bool to a SQLite integer (0/1).
 func boolToInt(b bool) int {
 	if b {
 		return 1
@@ -880,13 +879,13 @@ func boolToInt(b bool) int {
 	return 0
 }
 
-// intToBool は SQLite の整数（0/1）を bool に変換する。
+// intToBool converts a SQLite integer (0/1) to a bool.
 func intToBool(n int) bool {
 	return n != 0
 }
 
-// buildPlaceholders は N 個の "?" をカンマ区切りで連結した文字列を返す。
-// 例: buildPlaceholders(3) => "?,?,?"
+// buildPlaceholders returns N "?" placeholders joined by commas.
+// Example: buildPlaceholders(3) => "?,?,?"
 func buildPlaceholders(n int) string {
 	if n <= 0 {
 		return ""

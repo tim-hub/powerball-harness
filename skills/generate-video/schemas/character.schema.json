@@ -154,7 +154,7 @@
           "properties": {
             "speaker_id": {
               "type": "integer",
-              "description": "Speaker ID (e.g., 1=ずんだもん, 3=四国めたん)",
+              "description": "Speaker ID (e.g., 1=Zundamon, 3=Shikoku Metan)",
               "minimum": 0,
               "examples": [1, 3, 8, 13]
             },
@@ -528,7 +528,7 @@
     },
     {
       "character_id": "voicevox-zundamon",
-      "name": "ずんだもん",
+      "name": "Zundamon",
       "role": "guide",
       "voice": {
         "provider": "voicevox",

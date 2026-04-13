@@ -1,33 +1,33 @@
 #!/bin/bash
 # config-utils.sh
-# ハーネス設定ファイルからの値取得ユーティリティ
+# Utility for retrieving values from the harness configuration file
 #
 # Usage: source "${SCRIPT_DIR}/config-utils.sh"
 #        plans_path=$(get_plans_file_path)
 
-# 設定ファイルのデフォルトパス
+# Default path to the configuration file
 CONFIG_FILE="${CONFIG_FILE:-.claude-code-harness.config.yaml}"
 
-# plansDirectory の検証（セキュリティ）
-# 絶対パス、親ディレクトリ参照、symlink脱出を拒否
+# Validate plansDirectory (security)
+# Reject absolute paths, parent directory references, and symlink escapes
 validate_plans_directory() {
   local value="$1"
   local default="."
 
-  # 空の場合はデフォルト
+  # Return default if empty
   [ -z "$value" ] && echo "$default" && return 0
 
-  # Security: 絶対パスを拒否
+  # Security: Reject absolute paths
   case "$value" in
     /*) echo "$default" && return 0 ;;
   esac
 
-  # Security: 親ディレクトリ参照 (..) を拒否
+  # Security: Reject parent directory references (..)
   case "$value" in
     *..*)  echo "$default" && return 0 ;;
   esac
 
-  # Security: symlink脱出を検出（realpathが利用可能な場合）
+  # Security: Detect symlink escapes (when realpath is available)
   if command -v realpath >/dev/null 2>&1 && [ -e "$value" ]; then
     local project_root
     local resolved_path
@@ -35,11 +35,11 @@ validate_plans_directory() {
     resolved_path=$(realpath "$value" 2>/dev/null)
 
     if [ -n "$resolved_path" ]; then
-      # 解決されたパスがプロジェクトルート内にあるか確認
+      # Confirm the resolved path is within the project root
       case "$resolved_path" in
-        "$project_root"/*) ;; # OK: プロジェクト内
-        "$project_root") ;;   # OK: プロジェクトルート自体
-        *) echo "$default" && return 0 ;; # NG: プロジェクト外
+        "$project_root"/*) ;; # OK: inside project
+        "$project_root") ;;   # OK: project root itself
+        *) echo "$default" && return 0 ;; # NG: outside project
       esac
     fi
   fi
@@ -47,7 +47,7 @@ validate_plans_directory() {
   echo "$value"
 }
 
-# plansDirectory 設定を取得（デフォルト: "."）
+# Get plansDirectory setting (default: ".")
 get_plans_directory() {
   local default="."
 
@@ -58,14 +58,14 @@ get_plans_directory() {
 
   local value=""
 
-  # yq が利用可能な場合
+  # If yq is available
   if command -v yq >/dev/null 2>&1; then
     value=$(yq -r '.plansDirectory // empty' "$CONFIG_FILE" 2>/dev/null)
   fi
 
-  # yq で取得できなかった場合、Python を試行
+  # If not retrievable via yq, try Python
   if [ -z "$value" ] && command -v python3 >/dev/null 2>&1; then
-    # Python で YAML パース（pyyaml がない場合は空を返す）
+    # Parse YAML with Python (returns empty if pyyaml is not installed)
     value=$(python3 - "$CONFIG_FILE" <<'PY' 2>/dev/null
 import sys
 try:
@@ -82,24 +82,24 @@ PY
 )
   fi
 
-  # yq/Python で取得できなかった場合、grep + sed でフォールバック
+  # If not retrievable via yq/Python, fall back to grep + sed
   if [ -z "$value" ]; then
     value=$(grep "^plansDirectory:" "$CONFIG_FILE" 2>/dev/null | sed 's/^plansDirectory:[[:space:]]*//' | tr -d '"' | tr -d "'" || echo "")
   fi
 
-  # 検証してから返す
+  # Validate before returning
   validate_plans_directory "$value"
 }
 
-# Plans.md のフルパスを取得
+# Get the full path to Plans.md
 get_plans_file_path() {
   local plans_dir
   plans_dir=$(get_plans_directory)
 
-  # ディレクトリ内で Plans.md を検索（大文字小文字を区別しない）
+  # Search for Plans.md in the directory (case-insensitive)
   for f in Plans.md plans.md PLANS.md PLANS.MD; do
     local full_path="${plans_dir}/${f}"
-    # "." の場合は "./" を省略
+    # When ".", omit the "./" prefix
     [ "$plans_dir" = "." ] && full_path="$f"
 
     if [ -f "$full_path" ]; then
@@ -108,13 +108,13 @@ get_plans_file_path() {
     fi
   done
 
-  # 見つからない場合はデフォルトパスを返す
+  # If not found, return the default path
   local default_path="${plans_dir}/Plans.md"
   [ "$plans_dir" = "." ] && default_path="Plans.md"
   echo "$default_path"
 }
 
-# Plans.md が存在するかチェック
+# Check if Plans.md exists
 plans_file_exists() {
   local plans_path
   plans_path=$(get_plans_file_path)

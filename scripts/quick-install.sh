@@ -3,10 +3,10 @@
 # Claude Harness Quick Install Script
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/Chachamaru127/claude-code-harness/main/scripts/quick-install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/tim-hub/powerball-harness/main/scripts/quick-install.sh | bash
 #
 # Or with dev tools:
-#   curl -fsSL https://raw.githubusercontent.com/Chachamaru127/claude-code-harness/main/scripts/quick-install.sh | bash -s -- --with-dev-tools
+#   curl -fsSL https://raw.githubusercontent.com/tim-hub/powerball-harness/main/scripts/quick-install.sh | bash -s -- --with-dev-tools
 #
 
 set -e
@@ -62,7 +62,7 @@ echo
 
 # Add to marketplace
 echo "  Adding from marketplace..."
-claude /plugin marketplace add Chachamaru127/claude-code-harness 2>/dev/null || true
+claude /plugin marketplace add tim-hub/powerball-harness 2>/dev/null || true
 
 # Install
 echo "  Installing plugin..."
@@ -132,5 +132,5 @@ if [ "$WITH_DEV_TOOLS" = false ]; then
   echo
 fi
 
-echo "Documentation: https://github.com/Chachamaru127/claude-code-harness"
+echo "Documentation: https://github.com/tim-hub/powerball-harness"
 echo

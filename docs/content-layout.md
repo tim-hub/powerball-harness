@@ -1,52 +1,52 @@
 # Content Layout
 
-このリポジトリでは、`docs/` と `out/` を次のルールで使い分けます。
+This repository uses the following rules to separate `docs/` and `out/`.
 
-## 基本ルール
+## Basic Rules
 
-- `docs/`: 人が読む正本。手で編集する文章、公開用の原稿、プロンプト、設計メモ、参照資料を置く
-- `out/`: ツールや生成処理の出力先。画像、候補案、エクスポート、比較用の派生物を置く
+- `docs/`: Authoritative content for human readers. Manually edited text, publication drafts, prompts, design notes, and reference materials go here
+- `out/`: Output destination for tools and generation processes. Images, candidate drafts, exports, and derivative comparison materials go here
 
-迷ったときは、この基準で決めます。
+When in doubt, use these criteria:
 
-1. 人があとで読み返して再利用する文章か
-   - はい: `docs/`
-2. 再生成できる生成物か
-   - はい: `out/`
+1. Is this text that someone will read and reuse later?
+   - Yes: `docs/`
+2. Is this a regeneratable artifact?
+   - Yes: `out/`
 
-## Social / X 運用
+## Social / X Operations
 
 - `docs/social/`
-  - 投稿文の正本
-  - 画像生成プロンプト
-  - alt テキスト
-  - 投稿メモ、構成案
+  - Authoritative post text
+  - Image generation prompts
+  - Alt text
+  - Post notes, structure drafts
 - `out/social/`
-  - 生成された画像
-  - 候補カード
-  - ツールが吐いた下書き
-  - 比較用の一時成果物
+  - Generated images
+  - Candidate cards
+  - Tool-generated drafts
+  - Temporary comparison artifacts
 
-つまり、`docs/social/` が「何を投稿するか」、`out/social/` が「何が生成されたか」です。
+In other words, `docs/social/` is "what to post" and `out/social/` is "what was generated."
 
-過去の運用で `out/x-post/`、`out/x-posts/`、`out/x-promo/`、`out/x-release/` も存在します。これらは当面そのまま残しますが、**今後の新規 social 系出力は `out/social/` に寄せる**方針とします。
+Legacy directories `out/x-post/`, `out/x-posts/`, `out/x-promo/`, and `out/x-release/` also exist from past operations. These will remain for now, but **all new social outputs should go to `out/social/`**.
 
-## Slides / Media 運用
+## Slides / Media Operations
 
 - `docs/slides/`
-  - スライド原稿、仕様、YAML ソース
+  - Slide manuscripts, specs, YAML sources
 - `out/slides/`
-  - 書き出し画像、選定済み画像、品質レポート
+  - Exported images, selected images, quality reports
 
-## 追加時のルール
+## Rules for Additions
 
-- 新しい投稿文を保存するときは、まず `docs/social/` に保存する
-- 画像生成や書き出しを回した結果は `out/social/` に保存する
-- `docs/` に生成画像を増やさない
-- `out/` に正本の説明文を増やさない
+- When saving new post text, first save it to `docs/social/`
+- Save results from image generation or export runs to `out/social/`
+- Do not add generated images to `docs/`
+- Do not add authoritative descriptions to `out/`
 
-## 今回の整理方針
+## Current Organization Policy
 
-- X 投稿の原稿ソースは `docs/social/` に集約していく
-- 既存の `out/social/` は生成済み成果物として維持する
-- 将来の追加も同じルールに従う
+- X post source manuscripts are being consolidated into `docs/social/`
+- Existing `out/social/` content is maintained as generated artifacts
+- Future additions follow the same rules

@@ -11,7 +11,7 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-HARNESS_REPO="https://github.com/Chachamaru127/claude-code-harness.git"
+HARNESS_REPO="https://github.com/tim-hub/powerball-harness.git"
 HARNESS_BRANCH="main"
 TEMP_DIR=$(mktemp -d)
 PROJECT_DIR=$(pwd)

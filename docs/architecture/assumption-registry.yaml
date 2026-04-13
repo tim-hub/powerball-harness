@@ -4,35 +4,35 @@ entries:
   - id: independent-review-before-complete
     component: harness-work
     kind: workflow-contract
-    assumption: "実装した本人は、自分の変更の抜け漏れを安定して見つけきれない。"
-    model_limit_addressed: "自己評価バイアス"
-    retirement_signal: "単独モデル実行でも、独立レビューありと同等の不具合検出率を複数ラウンドで維持できる。"
-    validation: "Solo と Breezing の defect escape rate を比較する。"
+    assumption: "The person who implemented a change cannot reliably find all gaps and oversights in their own work."
+    model_limit_addressed: "Self-evaluation bias"
+    retirement_signal: "A single-model run consistently matches the defect detection rate of independent review across multiple rounds."
+    validation: "Compare defect escape rate between Solo and Breezing."
   - id: sprint-contract-before-worker
     component: sprint-contract
     kind: artifact
-    assumption: "Plans.md の DoD だけでは成功条件が粗く、実装とレビューが別の基準で動きやすい。"
-    model_limit_addressed: "ゴールの解像度不足"
-    retirement_signal: "DoD だけでも contract ありと同等の再作業率に下がる。"
-    validation: "contract あり/なしで修正ループ回数を比較する。"
+    assumption: "DoD in Plans.md alone is too coarse for success criteria, causing implementation and review to operate on different standards."
+    model_limit_addressed: "Insufficient goal resolution"
+    retirement_signal: "DoD alone achieves the same rework rate as having a contract."
+    validation: "Compare fix-loop count with and without contract."
   - id: structured-handoff-artifact
     component: context-reset
     kind: state-transfer
-    assumption: "長時間実行では、要約だけの引き継ぎでは次の行動と失敗理由が抜ける。"
-    model_limit_addressed: "context anxiety と handoff 劣化"
-    retirement_signal: "compaction 後の resume でも未完了率と再説明コストが増えない。"
-    validation: "resume 後の first-action latency と handoff 不足件数を追う。"
+    assumption: "In long-running executions, summary-only handoffs lose next actions and failure reasons."
+    model_limit_addressed: "Context anxiety and handoff degradation"
+    retirement_signal: "Post-compaction resumes show no increase in incomplete tasks or re-explanation costs."
+    validation: "Track first-action latency and handoff deficiency count after resume."
   - id: runtime-review-profile
     component: reviewer-profile-runtime
     kind: evaluator
-    assumption: "静的レビューだけでは、実行すると壊れる変更を十分に捕まえられない。"
-    model_limit_addressed: "静的解析の見逃し"
-    retirement_signal: "runtime 実行なしでも defect escape rate が十分低い。"
-    validation: "runtime profile 実行有無でテスト起因の見逃し件数を比較する。"
+    assumption: "Static review alone cannot sufficiently catch changes that break at runtime."
+    model_limit_addressed: "Static analysis blind spots"
+    retirement_signal: "Defect escape rate remains sufficiently low without runtime execution."
+    validation: "Compare test-originating miss counts with and without runtime profile execution."
   - id: browser-review-profile
     component: reviewer-profile-browser
     kind: evaluator
-    assumption: "ユーザー画面の崩れや操作不良は、コード差分だけでは判断しにくい。"
-    model_limit_addressed: "視覚・操作品質の盲点"
-    retirement_signal: "静的 + runtime だけで UI バグの流出率が許容範囲に収まる。"
-    validation: "browser evaluator 導入前後で UI 不具合の後追い件数を測る。"
+    assumption: "UI layout issues and interaction failures are difficult to judge from code diffs alone."
+    model_limit_addressed: "Visual and interaction quality blind spots"
+    retirement_signal: "Static + runtime alone keeps UI bug escape rate within acceptable range."
+    validation: "Measure post-hoc UI bug count before and after browser evaluator introduction."

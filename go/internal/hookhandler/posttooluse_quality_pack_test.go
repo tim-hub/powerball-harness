@@ -21,7 +21,6 @@ func TestHandlePostToolUseQualityPack_EmptyInput(t *testing.T) {
 }
 
 func TestHandlePostToolUseQualityPack_NonWriteEdit(t *testing.T) {
-	// Read ツールは対象外
 	input := `{"tool_name":"Read","tool_input":{"file_path":"src/foo.ts"},"cwd":"/tmp"}`
 	var out bytes.Buffer
 	if err := HandlePostToolUseQualityPack(strings.NewReader(input), &out); err != nil {
@@ -44,7 +43,6 @@ func TestHandlePostToolUseQualityPack_NoFilePath(t *testing.T) {
 }
 
 func TestHandlePostToolUseQualityPack_NonTSFile(t *testing.T) {
-	// .go ファイルはスキップ
 	input := `{"tool_name":"Write","tool_input":{"file_path":"src/main.go"},"cwd":"/tmp"}`
 	var out bytes.Buffer
 	if err := HandlePostToolUseQualityPack(strings.NewReader(input), &out); err != nil {
@@ -56,7 +54,6 @@ func TestHandlePostToolUseQualityPack_NonTSFile(t *testing.T) {
 }
 
 func TestHandlePostToolUseQualityPack_ExcludedPath(t *testing.T) {
-	// node_modules は除外
 	input := `{"tool_name":"Write","tool_input":{"file_path":"node_modules/foo/bar.ts"},"cwd":"/tmp"}`
 	var out bytes.Buffer
 	if err := HandlePostToolUseQualityPack(strings.NewReader(input), &out); err != nil {
@@ -78,7 +75,6 @@ func TestHandlePostToolUseQualityPack_DisabledByDefault(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// config ファイルなし → disabled
 	input := `{"tool_name":"Write","tool_input":{"file_path":"src/foo.ts"}}`
 	var out bytes.Buffer
 	if err := HandlePostToolUseQualityPack(strings.NewReader(input), &out); err != nil {
@@ -100,7 +96,6 @@ func TestHandlePostToolUseQualityPack_EnabledWarnMode(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// 設定ファイルを作成（enabled, warn モード）
 	config := `quality_pack:
   enabled: true
   mode: warn
@@ -112,7 +107,6 @@ func TestHandlePostToolUseQualityPack_EnabledWarnMode(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// TS ファイルを作成（console.log を含む）
 	tsFile := filepath.Join(tmpDir, "src", "foo.ts")
 	if err := os.MkdirAll(filepath.Dir(tsFile), 0o755); err != nil {
 		t.Fatal(err)
@@ -145,15 +139,12 @@ export { x };
 	if !strings.Contains(ctx, "Quality Pack") {
 		t.Errorf("expected 'Quality Pack' in additionalContext, got %q", ctx)
 	}
-	// warn モード: prettier は推奨メッセージ
 	if !strings.Contains(ctx, "Prettier") {
 		t.Errorf("expected 'Prettier' in additionalContext, got %q", ctx)
 	}
-	// warn モード: tsc は推奨メッセージ
 	if !strings.Contains(ctx, "tsc") {
 		t.Errorf("expected 'tsc' in additionalContext, got %q", ctx)
 	}
-	// console.log が2件検出されること
 	if !strings.Contains(ctx, "console.log") {
 		t.Errorf("expected console.log detection in additionalContext, got %q", ctx)
 	}
@@ -184,7 +175,6 @@ func TestHandlePostToolUseQualityPack_NoConsoleLog(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// console.log がないファイル
 	tsFile := filepath.Join(tmpDir, "src", "clean.ts")
 	if err := os.MkdirAll(filepath.Dir(tsFile), 0o755); err != nil {
 		t.Fatal(err)
@@ -198,7 +188,6 @@ func TestHandlePostToolUseQualityPack_NoConsoleLog(t *testing.T) {
 	if err := HandlePostToolUseQualityPack(strings.NewReader(input), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// console.log がない + prettier/tsc 無効 → フィードバックなし → 出力なし
 	if out.Len() != 0 {
 		t.Errorf("expected no output when no issues found, got %q", out.String())
 	}
@@ -226,7 +215,6 @@ func TestHandlePostToolUseQualityPack_CWDRelativePath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// CWD プレフィックスの除去確認（絶対パス → 相対パス変換）
 	input := `{"tool_name":"Write","tool_input":{"file_path":"` + tmpDir + `/src/bar.ts"},"cwd":"` + tmpDir + `"}`
 	var out bytes.Buffer
 	if err := HandlePostToolUseQualityPack(strings.NewReader(input), &out); err != nil {
@@ -257,7 +245,6 @@ func TestReadQualityPackConfig_Defaults(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// ファイルなし → デフォルト値
 	cfg := readQualityPackConfig(".claude-code-harness.config.yaml")
 	if cfg.Enabled {
 		t.Error("expected enabled=false by default")
@@ -288,7 +275,7 @@ func TestIsJSTSFile(t *testing.T) {
 		{"src/foo.go", false},
 		{"src/foo.py", false},
 		{"src/foo.md", false},
-		{"src/FOO.TS", true},  // 大文字小文字
+		{"src/FOO.TS", true},
 	}
 
 	for _, tc := range cases {

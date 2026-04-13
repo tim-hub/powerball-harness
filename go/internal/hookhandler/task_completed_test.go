@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// --- ヘルパー ---
+// --- Helpers ---
 
 func setupTaskCompletedHandler(t *testing.T) (*taskCompletedHandler, string) {
 	t.Helper()
@@ -30,7 +30,6 @@ func setupTaskCompletedHandler(t *testing.T) (*taskCompletedHandler, string) {
 }
 
 // --- HandleTaskCompleted ---
-
 func TestHandleTaskCompleted_NoPayload(t *testing.T) {
 	var out bytes.Buffer
 	err := HandleTaskCompleted(strings.NewReader(""), &out)
@@ -123,7 +122,7 @@ func TestRotateJSONLFile(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.jsonl")
 
-	// 550 行書き込む
+	// Write 550 lines
 	f, _ := os.Create(path)
 	for i := range 550 {
 		fmt.Fprintf(f, `{"n":%d}`+"\n", i)
@@ -137,7 +136,7 @@ func TestRotateJSONLFile(t *testing.T) {
 	if len(lines) != 400 {
 		t.Errorf("want 400 lines, got %d", len(lines))
 	}
-	// 最後の行は元の 549 番目のエントリ
+	// Last line is the original 549th entry
 	var last map[string]int
 	if err := json.Unmarshal([]byte(lines[len(lines)-1]), &last); err != nil {
 		t.Fatalf("invalid JSON in last line: %v", err)
@@ -171,7 +170,7 @@ func TestRotateJSONLFile_NoRotationNeeded(t *testing.T) {
 func TestCountCompleted(t *testing.T) {
 	h, _ := setupTaskCompletedHandler(t)
 
-	// タイムラインに2タスクを記録
+	// Record 2 tasks in the timeline
 	for _, id := range []string{"T1", "T2"} {
 		h.appendTimeline(timelineEntry{
 			Event:     "task_completed",
@@ -179,7 +178,7 @@ func TestCountCompleted(t *testing.T) {
 			Timestamp: "2026-01-01T00:00:00Z",
 		})
 	}
-	// T3 は未完了
+	// T3 is not completed
 
 	count := h.countCompleted([]string{"T1", "T2", "T3"})
 	if count != 2 {
@@ -190,7 +189,7 @@ func TestCountCompleted(t *testing.T) {
 func TestCountCompleted_NoDuplication(t *testing.T) {
 	h, _ := setupTaskCompletedHandler(t)
 
-	// 同一タスクを2回記録
+	// Record the same task twice
 	for range 2 {
 		h.appendTimeline(timelineEntry{
 			Event:     "task_completed",
@@ -199,7 +198,7 @@ func TestCountCompleted_NoDuplication(t *testing.T) {
 		})
 	}
 
-	// 同一 ID でも1回しかカウントしない
+	// Even with the same ID, count only once (dedup)
 	count := h.countCompleted([]string{"T1"})
 	if count != 1 {
 		t.Errorf("want 1 (dedup), got %d", count)
@@ -241,7 +240,7 @@ func TestSignalExists_DifferentSession(t *testing.T) {
 		Total:     "10",
 		Timestamp: "2026-01-01T00:00:00Z",
 	})
-	// sess2 は別セッション → 見つからない
+	// sess2 is a different session → not found
 	if signalExists(path, "partial_review_recommended", "sess2") {
 		t.Error("want false for different session")
 	}
@@ -327,7 +326,7 @@ func TestUpsertFixProposal_CreateAndUpdate(t *testing.T) {
 		t.Fatal("want true")
 	}
 
-	// 同一 source_task_id で更新
+	// Update with the same source_task_id
 	proposal2 := fixProposal{
 		SourceTaskID:    "T1",
 		FixTaskID:       "T1.fix2",
@@ -338,7 +337,7 @@ func TestUpsertFixProposal_CreateAndUpdate(t *testing.T) {
 		t.Fatal("want true")
 	}
 
-	// ファイルには最新のエントリのみ存在する
+	// The file should contain only the latest entry
 	data, err := os.ReadFile(h.pendingFixFile)
 	if err != nil {
 		t.Fatalf("read: %v", err)
@@ -371,20 +370,20 @@ func TestSanitizeInlineText(t *testing.T) {
 func TestFinalizeMarkerExistsForSession(t *testing.T) {
 	h, _ := setupTaskCompletedHandler(t)
 
-	// マーカーなし → false
+	// No marker → false
 	if h.finalizeMarkerExistsForSession("sess1") {
 		t.Error("want false (no marker)")
 	}
 
-	// マーカー書き込み
+	// Write marker
 	h.writeFinalizeMarker("sess1", "my-project", "2026-01-01T00:00:00Z")
 
-	// 正しいセッション → true
+	// Correct session → true
 	if !h.finalizeMarkerExistsForSession("sess1") {
 		t.Error("want true")
 	}
 
-	// 別セッション → false
+	// Different session → false
 	if h.finalizeMarkerExistsForSession("sess2") {
 		t.Error("want false (different session)")
 	}
@@ -410,18 +409,18 @@ func TestLastPathComponent(t *testing.T) {
 	}
 }
 
-// TestWriteFinalizeMarker_StateDirSymlink は stateDir がシンボリックリンクの場合に
-// writeFinalizeMarker が書き込みを拒否することを確認する。
+// TestWriteFinalizeMarker_StateDirSymlink verifies that writeFinalizeMarker
+// refuses to write when stateDir is a symbolic link.
 func TestWriteFinalizeMarker_StateDirSymlink(t *testing.T) {
 	dir := t.TempDir()
 
-	// 実際の stateDir となるディレクトリ
+	// The actual directory that serves as stateDir
 	realStateDir := filepath.Join(dir, "real-state")
 	if err := os.MkdirAll(realStateDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
 
-	// stateDir へのシンボリックリンクを作成
+	// Create a symbolic link pointing to stateDir
 	symlinkStateDir := filepath.Join(dir, "symlink-state")
 	if err := os.Symlink(realStateDir, symlinkStateDir); err != nil {
 		t.Skip("symlink creation not supported on this platform")
@@ -434,7 +433,7 @@ func TestWriteFinalizeMarker_StateDirSymlink(t *testing.T) {
 		projectRoot:    dir,
 	}
 
-	// stateDir が symlink → writeFinalizeMarker は何も書かない
+	// stateDir is a symlink → writeFinalizeMarker should write nothing
 	h.writeFinalizeMarker("sess1", "my-project", "2026-01-01T00:00:00Z")
 
 	if _, err := os.Stat(finalizeMarker); err == nil {

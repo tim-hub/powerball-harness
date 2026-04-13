@@ -1,5 +1,5 @@
 #!/bin/bash
-# session-init / session-resume が snapshot 要約を additionalContext に含めることを確認
+# Verify that session-init / session-resume include a snapshot summary in additionalContext
 
 set -euo pipefail
 
@@ -18,8 +18,8 @@ cp "${ROOT_DIR}/scripts/session-resume.sh" "${TMP_DIR}/scripts/session-resume.sh
 cp "${ROOT_DIR}/scripts/lib/progress-snapshot.sh" "${TMP_DIR}/scripts/lib/progress-snapshot.sh"
 
 cat > "${TMP_DIR}/Plans.md" <<'EOF'
-| Task | 内容 | DoD | Depends | Status |
-|------|------|-----|---------|--------|
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
 | 1.0 | sample | done | - | cc:WIP |
 | 1.1 | sample | done | 1.0 | cc:TODO |
 EOF
@@ -52,12 +52,12 @@ if echo "${resume_context}" | grep -qx '0'; then
   exit 1
 fi
 
-echo "${init_output}" | grep -q '最新 snapshot' || {
+echo "${init_output}" | grep -q 'Latest snapshot' || {
   echo "session-init output missing latest snapshot summary"
   exit 1
 }
 
-echo "${resume_output}" | grep -q '前回比' || {
+echo "${resume_output}" | grep -q 'Delta from last' || {
   echo "session-resume output missing delta summary"
   exit 1
 }
@@ -73,7 +73,7 @@ if echo "${quiet_context}" | grep -qx '0'; then
   echo "session-init quiet additionalContext should not contain standalone zero lines"
   exit 1
 fi
-if echo "${quiet_output}" | grep -q '最新 snapshot'; then
+if echo "${quiet_output}" | grep -q 'Latest snapshot'; then
   echo "session-init should skip snapshot summary when no snapshot exists"
   exit 1
 fi

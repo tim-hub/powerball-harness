@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # generate-skill-manifest.sh
-# repo 内の skill frontmatter を machine-readable JSON にする。
+# Convert skill frontmatter in the repo into machine-readable JSON.
 
 set -euo pipefail
 

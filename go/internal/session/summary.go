@@ -10,28 +10,28 @@ import (
 	"time"
 )
 
-// SummaryHandler は Stop フックハンドラ（セッション終了サマリー）。
-// セッション終了時に session-log.md へ追記し、session.json に終了情報を記録する。
+// SummaryHandler is the Stop hook handler (session end summary).
+// Appends to session-log.md and records end info in session.json when the session ends.
 //
-// shell 版: scripts/session-summary.sh
+// shell version: scripts/session-summary.sh
 type SummaryHandler struct {
-	// StateDir はステートディレクトリのパス。空の場合は cwd から推定する。
+	// StateDir is the path to the state directory. Inferred from cwd if empty.
 	StateDir string
-	// MemoryDir は .claude/memory のパス。空の場合は projectRoot/.claude/memory を使う。
+	// MemoryDir is the path to .claude/memory. Defaults to projectRoot/.claude/memory if empty.
 	MemoryDir string
-	// PlansFile は Plans.md のパス。空の場合は projectRoot/Plans.md を使う。
+	// PlansFile is the path to Plans.md. Defaults to projectRoot/Plans.md if empty.
 	PlansFile string
-	// now は現在時刻の注入関数（テスト用）。nil の場合は time.Now() を使う。
+	// now is the injected current time function (for testing). Uses time.Now() if nil.
 	now func() time.Time
 }
 
-// summaryInput は Stop フックの stdin JSON。
+// summaryInput is the stdin JSON for the Stop hook.
 type summaryInput struct {
 	CWD       string `json:"cwd,omitempty"`
 	SessionID string `json:"session_id,omitempty"`
 }
 
-// summarySessionData は session.json から読み取るデータ。
+// summarySessionData is the data read from session.json.
 type summarySessionData struct {
 	SessionID     string  `json:"session_id"`
 	State         string  `json:"state"`
@@ -40,14 +40,13 @@ type summarySessionData struct {
 	GitBranch     string  `json:"-"` // nested
 	MemoryLogged  bool    `json:"memory_logged"`
 	EventSeq      int     `json:"event_seq"`
-	ChangesCount  int     `json:"-"` // 計算値
+	ChangesCount  int     `json:"-"` // computed value
 
-	// 生 JSON（フィールド追加用）
+	// raw JSON (for field additions)
 	raw map[string]interface{}
 }
 
-// Handle は stdin から Stop ペイロードを読み取り、
-// セッション終了サマリーを session-log.md に書き出す。
+// Handle reads the Stop payload from stdin and writes the session end summary to session-log.md.
 func (h *SummaryHandler) Handle(r io.Reader, w io.Writer) error {
 	data, _ := io.ReadAll(r)
 
@@ -81,34 +80,34 @@ func (h *SummaryHandler) Handle(r io.Reader, w io.Writer) error {
 	now := h.currentTime()
 	nowStr := now.UTC().Format(time.RFC3339)
 
-	// session.json が存在しない場合はスキップ
+	// Skip if session.json does not exist
 	if _, err := os.Stat(sessionFile); err != nil {
 		return nil
 	}
 
-	// session.json を読み取る
+	// Read session.json
 	sessData := h.readSessionData(sessionFile)
 
-	// 二重実行防止（memory_logged が true の場合はスキップ）
+	// Prevent double-execution (skip if memory_logged is true)
 	if sessData.MemoryLogged {
 		return nil
 	}
 
-	// セッション時間を計算
+	// Calculate session duration
 	durationMinutes := h.calcDurationMinutes(sessData.StartedAt, now)
 
-	// Plans.md の WIP タスクを取得
+	// Get WIP tasks from Plans.md
 	wipTasks := h.readWIPTasks(plansFile)
 
-	// 変更ファイル情報を取得
+	// Get changed file information
 	changedFiles, importantFiles := h.readChangedFiles(sessData.raw)
 
-	// session-log.md を作成（存在しない場合）
+	// Create session-log.md if it doesn't exist
 	if err := h.ensureSessionLog(sessionLogFile); err != nil {
-		_ = err // エラーは無視して継続
+		_ = err // ignore error and continue
 	}
 
-	// session-log.md に追記
+	// Append to session-log.md
 	if sessData.StartedAt != "" && sessData.StartedAt != "null" {
 		_ = h.appendSessionLog(sessionLogFile, sessionLogEntry{
 			SessionID:      sessData.SessionID,
@@ -123,16 +122,16 @@ func (h *SummaryHandler) Handle(r io.Reader, w io.Writer) error {
 		})
 	}
 
-	// session.stop イベントをログに記録
+	// Log session.stop event
 	h.appendEvent(eventLogFile, sessionFile, "session.stop", "stopped", nowStr)
 
-	// session.json を更新（終了情報を記録）
+	// Update session.json with end information
 	h.finalizeSessionFile(sessionFile, nowStr, durationMinutes)
 
-	// アーカイブ保存
+	// Archive session files
 	h.archiveSession(sessionFile, eventLogFile, archiveDir, sessData.SessionID)
 
-	// stdout にサマリーを出力（変更がある場合のみ）
+	// Write summary to stdout (only if there are changes)
 	if len(changedFiles) > 0 || len(wipTasks) > 0 {
 		h.writeSummaryOutput(w, sessData, durationMinutes, changedFiles, wipTasks)
 	}
@@ -141,7 +140,7 @@ func (h *SummaryHandler) Handle(r io.Reader, w io.Writer) error {
 	return nil
 }
 
-// sessionLogEntry は session-log.md に書き出すエントリ。
+// sessionLogEntry is the entry written to session-log.md.
 type sessionLogEntry struct {
 	SessionID       string
 	ProjectName     string
@@ -154,7 +153,7 @@ type sessionLogEntry struct {
 	WIPTasks        []string
 }
 
-// readSessionData は session.json から必要な情報を読み取る。
+// readSessionData reads the necessary information from session.json.
 func (h *SummaryHandler) readSessionData(sessionFile string) summarySessionData {
 	data, err := os.ReadFile(sessionFile)
 	if err != nil {
@@ -174,7 +173,7 @@ func (h *SummaryHandler) readSessionData(sessionFile string) summarySessionData 
 	sess.MemoryLogged = boolField(raw, "memory_logged", false)
 	sess.EventSeq = intField(raw, "event_seq", 0)
 
-	// 変更ファイル数
+	// Changed file count
 	if changes, ok := raw["changes_this_session"].([]interface{}); ok {
 		sess.ChangesCount = len(changes)
 	}
@@ -182,7 +181,7 @@ func (h *SummaryHandler) readSessionData(sessionFile string) summarySessionData 
 	return sess
 }
 
-// readGitBranchFromSession は session.json の git.branch を読み取る。
+// readGitBranchFromSession reads git.branch from session.json.
 func (h *SummaryHandler) readGitBranchFromSession(raw map[string]interface{}) string {
 	if git, ok := raw["git"].(map[string]interface{}); ok {
 		return stringField(git, "branch", "")
@@ -190,7 +189,7 @@ func (h *SummaryHandler) readGitBranchFromSession(raw map[string]interface{}) st
 	return ""
 }
 
-// readChangedFiles は session.json から変更ファイル一覧を読み取る。
+// readChangedFiles reads the list of changed files from session.json.
 func (h *SummaryHandler) readChangedFiles(raw map[string]interface{}) ([]string, []string) {
 	changes, ok := raw["changes_this_session"].([]interface{})
 	if !ok {
@@ -218,7 +217,7 @@ func (h *SummaryHandler) readChangedFiles(raw map[string]interface{}) ([]string,
 	return changedFiles, importantFiles
 }
 
-// readWIPTasks は Plans.md から WIP/依頼中 タスクを読み取る。
+// readWIPTasks reads WIP/in-progress tasks from Plans.md.
 func (h *SummaryHandler) readWIPTasks(plansFile string) []string {
 	f, err := os.Open(plansFile)
 	if err != nil {
@@ -231,7 +230,7 @@ func (h *SummaryHandler) readWIPTasks(plansFile string) []string {
 	count := 0
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.Contains(line, "cc:WIP") || strings.Contains(line, "pm:依頼中") || strings.Contains(line, "cursor:依頼中") {
+		if strings.Contains(line, "cc:WIP") || strings.Contains(line, "pm:pending") || strings.Contains(line, "cursor:pending") {
 			tasks = append(tasks, line)
 			count++
 			if count >= 20 {
@@ -242,10 +241,10 @@ func (h *SummaryHandler) readWIPTasks(plansFile string) []string {
 	return tasks
 }
 
-// ensureSessionLog は session-log.md を作成する（存在しない場合）。
+// ensureSessionLog creates session-log.md if it does not exist.
 func (h *SummaryHandler) ensureSessionLog(logFile string) error {
 	if _, err := os.Stat(logFile); err == nil {
-		return nil // 既に存在する
+		return nil // already exists
 	}
 
 	if err := os.MkdirAll(filepath.Dir(logFile), 0700); err != nil {
@@ -254,19 +253,19 @@ func (h *SummaryHandler) ensureSessionLog(logFile string) error {
 
 	header := `# Session Log
 
-セッション単位の作業ログ（基本はローカル運用向け）。
-重要な意思決定は ` + "`.claude/memory/decisions.md`" + `、再利用できる解法は ` + "`.claude/memory/patterns.md`" + ` に昇格してください。
+Per-session work log (primarily for local use).
+Promote important decisions to ` + "`.claude/memory/decisions.md`" + ` and reusable solutions to ` + "`.claude/memory/patterns.md`" + `.
 
 ## Index
 
-- （必要に応じて追記）
+- (add entries as needed)
 
 ---
 `
 	return os.WriteFile(logFile, []byte(header), 0644)
 }
 
-// appendSessionLog は session-log.md にセッション情報を追記する。
+// appendSessionLog appends session information to session-log.md.
 func (h *SummaryHandler) appendSessionLog(logFile string, entry sessionLogEntry) error {
 	if isSymlink(logFile) {
 		return fmt.Errorf("security: symlinked session log: %s", logFile)
@@ -278,7 +277,7 @@ func (h *SummaryHandler) appendSessionLog(logFile string, entry sessionLogEntry)
 	}
 	defer f.Close()
 
-	fmt.Fprintf(f, "\n## セッション: %s\n\n", entry.EndedAt)
+	fmt.Fprintf(f, "\n## Session: %s\n\n", entry.EndedAt)
 	fmt.Fprintf(f, "- session_id: `%s`\n", entry.SessionID)
 	if entry.ProjectName != "" {
 		fmt.Fprintf(f, "- project: `%s`\n", entry.ProjectName)
@@ -293,46 +292,46 @@ func (h *SummaryHandler) appendSessionLog(logFile string, entry sessionLogEntry)
 	}
 	fmt.Fprintf(f, "- changes: %d\n", len(entry.ChangedFiles))
 
-	fmt.Fprintf(f, "\n### 変更ファイル\n")
+	fmt.Fprintf(f, "\n### Changed Files\n")
 	if len(entry.ChangedFiles) > 0 {
 		for _, file := range entry.ChangedFiles {
 			fmt.Fprintf(f, "- `%s`\n", file)
 		}
 	} else {
-		fmt.Fprintln(f, "- （なし）")
+		fmt.Fprintln(f, "- (none)")
 	}
 
-	fmt.Fprintf(f, "\n### 重要な変更（important=true）\n")
+	fmt.Fprintf(f, "\n### Important Changes (important=true)\n")
 	if len(entry.ImportantFiles) > 0 {
 		for _, file := range entry.ImportantFiles {
 			fmt.Fprintf(f, "- `%s`\n", file)
 		}
 	} else {
-		fmt.Fprintln(f, "- （なし）")
+		fmt.Fprintln(f, "- (none)")
 	}
 
-	fmt.Fprintf(f, "\n### 次回への引き継ぎ（任意）\n")
+	fmt.Fprintf(f, "\n### Handoff Notes (optional)\n")
 	if len(entry.WIPTasks) > 0 {
-		fmt.Fprintf(f, "\n**Plans.md のWIP/依頼中（抜粋）**:\n\n```\n")
+		fmt.Fprintf(f, "\n**Plans.md WIP/in-progress (excerpt)**:\n\n```\n")
 		for _, task := range entry.WIPTasks {
 			fmt.Fprintln(f, task)
 		}
 		fmt.Fprintf(f, "```\n")
 	} else {
-		fmt.Fprintln(f, "- （必要に応じて追記）")
+		fmt.Fprintln(f, "- (add entries as needed)")
 	}
 
 	fmt.Fprintln(f, "\n---")
 	return nil
 }
 
-// appendEvent はイベントログに 1 エントリを追記し、session.json の EventSeq を更新する。
+// appendEvent appends one entry to the event log and updates EventSeq in session.json.
 func (h *SummaryHandler) appendEvent(eventLogFile, sessionFile, eventType, state, ts string) {
 	if isSymlink(eventLogFile) || isSymlink(sessionFile) {
 		return
 	}
 
-	// session.json から EventSeq を読み取ってインクリメント
+	// Read EventSeq from session.json and increment
 	seq := 0
 	if data, err := os.ReadFile(sessionFile); err == nil {
 		var raw map[string]interface{}
@@ -347,7 +346,7 @@ func (h *SummaryHandler) appendEvent(eventLogFile, sessionFile, eventType, state
 	appendLine(eventLogFile, entry)
 }
 
-// finalizeSessionFile は session.json に終了情報を記録する。
+// finalizeSessionFile records end information in session.json.
 func (h *SummaryHandler) finalizeSessionFile(sessionFile, endedAt string, durationMinutes int) {
 	if isSymlink(sessionFile) {
 		return
@@ -376,7 +375,7 @@ func (h *SummaryHandler) finalizeSessionFile(sessionFile, endedAt string, durati
 	_ = writeFileAtomic(sessionFile, append(out, '\n'), 0600)
 }
 
-// archiveSession はセッションファイルをアーカイブディレクトリにコピーする。
+// archiveSession copies session files to the archive directory.
 func (h *SummaryHandler) archiveSession(sessionFile, eventLogFile, archiveDir, sessionID string) {
 	if sessionID == "" {
 		return
@@ -396,25 +395,25 @@ func (h *SummaryHandler) archiveSession(sessionFile, eventLogFile, archiveDir, s
 	}
 }
 
-// writeSummaryOutput はセッション終了サマリーを出力する。
+// writeSummaryOutput outputs the session end summary.
 func (h *SummaryHandler) writeSummaryOutput(w io.Writer, sess summarySessionData, durationMinutes int, changedFiles, wipTasks []string) {
 	fmt.Fprintln(w, "")
-	fmt.Fprintln(w, "セッションサマリー")
+	fmt.Fprintln(w, "Session Summary")
 	fmt.Fprintln(w, strings.Repeat("─", 32))
 
 	if sess.ProjectName != "" {
-		fmt.Fprintf(w, "プロジェクト: %s\n", sess.ProjectName)
+		fmt.Fprintf(w, "Project: %s\n", sess.ProjectName)
 	}
-	fmt.Fprintf(w, "変更ファイル: %d件\n", len(changedFiles))
+	fmt.Fprintf(w, "Changed files: %d\n", len(changedFiles))
 	if durationMinutes > 0 {
-		fmt.Fprintf(w, "セッション時間: %d分\n", durationMinutes)
+		fmt.Fprintf(w, "Session duration: %d min\n", durationMinutes)
 	}
 
 	fmt.Fprintln(w, strings.Repeat("─", 32))
 	fmt.Fprintln(w, "")
 }
 
-// calcDurationMinutes はセッション開始時刻から現在までの分数を計算する。
+// calcDurationMinutes calculates the number of minutes from session start time to now.
 func (h *SummaryHandler) calcDurationMinutes(startedAt string, now time.Time) int {
 	if startedAt == "" || startedAt == "null" {
 		return 0
@@ -426,7 +425,7 @@ func (h *SummaryHandler) calcDurationMinutes(startedAt string, now time.Time) in
 	return int(now.Sub(t).Minutes())
 }
 
-// currentTime は現在時刻を返す。
+// currentTime returns the current time.
 func (h *SummaryHandler) currentTime() time.Time {
 	if h.now != nil {
 		return h.now()
@@ -435,10 +434,10 @@ func (h *SummaryHandler) currentTime() time.Time {
 }
 
 // ---------------------------------------------------------------------------
-// ヘルパー関数
+// Helper functions
 // ---------------------------------------------------------------------------
 
-// stringField は map から string フィールドを安全に取得する。
+// stringField safely retrieves a string field from a map.
 func stringField(m map[string]interface{}, key, defaultVal string) string {
 	v, ok := m[key]
 	if !ok {
@@ -451,7 +450,7 @@ func stringField(m map[string]interface{}, key, defaultVal string) string {
 	return s
 }
 
-// boolField は map から bool フィールドを安全に取得する。
+// boolField safely retrieves a bool field from a map.
 func boolField(m map[string]interface{}, key string, defaultVal bool) bool {
 	v, ok := m[key]
 	if !ok {
@@ -464,7 +463,7 @@ func boolField(m map[string]interface{}, key string, defaultVal bool) bool {
 	return b
 }
 
-// intField は map から int フィールドを安全に取得する（JSON number は float64）。
+// intField safely retrieves an int field from a map (JSON numbers are float64).
 func intField(m map[string]interface{}, key string, defaultVal int) int {
 	v, ok := m[key]
 	if !ok {
@@ -481,7 +480,7 @@ func intField(m map[string]interface{}, key string, defaultVal int) int {
 	return defaultVal
 }
 
-// appendLine は path にテキスト行を追記する。
+// appendLine appends a text line to path.
 func appendLine(path, line string) {
 	if isSymlink(path) {
 		return
@@ -494,7 +493,7 @@ func appendLine(path, line string) {
 	_, _ = fmt.Fprintln(f, line)
 }
 
-// copyFile はファイルをコピーする。
+// copyFile copies a file.
 func copyFile(src, dst string, perm os.FileMode) error {
 	data, err := os.ReadFile(src)
 	if err != nil {
@@ -503,7 +502,7 @@ func copyFile(src, dst string, perm os.FileMode) error {
 	return os.WriteFile(dst, data, perm)
 }
 
-// newLineScanner は bufio.Scanner のラッパー（テスト依存を避けるため）。
+// newLineScanner is a wrapper around bufio.Scanner (to avoid test dependencies).
 func newLineScanner(r io.Reader) *lineScanner {
 	return &lineScanner{inner: &bufioScanner{r: r}}
 }
@@ -523,7 +522,7 @@ func (ls *lineScanner) Text() string {
 	return ls.inner.Text()
 }
 
-// bufioScanner は io.Reader をラップして行スキャンを提供する。
+// bufioScanner wraps io.Reader to provide line scanning.
 type bufioScanner struct {
 	r    io.Reader
 	buf  []byte
@@ -537,7 +536,7 @@ func (bs *bufioScanner) Scan() bool {
 	if bs.done {
 		return false
 	}
-	// 読み込みバッファを初期化
+	// Initialize read buffer
 	if bs.buf == nil {
 		data, err := io.ReadAll(bs.r)
 		if err != nil {
@@ -550,7 +549,7 @@ func (bs *bufioScanner) Scan() bool {
 		bs.done = true
 		return false
 	}
-	// 次の改行を探す
+	// Find the next newline
 	end := bs.pos
 	for end < len(bs.buf) && bs.buf[end] != '\n' {
 		end++

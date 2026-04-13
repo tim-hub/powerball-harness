@@ -183,7 +183,6 @@ func TestReadBroadcastMessages_MarkdownFormat(t *testing.T) {
 	dir := t.TempDir()
 	broadcastPath := filepath.Join(dir, "broadcast.md")
 
-	// bash 版 session-inbox-check.sh が生成するマークダウン形式
 	content := "## 2026-04-09T12:00:00Z [abc123456def]\nhello from session A\n\n## 2026-04-09T12:05:00Z [xyz789012abc]\nupdate: task completed\n"
 	if err := os.WriteFile(broadcastPath, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
@@ -202,7 +201,6 @@ func TestReadBroadcastMessages_MarkdownFormat(t *testing.T) {
 	if !strings.Contains(msgs[1], "update: task completed") {
 		t.Errorf("message 1 should contain 'update: task completed', got: %s", msgs[1])
 	}
-	// タイムスタンプは HH:MM 形式で含まれるはず
 	if !strings.Contains(msgs[0], "[12:00]") {
 		t.Errorf("message 0 should contain '[12:00]', got: %s", msgs[0])
 	}
@@ -212,7 +210,6 @@ func TestReadBroadcastMessages_MaxCount(t *testing.T) {
 	dir := t.TempDir()
 	broadcastPath := filepath.Join(dir, "broadcast.md")
 
-	// 5件以上のメッセージ
 	var content string
 	for i := 0; i < 8; i++ {
 		content += fmt.Sprintf("## 2026-04-09T12:0%dZ [sender%d]\nmessage %d\n\n", i, i, i)
@@ -239,7 +236,6 @@ func TestHandleInboxCheck_BroadcastMdSource(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// broadcast.md にメッセージを書き込む（bash 版と同じソース）
 	broadcastPath := filepath.Join(sessionsDir, "broadcast.md")
 	content := "## 2026-04-09T10:30:00Z [remote-session-a1]\nplease check the CI status\n"
 	if err := os.WriteFile(broadcastPath, []byte(content), 0o644); err != nil {
@@ -260,8 +256,6 @@ func TestHandleInboxCheck_BroadcastMdSource(t *testing.T) {
 	}
 }
 
-// TestHandleInboxCheck_SessionSpecificReadState はセッション固有の既読管理を確認する。
-// 既読後に再度チェックすると既読メッセージが表示されないことを検証する。
 func TestHandleInboxCheck_SessionSpecificReadState(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HARNESS_PROJECT_ROOT", dir)
@@ -279,17 +273,14 @@ func TestHandleInboxCheck_SessionSpecificReadState(t *testing.T) {
 
 	sessionID := "test-session-123"
 
-	// 既読タイムスタンプをメッセージより後に設定（既読済み扱い）
 	updateLastInboxRead(sessionsDir, sessionID)
 
-	// セッションIDを含む JSON を渡す
 	inp := fmt.Sprintf(`{"session_id":%q}`, sessionID)
 	var out bytes.Buffer
 	if err := HandleInboxCheck(strings.NewReader(inp), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// 既読済みなので何も表示されないはず
 	if out.Len() != 0 {
 		outStr := out.String()
 		if strings.Contains(outStr, "old message") {
@@ -298,7 +289,6 @@ func TestHandleInboxCheck_SessionSpecificReadState(t *testing.T) {
 	}
 }
 
-// TestHandleInboxCheck_NewMessagesAfterLastRead は最終既読後の新しいメッセージのみが表示されることを確認する。
 func TestHandleInboxCheck_NewMessagesAfterLastRead(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HARNESS_PROJECT_ROOT", dir)
@@ -308,7 +298,6 @@ func TestHandleInboxCheck_NewMessagesAfterLastRead(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// 古いメッセージと新しいメッセージを含む broadcast.md
 	broadcastPath := filepath.Join(sessionsDir, "broadcast.md")
 	content := "## 2020-01-01T00:00:00Z [session-a]\nold message\n\n## 2030-12-31T23:59:59Z [session-b]\nnew message\n"
 	if err := os.WriteFile(broadcastPath, []byte(content), 0o644); err != nil {
@@ -316,7 +305,6 @@ func TestHandleInboxCheck_NewMessagesAfterLastRead(t *testing.T) {
 	}
 
 	sessionID := "test-session-456"
-	// 最終既読を 2025 年に設定 → 2020 年のメッセージは既読済み、2030 年は未読
 	lastReadFile := lastInboxReadFile(sessionsDir, sessionID)
 	if err := os.WriteFile(lastReadFile, []byte("2025-01-01T00:00:00Z\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -340,7 +328,6 @@ func TestHandleInboxCheck_NewMessagesAfterLastRead(t *testing.T) {
 	}
 }
 
-// TestLastInboxReadFile はセッション固有のファイルパスが正しく生成されることを確認する。
 func TestLastInboxReadFile(t *testing.T) {
 	got := lastInboxReadFile("/sessions", "abc123")
 	want := "/sessions/.last_inbox_read_abc123"
@@ -349,7 +336,6 @@ func TestLastInboxReadFile(t *testing.T) {
 	}
 }
 
-// TestLastInboxReadFile_EmptySessionID は空のセッションIDで "unknown" が使われることを確認する。
 func TestLastInboxReadFile_EmptySessionID(t *testing.T) {
 	got := lastInboxReadFile("/sessions", "")
 	want := "/sessions/.last_inbox_read_unknown"
@@ -358,9 +344,6 @@ func TestLastInboxReadFile_EmptySessionID(t *testing.T) {
 	}
 }
 
-// TestHandleInboxCheck_NoAutoMarkAfterDisplay はメッセージ表示後に
-// 既読ファイル (.last_inbox_read_*) が更新されないことを確認する。
-// bash 版は --mark フラグで明示的に更新するまで既読化しない動作に対応。
 func TestHandleInboxCheck_NoAutoMarkAfterDisplay(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HARNESS_PROJECT_ROOT", dir)
@@ -370,7 +353,6 @@ func TestHandleInboxCheck_NoAutoMarkAfterDisplay(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// broadcast.md にメッセージを書き込む
 	broadcastPath := filepath.Join(sessionsDir, "broadcast.md")
 	content := "## 2026-04-09T10:00:00Z [remote-session]\nhello, please review\n"
 	if err := os.WriteFile(broadcastPath, []byte(content), 0o644); err != nil {
@@ -385,12 +367,10 @@ func TestHandleInboxCheck_NoAutoMarkAfterDisplay(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// メッセージが表示されたことを確認
 	if out.Len() == 0 {
 		t.Fatal("expected output for message, got nothing")
 	}
 
-	// 既読ファイルが作成されていないことを確認（自動既読化しない）
 	readFile := lastInboxReadFile(sessionsDir, sessionID)
 	if _, err := os.Stat(readFile); err == nil {
 		t.Errorf("last-read file should NOT be created after display: %s", readFile)

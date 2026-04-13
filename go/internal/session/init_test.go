@@ -10,7 +10,7 @@ import (
 )
 
 func TestInitHandler_Subagent(t *testing.T) {
-	// サブエージェント時は軽量初期化
+	// Lightweight initialization for subagents
 	h := &InitHandler{}
 	inp := `{"agent_type":"subagent","session_id":"cc-123"}`
 	var out bytes.Buffer
@@ -35,7 +35,7 @@ func TestInitHandler_NewSession(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, "state")
 
-	// Plans.md なし
+	// No Plans.md
 	h := &InitHandler{
 		StateDir:  stateDir,
 		PlansFile: filepath.Join(dir, "Plans.md"),
@@ -58,12 +58,12 @@ func TestInitHandler_NewSession(t *testing.T) {
 	if !strings.Contains(resp.HookSpecificOutput.AdditionalContext, "Plans.md") {
 		t.Errorf("expected Plans.md info in context, got %q", resp.HookSpecificOutput.AdditionalContext)
 	}
-	// マーカー凡例が含まれるか
+	// Verify marker legend is included
 	if !strings.Contains(resp.HookSpecificOutput.AdditionalContext, "cc:TODO") {
 		t.Errorf("expected marker legend in context")
 	}
 
-	// session.json が作成されたか確認
+	// Verify session.json was created
 	sessionFile := filepath.Join(stateDir, "session.json")
 	if _, err := os.Stat(sessionFile); err != nil {
 		t.Errorf("session.json not created: %v", err)
@@ -75,14 +75,14 @@ func TestInitHandler_WithPlans(t *testing.T) {
 	stateDir := filepath.Join(dir, "state")
 	plansFile := filepath.Join(dir, "Plans.md")
 
-	// Plans.md を作成
+	// Create Plans.md
 	content := `# Plans
 | Task | Status |
 |------|--------|
 | task1 | cc:WIP |
 | task2 | cc:TODO |
 | task3 | cc:TODO |
-| task4 | pm:依頼中 |
+| task4 | pm:pending |
 `
 	if err := os.WriteFile(plansFile, []byte(content), 0644); err != nil {
 		t.Fatal(err)
@@ -105,25 +105,24 @@ func TestInitHandler_WithPlans(t *testing.T) {
 	}
 
 	ctx := resp.HookSpecificOutput.AdditionalContext
-	// WIP=1 (cc:WIP) + pm:依頼中=1 → 進行中 2
 	// TODO=2
-	if !strings.Contains(ctx, "進行中 2") {
-		t.Errorf("expected 進行中 2 in context, got %q", ctx)
+	if !strings.Contains(ctx, "in-progress 2") {
+		t.Errorf("expected in-progress 2 in context, got %q", ctx)
 	}
-	if !strings.Contains(ctx, "未着手 2") {
-		t.Errorf("expected 未着手 2 in context, got %q", ctx)
+	if !strings.Contains(ctx, "todo 2") {
+		t.Errorf("expected todo 2 in context, got %q", ctx)
 	}
 }
 
 func TestInitHandler_SymlinkSessionFile(t *testing.T) {
-	// シンボリックリンクの場合はセキュリティエラー（エラーは無視してレスポンスを返す）
+	// Security error for symbolic links (error is ignored and response is returned)
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, "state")
 	if err := os.MkdirAll(stateDir, 0700); err != nil {
 		t.Fatal(err)
 	}
 
-	// session.json をシンボリックリンクにする
+	// Make session.json a symbolic link
 	realFile := filepath.Join(dir, "real-session.json")
 	if err := os.WriteFile(realFile, []byte(`{}`), 0600); err != nil {
 		t.Fatal(err)
@@ -139,13 +138,13 @@ func TestInitHandler_SymlinkSessionFile(t *testing.T) {
 	}
 
 	var out bytes.Buffer
-	// エラーにならず、レスポンスが返る
+	// Should not return an error and should return a response
 	err := h.Handle(strings.NewReader(`{}`), &out)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// レスポンスが valid JSON であること
+	// Response must be valid JSON
 	var resp initResponse
 	if json.Unmarshal(bytes.TrimRight(out.Bytes(), "\n"), &resp) != nil {
 		t.Errorf("invalid JSON output: %s", out.String())
@@ -177,7 +176,7 @@ func TestInitHandler_EmptyInput(t *testing.T) {
 func TestCountMatches(t *testing.T) {
 	dir := t.TempDir()
 	f := filepath.Join(dir, "test.md")
-	content := "line1 cc:WIP\nline2 cc:TODO\nline3 pm:依頼中\nline4 cursor:依頼中\nline5 cc:完了\n"
+	content := "line1 cc:WIP\nline2 cc:TODO\nline3 pm:pending\nline4 cursor:pending\nline5 cc:done\n"
 	if err := os.WriteFile(f, []byte(content), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -188,9 +187,9 @@ func TestCountMatches(t *testing.T) {
 	}{
 		{[]string{"cc:WIP"}, 1},
 		{[]string{"cc:TODO"}, 1},
-		{[]string{"pm:依頼中", "cursor:依頼中"}, 2},
-		{[]string{"cc:WIP", "pm:依頼中", "cursor:依頼中"}, 3},
-		{[]string{"cc:完了"}, 1},
+		{[]string{"pm:pending", "cursor:pending"}, 2},
+		{[]string{"cc:WIP", "pm:pending", "cursor:pending"}, 3},
+		{[]string{"cc:done"}, 1},
 		{[]string{"nonexistent"}, 0},
 	}
 

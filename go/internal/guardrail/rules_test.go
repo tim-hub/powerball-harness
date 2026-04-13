@@ -3,7 +3,7 @@ package guardrail
 import (
 	"testing"
 
-	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
+	"github.com/tim-hub/powerball-harness/go/pkg/hookproto"
 )
 
 // helper to build a RuleContext for testing
@@ -498,7 +498,7 @@ func TestFirstMatchWins(t *testing.T) {
 	// R01 reason mentions sudo
 	if result.Reason == "" || result.Reason[0:4] != "sudo" {
 		// Check that the reason is about sudo, not rm -rf
-		if result.Reason != "sudo の使用は禁止されています。必要な場合はユーザーに手動実行を依頼してください。" {
+		if result.Reason != "Use of sudo is prohibited. If necessary, ask the user to run it manually." {
 			t.Errorf("expected sudo reason, got: %s", result.Reason)
 		}
 	}

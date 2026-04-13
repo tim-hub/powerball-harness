@@ -1,15 +1,15 @@
 package hookhandler
 
 // posttooluse_quality_pack.go
-// posttooluse-quality-pack.sh の Go 移植。
+// Go port of posttooluse-quality-pack.sh.
 //
-// PostToolUse Write/Edit 後にオプショナル品質チェックを実行する:
-//   - .claude-code-harness.config.yaml から設定を読み込む
-//   - Prettier チェック（warn/run モード）
-//   - tsc --noEmit チェック（warn/run モード）
-//   - console.log 検出
-//   - 各チェック結果を systemMessage（additionalContext）に集約
-//   - 設定が無効/未設定の場合はスキップ
+// Runs optional quality checks after PostToolUse Write/Edit:
+//   - Reads configuration from .claude-code-harness.config.yaml
+//   - Prettier check (warn/run mode)
+//   - tsc --noEmit check (warn/run mode)
+//   - console.log detection
+//   - Aggregates each check result into systemMessage (additionalContext)
+//   - Skipped if the configuration is disabled/not set
 
 import (
 	"bufio"
@@ -22,7 +22,7 @@ import (
 	"strings"
 )
 
-// qualityPackInput は PostToolUse フックの stdin JSON。
+// qualityPackInput is the stdin JSON for the PostToolUse hook.
 type qualityPackInput struct {
 	ToolName  string `json:"tool_name"`
 	ToolInput struct {
@@ -34,19 +34,19 @@ type qualityPackInput struct {
 	CWD string `json:"cwd"`
 }
 
-// qualityPackConfig は .claude-code-harness.config.yaml の quality_pack セクション。
+// qualityPackConfig is the quality_pack section of .claude-code-harness.config.yaml.
 type qualityPackConfig struct {
-	Enabled    bool   // enabled: true/false（デフォルト false）
-	Mode       string // warn または run（デフォルト warn）
-	Prettier   bool   // prettier: true/false（デフォルト true）
-	TSC        bool   // tsc: true/false（デフォルト true）
-	ConsoleLog bool   // console_log: true/false（デフォルト true）
+	Enabled    bool   // enabled: true/false (default false)
+	Mode       string // warn or run (default warn)
+	Prettier   bool   // prettier: true/false (default true)
+	TSC        bool   // tsc: true/false (default true)
+	ConsoleLog bool   // console_log: true/false (default true)
 }
 
-// HandlePostToolUseQualityPack は posttooluse-quality-pack.sh の Go 移植。
+// HandlePostToolUseQualityPack is the Go port of posttooluse-quality-pack.sh.
 //
-// PostToolUse Write/Edit イベントで呼び出され、品質チェックを実行する。
-// .claude-code-harness.config.yaml の quality_pack.enabled が true の場合のみ動作する。
+// Called on PostToolUse Write/Edit events to run quality checks.
+// Only runs when quality_pack.enabled is true in .claude-code-harness.config.yaml.
 func HandlePostToolUseQualityPack(in io.Reader, out io.Writer) error {
 	data, err := io.ReadAll(in)
 	if err != nil || len(strings.TrimSpace(string(data))) == 0 {
@@ -58,12 +58,12 @@ func HandlePostToolUseQualityPack(in io.Reader, out io.Writer) error {
 		return nil
 	}
 
-	// Write/Edit のみ対象
+	// Only process Write/Edit tools
 	if input.ToolName != "Write" && input.ToolName != "Edit" {
 		return nil
 	}
 
-	// ファイルパスを取得
+	// Get the file path
 	filePath := input.ToolInput.FilePath
 	if filePath == "" {
 		filePath = input.ToolResponse.FilePath
@@ -72,29 +72,29 @@ func HandlePostToolUseQualityPack(in io.Reader, out io.Writer) error {
 		return nil
 	}
 
-	// CWD があれば相対パスに変換
+	// Convert to relative path if CWD is available
 	cwd := input.CWD
 	if cwd != "" && strings.HasPrefix(filePath, cwd+"/") {
 		filePath = strings.TrimPrefix(filePath, cwd+"/")
 	}
 
-	// JS/TS ファイルのみ対象
+	// Only process JS/TS files
 	if !isJSTSFile(filePath) {
 		return nil
 	}
 
-	// 除外パスのチェック
+	// Check for excluded paths
 	if isExcludedPath(filePath) {
 		return nil
 	}
 
-	// 設定を読み込む
+	// Load configuration
 	cfg := readQualityPackConfig(".claude-code-harness.config.yaml")
 	if !cfg.Enabled {
 		return nil
 	}
 
-	// 品質チェックを実行して feedback を収集
+	// Run quality checks and collect feedback
 	var feedbacks []string
 
 	if cfg.Prettier {
@@ -122,7 +122,7 @@ func HandlePostToolUseQualityPack(in io.Reader, out io.Writer) error {
 		return nil
 	}
 
-	// フィードバックを additionalContext にまとめて出力
+	// Aggregate feedback into additionalContext and output
 	combined := "Quality Pack (PostToolUse)\n" + strings.Join(feedbacks, "\n")
 
 	o := postToolOutput{}
@@ -131,7 +131,7 @@ func HandlePostToolUseQualityPack(in io.Reader, out io.Writer) error {
 	return writeJSON(out, o)
 }
 
-// isJSTSFile は JS/TS ファイルかどうかを判定する。
+// isJSTSFile returns true if the file is a JS/TS file.
 func isJSTSFile(filePath string) bool {
 	lower := strings.ToLower(filePath)
 	for _, ext := range []string{".ts", ".tsx", ".js", ".jsx"} {
@@ -142,8 +142,8 @@ func isJSTSFile(filePath string) bool {
 	return false
 }
 
-// isExcludedPath は除外パスかどうかを判定する。
-// bash の case 文と同等: .claude/*, docs/*, templates/*, benchmarks/*, node_modules/*, .git/*
+// isExcludedPath returns true if the file path matches an excluded prefix.
+// Equivalent to the bash case statement: .claude/*, docs/*, templates/*, benchmarks/*, node_modules/*, .git/*
 func isExcludedPath(filePath string) bool {
 	excludePrefixes := []string{
 		".claude/",
@@ -161,8 +161,8 @@ func isExcludedPath(filePath string) bool {
 	return false
 }
 
-// readQualityPackConfig は .claude-code-harness.config.yaml から quality_pack セクションを読む。
-// YAML パーサーなしで実装（bash の awk と同等のロジック）。
+// readQualityPackConfig reads the quality_pack section from .claude-code-harness.config.yaml.
+// Implemented without a YAML parser (equivalent logic to bash awk).
 func readQualityPackConfig(configPath string) qualityPackConfig {
 	cfg := qualityPackConfig{
 		Enabled:    false,
@@ -174,7 +174,7 @@ func readQualityPackConfig(configPath string) qualityPackConfig {
 
 	f, err := os.Open(configPath)
 	if err != nil {
-		return cfg // ファイルが存在しない場合はデフォルト（無効）
+		return cfg // file not found: return defaults (disabled)
 	}
 	defer f.Close()
 
@@ -183,13 +183,13 @@ func readQualityPackConfig(configPath string) qualityPackConfig {
 	for scanner.Scan() {
 		line := scanner.Text()
 
-		// quality_pack: セクションの開始検出
+		// detect start of quality_pack: section
 		if strings.TrimSpace(line) == "quality_pack:" {
 			inQualityPack = true
 			continue
 		}
 
-		// 別のトップレベルセクションが始まったら終了
+		// stop when another top-level section begins
 		if inQualityPack && len(line) > 0 && line[0] != ' ' && line[0] != '\t' && line[0] != '#' {
 			break
 		}
@@ -198,7 +198,7 @@ func readQualityPackConfig(configPath string) qualityPackConfig {
 			continue
 		}
 
-		// キー: 値 のパース（インデント付き）
+		// parse key: value pairs (indented)
 		trimmed := strings.TrimSpace(line)
 		parts := strings.SplitN(trimmed, ":", 2)
 		if len(parts) != 2 {
@@ -225,51 +225,51 @@ func readQualityPackConfig(configPath string) qualityPackConfig {
 	return cfg
 }
 
-// runPrettierCheck は Prettier チェックを実行する。
-// mode=run: prettier --write を実行
-// mode=warn: 推奨メッセージを返す
+// runPrettierCheck runs the Prettier check.
+// mode=run: executes prettier --write
+// mode=warn: returns a recommendation message
 func runPrettierCheck(filePath, mode string) string {
 	if mode == "run" {
 		prettierBin := "./node_modules/.bin/prettier"
 		if _, statErr := os.Stat(prettierBin); statErr != nil {
-			return "Prettier: 未実行（prettier が見つかりません）"
+			return "Prettier: not run (prettier not found)"
 		}
 		cmd := exec.Command(prettierBin, "--write", filePath)
 		var errBuf bytes.Buffer
 		cmd.Stderr = &errBuf
 		if runErr := cmd.Run(); runErr != nil {
-			return "Prettier: 未実行（prettier が見つかりません）"
+			return "Prettier: not run (prettier not found)"
 		}
-		return "Prettier: 実行済み"
+		return "Prettier: executed"
 	}
-	// warn モード
-	return fmt.Sprintf("Prettier: 推奨（例: npx prettier --write \"%s\"）", filePath)
+	// warn mode
+	return fmt.Sprintf("Prettier: recommended (e.g.: npx prettier --write \"%s\")", filePath)
 }
 
-// runTSCCheck は TypeScript 型チェックを実行する。
-// mode=run: tsc --noEmit を実行
-// mode=warn: 推奨メッセージを返す
+// runTSCCheck runs the TypeScript type check.
+// mode=run: executes tsc --noEmit
+// mode=warn: returns a recommendation message
 func runTSCCheck(mode string) string {
 	if mode == "run" {
-		// tsconfig.json の存在確認
+		// check for tsconfig.json
 		if _, statErr := os.Stat("tsconfig.json"); statErr != nil {
-			return "tsc --noEmit: 未実行（tsconfig/tsc 未検出）"
+			return "tsc --noEmit: not run (tsconfig/tsc not found)"
 		}
 		tscBin := "./node_modules/.bin/tsc"
 		if _, statErr := os.Stat(tscBin); statErr != nil {
-			return "tsc --noEmit: 未実行（tsconfig/tsc 未検出）"
+			return "tsc --noEmit: not run (tsconfig/tsc not found)"
 		}
 		cmd := exec.Command(tscBin, "--noEmit")
 		if runErr := cmd.Run(); runErr != nil {
-			return "tsc --noEmit: 未実行（tsconfig/tsc 未検出）"
+			return "tsc --noEmit: not run (tsconfig/tsc not found)"
 		}
-		return "tsc --noEmit: 実行済み"
+		return "tsc --noEmit: executed"
 	}
-	// warn モード
-	return "tsc --noEmit: 推奨"
+	// warn mode
+	return "tsc --noEmit: recommended"
 }
 
-// detectConsoleLogs はファイル内の console.log の個数を検出する。
+// detectConsoleLogs counts the number of console.log occurrences in the file.
 func detectConsoleLogs(filePath string) string {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -285,7 +285,7 @@ func detectConsoleLogs(filePath string) string {
 	}
 
 	if count > 0 {
-		return fmt.Sprintf("console.log が %d 件見つかりました", count)
+		return fmt.Sprintf("found %d console.log occurrence(s)", count)
 	}
 	return ""
 }

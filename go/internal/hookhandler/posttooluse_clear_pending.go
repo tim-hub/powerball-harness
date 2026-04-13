@@ -8,25 +8,26 @@ import (
 	"path/filepath"
 )
 
-// ClearPendingHandler は PostToolUse フックハンドラ（pending-skills クリア）。
-// Skill ツール実行後に .claude/state/pending-skills/*.pending ファイルを削除する。
-// Skill の呼び出しをもって品質ゲート実行済みとみなし、pending 状態を解消する。
+// ClearPendingHandler is a PostToolUse hook handler (clear pending-skills).
+// Deletes .claude/state/pending-skills/*.pending files after a Skill tool is executed.
+// The Skill invocation is treated as evidence that the quality gate has been satisfied,
+// resolving the pending state.
 //
-// shell 版: scripts/posttooluse-clear-pending.sh
+// shell version: scripts/posttooluse-clear-pending.sh
 type ClearPendingHandler struct {
-	// ProjectRoot はプロジェクトルートのパス。空の場合は cwd を使用する。
+	// ProjectRoot is the path to the project root. Uses cwd if empty.
 	ProjectRoot string
 }
 
-// clearPendingResponse は ClearPending フックのレスポンス。
+// clearPendingResponse is the response from the ClearPending hook.
 type clearPendingResponse struct {
 	Continue bool `json:"continue"`
 }
 
-// Handle は stdin からペイロードを読み取り（使用しない）、
-// pending-skills ディレクトリの *.pending ファイルをすべて削除する。
+// Handle reads and discards the payload from stdin (not used),
+// then deletes all *.pending files in the pending-skills directory.
 func (h *ClearPendingHandler) Handle(r io.Reader, w io.Writer) error {
-	// stdin は読み捨て（このハンドラは入力を使用しない）
+	// discard stdin (this handler does not use the input)
 	_, _ = io.ReadAll(r)
 
 	projectRoot := h.ProjectRoot
@@ -36,12 +37,12 @@ func (h *ClearPendingHandler) Handle(r io.Reader, w io.Writer) error {
 
 	pendingDir := filepath.Join(projectRoot, ".claude", "state", "pending-skills")
 
-	// pending ディレクトリが存在しない場合はスキップ
+	// skip if the pending directory does not exist
 	if _, err := os.Stat(pendingDir); os.IsNotExist(err) {
 		return writePendingJSON(w, clearPendingResponse{Continue: true})
 	}
 
-	// *.pending ファイルをすべて削除
+	// delete all *.pending files
 	matches, err := filepath.Glob(filepath.Join(pendingDir, "*.pending"))
 	if err == nil {
 		for _, path := range matches {
@@ -52,7 +53,7 @@ func (h *ClearPendingHandler) Handle(r io.Reader, w io.Writer) error {
 	return writePendingJSON(w, clearPendingResponse{Continue: true})
 }
 
-// writePendingJSON は v を JSON として w に書き出す。
+// writePendingJSON writes v as JSON to w.
 func writePendingJSON(w io.Writer, v interface{}) error {
 	data, err := json.Marshal(v)
 	if err != nil {

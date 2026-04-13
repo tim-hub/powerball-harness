@@ -1,6 +1,6 @@
 #!/bin/bash
 # build-review-few-shot-bank.sh
-# review-calibration.jsonl から few-shot 用バンクを生成する。
+# Generate a few-shot bank from review-calibration.jsonl.
 
 set -euo pipefail
 

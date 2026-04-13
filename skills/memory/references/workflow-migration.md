@@ -1,124 +1,122 @@
 ---
 name: migrate-workflow-files
-description: "既存プロジェクトのAGENTS.md/CLAUDE.md/Plans.mdを、既存内容を精査して対話で引き継ぎ項目を確定しつつ、新フォーマットへ移行（バックアップ付き・Plansはタスク保持マージ）。"
+description: "Migrates existing project AGENTS.md/CLAUDE.md/Plans.md to the new format by reviewing existing content, interactively confirming carry-over items, with backups and task-preserving Plans merge."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 ---
 
 # Migrate Workflow Files (Interactive Merge)
 
-## 目的
+## Purpose
 
-既存プロジェクトで運用中の以下を、**既存内容を尊重しつつ新フォーマットへアップデート**します。
+**Updates the following files to the new format while respecting existing content** in projects already in operation.
 
 - `AGENTS.md`
 - `CLAUDE.md`
 - `Plans.md`
 
-ポイント:
+Key points:
 
-- **対話形式で引き継ぎ情報を確定**（勝手に捨てない / 勝手に上書きしない）
-- 変更前に **必ずバックアップ** を残す
-- `Plans.md` は `merge-plans` の方針で **タスクを保持しつつ構造を更新**
-
----
-
-## 前提（重要）
-
-このスキルは「初回適用時の安全」と「意図した動作（新フォーマット）」の両立のため、
-**ユーザー合意→バックアップ→生成→差分確認**の順で進めます。
+- **Interactively confirm carry-over information** (never silently discard / never silently overwrite)
+- **Always create a backup** before making changes
+- For `Plans.md`, follow the `merge-plans` approach to **update structure while preserving tasks**
 
 ---
 
-## 入力（このスキル内で自動検出してOK）
+## Prerequisites (Important)
 
-- `project_name`: `basename $(pwd)` で推定
+To balance "safety on first application" with "intended behavior (new format),"
+this skill proceeds in the order: **user consent -> backup -> generation -> diff review**.
+
+---
+
+## Input (Auto-detected within this skill)
+
+- `project_name`: Inferred from `basename $(pwd)`
 - `date`: `YYYY-MM-DD`
-- 既存ファイルの有無:
+- Existence of existing files:
   - `AGENTS.md`
   - `CLAUDE.md`
   - `Plans.md`
-- 新フォーマットの参照テンプレ:
+- Reference templates for the new format:
   - `templates/AGENTS.md.template`
   - `templates/CLAUDE.md.template`
   - `templates/Plans.md.template`
 
 ---
 
-## 実行フロー
+## Execution Flow
 
-### Step 0: 検出と合意取り（必須）
+### Step 0: Detection and Consent (Required)
 
-1. `Read` で既存 `AGENTS.md` / `CLAUDE.md` / `Plans.md` の存在を確認。
-2. 存在する場合はユーザーへ確認:
-   - **移行（新フォーマットへアップデート）してよいか**
-   - 重要: 移行は **内容の再整理を含む**（= 多少の配置替えや言い回し変更が起こりうる）
+1. Use `Read` to check for existing `AGENTS.md` / `CLAUDE.md` / `Plans.md`.
+2. If they exist, confirm with the user:
+   - **Is it okay to migrate (update to the new format)?**
+   - Important: Migration **includes content reorganization** (= some rearrangement and wording changes may occur)
 
-ユーザーが NO の場合:
+If user says NO:
 
-- このスキルは中止（何も書き換えない）
-- 代わりに「`.claude/settings.json` の安全マージだけ」等の安全作業を提案
+- Abort this skill (do not rewrite anything)
+- Instead, suggest safe operations such as "merge `.claude/settings.json` only"
 
-### Step 1: 既存内容の精査（要約）
+### Step 1: Review Existing Content (Summary)
 
-各ファイルを `Read` し、以下を抽出して短く要約して提示する:
+`Read` each file and extract the following, presenting a brief summary:
 
-- **AGENTS.md**: 役割分担、ハンドオフ手順、禁止事項、環境/前提
-- **CLAUDE.md**: 重要な制約（禁止事項/権限/ブランチ運用）、テスト手順、コミット規約、運用ルール
-- **Plans.md**: タスク構造、マーカー運用、現在のWIP/依頼中タスク
+- **AGENTS.md**: Role assignments, handoff procedures, prohibited actions, environment/prerequisites
+- **CLAUDE.md**: Important constraints (prohibited actions/permissions/branch policies), test procedures, commit conventions, operational rules
+- **Plans.md**: Task structure, marker conventions, current WIP/requested tasks
 
-### Step 2: 引き継ぎ項目の確定（対話）
+### Step 2: Confirm Carry-over Items (Interactive)
 
-要約をもとに、ユーザーに **保持/調整**したい項目を質問する（最大5〜10問で十分）:
+Based on the summary, ask the user about items to **retain/adjust** (5-10 questions is sufficient):
 
-- 絶対に残すべき制約（例: 本番デプロイ禁止、特定ディレクトリ禁止、セキュリティ要件）
-- 役割分担（Solo/2-agent）の前提
-- ブランチ運用（main/staging 等）
-- テスト/ビルドの代表コマンド
-- Plans のマーカー運用（既存ルールがあれば整合）
+- Constraints that must absolutely be kept (e.g., production deploy prohibition, specific directory restrictions, security requirements)
+- Role assignment assumptions (Solo/2-agent)
+- Branch workflow (main/staging, etc.)
+- Representative test/build commands
+- Plans marker conventions (reconcile if existing rules exist)
 
-### Step 3: バックアップ作成（必須）
+### Step 3: Create Backup (Required)
 
-バックアップはプロジェクト内の `.claude-code-harness/backups/` にまとめる（gitに入れたくない場合が多い）。
+Backups are collected in `.claude-code-harness/backups/` within the project (often not wanted in git).
 
-例:
+Example:
 
 - `.claude-code-harness/backups/2025-12-13/AGENTS.md`
 - `.claude-code-harness/backups/2025-12-13/CLAUDE.md`
 - `.claude-code-harness/backups/2025-12-13/Plans.md`
 
-`Bash` で `mkdir -p` と `cp` を使ってよい。
+Using `Bash` with `mkdir -p` and `cp` is fine.
 
-### Step 4: 新フォーマットの生成（マージ）
+### Step 4: Generate New Format (Merge)
 
-#### 4-1. Plans.md（タスク保持マージ）
+#### 4-1. Plans.md (Task-preserving Merge)
 
-`merge-plans` の方針で実行:
+Execute following the `merge-plans` approach:
 
-- 既存の 🔴🟡🟢📦 タスクを保持
-- マーカー凡例・最終更新情報はテンプレ側に更新
-- 解析不能ならバックアップを残してテンプレ採用
+- Preserve existing 🔴🟡🟢📦 tasks
+- Update marker legend and last-updated info from the template
+- If unparseable, keep the backup and adopt the template
 
-#### 4-2. AGENTS.md / CLAUDE.md（テンプレ + 引き継ぎブロック）
+#### 4-2. AGENTS.md / CLAUDE.md (Template + Carry-over Blocks)
 
-テンプレで骨格を作り、Step 2 で確定した項目を **新フォーマットの適切な場所に再配置**する。
+Build the skeleton from the template and **place items confirmed in Step 2 into the appropriate locations in the new format**.
 
-最低限の方針:
+Minimum approach:
 
-- 既存の“重要ルール”は削らず、**「プロジェクト固有ルール（移行）」**のセクションとして残す
-- 役割分担/フローはテンプレの形式に合わせて書き直す（意味は維持）
+- Do not remove existing "important rules"; keep them as a **"Project-specific Rules (Migrated)"** section
+- Rewrite role assignments/flows to match the template format (preserve the meaning)
 
-### Step 5: 差分確認と完了
+### Step 5: Diff Review and Completion
 
-- `git diff`（またはファイル差分）で変更点を短く要約
-- 重要ポイント（権限/禁止事項/タスク状態）が意図通りか最終確認
-- 問題があれば即修正
+- Briefly summarize changes via `git diff` (or file diff)
+- Final confirmation that key points (permissions/prohibited actions/task state) are as intended
+- Fix immediately if issues are found
 
 ---
 
-## 成果物（完了条件）
+## Deliverables (Completion Criteria)
 
-- 既存内容を踏まえた **新フォーマット版**の `AGENTS.md` / `CLAUDE.md` / `Plans.md`
-- `.claude-code-harness/backups/` にバックアップが残っている
-- Plans のタスクは消えていない（保持）
-
-
+- **New-format versions** of `AGENTS.md` / `CLAUDE.md` / `Plans.md` based on existing content
+- Backups exist in `.claude-code-harness/backups/`
+- Plans tasks have not been lost (preserved)

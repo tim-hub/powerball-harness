@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// reactiveInput は runtime-reactive.sh に渡される stdin JSON ペイロード。
+// reactiveInput is the stdin JSON payload passed to runtime-reactive.sh.
 type reactiveInput struct {
 	HookEventName string `json:"hook_event_name"`
 	EventName     string `json:"event_name"`
@@ -31,7 +31,7 @@ type reactiveInput struct {
 	} `json:"task"`
 }
 
-// reactiveLogEntry は runtime-reactive.jsonl に記録するエントリ。
+// reactiveLogEntry is the entry recorded in runtime-reactive.jsonl.
 type reactiveLogEntry struct {
 	Event       string `json:"event"`
 	Timestamp   string `json:"timestamp"`
@@ -43,7 +43,7 @@ type reactiveLogEntry struct {
 	TaskTitle   string `json:"task_title"`
 }
 
-// reactiveHookOutput は hookSpecificOutput 形式のレスポンス。
+// reactiveHookOutput is the response in hookSpecificOutput format.
 type reactiveHookOutput struct {
 	HookSpecificOutput struct {
 		HookEventName     string `json:"hookEventName"`
@@ -51,18 +51,18 @@ type reactiveHookOutput struct {
 	} `json:"hookSpecificOutput"`
 }
 
-// reactiveApproveOutput は approve 形式のレスポンス。
+// reactiveApproveOutput is the response in approve format.
 type reactiveApproveOutput struct {
 	Decision string `json:"decision"`
 	Reason   string `json:"reason"`
 }
 
-// HandleRuntimeReactive は runtime-reactive.sh の Go 移植。
+// HandleRuntimeReactive is a Go port of runtime-reactive.sh.
 //
-// TaskCreated / FileChanged / CwdChanged の3イベントを統合処理する:
-//   - TaskCreated: バックグラウンドタスク作成ログ
-//   - FileChanged: Plans.md, AGENTS.md, .claude/rules/, hooks.json, settings.json の変更検知 → systemMessage で再読指示
-//   - CwdChanged: ディレクトリ変更 → コンテキスト再確認促し
+// Handles 3 events in a unified manner: TaskCreated / FileChanged / CwdChanged:
+//   - TaskCreated: logs background task creation
+//   - FileChanged: detects changes to Plans.md, AGENTS.md, .claude/rules/, hooks.json, settings.json → instructs re-read via systemMessage
+//   - CwdChanged: directory change → prompts context re-check
 func HandleRuntimeReactive(in io.Reader, out io.Writer) error {
 	data, err := io.ReadAll(in)
 	if err != nil || len(strings.TrimSpace(string(data))) == 0 {
@@ -74,13 +74,13 @@ func HandleRuntimeReactive(in io.Reader, out io.Writer) error {
 		return writeReactiveApprove(out, "Reactive hook: no payload")
 	}
 
-	// hook_event_name または event_name を取得
+	// Get hook_event_name or event_name
 	eventName := input.HookEventName
 	if eventName == "" {
 		eventName = input.EventName
 	}
 
-	// project_root を決定
+	// Determine project_root
 	projectRoot := input.CWD
 	if projectRoot == "" {
 		projectRoot = input.ProjectRoot
@@ -91,21 +91,21 @@ func HandleRuntimeReactive(in io.Reader, out io.Writer) error {
 		}
 	}
 
-	// ファイルパスを取得して正規化
+	// Get and normalize file path
 	filePath := input.FilePath
 	if filePath == "" {
 		filePath = input.Path
 	}
 	filePath = normalizeReactivePath(filePath, projectRoot)
 
-	// previous_cwd を正規化
+	// Normalize previous_cwd
 	previousCWD := input.PreviousCWD
 	if previousCWD == "" {
 		previousCWD = input.FromCWD
 	}
 	previousCWD = normalizeReactivePath(previousCWD, projectRoot)
 
-	// task_id と task_title を取得
+	// Get task_id and task_title
 	taskID := input.TaskID
 	taskTitle := input.TaskTitle
 	if input.Task != nil {
@@ -126,14 +126,14 @@ func HandleRuntimeReactive(in io.Reader, out io.Writer) error {
 	// session_id
 	sessionID := input.SessionID
 
-	// 状態ディレクトリとログファイル
+	// State directory and log file
 	stateDir := filepath.Join(projectRoot, ".claude", "state")
 	logFile := filepath.Join(stateDir, "runtime-reactive.jsonl")
 	_ = os.MkdirAll(stateDir, 0o755)
 
 	timestamp := time.Now().UTC().Format(time.RFC3339)
 
-	// ログエントリを記録
+	// Record log entry
 	logEntry := reactiveLogEntry{
 		Event:       eventName,
 		Timestamp:   timestamp,
@@ -148,7 +148,7 @@ func HandleRuntimeReactive(in io.Reader, out io.Writer) error {
 		appendToJSONL(logFile, logData)
 	}
 
-	// イベントごとのメッセージ生成
+	// Generate per-event message
 	message := buildReactiveMessage(eventName, filePath)
 
 	if message != "" {
@@ -157,38 +157,38 @@ func HandleRuntimeReactive(in io.Reader, out io.Writer) error {
 	return writeReactiveApprove(out, fmt.Sprintf("Reactive hook tracked: %s", eventName))
 }
 
-// buildReactiveMessage はイベントと変更パスに応じたメッセージを生成する。
-// runtime-reactive.sh の case 文に対応。
+// buildReactiveMessage generates a message based on the event and changed path.
+// Corresponds to the case statement in runtime-reactive.sh.
 func buildReactiveMessage(eventName, filePath string) string {
 	switch eventName {
 	case "FileChanged":
 		return buildFileChangedMessage(filePath)
 	case "CwdChanged":
-		return "作業ディレクトリが切り替わりました。別リポジトリや worktree に移動した場合は AGENTS.md、Plans.md、ローカルルールを再確認してください。"
+		return "Working directory has changed. If you moved to a different repository or worktree, re-read AGENTS.md, Plans.md, and local rules."
 	case "TaskCreated":
-		// TaskCreated はログ記録のみ（メッセージなし）
+		// TaskCreated: log only (no message)
 		return ""
 	}
 	return ""
 }
 
-// buildFileChangedMessage は FileChanged イベントのメッセージを生成する。
+// buildFileChangedMessage generates a message for the FileChanged event.
 func buildFileChangedMessage(filePath string) string {
-	// Plans.md の変更
+	// Plans.md changed
 	if filePath == "Plans.md" || strings.HasSuffix(filePath, "/Plans.md") {
-		return "Plans.md が更新されました。次の実装やレビュー前に最新のタスク状態を読み直してください。"
+		return "Plans.md has been updated. Re-read the latest task state before the next implementation or review."
 	}
 
-	// AGENTS.md, CLAUDE.md, .claude/rules/, hooks.json, settings.json の変更
+	// AGENTS.md, CLAUDE.md, .claude/rules/, hooks.json, settings.json changed
 	if isRuleOrConfigFile(filePath) {
-		return "作業ルールまたは Harness 設定が更新されました。次の操作では最新ルールを前提に進めてください。"
+		return "Working rules or Harness configuration has been updated. Proceed with the latest rules in your next operation."
 	}
 
 	return ""
 }
 
-// isRuleOrConfigFile はファイルパスがルール/設定ファイルかどうかを判定する。
-// runtime-reactive.sh の case パターンに対応:
+// isRuleOrConfigFile determines whether the file path is a rule/config file.
+// Corresponds to the case patterns in runtime-reactive.sh:
 // AGENTS.md, CLAUDE.md, .claude/rules/*, hooks/hooks.json, .claude-plugin/settings.json
 func isRuleOrConfigFile(filePath string) bool {
 	// AGENTS.md
@@ -199,7 +199,7 @@ func isRuleOrConfigFile(filePath string) bool {
 	if filePath == "CLAUDE.md" || strings.HasSuffix(filePath, "/CLAUDE.md") {
 		return true
 	}
-	// .claude/rules/ ディレクトリ配下
+	// Under .claude/rules/ directory
 	if strings.HasPrefix(filePath, ".claude/rules/") || strings.Contains(filePath, "/.claude/rules/") {
 		return true
 	}
@@ -214,26 +214,26 @@ func isRuleOrConfigFile(filePath string) bool {
 	return false
 }
 
-// normalizeReactivePath はパスをプロジェクトルートからの相対パスに正規化する。
-// runtime-reactive.sh の normalize_for_match() 関数に対応。
+// normalizeReactivePath normalizes a path to a relative path from the project root.
+// Corresponds to the normalize_for_match() function in runtime-reactive.sh.
 func normalizeReactivePath(rawPath, projectRoot string) string {
 	if rawPath == "" {
 		return ""
 	}
 
-	// シンボリックリンクを解決（できる場合）
+	// Resolve symbolic links (if possible)
 	if resolved, err := filepath.EvalSymlinks(rawPath); err == nil {
 		rawPath = resolved
 	}
 
 	if projectRoot != "" {
-		// シンボリックリンクを解決（できる場合）
+		// Resolve symbolic links (if possible)
 		normalizedRoot := projectRoot
 		if resolved, err := filepath.EvalSymlinks(projectRoot); err == nil {
 			normalizedRoot = resolved
 		}
 
-		// プロジェクトルートとの相対化
+		// Make relative to project root
 		if rawPath == normalizedRoot {
 			rawPath = "."
 		} else if strings.HasPrefix(rawPath, normalizedRoot+"/") {
@@ -241,12 +241,12 @@ func normalizeReactivePath(rawPath, projectRoot string) string {
 		}
 	}
 
-	// ./ プレフィックスを除去
+	// Remove ./ prefix
 	rawPath = strings.TrimPrefix(rawPath, "./")
 	return rawPath
 }
 
-// appendToJSONL は JSONL ファイルにエントリを追記する。
+// appendToJSONL appends an entry to a JSONL file.
 func appendToJSONL(path string, data []byte) {
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
@@ -256,7 +256,7 @@ func appendToJSONL(path string, data []byte) {
 	_, _ = f.Write(append(data, '\n'))
 }
 
-// writeReactiveHookOutput は hookSpecificOutput 形式のレスポンスを書き込む。
+// writeReactiveHookOutput writes a response in hookSpecificOutput format.
 func writeReactiveHookOutput(out io.Writer, eventName, message string) error {
 	var resp reactiveHookOutput
 	resp.HookSpecificOutput.HookEventName = eventName
@@ -264,7 +264,7 @@ func writeReactiveHookOutput(out io.Writer, eventName, message string) error {
 	return writeJSON(out, resp)
 }
 
-// writeReactiveApprove は approve 形式のレスポンスを書き込む。
+// writeReactiveApprove writes a response in approve format.
 func writeReactiveApprove(out io.Writer, reason string) error {
 	resp := reactiveApproveOutput{
 		Decision: "approve",

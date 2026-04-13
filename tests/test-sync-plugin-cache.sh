@@ -9,8 +9,8 @@ SOURCE_VERSION="$(tr -d '[:space:]' < "${ROOT_DIR}/VERSION")"
 CACHE_DIR="${TMP_HOME}/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness/${SOURCE_VERSION}"
 mkdir -p "${CACHE_DIR}"
 
-# 古い/欠落したキャッシュを用意して、CLAUDE_PLUGIN_ROOT を plugin root として渡したときに
-# 正しく同期元解決できることを確認する。
+# Prepare a stale/missing cache and verify that passing CLAUDE_PLUGIN_ROOT
+# as the plugin root correctly resolves the sync source.
 printf 'stale\n' > "${CACHE_DIR}/VERSION"
 
 HOME="${TMP_HOME}" CLAUDE_PLUGIN_ROOT="${ROOT_DIR}" bash "${ROOT_DIR}/scripts/sync-plugin-cache.sh" >/dev/null 2>&1

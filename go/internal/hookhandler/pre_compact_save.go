@@ -14,34 +14,20 @@ import (
 	"time"
 )
 
-// PreCompactSave は pre-compact-save.js の Go 移植。
-// PreCompact フックで handoff-artifact.json と precompact-snapshot.json を生成する。
 //
-// 元: scripts/hook-handlers/pre-compact-save.js
 type PreCompactSave struct {
-	// RepoRoot はリポジトリルートを指定する。
-	// 空の場合は cwd から自動検出する。
 	RepoRoot string
-	// StateDir はスナップショットファイルの場所を指定する。
-	// 空の場合は RepoRoot/.claude/state を使う。
 	StateDir string
-	// PlansFile は Plans.md のパスを指定する。
-	// 空の場合は RepoRoot/Plans.md を使う。
 	PlansFile string
-	// Now は現在時刻を返す関数（テスト用に差し替え可能）。
 	Now func() string
 }
 
-// artifactVersion はハンドオフアーティファクトのバージョン。
 const artifactVersion = "2.0.0"
 
-// legacySnapshotVersion はレガシースナップショットのバージョン。
 const legacySnapshotVersion = "1.0.0"
 
-// gitTimeoutSec は git コマンドのタイムアウト秒数。
 const gitTimeoutSec = 5
 
-// planRow は Plans.md の1行分のパース結果。
 type planRow struct {
 	TaskID  string   `json:"taskId"`
 	Title   string   `json:"title"`
@@ -51,14 +37,12 @@ type planRow struct {
 	Tags    planTags `json:"tags"`
 }
 
-// planTags は planRow のタグ情報。
 type planTags struct {
 	Todo    bool `json:"todo"`
 	Wip     bool `json:"wip"`
 	Blocked bool `json:"blocked"`
 }
 
-// openRisk はリスクエントリ。
 type openRisk struct {
 	Severity string `json:"severity"`
 	Kind     string `json:"kind"`
@@ -66,7 +50,6 @@ type openRisk struct {
 	Detail   string `json:"detail"`
 }
 
-// failedCheck は失敗チェックエントリ。
 type failedCheck struct {
 	Source string `json:"source"`
 	Check  string `json:"check"`
@@ -74,7 +57,6 @@ type failedCheck struct {
 	Detail string `json:"detail,omitempty"`
 }
 
-// decisionLogEntry は決定ログエントリ。
 type decisionLogEntry struct {
 	Timestamp string `json:"timestamp"`
 	Actor     string `json:"actor"`
@@ -82,14 +64,12 @@ type decisionLogEntry struct {
 	Rationale string `json:"rationale"`
 }
 
-// contextResetPolicy はコンテキストリセットポリシー。
 type contextResetPolicy struct {
 	Mode   string                    `json:"mode"`
 	DryRun bool                      `json:"dryRun"`
 	Thresholds contextResetThresholds `json:"thresholds"`
 }
 
-// contextResetThresholds はコンテキストリセット閾値。
 type contextResetThresholds struct {
 	WIPTasks          int `json:"wipTasks"`
 	BlockedTasks      int `json:"blockedTasks"`
@@ -98,7 +78,6 @@ type contextResetThresholds struct {
 	SessionAgeMinutes int `json:"sessionAgeMinutes"`
 }
 
-// contextResetCandidate はリセット判定候補。
 type contextResetCandidate struct {
 	Key       string `json:"key"`
 	Label     string `json:"label"`
@@ -107,7 +86,6 @@ type contextResetCandidate struct {
 	Triggered bool   `json:"triggered"`
 }
 
-// contextResetCounters はリセット判定カウンター。
 type contextResetCounters struct {
 	WIPTasks          int  `json:"wipTasks"`
 	BlockedTasks      int  `json:"blockedTasks"`
@@ -116,7 +94,6 @@ type contextResetCounters struct {
 	SessionAgeMinutes *int `json:"sessionAgeMinutes"`
 }
 
-// contextResetRecommendation はコンテキストリセット推奨情報。
 type contextResetRecommendation struct {
 	Policy      contextResetPolicy      `json:"policy"`
 	Recommended bool                    `json:"recommended"`
@@ -126,7 +103,6 @@ type contextResetRecommendation struct {
 	Counters    contextResetCounters    `json:"counters"`
 }
 
-// continuityCTX は継続性コンテキスト。
 type continuityCTX struct {
 	PluginFirstWorkflow         bool   `json:"plugin_first_workflow"`
 	ResumeAwareEffortContinuity bool   `json:"resume_aware_effort_continuity"`
@@ -135,7 +111,6 @@ type continuityCTX struct {
 	Summary                     string `json:"summary"`
 }
 
-// planCounts はプランカウント情報。
 type planCounts struct {
 	Total       int `json:"total"`
 	WIP         int `json:"wip"`
@@ -143,7 +118,6 @@ type planCounts struct {
 	RecentEdits int `json:"recent_edits"`
 }
 
-// sessionStateSnapshot はセッション状態スナップショット。
 type sessionStateSnapshot struct {
 	State        string `json:"state,omitempty"`
 	ResumedAt    string `json:"resumed_at,omitempty"`
@@ -151,14 +125,12 @@ type sessionStateSnapshot struct {
 	ReviewStatus string `json:"review_status,omitempty"`
 }
 
-// previousState は以前の状態情報。
 type previousState struct {
 	Summary      string                `json:"summary"`
 	SessionState *sessionStateSnapshot `json:"session_state,omitempty"`
 	PlanCounts   planCounts            `json:"plan_counts"`
 }
 
-// nextAction は次のアクション情報。
 type nextAction struct {
 	Summary  string `json:"summary"`
 	TaskID   string `json:"taskId,omitempty"`
@@ -170,7 +142,6 @@ type nextAction struct {
 	Priority string `json:"priority"`
 }
 
-// handoffArtifact はハンドオフアーティファクト全体。
 type handoffArtifact struct {
 	Version       string                     `json:"version"`
 	LegacyVersion string                     `json:"legacy_version"`
@@ -190,13 +161,11 @@ type handoffArtifact struct {
 	Metrics       interface{}                `json:"metrics,omitempty"`
 }
 
-// preCompactResponse は PreCompact フックの出力。
 type preCompactResponse struct {
 	Continue bool   `json:"continue"`
 	Message  string `json:"message"`
 }
 
-// sessionStateFile はセッション状態ファイルのスキーマ（最低限）。
 type sessionStateFile struct {
 	State       string `json:"state"`
 	ResumedAt   string `json:"resumed_at"`
@@ -204,14 +173,10 @@ type sessionStateFile struct {
 	StartedAt   string `json:"started_at"`
 }
 
-// workActiveFile は work-active.json のスキーマ（最低限）。
 type workActiveFile map[string]interface{}
 
-// sessionMetricsFile は session-metrics.json のスキーマ（最低限）。
 type sessionMetricsFile map[string]interface{}
 
-// Handle は stdin から PreCompact ペイロードを読み取り、
-// handoff-artifact.json と precompact-snapshot.json を生成する。
 func (h *PreCompactSave) Handle(r io.Reader, w io.Writer) error {
 	now := h.getNow()
 	sessionID := os.Getenv("CLAUDE_SESSION_ID")
@@ -228,8 +193,6 @@ func (h *PreCompactSave) Handle(r io.Reader, w io.Writer) error {
 
 	plansFile := h.PlansFile
 	if plansFile == "" {
-		// resolvePlansPath は plansDirectory 設定を考慮してパスを解決し、
-		// ファイルが存在しない場合は空文字を返す（bash 版の get_plans_file_path と同等）。
 		plansFile = resolvePlansPath(repoRoot)
 	}
 
@@ -237,32 +200,24 @@ func (h *PreCompactSave) Handle(r io.Reader, w io.Writer) error {
 	artifactPath := filepath.Join(stateDir, "handoff-artifact.json")
 	snapshotPath := filepath.Join(stateDir, "precompact-snapshot.json")
 
-	// セキュリティ: .claude がシンボリックリンクの場合、repo 外への symlink は拒否する。
-	// repo 内への symlink（例: モノレポのサブパッケージが共有 .claude を参照する構成）は許可する。
 	if info, err := os.Lstat(claudeDir); err == nil && info.Mode()&os.ModeSymlink != 0 {
 		target, resolveErr := filepath.EvalSymlinks(claudeDir)
 		if resolveErr != nil {
-			// symlink 先を解決できない場合は安全のため拒否する。
 			return writePreCompactJSON(w, preCompactResponse{
 				Continue: true,
 				Message:  "Skipped: security check failed (.claude symlink unresolvable)",
 			})
 		}
-		// filepath.EvalSymlinks は OS パスを返すため、比較前に Clean を適用する。
 		cleanTarget := filepath.Clean(target)
 		cleanRoot := filepath.Clean(repoRoot)
-		// HasPrefix だと /foo が /foobar にマッチしてしまうため、
-		// パス区切り文字付きで前方一致を確認する。
 		if cleanTarget != cleanRoot && !strings.HasPrefix(cleanTarget, cleanRoot+string(filepath.Separator)) {
 			return writePreCompactJSON(w, preCompactResponse{
 				Continue: true,
 				Message:  "Skipped: security check failed (.claude symlink points outside repo)",
 			})
 		}
-		// repo 内への symlink は正当な使い方なので続行する。
 	}
 
-	// stateDir 作成・セキュリティチェック
 	if err := h.ensureStateDir(stateDir); err != nil {
 		return writePreCompactJSON(w, preCompactResponse{
 			Continue: true,
@@ -270,7 +225,6 @@ func (h *PreCompactSave) Handle(r io.Reader, w io.Writer) error {
 		})
 	}
 
-	// シンボリックリンクチェック
 	if isPreCompactSymlink(artifactPath) || isPreCompactSymlink(snapshotPath) {
 		return writePreCompactJSON(w, preCompactResponse{
 			Continue: true,
@@ -280,7 +234,6 @@ func (h *PreCompactSave) Handle(r io.Reader, w io.Writer) error {
 
 	artifact := h.buildHandoffArtifact(repoRoot, plansFile, sessionID, now)
 
-	// 書き出し
 	if err := pcsWriteJSONFile(artifactPath, artifact); err != nil {
 		return writePreCompactJSON(w, preCompactResponse{
 			Continue: true,
@@ -288,7 +241,6 @@ func (h *PreCompactSave) Handle(r io.Reader, w io.Writer) error {
 		})
 	}
 
-	// レガシースナップショット（互換性維持）
 	snapshot := map[string]interface{}{
 		"version":        legacySnapshotVersion,
 		"legacy_version": artifact.LegacyVersion,
@@ -302,7 +254,6 @@ func (h *PreCompactSave) Handle(r io.Reader, w io.Writer) error {
 		"continuity":     artifact.Continuity,
 	}
 	if err := pcsWriteJSONFile(snapshotPath, snapshot); err != nil {
-		// スナップショット失敗は警告のみ（アーティファクトは保存済み）
 		_ = err
 	}
 
@@ -315,7 +266,6 @@ func (h *PreCompactSave) Handle(r io.Reader, w io.Writer) error {
 	})
 }
 
-// getNow は現在時刻文字列を返す。
 func (h *PreCompactSave) getNow() string {
 	if h.Now != nil {
 		return h.Now()
@@ -323,7 +273,6 @@ func (h *PreCompactSave) getNow() string {
 	return time.Now().UTC().Format(time.RFC3339)
 }
 
-// ensureStateDir はステートディレクトリを作成する。
 func (h *PreCompactSave) ensureStateDir(stateDir string) error {
 	if info, err := os.Lstat(stateDir); err == nil {
 		if info.Mode()&os.ModeSymlink != 0 {
@@ -335,7 +284,6 @@ func (h *PreCompactSave) ensureStateDir(stateDir string) error {
 	return os.MkdirAll(stateDir, 0700)
 }
 
-// buildHandoffArtifact はハンドオフアーティファクトを構築する。
 func (h *PreCompactSave) buildHandoffArtifact(repoRoot, plansFile, sessionID, now string) handoffArtifact {
 	planRows := h.getPlanRows(plansFile)
 	wipTasks := getWIPTasks(planRows)
@@ -421,7 +369,6 @@ func (h *PreCompactSave) buildHandoffArtifact(repoRoot, plansFile, sessionID, no
 	}
 }
 
-// getPlanRows は Plans.md を読み込んでパースする。
 func (h *PreCompactSave) getPlanRows(plansFile string) []planRow {
 	f, err := os.Open(plansFile)
 	if err != nil {
@@ -429,7 +376,6 @@ func (h *PreCompactSave) getPlanRows(plansFile string) []planRow {
 	}
 	defer f.Close()
 
-	// cc:TODO / cc:WIP / cc:blocked の行を抽出
 	reTodo := regexp.MustCompile("(?i)`?cc:TODO`?")
 	reWip := regexp.MustCompile("(?i)`?cc:WIP`?|\\[in_progress\\]")
 	reBlocked := regexp.MustCompile("(?i)`?cc:blocked`?|\\[blocked\\]")
@@ -487,13 +433,11 @@ func (h *PreCompactSave) getPlanRows(plansFile string) []planRow {
 	return rows
 }
 
-// splitPipeRow はエスケープされた \| を考慮してパイプで行を分割する。
 func splitPipeRow(line string) []string {
 	const placeholder = "\x00PIPE\x00"
 	escaped := strings.ReplaceAll(line, `\|`, placeholder)
 	rawCells := strings.Split(escaped, "|")
 
-	// 先頭・末尾の空セルを除去
 	start := 0
 	end := len(rawCells)
 	if end > 0 && strings.TrimSpace(rawCells[0]) == "" {
@@ -510,7 +454,6 @@ func splitPipeRow(line string) []string {
 	return cells
 }
 
-// getWIPTasks はプランROWのタイトルを返す。
 func getWIPTasks(rows []planRow) []string {
 	var titles []string
 	for _, row := range rows {
@@ -521,7 +464,6 @@ func getWIPTasks(rows []planRow) []string {
 	return titles
 }
 
-// getRecentEdits は git から最近変更されたファイルを取得する。
 func (h *PreCompactSave) getRecentEdits(repoRoot string) []string {
 	run := func(args ...string) string {
 		cmd := exec.Command("git", args...)
@@ -560,13 +502,11 @@ func (h *PreCompactSave) getRecentEdits(repoRoot string) []string {
 	return files
 }
 
-// getSessionMetrics はセッションメトリクスを読み込む。
 func (h *PreCompactSave) getSessionMetrics(repoRoot string) interface{} {
 	p := filepath.Join(repoRoot, ".claude", "state", "session-metrics.json")
 	return pcsReadJSONFile(p)
 }
 
-// getWorkState は work-active.json を読み込む。
 func (h *PreCompactSave) getWorkState(repoRoot string) interface{} {
 	stateDir := filepath.Join(repoRoot, ".claude", "state")
 	for _, name := range []string{"work-active.json", "ultrawork-active.json"} {
@@ -577,7 +517,6 @@ func (h *PreCompactSave) getWorkState(repoRoot string) interface{} {
 	return nil
 }
 
-// getSessionStateFile はセッション状態ファイルを読み込む。
 func (h *PreCompactSave) getSessionStateFile(repoRoot string) *sessionStateFile {
 	p := filepath.Join(repoRoot, ".claude", "state", "session.json")
 	data, err := os.ReadFile(p)
@@ -591,12 +530,10 @@ func (h *PreCompactSave) getSessionStateFile(repoRoot string) *sessionStateFile 
 	return &s
 }
 
-// pickNextAction は最優先の次アクションを選ぶ。
 func (h *PreCompactSave) pickNextAction(rows []planRow) *nextAction {
 	if len(rows) == 0 {
 		return nil
 	}
-	// WIP > TODO > blocked の優先順
 	var preferred *planRow
 	for i := range rows {
 		if rows[i].Tags.Wip {
@@ -637,10 +574,7 @@ func (h *PreCompactSave) pickNextAction(rows []planRow) *nextAction {
 	}
 }
 
-// buildOpenRisks はリスクエントリを構築する。
 //
-// JS版 pre-compact-save.js の buildOpenRisks に相当。
-// metrics 引数を受け取り、session-metrics.json の failed validations を quality risk として変換する。
 func (h *PreCompactSave) buildOpenRisks(rows []planRow, recentEdits []string, workState interface{}, metrics interface{}) []openRisk {
 	var risks []openRisk
 
@@ -706,7 +640,6 @@ func (h *PreCompactSave) buildOpenRisks(rows []planRow, recentEdits []string, wo
 				Detail:   getStringField(workState, "last_failure", "failure_reason", "reason"),
 			})
 		} else if reviewStatus != "" && reviewStatus != "passed" {
-			// "passed" はリスクなし。"pending" 等の未確定状態のみ medium リスクとする
 			risks = append(risks, openRisk{
 				Severity: "medium",
 				Kind:     "review",
@@ -716,7 +649,6 @@ func (h *PreCompactSave) buildOpenRisks(rows []planRow, recentEdits []string, wo
 		}
 	}
 
-	// session-metrics.json の failed validations → quality risk に変換（JS版との対称性）
 	if metrics != nil {
 		failureCount := countFailures(metrics)
 		if failureCount > 0 {
@@ -744,7 +676,6 @@ func (h *PreCompactSave) buildOpenRisks(rows []planRow, recentEdits []string, wo
 	return risks
 }
 
-// buildFailedChecks は失敗チェックエントリを構築する。
 func (h *PreCompactSave) buildFailedChecks(workState, metrics interface{}) []failedCheck {
 	var checks []failedCheck
 
@@ -752,7 +683,6 @@ func (h *PreCompactSave) buildFailedChecks(workState, metrics interface{}) []fai
 		if value == nil {
 			return
 		}
-		// 単一オブジェクト（map）の場合は配列にラップして統一処理する（JS版との対称性）
 		var items []interface{}
 		switch v := value.(type) {
 		case []interface{}:
@@ -815,7 +745,6 @@ func (h *PreCompactSave) buildFailedChecks(workState, metrics interface{}) []fai
 	return checks
 }
 
-// buildDecisionLog は決定ログを構築する。
 func (h *PreCompactSave) buildDecisionLog(now string, na *nextAction, workState interface{}) []decisionLogEntry {
 	entries := []decisionLogEntry{
 		{
@@ -864,7 +793,6 @@ func (h *PreCompactSave) buildDecisionLog(now string, na *nextAction, workState 
 	return entries
 }
 
-// buildContextResetRecommendation はコンテキストリセット推奨を構築する。
 func (h *PreCompactSave) buildContextResetRecommendation(
 	rows []planRow, recentEdits []string,
 	workState, metrics interface{},
@@ -961,7 +889,6 @@ func (h *PreCompactSave) buildContextResetRecommendation(
 	}
 }
 
-// buildContinuityContext は継続性コンテキストを構築する。
 func (h *PreCompactSave) buildContinuityContext(sessionState *sessionStateFile, na *nextAction) continuityCTX {
 	effortHint := os.Getenv("HARNESS_EFFORT_DEFAULT")
 	if effortHint == "" {
@@ -992,7 +919,6 @@ func (h *PreCompactSave) buildContinuityContext(sessionState *sessionStateFile, 
 	}
 }
 
-// getContextResetPolicy は環境変数からポリシーを読み込む。
 func getContextResetPolicy() contextResetPolicy {
 	mode := os.Getenv("HARNESS_CONTEXT_RESET_MODE")
 	if mode == "" {
@@ -1015,7 +941,6 @@ func getContextResetPolicy() contextResetPolicy {
 	}
 }
 
-// parseEnvInt は環境変数を int として読み込む（失敗時はデフォルト値を返す）。
 func parseEnvInt(key string, defaultVal int) int {
 	s := os.Getenv(key)
 	if s == "" {
@@ -1029,7 +954,6 @@ func parseEnvInt(key string, defaultVal int) int {
 	return n
 }
 
-// countWIP は WIP タスク数を返す。
 func countWIP(rows []planRow) int {
 	n := 0
 	for _, r := range rows {
@@ -1040,7 +964,6 @@ func countWIP(rows []planRow) int {
 	return n
 }
 
-// countBlocked はブロックされたタスク数を返す。
 func countBlocked(rows []planRow) int {
 	n := 0
 	for _, r := range rows {
@@ -1051,7 +974,6 @@ func countBlocked(rows []planRow) int {
 	return n
 }
 
-// countFailures は失敗数を取得する。
 func countFailures(v interface{}) int {
 	m, ok := v.(map[string]interface{})
 	if !ok {
@@ -1077,7 +999,6 @@ func countFailures(v interface{}) int {
 	return 0
 }
 
-// getStringField はマップから最初に見つかった文字列フィールドを返す。
 func getStringField(v interface{}, keys ...string) string {
 	m, ok := v.(map[string]interface{})
 	if !ok {
@@ -1093,7 +1014,6 @@ func getStringField(v interface{}, keys ...string) string {
 	return ""
 }
 
-// getStringFieldDefault はマップから文字列フィールドを返す。見つからない場合はデフォルト値を返す。
 func getStringFieldDefault(m map[string]interface{}, defaultVal string, keys ...string) string {
 	for _, k := range keys {
 		if val, ok := m[k]; ok {
@@ -1105,7 +1025,6 @@ func getStringFieldDefault(m map[string]interface{}, defaultVal string, keys ...
 	return defaultVal
 }
 
-// firstNonNil は最初の非 nil 値を返す。
 func firstNonNil(vals ...interface{}) interface{} {
 	for _, v := range vals {
 		if v != nil {
@@ -1115,7 +1034,6 @@ func firstNonNil(vals ...interface{}) interface{} {
 	return nil
 }
 
-// pcsFindRepoRoot は cwd から .git を探してリポジトリルートを返す。
 func pcsFindRepoRoot() string {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -1135,7 +1053,6 @@ func pcsFindRepoRoot() string {
 	return cwd
 }
 
-// pcsReadJSONFile は JSON ファイルを読み込む（失敗時は nil を返す）。
 func pcsReadJSONFile(path string) interface{} {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -1148,7 +1065,6 @@ func pcsReadJSONFile(path string) interface{} {
 	return v
 }
 
-// pcsWriteJSONFile は v を JSON ファイルとして書き出す（perm 0600）。
 func pcsWriteJSONFile(path string, v interface{}) error {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
@@ -1157,7 +1073,6 @@ func pcsWriteJSONFile(path string, v interface{}) error {
 	return os.WriteFile(path, data, 0600)
 }
 
-// writePreCompactJSON は PreCompact 用 JSON を w に書き出す。
 func writePreCompactJSON(w io.Writer, resp preCompactResponse) error {
 	data, err := json.Marshal(resp)
 	if err != nil {
@@ -1167,7 +1082,6 @@ func writePreCompactJSON(w io.Writer, resp preCompactResponse) error {
 	return err
 }
 
-// isPreCompactSymlink はパスがシンボリックリンクかどうかを返す。
 func isPreCompactSymlink(path string) bool {
 	info, err := os.Lstat(path)
 	if err != nil {

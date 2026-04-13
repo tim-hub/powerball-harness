@@ -8,25 +8,25 @@ import (
 	"strings"
 )
 
-// CommitCleanupHandler は PostToolUse フックハンドラ（git commit 後のクリーンアップ）。
-// git commit コマンドが成功した後に、レビュー承認状態ファイルを削除する。
+// CommitCleanupHandler is a PostToolUse hook handler (cleanup after git commit).
+// Deletes the review approval state file after a successful git commit command.
 //
-// shell 版: scripts/posttooluse-commit-cleanup.sh
+// shell version: scripts/posttooluse-commit-cleanup.sh
 type CommitCleanupHandler struct {
-	// ProjectRoot はプロジェクトルートのパス。空の場合は cwd を使用する。
+	// ProjectRoot is the path to the project root. Uses cwd if empty.
 	ProjectRoot string
 }
 
-// commitCleanupInput は PostToolUse フックの stdin JSON。
+// commitCleanupInput is the stdin JSON for the PostToolUse hook.
 type commitCleanupInput struct {
 	ToolName   string                 `json:"tool_name,omitempty"`
 	ToolInput  map[string]interface{} `json:"tool_input,omitempty"`
 	ToolResult interface{}            `json:"tool_result,omitempty"`
 }
 
-// Handle は stdin から PostToolUse ペイロードを読み取り、
-// git commit コマンドが成功していた場合にレビュー承認状態ファイルを削除する。
-// このハンドラは標準出力にはログメッセージのみ書き出す（JSON 不要）。
+// Handle reads the PostToolUse payload from stdin and deletes the review
+// approval state file if a git commit command succeeded.
+// This handler writes only log messages to stdout (no JSON needed).
 func (h *CommitCleanupHandler) Handle(r io.Reader, w io.Writer) error {
 	data, _ := io.ReadAll(r)
 
@@ -39,12 +39,12 @@ func (h *CommitCleanupHandler) Handle(r io.Reader, w io.Writer) error {
 		return nil
 	}
 
-	// Bash ツール以外はスキップ
+	// skip tools other than Bash
 	if inp.ToolName != "Bash" {
 		return nil
 	}
 
-	// コマンドを取得
+	// get the command
 	command := ""
 	if v, ok := inp.ToolInput["command"]; ok {
 		if s, ok := v.(string); ok {
@@ -55,12 +55,12 @@ func (h *CommitCleanupHandler) Handle(r io.Reader, w io.Writer) error {
 		return nil
 	}
 
-	// git commit コマンドかどうかを確認（大文字小文字を区別しない）
+	// check whether this is a git commit command (case-insensitive)
 	if !isGitCommitCommand(command) {
 		return nil
 	}
 
-	// ツール結果を文字列に変換
+	// convert tool result to string
 	toolResult := ""
 	switch v := inp.ToolResult.(type) {
 	case string:
@@ -71,12 +71,12 @@ func (h *CommitCleanupHandler) Handle(r io.Reader, w io.Writer) error {
 		}
 	}
 
-	// エラーが含まれている場合はスキップ
+	// skip if the result contains error indicators
 	if containsErrorIndicator(toolResult) {
 		return nil
 	}
 
-	// レビュー承認状態ファイルを削除
+	// delete the review approval state files
 	projectRoot := h.ProjectRoot
 	if projectRoot == "" {
 		projectRoot, _ = os.Getwd()
@@ -92,17 +92,17 @@ func (h *CommitCleanupHandler) Handle(r io.Reader, w io.Writer) error {
 		_ = os.Remove(reviewStateFile)
 		_ = os.Remove(reviewResultFile)
 
-		_, _ = fmt.Fprintf(w, "[Commit Guard] レビュー承認状態をクリアしました。次回のコミット前に再度独立レビューを実行してください。\n")
+		_, _ = fmt.Fprintf(w, "[Commit Guard] Cleared review approval state. Please run an independent review again before your next commit.\n")
 	}
 
 	return nil
 }
 
-// isGitCommitCommand は command 文字列に git commit が含まれているかを判定する。
-// bash の grep -Eiq と同等: '(^|[[:space:]])git[[:space:]]+commit([[:space:]]|$)'
+// isGitCommitCommand returns true if the command string contains a git commit invocation.
+// Equivalent to bash grep -Eiq: '(^|[[:space:]])git[[:space:]]+commit([[:space:]]|$)'
 func isGitCommitCommand(command string) bool {
 	lower := strings.ToLower(command)
-	// "git commit" のパターンを順次探索
+	// sequentially search for the "git commit" pattern
 	searchFrom := 0
 	for searchFrom < len(lower) {
 		idx := strings.Index(lower[searchFrom:], "git")
@@ -111,20 +111,20 @@ func isGitCommitCommand(command string) bool {
 		}
 		absIdx := searchFrom + idx
 
-		// "git" の前が行頭またはスペース
+		// "git" must be preceded by start-of-string or whitespace
 		if absIdx > 0 && !isWordBoundaryBefore(lower[absIdx-1]) {
 			searchFrom = absIdx + 1
 			continue
 		}
 
-		// "git" の後にスペースがある
+		// "git" must be followed by whitespace
 		afterGit := absIdx + 3
 		if afterGit >= len(lower) || !isWordBoundaryBefore(lower[afterGit]) {
 			searchFrom = absIdx + 1
 			continue
 		}
 
-		// スペースをスキップして "commit" を探す
+		// skip whitespace and look for "commit"
 		i := afterGit
 		for i < len(lower) && isWordBoundaryBefore(lower[i]) {
 			i++
@@ -140,12 +140,12 @@ func isGitCommitCommand(command string) bool {
 	return false
 }
 
-// isWordBoundaryBefore は c がスペース（単語境界）かどうかを返す。
+// isWordBoundaryBefore returns true if c is a whitespace character (word boundary).
 func isWordBoundaryBefore(c byte) bool {
 	return c == ' ' || c == '\t' || c == '\n' || c == '\r'
 }
 
-// containsErrorIndicator はツール結果にエラーの兆候が含まれているかを判定する。
+// containsErrorIndicator returns true if the tool result contains error indicators.
 func containsErrorIndicator(result string) bool {
 	lower := strings.ToLower(result)
 	for _, indicator := range []string{"error", "fatal", "failed", "nothing to commit"} {

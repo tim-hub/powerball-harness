@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-// assertTeammateIdleApprove は approve レスポンスを検証するヘルパー。
 func assertTeammateIdleApprove(t *testing.T, output, wantReason string) {
 	t.Helper()
 	output = strings.TrimSpace(output)
@@ -29,7 +28,6 @@ func assertTeammateIdleApprove(t *testing.T, output, wantReason string) {
 	}
 }
 
-// assertTeammateIdleStop は停止レスポンスを検証するヘルパー。
 func assertTeammateIdleStop(t *testing.T, output, wantStopReason string) {
 	t.Helper()
 	output = strings.TrimSpace(output)
@@ -88,7 +86,6 @@ func TestHandleTeammateIdle_WritesTimeline(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// タイムラインファイルが作成されているか確認
 	timelineFile := filepath.Join(dir, ".claude", "state", "breezing-timeline.jsonl")
 	data, err := os.ReadFile(timelineFile)
 	if err != nil {
@@ -134,7 +131,6 @@ func TestHandleTeammateIdle_StopWithStopReason(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("PROJECT_ROOT", dir)
 
-	// stop_reason フィールド（別名）
 	payload := `{"teammate_name":"worker-1","stop_reason":"error occurred"}`
 	var out bytes.Buffer
 	if err := HandleTeammateIdle(strings.NewReader(payload), &out); err != nil {
@@ -147,7 +143,6 @@ func TestHandleTeammateIdle_DedupSkip(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("PROJECT_ROOT", dir)
 
-	// 最初の呼び出し
 	payload := `{"teammate_name":"worker-1","team_name":"team-a","agent_id":"agent-1"}`
 	var out1 bytes.Buffer
 	if err := HandleTeammateIdle(strings.NewReader(payload), &out1); err != nil {
@@ -155,7 +150,6 @@ func TestHandleTeammateIdle_DedupSkip(t *testing.T) {
 	}
 	assertTeammateIdleApprove(t, out1.String(), "TeammateIdle tracked")
 
-	// 2回目の呼び出し（5秒以内）→ dedup でスキップ
 	var out2 bytes.Buffer
 	if err := HandleTeammateIdle(strings.NewReader(payload), &out2); err != nil {
 		t.Fatalf("second call: unexpected error: %v", err)
@@ -167,7 +161,6 @@ func TestHandleTeammateIdle_DedupAfterWindow(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("PROJECT_ROOT", dir)
 
-	// 古いタイムラインエントリを手動で書き込む（6秒前）
 	stateDir := filepath.Join(dir, ".claude", "state")
 	_ = os.MkdirAll(stateDir, 0o755)
 	timelineFile := filepath.Join(stateDir, "breezing-timeline.jsonl")
@@ -182,7 +175,6 @@ func TestHandleTeammateIdle_DedupAfterWindow(t *testing.T) {
 	entryData, _ := json.Marshal(oldEntry)
 	_ = os.WriteFile(timelineFile, append(entryData, '\n'), 0o644)
 
-	// 同じ teammate で呼び出し → 5秒以上経過しているのでスキップしない
 	payload := `{"teammate_name":"worker-old","team_name":"team-a","agent_id":"agent-old"}`
 	var out bytes.Buffer
 	if err := HandleTeammateIdle(strings.NewReader(payload), &out); err != nil {
@@ -195,7 +187,6 @@ func TestHandleTeammateIdle_AgentNameFallback(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("PROJECT_ROOT", dir)
 
-	// agent_name フィールド（teammate_name の代替）
 	payload := `{"agent_name":"reviewer-1","team_name":"team-b"}`
 	var out bytes.Buffer
 	if err := HandleTeammateIdle(strings.NewReader(payload), &out); err != nil {
@@ -214,7 +205,6 @@ func TestRotateJSONL_BelowThreshold(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.jsonl")
 
-	// 10行のファイル
 	var lines []string
 	for i := 0; i < 10; i++ {
 		lines = append(lines, `{"n":`+string(rune('0'+i))+`}`)
@@ -235,7 +225,6 @@ func TestRotateJSONL_AboveThreshold(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.jsonl")
 
-	// 600行のファイルを作成
 	var lines []string
 	for i := 0; i < 600; i++ {
 		lines = append(lines, `{"n":`+string([]byte{byte('a' + i%26)})+`}`)
@@ -264,7 +253,6 @@ func TestCheckTeammateIdleDedup_RecentEntry(t *testing.T) {
 	dir := t.TempDir()
 	timelineFile := filepath.Join(dir, "timeline.jsonl")
 
-	// 直近のエントリを書き込む
 	entry := teammateIdleLogEntry{
 		Event:     "teammate_idle",
 		Teammate:  "worker-1",
@@ -283,7 +271,6 @@ func TestCheckTeammateIdleDedup_OldEntry(t *testing.T) {
 	dir := t.TempDir()
 	timelineFile := filepath.Join(dir, "timeline.jsonl")
 
-	// 古いエントリ（10秒前）を書き込む
 	entry := teammateIdleLogEntry{
 		Event:     "teammate_idle",
 		Teammate:  "worker-1",

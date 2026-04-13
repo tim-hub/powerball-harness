@@ -31,7 +31,6 @@ func TestHandleInstructionsLoaded_EmptyInput(t *testing.T) {
 func TestHandleInstructionsLoaded_TracksEvent(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	// hooks.json を用意
 	hooksDir := filepath.Join(tmpDir, "hooks")
 	if mkdirErr := os.MkdirAll(hooksDir, 0o755); mkdirErr != nil {
 		t.Fatal(mkdirErr)
@@ -70,7 +69,6 @@ func TestHandleInstructionsLoaded_TracksEvent(t *testing.T) {
 		t.Errorf("expected 'InstructionsLoaded tracked', got %q", result.Reason)
 	}
 
-	// session-events.jsonl ではなく instructions-loaded.jsonl に記録されること
 	logFile := filepath.Join(tmpDir, ".claude", "state", "instructions-loaded.jsonl")
 	data, readErr := os.ReadFile(logFile)
 	if readErr != nil {
@@ -101,7 +99,6 @@ func TestHandleInstructionsLoaded_TracksEvent(t *testing.T) {
 
 func TestHandleInstructionsLoaded_HooksNotFound(t *testing.T) {
 	tmpDir := t.TempDir()
-	// hooks.json を作成しない
 
 	input := map[string]string{
 		"session_id": "sess-002",
@@ -130,7 +127,6 @@ func TestHandleInstructionsLoaded_HooksNotFound(t *testing.T) {
 func TestHandleInstructionsLoaded_HooksInPluginDir(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	// .claude-plugin/hooks.json を用意（alternative パス）
 	pluginDir := filepath.Join(tmpDir, ".claude-plugin")
 	if mkdirErr := os.MkdirAll(pluginDir, 0o755); mkdirErr != nil {
 		t.Fatal(mkdirErr)
@@ -160,7 +156,6 @@ func TestHandleInstructionsLoaded_HooksInPluginDir(t *testing.T) {
 	if jsonErr := json.Unmarshal(out.Bytes(), &result); jsonErr != nil {
 		t.Fatalf("invalid JSON output: %v", jsonErr)
 	}
-	// .claude-plugin/hooks.json が見つかれば tracked を返すこと
 	if result.Reason != "InstructionsLoaded tracked" {
 		t.Errorf("expected 'InstructionsLoaded tracked', got %q", result.Reason)
 	}
@@ -169,7 +164,6 @@ func TestHandleInstructionsLoaded_HooksInPluginDir(t *testing.T) {
 func TestHandleInstructionsLoaded_EventNameFallback(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	// hooks.json を用意
 	hooksDir := filepath.Join(tmpDir, "hooks")
 	if mkdirErr := os.MkdirAll(hooksDir, 0o755); mkdirErr != nil {
 		t.Fatal(mkdirErr)
@@ -182,7 +176,6 @@ func TestHandleInstructionsLoaded_EventNameFallback(t *testing.T) {
 		t.Fatal(writeErr)
 	}
 
-	// hook_event_name の代わりに event_name を使う
 	input := map[string]string{
 		"session_id": "sess-004",
 		"cwd":        tmpDir,
@@ -204,7 +197,6 @@ func TestHandleInstructionsLoaded_EventNameFallback(t *testing.T) {
 		t.Errorf("expected decision=approve, got %q", result.Decision)
 	}
 
-	// JSONL のイベント名がフォールバックで取得されていること
 	logFile := filepath.Join(tmpDir, ".claude", "state", "instructions-loaded.jsonl")
 	data, readErr := os.ReadFile(logFile)
 	if readErr != nil {
@@ -234,7 +226,6 @@ func TestHandleInstructionsLoaded_MultipleEvents(t *testing.T) {
 		t.Fatal(writeErr)
 	}
 
-	// 複数回呼び出すと JSONL に複数行追記されること
 	for i := 0; i < 3; i++ {
 		input := map[string]string{
 			"session_id":      "sess-005",

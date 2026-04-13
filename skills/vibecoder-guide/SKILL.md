@@ -1,135 +1,133 @@
 ---
 name: vibecoder-guide
-description: "VibeCoder（非技術ユーザー）を自然言語開発でガイド。Use when user asks what to do next, how to use the system, needs help, or is stuck. Do NOT load for: technical-user work, direct implementation requests, or reviews."
-description-en: "Guides VibeCoder (non-technical users) through natural language development. Use when user asks what to do next, how to use the system, needs help, or is stuck. Do NOT load for: technical-user work, direct implementation requests, or reviews."
-description-ja: "VibeCoder（非技術ユーザー）を自然言語開発でガイド。Use when user asks what to do next, how to use the system, needs help, or is stuck. Do NOT load for: technical-user work, direct implementation requests, or reviews."
+description: "Use this skill when the user appears non-technical, asks 'what should I do next?', 'how does this work?', seems confused about the development process, or needs step-by-step guidance in plain language. Do NOT load for: experienced developers making direct implementation requests, code reviews, or technical debugging. Guides non-technical users (VibeCoders) through natural language development — explains what to do next, how the system works, and how to express requirements."
 allowed-tools: ["Read"]
 user-invocable: false
 ---
 
 # VibeCoder Guide Skill
 
-VibeCoder（非技術者）が自然言語だけで開発を進められるようガイドするスキル。
-「どうすればいい？」「次は何？」などの質問に自動で応答します。
+A skill that guides VibeCoders (non-technical users) through development using only natural language.
+Automatically responds to questions like "What should I do?" or "What's next?"
 
 ---
 
-## トリガーフレーズ
+## Trigger Phrases
 
-このスキルは以下のフレーズで自動起動します：
+This skill is automatically triggered by the following phrases:
 
-- 「どうすればいい？」「どうしたらいい？」
-- 「次は何をすればいい？」「次は？」
-- 「何ができる？」「何をすればいい？」
-- 「困った」「わからない」「助けて」
-- 「使い方を教えて」
+- "What should I do?", "What can I do?"
+- "What should I do next?", "What's next?"
+- "What's possible?", "What should I work on?"
+- "I'm stuck", "I don't understand", "Help"
+- "Show me how to use this"
 - "what should I do?", "what's next?", "help"
 
 ---
 
-## 概要
+## Overview
 
-VibeCoder は技術的なコマンドやワークフローを知らなくても、
-自然な日本語で質問するだけで次のアクションが分かります。
+VibeCoders can find out their next action just by asking in plain language,
+without needing to know technical commands or workflows.
 
 ---
 
-## 応答パターン
+## Response Patterns
 
-### パターン1: プロジェクトがない場合
+### Pattern 1: No Project Exists
 
-> 🎯 **まずはプロジェクトを始めましょう！**
+> 🎯 **Let's start a project first!**
 >
-> **言い方の例：**
-> - 「ブログを作りたい」
-> - 「タスク管理アプリを作りたい」
-> - 「ポートフォリオサイトを作りたい」
+> **Example phrases:**
+> - "I want to build a blog"
+> - "I want to create a task management app"
+> - "I want to make a portfolio site"
 >
-> ざっくりで大丈夫です。やりたいことを教えてください。
+> A rough idea is fine. Just tell me what you want to do.
 
-### パターン2: Plans.md があるが進行中タスクがない
+### Pattern 2: Plans.md Exists but No In-Progress Tasks
 
-> 📋 **計画があります。作業を始めましょう！**
+> 📋 **There's a plan. Let's start working!**
 >
-> **現在の計画:**
-> - フェーズ1: 基盤構築
-> - フェーズ2: コア機能
+> **Current plan:**
+> - Phase 1: Foundation setup
+> - Phase 2: Core features
 > - ...
 >
-> **言い方の例：**
-> - 「フェーズ1を始めて」
-> - 「最初のタスクをやって」
-> - 「全部やって」
+> **Example phrases:**
+> - "Start phase 1"
+> - "Do the first task"
+> - "Do everything"
 
-### パターン3: タスク進行中
+### Pattern 3: Task In Progress
 
-> 🔧 **作業中です**
+> 🔧 **Work in progress**
 >
-> **現在のタスク:** {{タスク名}}
-> **進捗:** {{完了数}}/{{全体数}}
+> **Current task:** {{task name}}
+> **Progress:** {{completed}}/{{total}}
 >
-> **言い方の例：**
-> - 「続けて」
-> - 「次のタスク」
-> - 「今どこまで進んだ？」
+> **Example phrases:**
+> - "Continue"
+> - "Next task"
+> - "How far along are we?"
 
-### パターン4: フェーズ完了後
+### Pattern 4: After Phase Completion
 
-> ✅ **フェーズが完了しました！**
+> ✅ **Phase complete!**
 >
-> **次にできること：**
-> - 「動作確認して」→ 開発サーバーを起動
-> - 「レビューして」→ コード品質チェック
-> - 「次のフェーズへ」→ 次の作業を開始
-> - 「コミットして」→ 変更を保存
+> **What you can do next:**
+> - "Check it works" -> Start the dev server
+> - "Review it" -> Code quality check
+> - "Next phase" -> Start the next phase of work
+> - "Commit it" -> Save the changes
 
-### パターン5: エラー発生時
+### Pattern 5: When an Error Occurs
 
-> ⚠️ **問題が発生しました**
+> ⚠️ **A problem occurred**
 >
-> **状況:** {{エラーの要約}}
+> **Situation:** {{error summary}}
 >
-> **言い方の例：**
-> - 「直して」→ 自動修正を試行
-> - 「説明して」→ 問題の詳細を説明
-> - 「スキップして」→ 次のタスクへ
+> **Example phrases:**
+> - "Fix it" -> Attempt auto-fix
+> - "Explain it" -> Explain the problem in detail
+> - "Skip it" -> Move to the next task
 
 ---
 
-## よく使うフレーズ対応表
+## Common Phrase Reference Table
 
-| やりたいこと | 言い方 |
-|-------------|--------|
-| プロジェクト開始 | 「〇〇を作りたい」 |
-| 計画を見たい | 「計画を見せて」「今の状況は？」 |
-| 作業を開始 | 「始めて」「作って」「フェーズ1をやって」 |
-| 続きをやる | 「続けて」「次」 |
-| 動作確認 | 「動かして」「見せて」 |
-| コード確認 | 「レビューして」「チェックして」 |
-| 保存する | 「コミットして」「保存して」 |
-| 困った時 | 「どうすればいい？」「助けて」 |
-| 全部任せる | 「全部やって」「おまかせ」 |
-
----
-
-## コンテキスト判定
-
-このスキルは以下を確認して適切な応答を選択：
-
-1. **AGENTS.md の存在** → プロジェクトが初期化済みか
-2. **Plans.md の内容** → 計画があるか、進捗状況
-3. **現在のタスク状態** → `cc:WIP` マーカーの有無
-4. **直近のエラー** → 問題が発生しているか
+| What You Want to Do | How to Say It |
+|--------------------|---------------|
+| Start a project | "I want to build XX" |
+| View the plan | "Show me the plan", "What's the status?" |
+| Start working | "Start", "Build it", "Do phase 1" |
+| Continue | "Continue", "Next" |
+| Test it | "Run it", "Show me" |
+| Review code | "Review it", "Check it" |
+| Save | "Commit it", "Save it" |
+| When stuck | "What should I do?", "Help" |
+| Leave it all to you | "Do everything", "You handle it" |
 
 ---
 
-## 実装ノート
+## Context Determination
 
-このスキルが起動したら：
+This skill checks the following to select the appropriate response:
 
-1. 現在の状態を分析
-2. 適切なパターンを選択
-3. 具体的な「言い方の例」を提示
-4. ユーザーの次のアクションを待つ
+1. **Existence of AGENTS.md** -> Whether the project has been initialized
+2. **Contents of Plans.md** -> Whether a plan exists, progress status
+3. **Current task state** -> Presence of `cc:WIP` marker
+4. **Recent errors** -> Whether a problem has occurred
 
-**重要**: 技術用語を避け、平易な日本語で説明する
+---
+
+## Implementation Notes
+
+When this skill is triggered:
+
+1. Analyze the current state
+2. Select the appropriate pattern
+3. Present specific "example phrases"
+4. Wait for the user's next action
+
+**Important**: Avoid technical jargon and explain in plain, simple language

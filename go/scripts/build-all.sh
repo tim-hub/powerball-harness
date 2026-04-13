@@ -1,14 +1,8 @@
 #!/bin/bash
-# build-all.sh — darwin-arm64, darwin-amd64, linux-amd64 の 3 プラットフォーム向けクロスコンパイル
 #
-# 使い方:
 #   cd go && bash scripts/build-all.sh
 #
-# 前提:
-#   - Go 1.21 以上がインストール済み
-#   - modernc.org/sqlite (pure Go) を使用しているため CGO は不要
 #
-# 出力先: ../bin/harness-{GOOS}-{GOARCH}
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

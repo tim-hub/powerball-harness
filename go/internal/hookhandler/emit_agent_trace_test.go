@@ -27,7 +27,6 @@ func TestEmitAgentTrace_NoSupportedTool(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// トレースファイルが作成されないことを確認
 	tracePath := filepath.Join(dir, "state", "agent-trace.jsonl")
 	if _, err := os.Stat(tracePath); err == nil {
 		t.Error("trace file should not be created for unsupported tools")
@@ -62,7 +61,6 @@ func TestEmitAgentTrace_EditTool(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// トレースファイルを確認
 	tracePath := filepath.Join(stateDir, "agent-trace.jsonl")
 	data, err := os.ReadFile(tracePath)
 	if err != nil {
@@ -133,14 +131,9 @@ func TestEmitAgentTrace_WriteTool_CreateAction(t *testing.T) {
 	}
 }
 
-// TestEmitAgentTrace_WriteTool_AlwaysCreate は Write ツールが既存ファイルに対しても
-// action=create を返すことを確認する。
-// PostToolUse 時点ではファイルが既に書き込まれているため os.Stat では新規/既存を
-// 区別できない。tool_name ベースで判定するため Write は常に "create" とする。
 func TestEmitAgentTrace_WriteTool_AlwaysCreate(t *testing.T) {
 	dir := t.TempDir()
 
-	// 既存ファイルを事前に作成
 	existingFile := filepath.Join(dir, "existing.go")
 	if err := os.WriteFile(existingFile, []byte("package main\n"), 0600); err != nil {
 		t.Fatal(err)
@@ -178,7 +171,6 @@ func TestEmitAgentTrace_WriteTool_AlwaysCreate(t *testing.T) {
 	if len(rec.Files) == 0 {
 		t.Fatal("expected file entries")
 	}
-	// Write は tool_name ベース判定のため既存ファイルでも "create"
 	if rec.Files[0].Action != "create" {
 		t.Errorf("expected action=create for Write tool (even existing file), got: %s", rec.Files[0].Action)
 	}
@@ -247,7 +239,6 @@ func TestEmitAgentTrace_Rotation(t *testing.T) {
 
 	tracePath := filepath.Join(stateDir, "agent-trace.jsonl")
 
-	// 小さいサイズのファイルを作成して回転閾値を設定
 	smallContent := strings.Repeat(`{"test":"line"}`, 100) + "\n"
 	if err := os.WriteFile(tracePath, []byte(smallContent), 0600); err != nil {
 		t.Fatal(err)
@@ -256,18 +247,16 @@ func TestEmitAgentTrace_Rotation(t *testing.T) {
 	e := &EmitAgentTrace{
 		RepoRoot:    dir,
 		StateDir:    stateDir,
-		MaxFileSize: 10, // 10バイトで回転させる
+		MaxFileSize: 10,
 		Now:         func() string { return "2026-01-01T00:00:00Z" },
 	}
 
 	e.rotateIfNeeded(tracePath)
 
-	// ローテーションされたファイルが存在することを確認
 	rotatedPath := tracePath + ".1"
 	if _, err := os.Stat(rotatedPath); err != nil {
 		t.Errorf("expected rotated file at %s, err: %v", rotatedPath, err)
 	}
-	// 元ファイルが消えていることを確認
 	if _, err := os.Stat(tracePath); err == nil {
 		t.Error("original trace file should be removed after rotation")
 	}
@@ -280,7 +269,6 @@ func TestEmitAgentTrace_SecuritySymlinkCheck(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// tracePath をシンボリックリンクにする
 	target := filepath.Join(dir, "evil.jsonl")
 	if err := os.WriteFile(target, []byte(""), 0600); err != nil {
 		t.Fatal(err)
@@ -300,12 +288,10 @@ func TestEmitAgentTrace_SecuritySymlinkCheck(t *testing.T) {
 		StateDir: stateDir,
 	}
 
-	// エラーが発生せずに symlink を回避することを確認
 	if err := e.Handle(strings.NewReader(""), nil); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// シンボリックリンクターゲットが書き換えられていないことを確認
 	content, _ := os.ReadFile(target)
 	if len(content) > 0 {
 		t.Error("symlink target should not have been written to")
@@ -340,10 +326,8 @@ func TestEmitAgentTrace_OtelExport(t *testing.T) {
 
 	e.emitOtelSpan(server.URL, rec)
 
-	// 非同期なので少し待つ
 	time.Sleep(100 * time.Millisecond)
 
-	// サーバーが受信したことを確認
 	if len(received) == 0 {
 		t.Skip("OTel server did not receive request (possibly race condition)")
 	}
@@ -384,7 +368,6 @@ func TestEmitAgentTrace_NormalizeAgentRole(t *testing.T) {
 func TestEmitAgentTrace_PathWithinRepo(t *testing.T) {
 	dir := t.TempDir()
 
-	// 存在するファイルを作成して absolute path でテスト
 	existingFile := filepath.Join(dir, "src", "main.go")
 	if err := os.MkdirAll(filepath.Dir(existingFile), 0700); err != nil {
 		t.Fatal(err)
@@ -423,13 +406,9 @@ func TestEmitAgentTrace_PathWithinRepo(t *testing.T) {
 	}
 }
 
-// TestEmitAgentTrace_OtelParallel は OTel POST が goroutine で並列実行され、
-// Handle() がブロックせずに返ることを確認する。
-// mock HTTP server を使い、リクエストが確実に届くことも検証する。
 func TestEmitAgentTrace_OtelParallel(t *testing.T) {
 	requestReceived := make(chan struct{}, 1)
 
-	// mock HTTP server: リクエストを受け取ったらチャネルに通知
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		select {
@@ -465,22 +444,17 @@ func TestEmitAgentTrace_OtelParallel(t *testing.T) {
 	}
 	elapsed := time.Since(start)
 
-	// Handle() が返った時点で wg.Wait() により POST は完了しているはず
 	select {
 	case <-requestReceived:
-		// 正常: OTel サーバーがリクエストを受信した
 	case <-time.After(3 * time.Second):
 		t.Error("OTel server did not receive request within timeout")
 	}
 
-	// goroutine + wg.Wait() によりブロッキングは最小限
-	// （HTTP タイムアウト 5s 以内で完了するはず）
 	if elapsed > 10*time.Second {
 		t.Errorf("Handle() took too long: %v (expected < 10s)", elapsed)
 	}
 }
 
-// TestEmitAgentTrace_ChmodExistingFile は既存ファイルのパーミッションが 0600 に修正されることを確認する。
 func TestEmitAgentTrace_ChmodExistingFile(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, "state")
@@ -488,7 +462,6 @@ func TestEmitAgentTrace_ChmodExistingFile(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// 既存の agent-trace.jsonl を 0644 で作成（0600 に修正される必要がある）
 	tracePath := filepath.Join(stateDir, "agent-trace.jsonl")
 	if err := os.WriteFile(tracePath, []byte(""), 0644); err != nil {
 		t.Fatal(err)
@@ -513,13 +486,11 @@ func TestEmitAgentTrace_ChmodExistingFile(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// ファイルのパーミッションが 0600 になっていることを確認
 	info, err := os.Stat(tracePath)
 	if err != nil {
 		t.Fatalf("trace file not found: %v", err)
 	}
 
-	// ファイルのモードから permission bits のみ取得
 	perm := info.Mode().Perm()
 	if perm != 0600 {
 		t.Errorf("expected file permission 0600, got %04o", perm)
@@ -544,7 +515,6 @@ func TestEmitAgentTrace_MultipleAppends(t *testing.T) {
 		StateDir: stateDir,
 	}
 
-	// 複数回呼び出し
 	for i := 0; i < 3; i++ {
 		if err := e.Handle(strings.NewReader(""), nil); err != nil {
 			t.Fatalf("iteration %d: unexpected error: %v", i, err)
@@ -557,7 +527,6 @@ func TestEmitAgentTrace_MultipleAppends(t *testing.T) {
 		t.Fatalf("trace file not found: %v", err)
 	}
 
-	// 3行あることを確認
 	scanner := bufio.NewScanner(strings.NewReader(string(data)))
 	lineCount := 0
 	for scanner.Scan() {
@@ -570,8 +539,6 @@ func TestEmitAgentTrace_MultipleAppends(t *testing.T) {
 	}
 }
 
-// TestEmitAgentTrace_MultiEditTool_ModifyAction は MultiEdit ツールが
-// action=modify を返すことを確認する。
 func TestEmitAgentTrace_MultiEditTool_ModifyAction(t *testing.T) {
 	dir := t.TempDir()
 

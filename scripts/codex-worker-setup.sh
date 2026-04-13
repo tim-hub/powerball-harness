@@ -1,34 +1,34 @@
 #!/usr/bin/env bash
 #
 # codex-worker-setup.sh
-# Codex Worker 機能のセットアップスクリプト
+# Setup script for Codex Worker functionality
 #
 # Usage: ./scripts/codex-worker-setup.sh [--check-only]
 #
 # Options:
-#   --check-only  インストール状態の確認のみ（変更なし）
+#   --check-only  Check installation status only (no changes)
 #
 
 set -euo pipefail
 
-# 色定義
+# Color definitions
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# 最小バージョン要件
+# Minimum version requirements
 MIN_CODEX_VERSION="0.107.0"
 MIN_GIT_VERSION="2.5.0"
 
-# グローバル変数
+# Global variables
 CHECK_ONLY=false
 ERRORS=()
 WARNINGS=()
 CODEX_CLI_OK=false
 CODEX_EXEC_OK=false
 
-# ヘルパー関数
+# Helper functions
 log_info() {
     echo -e "${GREEN}[INFO]${NC} $1"
 }
@@ -43,16 +43,16 @@ log_error() {
     ERRORS+=("$1")
 }
 
-# バージョン比較（semver）
+# Version comparison (semver)
 version_gte() {
     local v1="$1"
     local v2="$2"
 
-    # バージョン文字列を数値配列に変換
+    # Convert version strings to numeric arrays
     IFS='.' read -ra V1 <<< "$v1"
     IFS='.' read -ra V2 <<< "$v2"
 
-    # 各セグメントを比較
+    # Compare each segment
     for i in 0 1 2; do
         local n1="${V1[$i]:-0}"
         local n2="${V2[$i]:-0}"
@@ -67,13 +67,13 @@ version_gte() {
     return 0
 }
 
-# Codex CLI 確認
+# Verify Codex CLI
 check_codex_cli() {
-    log_info "Codex CLI を確認中..."
+    log_info "Checking Codex CLI..."
 
     if ! command -v codex &> /dev/null; then
-        log_error "Codex CLI が見つかりません"
-        log_info "インストール方法: npm install -g @openai/codex"
+        log_error "Codex CLI not found"
+        log_info "Install: npm install -g @openai/codex"
         return 1
     fi
 
@@ -85,35 +85,35 @@ check_codex_cli() {
         CODEX_CLI_OK=true
         return 0
     else
-        log_error "Codex CLI v$version は古いです (>= $MIN_CODEX_VERSION 必須)"
+        log_error "Codex CLI v$version is too old (requires >= $MIN_CODEX_VERSION)"
         return 1
     fi
 }
 
-# Codex 認証確認
+# Codex authentication check
 check_codex_auth() {
-    log_info "Codex 認証を確認中..."
+    log_info "Checking Codex authentication..."
 
     if [[ "$CODEX_CLI_OK" != true ]]; then
-        log_warn "Codex CLI が未インストールまたはバージョン不足のためスキップ"
+        log_warn "Skipping: Codex CLI not installed or version too old"
         return 1
     fi
 
     if codex login status &> /dev/null; then
-        log_info "Codex 認証: OK"
+        log_info "Codex authentication: OK"
         return 0
     else
-        log_warn "Codex 未認証: 'codex login' を実行してください"
+        log_warn "Codex not authenticated: run 'codex login'"
         return 1
     fi
 }
 
-# Git バージョン確認（worktree サポート）
+# Verify Git version (worktree support)
 check_git_version() {
-    log_info "Git バージョンを確認中..."
+    log_info "Checking Git version..."
 
     if ! command -v git &> /dev/null; then
-        log_error "Git が見つかりません"
+        log_error "Git not found"
         return 1
     fi
 
@@ -121,20 +121,20 @@ check_git_version() {
     version=$(git --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "0.0.0")
 
     if version_gte "$version" "$MIN_GIT_VERSION"; then
-        log_info "Git v$version (>= $MIN_GIT_VERSION, worktree サポート)"
+        log_info "Git v$version (>= $MIN_GIT_VERSION, worktree support)"
         return 0
     else
-        log_error "Git v$version は古いです (>= $MIN_GIT_VERSION 必須、worktree サポート)"
+        log_error "Git v$version is too old (requires >= $MIN_GIT_VERSION, worktree support)"
         return 1
     fi
 }
 
-# Codex CLI 実行確認（CLI-only）
+# Verify Codex CLI execution (CLI-only)
 check_codex_exec() {
-    log_info "Codex CLI 実行を確認中..."
+    log_info "Checking Codex CLI execution..."
 
     if [[ "$CODEX_CLI_OK" != true ]]; then
-        log_warn "Codex CLI が未インストールまたはバージョン不足のためスキップ"
+        log_warn "Skipping: Codex CLI not installed or version too old"
         return 1
     fi
 
@@ -146,52 +146,52 @@ check_codex_exec() {
     fi
 
     if [[ -z "$timeout_cmd" ]]; then
-        log_warn "timeout/gtimeout が見つかりません（Codex CLI 実行確認をスキップ）"
+        log_warn "timeout/gtimeout not found (skipping Codex CLI execution check)"
         return 1
     fi
 
     if "$timeout_cmd" 15 codex exec "echo test" >/dev/null 2>&1; then
-        log_info "Codex CLI 実行: OK"
+        log_info "Codex CLI execution: OK"
         CODEX_EXEC_OK=true
         return 0
     else
-        log_warn "Codex CLI 実行確認に失敗（認証/接続/タイムアウトを確認）"
+        log_warn "Codex CLI execution check failed (verify authentication/connection/timeout)"
         return 1
     fi
 }
 
-# 設定ファイル生成
+# Generate configuration file
 generate_config() {
     local config_dir=".claude/state"
     local config_file="$config_dir/codex-worker-config.json"
 
-    log_info "設定ファイルを生成中..."
+    log_info "Generating configuration file..."
 
     if [[ "$CHECK_ONLY" == true ]]; then
         if [[ -f "$config_file" ]]; then
-            log_info "設定ファイル: 存在"
+            log_info "Configuration file: exists"
         else
-            log_warn "設定ファイル: 未作成"
+            log_warn "Configuration file: not created"
         fi
         return 0
     fi
 
-    # ディレクトリ作成
+    # Create directory
     mkdir -p "$config_dir"
 
-    # Codex バージョン取得
+    # Get Codex version
     local codex_version="unknown"
     if [[ "$CODEX_CLI_OK" == true ]]; then
         codex_version=$(codex --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "unknown")
     fi
 
-    # Codex 実行状態
+    # Codex execution status
     local codex_exec_ready="false"
     if [[ "$CODEX_EXEC_OK" == true ]]; then
         codex_exec_ready="true"
     fi
 
-    # 設定ファイル生成（キー名は common.sh の get_config と一致させる）
+    # Generate configuration file (key names must match get_config in common.sh)
     cat > "$config_file" << EOF
 {
   "codex_version": "$codex_version",
@@ -213,14 +213,14 @@ generate_config() {
 }
 EOF
 
-    # Security: 本人のみ読み書き可能
+    # Security: owner-only read/write
     chmod 600 "$config_file"
-    log_info "設定ファイル生成完了: $config_file"
+    log_info "Configuration file generated: $config_file"
 }
 
-# メイン処理
+# Main processing
 main() {
-    # 引数解析
+    # Argument parsing
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --check-only)
@@ -235,11 +235,11 @@ main() {
     done
 
     echo "========================================"
-    echo "Codex Worker セットアップ"
+    echo "Codex Worker Setup"
     echo "========================================"
     echo ""
 
-    # 各チェック実行
+    # Run each check
     check_codex_cli || true
     check_codex_auth || true
     check_git_version || true
@@ -248,23 +248,23 @@ main() {
 
     echo ""
     echo "========================================"
-    echo "結果サマリー"
+    echo "Result Summary"
     echo "========================================"
 
     if [[ ${#ERRORS[@]} -eq 0 ]] && [[ ${#WARNINGS[@]} -eq 0 ]]; then
-        echo -e "${GREEN}すべてのチェックに合格しました${NC}"
+        echo -e "${GREEN}All checks passed${NC}"
         exit 0
     fi
 
     if [[ ${#WARNINGS[@]} -gt 0 ]]; then
-        echo -e "${YELLOW}警告 (${#WARNINGS[@]}):${NC}"
+        echo -e "${YELLOW}Warnings (${#WARNINGS[@]}):${NC}"
         for w in "${WARNINGS[@]}"; do
             echo "  - $w"
         done
     fi
 
     if [[ ${#ERRORS[@]} -gt 0 ]]; then
-        echo -e "${RED}エラー (${#ERRORS[@]}):${NC}"
+        echo -e "${RED}Errors (${#ERRORS[@]}):${NC}"
         for e in "${ERRORS[@]}"; do
             echo "  - $e"
         done

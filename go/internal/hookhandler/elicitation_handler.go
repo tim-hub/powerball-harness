@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// elicitationInput は Elicitation フックの stdin JSON ペイロード。
+// elicitationInput is the stdin JSON payload for the Elicitation hook.
 type elicitationInput struct {
 	MCPServerName  string `json:"mcp_server_name"`
 	ServerName     string `json:"server_name"`
@@ -19,7 +19,7 @@ type elicitationInput struct {
 	Message        string `json:"message"`
 }
 
-// elicitationLogEntry は elicitation-events.jsonl に書き込むエントリ。
+// elicitationLogEntry is the entry written to elicitation-events.jsonl.
 type elicitationLogEntry struct {
 	Event           string `json:"event"`
 	MCPServer       string `json:"mcp_server"`
@@ -29,25 +29,25 @@ type elicitationLogEntry struct {
 	Timestamp       string `json:"timestamp"`
 }
 
-// elicitationDecision は Elicitation フックのレスポンス。
+// elicitationDecision is the response for the Elicitation hook.
 type elicitationDecision struct {
 	Decision string `json:"decision"`
 	Reason   string `json:"reason"`
 }
 
-// ElicitationHandler は scripts/hook-handlers/elicitation-handler.sh の Go 移植。
+// ElicitationHandler is the Go port of scripts/hook-handlers/elicitation-handler.sh.
 //
-// Elicitation イベントで MCP elicitation リクエストをログに記録し、
-// Breezing Worker（バックグラウンド、UI なし）の場合は自動スキップ（deny）、
-// 通常セッションはそのまま通過（allow）する。
+// On Elicitation events it logs the MCP elicitation request,
+// automatically skips (deny) for Breezing Workers (background, no UI),
+// and passes through (allow) for normal sessions.
 //
-// ログは .claude/state/elicitation-events.jsonl に記録される。
+// Logs are recorded in .claude/state/elicitation-events.jsonl.
 type ElicitationHandler struct {
-	// ProjectRoot はプロジェクトルートのパス。空の場合は環境変数/CWD から解決。
+	// ProjectRoot is the project root path. Resolved from env vars/CWD when empty.
 	ProjectRoot string
 }
 
-// Handle は Elicitation フックを処理する。
+// Handle processes the Elicitation hook.
 func (h *ElicitationHandler) Handle(in io.Reader, out io.Writer) error {
 	data, err := io.ReadAll(in)
 	if err != nil || len(strings.TrimSpace(string(data))) == 0 {
@@ -65,12 +65,12 @@ func (h *ElicitationHandler) Handle(in io.Reader, out io.Writer) error {
 		})
 	}
 
-	// フィールド正規化（bash 版の // フォールバックと同等）
+	// Normalize fields (equivalent to // fallback in the bash version).
 	mcpServer := firstNonEmpty(input.MCPServerName, input.ServerName, input.Matcher)
 	elicitationID := firstNonEmpty(input.ElicitationID, input.ID)
 	message := input.Message
 
-	// プロジェクトルート解決
+	// Resolve project root.
 	projectRoot := h.ProjectRoot
 	if projectRoot == "" {
 		projectRoot = resolveProjectRoot()
@@ -78,7 +78,7 @@ func (h *ElicitationHandler) Handle(in io.Reader, out io.Writer) error {
 	stateDir := projectRoot + "/.claude/state"
 	logFile := stateDir + "/elicitation-events.jsonl"
 
-	// ログ記録
+	// Record log entry.
 	if err := os.MkdirAll(stateDir, 0o700); err == nil {
 		ts := time.Now().UTC().Format(time.RFC3339)
 		breezingSession := os.Getenv("HARNESS_BREEZING_SESSION_ID")
@@ -100,7 +100,7 @@ func (h *ElicitationHandler) Handle(in io.Reader, out io.Writer) error {
 		}
 	}
 
-	// Breezing セッション中は自動スキップ（バックグラウンド Worker は UI 対話不能）
+	// During a Breezing session: auto-skip (background Worker cannot interact with UI).
 	breezingSession := os.Getenv("HARNESS_BREEZING_SESSION_ID")
 	if breezingSession != "" {
 		reason := fmt.Sprintf(
@@ -113,7 +113,7 @@ func (h *ElicitationHandler) Handle(in io.Reader, out io.Writer) error {
 		})
 	}
 
-	// 通常セッション: そのまま通過（ユーザーが対話で応答）
+	// Normal session: pass through (user responds interactively).
 	return writeJSON(out, elicitationDecision{
 		Decision: "approve",
 		Reason:   "Elicitation: forwarding to user",

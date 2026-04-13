@@ -7,7 +7,6 @@ import (
 	"testing"
 )
 
-// TestResolvePlansPath_Default は設定なし・Plans.md 存在でデフォルトパスを返すことを確認する。
 func TestResolvePlansPath_Default(t *testing.T) {
 	dir := t.TempDir()
 	plansPath := filepath.Join(dir, "Plans.md")
@@ -21,10 +20,8 @@ func TestResolvePlansPath_Default(t *testing.T) {
 	}
 }
 
-// TestResolvePlansPath_FileNotExist は Plans.md が存在しない場合に空文字を返すことを確認する。
 func TestResolvePlansPath_FileNotExist(t *testing.T) {
 	dir := t.TempDir()
-	// Plans.md を作成しない
 
 	got := resolvePlansPath(dir)
 	if got != "" {
@@ -32,18 +29,14 @@ func TestResolvePlansPath_FileNotExist(t *testing.T) {
 	}
 }
 
-// TestResolvePlansPath_WithConfig は plansDirectory 設定があるとき
-// サブディレクトリの Plans.md パスを返すことを確認する。
 func TestResolvePlansPath_WithConfig(t *testing.T) {
 	dir := t.TempDir()
 
-	// 設定ファイルを作成
 	configContent := "plansDirectory: docs\n"
 	if err := os.WriteFile(filepath.Join(dir, harnessConfigFileName), []byte(configContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	// docs/Plans.md を作成
 	docsDir := filepath.Join(dir, "docs")
 	if err := os.MkdirAll(docsDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -59,11 +52,9 @@ func TestResolvePlansPath_WithConfig(t *testing.T) {
 	}
 }
 
-// TestResolvePlansPath_WithConfig_FileNotExist は設定あり・ファイル非存在で空文字を返すことを確認する。
 func TestResolvePlansPath_WithConfig_FileNotExist(t *testing.T) {
 	dir := t.TempDir()
 
-	// 設定ファイルを作成（docs ディレクトリは作るが Plans.md は作らない）
 	configContent := "plansDirectory: docs\n"
 	if err := os.WriteFile(filepath.Join(dir, harnessConfigFileName), []byte(configContent), 0o644); err != nil {
 		t.Fatal(err)
@@ -78,9 +69,6 @@ func TestResolvePlansPath_WithConfig_FileNotExist(t *testing.T) {
 	}
 }
 
-// TestResolvePlansPath_CaseVariants は大文字小文字のバリエーションを検出することを確認する。
-// macOS の APFS は大文字小文字を区別しないため、検出されたパスが存在するファイルを
-// 指していることを確認する（正確なファイル名ではなく存在確認）。
 func TestResolvePlansPath_CaseVariants(t *testing.T) {
 	variants := []string{"plans.md", "PLANS.md", "PLANS.MD"}
 	for _, name := range variants {
@@ -92,7 +80,6 @@ func TestResolvePlansPath_CaseVariants(t *testing.T) {
 			}
 
 			got := resolvePlansPath(dir)
-			// 返ってきたパスが存在していること（大文字小文字不区別のFSでも動作確認）
 			if got == "" {
 				t.Errorf("resolvePlansPath() returned empty for variant %s", name)
 				return
@@ -104,7 +91,6 @@ func TestResolvePlansPath_CaseVariants(t *testing.T) {
 	}
 }
 
-// TestReadPlansDirectoryFromConfig_NormalValue は通常の値が正しく読めることを確認する。
 func TestReadPlansDirectoryFromConfig_NormalValue(t *testing.T) {
 	dir := t.TempDir()
 	configContent := "plansDirectory: docs\n"
@@ -118,7 +104,6 @@ func TestReadPlansDirectoryFromConfig_NormalValue(t *testing.T) {
 	}
 }
 
-// TestReadPlansDirectoryFromConfig_QuotedValue はクォートされた値が正しく読めることを確認する。
 func TestReadPlansDirectoryFromConfig_QuotedValue(t *testing.T) {
 	dir := t.TempDir()
 	configContent := `plansDirectory: "my-plans"` + "\n"
@@ -132,7 +117,6 @@ func TestReadPlansDirectoryFromConfig_QuotedValue(t *testing.T) {
 	}
 }
 
-// TestReadPlansDirectoryFromConfig_NoConfig は設定ファイルなしで空文字を返すことを確認する。
 func TestReadPlansDirectoryFromConfig_NoConfig(t *testing.T) {
 	dir := t.TempDir()
 
@@ -142,7 +126,6 @@ func TestReadPlansDirectoryFromConfig_NoConfig(t *testing.T) {
 	}
 }
 
-// TestReadPlansDirectoryFromConfig_AbsolutePathRejected は絶対パスがセキュリティ上拒否されることを確認する。
 func TestReadPlansDirectoryFromConfig_AbsolutePathRejected(t *testing.T) {
 	dir := t.TempDir()
 	configContent := "plansDirectory: /etc/plans\n"
@@ -156,7 +139,6 @@ func TestReadPlansDirectoryFromConfig_AbsolutePathRejected(t *testing.T) {
 	}
 }
 
-// TestReadPlansDirectoryFromConfig_ParentRefRejected は .. を含む値がセキュリティ上拒否されることを確認する。
 func TestReadPlansDirectoryFromConfig_ParentRefRejected(t *testing.T) {
 	dir := t.TempDir()
 	configContent := "plansDirectory: ../outside\n"
@@ -170,7 +152,6 @@ func TestReadPlansDirectoryFromConfig_ParentRefRejected(t *testing.T) {
 	}
 }
 
-// TestResolveProjectRoot_EnvVarPriority は環境変数が最優先であることを確認する。
 func TestResolveProjectRoot_EnvVarPriority(t *testing.T) {
 	t.Setenv("HARNESS_PROJECT_ROOT", "/custom/root")
 	got := resolveProjectRoot()
@@ -179,7 +160,6 @@ func TestResolveProjectRoot_EnvVarPriority(t *testing.T) {
 	}
 }
 
-// TestResolveProjectRoot_ProjectRootFallback は PROJECT_ROOT のフォールバックを確認する。
 func TestResolveProjectRoot_ProjectRootFallback(t *testing.T) {
 	t.Setenv("HARNESS_PROJECT_ROOT", "")
 	t.Setenv("PROJECT_ROOT", "/project/root")
@@ -189,23 +169,17 @@ func TestResolveProjectRoot_ProjectRootFallback(t *testing.T) {
 	}
 }
 
-// TestResolveProjectRoot_GitFallback は git rev-parse の結果が使われることを確認する。
-// HARNESS_PROJECT_ROOT と PROJECT_ROOT が未設定の場合、git toplevel が使用される。
-// このテストは git リポジトリ内で実行される前提（CI 環境も含む）。
 func TestResolveProjectRoot_GitFallback(t *testing.T) {
 	t.Setenv("HARNESS_PROJECT_ROOT", "")
 	t.Setenv("PROJECT_ROOT", "")
 
 	got := resolveProjectRoot()
-	// git リポジトリ内であれば空文字にならないこと
 	if got == "" {
 		t.Error("resolveProjectRoot() returned empty string; expected a non-empty path")
 	}
-	// 返ってきたパスが存在すること
 	if _, err := os.Stat(got); err != nil {
 		t.Errorf("resolveProjectRoot() = %q, but path does not exist: %v", got, err)
 	}
-	// git toplevel またはカレントディレクトリのどちらかであること（スラッシュで始まる）
 	if !strings.HasPrefix(got, "/") {
 		t.Errorf("resolveProjectRoot() = %q, want absolute path", got)
 	}

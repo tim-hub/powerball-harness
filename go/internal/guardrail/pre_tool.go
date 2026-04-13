@@ -3,8 +3,8 @@ package guardrail
 import (
 	"os"
 
-	"github.com/Chachamaru127/claude-code-harness/go/internal/state"
-	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
+	"github.com/tim-hub/powerball-harness/go/internal/state"
+	"github.com/tim-hub/powerball-harness/go/pkg/hookproto"
 )
 
 // isTruthy checks if an env var value is truthy ("1", "true", "yes").
@@ -32,14 +32,14 @@ func BuildContext(input hookproto.HookInput) hookproto.RuleContext {
 		projectRoot, _ = os.Getwd()
 	}
 
-	// 環境変数ベースの値（明示的なオーバーライド）
+	// Environment variable-based values (explicit overrides)
 	workMode := isTruthy(os.Getenv("HARNESS_WORK_MODE")) ||
 		isTruthy(os.Getenv("ULTRAWORK_MODE"))
 	codexMode := isTruthy(os.Getenv("HARNESS_CODEX_MODE"))
 	breezingRole := os.Getenv("HARNESS_BREEZING_ROLE")
 
-	// SQLite から work_states を補完する（セッション ID がある場合のみ）
-	// フック高速パスの制約（SPEC.md §12）に従い、I/O エラーは無視する。
+	// Supplement work_states from SQLite (only when session ID is available).
+	// Per the hook fast-path constraint (SPEC.md §12), I/O errors are ignored.
 	if input.SessionID != "" && !workMode && !codexMode {
 		dbPath := state.ResolveStatePath(projectRoot)
 		if ws, err := loadWorkStateFromDB(dbPath, input.SessionID); err == nil && ws != nil {
@@ -61,18 +61,18 @@ func BuildContext(input hookproto.HookInput) hookproto.RuleContext {
 	}
 }
 
-// loadWorkStateFromDB は指定した DB パスから work_state を取得する。
-// DB が存在しない・読み取れない場合は (nil, nil) を返す（エラーを伝播させない）。
-// これにより hooks の fast-path がファイルシステムの問題で止まることを防ぐ。
+// loadWorkStateFromDB retrieves a work_state from the given DB path.
+// Returns (nil, nil) if the DB does not exist or cannot be read (errors are not propagated).
+// This prevents hooks' fast-path from stalling due to filesystem issues.
 func loadWorkStateFromDB(dbPath, sessionID string) (*state.WorkState, error) {
-	// DB ファイルが存在しない場合は開かない（スロースタートの防止）
+	// Do not open if DB file does not exist (prevent slow start)
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 		return nil, nil
 	}
 
 	store, err := state.NewHarnessStore(dbPath)
 	if err != nil {
-		return nil, nil //nolint:nilerr // best-effort: DB エラーを伝播させない
+		return nil, nil //nolint:nilerr // best-effort: do not propagate DB errors
 	}
 	defer store.Close()
 

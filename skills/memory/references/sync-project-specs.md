@@ -1,6 +1,6 @@
 # Sync Project Specs Reference
 
-**作業完了後に「Plans.md ちゃんと更新されてるかな？」と不安な時に実行します。**
+**Run this when you're worried "Did Plans.md actually get updated?" after completing work.**
 
 ## When to Use
 
@@ -16,13 +16,13 @@
 
 ## Purpose
 
-Aligns project specs/docs (e.g., `Plans.md`, `AGENTS.md`, `.claude/rules/*`) with latest claude-code-harness operations (**PM ↔ Impl**, `pm:*` markers, handoff commands).
+Aligns project specs/docs (e.g., `Plans.md`, `AGENTS.md`, `.claude/rules/*`) with latest claude-code-harness operations (**PM <-> Impl**, `pm:*` markers, handoff commands).
 
 ## VibeCoder Phrases
 
-- "**Worked on it but unsure if Plans.md is updated**" → this command
-- "**Want to align old format files to latest**" → Unifies markers and descriptions
-- "**Keep manual changes, fix only needed parts**" → Preserves existing text, applies only diffs
+- "**Worked on it but unsure if Plans.md is updated**" -> this command
+- "**Want to align old format files to latest**" -> Unifies markers and descriptions
+- "**Keep manual changes, fix only needed parts**" -> Preserves existing text, applies only diffs
 
 ---
 
@@ -40,19 +40,19 @@ Aligns project specs/docs (e.g., `Plans.md`, `AGENTS.md`, `.claude/rules/*`) wit
 
 ### 1. Marker Normalization
 
-- **Standard**: `pm:依頼中`, `pm:確認済`
-- **Compatible**: `cursor:依頼中`, `cursor:確認済` (treated as synonyms)
+- **Standard**: `pm:requested`, `pm:confirmed`
+- **Compatible**: `cursor:requested`, `cursor:confirmed` (treated as synonyms)
 
 ### 2. State Transition Documentation
 
 ```
-pm:依頼中 → cc:WIP → cc:完了 → pm:確認済
+pm:requested -> cc:WIP -> cc:done -> pm:confirmed
 ```
 
 ### 3. Handoff Routes Addition
 
-- PM→Impl: `/handoff-to-impl-claude` (for PM Claude)
-- Impl→PM: `/handoff-to-pm-claude`
+- PM->Impl: `/handoff-to-impl-claude` (for PM Claude)
+- Impl->PM: `/handoff-to-pm-claude`
 - Cursor workflow: `/handoff-to-claude`, `/handoff-to-cursor`
 
 ### 4. Notification File Description
@@ -80,7 +80,7 @@ Tell user:
 - **Plans.md**: Add `pm:*` to marker legend, note `cursor:*` as compatible
 - **AGENTS.md**: Update roles to PM/Impl
 - **rules/*.md**: Change `cursor:*` to `pm:*` standard + compatibility note
-- **CLAUDE.md**: Add PM↔Impl routes if operation section exists
+- **CLAUDE.md**: Add PM<->Impl routes if operation section exists
 
 ### Step 4: Finish (Required)
 
@@ -95,9 +95,9 @@ File reads can be parallelized:
 
 | Process | Parallel |
 |---------|----------|
-| Plans.md read | ✅ Independent |
-| AGENTS.md read | ✅ Independent |
-| CLAUDE.md read | ✅ Independent |
-| rules/*.md read | ✅ Independent |
+| Plans.md read | Yes, Independent |
+| AGENTS.md read | Yes, Independent |
+| CLAUDE.md read | Yes, Independent |
+| rules/*.md read | Yes, Independent |
 
 Updates run serially for consistency.

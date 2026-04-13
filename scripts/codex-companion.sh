@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # codex-companion.sh — Proxy to official codex-plugin-cc companion
 #
-# 公式プラグイン openai/codex-plugin-cc の codex-companion.mjs を
-# 動的に発見して呼び出す。Harness のスキル・エージェントは
-# raw `codex exec` ではなく、このプロキシ経由で Codex を呼び出す。
+# Dynamically discovers and calls codex-companion.mjs from the official plugin
+# openai/codex-plugin-cc. Harness skills and agents call Codex through this
+# proxy rather than invoking raw `codex exec` directly.
 #
 # Usage:
 #   bash scripts/codex-companion.sh task --write "Fix the bug"
@@ -15,23 +15,23 @@
 #
 # Subcommands: task, review, adversarial-review, setup, status, result, cancel
 #
-# Effort 伝播:
-#   task サブコマンド実行時に calculate-effort.sh で effort を計算し、
-#   --effort フラグで companion に渡す。calculate-effort.sh がない場合は
-#   環境変数 CODEX_EFFORT（未設定時: medium）にフォールバックする。
+# Effort propagation:
+#   When the task subcommand runs, effort is calculated via calculate-effort.sh
+#   and passed to the companion with the --effort flag. If calculate-effort.sh
+#   is absent, falls back to the CODEX_EFFORT environment variable (default: medium).
 
 set -euo pipefail
 
-# 公式プラグインの companion を検索
-# Claude/Codex どちらの plugin ディレクトリでも見つかるようにし、
-# cache と marketplace 配下の両方を対象にする。
+# Search for the official plugin companion
+# Looks in both Claude and Codex plugin directories,
+# and covers both cache and marketplace subdirectories.
 PLUGIN_DIRS=()
 [ -d "${HOME}/.claude/plugins" ] && PLUGIN_DIRS+=("${HOME}/.claude/plugins")
 [ -d "${HOME}/.codex/plugins" ] && PLUGIN_DIRS+=("${HOME}/.codex/plugins")
 
 COMPANION=""
 if [ "${#PLUGIN_DIRS[@]}" -gt 0 ]; then
-  # パスからバージョンセグメントを抽出し数値比較（macOS BSD sort 互換）
+  # Extract version segment from path and compare numerically (macOS BSD sort compatible)
   COMPANION=$(find "${PLUGIN_DIRS[@]}" -name "codex-companion.mjs" \
     \( -path "*/openai-codex/*" -o -path "*/codex-plugin-cc/*" -o -path "*/plugins/codex/*" \) \
     2>/dev/null \
@@ -42,22 +42,24 @@ if [ "${#PLUGIN_DIRS[@]}" -gt 0 ]; then
 fi
 
 if [ -z "$COMPANION" ]; then
-  echo "ERROR: codex-plugin-cc が見つかりません。" >&2
-  echo "インストール: plugin marketplace add openai/codex-plugin-cc" >&2
-  echo "または: /codex:setup を実行してください" >&2
+  echo "ERROR: codex-plugin-cc not found." >&2
+  echo "Install: plugin marketplace add openai/codex-plugin-cc" >&2
+  echo "Or run: /codex:setup" >&2
   exit 1
 fi
 
-# ---- Effort 伝播（task サブコマンドのみ）----
-# task サブコマンドの場合、タスク説明から effort を計算して --effort フラグで渡す。
-# calculate-effort.sh が存在しない場合は CODEX_EFFORT 環境変数（デフォルト: medium）を使う。
+# ---- Effort propagation (task subcommand only) ----
+# For the task subcommand, calculate effort from the task description and pass
+# it via the --effort flag. Falls back to CODEX_EFFORT env var (default: medium)
+# if calculate-effort.sh is not present.
 SUBCOMMAND="${1:-}"
 if [ "$SUBCOMMAND" = "task" ]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   EFFORT_SCRIPT="${SCRIPT_DIR}/calculate-effort.sh"
 
-  # 既に --effort フラグが指定されている場合、または --resume-last の場合はスキップ
-  # --resume-last は継続プロンプト（「続きをやって」等）が入るため effort 計算が不正確になる
+  # Skip if --effort flag already specified, or if --resume-last is present
+  # --resume-last carries a continuation prompt (e.g. "continue from where you left off"),
+  # which makes effort calculation inaccurate
   EFFORT_ALREADY_SET=0
   for arg in "$@"; do
     if [ "$arg" = "--effort" ] || echo "$arg" | grep -qE '^--effort='; then
@@ -71,60 +73,60 @@ if [ "$SUBCOMMAND" = "task" ]; then
   done
 
   if [ "$EFFORT_ALREADY_SET" -eq 0 ]; then
-    # タスク説明を引数から抽出（最後の非フラグ引数）
-    # Boolean フラグ（値を取らない）: --write, --resume-last, --json, --full-auto, --ephemeral, --oss, --skip-git-repo-check
-    # 値付きフラグ（次の引数を消費）: --base, --effort, --model, -m, -i, --image, -c, --config, -C, --cd, --add-dir, --output-schema, -o, --output-last-message, --color, --enable, --disable, --local-provider
-    # 未知の --* フラグ → 安全側で値付き（次引数を消費）として扱う
+    # Extract task description from arguments (last non-flag argument)
+    # Boolean flags (no value): --write, --resume-last, --json, --full-auto, --ephemeral, --oss, --skip-git-repo-check
+    # Value flags (consume next arg): --base, --effort, --model, -m, -i, --image, -c, --config, -C, --cd, --add-dir, --output-schema, -o, --output-last-message, --color, --enable, --disable, --local-provider
+    # Unknown --* flags → treated conservatively as value flags (consume next arg)
     TASK_DESC=""
     EXPECT_VALUE=""
     for arg in "${@:2}"; do
       if [ -n "$EXPECT_VALUE" ]; then
-        # 前のフラグの値なのでスキップ
+        # Value for the previous flag — skip
         EXPECT_VALUE=""
         continue
       fi
       case "$arg" in
         --write|--resume-last|--json|--full-auto|--ephemeral|--oss|--skip-git-repo-check|--dangerously-bypass-approvals-and-sandbox|--background|--resume|--fresh)
-          # 値を取らない boolean フラグ → スキップするだけ
+          # Boolean flag with no value — skip
           ;;
         --base|--effort|--model|-m|-i|--image|-c|--config|-C|--cd|--add-dir|--output-schema|-o|--output-last-message|--color|--enable|--disable|--local-provider)
-          # 明示的に値を取るフラグ
+          # Explicitly value-bearing flag
           EXPECT_VALUE="$arg"
           ;;
         --*)
-          # 未知のフラグ → 安全側で値付きとして扱う（誤って次引数を TASK_DESC にしない）
+          # Unknown flag — treated conservatively as value-bearing (avoid using next arg as TASK_DESC)
           EXPECT_VALUE="$arg"
           ;;
         *)
-          # 非フラグ引数 = タスク説明
+          # Non-flag argument = task description
           TASK_DESC="$arg"
           ;;
       esac
     done
 
-    # effort を計算
+    # Calculate effort
     COMPUTED_EFFORT=""
     if [ -f "$EFFORT_SCRIPT" ]; then
       if [ -n "$TASK_DESC" ]; then
         COMPUTED_EFFORT=$(bash "$EFFORT_SCRIPT" "$TASK_DESC" 2>/dev/null || true)
       elif [ ! -t 0 ]; then
-        # stdin が利用可能（パイプ）: 内容を読み取って effort を計算
+        # stdin available (pipe): read content and calculate effort
         STDIN_CONTENT=$(cat)
         if [ -n "$STDIN_CONTENT" ]; then
           COMPUTED_EFFORT=$(echo "$STDIN_CONTENT" | bash "$EFFORT_SCRIPT" 2>/dev/null || true)
-          # stdin を再セットアップ（here-string 経由で companion に渡す）
+          # Re-setup stdin (pass to companion via here-string)
           exec node "$COMPANION" "$@" --effort "${COMPUTED_EFFORT:-medium}" <<< "$STDIN_CONTENT"
         fi
-        # stdin が空の場合（</dev/null 等）はフォールスルーして通常フローへ
+        # If stdin is empty (e.g. </dev/null), fall through to normal flow
       fi
     fi
 
-    # フォールバック: 環境変数 CODEX_EFFORT → medium
+    # Fallback: CODEX_EFFORT env var → medium
     if [ -z "$COMPUTED_EFFORT" ]; then
       COMPUTED_EFFORT="${CODEX_EFFORT:-medium}"
     fi
 
-    # companion がサポートする effort レベルのみ渡す
+    # Pass only effort levels supported by the companion
     case "$COMPUTED_EFFORT" in
       none|minimal|low|medium|high|xhigh) ;;
       *) COMPUTED_EFFORT="medium" ;;

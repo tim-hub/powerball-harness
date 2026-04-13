@@ -1,11 +1,11 @@
-# /plan ワークフロー定義
-# 機能要望を構造化されたタスクリストに変換
+# /plan workflow definition
+# Converts feature requests into structured task lists
 
 phase: plan
-description: "Plans.md を更新し、タスクを分解するフェーズ"
+description: "Phase that updates Plans.md and breaks down tasks"
 
 steps:
-  # Step 1: リポジトリコンテキストの読み取り
+  # Step 1: Read repository context
   - id: read-context
     skill: core-read-repo-context
     input:
@@ -18,7 +18,7 @@ steps:
         - open_files
     mode: required
 
-  # Step 2: 要望のヒアリング（入力がない場合）
+  # Step 2: Gather requirements (when no input is provided)
   - id: gather-requirements
     skill: init-requirements
     condition: "!user_prompt"
@@ -30,7 +30,7 @@ steps:
         - feature_request
     mode: optional
 
-  # Step 3: 機能の計画
+  # Step 3: Plan the feature
   - id: plan-feature
     skill: plan-feature
     input:
@@ -50,7 +50,7 @@ steps:
         - phase_name
     mode: required
 
-  # Step 4: 計画のレビュー（オプション）
+  # Step 4: Review the plan (optional)
   - id: review-plan
     skill: plan-review
     input:
@@ -60,21 +60,21 @@ steps:
         - previous_step_output
     mode: optional
 
-# 成功時の出力
+# Output on success
 on_success:
   message: |
-    ✅ 計画が完成しました！
+    ✅ Planning is complete!
 
-    📄 Plans.md に {{task_count}} 個のタスクを追加しました。
+    📄 Added {{task_count}} tasks to Plans.md.
 
-    次にやること：
-    - 「{{phase_name}}を始めて」→ 実装を開始
-    - 「計画を見せて」→ 詳細を確認
-    - 「修正して」→ 計画を調整
+    Next steps:
+    - "Start {{phase_name}}" → begin implementation
+    - "Show the plan" → review details
+    - "Revise it" → adjust the plan
 
-# エラー時の出力
+# Output on error
 on_error:
   message: |
-    ⚠️ 計画作成中にエラーが発生しました。
+    ⚠️ An error occurred while creating the plan.
 
-    やりたいことをもう一度教えてください。
+    Please tell me again what you want to do.

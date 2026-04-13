@@ -1,6 +1,6 @@
 #!/bin/bash
 # generate-browser-review-artifact.sh
-# browser profile 用の review artifact 雛形を生成する。
+# Generate a review artifact template for the browser profile.
 
 set -euo pipefail
 
@@ -70,13 +70,13 @@ has_agent_browser() {
 }
 
 detect_route() {
-  # 環境変数による明示 override（テスト用）
+  # Explicit override via environment variables (for testing)
   if [ -n "${HARNESS_BROWSER_REVIEW_ROUTE:-}" ]; then
     printf '%s' "${HARNESS_BROWSER_REVIEW_ROUTE}"
     return 0
   fi
 
-  # contract 内の route 指定を尊重（sprint-contract で明示された場合）
+  # Respect route specified in contract (when explicitly set in sprint-contract)
   local contract_route
   contract_route="$(jq -r '.review.route // ""' "$CONTRACT_FILE" 2>/dev/null)"
   if [ -n "$contract_route" ]; then
@@ -104,10 +104,10 @@ detect_route() {
     return 0
   fi
 
-  # scripted モードでは agent-browser にフォールバックしない。
-  # agent-browser は exploratory 前提の snapshot/探索ベースであり、
-  # scripted contract の trace/assertion 証跡と互換性がないため、
-  # Playwright がなければ Chrome DevTools に直接フォールバックする。
+  # In scripted mode, do not fall back to agent-browser.
+  # agent-browser is snapshot/exploration-based and is not compatible
+  # with the trace/assertion artifacts expected by a scripted contract,
+  # so fall back directly to Chrome DevTools if Playwright is unavailable.
   printf '%s' "chrome-devtools"
 }
 

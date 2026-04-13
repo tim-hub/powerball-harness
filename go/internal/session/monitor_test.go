@@ -15,7 +15,7 @@ func TestMonitorHandler_GeneratesSessionFile(t *testing.T) {
 	stateDir := filepath.Join(dir, "state")
 	plansFile := filepath.Join(dir, "Plans.md")
 
-	// Plans.md を作成
+	// Create Plans.md
 	plans := "| t1 | cc:WIP |\n| t2 | cc:TODO |\n"
 	if err := os.WriteFile(plansFile, []byte(plans), 0644); err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ func TestMonitorHandler_GeneratesSessionFile(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// session.json が作成されたか
+	// Verify session.json was created
 	sessionFile := filepath.Join(stateDir, "session.json")
 	data, err := os.ReadFile(sessionFile)
 	if err != nil {
@@ -99,7 +99,7 @@ func TestMonitorHandler_ResumesExistingSession(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// 既存セッションを作成
+	// Create existing session
 	existingSession := sessionStateJSON{
 		SessionID:   "session-existing",
 		State:       "running",
@@ -128,7 +128,7 @@ func TestMonitorHandler_ResumesExistingSession(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// resume されたセッションの session_id は変わらない
+	// Resumed session should retain the same session_id
 	data, _ := os.ReadFile(sessionFile)
 	var sess sessionStateJSON
 	if err := json.Unmarshal(data, &sess); err != nil {
@@ -150,7 +150,7 @@ func TestMonitorHandler_NewSessionOnStopped(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// 停止済みセッションを作成
+	// Create stopped session
 	existingSession := map[string]interface{}{
 		"session_id": "session-old",
 		"state":      "stopped",
@@ -178,7 +178,7 @@ func TestMonitorHandler_NewSessionOnStopped(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// 新しい session_id が生成されているはず
+	// A new session_id should have been generated
 	if sess.SessionID == "session-old" {
 		t.Errorf("expected new session_id, got session-old")
 	}
@@ -200,7 +200,7 @@ func TestMonitorHandler_SymlinkStateDir(t *testing.T) {
 
 	h := &MonitorHandler{StateDir: linkDir}
 	var out bytes.Buffer
-	// エラーにならないこと（早期リターン）
+	// Should not return an error (early return)
 	err := h.Handle(strings.NewReader(`{}`), &out)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -214,7 +214,7 @@ func TestMonitorHandler_ReadGitBranch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// HEAD ファイルを作成
+	// Create HEAD file
 	if err := os.WriteFile(filepath.Join(gitDir, "HEAD"), []byte("ref: refs/heads/feat/test\n"), 0600); err != nil {
 		t.Fatal(err)
 	}

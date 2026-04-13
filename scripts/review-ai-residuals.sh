@@ -1,14 +1,14 @@
 #!/bin/bash
 # review-ai-residuals.sh
-# 差分または対象ファイルから AI 実装の残骸候補を静的検出する。
+# Statically detect AI implementation residue candidates from a diff or target files.
 #
 # Usage:
 #   bash scripts/review-ai-residuals.sh --base-ref <git-ref>
 #   bash scripts/review-ai-residuals.sh path/to/file.ts path/to/config.sh
 #
 # Exit:
-#   0: 検出有無にかかわらず正常終了（review 側で verdict を判定する）
-#   2: 使い方エラー
+#   0: Normal exit regardless of whether issues are detected (the review side determines the verdict)
+#   2: Usage error
 
 set -euo pipefail
 
@@ -19,8 +19,8 @@ Usage:
   bash scripts/review-ai-residuals.sh <file> [<file> ...]
 
 Options:
-  --base-ref <git-ref>  git diff で変更ファイルを自動収集する
-  --help                このヘルプを表示する
+  --base-ref <git-ref>  Automatically collect changed files via git diff
+  --help                Show this help message
 
 Output:
   Stable JSON:
@@ -257,15 +257,15 @@ scan_file() {
       append_observation "$severity" "$rule" "$location" "$issue" "$suggestion" "$match_text"
     done < <("${SEARCH_TOOL}" --no-config -n -I --pcre2 "$pattern" -- "$file" 2>/dev/null || true)
   done <<'EOF'
-test-skip	major	\b(it|describe|test)\.skip\s*\(	無効化されたテストが残っています。レビューをすり抜ける可能性があります。	skip を外すか、どうしても必要なら理由をコメントと issue に残してください。
-localhost-reference	major	\b(localhost|127\.0\.0\.1|0\.0\.0\.0)\b	ローカル専用の接続先が残っています。本番や共有環境で誤設定になりやすい状態です。	環境変数または公開設定から URL / host を注入してください。
-hardcoded-secret	major	(?i)\b(api[_-]?key|secret|token|password|passwd|client[_-]?secret)\b[^:=\n]{0,20}[:=][[:space:]]*['"][^'"]{8,}['"]	秘密情報らしき値がハードコードされています。漏えいと環境固定の両面で危険です。	環境変数、秘密情報ストア、または安全な設定注入に置き換えてください。
-hardcoded-env-url	major	https?://(dev|staging|internal|sandbox)[.-][A-Za-z0-9._/-]+	環境依存 URL がコードに固定されています。出荷先の誤接続につながります。	環境ごとの設定に切り出してください。
-mock-data	minor	\bmockData\b	mock 用の値名が残っています。仮データの持ち込みかどうか確認が必要です。	実データに置き換えるか、必要ならテスト専用であることを明確にしてください。
-dummy-value	minor	\bdummy[A-Za-z0-9_]*\b	dummy という仮値が残っています。	実値に置き換えるか、意図が分かる名前へ変更してください。
-fake-data	minor	\bfake(Data)?\b	fake データ由来の名前が残っています。	本番コードなら実装へ置き換え、テストコードなら用途を明確にしてください。
-todo-fixme	minor	\b(TODO|FIXME)\b	未完了の TODO / FIXME が残っています。	出荷前に解消するか、追跡先をコメントに残してください。
-provisional-comment	recommendation	(?i)(temporary implementation|stub implementation|placeholder implementation|replace later|hardcoded for now|wire real service)	仮実装コメントが残っています。今すぐ事故とは限りませんが、意図を明確にした方が安全です。	期限・追跡先・恒久対応の方針をコメントや issue に残してください。
+test-skip	major	\b(it|describe|test)\.skip\s*\(	A disabled test remains in the code. It may allow issues to slip through review.	Remove the skip, or if absolutely necessary leave a reason in a comment and issue.
+localhost-reference	major	\b(localhost|127\.0\.0\.1|0\.0\.0\.0)\b	A local-only connection target remains. This is prone to misconfiguration in production or shared environments.	Inject the URL/host from an environment variable or a public configuration source.
+hardcoded-secret	major	(?i)\b(api[_-]?key|secret|token|password|passwd|client[_-]?secret)\b[^:=\n]{0,20}[:=][[:space:]]*['"][^'"]{8,}['"]	A value that looks like a secret is hardcoded. This is dangerous both for leakage and environment lock-in.	Replace it with an environment variable, a secrets store, or a safe configuration injection mechanism.
+hardcoded-env-url	major	https?://(dev|staging|internal|sandbox)[.-][A-Za-z0-9._/-]+	An environment-specific URL is hardcoded. This can lead to incorrect connections in the wrong environment.	Move it to per-environment configuration.
+mock-data	minor	\bmockData\b	A mock value name remains. Verify whether placeholder data has been carried into production code.	Replace with real data, or clearly mark it as test-only if intentional.
+dummy-value	minor	\bdummy[A-Za-z0-9_]*\b	A placeholder named "dummy" remains.	Replace with a real value or rename to a name that conveys intent.
+fake-data	minor	\bfake(Data)?\b	A name derived from fake data remains.	If in production code replace with a real implementation; if in test code, make the purpose explicit.
+todo-fixme	minor	\b(TODO|FIXME)\b	An unresolved TODO / FIXME remains.	Resolve it before shipping, or leave a tracking reference in a comment.
+provisional-comment	recommendation	(?i)(temporary implementation|stub implementation|placeholder implementation|replace later|hardcoded for now|wire real service)	A provisional implementation comment remains. It may not cause an immediate incident, but clarifying intent is safer.	Leave a deadline, tracking reference, and a plan for the permanent fix in a comment or issue.
 EOF
 }
 

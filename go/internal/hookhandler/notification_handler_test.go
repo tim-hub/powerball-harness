@@ -15,7 +15,6 @@ func TestHandleNotification_EmptyInput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// 通知ハンドラは空入力で出力なし
 	if out.Len() != 0 {
 		t.Errorf("expected no output for empty input, got %q", out.String())
 	}
@@ -27,7 +26,6 @@ func TestHandleNotification_InvalidJSON(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// パース失敗でも出力なし（正常終了）
 	if out.Len() != 0 {
 		t.Errorf("expected no output for invalid JSON, got %q", out.String())
 	}
@@ -53,7 +51,6 @@ func TestHandleNotification_BasicEvent(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// JSONL ログが作成されていること
 	logFile := filepath.Join(tmpDir, ".claude", "state", "notification-events.jsonl")
 	data, readErr := os.ReadFile(logFile)
 	if readErr != nil {
@@ -96,7 +93,6 @@ func TestHandleNotification_TypeFallback(t *testing.T) {
 	t.Setenv("PROJECT_ROOT", tmpDir)
 	t.Setenv("CLAUDE_PLUGIN_DATA", "")
 
-	// notification_type がない場合は type でフォールバック
 	input := `{"type":"idle_prompt","session_id":"sess-002"}`
 	var out bytes.Buffer
 	if err := HandleNotification(strings.NewReader(input), &out); err != nil {
@@ -132,7 +128,6 @@ func TestHandleNotification_MatcherFallback(t *testing.T) {
 	t.Setenv("PROJECT_ROOT", tmpDir)
 	t.Setenv("CLAUDE_PLUGIN_DATA", "")
 
-	// notification_type も type もない場合は matcher でフォールバック
 	input := `{"matcher":"permission_prompt","session_id":"sess-003","agent_type":"task-worker"}`
 	var out bytes.Buffer
 	if err := HandleNotification(strings.NewReader(input), &out); err != nil {
@@ -168,7 +163,6 @@ func TestHandleNotification_RotatesAtLimit(t *testing.T) {
 	t.Setenv("PROJECT_ROOT", tmpDir)
 	t.Setenv("CLAUDE_PLUGIN_DATA", "")
 
-	// ログファイルに501行のダミーエントリを書き込む
 	stateDir := filepath.Join(tmpDir, ".claude", "state")
 	if err := os.MkdirAll(stateDir, 0o700); err != nil {
 		t.Fatal(err)
@@ -194,14 +188,12 @@ func TestHandleNotification_RotatesAtLimit(t *testing.T) {
 		t.Fatalf("log file not found: %v", readErr)
 	}
 	lines := strings.Split(strings.TrimRight(string(data), "\n"), "\n")
-	// 401行（400行 + 1行の新エントリ）になっていること
 	if len(lines) > 401 {
 		t.Errorf("expected ≤401 lines after rotation, got %d", len(lines))
 	}
 }
 
 func TestHandleNotification_NoOutput(t *testing.T) {
-	// 通知ハンドラは stdout に何も書かない（常に approve = exit 0）
 	tmpDir := t.TempDir()
 	origDir, err := os.Getwd()
 	if err != nil {
@@ -220,7 +212,6 @@ func TestHandleNotification_NoOutput(t *testing.T) {
 	if err := HandleNotification(strings.NewReader(input), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// stdout には何も書かない（bash の exit 0 に相当）
 	if out.Len() != 0 {
 		t.Errorf("notification handler should produce no stdout output, got %q", out.String())
 	}

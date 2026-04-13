@@ -1,10 +1,10 @@
 {
   "name": "claude-code-harness-marketplace",
   "metadata": {
-    "description": "claude-code-harness の配布/導入を支援する（単一プラグイン）マーケットプレース"
+    "description": "A single-plugin marketplace for distributing and installing claude-code-harness"
   },
   "owner": {
-    "name": "Chachamaru"
+    "name": "tim-hub"
   },
   "plugins": [
     {
@@ -12,11 +12,11 @@
       "source": "./",
       "description": "A harness for solo developers (Vibecoders) to handle full-cycle contract development.",
       "author": {
-        "name": "Chachamaru",
-        "url": "https://github.com/Chachamaru127"
+        "name": "tim-hub",
+        "url": "https://github.com/tim-hub"
       },
-      "homepage": "https://github.com/Chachamaru127/claude-code-harness",
-      "repository": "https://github.com/Chachamaru127/claude-code-harness",
+      "homepage": "https://github.com/tim-hub/powerball-harness",
+      "repository": "https://github.com/tim-hub/powerball-harness",
       "license": "MIT",
       "keywords": [
         "claude-code",

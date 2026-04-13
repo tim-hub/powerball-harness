@@ -4,9 +4,9 @@ package hookhandler
 
 import "syscall"
 
-// isProcessAlive は指定 PID のプロセスが生存しているかを確認する（Unix 実装）。
-// kill -0 相当の操作（シグナル 0 送信）でプロセス存在を確認する。
-// プロセスが存在しシグナル送信可能な場合に true を返す。
+// isProcessAlive checks whether the process with the given PID is alive (Unix implementation).
+// Checks process existence by sending signal 0, equivalent to kill -0.
+// Returns true if the process exists and the signal can be sent.
 func isProcessAlive(pid int) bool {
 	return syscall.Kill(pid, 0) == nil
 }

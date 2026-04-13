@@ -1,336 +1,305 @@
-# Harness の今を正直に整理した話
+# An Honest Look at Where Harness Stands Today
 
-## X記事タイトル候補
+## Article Title Candidates
 
-1. Claude は最新対応、Codex はどこまで来たか。Harness の今を正直に整理
-2. AI コーディング運用は、誇張しない方が強い。Harness の release 状態と最新対応
-3. Claude は最新まで対応。Codex はどこまで追えたかを、Harness が正直に説明する
-4. 「完璧」とは言わない。Harness の release 状態と最新バージョン対応を整理した
+1. Claude is latest-ready, Codex has come far. An honest look at where Harness stands
+2. AI coding operations are stronger without exaggeration. Harness release status and latest support
+3. Claude is latest-ready. Harness honestly explains how far it's tracked Codex
+4. We won't say "perfect." Organizing Harness release status and latest version support
 
-## 採用タイトル
+## Chosen Title
 
-Claude は最新対応、Codex はどこまで来たか。Harness の今を正直に整理
+Claude is latest-ready, Codex has come far. An honest look at where Harness stands
 
-## リード
+## Introduction
 
-AI コーディングツールの発信では、つい「最新対応しました」「完全対応です」「デグレなしです」と強く言いたくなります。
+When communicating about AI coding tools, there's a tendency to make strong claims like "now supporting the latest," "fully compatible," or "zero regressions."
 
-でも本当に信頼されるのは、**どこまで確認できていて、どこから先はまだ言い切れないか** を分けて話すことだと思っています。
+But what truly earns trust is **separating what has been verified from what cannot yet be definitively claimed**.
 
-今回 Harness では、
+This time with Harness, we re-verified:
 
-- release はどこまで安心できるか
-- デグレは見えているか
-- Claude は最新まで対応済みか
-- Codex はどこまで反映できているか
+- How far can the release be considered safe
+- Are there visible regressions
+- Is Claude fully latest-ready
+- How far has Codex integration progressed
 
-を改めて確認しました。
+As a result, we can say with considerable confidence that the Claude side is "latest-ready." Meanwhile, the Codex side has completed important organization against the latest stable, but is not yet at the "fully compatible" stage.
 
-その結果、Claude 側はかなり自信を持って「最新対応済み」と言えます。一方で Codex 側は、最新 stable を見て重要な整理は済ませたものの、まだ「完全対応」と言い切る段階ではありません。
+This article summarizes those differences in a user-friendly way.
 
-この記事では、その違いをユーザー目線で分かりやすくまとめます。
+## 1. Conclusion First
 
-## 1. 結論を先に言う
+The current conclusion fits in four lines:
 
-今の結論は、次の 4 行にまとまります。
+- The release is in quite good shape
+- No known regressions are visible
+- Claude can be called latest-ready
+- Codex reflects the latest stable, but won't claim full tracking yet
 
-- release はかなり良い状態
-- 既知のデグレは見えていない
-- Claude は最新まで対応済みと言ってよい
-- Codex は最新 stable を見て反映しているが、完全追従とはまだ言わない
+This wording may seem modest.
 
-この言い方は控えめに見えるかもしれません。
+But for this kind of tool, **being honest about what has been verified earns more trust over time** than embellishing claims.
 
-でも、こういう種類のツールは、少し盛って言うよりも、**どこまで確認できているかを正直に出した方が長く信頼される** と考えています。
+## 2. Release Is "Quite Good" But Won't Say "Perfect"
 
-## 2. release は「かなり良い」が、「完璧」とは言わない
+First, the release status.
 
-まず release の状態です。
+Harness has now reached `v3.15.0`, with a clean working tree. The latest `validate-plugin` was a success.
 
-Harness はいま `v3.15.0` まで進んでいて、作業ツリーもきれいな状態です。さらに直近の `validate-plugin` は success でした。
+Looking at that alone, the temptation is to say "it's perfect."
 
-ここだけを見ると、「もう完璧です」と言いたくなります。
+However, there was actually a failure just before the latest run.
 
-ただ、実際にはその直前に failure もありました。
+What matters here is stating both:
 
-このとき大事なのは、
+- The latest verification result is good
+- But the recent history includes failures
 
-- 最新の確認結果は良い
-- でも直近履歴に失敗が混じっている
+So the honest view of the release is:
 
-という 2 つを両方言うことです。
+- Not in a dangerous state
+- Not in a state where it shouldn't be released
+- But won't claim "flawlessly green all along"
 
-つまり、release の見え方としては、
+Harness doesn't round these edges for appearances.
 
-- 危ない状態ではない
-- 出してはいけない状態でもない
-- ただし「完全無欠にずっとグリーン」とまでは言わない
+## 3. Are There Regressions?
 
-が正確です。
+Regressions are "things that used to work but broke with this change."
 
-Harness はここを、見栄えのために丸めません。
+Based on current evidence, **no known regressions are visible**.
 
-## 3. デグレはあるのか
+Verifications performed include:
 
-デグレは「前は動いていたものが、今回の変更で壊れること」です。
+- Full plugin validation
+- Upstream integration point validation
+- Reactive hook runtime validation
+- sync-plugin-cache validation
+- AI residuals check -- confirming no AI-generated remnants or dangerous leftovers
 
-今ある根拠では、**既知のデグレは見えていません**。
+These all passed.
 
-通したのは、たとえば次のような確認です。
+However, even here, we avoid overclaiming.
 
-- plugin 全体の検証
-- upstream 統合ポイントの検証
-- reactive hook runtime の検証
-- sync-plugin-cache の検証
-- AI residuals、つまり AI 生成っぽい残骸や危ない置き忘れの確認
+Even if automated tests pass, if we haven't traced end-to-end through:
 
-これらは通っています。
+- The actual latest CLI
+- Actual long work sessions
+- Both Claude and Codex pathways
 
-ただし、ここでも言い切りすぎません。
+then it's safer not to say "absolutely zero regressions."
 
-自動テストが通っていても、
+So the most accurate statement is:
 
-- 実際の最新 CLI
-- 実際の長い作業フロー
-- Claude と Codex の両経路
+> Based on automated verification, no regressions are visible
 
-を全部 end-to-end でなぞったわけではないなら、「絶対デグレなし」とは言わない方が安全です。
+## 4. For Those Using Harness from Claude, "Latest-Ready" Is a Fair Claim
 
-だから表現としては、
+This can be stated quite positively.
 
-> 自動検証ベースでは、デグレは見えていない
+After reviewing Claude Code's latest changelog, Harness has incorporated important updates from `2.1.80` through `2.1.86`.
 
-が一番正確です。
+Key improvements include:
 
-## 4. Claude から Harness を使う人にとっては、最新対応済みと言ってよい
+### 4-1. Daily operations are slightly lighter
 
-ここはかなり前向きに言えます。
+Using the `hooks conditional if` from `2.1.85`, permission hooks are now scoped to "safe-leaning Bash" only.
 
-Claude Code の最新 changelog を確認したうえで、Harness は `2.1.80` から `2.1.86` までの重要な更新を取り込んでいます。
-
-特に効いているのは次の部分です。
-
-### 4-1. 日々の操作が少し軽くなった
-
-`2.1.85` の hooks conditional `if` を使って、permission hook を「安全寄りの Bash」だけに絞りました。
-
-これにより、
+This means fewer unnecessary hook evaluations for operations like:
 
 - `git status`
 - `git diff`
 - `pytest`
 - `npm run lint`
 
-のような操作で、無駄な hook 評価が減ります。
+Not flashy, but effective since it's used every day.
 
-派手ではありませんが、毎日使うところなので効きます。
+### 4-2. Harder to lose track of assumption changes
 
-### 4-2. 前提の変化を見失いにくくなった
+`TaskCreated`, `FileChanged`, and `CwdChanged` hooks were incorporated, recording changes to Plans, rules, settings, and worktree switches, and prompting re-confirmation.
 
-`TaskCreated`、`FileChanged`、`CwdChanged` の hook を取り込み、Plans、ルール、設定、worktree 切り替えの変化を記録し、再確認を促せるようにしました。
+This reduces drift like:
 
-これで、
+- Implementing against outdated Plans
+- Continuing with old assumptions after switching worktrees
+- Working without noticing rule changes
 
-- 古い Plans のまま実装する
-- 別 worktree に移ったのに前の前提で進める
-- ルール変更に気づかず作業する
+### 4-3. Safety has been strengthened
 
-といったズレを減らせます。
+`sandbox.failIfUnavailable` and `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` are now built into settings.
 
-### 4-3. 安全性も強くした
+In plain terms:
 
-`sandbox.failIfUnavailable` と `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB=1` を設定に取り込みました。
+- If sandbox isn't available, don't continue in an unsafe state
+- Don't over-share credentials with background processes
 
-やさしく言うと、
+So for Claude users, it's fair to say **not just tracking the latest features, but transforming them into forms that make a difference in daily development**.
 
-- sandbox が使えないなら危ないまま続けない
-- 裏側プロセスへ認証情報を渡しすぎない
+## 5. For Those Using Harness from Codex, "Significant Progress, But Won't Claim Full Tracking" Is Accurate
 
-という改善です。
+This requires a more careful explanation.
 
-つまり Claude から Harness を使う人にとっては、**最新機能に追従しただけでなく、毎日の開発で効く形に変換できている** と言えます。
+Looking at Codex's latest releases, there are newer pre-release versions, but the latest stable is `0.117.0`.
 
-## 5. Codex から Harness を使う人にとっては、「かなり進んだが、完全追従とはまだ言わない」が正確
+Harness reviewed `0.117.0` and organized:
 
-ここは少し丁寧に話した方がよいところです。
+- Which updates are high-value
+- What should be incorporated immediately
+- What should be handled in the next phase
 
-Codex の最新 releases を見ると、pre-release を含めれば新しい版がありますが、stable の最新は `0.117.0` です。
+Key improvements on the Codex side this time:
 
-Harness では、この `0.117.0` を見て、
+### 5-1. Initial quality for heavy flows has stabilized
 
-- どこが価値の高い更新か
-- 何を今すぐ取り込むべきか
-- 何は次フェーズでやるべきか
+Skill `effort` and agent `initialPrompt` were organized to encourage deeper thinking from the start in heavy work.
 
-を整理しました。
+This is effective in scenarios with high oversight costs:
 
-今回、Codex 側で効いているのは主に次の部分です。
+- Implementation
+- Review
+- Release
 
-### 5-1. 重いフローの初動が安定した
+### 5-2. Mirror and operational records are aligned
 
-skill の `effort` と agent の `initialPrompt` を整理し、重い作業で最初から深く考えやすい形に寄せました。
+The Codex and OpenCode mirror sides were also updated, along with documentation and test descriptions.
 
-これは、
+This kind of alignment isn't flashy, but it prevents issues like:
 
-- 実装
-- レビュー
-- release
+- One side being outdated
+- Documentation and implementation drifting
+- Different assumptions at each entry point
 
-のような見落としコストが高い場面で効きます。
+However, the important point here is:
 
-### 5-2. mirror と運用記録がそろった
-
-Codex と OpenCode の mirror 側も更新し、ドキュメントやテストの説明もそろえました。
-
-この手の整合は目立ちませんが、
-
-- 片方だけ古い
-- ドキュメントと実装がずれる
-- 使う入口ごとに前提が違う
-
-といった事故を減らします。
-
-ただし、ここで大事なのは次です。
-
-Codex 側の重要論点として見えている
+The key Codex items identified as high-value:
 
 - plugin-first workflow
-- resume 時の reasoning effort continuity
+- resume-aware effort continuity
 
-は、まだ「次に強く取り込む価値が高い項目」として残っています。
+are still listed as "items with high value for next integration."
 
-だから Codex については、
+So for Codex:
 
-> latest stable を見て重要な整理は済んでいる。  
-> でも、完全対応と言い切るのはまだ早い。
+> Important organization against latest stable is done.
+> But claiming full compatibility is still premature.
 
-が、いちばん誠実な言い方です。
+is the most honest statement.
 
-## 6. なぜ、あえて弱く見える言い方をするのか
+## 6. Why Use Seemingly Weaker Wording
 
-理由は簡単です。
+The reason is simple.
 
-AI コーディング基盤では、
+In AI coding platforms:
 
-- 本当に確認したこと
-- まだ確認していないこと
-- もう使えるもの
-- これから伸ばすべきもの
+- What has truly been verified
+- What hasn't been verified yet
+- What's already usable
+- What needs to be extended
 
-を混ぜて話すと、あとで必ず困るからです。
+Mixing these causes inevitable problems later.
 
-ユーザーが知りたいのは、きれいな宣伝文句よりも、
+What users want to know isn't polished marketing copy, but:
 
-- 今すぐ安心して使えるか
-- どこにまだ注意がいるか
-- 次に何が強くなるのか
+- Can I safely use this right now
+- Where should I still be careful
+- What's getting stronger next
 
-です。
+Harness will continue explaining things without being ambiguous here.
 
-Harness は、ここを曖昧にしない形で説明していきます。
+## Summary
 
-## まとめ
+In one sentence, Harness today is:
 
-今の Harness をひとことで言うなら、
+**Claude is latest-ready with high confidence, Codex is moving forward against latest stable but still has a next phase.**
 
-**Claude はかなり自信を持って最新対応済み、Codex は latest stable を見て前に進んでいるが、まだ次フェーズがある** です。
+And for the release:
 
-そして release についても、
+**In quite good shape, but won't claim perfect. No regressions visible in current automated verification, but won't claim absolute zero.**
 
-**かなり良い状態だが、完璧とまでは言わない。デグレも今の自動検証では見えていないが、絶対ゼロとは言い切らない。**
+This isn't flashy wording.
 
-この言い方は、派手ではありません。
+But this kind of honesty makes an operational tool stronger, we believe.
 
-でも、こういう正直さの方が、運用ツールとしては強いと思っています。
+## Short Announcement Text
 
-## 短い告知文
+We organized an honest assessment of where Harness stands today.
 
-Harness の今を、誇張せずに整理しました。
+- Claude is latest-ready with high confidence
+- Codex is progressing against latest stable
+- Release is in quite good shape
+- No regressions visible in automated verification
 
-- Claude は最新までかなり自信を持って対応
-- Codex は latest stable を見て前進中
-- release はかなり良い状態
-- デグレは自動検証では見えていない
+But we won't casually say "perfect" or "fully compatible."
+The article includes those boundaries.
 
-でも「完璧」「完全対応」とは雑に言わない。  
-その線引きを含めて記事にしました。
-
-## スレッド案
+## Thread Draft
 
 ### 1/6
 
-AI コーディング系の発信って、つい「最新対応しました」「完全対応です」と強く言いがちです。
+AI coding communications tend toward strong claims like "now supporting the latest" or "fully compatible."
 
-でも本当に大事なのは、
-どこまで確認できていて、
-どこから先はまだ言い切れないか、
-を分けて話すことだと思っています。
+But what really matters is
+separating what has been verified
+from what cannot yet be definitively claimed.
 
-Harness の今を正直に整理しました。
+We organized an honest look at where Harness stands.
 
 ### 2/6
 
-結論から言うと、
+Bottom line:
 
-- release はかなり良い状態
-- 既知のデグレは見えていない
-- Claude は最新まで対応済みと言ってよい
-- Codex は latest stable を見て反映しているが、完全追従とはまだ言わない
-
-です。
+- Release is in quite good shape
+- No known regressions visible
+- Claude can be called latest-ready
+- Codex reflects latest stable but won't claim full tracking
 
 ### 3/6
 
-Claude 側はかなり前向きに言えます。
+The Claude side can be stated quite positively.
 
-2.1.80〜2.1.86 の重要更新を取り込み、
-- permission hook の無駄を減らす
-- reactive hook で前提変化を見失いにくくする
-- sandbox / env scrub で安全性を上げる
-
-ところまでつなげました。
+Incorporated important updates from 2.1.80-2.1.86:
+- Reduced unnecessary permission hooks
+- Reactive hooks make assumption changes harder to miss
+- sandbox / env scrub improve safety
 
 ### 4/6
 
-Codex 側は「全部できました」とは言いません。
+We won't say "everything's done" for the Codex side.
 
-latest stable を見て、
-- skill / agent の初動品質
-- mirror 整合
-- 次に取り込むべき価値軸
+Against latest stable, we've organized:
+- Skill / agent initial quality
+- Mirror alignment
+- High-value axes for next integration
 
-は整理できています。
-
-ただし plugin-first や resume continuity は次フェーズです。
+But plugin-first and resume continuity are next phase.
 
 ### 5/6
 
-デグレについては、
+Regarding regressions:
 
-自動検証ベースでは見えていません。
+Not visible based on automated verification.
 
-でも、
-「絶対ゼロです」
-とまでは言いません。
+But
+we won't say "absolutely zero."
 
-この手の基盤は、そこを盛らない方が長く信頼されると思っています。
+This kind of tool earns more trust by not embellishing here.
 
 ### 6/6
 
-派手な言い方よりも、
+Rather than flashy claims,
 
-- 今すぐ安心して使えるか
-- どこにまだ注意がいるか
-- 次に何が強くなるか
+what matters is:
+- Can I safely use this right now
+- Where should I still be careful
+- What's getting stronger next
 
-が分かる説明の方が大事です。
+We organized Harness in that format.
 
-Harness の今を、そういう形で記事にまとめました。
+## Cover Image Prompt
 
-## カバー画像プロンプト
+High-resolution, white-background tech infographic. Center heading: "Claude Latest, Codex In Progress, Honest Release Status." Left: "Claude 2.1.86 Ready," right: "Codex 0.117 Stable Tracked." Center bottom banner: "Release: Strong, Not Overclaimed." Three cards each showing "Latest Support," "No Known Regression in Automated Checks," and "Honest Boundaries." Clean, futuristic, organized SaaS announcement feel. Colors: white, deep blue, teal, with a touch of orange. Text readable even at thumbnail size. 1:1, generous whitespace, low noise, not overly flashy.
 
-白背景ベースの高解像度なテック系インフォグラフィック。中央に「Claude Latest, Codex In Progress, Honest Release Status」という大きな見出し。左に「Claude 2.1.86 Ready」、右に「Codex 0.117 Stable Tracked」。中央下に「Release: Strong, Not Overclaimed」という帯。3つのカードにそれぞれ「Latest Support」「No Known Regression in Automated Checks」「Honest Boundaries」。全体はクリーン、未来感、SaaS 発表資料のような整った雰囲気。配色は白、深い青、青緑、補助色に少しオレンジ。文字は読みやすく、縮小表示でも潰れない。1:1、余白広め、ノイズ少なめ、誇張しすぎない。
+## Alt Text
 
-## altテキスト
-
-Claude は最新対応、Codex は stable 最新を追跡中、release はかなり良いが過大には言わない、という 3 点を整理したインフォグラフィック。
+Infographic organizing three points: Claude is latest-ready, Codex is tracking the latest stable, and the release is in good shape without overclaiming.

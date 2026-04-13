@@ -9,28 +9,28 @@ import (
 	"strings"
 )
 
-// CleanupHandler は SessionEnd フックハンドラ。
-// セッション終了時に一時ファイルを削除する。
+// CleanupHandler is the SessionEnd hook handler.
+// Removes temporary files at session end.
 //
-// shell 版: scripts/session-cleanup.sh
+// Shell equivalent: scripts/session-cleanup.sh
 type CleanupHandler struct {
-	// StateDir はステートディレクトリのパス。空の場合は cwd から推定する。
+	// StateDir is the state directory path. If empty, it is inferred from cwd.
 	StateDir string
 }
 
-// cleanupInput は SessionEnd フックの stdin JSON。
+// cleanupInput is the stdin JSON for the SessionEnd hook.
 type cleanupInput struct {
 	CWD string `json:"cwd,omitempty"`
 }
 
-// cleanupResponse はクリーンアップ結果のレスポンス。
+// cleanupResponse is the cleanup result response.
 type cleanupResponse struct {
 	Continue bool   `json:"continue"`
 	Message  string `json:"message"`
 }
 
-// Handle は stdin から SessionEnd ペイロードを読み取り、
-// 一時ファイルを削除して結果を stdout に書き出す。
+// Handle reads the SessionEnd payload from stdin, removes temporary files,
+// and writes the result to stdout.
 func (h *CleanupHandler) Handle(r io.Reader, w io.Writer) error {
 	data, _ := io.ReadAll(r)
 
@@ -39,24 +39,24 @@ func (h *CleanupHandler) Handle(r io.Reader, w io.Writer) error {
 		_ = json.Unmarshal(data, &inp)
 	}
 
-	// ステートディレクトリを決定
+	// Determine state directory
 	stateDir := h.StateDir
 	if stateDir == "" {
 		projectRoot := resolveProjectRoot(inp.CWD)
 		stateDir = filepath.Join(projectRoot, ".claude", "state")
 	}
 
-	// ステートディレクトリが存在しない場合は早期リターン
+	// Early return if state directory does not exist
 	if _, err := os.Stat(stateDir); err != nil {
 		return writeJSON(w, cleanupResponse{Continue: true, Message: "No state directory"})
 	}
 
-	// シンボリックリンクチェック（セキュリティ）
+	// Symlink check (security)
 	if isSymlink(stateDir) {
 		return writeJSON(w, cleanupResponse{Continue: true, Message: "State directory is symlink, skipping"})
 	}
 
-	// 固定の一時ファイルを削除
+	// Delete fixed temporary files
 	tempFiles := []string{
 		"pending-skill.json",
 		"current-operation.json",
@@ -68,13 +68,13 @@ func (h *CleanupHandler) Handle(r io.Reader, w io.Writer) error {
 		}
 	}
 
-	// inbox-*.tmp ファイルをクリーンアップ
+	// Clean up inbox-*.tmp files
 	h.cleanupGlob(stateDir, "inbox-*.tmp")
 
 	return writeJSON(w, cleanupResponse{Continue: true, Message: "Session cleanup completed"})
 }
 
-// cleanupGlob はステートディレクトリ内の glob パターンにマッチするファイルを削除する。
+// cleanupGlob removes files matching the glob pattern in the state directory.
 func (h *CleanupHandler) cleanupGlob(stateDir, pattern string) {
 	matches, err := filepath.Glob(filepath.Join(stateDir, pattern))
 	if err != nil {
@@ -87,7 +87,7 @@ func (h *CleanupHandler) cleanupGlob(stateDir, pattern string) {
 	}
 }
 
-// isRegularFile はパスが通常ファイルかどうかを返す（シンボリックリンクは除外）。
+// isRegularFile reports whether path is a regular file (excluding symbolic links).
 func isRegularFile(path string) bool {
 	fi, err := os.Lstat(path)
 	if err != nil {
@@ -96,8 +96,8 @@ func isRegularFile(path string) bool {
 	return fi.Mode().IsRegular()
 }
 
-// cleanupFilenameGlobMatch は pattern に対してファイル名が glob マッチするかを返す。
-// filepath.Match を使用するが、パスセパレータなしのパターンのみ対応。
+// cleanupFilenameGlobMatch reports whether name glob-matches pattern.
+// Uses filepath.Match but only supports patterns without path separators.
 func cleanupFilenameGlobMatch(pattern, name string) bool {
 	matched, err := filepath.Match(pattern, name)
 	if err != nil {
@@ -106,7 +106,7 @@ func cleanupFilenameGlobMatch(pattern, name string) bool {
 	return matched
 }
 
-// buildCleanupSummary はクリーンアップ対象のファイル一覧をログ用に構築する（デバッグ用）。
+// buildCleanupSummary builds a log-ready list of files to be cleaned up (for debugging).
 func buildCleanupSummary(files []string) string {
 	if len(files) == 0 {
 		return "none"
@@ -114,7 +114,7 @@ func buildCleanupSummary(files []string) string {
 	return strings.Join(files, ", ")
 }
 
-// formatCleanupResult はクリーンアップ結果の JSON を返す（エラー表示用）。
+// formatCleanupResult returns a JSON cleanup result string (for error display).
 func formatCleanupResult(deleted int, err error) string {
 	if err != nil {
 		return fmt.Sprintf(`{"continue":true,"message":"cleanup partial: %d files removed, error: %v"}`, deleted, err)

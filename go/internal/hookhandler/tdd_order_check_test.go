@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// tddOutput はテスト用に tddApproveOutput の JSON を解析するための構造体。
+// tddOutput is a struct for parsing tddApproveOutput JSON in tests.
 type tddOutput struct {
 	Decision      string `json:"decision"`
 	Reason        string `json:"reason"`
@@ -53,7 +53,7 @@ func TestHandleTDDOrderCheck_NoFilePath(t *testing.T) {
 }
 
 func TestHandleTDDOrderCheck_TestFileSkipped(t *testing.T) {
-	// テストファイルの編集はスキップ
+	// test file edits are skipped
 	cases := []string{
 		"src/main.test.ts",
 		"src/main.spec.tsx",
@@ -75,7 +75,7 @@ func TestHandleTDDOrderCheck_TestFileSkipped(t *testing.T) {
 }
 
 func TestHandleTDDOrderCheck_NonSourceFileSkipped(t *testing.T) {
-	// ソースファイル以外はスキップ
+	// non-source files are skipped
 	cases := []string{
 		"README.md",
 		"Plans.md",
@@ -106,8 +106,8 @@ func TestHandleTDDOrderCheck_NoWIPTask(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// Plans.md に cc:WIP がない場合はスキップ
-	if err := os.WriteFile("Plans.md", []byte("| Task | 実装 | DoD | - | cc:TODO |\n"), 0o644); err != nil {
+	// skip when cc:WIP is not in Plans.md
+	if err := os.WriteFile("Plans.md", []byte("| Task | impl | DoD | - | cc:TODO |\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -133,8 +133,8 @@ func TestHandleTDDOrderCheck_SkipTDDMarker(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// [skip:tdd] マーカーがある場合はスキップ
-	plansContent := "| Task | 実装 [skip:tdd] | DoD | - | cc:WIP |\n"
+	// skip when [skip:tdd] marker is present
+	plansContent := "| Task | impl [skip:tdd] | DoD | - | cc:WIP |\n"
 	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -161,8 +161,8 @@ func TestHandleTDDOrderCheck_WarningEmitted(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// WIP タスクあり、テスト未編集、[skip:tdd] なし → 警告を出力
-	if err := os.WriteFile("Plans.md", []byte("| Task | 実装 | DoD | - | cc:WIP |\n"), 0o644); err != nil {
+	// WIP task present, no test edited, no [skip:tdd] → emit warning
+	if err := os.WriteFile("Plans.md", []byte("| Task | impl | DoD | - | cc:WIP |\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -173,14 +173,14 @@ func TestHandleTDDOrderCheck_WarningEmitted(t *testing.T) {
 	}
 	result := parseTDDOutput(t, &out)
 
-	// 警告が出力されること
+	// warning should be emitted
 	if result.SystemMessage == "" {
 		t.Error("expected warning systemMessage, got empty")
 	}
 	if !strings.Contains(result.SystemMessage, "TDD") {
 		t.Errorf("expected 'TDD' in systemMessage, got %q", result.SystemMessage)
 	}
-	// ブロックではなく approve であること
+	// should be approve, not block
 	if result.Decision != "approve" {
 		t.Errorf("expected decision=approve (not block), got %q", result.Decision)
 	}
@@ -197,14 +197,14 @@ func TestHandleTDDOrderCheck_TestAlreadyEdited(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// WIP タスクあり、テストファイルが session-changes.json に記録済み
-	if err := os.WriteFile("Plans.md", []byte("| Task | 実装 | DoD | - | cc:WIP |\n"), 0o644); err != nil {
+	// WIP task present, test file already recorded in session-changes.json
+	if err := os.WriteFile("Plans.md", []byte("| Task | impl | DoD | - | cc:WIP |\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
 		t.Fatal(err)
 	}
-	// session-changes.json にテストファイルの記録を入れる
+	// record the test file entry in session-changes.json
 	sessionContent := `{"files":["src/main.test.ts","src/main.ts"]}`
 	if err := os.WriteFile(sessionChangesFile, []byte(sessionContent), 0o644); err != nil {
 		t.Fatal(err)
@@ -232,14 +232,14 @@ func TestHandleTDDOrderCheck_TestAlreadyInChangedFiles(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// WIP タスクあり、changed-files.jsonl にテストファイルの記録あり
-	if err := os.WriteFile("Plans.md", []byte("| Task | 実装 | DoD | - | cc:WIP |\n"), 0o644); err != nil {
+	// WIP task present, test file entry exists in changed-files.jsonl
+	if err := os.WriteFile("Plans.md", []byte("| Task | impl | DoD | - | cc:WIP |\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
 		t.Fatal(err)
 	}
-	// changed-files.jsonl にテストファイルの記録を入れる
+	// record the test file entry in changed-files.jsonl
 	testEntry := `{"file":"src/main.test.ts","action":"Write","timestamp":"2026-04-09T00:00:00Z","important":true}` + "\n"
 	if err := os.WriteFile(changedFilesPath, []byte(testEntry), 0o644); err != nil {
 		t.Fatal(err)
@@ -323,18 +323,18 @@ func TestFindCorrespondingTestFile(t *testing.T) {
 	}
 }
 
-// TestHasActiveWIPTask_CustomPlansDirectory は plansDirectory 設定がある場合に
-// カスタムディレクトリの Plans.md から WIP タスクを検出することを確認する（P3修正）。
+// TestHasActiveWIPTask_CustomPlansDirectory verifies that when plansDirectory is configured,
+// WIP tasks are detected from Plans.md in the custom directory (P3 fix).
 func TestHasActiveWIPTask_CustomPlansDirectory(t *testing.T) {
 	dir := t.TempDir()
 
-	// 設定ファイルに plansDirectory: docs を設定
+	// set plansDirectory: docs in the config file
 	configContent := "plansDirectory: docs\n"
 	if err := os.WriteFile(filepath.Join(dir, harnessConfigFileName), []byte(configContent), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	// docs/ ディレクトリに cc:WIP を含む Plans.md を配置
+	// place Plans.md containing cc:WIP in the docs/ directory
 	docsDir := filepath.Join(dir, "docs")
 	if err := os.MkdirAll(docsDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -350,8 +350,8 @@ func TestHasActiveWIPTask_CustomPlansDirectory(t *testing.T) {
 	}
 }
 
-// TestHasActiveWIPTask_CustomPlansDirectory_NoWIP は カスタムディレクトリの
-// Plans.md に cc:WIP がない場合に false を返すことを確認する。
+// TestHasActiveWIPTask_CustomPlansDirectory_NoWIP verifies that false is returned
+// when Plans.md in the custom directory has no cc:WIP.
 func TestHasActiveWIPTask_CustomPlansDirectory_NoWIP(t *testing.T) {
 	dir := t.TempDir()
 
@@ -375,10 +375,10 @@ func TestHasActiveWIPTask_CustomPlansDirectory_NoWIP(t *testing.T) {
 	}
 }
 
-// TestHasActiveWIPTask_NoPlansFile は Plans.md が存在しない場合に false を返すことを確認する。
+// TestHasActiveWIPTask_NoPlansFile verifies that false is returned when Plans.md does not exist.
 func TestHasActiveWIPTask_NoPlansFile(t *testing.T) {
 	dir := t.TempDir()
-	// Plans.md を作成しない
+	// do not create Plans.md
 
 	got := hasActiveWIPTask(dir)
 	if got {

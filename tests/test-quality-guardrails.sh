@@ -1,29 +1,29 @@
 #!/bin/bash
 # test-quality-guardrails.sh
-# テスト改ざん防止機能（3層防御戦略）の検証テスト
+# Validation tests for test tampering prevention (3-layer defense strategy)
 #
-# テスト対象:
-# - 第1層: Rules テンプレートの存在と構造
-# - 第2層: Skills の品質ガードレール統合
-# - harness-init での展開設定
+# Test targets:
+# - Layer 1: Rules template existence and structure
+# - Layer 2: Skills quality guardrail integration
+# - harness-init deployment configuration
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# カウンター
+# Counters
 PASSED=0
 FAILED=0
 TOTAL=0
 
-# カラー出力
+# Color output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
-# テスト関数
+# Test function
 assert_file_exists() {
   local file="$1"
   local description="$2"
@@ -97,182 +97,182 @@ assert_json_key_exists() {
 }
 
 echo "=================================================="
-echo "テスト改ざん防止機能（3層防御戦略）検証"
+echo "Test tampering prevention (3-layer defense strategy) validation"
 echo "=================================================="
 echo ""
 
 # ============================================
-# 第1層: Rules テンプレートの検証
+# Layer 1: Rules template validation
 # ============================================
-echo "## 第1層: Rules テンプレート"
+echo "## Layer 1: Rules templates"
 echo ""
 
-# テスト品質ルールテンプレートの存在
+# Check existence of test quality rule template
 assert_file_exists \
   "templates/rules/test-quality.md.template" \
-  "test-quality.md.template が存在する"
+  "test-quality.md.template exists"
 
-# 実装品質ルールテンプレートの存在
+# Check existence of implementation quality rule template
 assert_file_exists \
   "templates/rules/implementation-quality.md.template" \
-  "implementation-quality.md.template が存在する"
+  "implementation-quality.md.template exists"
 
-# test-quality.md の必須コンテンツ
+# Required content in test-quality.md
 assert_file_contains \
   "templates/rules/test-quality.md.template" \
   "it.skip|test.skip" \
-  "test-quality.md に skip 禁止パターンが含まれる"
+  "test-quality.md contains skip prohibition pattern"
 
 assert_file_contains \
   "templates/rules/test-quality.md.template" \
   "eslint|lint|disable" \
-  "test-quality.md に lint 設定改ざん禁止が含まれる"
+  "test-quality.md contains lint configuration tampering prohibition"
 
 assert_file_contains \
   "templates/rules/test-quality.md.template" \
   "_harness_template" \
-  "test-quality.md にフロントマターメタデータが含まれる"
+  "test-quality.md contains frontmatter metadata"
 
-# implementation-quality.md の必須コンテンツ
+# Required content in implementation-quality.md
 assert_file_contains \
   "templates/rules/implementation-quality.md.template" \
   "ハードコード|hardcode" \
-  "implementation-quality.md にハードコード禁止が含まれる"
+  "implementation-quality.md contains hardcoding prohibition"
 
 assert_file_contains \
   "templates/rules/implementation-quality.md.template" \
   "スタブ|stub" \
-  "implementation-quality.md にスタブ禁止が含まれる"
+  "implementation-quality.md contains stub prohibition"
 
 assert_file_contains \
   "templates/rules/implementation-quality.md.template" \
   "_harness_template" \
-  "implementation-quality.md にフロントマターメタデータが含まれる"
+  "implementation-quality.md contains frontmatter metadata"
 
-# template-registry.json への登録
+# Registration in template-registry.json
 assert_json_key_exists \
   "templates/template-registry.json" \
   '.templates["rules/test-quality.md.template"]' \
-  "template-registry.json に test-quality.md が登録されている"
+  "test-quality.md is registered in template-registry.json"
 
 assert_json_key_exists \
   "templates/template-registry.json" \
   '.templates["rules/implementation-quality.md.template"]' \
-  "template-registry.json に implementation-quality.md が登録されている"
+  "implementation-quality.md is registered in template-registry.json"
 
 echo ""
 
 # ============================================
-# 第2層: Skills の品質ガードレール検証
+# Layer 2: Skills quality guardrail validation
 # ============================================
-echo "## 第2層: Skills 品質ガードレール"
+echo "## Layer 2: Skills quality guardrails"
 echo ""
 
-# impl スキルの品質ガードレール
+# impl skill quality guardrails
 assert_file_contains \
   "skills/impl/SKILL.md" \
   "品質ガードレール|Quality Guardrails" \
-  "impl/SKILL.md に品質ガードレールセクションがある"
+  "impl/SKILL.md has quality guardrail section"
 
 assert_file_contains \
   "skills/impl/SKILL.md" \
   "禁止パターン|Prohibited|禁止" \
-  "impl/SKILL.md に禁止パターンが定義されている"
+  "impl/SKILL.md has prohibited patterns defined"
 
 assert_file_contains \
   "skills/impl/SKILL.md" \
   "purpose-driven|Purpose-Driven|目的駆動" \
-  "impl/SKILL.md に Purpose-Driven Implementation 原則がある"
+  "impl/SKILL.md has Purpose-Driven Implementation principle"
 
-# verify スキルの品質ガードレール
+# verify skill quality guardrails
 assert_file_contains \
   "skills/verify/SKILL.md" \
   "品質ガードレール|Quality Guardrails" \
-  "verify/SKILL.md に品質ガードレールセクションがある"
+  "verify/SKILL.md has quality guardrail section"
 
 assert_file_contains \
   "skills/verify/SKILL.md" \
   "改ざん禁止|Tampering Prohibited|禁止" \
-  "verify/SKILL.md に改ざん禁止パターンが定義されている"
+  "verify/SKILL.md has tampering prohibition patterns defined"
 
 assert_file_contains \
   "skills/verify/SKILL.md" \
   "承認リクエスト|Approval Request" \
-  "verify/SKILL.md に承認リクエスト形式がある"
+  "verify/SKILL.md has approval request format"
 
 echo ""
 
 # ============================================
-# harness-init 統合検証
+# harness-init integration validation
 # ============================================
-echo "## harness-init 統合"
+echo "## harness-init integration"
 echo ""
 
-# harness-init での品質ルール展開設定（スキル移行後）
+# harness-init quality rule deployment configuration (after skill migration)
 assert_file_contains \
   "skills/harness-init/SKILL.md" \
   "setup|Setup|Environment" \
-  "harness-init にセットアップ機能が含まれる"
+  "harness-init contains setup functionality"
 
-# 品質ルールファイルの存在確認
+# Confirm quality rule files exist
 assert_file_contains \
   ".claude/rules/test-quality.md" \
   "テスト改ざん|Test Tampering|禁止" \
-  "test-quality.md にテスト改ざん防止ルールがある"
+  "test-quality.md has test tampering prevention rules"
 
 assert_file_contains \
   ".claude/rules/implementation-quality.md" \
   "形骸化|stub|placeholder" \
-  "implementation-quality.md に形骸化実装禁止ルールがある"
+  "implementation-quality.md has hollow implementation prohibition rules"
 
 echo ""
 
 # ============================================
-# ドキュメント検証
+# Documentation validation
 # ============================================
-echo "## ドキュメント"
+echo "## Documentation"
 echo ""
 
-# CLAUDE.md のテスト改ざん防止セクション
+# CLAUDE.md test tampering prevention section
 assert_file_contains \
   "CLAUDE.md" \
   "テスト改ざん防止|Test Tampering Prevention" \
-  "CLAUDE.md にテスト改ざん防止セクションがある"
+  "CLAUDE.md has test tampering prevention section"
 
 assert_file_contains \
   "CLAUDE.md" \
   "3層防御|3-layer|第1層|第2層|第3層" \
-  "CLAUDE.md に3層防御戦略の説明がある"
+  "CLAUDE.md has 3-layer defense strategy description"
 
-# README.md の品質保証関連の言及
+# README.md quality assurance references
 assert_file_contains \
   "README.md" \
   "Test tampering|Quality|品質" \
-  "README.md に品質保証関連の言及がある"
+  "README.md has quality assurance references"
 
-# 設計ドキュメント
+# Design documentation
 assert_file_exists \
   "docs/QUALITY_GUARD_DESIGN.md" \
-  "第3層 Hooks 設計ドキュメントが存在する"
+  "Layer 3 Hooks design document exists"
 
 echo ""
 
 # ============================================
-# 結果サマリー
+# Results summary
 # ============================================
 echo "=================================================="
-echo "テスト結果"
+echo "Test Results"
 echo "=================================================="
 echo ""
-echo "合計: $TOTAL"
-echo -e "成功: ${GREEN}$PASSED${NC}"
-echo -e "失敗: ${RED}$FAILED${NC}"
+echo "Total: $TOTAL"
+echo -e "Passed: ${GREEN}$PASSED${NC}"
+echo -e "Failed: ${RED}$FAILED${NC}"
 echo ""
 
 if [ $FAILED -eq 0 ]; then
-  echo -e "${GREEN}✓ すべてのテストが成功しました${NC}"
+  echo -e "${GREEN}✓ All tests passed${NC}"
   exit 0
 else
-  echo -e "${RED}✗ $FAILED 件のテストが失敗しました${NC}"
+  echo -e "${RED}✗ $FAILED test(s) failed${NC}"
   exit 1
 fi

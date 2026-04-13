@@ -1,8 +1,8 @@
 package hookhandler
 
-// helpers.go - hookhandler パッケージ共通ユーティリティ関数
+// helpers.go - common utility functions for the hookhandler package.
 //
-// 複数のハンドラで重複していたローカル関数を1箇所に集約する。
+// Consolidates local functions that were duplicated across multiple handlers.
 
 import (
 	"bufio"
@@ -16,13 +16,13 @@ import (
 	"strings"
 )
 
-// fileExists はファイルが存在するかを確認する。
+// fileExists reports whether the file at path exists.
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
 
-// isSymlink はパスがシンボリックリンクかどうかを返す（存在しない場合は false）。
+// isSymlink reports whether path is a symbolic link (returns false if the path does not exist).
 func isSymlink(path string) bool {
 	fi, err := os.Lstat(path)
 	if err != nil {
@@ -31,9 +31,9 @@ func isSymlink(path string) bool {
 	return fi.Mode()&os.ModeSymlink != 0
 }
 
-// rotateJSONL は JSONL ファイルが maxLines を超えた場合に keepLines 行に切り詰める。
-// ファイルが存在しない場合は nil を返す（エラーなし）。
-// シンボリックリンクへの書き込みは拒否してエラーを返す。
+// rotateJSONL truncates a JSONL file to keepLines when it exceeds maxLines.
+// Returns nil (no error) when the file does not exist.
+// Refuses to write to symbolic links and returns an error.
 func rotateJSONL(path string, maxLines, keepLines int) error {
 	if isSymlink(path) || isSymlink(path+".tmp") {
 		return fmt.Errorf("symlinked file refused for rotation")
@@ -41,7 +41,7 @@ func rotateJSONL(path string, maxLines, keepLines int) error {
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil // ファイルが存在しない場合は無視
+		return nil // File does not exist — ignore.
 	}
 
 	lines := strings.Split(strings.TrimRight(string(data), "\n"), "\n")
@@ -49,7 +49,7 @@ func rotateJSONL(path string, maxLines, keepLines int) error {
 		return nil
 	}
 
-	// 末尾 keepLines 行を残す
+	// Keep the last keepLines lines.
 	start := len(lines) - keepLines
 	if start < 0 {
 		start = 0
@@ -63,8 +63,8 @@ func rotateJSONL(path string, maxLines, keepLines int) error {
 	return os.Rename(tmpPath, path)
 }
 
-// firstNonEmpty は引数の中で最初の空でない文字列を返す。
-// いずれも空の場合は "" を返す。
+// firstNonEmpty returns the first non-empty string from the given values.
+// Returns "" when all values are empty.
 func firstNonEmpty(vals ...string) string {
 	for _, v := range vals {
 		if v != "" {
@@ -74,7 +74,7 @@ func firstNonEmpty(vals ...string) string {
 	return ""
 }
 
-// writeJSON は任意の値を JSON として w に書き込む。
+// writeJSON serializes an arbitrary value as JSON and writes it to w.
 func writeJSON(w io.Writer, v interface{}) error {
 	data, err := json.Marshal(v)
 	if err != nil {
@@ -84,15 +84,15 @@ func writeJSON(w io.Writer, v interface{}) error {
 	return err
 }
 
-// resolveProjectRoot はプロジェクトルートディレクトリを返す。
+// resolveProjectRoot returns the project root directory.
 //
-// 解決優先順:
-//  1. HARNESS_PROJECT_ROOT 環境変数
-//  2. PROJECT_ROOT 環境変数
-//  3. git rev-parse --show-toplevel（monorepo の subdir 対応）
-//  4. カレントディレクトリ（フォールバック）
+// Resolution order:
+//  1. HARNESS_PROJECT_ROOT environment variable
+//  2. PROJECT_ROOT environment variable
+//  3. git rev-parse --show-toplevel (supports monorepo subdirectories)
+//  4. Current working directory (fallback)
 //
-// bash 版 path-utils.sh / config-utils.sh の detect_project_root() に相当。
+// Equivalent to detect_project_root() in the bash versions of path-utils.sh / config-utils.sh.
 func resolveProjectRoot() string {
 	if v := os.Getenv("HARNESS_PROJECT_ROOT"); v != "" {
 		return v
@@ -100,8 +100,8 @@ func resolveProjectRoot() string {
 	if v := os.Getenv("PROJECT_ROOT"); v != "" {
 		return v
 	}
-	// git rev-parse --show-toplevel でリポジトリルートを検出する。
-	// monorepo のサブディレクトリで実行された場合でも .claude/ が見つかるよう対応。
+	// Detect the repository root via git rev-parse --show-toplevel.
+	// Ensures .claude/ is found even when running inside a monorepo subdirectory.
 	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -115,18 +115,18 @@ func resolveProjectRoot() string {
 	return cwd
 }
 
-// harnessConfigFileName は設定ファイルのデフォルト名。
+// harnessConfigFileName is the default name for the configuration file.
 const harnessConfigFileName = ".claude-code-harness.config.yaml"
 
-// readPlansDirectoryFromConfig は projectRoot 配下の設定ファイルから
-// plansDirectory の値を返す。設定がない・読めない場合は空文字を返す。
+// readPlansDirectoryFromConfig returns the plansDirectory value from the configuration file
+// under projectRoot. Returns an empty string when the setting is absent or unreadable.
 //
-// YAML パーサーをインポートしないため、以下の順でフォールバックする:
-//  1. "plansDirectory: <value>" 形式の行を bufio.Scanner でスキャン
+// To avoid importing a YAML parser, falls back to scanning for lines of the form
+// "plansDirectory: <value>" using bufio.Scanner.
 //
-// セキュリティ: 以下の値は安全のためデフォルト（空文字）にフォールバックする:
-//   - 絶対パス（/ 始まり）
-//   - 親ディレクトリ参照（.. を含む）
+// Security: the following values are rejected and fall back to the default (empty string):
+//   - Absolute paths (starting with /)
+//   - Parent directory references (containing ..)
 func readPlansDirectoryFromConfig(projectRoot string) string {
 	configPath := filepath.Join(projectRoot, harnessConfigFileName)
 	f, err := os.Open(configPath)
@@ -138,24 +138,24 @@ func readPlansDirectoryFromConfig(projectRoot string) string {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
-		// "plansDirectory:" で始まる行を探す
+		// Look for a line starting with "plansDirectory:".
 		const key = "plansDirectory:"
 		if !strings.HasPrefix(line, key) {
 			continue
 		}
 		value := strings.TrimSpace(line[len(key):])
-		// クォートを除去（シングル・ダブル）
+		// Strip surrounding quotes (single or double).
 		value = strings.Trim(value, `"'`)
 		value = strings.TrimSpace(value)
 
 		if value == "" {
 			return ""
 		}
-		// セキュリティ: 絶対パスを拒否
+		// Security: reject absolute paths.
 		if filepath.IsAbs(value) {
 			return ""
 		}
-		// セキュリティ: 親ディレクトリ参照を拒否
+		// Security: reject parent directory references.
 		if strings.Contains(value, "..") {
 			return ""
 		}
@@ -164,20 +164,19 @@ func readPlansDirectoryFromConfig(projectRoot string) string {
 	return ""
 }
 
-// resolvePlansPath は projectRoot 配下で Plans.md のフルパスを返す。
+// resolvePlansPath returns the full path to Plans.md under projectRoot.
 //
-// 解決ロジック:
-//  1. 設定ファイル (.claude-code-harness.config.yaml) の plansDirectory を読む
-//  2. 設定があれば filepath.Join(projectRoot, plansDirectory, "Plans.md") を返す
-//  3. なければ filepath.Join(projectRoot, "Plans.md") を返す
-//  4. ファイルが存在しない場合は空文字を返す
+// Resolution logic:
+//  1. Read plansDirectory from the config file (.claude-code-harness.config.yaml)
+//  2. If set, return filepath.Join(projectRoot, plansDirectory, "Plans.md")
+//  3. Otherwise return filepath.Join(projectRoot, "Plans.md")
+//  4. Returns an empty string when the file does not exist
 //
-// bash 版の get_plans_file_path() に相当する。
+// Equivalent to get_plans_file_path() in the bash version.
 func resolvePlansPath(projectRoot string) string {
-	// 設定から plansDirectory を取得
+	// Read plansDirectory from config.
 	plansDir := readPlansDirectoryFromConfig(projectRoot)
 
-	// 候補ファイル名（bash 版と同じ大文字小文字バリエーション）
 	candidates := []string{"Plans.md", "plans.md", "PLANS.md", "PLANS.MD"}
 
 	var baseDir string
@@ -194,6 +193,6 @@ func resolvePlansPath(projectRoot string) string {
 		}
 	}
 
-	// 存在しない場合は空文字を返す（bash 版の plans_file_exists() 相当）
+	// File not found — return empty string (equivalent to plans_file_exists() in the bash version).
 	return ""
 }

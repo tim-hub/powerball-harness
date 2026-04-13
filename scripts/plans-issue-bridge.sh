@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # plans-issue-bridge.sh
-# Plans.md から GitHub Issue 連携用の dry-run payload を生成する。
+# Generate a dry-run payload from Plans.md for GitHub Issue integration.
 
 set -euo pipefail
 

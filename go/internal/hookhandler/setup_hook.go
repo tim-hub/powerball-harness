@@ -11,14 +11,14 @@ import (
 	"time"
 )
 
-// setupInput は Setup フックの stdin JSON ペイロード。
+// setupInput is the stdin JSON payload for the Setup hook.
 type setupInput struct {
 	HookEventName string `json:"hook_event_name"`
 	SessionID     string `json:"session_id"`
-	Mode          string `json:"mode"` // "init" または "maintenance"
+	Mode          string `json:"mode"` // "init" or "maintenance"
 }
 
-// setupOutput は Setup フックのレスポンス形式。
+// setupOutput is the response format for the Setup hook.
 type setupOutput struct {
 	HookSpecificOutput struct {
 		HookEventName     string `json:"hookEventName"`
@@ -26,7 +26,7 @@ type setupOutput struct {
 	} `json:"hookSpecificOutput"`
 }
 
-// writeSetupOutput は Setup フックのレスポンスを書き込む。
+// writeSetupOutput writes the Setup hook response.
 func writeSetupOutput(w io.Writer, message string) error {
 	var out setupOutput
 	out.HookSpecificOutput.HookEventName = "Setup"
@@ -34,25 +34,25 @@ func writeSetupOutput(w io.Writer, message string) error {
 	return writeJSON(w, out)
 }
 
-// isSimpleMode は CLAUDE_CODE_SIMPLE 環境変数でシンプルモードを検出する。
-// check-simple-mode.sh の is_simple_mode() 関数に対応。
+// isSimpleMode detects simple mode via the CLAUDE_CODE_SIMPLE environment variable.
+// Corresponds to the is_simple_mode() function in check-simple-mode.sh.
 func isSimpleMode() bool {
 	val := strings.ToLower(os.Getenv("CLAUDE_CODE_SIMPLE"))
 	return val == "1" || val == "true" || val == "yes"
 }
 
-// runSyncPluginCache はプラグインキャッシュ同期スクリプトを実行する（存在する場合）。
+// runSyncPluginCache runs the plugin cache sync script if it exists.
 func runSyncPluginCache(scriptDir string) {
 	syncScript := filepath.Join(scriptDir, "sync-plugin-cache.sh")
 	if _, err := os.Stat(syncScript); err == nil {
 		cmd := exec.Command("bash", syncScript)
-		_ = cmd.Run() // エラーは無視
+		_ = cmd.Run() // errors are ignored
 	}
 }
 
-// getPlansFilePath は設定から Plans.md のパスを取得する。
-// helpers.go の resolvePlansPath() を使った Go ネイティブ実装。
-// bash (config-utils.sh) への依存を排除している。
+// getPlansFilePath retrieves the Plans.md path from configuration.
+// Native Go implementation using resolvePlansPath() from helpers.go;
+// eliminates the dependency on bash (config-utils.sh).
 func getPlansFilePath(_ string) string {
 	projectRoot := resolveProjectRoot()
 	if path := resolvePlansPath(projectRoot); path != "" {
@@ -61,7 +61,7 @@ func getPlansFilePath(_ string) string {
 	return filepath.Join(projectRoot, "Plans.md")
 }
 
-// runTemplateTracker はテンプレートトラッカースクリプトを実行する。
+// runTemplateTracker runs the template tracker script.
 func runTemplateTracker(scriptDir, action string) string {
 	trackerScript := filepath.Join(scriptDir, "template-tracker.sh")
 	if _, err := os.Stat(trackerScript); err == nil {
@@ -73,50 +73,50 @@ func runTemplateTracker(scriptDir, action string) string {
 	return ""
 }
 
-// HandleSetupHookInit は setup-hook.sh の init モードの Go 移植。
+// HandleSetupHookInit is the Go port of setup-hook.sh in init mode.
 //
-// 初回セットアップとして以下を実行する:
-//  1. プラグインキャッシュの同期
-//  2. .claude/state/ ディレクトリの初期化
-//  3. デフォルト設定ファイルの生成（存在しない場合）
-//  4. CLAUDE.md の生成（存在しない場合）
-//  5. Plans.md の生成（存在しない場合）
-//  6. テンプレートトラッカーの初期化
+// Performs initial setup:
+//  1. Sync the plugin cache
+//  2. Initialize the .claude/state/ directory
+//  3. Generate the default config file (if absent)
+//  4. Generate CLAUDE.md (if absent)
+//  5. Generate Plans.md (if absent)
+//  6. Initialize the template tracker
 func HandleSetupHookInit(in io.Reader, out io.Writer) error {
 	return handleSetupHook(in, out, "init")
 }
 
-// HandleSetupHookMaintenance は setup-hook.sh の maintenance モードの Go 移植。
+// HandleSetupHookMaintenance is the Go port of setup-hook.sh in maintenance mode.
 //
-// メンテナンス処理として以下を実行する:
-//  1. プラグインキャッシュの同期
-//  2. 7日以上の古いセッションアーカイブの削除
-//  3. .tmp ファイルの削除
-//  4. テンプレート更新チェック
-//  5. 設定ファイルの YAML 構文検証
+// Performs maintenance tasks:
+//  1. Sync the plugin cache
+//  2. Delete session archives older than 7 days
+//  3. Delete .tmp files
+//  4. Check for template updates
+//  5. Validate the config file YAML syntax
 func HandleSetupHookMaintenance(in io.Reader, out io.Writer) error {
 	return handleSetupHook(in, out, "maintenance")
 }
 
-// HandleSetupHook は setup-hook.sh 全体の Go 移植。
-// stdin の JSON ペイロードまたは引数でモードを決定する。
+// HandleSetupHook is the full Go port of setup-hook.sh.
+// The mode is determined from the stdin JSON payload or arguments.
 func HandleSetupHook(in io.Reader, out io.Writer) error {
 	return handleSetupHook(in, out, "")
 }
 
-// handleSetupHook は setup-hook.sh の内部実装。
-// mode が空の場合は stdin ペイロードから決定する。
+// handleSetupHook is the internal implementation of setup-hook.sh.
+// When mode is empty, it is determined from the stdin payload.
 func handleSetupHook(in io.Reader, out io.Writer, mode string) error {
-	// SIMPLE モード検出
+	// Detect SIMPLE mode.
 	simpleMode := isSimpleMode()
 	if simpleMode {
 		fmt.Fprintf(os.Stderr, "[WARNING] CLAUDE_CODE_SIMPLE mode detected — skills/agents/memory disabled\n")
 	}
 
-	// stdin から JSON を読み取る（エラーは無視）
+	// Read JSON from stdin (errors are ignored).
 	data, _ := io.ReadAll(in)
 
-	// ペイロードからモードを決定（引数が優先）
+	// Determine mode from payload (argument takes precedence).
 	if mode == "" {
 		var input setupInput
 		if len(data) > 0 {
@@ -129,7 +129,7 @@ func handleSetupHook(in io.Reader, out io.Writer, mode string) error {
 		}
 	}
 
-	// スクリプトディレクトリを推定（実行バイナリ基準。テスト時は cwd）
+	// Resolve script directory (based on the running binary; falls back to cwd in tests).
 	scriptDir := resolveSetupScriptDir()
 
 	switch mode {
@@ -138,17 +138,17 @@ func handleSetupHook(in io.Reader, out io.Writer, mode string) error {
 	case "maintenance":
 		return runSetupMaintenance(out, scriptDir, simpleMode)
 	default:
-		return writeSetupOutput(out, fmt.Sprintf("[Setup] 不明なモード: %s", mode))
+		return writeSetupOutput(out, fmt.Sprintf("[Setup] Unknown mode: %s", mode))
 	}
 }
 
-// resolveSetupScriptDir はスクリプトディレクトリのパスを解決する。
-// フックは対象プロジェクトの CWD で実行されるため、CWD ベースの検索は
-// harness のインストール先を指さない。以下の優先順位で解決する:
+// resolveSetupScriptDir resolves the script directory path.
+// Hooks run in the target project's CWD, so a CWD-based search would not point
+// to the harness installation. Resolution order:
 //
-//  1. CLAUDE_PLUGIN_ROOT 環境変数（harness インストール先）
-//  2. HARNESS_SCRIPT_DIR 環境変数（明示的なオーバーライド）
-//  3. CWD（開発環境用フォールバック）
+//  1. CLAUDE_PLUGIN_ROOT env var (harness installation root)
+//  2. HARNESS_SCRIPT_DIR env var (explicit override)
+//  3. CWD (fallback for development environments)
 func resolveSetupScriptDir() string {
 	if root := os.Getenv("CLAUDE_PLUGIN_ROOT"); root != "" {
 		return filepath.Join(root, "scripts")
@@ -156,52 +156,52 @@ func resolveSetupScriptDir() string {
 	if dir := os.Getenv("HARNESS_SCRIPT_DIR"); dir != "" {
 		return dir
 	}
-	// フォールバック: カレントディレクトリの scripts/（開発環境用）
+	// Fallback: scripts/ relative to the current directory (development only).
 	cwd, _ := os.Getwd()
 	return filepath.Join(cwd, "scripts")
 }
 
-// runSetupInit は init モードの処理を実行する。
+// runSetupInit runs the init mode processing.
 func runSetupInit(out io.Writer, scriptDir string, simpleMode bool) error {
 	var messages []string
 
-	// 1. プラグインキャッシュの同期
+	// 1. Sync plugin cache.
 	syncScript := filepath.Join(scriptDir, "sync-plugin-cache.sh")
 	if _, err := os.Stat(syncScript); err == nil {
 		cmd := exec.Command("bash", syncScript)
 		if err := cmd.Run(); err == nil {
-			messages = append(messages, "プラグインキャッシュ同期完了")
+			messages = append(messages, "plugin cache synced")
 		}
 	}
 
-	// 2. 状態ディレクトリの初期化
+	// 2. Initialize state directory.
 	stateDir := ".claude/state"
 	if err := os.MkdirAll(stateDir, 0o755); err == nil {
-		// 初期化成功（既存でも OK）
+		// Initialization succeeded (existing directory is also OK).
 	}
 
-	// 3. デフォルト設定ファイルの生成
+	// 3. Generate default config file.
 	configFile := ".claude-code-harness.config.yaml"
 	if !fileExists(configFile) {
 		templatePath := filepath.Join(scriptDir, "..", "templates", ".claude-code-harness.config.yaml.template")
 		if _, err := os.Stat(templatePath); err == nil {
 			if err := copyFile(templatePath, configFile); err == nil {
-				messages = append(messages, "設定ファイル生成完了")
+				messages = append(messages, "config file generated")
 			}
 		}
 	}
 
-	// 4. CLAUDE.md の生成
+	// 4. Generate CLAUDE.md.
 	if !fileExists("CLAUDE.md") {
 		templatePath := filepath.Join(scriptDir, "..", "templates", "CLAUDE.md.template")
 		if _, err := os.Stat(templatePath); err == nil {
 			if err := copyFile(templatePath, "CLAUDE.md"); err == nil {
-				messages = append(messages, "CLAUDE.md 生成完了")
+				messages = append(messages, "CLAUDE.md generated")
 			}
 		}
 	}
 
-	// 5. Plans.md の生成（plansDirectory 設定を考慮）
+	// 5. Generate Plans.md (respecting the plansDirectory config).
 	plansPath := getPlansFilePath(scriptDir)
 	if !fileExists(plansPath) {
 		plansDir := filepath.Dir(plansPath)
@@ -211,39 +211,39 @@ func runSetupInit(out io.Writer, scriptDir string, simpleMode bool) error {
 		templatePath := filepath.Join(scriptDir, "..", "templates", "Plans.md.template")
 		if _, err := os.Stat(templatePath); err == nil {
 			if err := copyFile(templatePath, plansPath); err == nil {
-				messages = append(messages, "Plans.md 生成完了")
+				messages = append(messages, "Plans.md generated")
 			}
 		}
 	}
 
-	// 6. テンプレートトラッカーの初期化
+	// 6. Initialize template tracker.
 	runTemplateTracker(scriptDir, "init")
 
-	// SIMPLE モード警告を追加
+	// Add SIMPLE mode warning.
 	if simpleMode {
 		messages = append(messages, "WARNING: CLAUDE_CODE_SIMPLE mode — skills/agents/memory disabled, hooks only")
 	}
 
 	if len(messages) == 0 {
-		return writeSetupOutput(out, "[Setup:init] ハーネスは既に初期化済みです")
+		return writeSetupOutput(out, "[Setup:init] Harness is already initialized")
 	}
 	return writeSetupOutput(out, "[Setup:init] "+strings.Join(messages, ", "))
 }
 
-// runSetupMaintenance は maintenance モードの処理を実行する。
+// runSetupMaintenance runs the maintenance mode processing.
 func runSetupMaintenance(out io.Writer, scriptDir string, simpleMode bool) error {
 	var messages []string
 
-	// 1. プラグインキャッシュの同期
+	// 1. Sync plugin cache.
 	syncScript := filepath.Join(scriptDir, "sync-plugin-cache.sh")
 	if _, err := os.Stat(syncScript); err == nil {
 		cmd := exec.Command("bash", syncScript)
 		if err := cmd.Run(); err == nil {
-			messages = append(messages, "キャッシュ同期完了")
+			messages = append(messages, "cache synced")
 		}
 	}
 
-	// 2. 古いセッションファイルのクリーンアップ（7日以上）
+	// 2. Clean up old session files (older than 7 days).
 	stateDir := ".claude/state"
 	archiveDir := filepath.Join(stateDir, "sessions")
 	if _, err := os.Stat(archiveDir); err == nil {
@@ -263,15 +263,15 @@ func runSetupMaintenance(out io.Writer, scriptDir string, simpleMode bool) error
 				}
 			}
 		}
-		messages = append(messages, "古いセッションアーカイブ削除")
+		messages = append(messages, "old session archives removed")
 	}
 
-	// 3. 一時ファイルのクリーンアップ
+	// 3. Clean up temporary files.
 	if _, err := os.Stat(stateDir); err == nil {
 		removeTmpFiles(stateDir)
 	}
 
-	// 4. テンプレート更新チェック
+	// 4. Check for template updates.
 	checkResult := runTemplateTracker(scriptDir, "check")
 	if checkResult != "" {
 		var checkData map[string]interface{}
@@ -281,31 +281,31 @@ func runSetupMaintenance(out io.Writer, scriptDir string, simpleMode bool) error
 				if count, ok := checkData["updatesCount"].(float64); ok {
 					updatesCount = int(count)
 				}
-				messages = append(messages, fmt.Sprintf("テンプレート更新あり: %d件", updatesCount))
+				messages = append(messages, fmt.Sprintf("template updates available: %d", updatesCount))
 			}
 		}
 	}
 
-	// 5. SIMPLE モード警告を追加
+	// 5. Add SIMPLE mode warning.
 	if simpleMode {
 		messages = append(messages, "WARNING: CLAUDE_CODE_SIMPLE mode — skills/agents/memory disabled, hooks only")
 	}
 
-	// 6. 設定ファイルの YAML 構文チェック（python3 が利用可能な場合）
+	// 6. Validate config file YAML syntax (when python3 is available).
 	configFile := ".claude-code-harness.config.yaml"
 	if fileExists(configFile) {
 		if err := validateYAMLConfig(configFile); err != nil {
-			messages = append(messages, "警告: 設定ファイルの構文エラー")
+			messages = append(messages, "warning: config file syntax error")
 		}
 	}
 
 	if len(messages) == 0 {
-		return writeSetupOutput(out, "[Setup:maintenance] メンテナンス完了（変更なし）")
+		return writeSetupOutput(out, "[Setup:maintenance] Maintenance complete (no changes)")
 	}
 	return writeSetupOutput(out, "[Setup:maintenance] "+strings.Join(messages, ", "))
 }
 
-// copyFile はファイルをコピーする。
+// copyFile copies a file from src to dst.
 func copyFile(src, dst string) error {
 	data, err := os.ReadFile(src)
 	if err != nil {
@@ -314,7 +314,7 @@ func copyFile(src, dst string) error {
 	return os.WriteFile(dst, data, 0o644)
 }
 
-// removeTmpFiles はディレクトリ内の .tmp ファイルを再帰的に削除する。
+// removeTmpFiles recursively deletes .tmp files within the directory.
 func removeTmpFiles(dir string) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -332,10 +332,10 @@ func removeTmpFiles(dir string) {
 	}
 }
 
-// validateYAMLConfig は python3 で YAML 構文を検証する。
+// validateYAMLConfig validates the YAML syntax using python3.
 func validateYAMLConfig(configFile string) error {
 	if _, err := exec.LookPath("python3"); err != nil {
-		return nil // python3 がない場合はスキップ
+		return nil // Skip if python3 is not available.
 	}
 	script := fmt.Sprintf("import yaml; yaml.safe_load(open(%q))", configFile)
 	cmd := exec.Command("python3", "-c", script)

@@ -1,73 +1,73 @@
 ---
 name: merge-plans
-description: "Plans.md のマージ更新を行うスキル（ユーザータスクを保持）。複数のPlans.mdを統合する必要がある場合に使用します。"
+description: "Skill for merge-updating Plans.md (preserving user tasks). Use when multiple Plans.md files need to be consolidated."
 allowed-tools: ["Read", "Write", "Edit"]
 ---
 
 # Merge Plans Skill
 
-既存の Plans.md を更新する際に、ユーザーのタスクデータを保持しながら
-テンプレートの構造を適用するスキル。
+A skill that applies the template structure while preserving user task data
+when updating an existing Plans.md.
 
 ---
 
-## 目的
+## Purpose
 
-- ユーザーのタスク（🔴🟡🟢📦セクション）を保持
-- テンプレートの構造・マーカー定義を更新
-- 最終更新情報を更新
+- Preserve user tasks (🔴🟡🟢📦 sections)
+- Update template structure and marker definitions
+- Update last-modified information
 
 ---
 
-## Plans.md の構造
+## Plans.md Structure
 
 ```markdown
-# Plans.md - タスク管理
+# Plans.md - Task Management
 
-> **プロジェクト**: {{PROJECT_NAME}}
-> **最終更新**: {{DATE}}
-> **更新者**: Claude Code
-
----
-
-## 🔴 進行中のタスク        ← ユーザーデータ（保持）
-
-## 🟡 未着手のタスク        ← ユーザーデータ（保持）
-
-## 🟢 完了タスク            ← ユーザーデータ（保持）
-
-## 📦 アーカイブ            ← ユーザーデータ（保持）
-
-## マーカー凡例             ← テンプレートから更新
-
-## 最終更新情報             ← 日付を更新
-```
+> **Project**: {{PROJECT_NAME}}
+> **Last Updated**: {{DATE}}
+> **Updated By**: Claude Code
 
 ---
 
-## マージアルゴリズム
+## 🔴 In-Progress Tasks         <- User data (preserved)
 
-### Step 1: セクション分割
+## 🟡 Not-Started Tasks         <- User data (preserved)
 
-```
-既存の Plans.md を以下のセクションに分割:
+## 🟢 Completed Tasks           <- User data (preserved)
 
-1. ヘッダー部分（# Plans.md ... ---）
-2. 🔴 進行中のタスク（次のセクションまで）
-3. 🟡 未着手のタスク（次のセクションまで）
-4. 🟢 完了タスク（次のセクションまで）
-5. 📦 アーカイブ（次のセクションまで）
-6. マーカー凡例（次のセクションまで）
-7. 最終更新情報（ファイル末尾まで）
+## 📦 Archive                   <- User data (preserved)
+
+## Marker Legend                 <- Updated from template
+
+## Last Update Info              <- Date updated
 ```
 
-### Step 2: タスクセクションの抽出
+---
+
+## Merge Algorithm
+
+### Step 1: Section Splitting
+
+```
+Split the existing Plans.md into the following sections:
+
+1. Header section (# Plans.md ... ---)
+2. 🔴 In-Progress Tasks (until next section)
+3. 🟡 Not-Started Tasks (until next section)
+4. 🟢 Completed Tasks (until next section)
+5. 📦 Archive (until next section)
+6. Marker Legend (until next section)
+7. Last Update Info (until end of file)
+```
+
+### Step 2: Task Section Extraction
 
 ```bash
 extract_section() {
   local file="$1"
   local start_marker="$2"
-  local end_markers="$3"  # パイプ区切りの終了マーカー
+  local end_markers="$3"  # Pipe-delimited end markers
 
   awk -v start="$start_marker" -v ends="$end_markers" '
     BEGIN { in_section = 0; split(ends, end_arr, "|") }
@@ -81,17 +81,17 @@ extract_section() {
   ' "$file"
 }
 
-# 各セクションを抽出
-TASKS_WIP=$(extract_section "$PLANS_FILE" "## 🔴" "## 🟡|## 🟢|## 📦|## マーカー|---")
-TASKS_TODO=$(extract_section "$PLANS_FILE" "## 🟡" "## 🔴|## 🟢|## 📦|## マーカー|---")
-TASKS_DONE=$(extract_section "$PLANS_FILE" "## 🟢" "## 🔴|## 🟡|## 📦|## マーカー|---")
-TASKS_ARCHIVE=$(extract_section "$PLANS_FILE" "## 📦" "## 🔴|## 🟡|## 🟢|## マーカー|---")
+# Extract each section
+TASKS_WIP=$(extract_section "$PLANS_FILE" "## 🔴" "## 🟡|## 🟢|## 📦|## Marker|---")
+TASKS_TODO=$(extract_section "$PLANS_FILE" "## 🟡" "## 🔴|## 🟢|## 📦|## Marker|---")
+TASKS_DONE=$(extract_section "$PLANS_FILE" "## 🟢" "## 🔴|## 🟡|## 📦|## Marker|---")
+TASKS_ARCHIVE=$(extract_section "$PLANS_FILE" "## 📦" "## 🔴|## 🟡|## 🟢|## Marker|---")
 ```
 
-### Step 3: タスクの検証
+### Step 3: Task Validation
 
 ```bash
-# 空でないことを確認
+# Verify non-empty
 count_tasks() {
   echo "$1" | grep -c "^\s*- \[" || echo "0"
 }
@@ -101,135 +101,135 @@ TODO_COUNT=$(count_tasks "$TASKS_TODO")
 DONE_COUNT=$(count_tasks "$TASKS_DONE")
 ARCHIVE_COUNT=$(count_tasks "$TASKS_ARCHIVE")
 
-echo "保持されるタスク:"
-echo "  進行中: $WIP_COUNT"
-echo "  未着手: $TODO_COUNT"
-echo "  完了: $DONE_COUNT"
-echo "  アーカイブ: $ARCHIVE_COUNT"
+echo "Tasks to be preserved:"
+echo "  In-progress: $WIP_COUNT"
+echo "  Not started: $TODO_COUNT"
+echo "  Completed: $DONE_COUNT"
+echo "  Archived: $ARCHIVE_COUNT"
 ```
 
-### Step 4: 新しい Plans.md の生成
+### Step 4: Generate New Plans.md
 
 ```markdown
-# Plans.md - タスク管理
+# Plans.md - Task Management
 
-> **プロジェクト**: {{PROJECT_NAME}}
-> **最終更新**: {{DATE}}
-> **更新者**: Claude Code
+> **Project**: {{PROJECT_NAME}}
+> **Last Updated**: {{DATE}}
+> **Updated By**: Claude Code
 
 ---
 
-## 🔴 進行中のタスク
+## 🔴 In-Progress Tasks
 
-<!-- cc:WIP のタスクをここに記載 -->
+<!-- List cc:WIP tasks here -->
 
 {{TASKS_WIP}}
 
 ---
 
-## 🟡 未着手のタスク
+## 🟡 Not-Started Tasks
 
-<!-- cc:TODO, pm:依頼中（互換: cursor:依頼中） のタスクをここに記載 -->
+<!-- List cc:TODO, pm:requested (compatible: cursor:requested) tasks here -->
 
 {{TASKS_TODO}}
 
 ---
 
-## 🟢 完了タスク
+## 🟢 Completed Tasks
 
-<!-- cc:完了, pm:確認済（互換: cursor:確認済） のタスクをここに記載 -->
+<!-- List cc:done, pm:confirmed (compatible: cursor:confirmed) tasks here -->
 
 {{TASKS_DONE}}
 
 ---
 
-## 📦 アーカイブ
+## 📦 Archive
 
-<!-- 古い完了タスクはここに移動 -->
+<!-- Move old completed tasks here -->
 
 {{TASKS_ARCHIVE}}
 
 ---
 
-## マーカー凡例
+## Marker Legend
 
-| マーカー | 意味 |
-|---------|------|
-| `pm:依頼中` | PM から依頼されたタスク（互換: cursor:依頼中） |
-| `cc:TODO` | Claude Code 未着手 |
-| `cc:WIP` | Claude Code 作業中 |
-| `cc:完了` | Claude Code 完了（確認待ち） |
-| `pm:確認済` | PM 確認完了（互換: cursor:確認済） |
-| `cursor:依頼中` | （互換）pm:依頼中 と同義 |
-| `cursor:確認済` | （互換）pm:確認済 と同義 |
-| `blocked` | ブロック中（理由を併記） |
+| Marker | Meaning |
+|--------|---------|
+| `pm:requested` | Task requested by PM (compatible: cursor:requested) |
+| `cc:TODO` | Claude Code not started |
+| `cc:WIP` | Claude Code in progress |
+| `cc:done` | Claude Code completed (awaiting confirmation) |
+| `pm:confirmed` | PM confirmed complete (compatible: cursor:confirmed) |
+| `cursor:requested` | (Compatible) Synonym for pm:requested |
+| `cursor:confirmed` | (Compatible) Synonym for pm:confirmed |
+| `blocked` | Blocked (include reason) |
 
 ---
 
-## 最終更新情報
+## Last Update Info
 
-- **更新日時**: {{DATE}}
-- **最終セッション担当**: Claude Code
-- **ブランチ**: main
-- **更新種別**: プラグインアップデート
+- **Updated**: {{DATE}}
+- **Last Session By**: Claude Code
+- **Branch**: main
+- **Update Type**: Plugin update
 ```
 
 ---
 
-## 空セクションの処理
+## Empty Section Handling
 
-タスクが空の場合は、デフォルトテキストを挿入:
+When a task section is empty, insert default text:
 
 ```markdown
-## 🔴 進行中のタスク
+## 🔴 In-Progress Tasks
 
-<!-- cc:WIP のタスクをここに記載 -->
+<!-- List cc:WIP tasks here -->
 
-（現在なし）
+(None currently)
 ```
 
 ---
 
-## エラー処理
+## Error Handling
 
-### Plans.md が解析できない場合
+### When Plans.md Cannot Be Parsed
 
 ```bash
 if ! validate_plans_structure "$PLANS_FILE"; then
-  echo "⚠️ Plans.md の構造を解析できませんでした"
-  echo "バックアップを保持し、新規テンプレートを使用します"
+  echo "Warning: Could not parse Plans.md structure"
+  echo "Keeping backup and using new template instead"
 
-  # バックアップ
+  # Backup
   cp "$PLANS_FILE" "${PLANS_FILE}.bak.$(date +%Y%m%d%H%M%S)"
 
-  # テンプレートを使用
+  # Use template
   use_template_instead=true
 fi
 ```
 
-### 必須セクションがない場合
+### When Required Sections Are Missing
 
-不足しているセクションはテンプレートのデフォルトで補完。
-
----
-
-## 出力
-
-| 項目 | 説明 |
-|------|------|
-| `merge_successful` | マージ成功フラグ |
-| `tasks_wip_count` | 進行中タスク数 |
-| `tasks_todo_count` | 未着手タスク数 |
-| `tasks_done_count` | 完了タスク数 |
-| `tasks_archive_count` | アーカイブタスク数 |
-| `backup_created` | バックアップ作成有無 |
+Missing sections are filled with template defaults.
 
 ---
 
-## 使用例
+## Output
+
+| Field | Description |
+|-------|-------------|
+| `merge_successful` | Merge success flag |
+| `tasks_wip_count` | In-progress task count |
+| `tasks_todo_count` | Not-started task count |
+| `tasks_done_count` | Completed task count |
+| `tasks_archive_count` | Archived task count |
+| `backup_created` | Whether backup was created |
+
+---
+
+## Usage Example
 
 ```bash
-# スキルの呼び出し
+# Invoke the skill
 merge_plans \
   --existing "./Plans.md" \
   --template "$PLUGIN_PATH/templates/Plans.md.template" \
@@ -240,7 +240,7 @@ merge_plans \
 
 ---
 
-## 関連スキル
+## Related Skills
 
-- `update-2agent-files` - 更新フロー全体
-- `generate-workflow-files` - 新規生成
+- `update-2agent-files` - Overall update flow
+- `generate-workflow-files` - New file generation

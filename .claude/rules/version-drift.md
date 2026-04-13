@@ -1,16 +1,16 @@
 # Version Drift Detection
 
-## チェック対象
+## What to Check
 
-VERSION と .claude-plugin/plugin.json の version は常に一致必須。
-不一致検出時は `./scripts/sync-version.sh` の実行を提案（自動実行はしない）。
+VERSION and the version field in .claude-plugin/plugin.json must always match.
+When a mismatch is detected, suggest running `./scripts/sync-version.sh` (do not run it automatically).
 
-## Feature Table 鮮度
+## Feature Table Freshness
 
-docs/CLAUDE-feature-table.md 内の「計画中（未実装）」「実装予定」項目は
-6ヶ月経過で削除を提案。
+Items marked "planned (not yet implemented)" or "scheduled for implementation" in
+docs/CLAUDE-feature-table.md should be proposed for deletion after 6 months have passed.
 
-## なぜこのルールが必要か
+## Why This Rule Is Needed
 
-D2（不正確情報）は一度修正しても再発する。
-バージョン不一致と Feature Table の腐敗は最も一般的なドリフトパターン。
+D2 (inaccurate information) recurs even after being corrected once.
+Version mismatches and Feature Table decay are the most common drift patterns.

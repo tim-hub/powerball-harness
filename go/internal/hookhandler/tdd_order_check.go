@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// tddCheckInput は tdd-order-check.sh に渡される stdin JSON。
+// tddCheckInput is the stdin JSON passed to tdd-order-check.sh.
 type tddCheckInput struct {
 	ToolName string `json:"tool_name"`
 	ToolInput struct {
@@ -17,18 +17,18 @@ type tddCheckInput struct {
 	} `json:"tool_input"`
 }
 
-// tddApproveOutput は PreToolUse / PostToolUse フックの承認レスポンス形式。
-// tdd-order-check.sh はブロックせず、systemMessage で警告を出す。
+// tddApproveOutput is the approval response format for PreToolUse / PostToolUse hooks.
+// tdd-order-check.sh does not block; it emits a warning via systemMessage.
 type tddApproveOutput struct {
 	Decision      string `json:"decision"`
 	Reason        string `json:"reason"`
 	SystemMessage string `json:"systemMessage,omitempty"`
 }
 
-// sourceFileExts は TDD チェック対象のソースファイル拡張子パターン。
+// sourceFileExts is the file extension pattern for TDD check targets.
 var sourceFileExts = regexp.MustCompile(`\.(ts|tsx|js|jsx|py|go)$`)
 
-// testFilePatterns はテストファイルを判定する正規表現パターン一覧。
+// testFilePatterns is a list of regular expression patterns used to identify test files.
 var testFilePatterns = []*regexp.Regexp{
 	regexp.MustCompile(`\.(test|spec)\.(ts|tsx|js|jsx)$`),
 	regexp.MustCompile(`_test\.go$`),
@@ -37,30 +37,31 @@ var testFilePatterns = []*regexp.Regexp{
 	regexp.MustCompile(`/tests?/`),
 }
 
-// tddSkipMarkerRe は Plans.md 中の [skip:tdd] + cc:WIP の組み合わせを検出するパターン。
+// tddSkipMarkerRe is the pattern to detect [skip:tdd] + cc:WIP combinations in Plans.md.
 var tddSkipMarkerRe = regexp.MustCompile(`\[skip:tdd\].*cc:WIP|cc:WIP.*\[skip:tdd\]`)
 
-// sessionChangesFile はセッション中に編集されたファイルを記録するファイルパス。
+// sessionChangesFile is the file path that records files edited during a session.
 const sessionChangesFile = ".claude/state/session-changes.json"
 
-// tddWarningMessage は TDD 推奨警告メッセージ。
-const tddWarningMessage = "TDD はデフォルトで有効です。テストを先に書くことを推奨します。\n\n" +
-	"現在、本体ファイルを編集しましたが、対応するテストファイルがまだ編集されていません。\n\n" +
-	"推奨: テストファイル（*.test.ts, *.spec.ts, *_test.go, test_*.py）を先に作成してから、本体を実装してください。\n\n" +
-	"スキップする場合は Plans.md の該当タスクに [skip:tdd] マーカーを追加してください。\n\n" +
-	"これは警告であり、ブロックはしません。"
+// tddWarningMessage is the TDD recommendation warning message.
+const tddWarningMessage = "TDD is enabled by default. It is recommended to write tests first.\n\n" +
+	"You have edited an implementation file, but the corresponding test file has not been edited yet.\n\n" +
+	"Recommended: Create the test file (*.test.ts, *.spec.ts, *_test.go, test_*.py) before implementing the source.\n\n" +
+	"To skip TDD for this task, add the [skip:tdd] marker to the relevant task in Plans.md.\n\n" +
+	"This is a warning only — it does not block execution."
 
-// HandleTDDOrderCheck は tdd-order-check.sh の Go 移植。
+// HandleTDDOrderCheck is the Go port of tdd-order-check.sh.
 //
-// PostToolUse Write/Edit イベントで呼び出され、実装ファイルが対応するテストファイルより
-// 先に編集されたかどうかを検出する。
+// Called on PostToolUse Write/Edit events, it detects whether an implementation
+// file was edited before its corresponding test file.
 //
-// 動作:
-//   - ソースファイル（.ts, .js, .tsx, .jsx, .py, .go）が編集されたとき
-//   - cc:WIP タスクが Plans.md に存在する
-//   - [skip:tdd] マーカーがない
-//   - セッション中にテストファイルが編集されていない
-//   → systemMessage で TDD 順序の推奨を警告（ブロックはしない）
+// Triggers a warning when all of the following are true:
+//   - A source file (.ts, .js, .tsx, .jsx, .py, .go) was edited
+//   - A cc:WIP task exists in Plans.md
+//   - No [skip:tdd] marker is present
+//   - No test file was edited during this session
+//
+// → Emits a TDD order recommendation via systemMessage (does not block).
 func HandleTDDOrderCheck(in io.Reader, out io.Writer) error {
 	data, err := io.ReadAll(in)
 	if err != nil {
@@ -81,38 +82,38 @@ func HandleTDDOrderCheck(in io.Reader, out io.Writer) error {
 		return writeTDDApprove(out, "")
 	}
 
-	// テストファイル自体はスキップ
+	// Skip if this is a test file itself.
 	if isTestFilePath(filePath) {
 		return writeTDDApprove(out, "")
 	}
 
-	// ソースファイルでなければスキップ
+	// Skip if it is not a source file.
 	if !isSourceFilePath(filePath) {
 		return writeTDDApprove(out, "")
 	}
 
-	// cc:WIP タスクが存在しなければスキップ
+	// Skip if no cc:WIP task exists.
 	projectRoot := resolveProjectRoot()
 	if !hasActiveWIPTask(projectRoot) {
 		return writeTDDApprove(out, "")
 	}
 
-	// [skip:tdd] マーカーがあればスキップ
+	// Skip if [skip:tdd] marker is present.
 	if isTDDSkipped(projectRoot) {
 		return writeTDDApprove(out, "")
 	}
 
-	// セッション中にテストファイルが編集済みならスキップ
+	// Skip if a test file was already edited this session.
 	if testEditedThisSession() {
 		return writeTDDApprove(out, "")
 	}
 
-	// 警告を出力（ブロックはしない）
+	// Emit warning (does not block).
 	return writeTDDApprove(out, tddWarningMessage)
 }
 
-// writeTDDApprove は approve レスポンスを書き込む。
-// systemMessage が空の場合は警告なしで承認する。
+// writeTDDApprove writes an approve response.
+// If systemMessage is empty, it approves without a warning.
 func writeTDDApprove(out io.Writer, systemMessage string) error {
 	o := tddApproveOutput{
 		Decision: "approve",
@@ -129,8 +130,8 @@ func writeTDDApprove(out io.Writer, systemMessage string) error {
 	return err
 }
 
-// isTestFilePath はファイルパスがテストファイルかどうかを判定する。
-// パターン: *.test.ts, *.spec.ts, *_test.go, test_*.py, __tests__/, /tests?/
+// isTestFilePath reports whether filePath refers to a test file.
+// Patterns: *.test.ts, *.spec.ts, *_test.go, test_*.py, __tests__/, /tests?/
 func isTestFilePath(filePath string) bool {
 	for _, re := range testFilePatterns {
 		if re.MatchString(filePath) {
@@ -140,15 +141,15 @@ func isTestFilePath(filePath string) bool {
 	return false
 }
 
-// isSourceFilePath はファイルパスがソースファイルかどうかを判定する。
-// テストファイルを除く .ts, .tsx, .js, .jsx, .py, .go が対象。
+// isSourceFilePath reports whether filePath refers to a source file.
+// Covers .ts, .tsx, .js, .jsx, .py, .go, excluding test files.
 func isSourceFilePath(filePath string) bool {
 	return sourceFileExts.MatchString(filePath) && !isTestFilePath(filePath)
 }
 
-// hasActiveWIPTask は Plans.md に cc:WIP タスクが存在するかどうかを確認する。
-// projectRoot が空の場合は resolveProjectRoot() でカレントディレクトリを基準にする。
-// resolvePlansPath が空文字を返した場合（Plans.md が存在しない）は false を返す。
+// hasActiveWIPTask reports whether Plans.md contains an active cc:WIP task.
+// If projectRoot is empty, it falls back to resolveProjectRoot().
+// Returns false when resolvePlansPath returns an empty string (Plans.md not found).
 func hasActiveWIPTask(projectRoot string) bool {
 	if projectRoot == "" {
 		projectRoot = resolveProjectRoot()
@@ -164,9 +165,9 @@ func hasActiveWIPTask(projectRoot string) bool {
 	return strings.Contains(string(data), "cc:WIP")
 }
 
-// isTDDSkipped は Plans.md の cc:WIP タスクに [skip:tdd] マーカーがあるかを確認する。
-// projectRoot が空の場合は resolveProjectRoot() でカレントディレクトリを基準にする。
-// resolvePlansPath が空文字を返した場合（Plans.md が存在しない）は false を返す。
+// isTDDSkipped reports whether the cc:WIP task in Plans.md has the [skip:tdd] marker.
+// If projectRoot is empty, it falls back to resolveProjectRoot().
+// Returns false when resolvePlansPath returns an empty string (Plans.md not found).
 func isTDDSkipped(projectRoot string) bool {
 	if projectRoot == "" {
 		projectRoot = resolveProjectRoot()
@@ -182,12 +183,12 @@ func isTDDSkipped(projectRoot string) bool {
 	return tddSkipMarkerRe.Match(data)
 }
 
-// testEditedThisSession はセッション中にテストファイルが編集されたかどうかを確認する。
-// .claude/state/session-changes.json を参照する（存在しない場合は false）。
+// testEditedThisSession reports whether a test file was edited during the current session.
+// It reads .claude/state/session-changes.json; returns false if the file does not exist.
 func testEditedThisSession() bool {
 	data, err := os.ReadFile(sessionChangesFile)
 	if err != nil {
-		// session-changes.json がなければ changed-files.jsonl もチェック
+		// If session-changes.json is absent, also check changed-files.jsonl.
 		return testEditedInChangedFiles()
 	}
 	content := string(data)
@@ -198,8 +199,8 @@ func testEditedThisSession() bool {
 		strings.Contains(content, "__tests__")
 }
 
-// testEditedInChangedFiles は .claude/state/changed-files.jsonl を参照して
-// セッション中にテストファイルが編集されたかを確認する。
+// testEditedInChangedFiles checks .claude/state/changed-files.jsonl to determine
+// whether a test file was edited during the current session.
 func testEditedInChangedFiles() bool {
 	data, err := os.ReadFile(changedFilesPath)
 	if err != nil {
@@ -223,8 +224,8 @@ func testEditedInChangedFiles() bool {
 	return false
 }
 
-// findCorrespondingTestFile は実装ファイルに対応するテストファイルパスを推定する。
-// 例: src/main.ts → src/main.test.ts
+// findCorrespondingTestFile infers the test file path corresponding to an implementation file.
+// Example: src/main.ts → src/main.test.ts
 func findCorrespondingTestFile(filePath string) string {
 	ext := filepath.Ext(filePath)
 	base := strings.TrimSuffix(filePath, ext)

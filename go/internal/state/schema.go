@@ -1,30 +1,30 @@
-// Package state は Harness v4 の SQLite 状態管理を提供する。
-// TypeScript の core/src/state/schema.ts を Go に移植したもの。
+// Package state provides SQLite state management for Harness v4.
+// Ported from the TypeScript core/src/state/schema.ts to Go.
 package state
 
-// SchemaVersion は現在のスキーマバージョン番号。
-// マイグレーションが必要になるたびにインクリメントする。
+// SchemaVersion is the current schema version number.
+// Increment whenever a migration is needed.
 const SchemaVersion = 1
 
 // ============================================================
-// DDL 定義
+// DDL definitions
 // ============================================================
 
-// createSchemaMeta はスキーマバージョン管理テーブルの DDL。
-// 他のすべてのテーブルより先に作成する必要がある。
+// createSchemaMeta is the DDL for the schema version management table.
+// Must be created before all other tables.
 const createSchemaMeta = `
 CREATE TABLE IF NOT EXISTS schema_meta (
   key   TEXT NOT NULL PRIMARY KEY,
   value TEXT NOT NULL
 )`
 
-// createSessions は sessions テーブルの DDL。
-// session_id: Claude Code が発行するセッション識別子
+// createSessions is the DDL for the sessions table.
+// session_id: session identifier issued by Claude Code
 // mode: normal | work | codex | breezing
-// project_root: セッションが紐付くプロジェクトルート
-// started_at: セッション開始時刻（Unix タイムスタンプ秒）
-// ended_at: セッション終了時刻（NULL = アクティブ）
-// context_json: 任意の追加情報（JSON テキスト）
+// project_root: project root the session is associated with
+// started_at: session start time (Unix timestamp seconds)
+// ended_at: session end time (NULL = active)
+// context_json: arbitrary additional information (JSON text)
 const createSessions = `
 CREATE TABLE IF NOT EXISTS sessions (
   session_id   TEXT    NOT NULL PRIMARY KEY,
@@ -35,14 +35,14 @@ CREATE TABLE IF NOT EXISTS sessions (
   context_json TEXT    NOT NULL DEFAULT '{}'
 )`
 
-// createSignals は signals テーブルの DDL。
-// id: 自動採番 PK
-// type: シグナル種別
-// from_session_id: 送信元セッション
-// to_session_id: 宛先セッション（NULL = ブロードキャスト）
-// payload_json: ペイロード（JSON テキスト）
-// sent_at: 送信時刻（Unix タイムスタンプ秒）
-// consumed: 受信済みフラグ（0 = 未消費、1 = 消費済み）
+// createSignals is the DDL for the signals table.
+// id: auto-increment PK
+// type: signal type
+// from_session_id: sending session
+// to_session_id: destination session (NULL = broadcast)
+// payload_json: payload (JSON text)
+// sent_at: send time (Unix timestamp seconds)
+// consumed: received flag (0 = unconsumed, 1 = consumed)
 const createSignals = `
 CREATE TABLE IF NOT EXISTS signals (
   id              INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -54,15 +54,15 @@ CREATE TABLE IF NOT EXISTS signals (
   consumed        INTEGER NOT NULL DEFAULT 0 CHECK(consumed IN (0,1))
 )`
 
-// createTaskFailures は task_failures テーブルの DDL。
-// id: 自動採番 PK
-// task_id: 失敗したタスクの識別子
-// session_id: タスクを実行していたセッション
+// createTaskFailures is the DDL for the task_failures table.
+// id: auto-increment PK
+// task_id: identifier of the failed task
+// session_id: session that was executing the task
 // severity: warning | error | critical
-// message: 失敗の説明
-// detail: スタックトレース等の詳細情報（NULL 可）
-// failed_at: 失敗時刻（Unix タイムスタンプ秒）
-// attempt: 試行回数（1 始まり）
+// message: description of the failure
+// detail: stack trace or other details (nullable)
+// failed_at: failure time (Unix timestamp seconds)
+// attempt: attempt number (1-based)
 const createTaskFailures = `
 CREATE TABLE IF NOT EXISTS task_failures (
   id         INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -75,14 +75,14 @@ CREATE TABLE IF NOT EXISTS task_failures (
   attempt    INTEGER NOT NULL DEFAULT 1 CHECK(attempt >= 1)
 )`
 
-// createWorkStates は work_states テーブルの DDL。
-// work-active.json の後継。work/codex/breezing モードの状態を管理する。
-// session_id: 紐付くセッション ID（PK）
-// codex_mode: codex モードフラグ（0/1）
-// bypass_rm_rf: rm -rf ガードバイパスフラグ（0/1）
-// bypass_git_push: git push ガードバイパスフラグ（0/1）
-// expires_at: 有効期限（24 時間後の Unix タイムスタンプ秒）
-// work_mode: work モードフラグ（0/1）
+// createWorkStates is the DDL for the work_states table.
+// Successor to work-active.json. Manages state for work/codex/breezing modes.
+// session_id: associated session ID (PK)
+// codex_mode: codex mode flag (0/1)
+// bypass_rm_rf: rm -rf guard bypass flag (0/1)
+// bypass_git_push: git push guard bypass flag (0/1)
+// expires_at: expiry time (Unix timestamp seconds, 24 hours from now)
+// work_mode: work mode flag (0/1)
 const createWorkStates = `
 CREATE TABLE IF NOT EXISTS work_states (
   session_id      TEXT    NOT NULL PRIMARY KEY,
@@ -94,15 +94,15 @@ CREATE TABLE IF NOT EXISTS work_states (
   FOREIGN KEY (session_id) REFERENCES sessions(session_id)
 )`
 
-// createAssumptions は assumptions テーブルの DDL（新規テーブル）。
-// エージェントが行った前提・仮定を追跡するためのテーブル。
-// id: 自動採番 PK
-// session_id: 前提を記録したセッション
-// task_id: 関連するタスク識別子（NULL 可）
-// assumption: 前提の内容（テキスト）
-// confidence: 信頼度（0.0 〜 1.0）
-// created_at: 記録時刻（Unix タイムスタンプ秒）
-// validated_at: 検証時刻（NULL = 未検証）
+// createAssumptions is the DDL for the assumptions table (new table).
+// A table for tracking assumptions and preconditions made by agents.
+// id: auto-increment PK
+// session_id: session that recorded the assumption
+// task_id: associated task identifier (nullable)
+// assumption: assumption content (text)
+// confidence: confidence level (0.0 to 1.0)
+// created_at: record time (Unix timestamp seconds)
+// validated_at: validation time (NULL = not yet validated)
 const createAssumptions = `
 CREATE TABLE IF NOT EXISTS assumptions (
   id           INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -114,16 +114,16 @@ CREATE TABLE IF NOT EXISTS assumptions (
   validated_at INTEGER
 )`
 
-// createAgentStates はエージェントのライフサイクル状態を永続化するテーブルの DDL。
-// SubagentStart/Stop フックで記録され、harness status で表示される。
-// agent_id: CC が発行するエージェント識別子（PK）
-// agent_type: worker | reviewer | scaffolder 等
-// session_id: 親セッション識別子
+// createAgentStates is the DDL for the table that persists agent lifecycle state.
+// Recorded by SubagentStart/Stop hooks and displayed by harness status.
+// agent_id: agent identifier issued by CC (PK)
+// agent_type: worker | reviewer | scaffolder, etc.
+// session_id: parent session identifier
 // state: SPAWNING | RUNNING | REVIEWING | APPROVED | COMMITTED | FAILED |
 //         CANCELLED | STALE | RECOVERING | ABORTED
-// started_at: 開始時刻（Unix タイムスタンプ秒）
-// stopped_at: 停止時刻（NULL = 実行中）
-// recovery_attempts: リカバリ試行回数
+// started_at: start time (Unix timestamp seconds)
+// stopped_at: stop time (NULL = running)
+// recovery_attempts: number of recovery attempts
 const createAgentStates = `
 CREATE TABLE IF NOT EXISTS agent_states (
   agent_id          TEXT    NOT NULL PRIMARY KEY,
@@ -136,10 +136,10 @@ CREATE TABLE IF NOT EXISTS agent_states (
 )`
 
 // ============================================================
-// インデックス定義
+// Index definitions
 // ============================================================
 
-// createIndexes はクエリパフォーマンスを向上させるインデックス群。
+// createIndexes is the set of indexes for improving query performance.
 var createIndexes = []string{
 	`CREATE INDEX IF NOT EXISTS idx_signals_to_session
      ON signals(to_session_id, consumed)`,
@@ -160,11 +160,11 @@ var createIndexes = []string{
 }
 
 // ============================================================
-// 初期化 DDL リスト
+// Initialization DDL list
 // ============================================================
 
-// allDDL は DB 初期化時に順番に実行する DDL の配列。
-// schema_meta を最初に作成し、次に各テーブル、最後にインデックスを作成する。
+// allDDL is the array of DDL statements executed in order during DB initialization.
+// Creates schema_meta first, then each table, and finally indexes.
 var allDDL []string
 
 func init() {

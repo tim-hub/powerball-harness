@@ -80,7 +80,6 @@ func TestElicitationResultHandler_FallbackFields(t *testing.T) {
 	dir := t.TempDir()
 	h := &ElicitationResultHandler{ProjectRoot: dir}
 
-	// server_name と status フォールバック
 	payload := `{"server_name": "fb-mcp", "id": "fb-res-01", "status": "ok"}`
 	var out bytes.Buffer
 	if err := h.Handle(strings.NewReader(payload), &out); err != nil {
@@ -99,7 +98,6 @@ func TestElicitationResultHandler_FallbackFields(t *testing.T) {
 }
 
 func TestElicitationResultHandler_SharedLogWithHandler(t *testing.T) {
-	// ElicitationHandler と ElicitationResultHandler は同じ JSONL ファイルを共有する
 	dir := t.TempDir()
 
 	t.Setenv("HARNESS_BREEZING_SESSION_ID", "")
@@ -107,12 +105,10 @@ func TestElicitationResultHandler_SharedLogWithHandler(t *testing.T) {
 	h1 := &ElicitationHandler{ProjectRoot: dir}
 	h2 := &ElicitationResultHandler{ProjectRoot: dir}
 
-	// ElicitationHandler でログ記録
 	p1 := `{"mcp_server_name":"shared-mcp","elicitation_id":"shared-01","message":"q"}`
 	var out1 bytes.Buffer
 	_ = h1.Handle(strings.NewReader(p1), &out1)
 
-	// ElicitationResultHandler でログ記録
 	p2 := `{"mcp_server_name":"shared-mcp","elicitation_id":"shared-01","result_status":"done"}`
 	var out2 bytes.Buffer
 	_ = h2.Handle(strings.NewReader(p2), &out2)

@@ -11,16 +11,11 @@ import (
 	"time"
 )
 
-// PostToolUseLogToolNameHandler は PostToolUse フックハンドラ。
-// 全ツール使用をログに記録し、LSP ツール追跡・セッションイベントログを管理する。
 //
-// shell 版: scripts/posttooluse-log-toolname.sh
 type PostToolUseLogToolNameHandler struct {
-	// ProjectRoot はプロジェクトルートのパス。空の場合は cwd を使用する。
 	ProjectRoot string
 }
 
-// logToolNameInput は PostToolUse フックの stdin JSON。
 type logToolNameInput struct {
 	ToolName  string              `json:"tool_name"`
 	SessionID string              `json:"session_id"`
@@ -33,7 +28,6 @@ type logToolNameToolInput struct {
 	Skill    string `json:"skill"`
 }
 
-// toolEventEntry は tool-events.jsonl の 1 行エントリ。
 type toolEventEntry struct {
 	V             int    `json:"v"`
 	Ts            string `json:"ts"`
@@ -43,7 +37,6 @@ type toolEventEntry struct {
 	ToolName      string `json:"tool_name"`
 }
 
-// sessionEventEntry は session-events.jsonl の 1 行エントリ。
 type sessionEventEntry struct {
 	ID    string          `json:"id"`
 	Type  string          `json:"type"`
@@ -52,7 +45,6 @@ type sessionEventEntry struct {
 	Data  json.RawMessage `json:"data,omitempty"`
 }
 
-// sessionState は session.json の最小構造。
 type sessionState struct {
 	PromptSeq int    `json:"prompt_seq"`
 	EventSeq  int    `json:"event_seq"`
@@ -61,7 +53,6 @@ type sessionState struct {
 	LastEvID  string `json:"last_event_id"`
 }
 
-// skillsUsedState は session-skills-used.json の構造。
 type skillsUsedState struct {
 	Used         []string `json:"used"`
 	SessionStart string   `json:"session_start"`
@@ -78,7 +69,6 @@ const (
 	sessionEvMaxLines  = 500
 )
 
-// Handle は stdin から PostToolUse ペイロードを読み取り、ログを記録する。
 func (h *PostToolUseLogToolNameHandler) Handle(r io.Reader, w io.Writer) error {
 	data, _ := io.ReadAll(r)
 
@@ -91,36 +81,30 @@ func (h *PostToolUseLogToolNameHandler) Handle(r io.Reader, w io.Writer) error {
 
 			promptSeq := h.readPromptSeq(stateDir)
 
-			// LSP 追跡（常に実行）
 			if strings.Contains(strings.ToLower(inp.ToolName), "lsp") {
 				h.trackLSP(stateDir, inp.ToolName, promptSeq)
 			}
 
-			// Phase0 ログ収集（CC_HARNESS_PHASE0_LOG=1 の時のみ）
 			if os.Getenv("CC_HARNESS_PHASE0_LOG") == "1" {
 				h.appendToolEvent(stateDir, inp, promptSeq)
 			}
 
-			// セッションイベントログ（重要ツールのみ）
 			if isImportantTool(inp.ToolName) {
 				ts := time.Now().UTC().Format(time.RFC3339)
 				dataJSON := buildEventData(inp)
 				h.appendSessionEvent(stateDir, inp.ToolName, ts, dataJSON)
 			}
 
-			// Skill 追跡（セッション単位）
 			if inp.ToolName == "Skill" {
 				h.trackSkillUsed(stateDir, inp.ToolInput.Skill)
 			}
 		}
 	}
 
-	// 常に {"continue": true} を返す
 	_, err := fmt.Fprintf(w, `{"continue":true}%s`, "\n")
 	return err
 }
 
-// resolveProjectRoot はプロジェクトルートを解決する。
 func (h *PostToolUseLogToolNameHandler) resolveProjectRoot() string {
 	if h.ProjectRoot != "" {
 		return h.ProjectRoot
@@ -129,7 +113,6 @@ func (h *PostToolUseLogToolNameHandler) resolveProjectRoot() string {
 	return wd
 }
 
-// readPromptSeq は session.json から prompt_seq を読み込む。
 func (h *PostToolUseLogToolNameHandler) readPromptSeq(stateDir string) int {
 	sessionFile := filepath.Join(stateDir, "session.json")
 	rawData, err := os.ReadFile(sessionFile)
@@ -146,7 +129,6 @@ func (h *PostToolUseLogToolNameHandler) readPromptSeq(stateDir string) int {
 	return 0
 }
 
-// trackLSP は LSP ツール使用を tooling-policy.json に記録する。
 func (h *PostToolUseLogToolNameHandler) trackLSP(stateDir, toolName string, promptSeq int) {
 	policyFile := filepath.Join(stateDir, "tooling-policy.json")
 	rawData, err := os.ReadFile(policyFile)
@@ -180,7 +162,6 @@ func (h *PostToolUseLogToolNameHandler) trackLSP(stateDir, toolName string, prom
 	_ = os.Rename(tmp, policyFile)
 }
 
-// appendToolEvent は tool-events.jsonl に JSONL エントリを追記する（flock でロック）。
 func (h *PostToolUseLogToolNameHandler) appendToolEvent(stateDir string, inp logToolNameInput, promptSeq int) {
 	logFile := filepath.Join(stateDir, toolEventsFile)
 	lockFile := logFile + ".lock"
@@ -200,7 +181,6 @@ func (h *PostToolUseLogToolNameHandler) appendToolEvent(stateDir string, inp log
 	}
 
 	withFileLock(lockFile, func() {
-		// ローテーション判定
 		if needsRotation(logFile, logMaxSizeBytes, logMaxLines) {
 			rotateLog(logFile, logMaxGenerations)
 		}
@@ -214,7 +194,6 @@ func (h *PostToolUseLogToolNameHandler) appendToolEvent(stateDir string, inp log
 	})
 }
 
-// appendSessionEvent はセッションイベントログに追記し、session.json を更新する。
 func (h *PostToolUseLogToolNameHandler) appendSessionEvent(stateDir, toolName, ts, dataJSON string) {
 	sessionFile := filepath.Join(stateDir, "session.json")
 	eventLogFile := filepath.Join(stateDir, sessionEventsFile)
@@ -225,7 +204,6 @@ func (h *PostToolUseLogToolNameHandler) appendSessionEvent(stateDir, toolName, t
 	}
 
 	withFileLock(lockFile, func() {
-		// session.json を読み込む
 		rawData, err := os.ReadFile(sessionFile)
 		if err != nil {
 			return
@@ -235,7 +213,6 @@ func (h *PostToolUseLogToolNameHandler) appendSessionEvent(stateDir, toolName, t
 			return
 		}
 
-		// event_seq をインクリメント
 		eventSeq := 0
 		if v, ok := session["event_seq"].(float64); ok {
 			eventSeq = int(v)
@@ -248,7 +225,6 @@ func (h *PostToolUseLogToolNameHandler) appendSessionEvent(stateDir, toolName, t
 			currentState = v
 		}
 
-		// session.json を更新
 		session["updated_at"] = ts
 		session["last_event_id"] = eventID
 		session["event_seq"] = eventSeq
@@ -263,15 +239,12 @@ func (h *PostToolUseLogToolNameHandler) appendSessionEvent(stateDir, toolName, t
 		}
 		_ = os.Rename(tmp, sessionFile)
 
-		// イベントログファイルを初期化
 		_ = touchFile(eventLogFile)
 
-		// ローテーション判定（行数のみ）
 		if needsRotationLines(eventLogFile, sessionEvMaxLines) {
 			rotateLog(eventLogFile, logMaxGenerations)
 		}
 
-		// エントリ構築
 		toolType := strings.ToLower(toolName)
 		var eventLine []byte
 		if dataJSON != "" {
@@ -300,7 +273,6 @@ func (h *PostToolUseLogToolNameHandler) appendSessionEvent(stateDir, toolName, t
 	})
 }
 
-// trackSkillUsed は Skill ツール使用を session-skills-used.json に記録する。
 func (h *PostToolUseLogToolNameHandler) trackSkillUsed(stateDir, skillName string) {
 	skillsFile := filepath.Join(stateDir, skillsUsedFile)
 
@@ -308,7 +280,6 @@ func (h *PostToolUseLogToolNameHandler) trackSkillUsed(stateDir, skillName strin
 		skillName = "unknown"
 	}
 
-	// ファイルが存在しない場合は初期化
 	if _, err := os.Stat(skillsFile); os.IsNotExist(err) {
 		initial := skillsUsedState{
 			Used:         []string{},
@@ -343,7 +314,6 @@ func (h *PostToolUseLogToolNameHandler) trackSkillUsed(stateDir, skillName strin
 	_ = os.Rename(tmp, skillsFile)
 }
 
-// isImportantTool は重要なツールかどうかを判定する。
 func isImportantTool(toolName string) bool {
 	switch toolName {
 	case "Write", "Edit", "Bash", "Task", "Skill", "SlashCommand":
@@ -352,7 +322,6 @@ func isImportantTool(toolName string) bool {
 	return false
 }
 
-// buildEventData はツール使用からイベントデータ JSON 文字列を構築する。
 func buildEventData(inp logToolNameInput) string {
 	if inp.ToolInput.FilePath != "" {
 		fp := trimText(inp.ToolInput.FilePath, 200)
@@ -365,7 +334,6 @@ func buildEventData(inp logToolNameInput) string {
 	return ""
 }
 
-// trimText は文字列を最大 maxLen 文字（rune 単位）に切り詰める。
 func trimText(s string, maxLen int) string {
 	runes := []rune(s)
 	if len(runes) > maxLen {
@@ -374,13 +342,11 @@ func trimText(s string, maxLen int) string {
 	return s
 }
 
-// jsonString は Go 文字列を JSON 文字列表現に変換する。
 func jsonString(s string) string {
 	b, _ := json.Marshal(s)
 	return string(b)
 }
 
-// needsRotation はログファイルのローテーションが必要かを判定する（サイズ・行数）。
 func needsRotation(path string, maxBytes, maxLines int) bool {
 	fi, err := os.Stat(path)
 	if err != nil {
@@ -392,7 +358,6 @@ func needsRotation(path string, maxBytes, maxLines int) bool {
 	return needsRotationLines(path, maxLines)
 }
 
-// needsRotationLines はログファイルの行数がしきい値を超えているか判定する。
 func needsRotationLines(path string, maxLines int) bool {
 	f, err := os.Open(path)
 	if err != nil {
@@ -419,26 +384,20 @@ func needsRotationLines(path string, maxLines int) bool {
 	return false
 }
 
-// rotateLog はログファイルをローテーションする（.1 → .2 → ... → maxGen）。
 func rotateLog(path string, maxGen int) {
-	// 最古を削除
 	oldest := fmt.Sprintf("%s.%d", path, maxGen)
 	_ = os.Remove(oldest)
 
-	// .{n-1} → .{n} にリネーム
 	for i := maxGen - 1; i >= 1; i-- {
 		src := fmt.Sprintf("%s.%d", path, i)
 		dst := fmt.Sprintf("%s.%d", path, i+1)
 		_ = os.Rename(src, dst)
 	}
 
-	// 現行を .1 に
 	_ = os.Rename(path, path+".1")
-	// 新しいファイルを作成
 	_ = touchFile(path)
 }
 
-// touchFile はファイルを作成（存在する場合はそのまま）。
 func touchFile(path string) error {
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
@@ -447,20 +406,15 @@ func touchFile(path string) error {
 	return f.Close()
 }
 
-// withFileLock はファイルロックを取得して fn を実行する。
-// flock(2) システムコールを使用し、失敗時はロックなしで実行する（ベストエフォート）。
 func withFileLock(lockFile string, fn func()) {
 	f, err := os.OpenFile(lockFile, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
-		// ロックファイルを開けない場合はロックなしで実行
 		fn()
 		return
 	}
 	defer f.Close()
 
-	// flock で排他ロック（タイムアウトなし、ブロック）
 	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
-		// flock が使えない環境ではロックなしで実行
 		fn()
 		return
 	}

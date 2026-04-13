@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Chachamaru127/claude-code-harness/go/pkg/config"
+	"github.com/tim-hub/powerball-harness/go/pkg/config"
 )
 
 // runSync implements the "harness sync" subcommand.

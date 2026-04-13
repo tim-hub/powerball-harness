@@ -1,54 +1,54 @@
 # deleted-concepts.yaml
 #
 # Purpose:
-#   Harness の migration residue を systematic に検出するための
-#   「削除済みパス・概念」カタログ。
+#   A catalog of "deleted paths and concepts" for systematically detecting
+#   migration residues in Harness.
 #
-#   Phase 40 で追加。背景: v4.0.0 "Hokage" リリース直後の 2 日間で
-#   13 件の v3 残骸バグが偶然発見された。全て inclusion-based verification
-#   の盲点（「削除済みの X が残っていないか」を確認していなかった）。
-#   このファイルは exclusion-based verification の SSOT として機能する。
+#   Added in Phase 40. Background: within 2 days of the v4.0.0 "Hokage" release,
+#   13 v3 residue bugs were discovered by accident. All were blind spots in
+#   inclusion-based verification (failing to check "does deleted X still remain?").
+#   This file functions as the SSOT for exclusion-based verification.
 #
 # Update Rules:
-#   1. 新しい削除済みパス/概念が生じたら、削除時に本ファイルを更新する
-#   2. allowlist は prefix match で適用（歴史ドキュメントは明示的に除外）
-#   3. reason フィールドは必須。"なぜ削除されたか" を記述する
-#   4. スキャンは scripts/check-residue.sh で実行する
-#   5. バージョン変更時は deleted_in を更新すること
+#   1. When new deleted paths/concepts arise, update this file at the time of deletion
+#   2. Allowlist is applied using prefix matching (historical documents are explicitly excluded)
+#   3. The reason field is required. Describe "why it was deleted"
+#   4. Scans are run via scripts/check-residue.sh
+#   5. Update deleted_in when the version changes
 #
-# Allowlist 設計原則:
-#   - CHANGELOG.md: 全エントリで allowlist（歴史記述）
-#   - .claude/memory/archive/: 全エントリで allowlist（アーカイブ）
-#   - .claude/worktrees/: 全エントリで allowlist（過去の worktree 残骸）
-#   - .claude/state/: 全エントリで allowlist（セッション state スナップショット）
-#   - out/, output/: 全エントリで allowlist（生成物・診断出力）
-#   - docs/social/: 全エントリで allowlist（v3 時代の SNS 投稿・歴史記録）
-#   - 歴史ドキュメントは個別にエントリへ追加する
+# Allowlist Design Principles:
+#   - CHANGELOG.md: allowlisted for all entries (historical records)
+#   - .claude/memory/archive/: allowlisted for all entries (archives)
+#   - .claude/worktrees/: allowlisted for all entries (past worktree residues)
+#   - .claude/state/: allowlisted for all entries (session state snapshots)
+#   - out/, output/: allowlisted for all entries (generated artifacts and diagnostic output)
+#   - docs/social/: allowlisted for all entries (v3-era social media posts and historical records)
+#   - Historical documents should be added individually as entries
 #
 
 version: 1
 
-# ─── 削除済みファイルパス ──────────────────────────────────────────────────────
+# ─── Deleted File Paths ──────────────────────────────────────────────────────
 deleted_paths:
   - path: "core/src/guardrails"
     deleted_in: "v4.0.0"
-    reason: "TypeScript guardrail engine を Go-native に移植 (Hokage migration)。TS エンジンごと core/ を廃止"
+    reason: "TypeScript guardrail engine ported to Go-native (Hokage migration). Entire core/ including TS engine was discontinued"
     allowlist:
       - "CHANGELOG.md"
       - ".claude/memory/archive/"
       - ".claude/worktrees/"
       - ".claude/state/"
-      - "go/"  # Go 版のファイルパスに guardrails が含まれるため除外
+      - "go/"  # Excluded because Go version file paths contain "guardrails"
       - "Plans.md"
       - "out/"
       - "output/"
-      - "docs/social/"  # v3 時代の SNS 投稿（歴史記録）
-      - "skills/claude-codex-upstream-update/"  # 上流更新ガイド（歴史参照を含む）
-      - ".claude/rules/migration-policy.md"  # Phase 40 歴史記述（事例付録に削除済みパスを含む）
+      - "docs/social/"  # v3-era social media posts (historical records)
+      - "skills/claude-codex-upstream-update/"  # Upstream update guide (contains historical references)
+      - ".claude/rules/migration-policy.md"  # Phase 40 historical description (appendix contains deleted paths)
 
   - path: "core/dist"
     deleted_in: "v4.0.0"
-    reason: "TypeScript ビルド成果物。Go 移行により不要になった"
+    reason: "TypeScript build artifacts. No longer needed after Go migration"
     allowlist:
       - "CHANGELOG.md"
       - ".claude/memory/archive/"
@@ -60,29 +60,29 @@ deleted_paths:
       - "docs/social/"
 
 
-# ─── 削除済み概念・用語 ─────────────────────────────────────────────────────────
+# ─── Deleted Concepts and Terms ─────────────────────────────────────────────
 deleted_concepts:
   - term: "TypeScript guardrail engine"
     term_ja: "TypeScript ガードレールエンジン"
     replacement: "Go-native guardrail engine"
     replacement_ja: "Go ネイティブガードレールエンジン"
     deleted_in: "v4.0.0"
-    reason: "Hokage migration で TS→Go 移植完了。TS エンジンへの言及は旧版の記述"
+    reason: "TS→Go port completed in Hokage migration. References to the TS engine are descriptions of the old version"
     allowlist:
       - "CHANGELOG.md"
       - ".claude/memory/archive/"
       - ".claude/worktrees/"
       - ".claude/state/"
-      - "docs/CLAUDE_CODE_COMPATIBILITY.md"  # 比較ドキュメント
+      - "docs/CLAUDE_CODE_COMPATIBILITY.md"  # Comparison document
       - "docs/github-harness-plugin-benchmark.md"
-      - "docs/MIGRATION-v4.md"  # v3→v4 移行ガイド（移行元の TS engine 言及は正当）
-      - "docs/social/"  # v3 時代の SNS 投稿
-      - "docs/claims-audit.md"  # 旧マーケティング監査ドキュメント
-      - "docs/distribution-scope.md"  # 配布スコープ分析（旧版ベース）
-      - "docs/private/"  # プライベート分析ドキュメント
-      - "docs/positioning-notes.md"  # 旧ポジショニング文書
-      - "docs/release-copy-phase21.md"  # Phase 21 リリースコピー
-      - ".claude/rules/"  # rules ファイル（versioning.md が歴史的言及を含む）
+      - "docs/MIGRATION-v4.md"  # v3→v4 migration guide (references to TS engine as migration source are legitimate)
+      - "docs/social/"  # v3-era social media posts
+      - "docs/claims-audit.md"  # Old marketing audit document
+      - "docs/distribution-scope.md"  # Distribution scope analysis (based on old version)
+      - "docs/private/"  # Private analysis documents
+      - "docs/positioning-notes.md"  # Old positioning document
+      - "docs/release-copy-phase21.md"  # Phase 21 release copy
+      - ".claude/rules/"  # Rules files (versioning.md contains historical references)
       - "Plans.md"
       - "out/"
       - "output/"
@@ -92,22 +92,22 @@ deleted_concepts:
     replacement: "Harness v4"
     replacement_ja: "Harness v4"
     deleted_in: "v4.0.0"
-    reason: "旧バージョン表記。v4 Hokage が現行バージョン"
+    reason: "Old version label. v4 Hokage is the current version"
     allowlist:
       - "CHANGELOG.md"
       - ".claude/memory/archive/"
       - ".claude/worktrees/"
       - ".claude/state/"
-      - ".claude/rules/v3-architecture.md"  # v3 アーキテクチャの歴史ドキュメント
-      - "docs/CLAUDE-feature-table.md"  # 歴史テーブル（旧バージョン比較を含む）
-      - "docs/MIGRATION-v4.md"  # v3→v4 移行ガイド
-      - "docs/distribution-scope.md"  # 配布スコープドキュメント
-      - "docs/social/"  # v3 時代の SNS 投稿（歴史記録）
-      - "scripts/setup-codex.sh"  # Harness v3 を grep 検出パターンとして使用（意図的）
-      - "scripts/codex-setup-local.sh"  # 同上
-      - "tests/test-codex-package.sh"  # v3 legacy skill テスト（コメント）
-      - "skills-codex/"  # codex スキルミラー（独立管理）
-      - ".claude/rules/migration-policy.md"  # Phase 40 歴史記述（事例付録に旧バージョン名を含む）
+      - ".claude/rules/v3-architecture.md"  # Historical document for v3 architecture
+      - "docs/CLAUDE-feature-table.md"  # Historical table (contains old version comparisons)
+      - "docs/MIGRATION-v4.md"  # v3→v4 migration guide
+      - "docs/distribution-scope.md"  # Distribution scope document
+      - "docs/social/"  # v3-era social media posts (historical records)
+      - "scripts/setup-codex.sh"  # Uses "Harness v3" as a grep detection pattern (intentional)
+      - "scripts/codex-setup-local.sh"  # Same as above
+      - "tests/test-codex-package.sh"  # v3 legacy skill tests (comments)
+      - "skills-codex/"  # Codex skill mirror (independently managed)
+      - ".claude/rules/migration-policy.md"  # Phase 40 historical description (appendix contains old version names)
       - "out/"
       - "output/"
       - "Plans.md"
@@ -117,11 +117,11 @@ deleted_concepts:
     replacement: null
     replacement_ja: null
     deleted_in: "v4.0.0"
-    reason: "SKILL.md H1 タイトルへの (v3) サフィックス付与は廃止。v4 ではバージョンサフィックスを H1 に付けない"
-    # 注意: この term は汎用すぎるため使用しない。
-    # 代わりに check-residue.sh で H1 line 限定のパターンマッチを行う
-    # (grep -rn "^# .*(v3)" skills/ agents/ で検索)
-    # この概念はコメントとして記録するが、term-based スキャンの対象外とする
+    reason: "Adding (v3) suffix to SKILL.md H1 titles has been discontinued. v4 does not append version suffixes to H1 headings"
+    # Note: This term is too generic to use.
+    # Instead, check-residue.sh performs pattern matching limited to H1 lines
+    # (search with: grep -rn "^# .*(v3)" skills/ agents/)
+    # This concept is recorded as a comment but excluded from term-based scanning
     _scan_disabled: true
     allowlist:
       - "CHANGELOG.md"
@@ -131,7 +131,7 @@ deleted_concepts:
     replacement: "Go 1.22+"
     replacement_ja: "Go 1.22+"
     deleted_in: "v4.0.0"
-    reason: "v3 の Node.js 依存が廃止。v4 Go バイナリはランタイム不要。Node.js 要件はドキュメント上の false requirement"
+    reason: "v3's Node.js dependency has been discontinued. v4 Go binaries require no runtime. Node.js requirements are false requirements in documentation"
     allowlist:
       - "CHANGELOG.md"
       - ".claude/memory/archive/"
@@ -140,18 +140,18 @@ deleted_concepts:
       - "out/"
       - "output/"
       - "Plans.md"
-      - ".opencode/"  # opencode は別ランタイム
-      - "codex/"  # codex は別ランタイム
-      - "skills/generate-video/"  # 動画生成スキルは Node.js を使う可能性
+      - ".opencode/"  # opencode uses a different runtime
+      - "codex/"  # codex uses a different runtime
+      - "skills/generate-video/"  # Video generation skill may use Node.js
       - "opencode/"
-      - ".claude/rules/migration-policy.md"  # Phase 40 歴史記述（事例付録に旧ランタイム要件を含む）
+      - ".claude/rules/migration-policy.md"  # Phase 40 historical description (appendix contains old runtime requirements)
 
   - term: "claude-mem"
     term_ja: null
     replacement: "harness-mem"
     replacement_ja: "harness-mem"
     deleted_in: "v4.0.3"
-    reason: "サードパーティ claude-mem (thedotmack) への依存を廃止。セッション記憶は Harness 純正の harness-mem に統一。claude-mem は commands/*/CLAUDE.md を自動生成するため skill 誤登録を引き起こす"
+    reason: "Dependency on third-party claude-mem (thedotmack) discontinued. Session memory unified to Harness-native harness-mem. claude-mem causes skill mis-registration by auto-generating commands/*/CLAUDE.md"
     allowlist:
       - "CHANGELOG.md"
       - ".claude/memory/archive/"
@@ -160,15 +160,15 @@ deleted_concepts:
       - "out/"
       - "output/"
       - "Plans.md"
-      - "docs/social/"  # v3 時代の SNS 投稿
-      - "docs/CLAUDE-feature-table.md"  # 歴史的な CC 互換性記録
-      - ".claude/rules/"  # migration-policy など歴史記述
-      - "**/CLAUDE.md"  # claude-mem が生成するファイルは gitignore で除外済み。ローカルの untracked ファイルはスキャン外として扱う
-      - "harness-ui-archive/"  # アーカイブ済み UI プロジェクト（claude-mem 依存の旧機能。再利用しない）
-      - ".claude/Plans.md"  # ローカル Plans.md
-      - ".claude/memory/"  # ローカル memory archive (decisions.md, patterns.md)
-      - ".claude/agent-memory/"  # ローカル agent memory
-      - ".claude/plugins/cache/"  # プラグインキャッシュ
-      - ".cursor/"  # Cursor IDE ローカル設定
-      - "docs/design/"  # UI 設計ドキュメント（claude-mem 依存の旧機能設計）
-      - "docs/research/"  # リサーチドキュメント（claude-mem 統合調査を含む）
+      - "docs/social/"  # v3-era social media posts
+      - "docs/CLAUDE-feature-table.md"  # Historical CC compatibility records
+      - ".claude/rules/"  # Historical descriptions such as migration-policy
+      - "**/CLAUDE.md"  # Files generated by claude-mem are excluded by gitignore. Local untracked files are treated as outside scan scope
+      - "harness-ui-archive/"  # Archived UI project (old feature depending on claude-mem; not to be reused)
+      - ".claude/Plans.md"  # Local Plans.md
+      - ".claude/memory/"  # Local memory archive (decisions.md, patterns.md)
+      - ".claude/agent-memory/"  # Local agent memory
+      - ".claude/plugins/cache/"  # Plugin cache
+      - ".cursor/"  # Cursor IDE local settings
+      - "docs/design/"  # UI design documents (old feature design depending on claude-mem)
+      - "docs/research/"  # Research documents (includes claude-mem integration research)
