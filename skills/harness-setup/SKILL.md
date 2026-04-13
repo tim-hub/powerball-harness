@@ -127,11 +127,11 @@ Configure Unified Harness Memory.
 
 ```bash
 # Create memory directories
-mkdir -p .claude/agent-memory/claude-code-harness-worker
-mkdir -p .claude/agent-memory/claude-code-harness-reviewer
+mkdir -p .claude/agent-memory/powerball-harness-worker
+mkdir -p .claude/agent-memory/powerball-harness-reviewer
 
 # Deploy MEMORY.md template
-cat > .claude/agent-memory/claude-code-harness-worker/MEMORY.md << 'EOF'
+cat > .claude/agent-memory/powerball-harness-worker/MEMORY.md << 'EOF'
 # Worker Agent Memory
 
 ## Project Context

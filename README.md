@@ -84,7 +84,7 @@ Runtime hook behavior is documented in [docs/hardening-parity.md](docs/hardening
 ## Architecture
 
 ```
-claude-code-harness/
+powerball-harness/
 ├── go/         # Go guardrail engine (bin/harness binary)
 ├── skills/     # 31 skills (5 core verbs + specialized)
 ├── agents/     # 7 agents (worker, reviewer, scaffolder + 4 specialized)
@@ -100,7 +100,7 @@ claude-code-harness/
 |-------|-----|
 | Hook errors on every prompt | Run `/harness-setup binary` to manually re-download the platform binary |
 | Commands not found | Run `/harness-setup` first |
-| Plugin not loading | `rm -rf ~/.claude/plugins/cache/claude-code-harness-marketplace/` and restart |
+| Plugin not loading | `rm -rf ~/.claude/plugins/cache/powerball-harness-marketplace/` and restart |
 
 ---
 

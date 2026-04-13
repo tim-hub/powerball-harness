@@ -1,6 +1,6 @@
-# Contributing to claude-code-harness
+# Contributing to powerball-harness
 
-Thank you for your interest in contributing to **claude-code-harness**! This document provides guidelines for contributing.
+Thank you for your interest in contributing to **powerball-harness**! This document provides guidelines for contributing.
 
 ## How to Contribute
 
@@ -192,7 +192,7 @@ Before submitting:
 
    ```bash
    cd /path/to/your-project
-   claude --plugin-dir /path/to/claude-code-harness
+   claude --plugin-dir /path/to/powerball-harness
    ```
 
 3. Verify commands work as expected (`/help`), and the core loop runs:
