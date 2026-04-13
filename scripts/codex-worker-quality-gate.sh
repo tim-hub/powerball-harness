@@ -514,7 +514,7 @@ main() {
                 log_error "Allowed gates: $allowlist"
                 exit 1
             fi
-            log_warn "Gate '$gate' をスキップ: $skip_reason (user=${USER:-unknown})"
+            log_warn "Skipping gate '$gate': $skip_reason (user=${USER:-unknown})"
         done
     fi
 

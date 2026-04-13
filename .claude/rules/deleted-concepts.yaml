@@ -63,9 +63,7 @@ deleted_paths:
 # ─── Deleted Concepts and Terms ─────────────────────────────────────────────
 deleted_concepts:
   - term: "TypeScript guardrail engine"
-    term_ja: "TypeScript ガードレールエンジン"
     replacement: "Go-native guardrail engine"
-    replacement_ja: "Go ネイティブガードレールエンジン"
     deleted_in: "v4.0.0"
     reason: "TS→Go port completed in Hokage migration. References to the TS engine are descriptions of the old version"
     allowlist:
@@ -88,9 +86,7 @@ deleted_concepts:
       - "output/"
 
   - term: "Harness v3"
-    term_ja: null
     replacement: "Harness v4"
-    replacement_ja: "Harness v4"
     deleted_in: "v4.0.0"
     reason: "Old version label. v4 Hokage is the current version"
     allowlist:
@@ -113,9 +109,7 @@ deleted_concepts:
       - "Plans.md"
 
   - term: "# "
-    term_ja: null
     replacement: null
-    replacement_ja: null
     deleted_in: "v4.0.0"
     reason: "Adding (v3) suffix to SKILL.md H1 titles has been discontinued. v4 does not append version suffixes to H1 headings"
     # Note: This term is too generic to use.
@@ -127,9 +121,7 @@ deleted_concepts:
       - "CHANGELOG.md"
 
   - term: "Node.js 18+"
-    term_ja: null
     replacement: "Go 1.22+"
-    replacement_ja: "Go 1.22+"
     deleted_in: "v4.0.0"
     reason: "v3's Node.js dependency has been discontinued. v4 Go binaries require no runtime. Node.js requirements are false requirements in documentation"
     allowlist:
@@ -147,9 +139,7 @@ deleted_concepts:
       - ".claude/rules/migration-policy.md"  # Phase 40 historical description (appendix contains old runtime requirements)
 
   - term: "claude-mem"
-    term_ja: null
     replacement: "harness-mem"
-    replacement_ja: "harness-mem"
     deleted_in: "v4.0.3"
     reason: "Dependency on third-party claude-mem (thedotmack) discontinued. Session memory unified to Harness-native harness-mem. claude-mem causes skill mis-registration by auto-generating commands/*/CLAUDE.md"
     allowlist:

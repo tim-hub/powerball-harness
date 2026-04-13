@@ -2,7 +2,6 @@
 name: harness-work
 description: "Unified execution skill for Harness v3 (Codex native). Handles Plans.md tasks from single task to full parallel team runs. Triggers: implement, run, harness-work, do everything, breezing, team execution, parallel. Not for planning, review, release, or setup."
 description-en: "Unified execution skill for Harness v3 (Codex native). Implements Plans.md tasks from single task to full parallel team runs."
-description-ja: "Harness v3 統合実行スキル（Codex ネイティブ版）。Plans.md タスクを1件から全並列チーム実行まで担当。"
 argument-hint: "[all] [task-number|range] [--parallel N] [--no-commit] [--breezing]"
 effort: high
 ---
