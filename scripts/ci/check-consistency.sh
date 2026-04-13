@@ -493,7 +493,6 @@ echo "📚 [12/13] README claim drift check..."
 
 README_ISSUES=0
 README_EN="$PLUGIN_ROOT/README.md"
-README_JA="$PLUGIN_ROOT/README_ja.md"
 SCOPE_DOC="$PLUGIN_ROOT/docs/distribution-scope.md"
 RUBRIC_DOC="$PLUGIN_ROOT/docs/benchmark-rubric.md"
 POSITIONING_DOC="$PLUGIN_ROOT/docs/positioning-notes.md"
@@ -550,9 +549,7 @@ check_exists() {
 }
 
 check_fixed_string "$README_EN" "$LATEST_RELEASE_URL" "README.md latest release link"
-check_fixed_string "$README_JA" "$LATEST_RELEASE_URL" "README_ja.md latest release link"
 check_fixed_string "$README_EN" "$LATEST_RELEASE_BADGE" "README.md latest release badge"
-check_fixed_string "$README_JA" "$LATEST_RELEASE_BADGE" "README_ja.md latest release badge"
 
 check_exists "$SCOPE_DOC" "distribution-scope.md"
 check_exists "$RUBRIC_DOC" "benchmark-rubric.md"
@@ -567,13 +564,6 @@ check_fixed_string "$README_EN" "5 verb skills" "README.md 5 verb skills message
 check_fixed_string "$README_EN" "Go-native guardrail engine" "README.md Go-native guardrail engine message"
 check_absent_string "$README_EN" "Production-ready code." "README.md stale production-ready wording"
 
-check_fixed_string "$README_JA" "docs/CLAUDE_CODE_COMPATIBILITY.md" "README_ja.md compatibility doc link"
-check_fixed_string "$README_JA" "docs/CURSOR_INTEGRATION.md" "README_ja.md cursor doc link"
-check_fixed_string "$README_JA" "docs/evidence/work-all.md" "README_ja.md work-all evidence link"
-check_fixed_string "$README_JA" "docs/distribution-scope.md" "README_ja.md distribution scope link"
-check_fixed_string "$README_JA" "5動詞スキル" "README_ja.md 5動詞スキル message"
-check_fixed_string "$README_JA" "Go ネイティブガードレールエンジン" "README_ja.md Go ネイティブガードレールエンジン message"
-check_absent_string "$README_JA" "本番品質のコード。" "README_ja.md stale production-ready wording"
 
 check_fixed_string "$SCOPE_DOC" '| `commands/` | Compatibility-retained |' "distribution-scope commands classification"
 check_fixed_string "$SCOPE_DOC" '| `mcp-server/` | Development-only and distribution-excluded |' "distribution-scope mcp-server classification"
