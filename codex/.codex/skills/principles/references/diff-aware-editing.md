@@ -1,6 +1,5 @@
 ---
 name: core-diff-aware-editing
-description: "最小限の差分でファイルを編集し、既存コードへの影響を最小化する。"
 allowed-tools: ["Read", "Edit"]
 ---
 

@@ -1,6 +1,5 @@
 ---
 name: frontend-design-summary
-description: "frontend-design の設計思考と美的指針の要約"
 ---
 
 # Frontend Design Summary

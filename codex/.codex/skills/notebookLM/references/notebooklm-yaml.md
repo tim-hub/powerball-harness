@@ -1,6 +1,5 @@
 ---
 name: notebooklm-yaml
-description: "NotebookLMの「スライド資料をカスタマイズ」で使うデザインYAMLを2案生成。プレゼン資料を作りたい場合に使用します。"
 allowed-tools: ["Read", "Write"]
 ---
 

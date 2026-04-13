@@ -1,6 +1,5 @@
 ---
 name: init-memory-ssot
-description: "プロジェクトのSSOTメモリ（decisions/patterns）と任意のsession-logを初期化する。初回セットアップ時や、.claude/memory が未整備のプロジェクトで使用します。"
 allowed-tools: ["Read", "Write"]
 ---
 

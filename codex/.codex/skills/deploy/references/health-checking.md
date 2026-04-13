@@ -1,6 +1,5 @@
 ---
 name: health-check
-description: "環境診断（依存/設定/利用可能機能の確認）。環境が正しくセットアップされているか確認したい場合に使用します。"
 allowed-tools: ["Read", "Bash"]
 ---
 

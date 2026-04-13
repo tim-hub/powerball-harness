@@ -1,6 +1,5 @@
 ---
 name: analytics
-description: "Analytics統合（GA/Vercel Analytics 等）。アクセス解析を導入したい場合に使用します。"
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 ---
 

@@ -1,6 +1,5 @@
 ---
 name: ui-skills-summary
-description: "UI Skills の制約セット要約（実装品質優先）"
 ---
 
 # UI Skills Summary

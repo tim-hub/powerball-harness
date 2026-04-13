@@ -1,8 +1,6 @@
 ---
 name: session
-description: "セッション管理の総合窓口。初期化・記憶・状態を一手に引き受けます。明示的 /session 呼び出し専用 — 下位スキルが自動委譲されるため自動発動は不要。Use when managing Claude Code sessions, /session command. Do NOT load for: app user sessions, login state, authentication features."
-description-en: "Unified session management window. Handles initialization, memory, state all-in-one. Explicit /session invocation only — sub-skills handle auto-delegation. Use when managing Claude Code sessions, /session command. Do NOT load for: app user sessions, login state, authentication features."
-description-ja: "セッション管理の総合窓口。初期化・記憶・状態を一手に引き受けます。明示的 /session 呼び出し専用 — 下位スキルが自動委譲されるため自動発動は不要。Use when managing Claude Code sessions, /session command. Do NOT load for: app user sessions, login state, authentication features."
+description: "Unified session management window. Handles initialization, memory, state all-in-one. Explicit /session invocation only — sub-skills handle auto-delegation. Use when managing Claude Code sessions, /session command. Do NOT load for: app user sessions, login state, authentication features."
 allowed-tools: ["Read", "Bash", "Write", "Edit", "Glob"]
 disable-model-invocation: true
 argument-hint: "[list|inbox|broadcast \"message\"]"

@@ -1,5 +1,4 @@
 ---
-description: セッション開始（状況把握→計画→Claude Codeへ依頼）
 ---
 
 # /start-session

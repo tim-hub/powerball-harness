@@ -1,5 +1,4 @@
 ---
-description: Claude Codeの作業をレビューし、承認/修正指示をハンドオフ
 ---
 
 # /review-cc-work

@@ -1,8 +1,6 @@
 ---
 name: harness-work
-description: "HAR:Plans.md タスクを1件から全並列チーム実行まで担当。実装して、実行して、全部やって、breezing、チーム実行、parallel で起動。プランニング・レビュー・リリース・セットアップには使わない。"
-description-en: "HAR: Execute Plans.md tasks from single task to full parallel team run. Trigger: implement, execute, do everything, breezing, team run, parallel. Do NOT load for: planning, review, release, setup."
-description-ja: "HAR:Plans.md タスクを1件から全並列チーム実行まで担当。実装して、実行して、全部やって、breezing、チーム実行、parallel で起動。プランニング・レビュー・リリース・セットアップには使わない。"
+description: "HAR: Execute Plans.md tasks from single task to full parallel team run. Trigger: implement, execute, do everything, breezing, team run, parallel. Do NOT load for: planning, review, release, setup."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task", "Monitor"]
 argument-hint: "[all] [task-number|range] [--codex] [--parallel N] [--no-commit] [--resume id] [--breezing] [--auto-mode]"
 effort: high

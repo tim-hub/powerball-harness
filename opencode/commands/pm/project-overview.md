@@ -1,5 +1,4 @@
 ---
-description: プロジェクト全体の概要を短く把握
 ---
 
 # /project-overview

@@ -1,6 +1,5 @@
 ---
 name: feedback
-description: "フィードバック収集機能の実装。ユーザーからの声を集めたい場合に使用します。"
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 ---
 

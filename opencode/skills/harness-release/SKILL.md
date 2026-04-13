@@ -1,8 +1,6 @@
 ---
 name: harness-release
-description: "HAR:CHANGELOG・バージョンバンプ・タグ・GitHub Release・mirror同期・検証を自動化。リリース、バージョンバンプ、タグ作成、公開で起動。実装・コードレビュー・プランニング・セットアップには使わない。"
-description-en: "HAR: CHANGELOG, version bump, tag, GitHub Release, mirror sync, validation automation. Trigger: release, version bump, create tag, publish. Do NOT load for: implementation, review, planning, setup."
-description-ja: "HAR:CHANGELOG・バージョンバンプ・タグ・GitHub Release・mirror同期・検証を自動化。リリース、バージョンバンプ、タグ作成、公開で起動。実装・コードレビュー・プランニング・セットアップには使わない。"
+description: "HAR: CHANGELOG, version bump, tag, GitHub Release, mirror sync, validation automation. Trigger: release, version bump, create tag, publish. Do NOT load for: implementation, review, planning, setup."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[patch|minor|major|--dry-run|--announce|--complete]"
 context: fork

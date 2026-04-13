@@ -1,5 +1,4 @@
 ---
-description: 計画作成（Claude Codeと協調してタスク分解）
 ---
 
 # /plan-with-cc

@@ -1,6 +1,5 @@
 ---
 name: component
-description: "UIコンポーネント生成（shadcn/ui 等）。ヒーローセクションや料金表などのUIを作りたい場合に使用します。"
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 ---
 

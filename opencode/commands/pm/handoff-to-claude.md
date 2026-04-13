@@ -1,5 +1,4 @@
 ---
-description: Claude Codeへの作業依頼プロンプトを生成
 ---
 
 # /handoff-to-claude

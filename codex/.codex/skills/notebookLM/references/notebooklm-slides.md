@@ -1,6 +1,5 @@
 ---
 name: docs-notebooklm-slide-yaml
-description: "NotebookLM の［スライド資料をカスタマイズ］で使えるデザイン指示YAMLを2案（別角度）生成して出力する。"
 allowed-tools: ["Read", "Write"]
 ---
 
