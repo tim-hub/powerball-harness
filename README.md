@@ -416,4 +416,4 @@ Issues and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 I am not the original author of this project. I have made significant modifications and improvements to the original codebase.
 
-This project was originally forked from [tim-hub/powerball-harness](https://github.com/tim-hub/powerball-harness). It has since diverged significantly from the original and is maintained independently.
+This project was originally forked from [claude-code-harness](https://github.com/Chachamaru127/claude-code-harness). It has since diverged significantly from the original and is maintained independently.
