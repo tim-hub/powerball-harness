@@ -5,6 +5,7 @@ allowed-tools: ["Read", "Write", "Edit", "Bash"]
 disable-model-invocation: true
 argument-hint: "[vercel|netlify|health]"
 context: fork
+model: sonnet
 ---
 
 # Deploy Skills
