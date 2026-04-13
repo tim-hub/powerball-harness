@@ -1,6 +1,6 @@
 ---
 name: session
-description: "Use this skill when the user runs /session, asks to list active sessions, check inbox messages, broadcast to other sessions, or manage Claude Code session state. Also use for session lifecycle operations. Do NOT load for: application user sessions, login/auth state, or authentication features. Unified session management — initialization, cross-session memory, state tracking, inbox, and broadcasting."
+description: "Use when running /session — listing sessions, inbox checks, broadcasting, or managing Claude Code session lifecycle. Do NOT load for: application user sessions, login/auth state, or auth features."
 allowed-tools: ["Read", "Bash", "Write", "Edit", "Glob"]
 argument-hint: "[list|inbox|broadcast \"message\"]"
 ---

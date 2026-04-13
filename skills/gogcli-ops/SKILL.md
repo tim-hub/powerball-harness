@@ -1,10 +1,12 @@
 ---
 name: gogcli-ops
-description: "Use this skill whenever the user asks to check, list, search, export, read, or update Google files; when a Google Drive/Docs/Sheets URL or file ID needs parsing; when selecting a Google account or verifying auth; or when troubleshooting gogcli access errors. Also use when the user pastes a Google URL and wants to interact with it. Do NOT load for: general local file operations, non-Google cloud storage (S3, Azure), or standard shell commands. Operates Google Workspace files via gogcli CLI — Drive, Sheets, Docs, and Slides."
+description: "Use when operating Google Drive, Docs, Sheets, or Slides via gogcli — listing, searching, exporting, reading, updating, or parsing Google URLs/IDs. Do NOT load for: non-Google cloud storage or standard shell commands."
 allowed-tools: ["Read", "Bash", "Grep", "Glob"]
 ---
 
 # Gogcli Ops
+
+Operates Google Workspace files via the `gogcli` CLI — Drive, Sheets, Docs, and Slides.
 
 ## Overview
 Standardize gogcli usage: verify auth, resolve IDs from URLs, default to read-only checks, then run the minimum command needed.

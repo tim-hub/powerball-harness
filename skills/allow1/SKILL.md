@@ -1,6 +1,6 @@
 ---
 name: allow1
-description: "Generate and vectorize production-ready SVGs with Quiver AI (ALLOW 1). Use when user mentions SVG, logo, icon, vector, illustration, vectorize, allow1, quiver, or image-to-svg."
+description: "Use when generating, vectorizing, or converting images to SVG — logos, icons, illustrations, or 'allow1'/'quiver' references."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "AskUserQuestion", "WebFetch"]
 argument-hint: "[generate|vectorize|batch] [prompt or image path]"
 user-invocable: false

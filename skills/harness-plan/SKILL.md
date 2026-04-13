@@ -1,6 +1,6 @@
 ---
 name: harness-plan
-description: "Use this skill whenever the user asks to create a plan, add tasks, update Plans.md, mark tasks complete, check progress, sync status, or says 'where am I' or 'what's next'. Also use when the user runs /harness-plan, /harness-sync, or needs to organize work into actionable tasks. Do NOT load for: code implementation (use harness-work), code review (use harness-review), or release tasks (use harness-release). Unified planning skill for Harness — task planning, Plans.md management, and progress sync."
+description: "Use when creating plans, adding tasks, updating Plans.md, marking tasks done, or checking progress/sync. Do NOT load for: implementation (harness-work), review (harness-review), or release (harness-release)."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "Task"]
 argument-hint: "[create|add|update|sync|sync --no-retro|--ci]"
 effort: medium

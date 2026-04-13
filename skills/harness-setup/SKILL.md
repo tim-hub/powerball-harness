@@ -1,6 +1,6 @@
 ---
 name: harness-setup
-description: "Use this skill whenever the user mentions setup, initialization, starting a new project, CI setup, Codex CLI setup, harness-mem, agent configuration, symlinks, mirrors, or runs /harness-setup. Also use when the user needs to configure the harness environment or onboard a new repository. Do NOT load for: code implementation (use harness-work), code review (use harness-review), release (use harness-release), or planning (use harness-plan). Unified setup skill for Harness — project initialization, tool configuration, 2-agent setup, memory config, symlinks, and mirror sync."
+description: "Use when initializing a project, setting up CI/Codex/memory config, configuring 2-agent workflow, or running /harness-setup. Do NOT load for: implementation, review, release, or planning."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
 argument-hint: "[init|ci|codex|harness-mem|mirrors|agents|localize]"
 effort: medium

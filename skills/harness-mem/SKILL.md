@@ -1,6 +1,6 @@
 ---
 name: harness-mem
-description: "Alias for the `memory` skill. Use when user invokes /harness-mem, types `harness-mem`, or mentions the Harness memory DB, MCP memory tools, recording a decision, searching memory, or cross-tool memory. This skill delegates to `skills/memory/SKILL.md` — all logic lives there, not here."
+description: "Use when invoking /harness-mem, harness-mem commands, or the shared Harness memory DB (MCP tools, decisions, cross-tool memory search). Delegates to skills/memory/."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "mcp__harness__harness_mem_*"]
 argument-hint: "[ssot|sync|sync-across|migrate|merge|search|record]"
 context: fork

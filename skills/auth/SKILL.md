@@ -1,6 +1,6 @@
 ---
 name: auth
-description: "Use this skill whenever the user mentions login, signup, authentication, OAuth, session management, payments, subscriptions, billing, Stripe integration, or checkout flows. Also use when the user needs to protect routes, add role-based access, or implement payment webhooks. Do NOT load for: general UI components, database schema design, non-auth API endpoints, or business logic unrelated to auth/payments. Implements authentication and payment features using Clerk, Supabase Auth, or Stripe."
+description: "Use when implementing authentication, OAuth, sessions, payments, subscriptions, or billing — including route protection, RBAC, and payment webhooks. Do NOT load for: general UI, schema design, or non-auth API endpoints."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 user-invocable: false
 ---

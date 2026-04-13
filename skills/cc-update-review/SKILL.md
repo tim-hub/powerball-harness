@@ -1,6 +1,6 @@
 ---
 name: cc-update-review
-description: "Auto-triggered when reviewing PRs that modify the Feature Table in CLAUDE.md or docs/CLAUDE-feature-table.md. Internal use only. Do NOT load for: standard code implementation, general PR reviews, project setup, or non-Feature-Table documentation changes. Quality guardrail for Claude Code update integration — detects doc-only Feature Table additions without corresponding implementation and requires implementation proposals."
+description: "Use when reviewing PRs that modify the Feature Table in CLAUDE.md or docs/CLAUDE-feature-table.md (auto-triggered). Do NOT load for: standard PR reviews, implementation, or non-Feature-Table docs."
 user-invocable: false
 allowed-tools: ["Read", "Grep", "Glob"]
 ---

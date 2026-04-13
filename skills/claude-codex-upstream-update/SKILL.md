@@ -1,6 +1,6 @@
 ---
 name: claude-codex-upstream-update
-description: "Local-only skill for researching Claude Code and Codex upstream releases, selecting high-value adaptations, and implementing meaningful Harness upgrades. Not for distribution."
+description: "Use when researching Claude Code or Codex upstream releases, selecting adaptations, or preparing Harness upgrades. Local-only; not for distribution."
 user-invocable: false
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: deploy
-description: "Use this skill whenever the user mentions deploying, pushing to production, Vercel setup, Netlify config, deployment monitoring, health check endpoints, or production analytics. Also use when the user wants to verify a deployment is healthy or set up post-deploy monitoring. Do NOT load for: feature implementation, local development, code reviews, or project initialization. Configures and executes deployments to Vercel or Netlify, including analytics setup and health checks."
+description: "Use when deploying to Vercel or Netlify — production pushes, health checks, post-deploy monitoring, or analytics setup. Do NOT load for: feature implementation, local dev, reviews, or project init."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 disable-model-invocation: true
 argument-hint: "[vercel|netlify|health]"
