@@ -10,6 +10,19 @@ Last archive: 2026-04-12 (Phase 25–34 → `.claude/memory/archive/Plans-2026-0
 
 ---
 
+## Phase 42: Conventional Commits cleanup
+
+Created: 2026-04-14
+Purpose: Sync retro flagged that the last 5 commits (`f9f5b1c`, `cf3e373`, `a063fc8`, `bc585c7`, `eadaabb`, `b80aead`) all skip the Conventional Commits prefix mandated by `CLAUDE.md`. Drift worth correcting going forward (no rewriting of past commits).
+
+### Tasks
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 42.1 | Strengthen the existing Conventional Commits section in `CONTRIBUTING.md` from descriptive ("we follow") to imperative ("every commit must"); add missing `perf:` / `ci:` prefixes; note that past commits are not rewritten. | Section reads as a hard requirement; `perf:` and `ci:` listed; next 3 commits land with valid prefixes | - | cc:done (next 3 commits TBC) |
+
+---
+
 ## Phase 41: Skill Refinements — gitignore template + Codex extraction
 
 Created: 2026-04-14
