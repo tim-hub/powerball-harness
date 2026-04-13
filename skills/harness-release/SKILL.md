@@ -5,6 +5,7 @@ allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[patch|minor|major|--dry-run|--announce|--complete]"
 context: fork
 effort: high
+model: sonnet
 ---
 
 # Harness Release
