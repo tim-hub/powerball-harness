@@ -5,17 +5,10 @@ allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[code|plan|scope] [--dual] [--security]"
 context: fork
 effort: high
+model: opus
 ---
 
 # Harness Review
-
-Unified review skill for Harness.
-Consolidates the following legacy skills:
-
-- `harness-review` — Multi-angle code, plan, and scope review
-- `codex-review` — Second opinion via Codex CLI
-- `verify` — Build verification, error recovery, and review fix application
-- `troubleshoot` — Error and incident diagnosis and repair
 
 ## Quick Reference
 
@@ -216,26 +209,8 @@ Choosing between standard Code Review and `--security`:
 
 ## Codex Environment
 
-In Codex CLI environments (`CODEX_CLI=1`), some tools are unavailable. The following fallbacks are used.
-
-| Normal Environment | Codex Fallback |
-|-------------------|----------------|
-| Get task list with `TaskList` | Read Plans.md and check WIP/TODO tasks |
-| Update status with `TaskUpdate` | Directly update Plans.md markers with `Edit` (e.g., `cc:WIP` → `cc:Done`) |
-| Write review result to Task | Output review result to stdout |
-
-### Detection Method
-
-```bash
-if [ "${CODEX_CLI:-}" = "1" ]; then
-  # Codex environment: Plans.md-based fallback
-fi
-```
-
-### Review Output in Codex Environment
-
-Since Task tools are not supported, review results are output to stdout in markdown format.
-The Lead agent or user reads the results and decides the next action.
+> Load [`${CLAUDE_SKILL_DIR}/references/codex-review.md`](${CLAUDE_SKILL_DIR}/references/codex-review.md)
+> only when `command -v codex` succeeds **and** the user explicitly requests Codex or duo review.
 
 ## Related Skills
 

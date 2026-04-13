@@ -1,6 +1,6 @@
 ---
 name: harness-setup
-description: "Use this skill whenever the user mentions setup, initialization, starting a new project, CI setup, Codex CLI setup, harness-mem, agent configuration, symlinks, mirrors, or runs /harness-setup. Also use when the user needs to configure the harness environment or onboard a new repository. Do NOT load for: code implementation (use harness-work), code review (use harness-review), release (use harness-release), or planning (use harness-plan). Unified setup skill for Harness — project initialization, tool configuration, 2-agent setup, memory config, symlinks, and mirror sync."
+description: "Use when initializing a project, setting up CI/Codex/memory config, configuring 2-agent workflow, or running /harness-setup. Do NOT load for: implementation, review, release, or planning."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
 argument-hint: "[init|ci|codex|harness-mem|mirrors|agents|localize]"
 effort: medium
@@ -8,18 +8,12 @@ effort: medium
 
 # Harness Setup
 
-Unified setup skill for Harness.
-Consolidates the following legacy skills:
-
-- `setup` — Unified setup hub
-- `harness-init` — Project initialization
-- `harness-update` — Harness updates
-- `maintenance` — File cleanup and organization
-
 ## Quick Reference
 
 | Subcommand | Behavior |
 |------------|----------|
+| `harness-setup` (no args) | Run binary install check, then init |
+| `harness-setup binary` | Download/install the platform binary from GitHub releases |
 | `harness-setup init` | New project initialization (CLAUDE.md + Plans.md + hooks) |
 | `harness-setup ci` | CI/CD pipeline configuration |
 | `harness-setup codex` | Codex CLI installation and configuration |
@@ -30,28 +24,65 @@ Consolidates the following legacy skills:
 
 ## Subcommand Details
 
+### binary — Platform Binary Install
+
+Downloads and installs the `harness-<os>-<arch>` binary from the GitHub release into `$CLAUDE_PLUGIN_ROOT/bin/`.
+Run this first if hooks are silently passing through (binary not yet installed).
+
+Implementation: [`scripts/download-binary.sh`](${CLAUDE_SKILL_DIR}/scripts/download-binary.sh)
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/download-binary.sh"
+```
+
+**When to run**: After fresh plugin install if you see `UserPromptSubmit hook error` messages.
+
 ### init — Project Initialization
 
 Introduce Harness to a new project.
 
-**Generated files**:
+**Generated files** (user's project):
 ```
 project/
 ├── CLAUDE.md            # Project configuration
 ├── Plans.md             # Task management (empty template)
-├── .claude/
-│   ├── settings.json    # Claude Code configuration
-│   └── hooks.json       # Hook configuration (v3 shim)
-└── hooks/
-    ├── pre-tool.sh      # Thin shim (→ core/src/index.ts)
-    └── post-tool.sh     # Thin shim (→ core/src/index.ts)
+├── .gitignore           # Standard ignore rules (harness-managed block appended)
+└── .claude/
+    └── settings.json    # Claude Code permissions/sandbox/env
 ```
+
+> **Note**: Neither `hooks/` nor `harness.toml` is generated into a user's project.
+> - Hooks ship inside the installed plugin (`.claude-plugin/hooks.json`) — Claude Code
+>   loads them from there automatically.
+> - `harness.toml` + `harness sync` is a *plugin-author* workflow for regenerating
+>   `.claude-plugin/*` files from a single TOML SSOT. User projects have no
+>   `.claude-plugin/` to regenerate, so the TOML would be an orphaned file. Users who
+>   want unified TOML authoring for their own `.claude/settings.json` can opt in later
+>   via a dedicated subcommand (future work).
 
 **Flow**:
 1. Detect project type (Node.js/Python/Go/Rust/Other)
 2. Generate minimal CLAUDE.md
 3. Generate Plans.md template
-4. Deploy hooks.json
+4. Generate `.claude/settings.json` (permissions/sandbox/env — safe defaults)
+5. Merge `templates/gitignore-harness` into `.gitignore` (idempotent — skips if `# >>> harness-managed >>>` marker already present)
+
+**gitignore merge logic**:
+```bash
+MARKER="# >>> harness-managed >>>"
+if grep -qF "$MARKER" .gitignore 2>/dev/null; then
+  echo ".gitignore already contains harness-managed block — skipping"
+else
+  echo "" >> .gitignore
+  cat "${CLAUDE_PLUGIN_ROOT}/templates/gitignore-harness" >> .gitignore
+  echo "Appended harness-managed gitignore block"
+fi
+```
+
+The block ignores `.claude/sessions/`, `logs/`, `settings.local.json`, and `states/`,
+while force-tracking `.claude/memory/decisions.md`, `.claude/memory/patterns.md`,
+`.claude/output-styles/`, `.claude/rules/`, `.claude/scripts/`, `.claude/skills/`,
+and `.claude/settings.json`.
 
 ### ci — CI/CD Configuration
 
@@ -96,11 +127,11 @@ Configure Unified Harness Memory.
 
 ```bash
 # Create memory directories
-mkdir -p .claude/agent-memory/claude-code-harness-worker
-mkdir -p .claude/agent-memory/claude-code-harness-reviewer
+mkdir -p .claude/agent-memory/powerball-harness-worker
+mkdir -p .claude/agent-memory/powerball-harness-reviewer
 
 # Deploy MEMORY.md template
-cat > .claude/agent-memory/claude-code-harness-worker/MEMORY.md << 'EOF'
+cat > .claude/agent-memory/powerball-harness-worker/MEMORY.md << 'EOF'
 # Worker Agent Memory
 
 ## Project Context

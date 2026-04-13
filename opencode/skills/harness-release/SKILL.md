@@ -5,16 +5,10 @@ allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[patch|minor|major|--dry-run|--announce|--complete]"
 context: fork
 effort: high
+model: sonnet
 ---
 
 # Harness Release
-
-Unified release skill for Harness.
-Consolidates the following legacy skills:
-
-- `release-har` -- General-purpose release automation
-- `x-release-harness` -- Harness-specific release automation
-- `handoff` -- PM handoff and completion reporting
 
 ## Quick Reference
 
@@ -30,7 +24,7 @@ Consolidates the following legacy skills:
 
 ## Release-only policy
 
-- Normal PRs: Do not touch `VERSION` / `.claude-plugin/plugin.json` / versioned `CHANGELOG.md` entries
+- Normal PRs: Do not touch `VERSION` / `.claude-plugin/marketplace.json` / versioned `CHANGELOG.md` entries
 - Change history for normal PRs: Append to the `[Unreleased]` section of `CHANGELOG.md`
 - Only when running `/release`: update version bump, versioned CHANGELOG entry, and tag / GitHub Release together
 - `/release --dry-run` runs the same preflight as production execution, catching red flags before publishing
@@ -70,7 +64,7 @@ There is no `package.json` at the root (`core/package.json` is for the internal 
 Only the following 2 files are subject to version management:
 
 - `VERSION` -- Source of truth
-- `.claude-plugin/plugin.json` -- Plugin manifest
+- `.claude-plugin/marketplace.json` -- Plugin manifest
 
 ## Distribution Surfaces and Mirror Sync
 
@@ -102,7 +96,7 @@ Current default: description is in Japanese (identical to `description-ja`). `de
 ```bash
 # 1. Verify required tools
 command -v gh &>/dev/null || echo "gh missing: GitHub Release will be skipped"
-command -v jq &>/dev/null || echo "jq missing: required for plugin.json update"
+command -v jq &>/dev/null || echo "jq missing: required for marketplace.json update"
 
 # 2. vendor-neutral preflight (common to production and dry-run)
 bash scripts/release-preflight.sh
@@ -165,7 +159,7 @@ echo "$NEW_VERSION" > VERSION
 ./scripts/sync-version.sh sync
 ```
 
-`sync-version.sh sync` applies the `VERSION` value to `.claude-plugin/plugin.json`.
+`sync-version.sh sync` applies the `VERSION` value to `.claude-plugin/marketplace.json`.
 
 ### Phase 3: CHANGELOG Update
 
@@ -228,7 +222,7 @@ Do not empty the `[Unreleased]` section; keep it for the next release:
 
 ```bash
 # VERSION was already updated in Phase 2
-# Sync plugin.json
+# Sync marketplace.json
 ./scripts/sync-version.sh sync
 
 # Verify sync
@@ -248,7 +242,7 @@ ls -la codex/.codex/skills/
 NEW_VERSION=$(cat VERSION)
 
 # Staging (explicitly specify target files)
-git add VERSION .claude-plugin/plugin.json CHANGELOG.md
+git add VERSION .claude-plugin/marketplace.json CHANGELOG.md
 git add skills/ codex/.codex/skills/
 
 git commit -m "chore: release v$NEW_VERSION"
@@ -343,7 +337,7 @@ Outputs 5 post texts + 5 Gemini images in a single pass.
 4. Display GitHub Release Notes draft (without creating)
 5. Display mirror sync diff (without writing)
 
-Skipped items: VERSION/plugin.json writes, git commit/tag/push, GitHub Release creation, announcements
+Skipped items: VERSION/marketplace.json writes, git commit/tag/push, GitHub Release creation, announcements
 
 ## `--complete` Mode
 
@@ -361,12 +355,12 @@ Verify the following regressions before release:
 
 | Check Item | Verification Method | Notes |
 |------------|-------------------|-------|
-| Plugin structure | `tests/validate-plugin.sh` | Validates plugin.json, skills, hooks, scripts |
+| Plugin structure | `tests/validate-plugin.sh` | Validates marketplace.json, skills, hooks, scripts |
 | Consistency | `scripts/ci/check-consistency.sh` | Templates, versions, mirrors, CHANGELOG |
 | Codex symlinks | `ls -la codex/.codex/skills/` | All symlinks resolve to skills/ |
 | Preflight | `scripts/release-preflight.sh` | Working tree, CHANGELOG, CI, remnants |
 | Release notes | `scripts/validate-release-notes.sh vX.Y.Z` | GitHub Release format validation |
-| VERSION sync | `scripts/sync-version.sh check` | Match between VERSION and plugin.json |
+| VERSION sync | `scripts/sync-version.sh check` | Match between VERSION and marketplace.json |
 | Guardrails | R01-R13 in `go/internal/guardrail/rules.go` | Go rule health |
 | Tag continuity | `git tag --sort=-version:refname \| head -5` | No missing tags |
 | Locale | Match between description and description-ja | Switchable via `set-locale.sh` |
@@ -410,7 +404,7 @@ Completion report to PM after release:
 - Two or more minor bumps on the same day
 - Minor bump for patch-level changes
 - Force push via `--force` / `--force-with-lease`
-- Mixing implementation changes other than VERSION / plugin.json / CHANGELOG into release commits
+- Mixing implementation changes other than VERSION / marketplace.json / CHANGELOG into release commits
 
 ## Related Skills
 

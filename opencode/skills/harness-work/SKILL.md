@@ -155,25 +155,8 @@ If write conflicts to the same file occur, isolate with git worktree.
 
 ### Codex Mode (`--codex` explicit only)
 
-Delegate tasks to Codex CLI via the official plugin `codex-plugin-cc` companion.
-
-```bash
-# Task delegation (writable)
-bash scripts/codex-companion.sh task --write "task content"
-
-# Via stdin (for large prompts)
-CODEX_PROMPT=$(mktemp /tmp/codex-prompt-XXXXXX.md)
-# Write task content
-cat "$CODEX_PROMPT" | bash scripts/codex-companion.sh task --write
-rm -f "$CODEX_PROMPT"
-
-# Resume previous thread
-bash scripts/codex-companion.sh task --resume-last --write "continue where we left off"
-```
-
-The companion communicates with Codex via the App Server Protocol,
-providing job management, thread resume, and structured output.
-Results are verified, and if quality standards are not met, fixes are applied independently.
+> Load [`${CLAUDE_SKILL_DIR}/references/codex-work.md`](${CLAUDE_SKILL_DIR}/references/codex-work.md)
+> only when `command -v codex` succeeds **and** the user passes `--codex` or explicitly asks to use Codex.
 
 ### Breezing Mode (auto-selected for 4+ tasks / forced with `--breezing`)
 
@@ -345,7 +328,7 @@ In Parallel mode, each Worker executes the same loop as step 10 (external review
 ### Review Execution Priority
 
 ```
-1. Codex exec (priority)
+1. Codex exec (priority, when available) — see ${CLAUDE_SKILL_DIR}/references/codex-work.md
    ↓ codex command does not exist or timeout (120s)
 2. Internal Reviewer agent (fallback)
 ```
@@ -367,40 +350,8 @@ Improvement suggestions outside these criteria are returned as `recommendations`
 
 ### Codex Exec Review (via official plugin)
 
-Record the HEAD at task start as `BASE_REF` and review the diff against that ref.
-Uses the official plugin `codex-plugin-cc` companion review.
-
-```bash
-# Record base ref at task start (execute before cc:WIP update in Step 2)
-BASE_REF=$(git rev-parse HEAD)
-
-# ... after implementation completion ...
-
-# Execute structured review via official plugin
-bash scripts/codex-companion.sh review --base "${BASE_REF}"
-REVIEW_EXIT=$?
-```
-
-**Verdict Mapping** (official plugin → Harness format):
-
-The official plugin returns structured output conforming to `review-output.schema.json`.
-Conversion rules to Harness verdict format:
-
-| Official Plugin | Harness | Verdict Impact |
-|---|---|---|
-| `approve` | `APPROVE` | - |
-| `needs-attention` | `REQUEST_CHANGES` | - |
-| `findings[].severity: critical` | `critical_issues[]` | 1 item → REQUEST_CHANGES |
-| `findings[].severity: high` | `major_issues[]` | 1 item → REQUEST_CHANGES |
-| `findings[].severity: medium/low` | `recommendations[]` | No impact on verdict |
-
-AI Residuals scan continues to be executed with `scripts/review-ai-residuals.sh`,
-and the final verdict is determined by combining its results with the companion review.
-
-```bash
-# AI Residuals scan (can run in parallel with companion review)
-AI_RESIDUALS_JSON="$(bash scripts/review-ai-residuals.sh --base-ref "${BASE_REF}" 2>/dev/null || echo '{"tool":"review-ai-residuals","scan_mode":"diff","base_ref":null,"files_scanned":[],"summary":{"verdict":"APPROVE","major":0,"minor":0,"recommendation":0,"total":0},"observations":[]}')"
-```
+> When Codex is available, load [`${CLAUDE_SKILL_DIR}/references/codex-work.md`](${CLAUDE_SKILL_DIR}/references/codex-work.md)
+> for the full Codex exec review flow, verdict mapping, and AI Residuals scan details.
 
 ### Internal Reviewer Agent Fallback
 

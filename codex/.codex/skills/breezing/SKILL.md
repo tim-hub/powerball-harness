@@ -1,6 +1,6 @@
 ---
 name: breezing
-description: "Use when user says 'breezing', 'do everything', 'run the whole plan', 'team run', 'full auto', or wants all tasks executed end-to-end with parallel workers. Do NOT load for: single-task implementation, planning, code review, release, or setup. Team execution mode — runs Plans.md tasks with full parallel team orchestration. High-level alias for harness-work in team mode."
+description: "Use when running the full team/breezing flow end-to-end — all tasks with parallel workers. Do NOT load for: single-task implementation, planning, review, release, or setup."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Task", "WebSearch"]
 argument-hint: "[all|N-M|--codex|--parallel N|--no-commit|--no-discuss|--auto-mode]"
 user-invocable: true
