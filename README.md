@@ -10,12 +10,16 @@
 
 A Claude Code plugin for autonomous **Plan → Work → Review** workflows, with a Go-native guardrail engine that protects your repo at runtime.
 
+<p align="center">
+  <img src="assets/readme-visuals-en/generated/why-harness-pillars.svg" alt="What changes with Claude Harness: shared plan, runtime guardrails, and rerunnable validation" width="860">
+</p>
+
 ---
 
 ## Requirements
 
 - **Claude Code v2.1+**
-- **Go 1.22+** runtime (pre-built binary included in releases — no separate install needed)
+- **Go 1.22+** runtime (downloaded automatically from GitHub Releases on install — no manual setup needed)
 
 ---
 
@@ -26,7 +30,6 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, with
 /plugin marketplace add tim-hub/powerball-harness
 /plugin install harness@powerball-harness-marketplace --scope user
 ```
-
 
 ---
 
@@ -45,11 +48,35 @@ Run everything after plan approval:
 /harness-work all
 ```
 
+> **Note**: `/harness-setup` is only needed when onboarding a brand new project that doesn't yet have `CLAUDE.md` or `Plans.md`. If your project already has those, or if you're just using the skills directly, you can skip it entirely.
+
 ---
 
-## Guardrails
+## Safety First
 
-A Go-native engine (`go/internal/guardrail/`) enforces 13 declarative rules at runtime — blocking `sudo`, force-push, secret writes, `rm -rf`, and more. See [docs/hardening-parity.md](docs/hardening-parity.md) for the full rule table.
+<p align="center">
+  <img src="assets/readme-visuals-en/generated/safety-guardrails.svg" alt="Safety Protection System" width="640">
+</p>
+
+Harness protects your codebase with a **Go-native guardrail engine** (`go/internal/guardrail/`) — 13 declarative rules (R01–R13):
+
+| Rule | Protected | Action |
+|------|-----------|--------|
+| R01 | `sudo` commands | **Deny** |
+| R02 | `.git/`, `.env`, secrets | **Deny** write |
+| R03 | Shell writes to protected files | **Deny** |
+| R04 | Writes outside project | **Ask** |
+| R05 | `rm -rf` | **Ask** |
+| R06 | `git push --force` | **Deny** |
+| R07–R09 | Mode-specific and secret-read guards | Context-aware |
+| R10 | `--no-verify`, `--no-gpg-sign` | **Deny** |
+| R11 | `git reset --hard main/master` | **Deny** |
+| R12 | Direct push to `main` / `master` | **Warn** |
+| R13 | Protected file edits | **Warn** |
+| Post | `it.skip`, assertion tampering | **Warning** |
+| Perm | `git status`, `npm test` | **Auto-allow** |
+
+Runtime hook behavior is documented in [docs/hardening-parity.md](docs/hardening-parity.md).
 
 ---
 
@@ -73,6 +100,16 @@ claude-code-harness/
 | Hook errors on every prompt | Run `/harness-setup binary` to manually re-download the platform binary |
 | Commands not found | Run `/harness-setup` first |
 | Plugin not loading | `rm -rf ~/.claude/plugins/cache/claude-code-harness-marketplace/` and restart |
+
+---
+
+## Uninstall
+
+```bash
+/plugin uninstall powerball-harness
+```
+
+Project files (`Plans.md`, `CLAUDE.md`, SSOT files) remain unchanged.
 
 ---
 
