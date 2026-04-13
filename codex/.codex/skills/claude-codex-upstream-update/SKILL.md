@@ -32,7 +32,7 @@ The goal is not to "introduce updates" but to "actually make Harness stronger."
    - `hooks/hooks.json`
    - `.claude-plugin/hooks.json`
    - `scripts/hook-handlers/`
-   - `core/src/guardrails/`
+   - `go/internal/guardrail/`
    - `tests/test-claude-upstream-integration.sh`
    - `tests/validate-plugin.sh`
 3. Do not stop at just writing to the Feature Table
@@ -67,7 +67,7 @@ Update candidates must always determine which surface they belong to.
 
 - `hooks/` / `.claude-plugin/hooks.json`
 - `scripts/hook-handlers/`
-- `core/src/guardrails/`
+- `go/internal/guardrail/`
 - `skills/` / `agents/`
 - `tests/test-claude-upstream-integration.sh`
 - `tests/validate-plugin.sh`
