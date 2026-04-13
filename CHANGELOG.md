@@ -6,6 +6,22 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.0.3] - 2026-04-13
+
+### Theme: Fix opencode/ Mirror Sync CI Check
+
+**The `opencode/` directory was out of sync with its source, causing the mirror compatibility CI check to fail on every push.**
+
+---
+
+#### 1. opencode/ Regenerated
+
+**Before**: `opencode/` contained stale generated files — 7 files diverged from their sources in `commands/` and `CLAUDE.md`, including a leftover `IMPLEMENTATION_SUMMARY.md` that had been deleted upstream. The CI check `node scripts/build-opencode.js` detected the drift and blocked pushes.
+
+**After**: Ran `node scripts/build-opencode.js` to regenerate all `opencode/` files from their SSOT. The stale `IMPLEMENTATION_SUMMARY.md` was removed and PM command files were updated. CI check passes cleanly.
+
+---
+
 <!-- v4.0.x entries below were merged from upstream/main (Hokage branch) -->
 
 ## [4.0.2] - 2026-04-12
