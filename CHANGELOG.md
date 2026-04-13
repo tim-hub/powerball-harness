@@ -6,6 +6,32 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.0.4] - 2026-04-13
+
+### Theme: Fix GitHub Actions Auto-Release Race Condition and CI Improvements
+
+**Fixed a race condition in the GitHub Actions release workflow when a release already exists, and cleaned up CI consistency checks.**
+
+---
+
+#### 1. GitHub Actions Release Race Condition Fix
+
+**Before**: When a tag was pushed and a release already existed, `release.yml` would fail with an error.
+
+**After**: Added an existence check so the workflow skips release creation if one already exists.
+
+#### 2. CI Consistency Check Cleanup
+
+**Before**: `check-consistency.sh` referenced the deleted `README_ja.md`, causing CI checks to fail.
+
+**After**: Removed the stale reference; CI checks now pass cleanly.
+
+#### 3. Mirror Sync and Distribution Cleanup
+
+**Before**: `IMPLEMENTATION_SUMMARY.md` remained in `skills/` and all mirrors — an internal dev doc included in the distribution.
+
+**After**: Removed the internal document from all mirrors; distribution is now clean.
+
 ## [4.0.3] - 2026-04-13
 
 ### Theme: Fix opencode/ Mirror Sync CI Check
