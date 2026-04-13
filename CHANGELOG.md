@@ -48,6 +48,17 @@ The following residue from the v4.0.0 migration was detected and corrected:
 | `docs/ARCHITECTURE.md` | v3 architecture | v4 architecture |
 | Multiple skills | `Harness v3` headings | `Harness v4` |
 
+#### 3. Version Source Migrated from plugin.json to marketplace.json
+
+**Before**: `.claude-plugin/plugin.json` was the canonical source for plugin metadata and version. It existed alongside `marketplace.json` with overlapping metadata, and all tooling (`sync-version.sh`, pre-commit hook, CI scripts, `emit-agent-trace.js`) pointed at it.
+
+**After**: `plugin.json` has been removed. `marketplace.json` is the single source of plugin metadata. A `version` field was added to `marketplace.json`, and all tooling was updated to read/write from there. `emit-agent-trace.js` was also adapted for the nested structure (`plugins[0]` for license/author fields).
+
+```bash
+./scripts/sync-version.sh check
+# ✅ Versions match: 4.0.2
+```
+
 ---
 
 ## [4.0.1] - 2026-04-11
