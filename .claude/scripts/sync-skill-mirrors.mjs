@@ -112,18 +112,30 @@ function checkSkill(skill, mirrorRoot) {
   return true;
 }
 
+// Skills excluded per mirror target.
+// Iterate SSOT and skip these — mirrors stay in sync with new skills automatically.
+const SKIP_PER_MIRROR = {
+  'codex/.codex/skills': new Set(['allow1', 'cc-update-review', 'claude-codex-upstream-update']),
+  'opencode/skills':     new Set(['allow1', 'breezing', 'cc-update-review', 'claude-codex-upstream-update']),
+};
+
 let failures = 0;
 
 for (const mirrorRoot of MIRROR_ROOTS) {
   const mirrorDir = path.join(PLUGIN_ROOT, mirrorRoot);
   if (!fs.existsSync(mirrorDir)) continue;
 
-  for (const entry of fs.readdirSync(mirrorDir, { withFileTypes: true })) {
+  const skipSkills = SKIP_PER_MIRROR[mirrorRoot] ?? new Set();
+
+  // Iterate SSOT — not the mirror — so new skills are picked up automatically
+  for (const entry of fs.readdirSync(SSOT_DIR, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
     const skill = entry.name;
 
     if (skill === 'node_modules' || skill === '.git') continue;
-    if (!fs.existsSync(path.join(SSOT_DIR, skill))) continue;
+    if (skill.startsWith('test-') || skill.startsWith('x-') || skill.startsWith('zz-')) continue;
+    if (skipSkills.has(skill)) continue;
+    if (!fs.existsSync(path.join(SSOT_DIR, skill, 'SKILL.md'))) continue;
 
     if (mode === 'sync') {
       syncSkill(skill, mirrorRoot);
