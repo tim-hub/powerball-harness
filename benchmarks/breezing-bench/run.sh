@@ -277,6 +277,8 @@ Create tests for your implementation.
 Make sure all existing tests still pass."
 
   # Execute with Claude CLI (non-interactive, skip all permissions, no session persistence)
+  # --bare: skips hooks, LSP, plugin sync, CLAUDE.md discovery — avoids harness hook overhead in benchmarks
+  echo "  Waiting for claude... (logs: $RESULTS_DIR/${result_id}.stdout)"
   ( cd "$work_dir" && \
     $TIMEOUT_CMD $((MAX_TURNS * 30)) claude \
       --model "$MODEL" \
@@ -284,6 +286,7 @@ Make sure all existing tests still pass."
       --output-format text \
       --dangerously-skip-permissions \
       --no-session-persistence \
+      --bare \
       -p "$prompt" \
       --allowedTools "Read,Write,Edit,Bash,Glob,Grep" \
   ) 2>"$RESULTS_DIR/${result_id}.stderr" \
@@ -321,6 +324,8 @@ ${task_prompt}
 7. After review cycle, clean up the team"
 
   # Breezing uses Teams so increase budget
+  # --bare: skips hooks, LSP, plugin sync, CLAUDE.md discovery — avoids harness hook overhead in benchmarks
+  echo "  Waiting for claude... (logs: $RESULTS_DIR/${result_id}.stdout)"
   ( cd "$work_dir" && \
     $TIMEOUT_CMD $((MAX_TURNS * 60)) claude \
       --model "$MODEL" \
@@ -328,6 +333,7 @@ ${task_prompt}
       --output-format text \
       --dangerously-skip-permissions \
       --no-session-persistence \
+      --bare \
       -p "$prompt" \
       --allowedTools "Read,Write,Edit,Bash,Glob,Grep,Task,TeamCreate,TeamDelete,TaskCreate,TaskUpdate,TaskList,TaskGet,SendMessage" \
   ) 2>"$RESULTS_DIR/${result_id}.stderr" \

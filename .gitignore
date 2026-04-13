@@ -186,6 +186,7 @@ docs/images/image*.webp
 # Migration scripts (temporary)
 scripts/migrate-usage-history.js
 .claude-plugin/CLAUDE.md
+.claude-plugin/plugin.json
 
 # Local sandbox secrets
 scripts/sandbox-test/.env
