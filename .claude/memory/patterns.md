@@ -182,3 +182,100 @@ grep -rn '[Japanese-characters]' core/src/ | wc -l  # Should be 0
 ### Related
 
 - decisions: D4
+
+---
+
+## P6: Idempotent managed-block template merge #templates #setup #idempotency
+
+### Problem
+
+- A setup/init step needs to add a known block of content to a user-owned file (`.gitignore`, `.editorconfig`, CI config, etc.) without duplicating on re-run, and without overwriting the user's other content
+
+### Solution
+
+- Wrap the managed content in unique sentinel markers: `# >>> harness-managed >>>` ... `# <<< harness-managed <<<`
+- Before appending, `grep -qF` for the open marker — if present, skip silently; otherwise append the template (with a leading blank line)
+- The close marker is reserved for future "replace-block" tooling (read between markers, swap content) — not used today but cheap to leave in place
+
+### Example
+
+```bash
+MARKER="# >>> harness-managed >>>"
+if grep -qF "$MARKER" .gitignore 2>/dev/null; then
+  echo ".gitignore already contains harness-managed block — skipping"
+else
+  echo "" >> .gitignore
+  cat "${CLAUDE_PLUGIN_ROOT}/templates/gitignore-harness" >> .gitignore
+  echo "Appended harness-managed gitignore block"
+fi
+```
+
+### When to Apply
+
+- Setup steps that need to merge a known content block into a user-owned config file
+- Any "managed snippet" that should remain stable across re-runs of the same setup command
+
+### When NOT to Apply
+
+- Files Harness fully owns (just overwrite)
+- Content that needs interleaving with user content (use a real config-merge tool instead)
+
+### Notes
+
+- Use `${CLAUDE_PLUGIN_ROOT}/...` for the template source, not a CWD-relative path — `harness-setup init` runs from the user's project, not from the plugin install dir
+- Choose marker comment syntax appropriate to the file (`#` for shell-style, `//` for JS/TS-style, `;` for ini-style)
+
+### Related
+
+- files: `templates/gitignore-harness`, `skills/harness-setup/SKILL.md` (init subcommand)
+
+---
+
+## P7: Optional-tool extraction for skills #skills #conditional-load #codex
+
+### Problem
+
+- A skill's main flow defaults to one tool path (e.g., Claude tools), but documents an alternative path that requires an optional external CLI (e.g., Codex). Inlining the alternative path bloats the skill, adds noise for users without the tool, and increases the token budget on every load.
+
+### Solution
+
+- Move the optional-tool sections (flag dispatch, command examples, fallback behavior) into a sibling reference file: `skills/<skill>/references/<tool>-<skill>.md`
+- Replace the inline section in the main `SKILL.md` with a 2-line conditional pointer:
+
+  ```markdown
+  > Load [`${CLAUDE_SKILL_DIR}/references/<tool>-<skill>.md`](${CLAUDE_SKILL_DIR}/references/<tool>-<skill>.md)
+  > only when `command -v <tool>` succeeds **and** the user passes `--<tool>` or explicitly asks to use <tool>.
+  ```
+
+- Keep flag names and option-table rows in `SKILL.md` (they're discoverability surface) — only the *detailed mechanics* go to the reference
+
+### Example
+
+Phase 41 applied this twice:
+
+| Skill | Section moved | Reference file | SKILL.md size |
+|-------|---------------|----------------|---------------|
+| `harness-review` | "Codex Environment" (~22 lines) | `references/codex-review.md` | 236 → 218 |
+| `harness-work` | "Codex Mode" + "Codex Exec Review" (~60 lines) | `references/codex-work.md` | 520 → 471 |
+
+### When to Apply
+
+- The optional tool is genuinely opt-in (not used by most users)
+- The optional-tool section is >15 lines of inline detail
+- A `command -v <tool>` check can reliably gate the load
+
+### When NOT to Apply
+
+- The "optional" tool is actually the default path most users take
+- The detail fits in a few lines (just inline it)
+- Loading the reference unconditionally is cheap and the section is small
+
+### Notes
+
+- Use `${CLAUDE_SKILL_DIR}` (CC v2.1.69+) for the reference path, not a relative path
+- Keep `argument-hint` listing the flag (e.g., `--codex`) — the flag exists; only the docs moved
+- Pseudocode function calls referencing the tool (e.g., `codex_exec_review()` inside a review-loop pseudocode block) can stay in the main `SKILL.md` — they're internal references, not user-facing docs
+
+### Related
+
+- files: `skills/harness-review/references/codex-review.md`, `skills/harness-work/references/codex-work.md`

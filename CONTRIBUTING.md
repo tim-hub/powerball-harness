@@ -25,14 +25,20 @@ Thank you for your interest in contributing to **claude-code-harness**! This doc
 
 ### Commit Message Format
 
-We follow [Conventional Commits](https://www.conventionalcommits.org/):
+We follow [Conventional Commits](https://www.conventionalcommits.org/). **Every commit message must start with one of these prefixes** — no exceptions, including for small or simplification commits:
 
 - `feat:` - New features
 - `fix:` - Bug fixes
 - `docs:` - Documentation changes
-- `refactor:` - Code refactoring
+- `refactor:` - Code refactoring (no behavior change)
 - `test:` - Adding or updating tests
-- `chore:` - Maintenance tasks
+- `chore:` - Maintenance tasks (build config, tooling, dependency bumps)
+- `perf:` - Performance improvements
+- `ci:` - CI/CD pipeline changes
+
+Optional scope in parentheses: `refactor(skills): split codex sections out of harness-review`.
+
+Past commits without prefixes are not rewritten — the rule applies going forward.
 
 ### Code Style
 
