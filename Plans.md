@@ -10,6 +10,144 @@ Last archive: 2026-04-12 (Phase 25–34 → `.claude/memory/archive/Plans-2026-0
 
 ---
 
+## Phase 44: Skill description standardization — "Use when" rule
+
+Created: 2026-04-14
+Purpose: Establish and enforce a uniform `description` frontmatter style across every SKILL.md. Descriptions must start with `Use when ...` (trigger-first), stay short, and push skill introduction/overview into the SKILL.md body. This gives the auto-loader a predictable routing signal and prevents the current drift where some skills narrate what they are while others enumerate user phrases.
+
+### Background (Why this phase exists)
+
+- Current descriptions mix three intents into one string: (a) triggers, (b) exclusions, (c) introduction/summary. Examples:
+  - `skills/harness-work/SKILL.md`: `"Use this skill whenever the user asks to implement... Implements Plans.md tasks from single task to full parallel team runs."` — trigger + exclusion + body intro all inline.
+  - `skills/auth/SKILL.md`: ends with `"Implements authentication and payment features using Clerk, Supabase Auth, or Stripe."` — that sentence belongs in the body.
+  - `skills/notebookLM/SKILL.md`: same pattern.
+- Many descriptions start with `Use this skill whenever the user mentions/asks...`. The "user mentions" framing biases the auto-loader toward literal keyword matches rather than task-shape matches, and adds words without adding signal.
+- 59 SKILL.md files total: `skills/` (31), `opencode/skills/` (26), `skills-codex/` (2). `opencode/skills/` are independent copies, not symlinks, so they need matching updates.
+- No written rule currently governs this — resulting drift recurs every time a new skill is added.
+
+### Priority Matrix
+
+| Priority | Task Group | Content | Task Count | Depends |
+|----------|-----------|---------|-----------|---------|
+| **Required** | 44.1 | New rule file documenting description format | 1 | None |
+| **Required** | 44.2 | Audit script to detect non-conforming descriptions | 1 | 44.1 |
+| **Required** | 44.3 | Update `skills/` (31 SKILL.md files) | 1 | 44.1, 44.2 |
+| **Required** | 44.4 | Update `opencode/skills/` (26 SKILL.md files) | 1 | 44.1, 44.2 |
+| **Required** | 44.5 | Update `skills-codex/` (2 SKILL.md files) | 1 | 44.1, 44.2 |
+| **Required** | 44.6 | Wire audit into `tests/validate-plugin.sh` as CI gate | 1 | 44.3, 44.4, 44.5 |
+| **Recommended** | 44.7 | Cross-reference opencode/skills with skills to catch drift | 1 | 44.3, 44.4 |
+
+Total: **7 tasks**
+
+### Rule contents (drafted here so tasks can be implemented directly)
+
+**File**: `.claude/rules/skill-description.md`
+
+**Required format**:
+```
+Use when <trigger condition>. [Optional: Do NOT load for: <exclusions>.]
+```
+
+**Rules**:
+1. Must start with literal prefix `Use when ` (no `Use this skill`, no `the user mentions`, no `the user asks`).
+2. Trigger should describe the **task shape** or **invocation**, not enumerate user phrases. Example: `Use when reviewing code, plans, or scope` — not `Use when user mentions review, check, or look at code`.
+3. Skill introduction / summary / capabilities list belongs in the SKILL.md body (first paragraph or `## Overview` section), not in the description.
+4. Exclusions (`Do NOT load for:`) are optional but recommended when another skill covers adjacent territory.
+5. Target length: ≤ 200 characters. Hard ceiling: 300 characters. If it doesn't fit, the summary sentence is the part to cut.
+
+**Good example**:
+```yaml
+description: "Use when implementing, executing, or running Plans.md tasks — single task, parallel, or full team run. Do NOT load for: planning (harness-plan), review (harness-review), release (harness-release)."
+```
+
+**Bad example** (current state):
+```yaml
+description: "Use this skill whenever the user asks to implement, execute, build, code, 'do everything', 'run all tasks', or mentions harness-work, breezing, team run, or parallel execution. ... Implements Plans.md tasks from single task to full parallel team runs."
+```
+
+### Completion Criteria (Definition of Done — Phase 44 overall)
+
+| # | Criterion | Verification |
+|---|-----------|--------------|
+| 1 | Rule file `.claude/rules/skill-description.md` exists and follows the format above | `test -f .claude/rules/skill-description.md` |
+| 2 | All 59 SKILL.md `description` fields start with `Use when ` | `find skills opencode/skills skills-codex -name SKILL.md -exec grep -l '^description:' {} \; \| xargs grep '^description:' \| grep -v 'Use when ' → 0 lines` |
+| 3 | No description exceeds 300 characters | Audit script output shows 0 violations |
+| 4 | No description contains `the user mentions` or `the user asks` | `grep -r 'the user mentions\|the user asks' skills/ opencode/skills/ skills-codex/ --include=SKILL.md → 0` |
+| 5 | For each SKILL.md touched by 44.3/44.4/44.5, the body section between the `# <title>` H1 and the first `## <heading>` H2 is non-empty (i.e. the intro moved out of description actually landed in the body) | `awk '/^# /{f=1;next} /^## /{f=0} f' SKILL.md \| grep -c '[^[:space:]]'` returns ≥ 1 for every touched file |
+| 6 | `./tests/validate-plugin.sh` passes — including the new Section 10 skill-description gate added by 44.6 | Exit code 0; Section 10 reports "All N SKILL.md descriptions conform" |
+
+### Tasks
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 44.1 | Create `.claude/rules/skill-description.md` documenting the `Use when ...` format: required prefix, trigger shape (task vs. phrase), body placement for intro/summary, optional `Do NOT load for:` exclusions, 200-char target / 300-char ceiling. Include good/bad examples from current codebase. | Rule file exists; includes format spec + ≥ 2 good examples + ≥ 1 bad example with fix | - | cc:TODO |
+| 44.2 | Write `scripts/audit-skill-descriptions.sh` (standalone, not yet wired to CI) that reports per-file: (a) missing `Use when ` prefix, (b) contains forbidden phrases (`the user mentions`, `the user asks`, `Use this skill`), (c) length > 300 chars. Tab-separated output: `<file>\t<violation-kind>\t<snippet>` — one line per violation so the CI wrapper (44.6) can route each into its own `fail_test`. Accepts optional directory argument to scope the scan. Exit codes: 0=clean, 1=violations, 2=invocation error. | Script runs against all 3 skill dirs; reports current violation count (expected ~55+); exit code 1 when any violation; exit code 0 when given an empty/clean dir | 44.1 | cc:TODO |
+| 44.3 | Update all 31 SKILL.md files under `skills/` to conform: rewrite each description to `Use when ...` form; move skill intro/summary sentence into the body (top paragraph or `## Overview`); preserve exclusions. Keep behavior and triggers semantically equivalent — just reformat. | `audit-skill-descriptions.sh skills/` → exit 0; for every touched SKILL.md, `awk '/^# /{f=1;next} /^## /{f=0} f' SKILL.md \| grep -c '[^[:space:]]'` ≥ 1 (body intro actually landed) | 44.1, 44.2 | cc:TODO |
+| 44.4 | Update all 26 SKILL.md files under `opencode/skills/` to conform (same transformation as 44.3). | `audit-skill-descriptions.sh opencode/skills/` → exit 0; body-non-empty check (same awk command as 44.3) ≥ 1 for every touched file | 44.1, 44.2 | cc:TODO |
+| 44.5 | Update 2 SKILL.md files under `skills-codex/` (harness-work, breezing) to conform. | `audit-skill-descriptions.sh skills-codex/` → exit 0; body-non-empty check ≥ 1 for every touched file | 44.1, 44.2 | cc:TODO |
+| 44.6 | Wire `audit-skill-descriptions.sh` into `tests/validate-plugin.sh` as a new **Section 10: Skill description format check** (inserted before "Test Results Summary"). Each violation from the script becomes its own `fail_test` line so per-file feedback survives into the CI summary. Must run cleanly against HEAD at merge time (deliberately sequenced after 44.3/44.4/44.5 so CI never goes red — see "Sequencing decision" below). Use `warn_test` (not `fail_test`) if the script is missing so older branches stay green. | `./tests/validate-plugin.sh` exits 0 and prints "All N SKILL.md descriptions conform" under Section 10; deleting any `Use when ` prefix from a test file and re-running makes Section 10 fail with that file's path in the output | 44.3, 44.4, 44.5 | cc:TODO |
+| 44.7 | For the 24 skills present in both `skills/` and `opencode/skills/`, diff their descriptions post-update. Flag any semantic divergence (different triggers, different exclusions) — those indicate drift that should either be intentional or reconciled. | Generates a short report listing divergent pairs with recommended action (keep / reconcile); no automatic overwrite | 44.3, 44.4 | cc:TODO |
+
+### Sequencing decision (why 44.6 lands last)
+
+The audit script (44.2) lands early so workers in 44.3/44.4/44.5 can use it locally as part of their DoD (`audit-skill-descriptions.sh <dir>` → exit 0). But **Section 10 in `validate-plugin.sh` is deliberately not wired until 44.6**, which runs after all rewrites complete.
+
+Rationale: if Section 10 landed with 44.2, CI would go red on every PR for the duration of the migration (~55 violations already present). Two alternatives were considered and rejected:
+
+- **Allowlist file** listing current violators — rejected because the allowlist itself becomes a new source of drift (the exact problem this phase exists to eliminate).
+- **Wire at 44.2, fix-forward** — rejected because red CI during migration trains reviewers to ignore CI.
+
+Zero-red-window strategy: workers run the script locally between 44.2 and 44.6; Section 10 becomes the gate only once HEAD is already conformant. This makes 44.6 the moment the rule becomes self-enforcing going forward.
+
+### Risks and notes
+
+- **Don't batch-rewrite mechanically.** Each skill's trigger shape is specific — a regex-replace would lose signal. Rewrites are per-file judgment calls; the audit script flags violations but the rewrite is manual.
+- **opencode vs. skills drift is pre-existing.** Task 44.7 surfaces it but doesn't force reconciliation — some divergence may be intentional (OpenCode-specific invocations).
+- **Body edits must actually add content.** Completion Criterion #5 enforces this programmatically via the awk check — the body between H1 and first H2 must be non-empty after the rewrite.
+- **Length target is a guide, not a hard cut.** If a skill genuinely needs a 250-char description because it has 5 distinct triggers, that's fine. The ceiling (300) is the real constraint.
+
+### Suggested execution order
+
+1. 44.1 (rule) — single file, sets the contract
+2. 44.2 (audit script, standalone) — gives you the violation list and the local check for 44.3/44.4/44.5
+3. 44.3 + 44.4 + 44.5 can run in parallel if split across workers, or sequentially by directory — each directory takes ~30 min of focused work
+4. 44.6 (wire Section 10) — runs once all three directories are conformant; this is the moment CI starts enforcing the rule
+5. 44.7 (drift report) — post-hoc cross-reference between skills/ and opencode/skills/
+
+---
+
+## Phase 43: Memory skill refactor — local-first/MCP-extension contract
+
+Created: 2026-04-14 (retroactive — captures work shipped in `b18170d`)
+Purpose: During Phase 41's skill-split pattern (P7) rollout, the `memory` skill became the natural next target. Its `search` and `record` subcommands needed explicit encoding of the "local SSOT authoritative / MCP extends reach" contract so the model routes correctly regardless of MCP availability. Also needed: a `harness-mem` proxy for command compatibility and a shared rule documenting the Quick Reference table format used across skills.
+
+### Background (Why this phase exists)
+
+- `skills/memory/SKILL.md` carried inline documentation that grew past the dispatch-surface role the Quick Reference pattern defines. Subcommands lacked a visible binding to their reference files.
+- `search` and `record` had no explicit contract telling the model "local first, MCP only if connected". In MCP-absent sessions the model could silently degrade coverage without flagging it.
+- `shared_db.md` (6-line stub) duplicated the tool list already present in `harness-mem-mcp.md` — redundant reference file.
+- `/harness-mem` as a command alias had no proxy skill, so invocations had to guess which canonical skill to open.
+- The Quick Reference table format wasn't documented as a rule, so future skills would drift column headers and structure.
+
+### Tasks
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 43.1 | Refactor `skills/memory/SKILL.md` to pure dispatch surface with Quick Reference (7 subcommands) + local-first/MCP-extends callout | SKILL.md < 50 lines; Quick Reference lists ssot/sync/sync-across/migrate/merge/search/record | - | cc:done [b18170d] |
+| 43.2 | Create `skills/memory/references/search.md` with local-first (rg/grep over `.claude/memory/`) → MCP extension (`harness_mem_search`) → honest reporting contract | Reference file exists; each step explicitly states which layer runs and when | 43.1 | cc:done [b18170d] |
+| 43.3 | Create `skills/memory/references/record.md` with SSOT-worthiness validation gate → local append → MCP mirror pointer (`harness_mem_record_event`) | Reference file exists; rejects tasks/changes/personal prefs; mirrors only a pointer to MCP (not full body) | 43.1 | cc:done [b18170d] |
+| 43.4 | Consolidate `shared_db.md` into `harness-mem-mcp.md`; delete the stub | `shared_db.md` removed; `harness-mem-mcp.md` contains tool catalog + layering vocabulary + worked examples | 43.2, 43.3 | cc:done [b18170d] |
+| 43.5 | Create `skills/harness-mem/SKILL.md` proxy that delegates to `skills/memory/SKILL.md` | Proxy exists; documents dispatch `/harness-mem <sub> → memory SKILL.md subcommand=<sub>`; no duplicated logic | 43.1 | cc:done [b18170d] |
+| 43.6 | Create `.claude/rules/skill-quick-reference.md` documenting 3-column table format (User Input / Subcommand / Behavior) + placement + prohibited patterns | Rule exists; references link to reference files via filename only (no full markdown links inside table cells) | - | cc:done [b18170d] |
+| 43.7 | Fix `skills/harness-setup/SKILL.md` v3 residue (remove `core/src/index.ts` references, clarify that hooks + harness.toml are plugin-author artifacts, not user-generated) | `grep core/src skills/harness-setup/SKILL.md` → 0; generated-files block lists only user-project artifacts | - | cc:done [d5b5cc0] |
+| 43.8 | Update `skills/memory/references/sync-project-specs.md` `/sync-status` → `harness-sync` and `/remember` → `harness_mem_record_checkpoint` with MCP-optional note | No `/sync-status` or `/remember` command references remain; MCP-optional fallback documented | - | cc:done [b18170d] |
+
+### Retrospective note
+
+This phase is captured *after* shipping because the refactor emerged organically from Phase 41's skill-split pattern (P7). Lesson: when the same pattern applies to a third skill mid-phase, add a sub-phase (`41.4`) rather than shipping untracked — Plans.md is then accurate without needing retroactive entries.
+
+---
+
 ## Phase 42: Conventional Commits cleanup
 
 Created: 2026-04-14
@@ -19,7 +157,7 @@ Purpose: Sync retro flagged that the last 5 commits (`f9f5b1c`, `cf3e373`, `a063
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 42.1 | Strengthen the existing Conventional Commits section in `CONTRIBUTING.md` from descriptive ("we follow") to imperative ("every commit must"); add missing `perf:` / `ci:` prefixes; note that past commits are not rewritten. | Section reads as a hard requirement; `perf:` and `ci:` listed; next 3 commits land with valid prefixes | - | cc:done (next 3 commits TBC) |
+| 42.1 | Strengthen the existing Conventional Commits section in `CONTRIBUTING.md` from descriptive ("we follow") to imperative ("every commit must"); add missing `perf:` / `ci:` prefixes; note that past commits are not rewritten. | Section reads as a hard requirement; `perf:` and `ci:` listed; next 3 commits land with valid prefixes | - | cc:done [b18170d] (verified: b18170d, d5b5cc0, 5a85c14 all valid) |
 
 ---
 
