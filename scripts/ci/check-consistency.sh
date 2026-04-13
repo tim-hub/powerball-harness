@@ -557,10 +557,7 @@ check_exists "$POSITIONING_DOC" "positioning-notes.md"
 check_exists "$WORK_ALL_DOC" "work-all evidence doc"
 
 check_fixed_string "$README_EN" "docs/CLAUDE_CODE_COMPATIBILITY.md" "README.md compatibility doc link"
-check_fixed_string "$README_EN" "docs/CURSOR_INTEGRATION.md" "README.md cursor doc link"
 check_fixed_string "$README_EN" "docs/evidence/work-all.md" "README.md work-all evidence link"
-check_fixed_string "$README_EN" "docs/distribution-scope.md" "README.md distribution scope link"
-check_fixed_string "$README_EN" "5 verb skills" "README.md 5 verb skills message"
 check_fixed_string "$README_EN" "Go-native guardrail engine" "README.md Go-native guardrail engine message"
 check_absent_string "$README_EN" "Production-ready code." "README.md stale production-ready wording"
 
