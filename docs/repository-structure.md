@@ -1,0 +1,8 @@
+- `.claude-plugin/marketplace.json` Plugin manifest
+- `agents/` Sub-agents 
+- `skills/` Skills 
+- `hooks/` Hooks 
+- `scripts/` Shell scripts 
+- `docs/` Documentation 
+- `tests/` Validation
+- `go/` Go guardrail engine (binary downloaded from GitHub Releases; no manual setup needed)
