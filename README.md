@@ -19,7 +19,7 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, with
 ## Requirements
 
 - **Claude Code v2.1+**
-- **Go 1.22+** runtime (downloaded automatically from GitHub Releases on install — no manual setup needed)
+- **Go 1.22+** runtime
 
 ---
 
@@ -33,10 +33,11 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, with
 
 ---
 
-## The 4 Verb Workflow
+## The 5 Verb Workflow
 
 | Command | What it does |
 |---------|-------------|
+| `/harness-setup` | Project initialization (creates `CLAUDE.md` and `Plans.md`) |
 | `/harness-plan` | Ideas → `Plans.md` with acceptance criteria |
 | `/harness-work` | Parallel implementation (auto-detects task count) |
 | `/harness-review` | 4-perspective code review (security, perf, quality, a11y) |
@@ -52,7 +53,7 @@ Run everything after plan approval:
 
 ---
 
-## Safety First
+## Security Guardrails
 
 <p align="center">
   <img src="assets/readme-visuals-en/generated/safety-guardrails.svg" alt="Safety Protection System" width="640">
@@ -85,9 +86,9 @@ Runtime hook behavior is documented in [docs/hardening-parity.md](docs/hardening
 ```
 claude-code-harness/
 ├── go/         # Go guardrail engine (bin/harness binary)
-├── skills/     # 5 verb skills
-├── agents/     # worker / reviewer / scaffolder
-├── hooks/      # Thin shims → Go binary
+├── skills/     # 31 skills (5 core verbs + specialized)
+├── agents/     # 7 agents (worker, reviewer, scaffolder + 4 specialized)
+├── hooks/      # 58 hooks across 27 event types → Go binary
 └── scripts/    # Helper scripts
 ```
 
