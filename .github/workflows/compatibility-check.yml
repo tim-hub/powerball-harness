@@ -1,0 +1,51 @@
+name: Mirror Compatibility Check
+
+on:
+  push:
+    paths:
+      - '.github/workflows/compatibility-check.yml'
+      - 'commands/**'
+      - 'skills/**'
+      - 'codex/.codex/skills/**'
+      - '.claude/scripts/build-opencode.mjs'
+      - 'scripts/validate-opencode.js'
+  pull_request:
+    paths:
+      - '.github/workflows/compatibility-check.yml'
+      - 'commands/**'
+      - 'skills/**'
+      - 'codex/.codex/skills/**'
+      - '.claude/scripts/build-opencode.mjs'
+      - 'scripts/validate-opencode.js'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build opencode version
+        run: |
+          node .claude/scripts/build-opencode.mjs
+          node .claude/scripts/sync-skill-mirrors.mjs
+
+      - name: Validate opencode format
+        run: node scripts/validate-opencode.js
+
+      - name: Check opencode mirror sync
+        run: |
+          if ! git diff --quiet opencode/; then
+            echo "::error::opencode/ is out of sync — run 'node .claude/scripts/build-opencode.mjs && node .claude/scripts/sync-skill-mirrors.mjs' and commit the changes."
+            git diff --stat opencode/
+            exit 1
+          fi
+          echo "✅ opencode/ is in sync"
+
+      - name: Check codex mirror sync
+        run: node .claude/scripts/sync-skill-mirrors.mjs --check
