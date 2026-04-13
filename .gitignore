@@ -28,6 +28,9 @@ go/.claude/*
 !.claude/settings.json
 !.claude/scripts/
 !.claude/skills/
+!.claude/memory/
+.claude/memory/session-log.md
+
 .serena/
 .superset/
 # .mcp.json is included in distribution as a plugin MCP configuration
