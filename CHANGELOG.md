@@ -8,29 +8,29 @@ Change history for claude-code-harness.
 
 ## [4.1.1] - 2026-04-14
 
-### Theme: スクリプトの統合と自動ミラー同期
+### Theme: Script consolidation and automatic mirror sync
 
-**スキルミラーの同期スクリプトを `.claude/scripts/` に集約し ESM 形式に統一。スキル編集時のミラー自動同期フックを追加。**
+**Consolidated skill mirror sync scripts into `.claude/scripts/` with unified ESM format. Added automatic mirror sync hook on skill edits.**
 
 ---
 
-#### 1. ミラー同期スクリプトを `.claude/scripts/` に移動・ESM 化
+#### 1. Move mirror sync scripts to `.claude/scripts/` and convert to ESM
 
-**Before**: `build-opencode.js`（CommonJS）と `sync-skill-mirrors.sh`（シェルスクリプト）が `scripts/` に存在しており、他プロジェクトと共有しにくい構造だった。
+**Before**: `build-opencode.js` (CommonJS) and `sync-skill-mirrors.sh` (shell script) lived in `scripts/`, making them difficult to share across projects.
 
-**After**: `.claude/scripts/` 配下に `.mjs`（ES Modules）として再配置。`check-japanese.mjs` と形式を統一。他プロジェクトでも `.claude/scripts/` をコピーするだけで再利用可能になった。
+**After**: Relocated under `.claude/scripts/` as `.mjs` (ES Modules), matching the format of `check-japanese.mjs`. Other projects can now reuse them by simply copying `.claude/scripts/`.
 
-#### 2. PostToolUse フックによるミラー自動同期
+#### 2. Automatic mirror sync via PostToolUse hook
 
-**Before**: `skills/` 配下のファイルを編集しても、`codex/.codex/skills/` と `opencode/skills/` への反映は手動で `sync-skill-mirrors.sh` を実行する必要があった。忘れると CI が失敗していた。
+**Before**: Editing files under `skills/` required manually running `sync-skill-mirrors.sh` to propagate changes to `codex/.codex/skills/` and `opencode/skills/`. Forgetting caused CI failures.
 
-**After**: `.claude/settings.json` の PostToolUse フック（`sync-skills.mjs`）が `skills/` への Write/Edit を検知して両ミラーを自動同期。ループ防止のため `opencode/skills/`・`skills-codex/`・`.codex/skills/` への書き込みはスキップ。
+**After**: A PostToolUse hook in `.claude/settings.json` (`sync-skills.mjs`) detects Write/Edit operations on `skills/` and automatically syncs both mirrors. Writes to `opencode/skills/`, `skills-codex/`, and `.codex/skills/` are skipped to prevent loops.
 
-#### 3. `check-consistency.sh` のプロセス置換を修正
+#### 3. Fix process substitution in `check-consistency.sh`
 
-**Before**: `diff_mirror()` 関数がプロセス置換（`<(...)`）を使用しており、サンドボックス環境では `/dev/fd/` アクセスが拒否されて偽陽性の「ミラードリフト」が報告されていた。
+**Before**: The `diff_mirror()` function used process substitution (`<(...)`) which caused sandbox environments to deny `/dev/fd/` access, producing false-positive "mirror drift" reports.
 
-**After**: プロセス置換を `$TMPDIR` 一時ファイルに置き換え。すべての環境で正確な比較が行われる。
+**After**: Replaced process substitution with `$TMPDIR` temporary files. Comparisons now work correctly in all environments.
 
 ## [4.1.0] - 2026-04-14
 
