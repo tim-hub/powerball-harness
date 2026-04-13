@@ -57,10 +57,8 @@ Does existing behavior break?
 
 **Batch releases recommended**: When multiple changes occur on the same day, combine them into one minor release. Two or more minor bumps on the same day is prohibited.
 
-## NPM Distribution
+## Version Distribution
 
-This project is a Claude Code plugin and is not distributed as an npm package.
-There is no `package.json` at the root (`core/package.json` is for the internal TypeScript build).
 Only the following 2 files are subject to version management:
 
 - `VERSION` -- Source of truth
@@ -74,20 +72,6 @@ Only the following 2 files are subject to version management:
 |---------|------|-------------|
 | Claude | `skills/harness-release/` | Claude Code users |
 | Codex | `codex/.codex/skills/harness-release/` (symlink) | Codex CLI users |
-
-## Internationalization (i18n)
-
-The skill's description field can be switched between Japanese and English. Verify the locale setting is as intended before releasing:
-
-```bash
-# Set to Japanese (description-ja → description)
-./scripts/i18n/set-locale.sh ja
-
-# Set to English (description-en → description)
-./scripts/i18n/set-locale.sh en
-```
-
-Current default: description is in Japanese (identical to `description-ja`). `description-en` is always maintained as an English backup.
 
 ## Execution Flow
 
@@ -165,7 +149,7 @@ echo "$NEW_VERSION" > VERSION
 
 The release entry finalizes changes accumulated in `[Unreleased]` from normal PRs into a versioned section.
 
-Write using the **detailed Before/After format** (in Japanese).
+Write using the **detailed Before/After format** (in English).
 Split each feature into numbered sections, explaining "Before" and "After" with concrete examples.
 
 ```markdown
@@ -201,7 +185,7 @@ See the "CC Version Integration CHANGELOG Pattern" section in `.claude/rules/git
 
 | Rule | Description |
 |------|-------------|
-| Language | **Japanese** |
+| Language | **English** |
 | Each feature as a separate section | Numbered with `#### N. Feature Name` |
 | "Before" describes the pain point | Concretely describe the inconvenience users experienced |
 | "After" shows the resolution | What changes and how + concrete examples (code/output) |
