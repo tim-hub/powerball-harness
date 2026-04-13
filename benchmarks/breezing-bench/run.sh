@@ -123,8 +123,11 @@ generate_execution_order() {
   printf '%s\n' "${order[@]}"
 }
 
-# Generate execution order
-mapfile -t EXEC_ORDER < <(generate_execution_order "$SEED")
+# Generate execution order (mapfile not available in bash 3.x / macOS default shell)
+EXEC_ORDER=()
+while IFS= read -r line; do
+  EXEC_ORDER+=("$line")
+done < <(generate_execution_order "$SEED")
 
 # Dry run
 if [[ "$DRY_RUN" == true ]]; then
