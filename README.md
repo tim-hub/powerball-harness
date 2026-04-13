@@ -22,15 +22,15 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, with
 ## Install
 
 ```bash
-# In Claude Code
+# In Claude Code (user scope recommended — applies across all your projects)
 /plugin marketplace add tim-hub/powerball-harness
-/plugin install harness@powerball-harness-marketplace
+/plugin install harness@powerball-harness-marketplace --scope user
 
 # Initialize your project
 /harness-setup
 ```
 
-If hooks show errors after install, run `/harness-setup binary` to download the platform binary.
+The Go binary is downloaded automatically from GitHub Releases during install — no manual setup needed.
 
 ---
 
@@ -75,7 +75,7 @@ claude-code-harness/
 
 | Issue | Fix |
 |-------|-----|
-| Hook errors on every prompt | Run `/harness-setup binary` to install the platform binary |
+| Hook errors on every prompt | Run `/harness-setup binary` to manually re-download the platform binary |
 | Commands not found | Run `/harness-setup` first |
 | Plugin not loading | `rm -rf ~/.claude/plugins/cache/claude-code-harness-marketplace/` and restart |
 
