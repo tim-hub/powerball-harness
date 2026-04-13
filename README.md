@@ -25,20 +25,15 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, with
 # In Claude Code (user scope recommended — applies across all your projects)
 /plugin marketplace add tim-hub/powerball-harness
 /plugin install harness@powerball-harness-marketplace --scope user
-
-# Initialize your project
-/harness-setup
 ```
 
-The Go binary is downloaded automatically from GitHub Releases during install — no manual setup needed.
 
 ---
 
-## The 5 Verb Workflow
+## The 4 Verb Workflow
 
 | Command | What it does |
 |---------|-------------|
-| `/harness-setup` | Initialize project files and config |
 | `/harness-plan` | Ideas → `Plans.md` with acceptance criteria |
 | `/harness-work` | Parallel implementation (auto-detects task count) |
 | `/harness-review` | 4-perspective code review (security, perf, quality, a11y) |
