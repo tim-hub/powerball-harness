@@ -6,6 +6,50 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-04-14
+
+### Theme: Self-Enforcing Skill Description Standards ("Use when" Rule)
+
+**Every SKILL.md description now follows a uniform trigger-first format, enforced by a CI gate in `validate-plugin.sh`. Descriptions that drift from the standard are caught automatically.**
+
+---
+
+#### 1. New Rule: Skill Description Format
+
+**Before**: SKILL.md `description` fields mixed triggers, exclusions, and capability introductions in any order. Some started with "Use this skill whenever the user mentions...", others with a skill summary. No rule governed the format, so drift was inevitable every time a new skill was added.
+
+**After**: `.claude/rules/skill-description.md` defines the standard: descriptions must start with `Use when <trigger>`, describe task shape (not user phrases), keep introductions in the body, and stay under 300 characters. Includes good/bad examples from the actual codebase.
+
+#### 2. Audit Script for Conformance Checking
+
+**Before**: No automated way to verify whether a SKILL.md description met any standard.
+
+**After**: `scripts/audit-skill-descriptions.sh` scans all SKILL.md files and reports tab-separated violations — missing prefix, forbidden phrases (`the user mentions`, `Use this skill`), and over-length. Accepts an optional directory argument to scope the scan.
+
+```
+$ bash scripts/audit-skill-descriptions.sh skills/
+Scanned 31 SKILL.md file(s).
+All descriptions conform to .claude/rules/skill-description.md.
+```
+
+#### 3. 59 SKILL.md Descriptions Rewritten
+
+**Before**: All 59 SKILL.md files across `skills/` (31), `opencode/skills/` (26), and `skills-codex/` (2) were non-conformant. Typical violations: started with "Use this skill whenever...", enumerated 10+ user phrases, included trailing capability summaries reaching 500+ characters.
+
+**After**: All 59 descriptions rewritten to `Use when <trigger>` form. Average length dropped from ~400 to ~180 characters. Introductory sentences moved to each SKILL.md body where not already present.
+
+#### 4. CI Gate (validate-plugin.sh Section 10)
+
+**Before**: No CI check prevented non-conforming descriptions from being merged.
+
+**After**: `tests/validate-plugin.sh` Section 10 runs `audit-skill-descriptions.sh` on every validation. Each violation becomes its own `fail_test` line so per-file feedback survives in the summary. Missing script on older branches degrades to a warning.
+
+#### 5. Drift Reporter for Cross-Directory Sync
+
+**Before**: No tool to detect when `skills/` and `opencode/skills/` descriptions diverge after independent edits.
+
+**After**: `scripts/skill-description-drift-report.sh` compares descriptions across both directories for all 26 shared skills. Reports divergent pairs with recommended actions; never overwrites. Currently shows 0 drift.
+
 ## [4.0.5] - 2026-04-13
 
 ### Theme: Auto-Download Platform Binary on Plugin Install
