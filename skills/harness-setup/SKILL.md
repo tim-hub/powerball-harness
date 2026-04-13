@@ -8,14 +8,6 @@ effort: medium
 
 # Harness Setup
 
-Unified setup skill for Harness.
-Consolidates the following legacy skills:
-
-- `setup` — Unified setup hub
-- `harness-init` — Project initialization
-- `harness-update` — Harness updates
-- `maintenance` — File cleanup and organization
-
 ## Quick Reference
 
 | Subcommand | Behavior |
@@ -37,30 +29,10 @@ Consolidates the following legacy skills:
 Downloads and installs the `harness-<os>-<arch>` binary from the GitHub release into `$CLAUDE_PLUGIN_ROOT/bin/`.
 Run this first if hooks are silently passing through (binary not yet installed).
 
+Implementation: [`scripts/download-binary.sh`](${CLAUDE_SKILL_DIR}/scripts/download-binary.sh)
+
 ```bash
-# Detect platform
-OS="$(uname -s | tr A-Z a-z)"
-ARCH="$(uname -m)"
-case "$ARCH" in x86_64) ARCH="amd64" ;; aarch64) ARCH="arm64" ;; esac
-BINARY_NAME="harness-${OS}-${ARCH}"
-
-# Determine install dir — prefer CLAUDE_PLUGIN_ROOT, fall back to repo bin/
-INSTALL_DIR="${CLAUDE_PLUGIN_ROOT:-$(git rev-parse --show-toplevel 2>/dev/null)}/bin"
-
-# Check if already installed
-if [ -x "${INSTALL_DIR}/${BINARY_NAME}" ]; then
-  echo "✓ ${BINARY_NAME} already installed"
-  "${INSTALL_DIR}/${BINARY_NAME}" --version
-  exit 0
-fi
-
-# Download from latest GitHub release
-VERSION=$(curl -fsSL https://api.github.com/repos/tim-hub/powerball-harness/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
-URL="https://github.com/tim-hub/powerball-harness/releases/download/${VERSION}/${BINARY_NAME}"
-
-echo "Downloading ${BINARY_NAME} ${VERSION}..."
-curl -fsSL "$URL" -o "${INSTALL_DIR}/${BINARY_NAME}" && chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
-echo "✓ Installed ${INSTALL_DIR}/${BINARY_NAME}"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/download-binary.sh"
 ```
 
 **When to run**: After fresh plugin install if you see `UserPromptSubmit hook error` messages.
