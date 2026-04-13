@@ -10,6 +10,404 @@ Last archive: 2026-04-12 (Phase 25–34 → `.claude/memory/archive/Plans-2026-0
 
 ---
 
+## Phase 40: Migration Residue Scanner — inclusion → exclusion verification
+
+Created: 2026-04-11
+Purpose: Add an **exclusion-based verification layer** (systematic detection of references to deleted concepts) to Harness's verification stack. Currently only inclusion-based checks ("does X exist?") are in place, relying on accidental discovery for post-major-migration (v3→v4 etc.) residue. Make it so that the 13 v3 residue bugs discovered in this session would be automatically caught in the future.
+
+### Background (Why this phase exists)
+
+Between the v4.0.0 "Hokage" release (2026-04-09) and v4.0.1, 13 v3 residue bugs were **accidentally discovered**:
+
+| # | Residue Bug | How Found | Impact |
+|---|---|---|---|
+| 1 | `validate-plugin.sh` grep'ing deleted `core/src/guardrails/rules.ts` | 4 failures on first validate run | Verification script producing false negatives |
+| 2 | `check-consistency.sh` expecting `"TypeScript guardrail engine"` in README | 2 failures on first consistency run | Same |
+| 3 | `tests/test-memory-hook-wiring.sh` expecting v3 shell path exact match | Downstream validate failures | Same |
+| 4 | `tests/test-claude-upstream-integration.sh` `permission-denied-handler` | Rediscovered after Worker C partial fix | Same |
+| 5 | `"Harness v3"` string in 18 SKILL.md frontmatters | User noticed in slash palette | User confusion |
+| 6 | `v3` narrative in `agents/*.md` | Found as side effect of grep re-scan | Same |
+| 7 | `(v3)` suffix in SKILL.md H1 titles | Same | Same |
+| 8 | `harness.toml` → `plugin.json` sync dropping `skills: ["./"]` | Noticed via auto-revert phenomenon | Functional regression |
+| 9 | `/HAR:review` SKILL.md body was English-centric | Fork subagent responding in English | UX problem |
+| 10 | `core/ engine` reference in `README.md` file tree | User's final feedback | Misleading |
+| 11 | `skills/`/`agents/` duplication bug in `README.md` file tree | Same | Same |
+| 12 | Same problem in `README_ja.md` | Same | Same |
+| 13 | `Node.js 18+` requirement in `README.md` troubleshooting | Same | Misleading |
+
+All were **accidentally found**: via test failures, user reports, or review feedback. A systematic scanner would have **caught all of these before the v4.0.0 release** — they are a class of bug that systematic detection can handle. This reveals a **fundamental gap** in Harness's verification strategy: it has only inclusion-based checking ("does X exist?") and lacks the exclusion-based perspective ("does deleted X still remain?").
+
+### Priority Matrix
+
+| Priority | Phase | Content | Task Count | Depends |
+|--------|-------|------|---------|------|
+| **Required** | 40.0 | Foundation (deleted-concepts.yaml + check-residue.sh) | 2 | None |
+| **Required** | 40.1 | Integration (doctor --residue + validate-plugin + release preflight) | 3 | 40.0 |
+| **Required** | 40.2 | Documentation (migration-policy.md) | 1 | 40.0, 40.1 |
+
+Total: **6 tasks**
+
+### Completion Criteria (Definition of Done — Phase 40 overall)
+
+| # | Criterion | Verification | Required/Recommended |
+|---|------|---------|----------|
+| 1 | Scanner retroactively detects all 13 v3 residue bugs from this session | Roll back to 1 commit before v4.0.1 and run `bash scripts/check-residue.sh` → 13 detected / post-release commit → 0 | Required |
+| 2 | Scanner false positive rate zero (historical records like CHANGELOG.md correctly excluded via allowlist) | Run at v4.0.1 HEAD → 0 hits | Required |
+| 3 | `bin/harness doctor --residue` calls scanner and displays results | Run command, see expected output (count + files + line numbers) | Required |
+| 4 | Residue check integrated into `validate-plugin.sh`, failures added to total fail count | Intentionally inject v3 residue → validate-plugin fails | Required |
+| 5 | `harness-release` skill preflight includes `harness doctor --residue`, aborts release on detection | Documented in SKILL.md + dry-run confirmed | Required |
+| 6 | `.claude/rules/migration-policy.md` exists with documented rules for updating deleted-concepts.yaml | File exists + content confirmed | Required |
+| 7 | `.claude/rules/deleted-concepts.yaml` has all 13 detected bugs from this session as entries | Parse yaml, minimum 8-10 entries (13 bugs can be consolidated into patterns) | Required |
+| 8 | All Go tests pass, validate-plugin 43+/0 (increased by residue check), check-consistency all pass | Run existing test suite | Required |
+
+---
+
+### Phase 40.0: Foundation [P0]
+
+Purpose: Define `.claude/rules/deleted-concepts.yaml` as SSOT and implement `check-residue.sh` to read it and scan the repo
+
+| Task | Description | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 40.0.1 | Create `.claude/rules/deleted-concepts.yaml`. Schema has 2 sections: `deleted_paths[]` and `deleted_concepts[]`. Each entry contains `path`/`term`, `term_localized` (optional), `replacement`/`replacement_localized` (optional), `deleted_in` (version), `deleted_by` (commit hash optional), `reason`, `allowlist[]`. Consolidate the 13 v3 residue bugs from this session into patterns as entries: (a) `core/src/guardrails`, (b) `core/dist`, (c) `core/package.json`, (d) `scripts/run-hook.sh`, (e) term `"TypeScript guardrail engine"` / `"TypeScript guardrail engine"`, (f) term `"Harness v3"` / `"(v3)"`, (g) troubleshooting text `"Node.js 18+ is installed"` / `"Node.js 18+ required"` / `"Ensure Node.js"`, (h) v3 shell invocation patterns `"hook-handlers/memory-bridge"` / `"hook-handlers/runtime-reactive"` / `"hook-handlers/permission-denied-handler"`. Allowlist includes `CHANGELOG.md`, `.claude/memory/archive/**`, `benchmarks/**`, `README.md` "Before / After" table regions | YAML is valid (parseable by `yq`). 8-10 entries + `allowlist` array per entry. `reason` field explains why each entry was deleted (v4.0.0 Hokage migration, CC 2.1.94 compliance, etc.) | - | cc:done [20654143, 191cdde4] |
+| 40.0.2 | Implement `scripts/check-residue.sh`. Read `.claude/rules/deleted-concepts.yaml` with `yq`, scan `deleted_paths[]` and `deleted_concepts[]` sequentially using `grep -rln -F`. Apply allowlist (gitignore-style matching or prefix match). Exit code 1 on hit, output detailed report to stdout (count, files, line numbers, matching string, which entry it violates). Works under `set -euo pipefail`. Also implement error fallback (if yq not installed → fallback to python3 + yaml module) | (a) Run scanner at v4.0.0 release commit (`8d8ce3c8`) and point before v4.0.1 → detects all 13 v3 residue bugs (retroactive validation), (b) Run at v4.0.1+ HEAD → 0 residue (zero false positives), (c) Intentionally add reference to `core/src/guardrails/rules.ts` in README → detected immediately. `bash scripts/check-residue.sh` standalone works for all behaviors | 40.0.1 | cc:done [20654143, 191cdde4] |
+
+---
+
+### Phase 40.1: Integration [P0]
+
+Purpose: Embed scanner into 3 verification points (developer ad-hoc / per-PR / pre-release)
+
+| Task | Description | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 40.1.1 | Add `--residue` flag to `go/cmd/harness/doctor.go`. Internally call `scripts/check-residue.sh` as subprocess and format results for display. Alternatively, implement Go-native yaml parsing (add `gopkg.in/yaml.v3` etc. to go.mod). Works independently from existing `--migration` and other flags. Skip residue check when running `bin/harness doctor` alone (opt-in, for speed) | Running `bin/harness doctor --residue`: (a) displays scanning message, (b) shows file + line number + matching entry when found, (c) displays "✓ No migration residue detected" when 0, (d) exit code 0 (clean) or 1 (residue). `go test ./cmd/harness/ -run TestDoctor_Residue` PASS with intentional residue injection test | 40.0.2 | cc:done [470a05bd] |
+| 40.1.2 | Integrate residue scan into `tests/validate-plugin.sh`. Add as new test category "migration residue check", integrate into existing pass/fail/warn counts (0 residue → +1 pass, 1+ residue → +1 fail) | When running `./tests/validate-plugin.sh`, residue check runs as final section. In clean state, pass count +1 (42 → 43). With intentional residue, fail count +1. Existing tests all maintained | 40.0.2 | cc:done [1e886ad9] |
+| 40.1.3 | Add `bin/harness doctor --residue` to preflight section (equivalent to Step 1) in `skills/harness-release/SKILL.md`. On residue detection, abort release + display fix instructions to user. Sync 3 mirrors (`skills/`, `codex/.codex/skills/`, `opencode/skills/`) | preflight table in `harness-release` has residue check row added. Error message on residue detection clearly states "Phase 40 scanner detected N references to deleted concepts. Please fix and re-run." Sync with `check-consistency.sh` PASS (mirrors fully match) | 40.0.2 | cc:done [60199c01] |
+
+---
+
+### Phase 40.2: Documentation [P0]
+
+Purpose: Codify rules for correctly operating the scanner in future major migrations
+
+| Task | Description | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 40.2.1 | Create `.claude/rules/migration-policy.md`. Content: (1) Obligation to update `.claude/rules/deleted-concepts.yaml` during major version migrations, (2) Update timing must be simultaneous with the deletion PR (no delays), (3) Allowlist operation standards (historical records like CHANGELOG always in allowlist, Before/After tables in allowlist based on context, docs/archive always in allowlist), (4) How to perform retroactive validation, (5) Record the 13 v3 residue bugs found in this session (v4.0.0 → v4.0.1) as an appendix (with the story of why this feature was born), (6) Add a reference to migration-policy.md in `CLAUDE.md` | File exists, markdown valid. A non-expert can understand "why deleted-concepts.yaml is needed" in 5 minutes. 1-line reference added to CLAUDE.md | 40.0.1, 40.1.3 | cc:done [719c08bd] |
+
+---
+
+
+## Phase 39: Review Experience Improvement + v4.0.1 Pre-Release Polish
+
+Created: 2026-04-11
+Purpose: After Phase 38 completion, tidy up improvement opportunities discovered (/HAR:review output non-expert-friendliness, sync.go plugin.json auto-revert root fix, test assertion strictening, v3 cleanup residue, bare review scope cap) and update CHANGELOG before v4.0.1 release to reach a shippable state
+
+Background: An independent review after Phase 38 found 3 follow-ups (HAR:* validation / jq assertion looseness / excessive scope). While fixing these, deeper issues cascaded: namespace inconsistencies, review output UX problems, a root bug where `harness sync` drops the skills field when regenerating plugin.json. All are outside Phase 38 scope but are quality improvements that should be resolved before v4.0.1 release, so they are consolidated here.
+
+### Priority Matrix
+
+| Priority | Phase | Content | Task Count | Depends |
+|--------|-------|------|---------|------|
+| **Done** | 39.0 | /HAR:review output improvement (bare flow + English + non-expert friendly) | 3 | - |
+| **Done** | 39.1 | Infrastructure fixes (sync.go Skills + test assertion + scope cap) | 3 | - |
+| **Done** | 39.2 | Name consistency (HAR:* → harness-* revert + SSOT recovery) | 1 | - |
+| **Done** | 39.3 | v3 cleanup residue removal + test script v4 migration | 5 | - |
+| **Required** | 39.4 | CHANGELOG [Unreleased] update | 1 | 39.0-39.3 |
+| **Recommended** | 39.5 | Reviewer-flagged follow-ups (shell pipeline + memory_bridge) | 2 | - |
+
+Total: **15 tasks** (12 complete + 3 pending, 1 of which is a release blocker)
+
+### Completion Criteria (Definition of Done — Phase 39 overall)
+
+| # | Criterion | Verification | Required/Recommended |
+|---|------|---------|----------|
+| 1 | /HAR:review works with bare invocation, English result summary at top + non-expert 4-section structure | Run `/harness-review` and visually confirm | Required |
+| 2 | `plugin.json.skills = ["./"]` preserved after running `harness sync` | `jq '.skills' .claude-plugin/plugin.json` | Required |
+| 3 | `go test ./...` all 12 packages PASS | Run command | Required |
+| 4 | `./tests/validate-plugin.sh` 42 pass / 0 fail | Run command | Required |
+| 5 | `./scripts/ci/check-consistency.sh` all pass | Run command | Required |
+| 6 | CHANGELOG [Unreleased] contains Phase 38 + Phase 39 improvements in Before/After format | Visual inspection | Required |
+| 7 | Phase 39.5 to be addressed in v4.0.2 or later (not a blocker before release) | Remains cc:TODO in Plans.md | Recommended |
+
+---
+
+### Phase 39.0: /HAR:review Output Improvement [P0 Done]
+
+Purpose: Overhaul the review experience from "English JSON output for engineers" to "Japanese summary readable by non-experts + technical details folded away"
+
+| Task | Description | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 39.0.1 | Add bare invocation default flow (Step 0) to `skills/harness-review/SKILL.md`. Auto BASE_REF determination logic: `git describe --tags` → main → HEAD~10 + auto-transition to Step 1. Sync 3 mirrors | Visually confirm bare invocation reaches Step 1 automatically. validate-plugin / check-consistency maintained | - | cc:done [8d2b89cc] |
+| 39.0.2 | Add "Output language/format (strictly required)" block to Step 0, add result summary top-output rule to Step 3. Mandate English output + JSON as supplementary at the end | Explicitly cite CLAUDE.md "context: fork skills also in English" rule. Confirm English output on `/harness-review` run | 39.0.1 | cc:done [af915fb4] |
+| 39.0.3 | Redesign non-expert template (information granularity MID / cognitive load MIN). 6-section structure: verdict → ✨ What was good → ⚠️ Concerns (4 parts: English title → problem → response → severity → technical details) → 🎬 Next actions → 📊 Auto verification → 📦 Detailed data (JSON demoted). Sync 3 mirrors | `/harness-review` output follows new template. Severity uses "🔴 Critical / 🟠 Important / 🟡 Minor / 🟢 Recommended" format. English severity words and technical jargon isolated from body text | 39.0.2 | cc:done [7481f98f] |
+
+---
+
+### Phase 39.1: Infrastructure Fixes [P0 Done]
+
+Purpose: Fix 3 root bugs identified in review (plugin.json auto-revert, jq assertion looseness, bare review excessive scope)
+
+| Task | Description | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 39.1.1 | Add `Skills []string` field to `pluginJSON` struct in `go/cmd/harness/sync.go`, hardcode `[]string{"./"}` in `generatePluginJSON()`. Root-fixes the auto-revert loop where `harness sync` kept removing `"skills": ["./"]` from plugin.json | Add `skills == ["./"]` assertion to `TestSync_GeneratesPluginJSON` and PASS. After running `harness sync .`, `jq '.skills' plugin.json` returns `["./"]` | - | cc:done [009faf74] |
+| 39.1.2 | Tighten SessionStart matcher check in `tests/test-memory-hook-wiring.sh` from `contains("startup")` to pipe-token regex `test("(^|\\|)startup($|\\|)")`. Prevents typos like `startup-only` from silently passing as false positives | Verified with 6 edge cases (`startup`, `startup|resume`, `resume|startup` match; `startup-only`, `startup_special`, `resume|startup-only` reject). `bash tests/test-memory-hook-wiring.sh` OK | - | cc:done [f7146d3e] |
+| 39.1.3 | Add upper-bound fallback to Step 0.1 in `skills/harness-review/SKILL.md`: if commit count from last tag to HEAD exceeds 10, auto-clamp to HEAD~10. Prevent excessive scope on bare invocation | Auto-clamp fires with 10+ commits. On review run, display both original candidate and narrowed result in summary. Sync 3 mirrors | - | cc:done [9103377f] |
+
+---
+
+### Phase 39.2: Name Consistency [P0 Done]
+
+Purpose: ff4ee422 changed frontmatter `name` to `HAR:*`, but this mismatches directory name, violates skill-editing.md SSOT rule, and creates a 3-way split where internal text still says `harness-*`. Restore consistency.
+
+| Task | Description | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 39.2.1 | Revert frontmatter `name:` from `HAR:*` back to `harness-*` in 18 files (6 skills × 3 locations: main/codex/opencode). Keep "HAR:" brand in description prefix (for visual identification) | All 18 files have `name:` as `harness-*` (grep verified). `"HAR:` in description maintained at 54 locations (18 files × 3 description fields). validate-plugin / check-consistency maintained | - | cc:done [af915fb4] |
+
+---
+
+### Phase 39.3: v3 Cleanup Residue Removal + Test Script v4 Migration [P0 Done]
+
+Purpose: Remove v3-era references missed in the v4.0.0 release cleanup (references to deleted TypeScript rules.ts, "TypeScript engine" in README, tests for v3 hook call patterns, v3-named artifacts)
+
+| Task | Description | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 39.3.1 | Change RULES_FILE path in `tests/validate-plugin.sh` from deleted `core/src/guardrails/rules.ts` to `go/internal/guardrail/rules.go`, sync R12 expected pattern from `warn-direct-push-protected-branch` to `deny-direct-push-protected-branch` | 4 R10-R13 failures disappear from validate-plugin.sh, pass count increases from 35 → 40 | - | cc:done [cbea4620] |
+| 39.3.2 | Sync expected strings in `scripts/ci/check-consistency.sh` from `"TypeScript guardrail engine"` / `"TypeScript guardrail engine"` to `"Go-native guardrail engine"` / `"Go-native guardrail engine"` | 2 TypeScript reference failures disappear from check-consistency.sh, all pass | - | cc:done [cbea4620] |
+| 39.3.3 | Migrate jq queries in `tests/test-memory-hook-wiring.sh` and `tests/test-claude-upstream-integration.sh` from v3 shell path (`hook-handlers/memory-bridge`) to v4 Go binary format (`bin/harness hook memory-bridge` equivalent). Also add `command` null handling for agent-type hooks | Both test scripts run OK directly, 2 "missing wiring" failures disappear from validate-plugin.sh | - | cc:done [c91b21c1] |
+| 39.3.4 | Sync PermissionDenied wiring check in `tests/test-claude-upstream-integration.sh` from `contains("permission-denied-handler")` to `contains("permission-denied")` (matching v4's `bin/harness hook permission-denied` format) | test-claude-upstream-integration.sh runs OK directly, last remaining failure in validate-plugin.sh resolved, reaching 42/0 all pass | 39.3.3 | cc:done [04026f3a] |
+| 39.3.5 | Delete v4 cleanup residue: 2 JSON-named ghost directories (side effects of Agent tool isolation errors), `core/` residue (node_modules + package-lock.json), `infographic-check.png` (debug screenshot), `.orphaned_at` (old session marker) | None of these 5 items exist at repo root. No impact on git status (all untracked) | - | cc:done [Lead direct execution] |
+
+---
+
+### Phase 39.4: CHANGELOG Update [P0 Required — v4.0.1 Release Blocker]
+
+Purpose: Record all improvements from Phase 38 and Phase 39 in the [Unreleased] section of CHANGELOG.md in Before/After format so users correctly understand the changes when v4.0.1 is released
+
+| Task | Description | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 39.4.1 | Append Phase 39 improvements to `[Unreleased]` section of `CHANGELOG.md`. Keep existing Phase 38 entries (CC 2.1.89-2.1.100 tracking) and add new sections such as "#### 8. Review Experience Improvements (Phase 39)" below them. Each change described in Before/After format (per `.claude/rules/github-release.md`). Covers: (a) /HAR:review bare invocation + non-expert template, (b) sync.go Skills field root fix, (c) SessionStart matcher strictening, (d) bare review scope cap, (e) name revert, (f) v3 cleanup residue removal, (g) test scripts v4 migration | CHANGELOG.md Unreleased has Phase 39 sub-entries (items 8-12) added. VERSION / plugin.json version / harness.toml version not changed (not a release operation). `./scripts/ci/check-consistency.sh` PASS, `./tests/validate-plugin.sh` 42 pass / 0 fail | 39.0.1-39.3.5 | cc:done [c96ca7d1] |
+
+---
+
+### Phase 39.5: Reviewer-Flagged Follow-ups [P1 Recommended — v4.0.2 and later]
+
+Purpose: Track the 2 recommendations found in previous and current /HAR:review sessions. Neither blocks current operation; neither should block the v4.0.1 release.
+
+| Task | Description | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 39.5.1 | Harden `grep -c '^plan:' \| awk '$1 > 2 {exit 0} {exit 1}'` pipeline in Step 0.2 of `skills/harness-review/SKILL.md` for strict-mode compatibility. Use single awk integration like `awk '/^plan:/ {n++} END {exit (n<=2)}'`, or add `\|\| true` as a safety net. Sync 3 mirrors | Bare invocation does not falsely stop on 0 plan: entries under `set -euo pipefail`. Existing behavior (plan review mode when plan: > 2 entries) maintained | - | cc:TODO |
+| 39.5.2 | Fix issue in `go/internal/hookhandler/memory_bridge.go` where `validTargets` map expects kebab-case (`session-start`, `user-prompt` etc.) but CC sends PascalCase (`SessionStart`, `UserPromptSubmit` etc.) in `hook_event_name`, causing it to always fall into "unknown target" fail-open branch and rendering memory bridge effectively non-functional. Normalize HookEventName or align `validTargets` keys to PascalCase | Memory bridge actually dispatches each of session-start / user-prompt / post-tool-use / stop events. Add PascalCase input test cases to hook handler tests | - | cc:TODO |
+
+---
+
+
+## Phase 38: CC 2.1.89-2.1.100 Tracking + Go v4 Release Polish
+
+Created: 2026-04-10
+Purpose: Incorporate unabsorbed hook/permission/plugin changes from Claude Code 2.1.89-2.1.100 into the Harness v4 Go guardrails, achieving a perfect zero-security-regression state before the Go v4.0.0 release
+
+Background: Two vulnerabilities patched in CC 2.1.98 (backslash-escaped flag bypass, env-var prefix bypass) remain open in Harness's second-layer guardrails. Additionally, `DecisionDefer` from CC 2.1.89 has a type definition in `go/pkg/hookproto/types.go` but is not caught in the `PreToolToOutput()` switch in `go/internal/guardrail/pre_tool.go` — a known gap. .husky protection / symlink resolution / wildcard normalization / plugin.json skills explicit declaration / Monitor tool adoption should all be incorporated before the v4 release.
+
+### Priority Matrix
+
+| Priority | Phase | Content | Task Count | Depends |
+|--------|-------|------|---------|------|
+| **Required** | 38.0 | Security emergency fix (permission.go hardening + DecisionDefer wiring) | 2 | None |
+| **Required** | 38.1 | Security hardening (.husky + symlink + wildcard normalization) | 2 | None |
+| **Required** | 38.2 | Plugin/skill alignment + Monitor tool adoption | 2 | None |
+| **Required** | 38.3 | Integration verification, binary rebuild, CHANGELOG | 3 | All of 38.0-38.2 |
+
+Total: **9 tasks**
+
+### Completion Criteria (Definition of Done — Phase 38 overall)
+
+| # | Criterion | Verification | Required/Recommended |
+|---|------|---------|----------|
+| 1 | 16+ new guardrail security tests added, all PASS | `go test -v ./internal/guardrail/...` | Required |
+| 2 | All Go tests PASS | `go test ./...` | Required |
+| 3 | Plugin validation PASS | `./tests/validate-plugin.sh` | Required |
+| 4 | Consistency check PASS | `./scripts/ci/check-consistency.sh` | Required |
+| 5 | Feature Table has CC 2.1.98 Monitor entry + value-add column "A: Has implementation" | Visual inspection of `docs/CLAUDE-feature-table.md` | Required |
+| 6 | CHANGELOG.md Unreleased has 7 Before/After entries for Phase 38 | Visual inspection of `CHANGELOG.md` | Required |
+| 7 | Binaries rebuilt for 3 platforms | `ls -la bin/harness-*` | Required |
+| 8 | CC 2.1.89-2.1.100 security hardening fully reflected in Go v4 | All criteria 1-7 met | Required |
+
+---
+
+### Phase 38.0: Security Emergency Fix (permission.go + DecisionDefer) [P0]
+
+Purpose: Patch in Harness's second-layer guard the 2 vulnerabilities fixed in CC 2.1.98 (backslash-escape / env-var prefix). Also resolve the known gap where `DecisionDefer` added in 2.1.89 is not caught in the switch case.
+
+| Task | Description | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 38.0.1 | `go/internal/guardrail/permission.go` hardening: (1) Add `hasBackslashEscape(cmd string) bool` function, detect patterns like `\-`, `\\ ` (space-escape), `\--` using regex `\\[\-\s]`, (2) Add `stripSafeEnvPrefix(cmd string) (string, bool)` function and `knownSafeEnvVars` map (`LANG`, `LANGUAGE`, `TZ`, `NO_COLOR`, `FORCE_COLOR`). `LC_*` allowed via prefix match, (3) At the top of `isSafeCommand()`, call both; return `false` immediately on backslash escape detection or unknown env-var detection [feature:security] | Minimum 8 tests added to `go/internal/guardrail/permission_test.go`, all PASS: (a) `git\ status` reject, (b) `git\ push\ --force` reject, (c) `rm\ -rf\ /` reject, (d) `LANG=C git status` pass, (e) `TZ=UTC git log` pass, (f) `EVIL=x git status` reject, (g) `LANG=C NO_COLOR=1 git status` pass, (h) `LANG=C EVIL=x git status` reject. `go test ./internal/guardrail/...` all PASS | - | cc:done [aa9f4bb] |
+| 38.0.2 | Add `case hookproto.DecisionDefer:` to the switch statement in `PreToolToOutput()` function in `go/internal/guardrail/pre_tool.go`, setting `inner.PermissionDecision = "defer"` + `inner.PermissionDecisionReason = result.Reason`. Resolves the known issue where `DecisionDefer` constant already defined at `go/pkg/hookproto/types.go:39` but not caught in switch [feature:security] | Test added to `go/internal/guardrail/pre_tool_test.go` for DecisionDefer return case, output JSON contains `"permissionDecision": "defer"` and `"permissionDecisionReason": "<reason>"`. `go test ./internal/guardrail/...` all PASS | - | cc:done [aa9f4bb] |
+
+---
+
+### Phase 38.1: Security Hardening (helpers.go + rules.go) [P0]
+
+Purpose: Port 3 items to Harness Go guardrails: CC 2.1.89 symlink target resolution, CC 2.1.90 `.husky` protected path addition, CC 2.1.98 wildcard whitespace normalization
+
+| Task | Description | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 38.1.1 | `go/internal/guardrail/helpers.go` extension: (1) Add `.husky/` pattern to `protectedPathPatterns` slice (protect git hooks directory, following CC 2.1.90), (2) Inside `isProtectedPath(path string) bool`, call `filepath.EvalSymlinks()` and also deny when the resolved real path after symlink resolution matches protected patterns (following CC 2.1.89). Return `true` (deny) as fail-safe when `EvalSymlinks` errors [feature:security] | Minimum 5 tests added to `go/internal/guardrail/helpers_test.go`, all PASS: (a) `.husky/pre-commit` write deny, (b) `.husky/hooks/commit-msg` deny, (c) Create symlink `link-env → .env` in temp dir and verify access is denied, (d) 2-level symlink chain (link1 → link2 → .env) also denied, (e) `EvalSymlinks` error on symlink loop also fail-safes to deny. `go test ./internal/guardrail/...` all PASS | - | cc:done [aa9f4bb] |
+| 38.1.2 | In wildcard pattern evaluation in `go/internal/guardrail/rules.go`, normalize consecutive whitespace (spaces/tabs) in user command to single space using `regexp.MustCompile(\`\s+\`).ReplaceAllString(cmd, " ")` before pattern matching. Reproduce in second layer the CC 2.1.98 fix where `Bash(git push -f:*)` matches commands with multiple spaces/tabs [feature:security] | Minimum 3 tests added to `go/internal/guardrail/rules_test.go`, all PASS: (a) `git  push  --force` (consecutive spaces) denied by force-push rule, (b) `git\tpush\t-f` (tab-separated) denied, (c) `git push   --force-with-lease` denied. Existing tests all maintained. `go test ./internal/guardrail/...` all PASS | - | cc:done [aa9f4bb] |
+
+---
+
+### Phase 38.2: Plugin/Skill Alignment + Monitor Tool Adoption [P0]
+
+Purpose: Explicitly support the CC 2.1.94 plugin skill invocation name spec, declare and document the Monitor tool added in CC 2.1.98 for use in long-running skills like Breezing
+
+| Task | Description | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 38.2.1 | Add `"skills": ["./"]` field to `.claude-plugin/plugin.json`. Explicitly support the CC 2.1.94+ spec where plugin skill invocation names are based on the frontmatter `name` field. Maintain compatibility with existing auto-discover (all existing 32 skills remain invocable) | `.claude-plugin/plugin.json` has `"skills": ["./"]`. `./tests/validate-plugin.sh` PASS. `./scripts/ci/check-consistency.sh` PASS. Confirm `.skills` is `["./"]` with jq | - | cc:done [ebdf47b] |
+| 38.2.2 | CC 2.1.98 Monitor tool support: (1) Add `"Monitor"` to `allowed-tools` array in frontmatter of `skills/breezing/SKILL.md`, `skills/harness-work/SKILL.md`, `skills/ci/SKILL.md`, `skills/deploy/SKILL.md`, `skills/harness-review/SKILL.md`, (2) Add "### Monitor Tool Usage Guide (CC 2.1.98+)" section to `skills/breezing/SKILL.md` (document usage guidelines: Worker observation done via Agent layer completion notification so Monitor not needed there; for shell long-running command monitoring prefer Monitor; list concrete examples like `gh run watch`, `go test -v`, `codex-companion.sh watch <job-id>`), (3) Add "Monitor tool" row to `docs/CLAUDE-feature-table.md` with "A: Has implementation (allowed-tools + usage guide + Feature Table)" in value-add column | 5 SKILL.md files contain `"Monitor"` in frontmatter (`grep -l '"Monitor"' skills/*/SKILL.md` returns 5 hits). breezing SKILL.md has `### Monitor Tool Usage Guide (CC 2.1.98+)` section. `docs/CLAUDE-feature-table.md` has Monitor row with "A: Has implementation" in value-add column. Does not trigger "documentation only" detection in `.claude/rules/cc-update-policy.md` (has implementation) | - | cc:done [ebdf47b] |
+
+---
+
+### Phase 38.3: Integration Verification, Binary Rebuild, CHANGELOG [P0]
+
+Purpose: Integrate all changes from Phase 38.0-38.2, rebuild binaries on 3 platforms, record in CHANGELOG in Before/After format, and reach a state ready for Go v4.0.0 release
+
+| Task | Description | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 38.3.1 | Rebuild `bin/harness` for 3 platforms: darwin-arm64, darwin-amd64, linux-amd64. Use existing cross-platform build script (`scripts/build-cross-platform.sh` etc. if available), otherwise run `GOOS=darwin GOARCH=arm64 go build -o bin/harness-darwin-arm64 ./go/cmd/harness` for all 3 patterns | `bin/harness-darwin-arm64`, `bin/harness-darwin-amd64`, `bin/harness-linux-amd64` all updated (latest timestamp in `ls -la`). Each binary returns v4.0.0 from `--version`. Binary size increases to ~10-11MB due to Phase 37.5 additions (Phase 38 impact negligible) | 38.0.1, 38.0.2, 38.1.1, 38.1.2 | cc:done [fbed2f9] |
+| 38.3.2 | Append Phase 38 items to `[Unreleased]` section of `CHANGELOG.md` in Before/After format. Cover all 7 items from CC 2.1.89-2.1.100 (backslash / env-var / defer / .husky+symlink / wildcard / plugin.json / Monitor). Use "CC Update → Harness Usage" format from `.claude/rules/github-release.md` | CHANGELOG.md Unreleased has 7 entries added in `#### N. Claude Code 2.1.98 Integration` + `##### N-X.` format. Each entry has 2-part format: "CC Update" and "Harness Usage". VERSION / plugin.json version / harness.toml version not changed (not a release operation) | 38.0.1, 38.0.2, 38.1.1, 38.1.2, 38.2.1, 38.2.2 | cc:done [fbed2f9] |
+| 38.3.3 | Integration tests: (1) `go test ./...` all PASS, (2) `./tests/validate-plugin.sh` PASS, (3) `./scripts/ci/check-consistency.sh` PASS — all 3 confirmed. If any fail, identify root cause and fix before marking task complete | All 3 commands PASS. Confirm all 24 newly added security tests are included and no regression in existing tests. validate-plugin.sh improves from baseline 7 failures to 6 failures (1 improvement from plugin.json skills field addition); check-consistency.sh maintains baseline 2 (all v4 cleanup residue, unrelated to Phase 38) | 38.3.1, 38.3.2 | cc:done [fbed2f9] |
+
+---
+
+
+## Phase 37: Full Go Port of All Hook Handlers — "Complete Hokage"
+
+Created: 2026-04-09
+Purpose: Port the remaining 37 bash/Node.js handlers in hooks.json to Go subcommands, fully eliminating run-hook.sh + run-script.js + Node.js runtime dependency
+Prerequisites: Phase 35.0-35.2 complete, v4.0 "Hokage" committed (14 hooks already ported to Go)
+
+### Design Principles
+
+- Implement each handler as a `runHook()` subcommand in `go/cmd/harness/main.go`
+- Port existing bash behavior 1:1 (no feature additions)
+- Centralize implementation in `internal/hookhandler/` package
+- Create `_test.go` for each handler (minimum input/output tests)
+- Rewrite the corresponding hooks.json entry to `bin/harness hook <name>`
+
+### Node.js Dependency Status
+
+| Dependency | Count | Target |
+|------|------|------|
+| Node.js required | 2 | pre-compact-save.js (783 lines), emit-agent-trace.js (808 lines) |
+| Pure bash | 35 | All others |
+
+**Only 2 files need to be ported to achieve zero Node.js dependency.**
+
+---
+
+### Phase 37.1: Trivial Handlers (10) [cc:TODO]
+
+Difficulty: Low / ~50-100 lines each / File I/O + JSON output only
+
+| Task | Handler | Source File | Lines | Description | Status |
+|------|---------|-----------|------|------|--------|
+| 37.1.1 | pretooluse-inbox-check | scripts/pretooluse-inbox-check.sh | 82 | Check for unread messages from other sessions (5-minute throttle) | cc:TODO |
+| 37.1.2 | pretooluse-browser-guide | scripts/pretooluse-browser-guide.sh | 84 | Detect agent-browser CLI + recommend MCP browser tools | cc:TODO |
+| 37.1.3 | memory-bridge | scripts/hook-handlers/memory-bridge.sh + 4 sub-handlers | 55 | harness-mem MCP bridge dispatcher (session-start/user-prompt/post-tool/stop) | cc:TODO |
+| 37.1.4 | worktree-create | scripts/hook-handlers/worktree-create.sh | 93 | Create .claude/state/ + record worktree-info.json | cc:TODO |
+| 37.1.5 | worktree-remove | scripts/hook-handlers/worktree-remove.sh | 73 | Delete tmp files + delete worktree-info.json | cc:TODO |
+| 37.1.6 | posttooluse-commit-cleanup | scripts/posttooluse-commit-cleanup.sh | 50 | Detect git commit → delete review-approved.json | cc:TODO |
+| 37.1.7 | posttooluse-clear-pending | scripts/posttooluse-clear-pending.sh | 28 | Delete pending-skills/*.pending (skill completion signal) | cc:TODO |
+| 37.1.8 | session-auto-broadcast | scripts/session-auto-broadcast.sh | 103 | Notify teammates on changes to src/api/, types/, schema | cc:TODO |
+| 37.1.9 | config-change | scripts/hook-handlers/config-change.sh | 92 | ConfigChange → record to breezing-timeline.jsonl | cc:TODO |
+| 37.1.10 | instructions-loaded | scripts/hook-handlers/instructions-loaded.sh | 86 | InstructionsLoaded → jsonl log + hooks.json existence verification | cc:TODO |
+
+---
+
+### Phase 37.2: Medium Handlers (12) [cc:TODO]
+
+Difficulty: Medium / ~100-350 lines each / JSONL management, state tracking, conditional branching
+
+| Task | Handler | Source File | Lines | Description | Status |
+|------|---------|-----------|------|------|--------|
+| 37.2.1 | setup-hook | scripts/setup-hook.sh | 188 | Plugin cache sync + .claude/state initialization + template validation | cc:TODO |
+| 37.2.2 | runtime-reactive | scripts/hook-handlers/runtime-reactive.sh | 168 | FileChanged/CwdChanged/TaskCreated → context injection | cc:TODO |
+| 37.2.3 | teammate-idle | scripts/hook-handlers/teammate-idle.sh | 186 | Record teammate idle + continue:false stop signal | cc:TODO |
+| 37.2.4 | userprompt-track-command | scripts/userprompt-track-command.sh | 107 | Detect /slash commands + record usage + pending-skills markers | cc:TODO |
+| 37.2.5 | breezing-signal-injector | scripts/hook-handlers/breezing-signal-injector.sh | 183 | breezing-signals.jsonl → systemMessage injection + mark consumed | cc:TODO |
+| 37.2.6 | ci-status-checker | scripts/hook-handlers/ci-status-checker.sh | 192 | Detect git push/gh pr → async CI status check | cc:TODO |
+| 37.2.7 | usage-tracker | scripts/usage-tracker.sh | 108 | Track Skill/Task tool usage | cc:TODO |
+| 37.2.8 | todo-sync | scripts/todo-sync.sh | 118 | TodoWrite → Plans.md marker sync (pending→cc:TODO etc.) | cc:TODO |
+| 37.2.9 | auto-cleanup-hook | scripts/auto-cleanup-hook.sh | 118 | File size warning after Write/Edit (>10KB) | cc:TODO |
+| 37.2.10 | track-changes | scripts/track-changes.sh | 185 | Record file changes + 2-hour dedup + path normalization | cc:TODO |
+| 37.2.11 | plans-watcher | scripts/plans-watcher.sh | 201 | Detect Plans.md changes + inject WIP/TODO/done marker summary | cc:TODO |
+| 37.2.12 | tdd-order-check | scripts/tdd-order-check.sh | 115 | Warning for implementation files edited before tests (enforce TDD order) | cc:TODO |
+
+---
+
+### Phase 37.3: Medium Handlers — Supplement Existing Go (7) [cc:TODO]
+
+Go binary already has routing, but hooks.json still calls bash
+
+| Task | Handler | Source File | Lines | Description | Status |
+|------|---------|-----------|------|------|--------|
+| 37.3.1 | elicitation-handler | scripts/hook-handlers/elicitation-handler.sh | 139 | MCP Elicitation → log + auto-skip during Breezing | cc:TODO |
+| 37.3.2 | elicitation-result | scripts/hook-handlers/elicitation-result.sh | 123 | ElicitationResult → jsonl log | cc:TODO |
+| 37.3.3 | stop-session-evaluator | scripts/hook-handlers/stop-session-evaluator.sh | 106 | Stop → session state evaluation + session.json update | cc:TODO |
+| 37.3.4 | stop-failure | scripts/hook-handlers/stop-failure.sh | 178 | StopFailure → API error log (rate limit, auth) | cc:TODO |
+| 37.3.5 | notification-handler | scripts/hook-handlers/notification-handler.sh | 166 | Notification → record to notification-events.jsonl | cc:TODO |
+| 37.3.6 | permission-denied-handler | scripts/hook-handlers/permission-denied-handler.sh | 197 | PermissionDenied → denial log + notify Breezing Lead | cc:TODO |
+| 37.3.7 | posttooluse-quality-pack | scripts/posttooluse-quality-pack.sh | 190 | Quality checks after Write/Edit (Prettier, tsc, console.log detection) | cc:TODO |
+
+---
+
+### Phase 37.4: Hard Handlers (8) [cc:TODO]
+
+Difficulty: High / ~300-900 lines each / state machines, process control, Node.js ports
+
+| Task | Handler | Source File | Lines | Description | Status |
+|------|---------|-----------|------|------|--------|
+| 37.4.1 | userprompt-inject-policy | scripts/userprompt-inject-policy.sh | 351 | Memory resume context injection + semaphore lock + RESUME_MAX_BYTES limit | cc:TODO |
+| 37.4.2 | fix-proposal-injector | scripts/hook-handlers/fix-proposal-injector.sh | 338 | pending-fix-proposals.jsonl → display proposals + approve/reject → Plans.md sync | cc:TODO |
+| 37.4.3 | posttooluse-log-toolname | scripts/posttooluse-log-toolname.sh | 333 | Tool usage log + LSP tracking + session event log (500-line rotation) + flock | cc:TODO |
+| 37.4.4 | auto-test-runner | scripts/auto-test-runner.sh | 326 | Detect source file changes → auto-run tests (async) + auto-detect Vitest/Jest/pytest | cc:TODO |
+| 37.4.5 | task-completed | scripts/hook-handlers/task-completed.sh | 911 | Record task completion + generate fix proposals + Breezing timeline + Plans.md sync (largest) | cc:TODO |
+| 37.4.6 | **pre-compact-save.js** ⚡ | scripts/hook-handlers/pre-compact-save.js | 783 | **Node.js** — Generate handoff-artifact.json + precompact-snapshot.json + collect Git info | cc:TODO |
+| 37.4.7 | **emit-agent-trace.js** ⚡ | scripts/emit-agent-trace.js | 808 | **Node.js** — Record agent-trace.jsonl + OpenTelemetry span + 10MB/3-generation rotation | cc:TODO |
+| 37.4.8 | post-compact (extended) | scripts/hook-handlers/post-compact.sh | 380 | PostCompact extension — WIP context + handoff artifact re-injection (supplement current Go version) | cc:TODO |
+
+⚡ = Node.js dependency. Porting these 2 files achieves zero Node.js dependency.
+
+---
+
+### Phase 37.5: Final hooks.json Rewrite + Legacy Deletion [cc:TODO]
+
+| Task | Description | DoD | Status |
+|------|------|-----|--------|
+| 37.5.1 | Rewrite all remaining 37 entries in hooks.json to `bin/harness hook <name>` | `grep -c 'run-hook.sh' hooks/hooks.json` returns 0 | cc:TODO |
+| 37.5.2 | Delete `scripts/run-hook.sh` + `scripts/run-script.js` | Files do not exist | cc:TODO |
+| 37.5.3 | Delete `package.json` (complete removal of npm dependency) | File does not exist | cc:TODO |
+| 37.5.4 | Delete `core/` (TypeScript engine) | Directory does not exist | cc:TODO |
+| 37.5.5 | E2E tests: all hook events work via Go binary | `go/scripts/test-e2e.sh` all pass | cc:TODO |
+| 37.5.6 | `harness doctor` confirms zero Node.js dependency | `grep -rE "node\|run-script" hooks/` returns 0 hits | cc:TODO |
+
+---
+
+### Phase 37 Completion Criteria
+
+| # | Criterion | Verification |
+|---|------|---------|
+| 1 | 0 references to `run-hook.sh` in hooks.json | `grep 'run-hook' hooks/hooks.json` |
+| 2 | `scripts/run-hook.sh`, `run-script.js`, `package.json`, `core/` are deleted | Verified with `ls` |
+| 3 | 0 references to `node` command inside harness (except codex-companion) | `grep -r 'node ' scripts/ hooks/` |
+| 4 | Go tests (`_test.go`) exist for all 37 handlers | `go test ./internal/hookhandler/...` |
+| 5 | `harness doctor` passes all checks | `bin/harness doctor` |
+| 6 | `go/scripts/test-e2e.sh` covers all hook events | All E2E pass |
+
+Total: **37 handler ports + 6 cleanups = 43 tasks**
+
+---
+
+
 ## Phase 37: Upstream Merge — upstream/main → local master (EN translation)
 
 Created: 2026-04-13
@@ -175,6 +573,43 @@ Purpose: Merge Plans.md from both branches, update CHANGELOG, run final validati
 
 ---
 
+
+## Phase 36: skills-v3/ Integration — Consolidate SSOT into skills/
+
+Created: 2026-04-07
+Purpose: Retire the `skills-v3/` directory and make `skills/` the sole SSOT. Simplify mirror sync to only 2 directions: `skills/ → codex/.codex/skills/` and `opencode/skills/`.
+
+### Background
+
+Phase A (completed in previous session) finished renaming `agents-v3/ → agents/` and `skills-v3-codex/ → skills-codex/`.
+Phase B is the `skills-v3/` consolidation, which was separated into its own PR because it requires redesigning the mirror script group.
+
+### Design Principles
+
+- The 6 core skills + breezing + routing-rules.md from `skills-v3/` already have mirror copies in `skills/`
+- After consolidation, `skills/` is the source of truth. `skills-v3/` is deleted
+- The 10 symlinks in `skills-v3/extensions/` are unnecessary since the actual files exist in `skills/`
+- Change source paths in mirror sync scripts from `skills-v3/` → `skills/`
+- Remove "v3" from all paths and documentation (excluding past CHANGELOG entries)
+
+| Task | Description | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 36.1 | Final sync of `skills-v3/` content to `skills/`, confirm no diff | `diff -r skills-v3/{skill} skills/{skill}` shows diff 0 | - | cc:done |
+| 36.2 | Rewrite `sync-v3-skill-mirrors.sh`: change source to `skills/`, rename script to `sync-skill-mirrors.sh` | `./scripts/sync-skill-mirrors.sh` and `--check` work correctly | 36.1 | cc:done |
+| 36.3 | Update section [10/12] in `check-consistency.sh`: change `skills-v3/` references to `skills/` | `./scripts/ci/check-consistency.sh` passes all paths | 36.2 | cc:done |
+| 36.4 | Update `validate-plugin-v3.sh`: `skills-v3/` → `skills/` | Script works correctly | 36.2 | cc:done |
+| 36.5 | Remove `skills-v3` from roots in `generate-skill-manifest.sh` | Manifest generation scans only `skills/` | 36.2 | cc:done |
+| 36.6 | Change source paths in `fix-symlinks.sh` to `skills/` | Windows-compatible repair logic treats `skills/` as source of truth | 36.2 | cc:done |
+| 36.7 | Remove `skills-v3` references from `set-locale.sh` | Locale switching processes only `skills/` | 36.2 | cc:done |
+| 36.8 | Bulk documentation update: update `skills-v3` references in README.md, README_ja.md, v3-architecture.md, CLAUDE.md, etc. | `grep -r 'skills-v3' --include='*.md'` returns 0 hits outside CHANGELOG | 36.1 | cc:done |
+| 36.9 | Update `skills-v3` references in SKILL.md files (including all mirrors) | No `skills-v3` references in any SKILL.md | 36.8 | cc:done |
+| 36.10 | Delete `skills-v3/` directory + old `sync-v3-skill-mirrors.sh` | `ls skills-v3/` shows it does not exist | 36.1-36.9 | cc:done |
+| 36.11 | Update `skills-v3` references in test files | `grep -r 'skills-v3' tests/` returns 0 hits | 36.10 | cc:done |
+| 36.12 | Integration verification: `check-consistency.sh` + `validate-plugin.sh` + `go build` + `go test` all pass | All CI-equivalent verifications pass (excluding known pre-existing issues) | 36.10, 36.11 | cc:done |
+
+---
+
+
 ## Phase 36: Project Simplification — Dead Code Cleanup + Codex Restoration
 
 Created: 2026-04-12
@@ -260,46 +695,6 @@ Purpose: Fix references to removed files across the project. CHANGELOG.md is exc
 
 ---
 
-## Phase 35: Repository Rebrand + Structure Consolidation
-
-Created: 2026-04-12
-Purpose: Rebrand repository to `tim-hub/powerball-harness`, eliminate redundant v3 directories, and unify all skills/agents under a single directory structure
-
-### Phase 35.0: Repository URL Rebrand
-
-Purpose: Update all references from old repository URLs to `tim-hub/powerball-harness`
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 35.0.1 | Replace all `Chachamaru127/claude-code-harness` and `tim-hub/claude-code-harness` URLs with `tim-hub/powerball-harness` across README, marketplace.json, CONTRIBUTING, install scripts, CI scripts, social posts, and benchmark docs | `grep -r 'Chachamaru127\|tim-hub/claude-code-harness'` returns only intentional attribution in README Origin section | - | cc:done |
-| 35.0.2 | Update marketplace.json owner, author, homepage, and repository fields | `marketplace.json` owner is `tim-hub`, all URLs point to `tim-hub/powerball-harness` | 35.0.1 | cc:done |
-| 35.0.3 | Add Origin section to README crediting the original upstream repository | README bottom contains attribution link to `Chachamaru127/claude-code-harness` | 35.0.1 | cc:done |
-
-### Phase 35.1: v3 Directory Consolidation
-
-Purpose: Eliminate redundant `skills-v3/` and `agents-v3/` directories by merging into `skills/` and `agents/`
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 35.1.1 | Copy `agents-v3/` files (worker.md, reviewer.md, scaffolder.md, team-composition.md) into `agents/` | All 4 files exist in `agents/` | - | cc:done |
-| 35.1.2 | Remove `skills-v3/` directory (core skills are duplicates of `skills/`, extensions are symlinks back to `skills/`) | `skills-v3/` does not exist | 35.1.1 | cc:done |
-| 35.1.3 | Remove `agents-v3/` directory | `agents-v3/` does not exist | 35.1.1 | cc:done |
-| 35.1.4 | Update all `skills-v3` and `agents-v3` references across docs, scripts, rules, CI tests, and CLAUDE.md to point to `skills/` and `agents/` | `grep -r 'skills-v3\|agents-v3'` returns only CHANGELOG.md and Plans.md (historical records) | 35.1.2 | cc:done |
-
-### Phase 35.2: Skill Configuration
-
-Purpose: Improve planning quality by routing to the best model
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 35.2.1 | Add `model: opus` to `harness-plan` SKILL.md frontmatter | `harness-plan/SKILL.md` contains `model: opus` | - | cc:done |
-
----
-
-
-## Upstream Phase History (v4.0.x — merged from upstream/main)
-
-> These phases were completed in upstream/main (Hokage branch) and are included here as historical record.
 
 ## Phase 35: Harness v4 — Go Zero-Based Rebuild
 
@@ -453,432 +848,45 @@ Purpose: Go binary distribution using `bin/` directory
 
 ---
 
-## Phase 36: skills-v3/ Integration — Consolidate SSOT into skills/
 
-Created: 2026-04-07
-Purpose: Retire the `skills-v3/` directory and make `skills/` the sole SSOT. Simplify mirror sync to only 2 directions: `skills/ → codex/.codex/skills/` and `opencode/skills/`.
+## Phase 35: Repository Rebrand + Structure Consolidation
 
-### Background
+Created: 2026-04-12
+Purpose: Rebrand repository to `tim-hub/powerball-harness`, eliminate redundant v3 directories, and unify all skills/agents under a single directory structure
 
-Phase A (completed in previous session) finished renaming `agents-v3/ → agents/` and `skills-v3-codex/ → skills-codex/`.
-Phase B is the `skills-v3/` consolidation, which was separated into its own PR because it requires redesigning the mirror script group.
+### Phase 35.0: Repository URL Rebrand
 
-### Design Principles
-
-- The 6 core skills + breezing + routing-rules.md from `skills-v3/` already have mirror copies in `skills/`
-- After consolidation, `skills/` is the source of truth. `skills-v3/` is deleted
-- The 10 symlinks in `skills-v3/extensions/` are unnecessary since the actual files exist in `skills/`
-- Change source paths in mirror sync scripts from `skills-v3/` → `skills/`
-- Remove "v3" from all paths and documentation (excluding past CHANGELOG entries)
+Purpose: Update all references from old repository URLs to `tim-hub/powerball-harness`
 
 | Task | Description | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 36.1 | Final sync of `skills-v3/` content to `skills/`, confirm no diff | `diff -r skills-v3/{skill} skills/{skill}` shows diff 0 | - | cc:done |
-| 36.2 | Rewrite `sync-v3-skill-mirrors.sh`: change source to `skills/`, rename script to `sync-skill-mirrors.sh` | `./scripts/sync-skill-mirrors.sh` and `--check` work correctly | 36.1 | cc:done |
-| 36.3 | Update section [10/12] in `check-consistency.sh`: change `skills-v3/` references to `skills/` | `./scripts/ci/check-consistency.sh` passes all paths | 36.2 | cc:done |
-| 36.4 | Update `validate-plugin-v3.sh`: `skills-v3/` → `skills/` | Script works correctly | 36.2 | cc:done |
-| 36.5 | Remove `skills-v3` from roots in `generate-skill-manifest.sh` | Manifest generation scans only `skills/` | 36.2 | cc:done |
-| 36.6 | Change source paths in `fix-symlinks.sh` to `skills/` | Windows-compatible repair logic treats `skills/` as source of truth | 36.2 | cc:done |
-| 36.7 | Remove `skills-v3` references from `set-locale.sh` | Locale switching processes only `skills/` | 36.2 | cc:done |
-| 36.8 | Bulk documentation update: update `skills-v3` references in README.md, README_ja.md, v3-architecture.md, CLAUDE.md, etc. | `grep -r 'skills-v3' --include='*.md'` returns 0 hits outside CHANGELOG | 36.1 | cc:done |
-| 36.9 | Update `skills-v3` references in SKILL.md files (including all mirrors) | No `skills-v3` references in any SKILL.md | 36.8 | cc:done |
-| 36.10 | Delete `skills-v3/` directory + old `sync-v3-skill-mirrors.sh` | `ls skills-v3/` shows it does not exist | 36.1-36.9 | cc:done |
-| 36.11 | Update `skills-v3` references in test files | `grep -r 'skills-v3' tests/` returns 0 hits | 36.10 | cc:done |
-| 36.12 | Integration verification: `check-consistency.sh` + `validate-plugin.sh` + `go build` + `go test` all pass | All CI-equivalent verifications pass (excluding known pre-existing issues) | 36.10, 36.11 | cc:done |
+|------|-------------|-----|---------|--------|
+| 35.0.1 | Replace all `Chachamaru127/claude-code-harness` and `tim-hub/claude-code-harness` URLs with `tim-hub/powerball-harness` across README, marketplace.json, CONTRIBUTING, install scripts, CI scripts, social posts, and benchmark docs | `grep -r 'Chachamaru127\|tim-hub/claude-code-harness'` returns only intentional attribution in README Origin section | - | cc:done |
+| 35.0.2 | Update marketplace.json owner, author, homepage, and repository fields | `marketplace.json` owner is `tim-hub`, all URLs point to `tim-hub/powerball-harness` | 35.0.1 | cc:done |
+| 35.0.3 | Add Origin section to README crediting the original upstream repository | README bottom contains attribution link to `Chachamaru127/claude-code-harness` | 35.0.1 | cc:done |
 
----
+### Phase 35.1: v3 Directory Consolidation
 
-## Phase 37: Full Go Port of All Hook Handlers — "Complete Hokage"
-
-Created: 2026-04-09
-Purpose: Port the remaining 37 bash/Node.js handlers in hooks.json to Go subcommands, fully eliminating run-hook.sh + run-script.js + Node.js runtime dependency
-Prerequisites: Phase 35.0-35.2 complete, v4.0 "Hokage" committed (14 hooks already ported to Go)
-
-### Design Principles
-
-- Implement each handler as a `runHook()` subcommand in `go/cmd/harness/main.go`
-- Port existing bash behavior 1:1 (no feature additions)
-- Centralize implementation in `internal/hookhandler/` package
-- Create `_test.go` for each handler (minimum input/output tests)
-- Rewrite the corresponding hooks.json entry to `bin/harness hook <name>`
-
-### Node.js Dependency Status
-
-| Dependency | Count | Target |
-|------|------|------|
-| Node.js required | 2 | pre-compact-save.js (783 lines), emit-agent-trace.js (808 lines) |
-| Pure bash | 35 | All others |
-
-**Only 2 files need to be ported to achieve zero Node.js dependency.**
-
----
-
-### Phase 37.1: Trivial Handlers (10) [cc:TODO]
-
-Difficulty: Low / ~50-100 lines each / File I/O + JSON output only
-
-| Task | Handler | Source File | Lines | Description | Status |
-|------|---------|-----------|------|------|--------|
-| 37.1.1 | pretooluse-inbox-check | scripts/pretooluse-inbox-check.sh | 82 | Check for unread messages from other sessions (5-minute throttle) | cc:TODO |
-| 37.1.2 | pretooluse-browser-guide | scripts/pretooluse-browser-guide.sh | 84 | Detect agent-browser CLI + recommend MCP browser tools | cc:TODO |
-| 37.1.3 | memory-bridge | scripts/hook-handlers/memory-bridge.sh + 4 sub-handlers | 55 | harness-mem MCP bridge dispatcher (session-start/user-prompt/post-tool/stop) | cc:TODO |
-| 37.1.4 | worktree-create | scripts/hook-handlers/worktree-create.sh | 93 | Create .claude/state/ + record worktree-info.json | cc:TODO |
-| 37.1.5 | worktree-remove | scripts/hook-handlers/worktree-remove.sh | 73 | Delete tmp files + delete worktree-info.json | cc:TODO |
-| 37.1.6 | posttooluse-commit-cleanup | scripts/posttooluse-commit-cleanup.sh | 50 | Detect git commit → delete review-approved.json | cc:TODO |
-| 37.1.7 | posttooluse-clear-pending | scripts/posttooluse-clear-pending.sh | 28 | Delete pending-skills/*.pending (skill completion signal) | cc:TODO |
-| 37.1.8 | session-auto-broadcast | scripts/session-auto-broadcast.sh | 103 | Notify teammates on changes to src/api/, types/, schema | cc:TODO |
-| 37.1.9 | config-change | scripts/hook-handlers/config-change.sh | 92 | ConfigChange → record to breezing-timeline.jsonl | cc:TODO |
-| 37.1.10 | instructions-loaded | scripts/hook-handlers/instructions-loaded.sh | 86 | InstructionsLoaded → jsonl log + hooks.json existence verification | cc:TODO |
-
----
-
-### Phase 37.2: Medium Handlers (12) [cc:TODO]
-
-Difficulty: Medium / ~100-350 lines each / JSONL management, state tracking, conditional branching
-
-| Task | Handler | Source File | Lines | Description | Status |
-|------|---------|-----------|------|------|--------|
-| 37.2.1 | setup-hook | scripts/setup-hook.sh | 188 | Plugin cache sync + .claude/state initialization + template validation | cc:TODO |
-| 37.2.2 | runtime-reactive | scripts/hook-handlers/runtime-reactive.sh | 168 | FileChanged/CwdChanged/TaskCreated → context injection | cc:TODO |
-| 37.2.3 | teammate-idle | scripts/hook-handlers/teammate-idle.sh | 186 | Record teammate idle + continue:false stop signal | cc:TODO |
-| 37.2.4 | userprompt-track-command | scripts/userprompt-track-command.sh | 107 | Detect /slash commands + record usage + pending-skills markers | cc:TODO |
-| 37.2.5 | breezing-signal-injector | scripts/hook-handlers/breezing-signal-injector.sh | 183 | breezing-signals.jsonl → systemMessage injection + mark consumed | cc:TODO |
-| 37.2.6 | ci-status-checker | scripts/hook-handlers/ci-status-checker.sh | 192 | Detect git push/gh pr → async CI status check | cc:TODO |
-| 37.2.7 | usage-tracker | scripts/usage-tracker.sh | 108 | Track Skill/Task tool usage | cc:TODO |
-| 37.2.8 | todo-sync | scripts/todo-sync.sh | 118 | TodoWrite → Plans.md marker sync (pending→cc:TODO etc.) | cc:TODO |
-| 37.2.9 | auto-cleanup-hook | scripts/auto-cleanup-hook.sh | 118 | File size warning after Write/Edit (>10KB) | cc:TODO |
-| 37.2.10 | track-changes | scripts/track-changes.sh | 185 | Record file changes + 2-hour dedup + path normalization | cc:TODO |
-| 37.2.11 | plans-watcher | scripts/plans-watcher.sh | 201 | Detect Plans.md changes + inject WIP/TODO/done marker summary | cc:TODO |
-| 37.2.12 | tdd-order-check | scripts/tdd-order-check.sh | 115 | Warning for implementation files edited before tests (enforce TDD order) | cc:TODO |
-
----
-
-### Phase 37.3: Medium Handlers — Supplement Existing Go (7) [cc:TODO]
-
-Go binary already has routing, but hooks.json still calls bash
-
-| Task | Handler | Source File | Lines | Description | Status |
-|------|---------|-----------|------|------|--------|
-| 37.3.1 | elicitation-handler | scripts/hook-handlers/elicitation-handler.sh | 139 | MCP Elicitation → log + auto-skip during Breezing | cc:TODO |
-| 37.3.2 | elicitation-result | scripts/hook-handlers/elicitation-result.sh | 123 | ElicitationResult → jsonl log | cc:TODO |
-| 37.3.3 | stop-session-evaluator | scripts/hook-handlers/stop-session-evaluator.sh | 106 | Stop → session state evaluation + session.json update | cc:TODO |
-| 37.3.4 | stop-failure | scripts/hook-handlers/stop-failure.sh | 178 | StopFailure → API error log (rate limit, auth) | cc:TODO |
-| 37.3.5 | notification-handler | scripts/hook-handlers/notification-handler.sh | 166 | Notification → record to notification-events.jsonl | cc:TODO |
-| 37.3.6 | permission-denied-handler | scripts/hook-handlers/permission-denied-handler.sh | 197 | PermissionDenied → denial log + notify Breezing Lead | cc:TODO |
-| 37.3.7 | posttooluse-quality-pack | scripts/posttooluse-quality-pack.sh | 190 | Quality checks after Write/Edit (Prettier, tsc, console.log detection) | cc:TODO |
-
----
-
-### Phase 37.4: Hard Handlers (8) [cc:TODO]
-
-Difficulty: High / ~300-900 lines each / state machines, process control, Node.js ports
-
-| Task | Handler | Source File | Lines | Description | Status |
-|------|---------|-----------|------|------|--------|
-| 37.4.1 | userprompt-inject-policy | scripts/userprompt-inject-policy.sh | 351 | Memory resume context injection + semaphore lock + RESUME_MAX_BYTES limit | cc:TODO |
-| 37.4.2 | fix-proposal-injector | scripts/hook-handlers/fix-proposal-injector.sh | 338 | pending-fix-proposals.jsonl → display proposals + approve/reject → Plans.md sync | cc:TODO |
-| 37.4.3 | posttooluse-log-toolname | scripts/posttooluse-log-toolname.sh | 333 | Tool usage log + LSP tracking + session event log (500-line rotation) + flock | cc:TODO |
-| 37.4.4 | auto-test-runner | scripts/auto-test-runner.sh | 326 | Detect source file changes → auto-run tests (async) + auto-detect Vitest/Jest/pytest | cc:TODO |
-| 37.4.5 | task-completed | scripts/hook-handlers/task-completed.sh | 911 | Record task completion + generate fix proposals + Breezing timeline + Plans.md sync (largest) | cc:TODO |
-| 37.4.6 | **pre-compact-save.js** ⚡ | scripts/hook-handlers/pre-compact-save.js | 783 | **Node.js** — Generate handoff-artifact.json + precompact-snapshot.json + collect Git info | cc:TODO |
-| 37.4.7 | **emit-agent-trace.js** ⚡ | scripts/emit-agent-trace.js | 808 | **Node.js** — Record agent-trace.jsonl + OpenTelemetry span + 10MB/3-generation rotation | cc:TODO |
-| 37.4.8 | post-compact (extended) | scripts/hook-handlers/post-compact.sh | 380 | PostCompact extension — WIP context + handoff artifact re-injection (supplement current Go version) | cc:TODO |
-
-⚡ = Node.js dependency. Porting these 2 files achieves zero Node.js dependency.
-
----
-
-### Phase 37.5: Final hooks.json Rewrite + Legacy Deletion [cc:TODO]
-
-| Task | Description | DoD | Status |
-|------|------|-----|--------|
-| 37.5.1 | Rewrite all remaining 37 entries in hooks.json to `bin/harness hook <name>` | `grep -c 'run-hook.sh' hooks/hooks.json` returns 0 | cc:TODO |
-| 37.5.2 | Delete `scripts/run-hook.sh` + `scripts/run-script.js` | Files do not exist | cc:TODO |
-| 37.5.3 | Delete `package.json` (complete removal of npm dependency) | File does not exist | cc:TODO |
-| 37.5.4 | Delete `core/` (TypeScript engine) | Directory does not exist | cc:TODO |
-| 37.5.5 | E2E tests: all hook events work via Go binary | `go/scripts/test-e2e.sh` all pass | cc:TODO |
-| 37.5.6 | `harness doctor` confirms zero Node.js dependency | `grep -rE "node\|run-script" hooks/` returns 0 hits | cc:TODO |
-
----
-
-### Phase 37 Completion Criteria
-
-| # | Criterion | Verification |
-|---|------|---------|
-| 1 | 0 references to `run-hook.sh` in hooks.json | `grep 'run-hook' hooks/hooks.json` |
-| 2 | `scripts/run-hook.sh`, `run-script.js`, `package.json`, `core/` are deleted | Verified with `ls` |
-| 3 | 0 references to `node` command inside harness (except codex-companion) | `grep -r 'node ' scripts/ hooks/` |
-| 4 | Go tests (`_test.go`) exist for all 37 handlers | `go test ./internal/hookhandler/...` |
-| 5 | `harness doctor` passes all checks | `bin/harness doctor` |
-| 6 | `go/scripts/test-e2e.sh` covers all hook events | All E2E pass |
-
-Total: **37 handler ports + 6 cleanups = 43 tasks**
-
----
-
-## Phase 38: CC 2.1.89-2.1.100 Tracking + Go v4 Release Polish
-
-Created: 2026-04-10
-Purpose: Incorporate unabsorbed hook/permission/plugin changes from Claude Code 2.1.89-2.1.100 into the Harness v4 Go guardrails, achieving a perfect zero-security-regression state before the Go v4.0.0 release
-
-Background: Two vulnerabilities patched in CC 2.1.98 (backslash-escaped flag bypass, env-var prefix bypass) remain open in Harness's second-layer guardrails. Additionally, `DecisionDefer` from CC 2.1.89 has a type definition in `go/pkg/hookproto/types.go` but is not caught in the `PreToolToOutput()` switch in `go/internal/guardrail/pre_tool.go` — a known gap. .husky protection / symlink resolution / wildcard normalization / plugin.json skills explicit declaration / Monitor tool adoption should all be incorporated before the v4 release.
-
-### Priority Matrix
-
-| Priority | Phase | Content | Task Count | Depends |
-|--------|-------|------|---------|------|
-| **Required** | 38.0 | Security emergency fix (permission.go hardening + DecisionDefer wiring) | 2 | None |
-| **Required** | 38.1 | Security hardening (.husky + symlink + wildcard normalization) | 2 | None |
-| **Required** | 38.2 | Plugin/skill alignment + Monitor tool adoption | 2 | None |
-| **Required** | 38.3 | Integration verification, binary rebuild, CHANGELOG | 3 | All of 38.0-38.2 |
-
-Total: **9 tasks**
-
-### Completion Criteria (Definition of Done — Phase 38 overall)
-
-| # | Criterion | Verification | Required/Recommended |
-|---|------|---------|----------|
-| 1 | 16+ new guardrail security tests added, all PASS | `go test -v ./internal/guardrail/...` | Required |
-| 2 | All Go tests PASS | `go test ./...` | Required |
-| 3 | Plugin validation PASS | `./tests/validate-plugin.sh` | Required |
-| 4 | Consistency check PASS | `./scripts/ci/check-consistency.sh` | Required |
-| 5 | Feature Table has CC 2.1.98 Monitor entry + value-add column "A: Has implementation" | Visual inspection of `docs/CLAUDE-feature-table.md` | Required |
-| 6 | CHANGELOG.md Unreleased has 7 Before/After entries for Phase 38 | Visual inspection of `CHANGELOG.md` | Required |
-| 7 | Binaries rebuilt for 3 platforms | `ls -la bin/harness-*` | Required |
-| 8 | CC 2.1.89-2.1.100 security hardening fully reflected in Go v4 | All criteria 1-7 met | Required |
-
----
-
-### Phase 38.0: Security Emergency Fix (permission.go + DecisionDefer) [P0]
-
-Purpose: Patch in Harness's second-layer guard the 2 vulnerabilities fixed in CC 2.1.98 (backslash-escape / env-var prefix). Also resolve the known gap where `DecisionDefer` added in 2.1.89 is not caught in the switch case.
+Purpose: Eliminate redundant `skills-v3/` and `agents-v3/` directories by merging into `skills/` and `agents/`
 
 | Task | Description | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 38.0.1 | `go/internal/guardrail/permission.go` hardening: (1) Add `hasBackslashEscape(cmd string) bool` function, detect patterns like `\-`, `\\ ` (space-escape), `\--` using regex `\\[\-\s]`, (2) Add `stripSafeEnvPrefix(cmd string) (string, bool)` function and `knownSafeEnvVars` map (`LANG`, `LANGUAGE`, `TZ`, `NO_COLOR`, `FORCE_COLOR`). `LC_*` allowed via prefix match, (3) At the top of `isSafeCommand()`, call both; return `false` immediately on backslash escape detection or unknown env-var detection [feature:security] | Minimum 8 tests added to `go/internal/guardrail/permission_test.go`, all PASS: (a) `git\ status` reject, (b) `git\ push\ --force` reject, (c) `rm\ -rf\ /` reject, (d) `LANG=C git status` pass, (e) `TZ=UTC git log` pass, (f) `EVIL=x git status` reject, (g) `LANG=C NO_COLOR=1 git status` pass, (h) `LANG=C EVIL=x git status` reject. `go test ./internal/guardrail/...` all PASS | - | cc:done [aa9f4bb] |
-| 38.0.2 | Add `case hookproto.DecisionDefer:` to the switch statement in `PreToolToOutput()` function in `go/internal/guardrail/pre_tool.go`, setting `inner.PermissionDecision = "defer"` + `inner.PermissionDecisionReason = result.Reason`. Resolves the known issue where `DecisionDefer` constant already defined at `go/pkg/hookproto/types.go:39` but not caught in switch [feature:security] | Test added to `go/internal/guardrail/pre_tool_test.go` for DecisionDefer return case, output JSON contains `"permissionDecision": "defer"` and `"permissionDecisionReason": "<reason>"`. `go test ./internal/guardrail/...` all PASS | - | cc:done [aa9f4bb] |
+|------|-------------|-----|---------|--------|
+| 35.1.1 | Copy `agents-v3/` files (worker.md, reviewer.md, scaffolder.md, team-composition.md) into `agents/` | All 4 files exist in `agents/` | - | cc:done |
+| 35.1.2 | Remove `skills-v3/` directory (core skills are duplicates of `skills/`, extensions are symlinks back to `skills/`) | `skills-v3/` does not exist | 35.1.1 | cc:done |
+| 35.1.3 | Remove `agents-v3/` directory | `agents-v3/` does not exist | 35.1.1 | cc:done |
+| 35.1.4 | Update all `skills-v3` and `agents-v3` references across docs, scripts, rules, CI tests, and CLAUDE.md to point to `skills/` and `agents/` | `grep -r 'skills-v3\|agents-v3'` returns only CHANGELOG.md and Plans.md (historical records) | 35.1.2 | cc:done |
 
----
+### Phase 35.2: Skill Configuration
 
-### Phase 38.1: Security Hardening (helpers.go + rules.go) [P0]
-
-Purpose: Port 3 items to Harness Go guardrails: CC 2.1.89 symlink target resolution, CC 2.1.90 `.husky` protected path addition, CC 2.1.98 wildcard whitespace normalization
-
-| Task | Description | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 38.1.1 | `go/internal/guardrail/helpers.go` extension: (1) Add `.husky/` pattern to `protectedPathPatterns` slice (protect git hooks directory, following CC 2.1.90), (2) Inside `isProtectedPath(path string) bool`, call `filepath.EvalSymlinks()` and also deny when the resolved real path after symlink resolution matches protected patterns (following CC 2.1.89). Return `true` (deny) as fail-safe when `EvalSymlinks` errors [feature:security] | Minimum 5 tests added to `go/internal/guardrail/helpers_test.go`, all PASS: (a) `.husky/pre-commit` write deny, (b) `.husky/hooks/commit-msg` deny, (c) Create symlink `link-env → .env` in temp dir and verify access is denied, (d) 2-level symlink chain (link1 → link2 → .env) also denied, (e) `EvalSymlinks` error on symlink loop also fail-safes to deny. `go test ./internal/guardrail/...` all PASS | - | cc:done [aa9f4bb] |
-| 38.1.2 | In wildcard pattern evaluation in `go/internal/guardrail/rules.go`, normalize consecutive whitespace (spaces/tabs) in user command to single space using `regexp.MustCompile(\`\s+\`).ReplaceAllString(cmd, " ")` before pattern matching. Reproduce in second layer the CC 2.1.98 fix where `Bash(git push -f:*)` matches commands with multiple spaces/tabs [feature:security] | Minimum 3 tests added to `go/internal/guardrail/rules_test.go`, all PASS: (a) `git  push  --force` (consecutive spaces) denied by force-push rule, (b) `git\tpush\t-f` (tab-separated) denied, (c) `git push   --force-with-lease` denied. Existing tests all maintained. `go test ./internal/guardrail/...` all PASS | - | cc:done [aa9f4bb] |
-
----
-
-### Phase 38.2: Plugin/Skill Alignment + Monitor Tool Adoption [P0]
-
-Purpose: Explicitly support the CC 2.1.94 plugin skill invocation name spec, declare and document the Monitor tool added in CC 2.1.98 for use in long-running skills like Breezing
+Purpose: Improve planning quality by routing to the best model
 
 | Task | Description | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 38.2.1 | Add `"skills": ["./"]` field to `.claude-plugin/plugin.json`. Explicitly support the CC 2.1.94+ spec where plugin skill invocation names are based on the frontmatter `name` field. Maintain compatibility with existing auto-discover (all existing 32 skills remain invocable) | `.claude-plugin/plugin.json` has `"skills": ["./"]`. `./tests/validate-plugin.sh` PASS. `./scripts/ci/check-consistency.sh` PASS. Confirm `.skills` is `["./"]` with jq | - | cc:done [ebdf47b] |
-| 38.2.2 | CC 2.1.98 Monitor tool support: (1) Add `"Monitor"` to `allowed-tools` array in frontmatter of `skills/breezing/SKILL.md`, `skills/harness-work/SKILL.md`, `skills/ci/SKILL.md`, `skills/deploy/SKILL.md`, `skills/harness-review/SKILL.md`, (2) Add "### Monitor Tool Usage Guide (CC 2.1.98+)" section to `skills/breezing/SKILL.md` (document usage guidelines: Worker observation done via Agent layer completion notification so Monitor not needed there; for shell long-running command monitoring prefer Monitor; list concrete examples like `gh run watch`, `go test -v`, `codex-companion.sh watch <job-id>`), (3) Add "Monitor tool" row to `docs/CLAUDE-feature-table.md` with "A: Has implementation (allowed-tools + usage guide + Feature Table)" in value-add column | 5 SKILL.md files contain `"Monitor"` in frontmatter (`grep -l '"Monitor"' skills/*/SKILL.md` returns 5 hits). breezing SKILL.md has `### Monitor Tool Usage Guide (CC 2.1.98+)` section. `docs/CLAUDE-feature-table.md` has Monitor row with "A: Has implementation" in value-add column. Does not trigger "documentation only" detection in `.claude/rules/cc-update-policy.md` (has implementation) | - | cc:done [ebdf47b] |
+|------|-------------|-----|---------|--------|
+| 35.2.1 | Add `model: opus` to `harness-plan` SKILL.md frontmatter | `harness-plan/SKILL.md` contains `model: opus` | - | cc:done |
 
 ---
 
-### Phase 38.3: Integration Verification, Binary Rebuild, CHANGELOG [P0]
 
-Purpose: Integrate all changes from Phase 38.0-38.2, rebuild binaries on 3 platforms, record in CHANGELOG in Before/After format, and reach a state ready for Go v4.0.0 release
+## Upstream Phase History (v4.0.x — merged from upstream/main)
 
-| Task | Description | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 38.3.1 | Rebuild `bin/harness` for 3 platforms: darwin-arm64, darwin-amd64, linux-amd64. Use existing cross-platform build script (`scripts/build-cross-platform.sh` etc. if available), otherwise run `GOOS=darwin GOARCH=arm64 go build -o bin/harness-darwin-arm64 ./go/cmd/harness` for all 3 patterns | `bin/harness-darwin-arm64`, `bin/harness-darwin-amd64`, `bin/harness-linux-amd64` all updated (latest timestamp in `ls -la`). Each binary returns v4.0.0 from `--version`. Binary size increases to ~10-11MB due to Phase 37.5 additions (Phase 38 impact negligible) | 38.0.1, 38.0.2, 38.1.1, 38.1.2 | cc:done [fbed2f9] |
-| 38.3.2 | Append Phase 38 items to `[Unreleased]` section of `CHANGELOG.md` in Before/After format. Cover all 7 items from CC 2.1.89-2.1.100 (backslash / env-var / defer / .husky+symlink / wildcard / plugin.json / Monitor). Use "CC Update → Harness Usage" format from `.claude/rules/github-release.md` | CHANGELOG.md Unreleased has 7 entries added in `#### N. Claude Code 2.1.98 Integration` + `##### N-X.` format. Each entry has 2-part format: "CC Update" and "Harness Usage". VERSION / plugin.json version / harness.toml version not changed (not a release operation) | 38.0.1, 38.0.2, 38.1.1, 38.1.2, 38.2.1, 38.2.2 | cc:done [fbed2f9] |
-| 38.3.3 | Integration tests: (1) `go test ./...` all PASS, (2) `./tests/validate-plugin.sh` PASS, (3) `./scripts/ci/check-consistency.sh` PASS — all 3 confirmed. If any fail, identify root cause and fix before marking task complete | All 3 commands PASS. Confirm all 24 newly added security tests are included and no regression in existing tests. validate-plugin.sh improves from baseline 7 failures to 6 failures (1 improvement from plugin.json skills field addition); check-consistency.sh maintains baseline 2 (all v4 cleanup residue, unrelated to Phase 38) | 38.3.1, 38.3.2 | cc:done [fbed2f9] |
-
----
-
-## Phase 39: Review Experience Improvement + v4.0.1 Pre-Release Polish
-
-Created: 2026-04-11
-Purpose: After Phase 38 completion, tidy up improvement opportunities discovered (/HAR:review output non-expert-friendliness, sync.go plugin.json auto-revert root fix, test assertion strictening, v3 cleanup residue, bare review scope cap) and update CHANGELOG before v4.0.1 release to reach a shippable state
-
-Background: An independent review after Phase 38 found 3 follow-ups (HAR:* validation / jq assertion looseness / excessive scope). While fixing these, deeper issues cascaded: namespace inconsistencies, review output UX problems, a root bug where `harness sync` drops the skills field when regenerating plugin.json. All are outside Phase 38 scope but are quality improvements that should be resolved before v4.0.1 release, so they are consolidated here.
-
-### Priority Matrix
-
-| Priority | Phase | Content | Task Count | Depends |
-|--------|-------|------|---------|------|
-| **Done** | 39.0 | /HAR:review output improvement (bare flow + English + non-expert friendly) | 3 | - |
-| **Done** | 39.1 | Infrastructure fixes (sync.go Skills + test assertion + scope cap) | 3 | - |
-| **Done** | 39.2 | Name consistency (HAR:* → harness-* revert + SSOT recovery) | 1 | - |
-| **Done** | 39.3 | v3 cleanup residue removal + test script v4 migration | 5 | - |
-| **Required** | 39.4 | CHANGELOG [Unreleased] update | 1 | 39.0-39.3 |
-| **Recommended** | 39.5 | Reviewer-flagged follow-ups (shell pipeline + memory_bridge) | 2 | - |
-
-Total: **15 tasks** (12 complete + 3 pending, 1 of which is a release blocker)
-
-### Completion Criteria (Definition of Done — Phase 39 overall)
-
-| # | Criterion | Verification | Required/Recommended |
-|---|------|---------|----------|
-| 1 | /HAR:review works with bare invocation, English result summary at top + non-expert 4-section structure | Run `/harness-review` and visually confirm | Required |
-| 2 | `plugin.json.skills = ["./"]` preserved after running `harness sync` | `jq '.skills' .claude-plugin/plugin.json` | Required |
-| 3 | `go test ./...` all 12 packages PASS | Run command | Required |
-| 4 | `./tests/validate-plugin.sh` 42 pass / 0 fail | Run command | Required |
-| 5 | `./scripts/ci/check-consistency.sh` all pass | Run command | Required |
-| 6 | CHANGELOG [Unreleased] contains Phase 38 + Phase 39 improvements in Before/After format | Visual inspection | Required |
-| 7 | Phase 39.5 to be addressed in v4.0.2 or later (not a blocker before release) | Remains cc:TODO in Plans.md | Recommended |
-
----
-
-### Phase 39.0: /HAR:review Output Improvement [P0 Done]
-
-Purpose: Overhaul the review experience from "English JSON output for engineers" to "Japanese summary readable by non-experts + technical details folded away"
-
-| Task | Description | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 39.0.1 | Add bare invocation default flow (Step 0) to `skills/harness-review/SKILL.md`. Auto BASE_REF determination logic: `git describe --tags` → main → HEAD~10 + auto-transition to Step 1. Sync 3 mirrors | Visually confirm bare invocation reaches Step 1 automatically. validate-plugin / check-consistency maintained | - | cc:done [8d2b89cc] |
-| 39.0.2 | Add "Output language/format (strictly required)" block to Step 0, add result summary top-output rule to Step 3. Mandate English output + JSON as supplementary at the end | Explicitly cite CLAUDE.md "context: fork skills also in English" rule. Confirm English output on `/harness-review` run | 39.0.1 | cc:done [af915fb4] |
-| 39.0.3 | Redesign non-expert template (information granularity MID / cognitive load MIN). 6-section structure: verdict → ✨ What was good → ⚠️ Concerns (4 parts: English title → problem → response → severity → technical details) → 🎬 Next actions → 📊 Auto verification → 📦 Detailed data (JSON demoted). Sync 3 mirrors | `/harness-review` output follows new template. Severity uses "🔴 Critical / 🟠 Important / 🟡 Minor / 🟢 Recommended" format. English severity words and technical jargon isolated from body text | 39.0.2 | cc:done [7481f98f] |
-
----
-
-### Phase 39.1: Infrastructure Fixes [P0 Done]
-
-Purpose: Fix 3 root bugs identified in review (plugin.json auto-revert, jq assertion looseness, bare review excessive scope)
-
-| Task | Description | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 39.1.1 | Add `Skills []string` field to `pluginJSON` struct in `go/cmd/harness/sync.go`, hardcode `[]string{"./"}` in `generatePluginJSON()`. Root-fixes the auto-revert loop where `harness sync` kept removing `"skills": ["./"]` from plugin.json | Add `skills == ["./"]` assertion to `TestSync_GeneratesPluginJSON` and PASS. After running `harness sync .`, `jq '.skills' plugin.json` returns `["./"]` | - | cc:done [009faf74] |
-| 39.1.2 | Tighten SessionStart matcher check in `tests/test-memory-hook-wiring.sh` from `contains("startup")` to pipe-token regex `test("(^|\\|)startup($|\\|)")`. Prevents typos like `startup-only` from silently passing as false positives | Verified with 6 edge cases (`startup`, `startup|resume`, `resume|startup` match; `startup-only`, `startup_special`, `resume|startup-only` reject). `bash tests/test-memory-hook-wiring.sh` OK | - | cc:done [f7146d3e] |
-| 39.1.3 | Add upper-bound fallback to Step 0.1 in `skills/harness-review/SKILL.md`: if commit count from last tag to HEAD exceeds 10, auto-clamp to HEAD~10. Prevent excessive scope on bare invocation | Auto-clamp fires with 10+ commits. On review run, display both original candidate and narrowed result in summary. Sync 3 mirrors | - | cc:done [9103377f] |
-
----
-
-### Phase 39.2: Name Consistency [P0 Done]
-
-Purpose: ff4ee422 changed frontmatter `name` to `HAR:*`, but this mismatches directory name, violates skill-editing.md SSOT rule, and creates a 3-way split where internal text still says `harness-*`. Restore consistency.
-
-| Task | Description | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 39.2.1 | Revert frontmatter `name:` from `HAR:*` back to `harness-*` in 18 files (6 skills × 3 locations: main/codex/opencode). Keep "HAR:" brand in description prefix (for visual identification) | All 18 files have `name:` as `harness-*` (grep verified). `"HAR:` in description maintained at 54 locations (18 files × 3 description fields). validate-plugin / check-consistency maintained | - | cc:done [af915fb4] |
-
----
-
-### Phase 39.3: v3 Cleanup Residue Removal + Test Script v4 Migration [P0 Done]
-
-Purpose: Remove v3-era references missed in the v4.0.0 release cleanup (references to deleted TypeScript rules.ts, "TypeScript engine" in README, tests for v3 hook call patterns, v3-named artifacts)
-
-| Task | Description | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 39.3.1 | Change RULES_FILE path in `tests/validate-plugin.sh` from deleted `core/src/guardrails/rules.ts` to `go/internal/guardrail/rules.go`, sync R12 expected pattern from `warn-direct-push-protected-branch` to `deny-direct-push-protected-branch` | 4 R10-R13 failures disappear from validate-plugin.sh, pass count increases from 35 → 40 | - | cc:done [cbea4620] |
-| 39.3.2 | Sync expected strings in `scripts/ci/check-consistency.sh` from `"TypeScript guardrail engine"` / `"TypeScript guardrail engine"` to `"Go-native guardrail engine"` / `"Go-native guardrail engine"` | 2 TypeScript reference failures disappear from check-consistency.sh, all pass | - | cc:done [cbea4620] |
-| 39.3.3 | Migrate jq queries in `tests/test-memory-hook-wiring.sh` and `tests/test-claude-upstream-integration.sh` from v3 shell path (`hook-handlers/memory-bridge`) to v4 Go binary format (`bin/harness hook memory-bridge` equivalent). Also add `command` null handling for agent-type hooks | Both test scripts run OK directly, 2 "missing wiring" failures disappear from validate-plugin.sh | - | cc:done [c91b21c1] |
-| 39.3.4 | Sync PermissionDenied wiring check in `tests/test-claude-upstream-integration.sh` from `contains("permission-denied-handler")` to `contains("permission-denied")` (matching v4's `bin/harness hook permission-denied` format) | test-claude-upstream-integration.sh runs OK directly, last remaining failure in validate-plugin.sh resolved, reaching 42/0 all pass | 39.3.3 | cc:done [04026f3a] |
-| 39.3.5 | Delete v4 cleanup residue: 2 JSON-named ghost directories (side effects of Agent tool isolation errors), `core/` residue (node_modules + package-lock.json), `infographic-check.png` (debug screenshot), `.orphaned_at` (old session marker) | None of these 5 items exist at repo root. No impact on git status (all untracked) | - | cc:done [Lead direct execution] |
-
----
-
-### Phase 39.4: CHANGELOG Update [P0 Required — v4.0.1 Release Blocker]
-
-Purpose: Record all improvements from Phase 38 and Phase 39 in the [Unreleased] section of CHANGELOG.md in Before/After format so users correctly understand the changes when v4.0.1 is released
-
-| Task | Description | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 39.4.1 | Append Phase 39 improvements to `[Unreleased]` section of `CHANGELOG.md`. Keep existing Phase 38 entries (CC 2.1.89-2.1.100 tracking) and add new sections such as "#### 8. Review Experience Improvements (Phase 39)" below them. Each change described in Before/After format (per `.claude/rules/github-release.md`). Covers: (a) /HAR:review bare invocation + non-expert template, (b) sync.go Skills field root fix, (c) SessionStart matcher strictening, (d) bare review scope cap, (e) name revert, (f) v3 cleanup residue removal, (g) test scripts v4 migration | CHANGELOG.md Unreleased has Phase 39 sub-entries (items 8-12) added. VERSION / plugin.json version / harness.toml version not changed (not a release operation). `./scripts/ci/check-consistency.sh` PASS, `./tests/validate-plugin.sh` 42 pass / 0 fail | 39.0.1-39.3.5 | cc:done [c96ca7d1] |
-
----
-
-### Phase 39.5: Reviewer-Flagged Follow-ups [P1 Recommended — v4.0.2 and later]
-
-Purpose: Track the 2 recommendations found in previous and current /HAR:review sessions. Neither blocks current operation; neither should block the v4.0.1 release.
-
-| Task | Description | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 39.5.1 | Harden `grep -c '^plan:' \| awk '$1 > 2 {exit 0} {exit 1}'` pipeline in Step 0.2 of `skills/harness-review/SKILL.md` for strict-mode compatibility. Use single awk integration like `awk '/^plan:/ {n++} END {exit (n<=2)}'`, or add `\|\| true` as a safety net. Sync 3 mirrors | Bare invocation does not falsely stop on 0 plan: entries under `set -euo pipefail`. Existing behavior (plan review mode when plan: > 2 entries) maintained | - | cc:TODO |
-| 39.5.2 | Fix issue in `go/internal/hookhandler/memory_bridge.go` where `validTargets` map expects kebab-case (`session-start`, `user-prompt` etc.) but CC sends PascalCase (`SessionStart`, `UserPromptSubmit` etc.) in `hook_event_name`, causing it to always fall into "unknown target" fail-open branch and rendering memory bridge effectively non-functional. Normalize HookEventName or align `validTargets` keys to PascalCase | Memory bridge actually dispatches each of session-start / user-prompt / post-tool-use / stop events. Add PascalCase input test cases to hook handler tests | - | cc:TODO |
-
----
-
-## Phase 40: Migration Residue Scanner — inclusion → exclusion verification
-
-Created: 2026-04-11
-Purpose: Add an **exclusion-based verification layer** (systematic detection of references to deleted concepts) to Harness's verification stack. Currently only inclusion-based checks ("does X exist?") are in place, relying on accidental discovery for post-major-migration (v3→v4 etc.) residue. Make it so that the 13 v3 residue bugs discovered in this session would be automatically caught in the future.
-
-### Background (Why this phase exists)
-
-Between the v4.0.0 "Hokage" release (2026-04-09) and v4.0.1, 13 v3 residue bugs were **accidentally discovered**:
-
-| # | Residue Bug | How Found | Impact |
-|---|---|---|---|
-| 1 | `validate-plugin.sh` grep'ing deleted `core/src/guardrails/rules.ts` | 4 failures on first validate run | Verification script producing false negatives |
-| 2 | `check-consistency.sh` expecting `"TypeScript guardrail engine"` in README | 2 failures on first consistency run | Same |
-| 3 | `tests/test-memory-hook-wiring.sh` expecting v3 shell path exact match | Downstream validate failures | Same |
-| 4 | `tests/test-claude-upstream-integration.sh` `permission-denied-handler` | Rediscovered after Worker C partial fix | Same |
-| 5 | `"Harness v3"` string in 18 SKILL.md frontmatters | User noticed in slash palette | User confusion |
-| 6 | `v3` narrative in `agents/*.md` | Found as side effect of grep re-scan | Same |
-| 7 | `(v3)` suffix in SKILL.md H1 titles | Same | Same |
-| 8 | `harness.toml` → `plugin.json` sync dropping `skills: ["./"]` | Noticed via auto-revert phenomenon | Functional regression |
-| 9 | `/HAR:review` SKILL.md body was English-centric | Fork subagent responding in English | UX problem |
-| 10 | `core/ engine` reference in `README.md` file tree | User's final feedback | Misleading |
-| 11 | `skills/`/`agents/` duplication bug in `README.md` file tree | Same | Same |
-| 12 | Same problem in `README_ja.md` | Same | Same |
-| 13 | `Node.js 18+` requirement in `README.md` troubleshooting | Same | Misleading |
-
-All were **accidentally found**: via test failures, user reports, or review feedback. A systematic scanner would have **caught all of these before the v4.0.0 release** — they are a class of bug that systematic detection can handle. This reveals a **fundamental gap** in Harness's verification strategy: it has only inclusion-based checking ("does X exist?") and lacks the exclusion-based perspective ("does deleted X still remain?").
-
-### Priority Matrix
-
-| Priority | Phase | Content | Task Count | Depends |
-|--------|-------|------|---------|------|
-| **Required** | 40.0 | Foundation (deleted-concepts.yaml + check-residue.sh) | 2 | None |
-| **Required** | 40.1 | Integration (doctor --residue + validate-plugin + release preflight) | 3 | 40.0 |
-| **Required** | 40.2 | Documentation (migration-policy.md) | 1 | 40.0, 40.1 |
-
-Total: **6 tasks**
-
-### Completion Criteria (Definition of Done — Phase 40 overall)
-
-| # | Criterion | Verification | Required/Recommended |
-|---|------|---------|----------|
-| 1 | Scanner retroactively detects all 13 v3 residue bugs from this session | Roll back to 1 commit before v4.0.1 and run `bash scripts/check-residue.sh` → 13 detected / post-release commit → 0 | Required |
-| 2 | Scanner false positive rate zero (historical records like CHANGELOG.md correctly excluded via allowlist) | Run at v4.0.1 HEAD → 0 hits | Required |
-| 3 | `bin/harness doctor --residue` calls scanner and displays results | Run command, see expected output (count + files + line numbers) | Required |
-| 4 | Residue check integrated into `validate-plugin.sh`, failures added to total fail count | Intentionally inject v3 residue → validate-plugin fails | Required |
-| 5 | `harness-release` skill preflight includes `harness doctor --residue`, aborts release on detection | Documented in SKILL.md + dry-run confirmed | Required |
-| 6 | `.claude/rules/migration-policy.md` exists with documented rules for updating deleted-concepts.yaml | File exists + content confirmed | Required |
-| 7 | `.claude/rules/deleted-concepts.yaml` has all 13 detected bugs from this session as entries | Parse yaml, minimum 8-10 entries (13 bugs can be consolidated into patterns) | Required |
-| 8 | All Go tests pass, validate-plugin 43+/0 (increased by residue check), check-consistency all pass | Run existing test suite | Required |
-
----
-
-### Phase 40.0: Foundation [P0]
-
-Purpose: Define `.claude/rules/deleted-concepts.yaml` as SSOT and implement `check-residue.sh` to read it and scan the repo
-
-| Task | Description | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 40.0.1 | Create `.claude/rules/deleted-concepts.yaml`. Schema has 2 sections: `deleted_paths[]` and `deleted_concepts[]`. Each entry contains `path`/`term`, `term_localized` (optional), `replacement`/`replacement_localized` (optional), `deleted_in` (version), `deleted_by` (commit hash optional), `reason`, `allowlist[]`. Consolidate the 13 v3 residue bugs from this session into patterns as entries: (a) `core/src/guardrails`, (b) `core/dist`, (c) `core/package.json`, (d) `scripts/run-hook.sh`, (e) term `"TypeScript guardrail engine"` / `"TypeScript guardrail engine"`, (f) term `"Harness v3"` / `"(v3)"`, (g) troubleshooting text `"Node.js 18+ is installed"` / `"Node.js 18+ required"` / `"Ensure Node.js"`, (h) v3 shell invocation patterns `"hook-handlers/memory-bridge"` / `"hook-handlers/runtime-reactive"` / `"hook-handlers/permission-denied-handler"`. Allowlist includes `CHANGELOG.md`, `.claude/memory/archive/**`, `benchmarks/**`, `README.md` "Before / After" table regions | YAML is valid (parseable by `yq`). 8-10 entries + `allowlist` array per entry. `reason` field explains why each entry was deleted (v4.0.0 Hokage migration, CC 2.1.94 compliance, etc.) | - | cc:done [20654143, 191cdde4] |
-| 40.0.2 | Implement `scripts/check-residue.sh`. Read `.claude/rules/deleted-concepts.yaml` with `yq`, scan `deleted_paths[]` and `deleted_concepts[]` sequentially using `grep -rln -F`. Apply allowlist (gitignore-style matching or prefix match). Exit code 1 on hit, output detailed report to stdout (count, files, line numbers, matching string, which entry it violates). Works under `set -euo pipefail`. Also implement error fallback (if yq not installed → fallback to python3 + yaml module) | (a) Run scanner at v4.0.0 release commit (`8d8ce3c8`) and point before v4.0.1 → detects all 13 v3 residue bugs (retroactive validation), (b) Run at v4.0.1+ HEAD → 0 residue (zero false positives), (c) Intentionally add reference to `core/src/guardrails/rules.ts` in README → detected immediately. `bash scripts/check-residue.sh` standalone works for all behaviors | 40.0.1 | cc:done [20654143, 191cdde4] |
-
----
-
-### Phase 40.1: Integration [P0]
-
-Purpose: Embed scanner into 3 verification points (developer ad-hoc / per-PR / pre-release)
-
-| Task | Description | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 40.1.1 | Add `--residue` flag to `go/cmd/harness/doctor.go`. Internally call `scripts/check-residue.sh` as subprocess and format results for display. Alternatively, implement Go-native yaml parsing (add `gopkg.in/yaml.v3` etc. to go.mod). Works independently from existing `--migration` and other flags. Skip residue check when running `bin/harness doctor` alone (opt-in, for speed) | Running `bin/harness doctor --residue`: (a) displays scanning message, (b) shows file + line number + matching entry when found, (c) displays "✓ No migration residue detected" when 0, (d) exit code 0 (clean) or 1 (residue). `go test ./cmd/harness/ -run TestDoctor_Residue` PASS with intentional residue injection test | 40.0.2 | cc:done [470a05bd] |
-| 40.1.2 | Integrate residue scan into `tests/validate-plugin.sh`. Add as new test category "migration residue check", integrate into existing pass/fail/warn counts (0 residue → +1 pass, 1+ residue → +1 fail) | When running `./tests/validate-plugin.sh`, residue check runs as final section. In clean state, pass count +1 (42 → 43). With intentional residue, fail count +1. Existing tests all maintained | 40.0.2 | cc:done [1e886ad9] |
-| 40.1.3 | Add `bin/harness doctor --residue` to preflight section (equivalent to Step 1) in `skills/harness-release/SKILL.md`. On residue detection, abort release + display fix instructions to user. Sync 3 mirrors (`skills/`, `codex/.codex/skills/`, `opencode/skills/`) | preflight table in `harness-release` has residue check row added. Error message on residue detection clearly states "Phase 40 scanner detected N references to deleted concepts. Please fix and re-run." Sync with `check-consistency.sh` PASS (mirrors fully match) | 40.0.2 | cc:done [60199c01] |
-
----
-
-### Phase 40.2: Documentation [P0]
-
-Purpose: Codify rules for correctly operating the scanner in future major migrations
-
-| Task | Description | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| 40.2.1 | Create `.claude/rules/migration-policy.md`. Content: (1) Obligation to update `.claude/rules/deleted-concepts.yaml` during major version migrations, (2) Update timing must be simultaneous with the deletion PR (no delays), (3) Allowlist operation standards (historical records like CHANGELOG always in allowlist, Before/After tables in allowlist based on context, docs/archive always in allowlist), (4) How to perform retroactive validation, (5) Record the 13 v3 residue bugs found in this session (v4.0.0 → v4.0.1) as an appendix (with the story of why this feature was born), (6) Add a reference to migration-policy.md in `CLAUDE.md` | File exists, markdown valid. A non-expert can understand "why deleted-concepts.yaml is needed" in 5 minutes. 1-line reference added to CLAUDE.md | 40.0.1, 40.1.3 | cc:done [719c08bd] |
-
----
+> These phases were completed in upstream/main (Hokage branch) and are included here as historical record.
 
