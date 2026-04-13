@@ -67,20 +67,9 @@ allowed-tools: ["Read", "Write", "Edit", "Bash", ...]
 
 ### 5. Description Best Practices
 
-The `description` field is critical for auto-loading. Include:
-- What the skill does
-- Trigger phrases (e.g., "Use when user mentions...")
-- What NOT to load for (e.g., "Do NOT load for: ...")
+See [skill-description.md](./skill-description.md) for the authoritative format rule.
 
-**Good example**:
-```yaml
-description: "Manages CI/CD failures. Use when user mentions CI failures, build errors, or test failures. Do NOT load for: local builds or standard implementation."
-```
-
-**Bad example**:
-```yaml
-description: "CI skill"
-```
+Summary: `description:` must start with the literal prefix `Use when `, describe task shape rather than user phrases, keep the introduction/capability summary in the SKILL.md body (not the description), and stay within 300 characters. Enforced by `scripts/audit-skill-descriptions.sh`.
 
 ## Skill File Structure Template
 
@@ -89,7 +78,7 @@ description: "CI skill"
 ```markdown
 ---
 name: skill-name
-description: "Description with trigger phrases. Use when... Do NOT load for..."
+description: "Use when <trigger>. Do NOT load for: <exclusions>."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[subcommand|option]"
 ---
