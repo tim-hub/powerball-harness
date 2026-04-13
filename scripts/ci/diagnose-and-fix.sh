@@ -32,20 +32,20 @@ check_version_sync() {
   echo "📋 [1/5] Version sync check..."
 
   local file_version=$(cat VERSION 2>/dev/null | tr -d '[:space:]')
-  local json_version=$(grep '"version"' .claude-plugin/plugin.json | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
+  local json_version=$(grep '"version"' .claude-plugin/marketplace.json | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
 
   if [ "$file_version" != "$json_version" ]; then
-    echo "  ❌ VERSION ($file_version) and plugin.json ($json_version) do not match"
+    echo "  ❌ VERSION ($file_version) and marketplace.json ($json_version) do not match"
     ISSUES_FOUND=$((ISSUES_FOUND + 1))
 
     if [ "$AUTO_FIX" = true ]; then
-      echo "  🔧 Fixing: updating plugin.json to $file_version..."
-      sed -i.bak "s/\"version\": \"$json_version\"/\"version\": \"$file_version\"/" .claude-plugin/plugin.json
-      rm -f .claude-plugin/plugin.json.bak
+      echo "  🔧 Fixing: updating marketplace.json to $file_version..."
+      sed -i.bak "s/\"version\": \"$json_version\"/\"version\": \"$file_version\"/" .claude-plugin/marketplace.json
+      rm -f .claude-plugin/marketplace.json.bak
       FIXES_APPLIED=$((FIXES_APPLIED + 1))
       echo "  ✅ Fix complete"
     else
-      echo "  💡 Fix proposal: change version in plugin.json to \"$file_version\""
+      echo "  💡 Fix proposal: change version in marketplace.json to \"$file_version\""
     fi
   else
     echo "  ✅ In sync (v$file_version)"
@@ -165,12 +165,12 @@ check_version_bump() {
   rm -f "$check_log"
 
   if [ "$AUTO_FIX" = true ] && ! bash ./scripts/sync-version.sh check >/dev/null 2>&1; then
-    echo "  🔧 Fixing: syncing plugin.json to VERSION..."
+    echo "  🔧 Fixing: syncing marketplace.json to VERSION..."
     bash ./scripts/sync-version.sh sync
     FIXES_APPLIED=$((FIXES_APPLIED + 1))
 
     if bash ./scripts/ci/check-version-bump.sh >/dev/null 2>&1; then
-      echo "  ✅ Release metadata consistency restored by syncing plugin.json"
+      echo "  ✅ Release metadata consistency restored by syncing marketplace.json"
       return
     fi
   fi
@@ -178,7 +178,7 @@ check_version_bump() {
   ISSUES_FOUND=$((ISSUES_FOUND + 1))
   echo "  💡 Fix guidelines:"
   echo "     - Do not change VERSION in normal PRs"
-  echo "     - Only update VERSION / plugin.json / CHANGELOG release entry together when cutting a release"
+  echo "     - Only update VERSION / marketplace.json / CHANGELOG release entry together when cutting a release"
 }
 
 # ================================

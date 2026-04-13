@@ -3,7 +3,7 @@
 # pre-commit hook (repo-managed)
 #
 # Purpose:
-# - Keep VERSION and .claude-plugin/plugin.json in sync when release metadata is edited.
+# - Keep VERSION and .claude-plugin/marketplace.json in sync when release metadata is edited.
 # - Never auto-bump versions for ordinary code/docs commits.
 #
 # Install:
@@ -19,7 +19,7 @@ fi
 
 cd "$ROOT"
 
-METADATA_FILES=(VERSION .claude-plugin/plugin.json)
+METADATA_FILES=(VERSION .claude-plugin/marketplace.json)
 CHANGED_METADATA="$(git diff --cached --name-only -- "${METADATA_FILES[@]}" 2>/dev/null | grep -v '^$' || true)"
 
 if [ -z "$CHANGED_METADATA" ]; then
@@ -35,11 +35,11 @@ if bash ./scripts/sync-version.sh check >/dev/null 2>&1; then
 fi
 
 echo "[pre-commit] Release metadata mismatch detected."
-echo "             VERSION is the source of truth; syncing plugin.json to match."
+echo "             VERSION is the source of truth; syncing marketplace.json to match."
 
 bash ./scripts/sync-version.sh sync
 
-git add VERSION .claude-plugin/plugin.json 2>/dev/null || true
+git add VERSION .claude-plugin/marketplace.json 2>/dev/null || true
 
 SYNCED_VERSION="$(tr -d '[:space:]' < VERSION)"
 echo "[pre-commit] Version metadata synced to $SYNCED_VERSION"

@@ -76,29 +76,29 @@ has_frontmatter_description() {
 echo "1. Plugin structure validation"
 echo "----------------------------------------"
 
-# Check plugin.json existence
-if [ -f "$PLUGIN_ROOT/.claude-plugin/plugin.json" ]; then
-    pass_test "plugin.json exists"
+# Check marketplace.json existence
+if [ -f "$PLUGIN_ROOT/.claude-plugin/marketplace.json" ]; then
+    pass_test "marketplace.json exists"
 else
-    fail_test "plugin.json not found"
+    fail_test "marketplace.json not found"
     exit 1
 fi
 
-# Validate plugin.json
-if json_is_valid "$PLUGIN_ROOT/.claude-plugin/plugin.json"; then
-    pass_test "plugin.json is valid JSON"
+# Validate marketplace.json
+if json_is_valid "$PLUGIN_ROOT/.claude-plugin/marketplace.json"; then
+    pass_test "marketplace.json is valid JSON"
 else
-    fail_test "plugin.json is invalid JSON"
+    fail_test "marketplace.json is invalid JSON"
     exit 1
 fi
 
-# Check required fields
-REQUIRED_FIELDS=("name" "version" "description" "author")
+# Check required top-level fields
+REQUIRED_FIELDS=("name" "version" "plugins")
 for field in "${REQUIRED_FIELDS[@]}"; do
-    if json_has_key "$PLUGIN_ROOT/.claude-plugin/plugin.json" "$field"; then
-        pass_test "plugin.json has $field field"
+    if json_has_key "$PLUGIN_ROOT/.claude-plugin/marketplace.json" "$field"; then
+        pass_test "marketplace.json has $field field"
     else
-        fail_test "plugin.json is missing $field field"
+        fail_test "marketplace.json is missing $field field"
     fi
 done
 

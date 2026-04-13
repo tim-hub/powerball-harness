@@ -243,7 +243,7 @@ let attributionCache = null;
 let attributionCacheTime = 0;
 
 /**
- * Get attribution information from plugin.json
+ * Get attribution information from marketplace.json
  * v0.2.0: Added for tracking AI-generated code provenance
  */
 function getAttribution() {
@@ -260,18 +260,19 @@ function getAttribution() {
       return null;
     }
 
-    const pluginJsonPath = path.join(pluginRoot, 'plugin.json');
+    const pluginJsonPath = path.join(pluginRoot, 'marketplace.json');
     if (!fs.existsSync(pluginJsonPath)) {
       return null;
     }
 
     const pluginJson = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
+    const pluginEntry = (pluginJson.plugins && pluginJson.plugins[0]) || {};
 
     attributionCache = {
-      plugin: pluginJson.name || 'unknown',
+      plugin: pluginEntry.name || pluginJson.name || 'unknown',
       version: pluginJson.version || 'unknown',
-      license: pluginJson.license || null,
-      author: pluginJson.author || null
+      license: pluginEntry.license || null,
+      author: pluginEntry.author || pluginJson.owner || null
     };
     attributionCacheTime = now;
 
@@ -625,14 +626,14 @@ function emitOtelSpan(otlpEndpoint, record, serviceVersion) {
 }
 
 /**
- * Read service version from plugin.json (or VERSION file as fallback).
+ * Read service version from marketplace.json (or VERSION file as fallback).
  * Returns '0.0.0' on failure.
  */
 function readServiceVersion() {
   try {
     const pluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
     if (pluginRoot) {
-      const pluginJsonPath = path.join(pluginRoot, 'plugin.json');
+      const pluginJsonPath = path.join(pluginRoot, 'marketplace.json');
       if (fs.existsSync(pluginJsonPath)) {
         const pkg = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
         if (pkg.version) return String(pkg.version);

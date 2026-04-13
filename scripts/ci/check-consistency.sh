@@ -84,17 +84,17 @@ echo ""
 echo "🏷️ [3/13] Version number consistency..."
 
 VERSION_FILE="$PLUGIN_ROOT/VERSION"
-PLUGIN_JSON="$PLUGIN_ROOT/.claude-plugin/plugin.json"
+PLUGIN_JSON="$PLUGIN_ROOT/.claude-plugin/marketplace.json"
 
 if [ -f "$VERSION_FILE" ] && [ -f "$PLUGIN_JSON" ]; then
   FILE_VERSION=$(cat "$VERSION_FILE" | tr -d '[:space:]')
   JSON_VERSION=$(grep '"version"' "$PLUGIN_JSON" | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
 
   if [ "$FILE_VERSION" != "$JSON_VERSION" ]; then
-    echo "  ❌ Version mismatch: VERSION=$FILE_VERSION, plugin.json=$JSON_VERSION"
+    echo "  ❌ Version mismatch: VERSION=$FILE_VERSION, marketplace.json=$JSON_VERSION"
     ERRORS=$((ERRORS + 1))
   else
-    echo "  ✅ VERSION and plugin.json match: $FILE_VERSION"
+    echo "  ✅ VERSION and marketplace.json match: $FILE_VERSION"
   fi
 fi
 

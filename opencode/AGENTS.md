@@ -26,7 +26,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/): `feat:` / `
 
 ### Version Management
 
-Keep `VERSION`, `.claude-plugin/plugin.json`, and `harness.toml` in sync.
+Keep `VERSION`, `.claude-plugin/marketplace.json`, and `harness.toml` in sync.
 Normal feature/docs PRs must leave both files unchanged and record changes under `CHANGELOG.md`'s `[Unreleased]` section.
 Use `./scripts/sync-version.sh bump` only when cutting a release.
 
