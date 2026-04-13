@@ -396,6 +396,34 @@ else
 fi
 
 echo ""
+echo "10. Skill description format check"
+echo "----------------------------------------"
+
+AUDIT_SCRIPT="$PLUGIN_ROOT/scripts/audit-skill-descriptions.sh"
+if [ ! -x "$AUDIT_SCRIPT" ]; then
+    # Older branches may not have the audit script — warn instead of fail so CI
+    # stays green during rollback or bisect.
+    warn_test "audit-skill-descriptions.sh not found or not executable"
+else
+    # Capture violations (stdout only). Each line is tab-separated:
+    #   <file>\t<kind>\t<snippet>
+    # The script's summary goes to stderr and is dropped here.
+    AUDIT_STDOUT="$(bash "$AUDIT_SCRIPT" 2>/dev/null)"
+    AUDIT_EXIT=$?
+    SKILL_COUNT="$(find "$PLUGIN_ROOT/skills" "$PLUGIN_ROOT/opencode/skills" "$PLUGIN_ROOT/skills-codex" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')"
+    if [ "$AUDIT_EXIT" -eq 0 ]; then
+        pass_test "All ${SKILL_COUNT} SKILL.md descriptions conform"
+    else
+        # One fail_test per violation — so per-file feedback survives into the
+        # summary. DoD: deleting any 'Use when ' prefix must show that file's
+        # path in the failure output.
+        while IFS=$'\t' read -r v_file v_kind _v_snippet; do
+            [ -n "$v_file" ] && fail_test "SKILL description: $v_file ($v_kind)"
+        done <<<"$AUDIT_STDOUT"
+    fi
+fi
+
+echo ""
 echo "=========================================="
 echo "Test Results Summary"
 echo "=========================================="
