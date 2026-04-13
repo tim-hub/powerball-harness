@@ -1,50 +1,42 @@
 ---
 name: memory
 description: "Use when managing SSOT, recording decisions, searching memory, promoting learnings to decisions.md/patterns.md, or invoking harness-mem. Do NOT load for: implementation, reviews, ad-hoc notes, or in-session logging."
-allowed-tools: ["Read", "Write", "Edit", "Bash", "mcp__harness__harness_mem_*"]
-argument-hint: "[ssot|sync|migrate|search|record]"
+allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "mcp__harness__harness_mem_*"]
+argument-hint: "[ssot|sync|sync-across|migrate|merge|search|record]"
 context: fork
+model: opus
+effort: high
 ---
 
 # Memory Skills
 
-A collection of skills responsible for memory and SSOT management.
+SSOT (Single Source of Truth) and cross-tool memory management for Harness.
 
-## Feature Details
+## Quick Reference
 
-| Feature | Details |
-|---------|--------|
-| **SSOT Initialization** | See [references/ssot-initialization.md](${CLAUDE_SKILL_DIR}/references/ssot-initialization.md) |
-| **Plans.md Merging** | See [references/plans-merging.md](${CLAUDE_SKILL_DIR}/references/plans-merging.md) |
-| **Migration Processing** | See [references/workflow-migration.md](${CLAUDE_SKILL_DIR}/references/workflow-migration.md) |
-| **Project Spec Sync** | See [references/sync-project-specs.md](${CLAUDE_SKILL_DIR}/references/sync-project-specs.md) |
-| **Memory → SSOT Promotion** | See [references/sync-ssot-from-memory.md](${CLAUDE_SKILL_DIR}/references/sync-ssot-from-memory.md) |
+| User Input | Subcommand | Behavior |
+|------------|------------|----------|
+| "Init SSOT" / `memory ssot` | `ssot` | Bootstrap `.claude/memory/decisions.md` + `patterns.md` (see `references/ssot-initialization.md`) |
+| "Save what we learned" / "promote to SSOT" / `memory sync` | `sync` | Pull learnings from Claude Code auto memory (Layer 1) into SSOT (Layer 2) decisions/patterns (see `references/sync-ssot-from-memory.md`) |
+| "Sync across agents" / `memory sync-across` | `sync-across` | Reconcile memory artifacts across agent workspaces / project specs (see `references/sync-project-specs.md`) |
+| "Migrate from AGENTS.md" / `memory migrate` | `migrate` | Run interactive workflow migration (see `references/workflow-migration.md`) |
+| "Merge Plans.md" / `memory merge` | `merge` | Consolidate multiple Plans.md files (see `references/plans-merging.md`) |
+| "Search memory for X" / `memory search <term>` | `search` | Keyword/regex search; local first, MCP extends (see `references/search.md`) |
+| "Record this decision" / `memory record` | `record` | Validate SSOT-worthiness, write local first, MCP mirrors (see `references/record.md`) |
 
-## Unified Harness Memory (shared DB)
-
-For recording and searching shared across Claude Code / Codex / OpenCode, prefer the `harness_mem_*` MCP tools.
-
-- Search: `harness_mem_search`, `harness_mem_timeline`, `harness_mem_get_observations`
-- Injection: `harness_mem_resume_pack`
-- Recording: `harness_mem_record_checkpoint`, `harness_mem_finalize_session`, `harness_mem_record_event`
-
-## Relationship with Claude Code Auto Memory (D22)
-
-Harness SSOT memory (Layer 2) coexists with Claude Code's auto memory (Layer 1).
-Auto memory implicitly records general learnings, while SSOT explicitly manages project-specific decisions.
-When Layer 1 insights are important for the entire project, promote them to Layer 2 with `/memory ssot`.
-
-Details: [D22: 3-Layer Memory Architecture](../../.claude/memory/decisions.md#d22-3-layer-memory-architecture)
+> For `search` and `record`, local SSOT is authoritative and MCP extends reach — see each reference file for the full contract.
 
 ## Execution Steps
 
 1. Classify the user's request
-2. Read the appropriate reference file from "Feature Details" above
+2. Read the appropriate reference file from "Quick Reference" above
 3. Execute according to its contents
 
-## SSOT Promotion
 
-Persists important learnings from the memory system (Claude-mem / Serena) to SSOT.
 
-- "**Save what we learned**" → [references/sync-ssot-from-memory.md](${CLAUDE_SKILL_DIR}/references/sync-ssot-from-memory.md)
-- "**Promote decisions to SSOT**" → [references/sync-ssot-from-memory.md](${CLAUDE_SKILL_DIR}/references/sync-ssot-from-memory.md)
+## Shared References
+
+- [Unified Harness Memory (shared DB through harness_mem_* MCP)](references/harness-mem-mcp.md)
+
+- Relationship with Claude Code Auto Memory (D22): Harness SSOT (Layer 2) coexists with Claude Code's auto memory (Layer 1). Auto memory records general learnings passively; SSOT explicitly curates project-specific decisions. Use `memory sync` when a Layer 1 observation has become important enough to preserve across sessions and contributors. 
+  - Details: [D22: 3-Layer Memory Architecture](../../.claude/memory/decisions.md#d22-3-layer-memory-architecture)

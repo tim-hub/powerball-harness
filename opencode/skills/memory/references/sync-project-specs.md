@@ -6,17 +6,17 @@
 
 | Situation | Command to Use |
 |-----------|----------------|
-| "How far along? What's next?" | `/sync-status` (use this first) |
+| "How far along? What's next?" | `harness-sync` (use this first) |
 | "Worked on it but forgot if I updated Plans.md" | **This command** |
 | "Started from old template, format might be outdated" | **This command** |
 
-> Tip: Usually `/sync-status` is sufficient. Use this for "just in case" or "format migration".
+> Tip: Usually `harness-sync` is sufficient. Use this for "just in case" or "format migration".
 
 ---
 
 ## Purpose
 
-Aligns project specs/docs (e.g., `Plans.md`, `AGENTS.md`, `.claude/rules/*`) with latest claude-code-harness operations (**PM <-> Impl**, `pm:*` markers, handoff commands).
+Aligns project specs' docs (e.g., `Plans.md`, `AGENTS.md`, `.claude/rules/*`) with latest powerball-harness operations (**PM <-> Impl**, `pm:*` markers, handoff commands).
 
 ## VibeCoder Phrases
 
@@ -84,8 +84,8 @@ Tell user:
 
 ### Step 4: Finish (Required)
 
-- Run `/sync-status` to verify markers
-- Use `/remember` to lock "project-specific operations" if needed
+- Run `harness-sync` to verify markers
+- If the Harness MCP server is connected, call `harness_mem_record_checkpoint` to mark the sync point — captures enough state (which specs were aligned, current marker counts, any manual tweaks) for other agents or future sessions to resume from a known-good baseline. If MCP is unavailable, skip silently and mention in the report.
 
 ---
 
