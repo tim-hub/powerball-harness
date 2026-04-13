@@ -6,6 +6,32 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.1.1] - 2026-04-14
+
+### Theme: スクリプトの統合と自動ミラー同期
+
+**スキルミラーの同期スクリプトを `.claude/scripts/` に集約し ESM 形式に統一。スキル編集時のミラー自動同期フックを追加。**
+
+---
+
+#### 1. ミラー同期スクリプトを `.claude/scripts/` に移動・ESM 化
+
+**Before**: `build-opencode.js`（CommonJS）と `sync-skill-mirrors.sh`（シェルスクリプト）が `scripts/` に存在しており、他プロジェクトと共有しにくい構造だった。
+
+**After**: `.claude/scripts/` 配下に `.mjs`（ES Modules）として再配置。`check-japanese.mjs` と形式を統一。他プロジェクトでも `.claude/scripts/` をコピーするだけで再利用可能になった。
+
+#### 2. PostToolUse フックによるミラー自動同期
+
+**Before**: `skills/` 配下のファイルを編集しても、`codex/.codex/skills/` と `opencode/skills/` への反映は手動で `sync-skill-mirrors.sh` を実行する必要があった。忘れると CI が失敗していた。
+
+**After**: `.claude/settings.json` の PostToolUse フック（`sync-skills.mjs`）が `skills/` への Write/Edit を検知して両ミラーを自動同期。ループ防止のため `opencode/skills/`・`skills-codex/`・`.codex/skills/` への書き込みはスキップ。
+
+#### 3. `check-consistency.sh` のプロセス置換を修正
+
+**Before**: `diff_mirror()` 関数がプロセス置換（`<(...)`）を使用しており、サンドボックス環境では `/dev/fd/` アクセスが拒否されて偽陽性の「ミラードリフト」が報告されていた。
+
+**After**: プロセス置換を `$TMPDIR` 一時ファイルに置き換え。すべての環境で正確な比較が行われる。
+
 ## [4.1.0] - 2026-04-14
 
 ### Theme: Self-Enforcing Skill Description Standards ("Use when" Rule)

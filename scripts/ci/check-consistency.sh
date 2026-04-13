@@ -357,17 +357,22 @@ diff_mirror() {
   fi
 
   # Compare each file individually (excluding only disable-model-invocation lines)
+  # Use temp files instead of process substitution for /dev/fd/ portability
   local f compared=0
+  local tmp_src tmp_dst
+  tmp_src="$(mktemp "${TMPDIR:-/tmp}/diff-mirror-src.XXXXXX")"
+  tmp_dst="$(mktemp "${TMPDIR:-/tmp}/diff-mirror-dst.XXXXXX")"
   while IFS= read -r f; do
     [ -z "$f" ] && continue
-    if ! diff -q \
-      <(grep -v '^disable-model-invocation:' "$src_dir/$f") \
-      <(grep -v '^disable-model-invocation:' "$mirror_dir/$f") \
-      >/dev/null 2>&1; then
+    grep -v '^disable-model-invocation:' "$src_dir/$f" > "$tmp_src" 2>/dev/null || true
+    grep -v '^disable-model-invocation:' "$mirror_dir/$f" > "$tmp_dst" 2>/dev/null || true
+    if ! diff -q "$tmp_src" "$tmp_dst" >/dev/null 2>&1; then
+      rm -f "$tmp_src" "$tmp_dst"
       return 1
     fi
     compared=$((compared + 1))
   done <<< "$src_files"
+  rm -f "$tmp_src" "$tmp_dst"
 
   # If no file comparisons were performed, fail safe
   [ "$compared" -gt 0 ]
