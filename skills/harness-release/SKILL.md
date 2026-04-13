@@ -9,13 +9,6 @@ effort: high
 
 # Harness Release
 
-Unified release skill for Harness.
-Consolidates the following legacy skills:
-
-- `release-har` -- General-purpose release automation
-- `x-release-harness` -- Harness-specific release automation
-- `handoff` -- PM handoff and completion reporting
-
 ## Quick Reference
 
 ```bash
