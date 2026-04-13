@@ -6,6 +6,26 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.0.5] - 2026-04-13
+
+### Theme: Auto-Download Platform Binary on Plugin Install
+
+**The harness binary is now downloaded automatically when the plugin is installed, eliminating `UserPromptSubmit hook error` messages for new users.**
+
+---
+
+#### 1. Automatic Binary Download on Install
+
+**Before**: After installing the plugin, all hooks produced `UserPromptSubmit hook error` on every prompt because the platform binary (`harness-darwin-arm64` etc.) was not present. Users had to manually run `/harness-setup binary` to fix it.
+
+**After**: A pure shell download script (`skills/harness-setup/scripts/download-binary.sh`) runs automatically as the first step of the `Setup: init` hook. It detects the OS/arch, fetches the latest release from GitHub, and installs the correct binary. No Go runtime required to run the script.
+
+#### 2. Graceful Hook Fallback When Binary Missing
+
+**Before**: `bin/harness` exited with code 1 when the platform binary was not found, causing Claude Code to surface a hook error on every prompt.
+
+**After**: `bin/harness` exits with code 0 (approve/no-op) when the binary is absent, so hooks pass silently until the binary is installed.
+
 ## [4.0.4] - 2026-04-13
 
 ### Theme: Fix GitHub Actions Auto-Release Race Condition and CI Improvements
