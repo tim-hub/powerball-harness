@@ -66,7 +66,7 @@ sync_version() {
         else
             sed -i "s/\"version\": \"$current\"/\"version\": \"$version\"/" "$PLUGIN_JSON"
         fi
-        echo "✅ Updated plugin.json: $current → $version"
+        echo "✅ Updated plugin marketplace.json: $current → $version"
     fi
 
     # Sync harness.toml
