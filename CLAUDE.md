@@ -9,11 +9,9 @@
 - **CHANGELOG**: Record changes under `[Unreleased]` in Before/After format. Details: [.claude/rules/changelog.md](.claude/rules/changelog.md)
 - **Code style**: Clear names, comments for complex logic, single-responsibility skills/agents
 - **Test tampering**: Absolutely prohibited. Details: [.claude/rules/test-quality.md](.claude/rules/test-quality.md)
-- Other contributing guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)
+- [Repository structure](docs/repository-structure.md)
+- Contributing guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)
 
-## Repository Structure
-
-`.claude-plugin/` Plugin manifest / `agents/` Sub-agents / `skills/` Skills / `hooks/` Hooks / `scripts/` Shell scripts / `docs/` Documentation / `tests/` Validation
 
 ## Development Flow
 
