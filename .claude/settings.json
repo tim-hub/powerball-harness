@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PWD}/.claude/scripts/check-japanese.mjs\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

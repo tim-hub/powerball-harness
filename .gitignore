@@ -24,6 +24,9 @@ docs/design/
 .claude/*
 !.claude/rules/
 !.claude/output-styles/
+!.claude/settings.json
+!.claude/scripts/
+!.claude/skills/
 .serena/
 .superset/
 # .mcp.json is included in distribution as a plugin MCP configuration
@@ -286,7 +289,6 @@ out/
 !/mcp-server/src/tools/memory.ts
 
 # Go build artifacts and internal state
-go/.claude/
 go/harness
 bin/harness-*
 
