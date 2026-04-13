@@ -46,6 +46,7 @@ Introduce Harness to a new project.
 project/
 ├── CLAUDE.md            # Project configuration
 ├── Plans.md             # Task management (empty template)
+├── .gitignore           # Standard ignore rules (harness-managed block appended)
 ├── .claude/
 │   ├── settings.json    # Claude Code configuration
 │   └── hooks.json       # Hook configuration (v3 shim)
@@ -59,6 +60,24 @@ project/
 2. Generate minimal CLAUDE.md
 3. Generate Plans.md template
 4. Deploy hooks.json
+5. Merge `templates/gitignore-harness` into `.gitignore` (idempotent — skips if `# >>> harness-managed >>>` marker already present)
+
+**gitignore merge logic**:
+```bash
+MARKER="# >>> harness-managed >>>"
+if grep -qF "$MARKER" .gitignore 2>/dev/null; then
+  echo ".gitignore already contains harness-managed block — skipping"
+else
+  echo "" >> .gitignore
+  cat "${CLAUDE_PLUGIN_ROOT}/templates/gitignore-harness" >> .gitignore
+  echo "Appended harness-managed gitignore block"
+fi
+```
+
+The block ignores `.claude/sessions/`, `logs/`, `settings.local.json`, and `states/`,
+while force-tracking `.claude/memory/decisions.md`, `.claude/memory/patterns.md`,
+`.claude/output-styles/`, `.claude/rules/`, `.claude/scripts/`, `.claude/skills/`,
+and `.claude/settings.json`.
 
 ### ci — CI/CD Configuration
 
