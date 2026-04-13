@@ -1,0 +1,41 @@
+name: Upstream Sync Check
+
+on:
+  schedule:
+    # Daily at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork (master)
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/Chachamaru127/claude-code-harness.git
+          git fetch upstream main --quiet
+
+      - name: Compare with upstream/main
+        run: |
+          BEHIND=$(git rev-list --count HEAD..upstream/main)
+          AHEAD=$(git rev-list --count upstream/main..HEAD)
+
+          echo "Ahead of upstream by:  $AHEAD commits"
+          echo "Behind upstream by:    $BEHIND commits"
+
+          if [ "$BEHIND" -gt 0 ]; then
+            echo ""
+            echo "::error::Upstream has $BEHIND new commit(s) not present in this fork."
+            echo ""
+            echo "New upstream commits:"
+            git log --oneline HEAD..upstream/main
+            exit 1
+          fi
+
+          echo "Fork is up to date with upstream."
