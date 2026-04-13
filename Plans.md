@@ -10,6 +10,50 @@ Last archive: 2026-04-12 (Phase 25–34 → `.claude/memory/archive/Plans-2026-0
 
 ---
 
+## Phase 41: Skill Refinements — gitignore template + Codex extraction
+
+Created: 2026-04-14
+Purpose: Three focused skill refinements — add a standard `.gitignore` section to `harness-setup`, and extract the Codex-specific branches from `harness-review` and `harness-work` into opt-in reference files that only load when Codex is installed and the user explicitly requests it.
+
+### Background (Why this phase exists)
+
+- `harness-setup` currently doesn't bootstrap a standard `.gitignore` block. New Harness projects accidentally commit `.claude/sessions/`, `logs/`, `settings.local.json`, and `states/` — while needing to keep `.claude/memory/{decisions,patterns}.md`, `.claude/output-styles/`, `.claude/rules/`, `.claude/scripts/`, `.claude/skills/`, and `.claude/settings.json` tracked.
+- `harness-review` SKILL.md is long (236 lines) and carries a "Unified" framing plus an inline Codex branch (Codex Environment section, ~lines 209-231). Most users don't run Codex; the Codex path should live in a reference loaded on demand.
+- `harness-work` SKILL.md is even longer (520 lines) and has `--codex` logic threaded throughout (flag parsing, Codex mode section, review via Codex, fallbacks at lines 28-49, 156-175, 371-410). Applying the same split pattern from `harness-review` (Codex-as-reference) keeps the primary flow focused on the default path.
+
+### Priority Matrix
+
+| Priority | Task Group | Content | Task Count | Depends |
+|----------|-----------|---------|-----------|---------|
+| **Required** | 41.1 | `harness-setup` gitignore section | 2 | None |
+| **Required** | 41.2 | `harness-review` split (remove "unified", extract Codex) | 2 | None |
+| **Required** | 41.3 | `harness-work` split (extract Codex branch) | 2 | 41.2 (pattern) |
+
+Total: **6 tasks**
+
+### Completion Criteria (Definition of Done — Phase 41 overall)
+
+| # | Criterion | Verification |
+|---|-----------|--------------|
+| 1 | `harness-setup init` produces/merges a `.gitignore` with the documented ignore + force-include rules | Run in a fresh temp repo → `git check-ignore` confirms `.claude/sessions/` ignored and `.claude/memory/decisions.md` tracked |
+| 2 | `harness-review` SKILL.md no longer contains "Unified" framing; Codex path lives in `references/codex-review.md` | `grep -i unified skills/harness-review/SKILL.md` returns 0; reference file exists |
+| 3 | Codex reference is only loaded when `command -v codex` succeeds AND user asks "use codex" / "duo review" | Dry-run both cases; verify SKILL.md flow |
+| 4 | `harness-work` SKILL.md extracts `--codex` branch into `references/codex-work.md`; main flow defaults to Claude path | `grep -c "codex" skills/harness-work/SKILL.md` significantly reduced; reference exists |
+| 5 | All 3 skills under 500 lines recommended; validate-plugin.sh passes | `wc -l` + `./tests/validate-plugin.sh` |
+
+### Tasks
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 41.1.1 | Add `templates/gitignore-harness` template file with documented ignore patterns (`.claude/sessions/`, `logs/`, `settings.local.json`, `states/`) and force-include rules (`!.claude/memory/decisions.md`, `!.claude/memory/patterns.md`, `!.claude/output-styles/`, `!.claude/rules/`, `!.claude/scripts/`, `!.claude/skills/`, `!.claude/settings.json`) | Template file exists and renders a valid `.gitignore` block | - | cc:done |
+| 41.1.2 | Update `skills/harness-setup/SKILL.md` `init` subcommand to append/merge the template into the project `.gitignore` (idempotent; skip if markers already present) | Running `harness-setup init` twice produces identical `.gitignore`; `git check-ignore` rules verified | 41.1.1 | cc:done |
+| 41.2.1 | Remove "Unified review skill" wording from `skills/harness-review/SKILL.md` description and body; tighten framing to "multi-angle review" | `grep -i "unified" skills/harness-review/SKILL.md` → 0 matches | - | cc:done |
+| 41.2.2 | Extract the "Codex Environment" block (SKILL.md ~lines 209-231) into `skills/harness-review/references/codex-review.md`; SKILL.md references it conditionally ("if `command -v codex` succeeds AND user requests Codex or duo review, load `${CLAUDE_SKILL_DIR}/references/codex-review.md`") | Reference file exists; SKILL.md has conditional load pointer only; reviewing without codex installed never mentions codex | 41.2.1 | cc:done |
+| 41.3.1 | Extract `--codex` logic (flag parsing, Codex Mode section, Codex review path, fallback) from `skills/harness-work/SKILL.md` into `skills/harness-work/references/codex-work.md`, mirroring the pattern established in 41.2 | Reference file exists; covers flag, prompt dispatch, resume, review, fallback | 41.2.2 | cc:done |
+| 41.3.2 | Update `skills/harness-work/SKILL.md` main flow to default to Claude path; conditional pointer loads `codex-work.md` only when codex is available AND user passes `--codex` or asks to use Codex | `grep -c "codex" skills/harness-work/SKILL.md` reduced to pointer + flag mention only; SKILL.md under 500 lines; `./tests/validate-plugin.sh` passes | 41.3.1 | cc:done |
+
+---
+
 ## Phase 40: Migration Residue Scanner — inclusion → exclusion verification
 
 Created: 2026-04-11

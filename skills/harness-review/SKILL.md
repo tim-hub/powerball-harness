@@ -1,6 +1,6 @@
 ---
 name: harness-review
-description: "Use this skill whenever the user asks to review code, review a plan, check quality, analyze scope, run security checks, examine PRs or diffs, or runs /harness-review. Also use when the user wants a second opinion on changes, performance review, or pre-merge quality gate. Do NOT load for: code implementation (use harness-work), new features, bug fixes, project setup, or release. Unified review skill for Harness — multi-angle code, plan, and scope review with optional dual-reviewer and security analysis."
+description: "Use this skill whenever the user asks to review code, review a plan, check quality, analyze scope, run security checks, examine PRs or diffs, or runs /harness-review. Also use when the user wants a second opinion on changes, performance review, or pre-merge quality gate. Do NOT load for: code implementation (use harness-work), new features, bug fixes, project setup, or release. Multi-angle code, plan, and scope review with optional dual-reviewer and security analysis."
 allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[code|plan|scope] [--dual] [--security]"
 context: fork
@@ -208,26 +208,8 @@ Choosing between standard Code Review and `--security`:
 
 ## Codex Environment
 
-In Codex CLI environments (`CODEX_CLI=1`), some tools are unavailable. The following fallbacks are used.
-
-| Normal Environment | Codex Fallback |
-|-------------------|----------------|
-| Get task list with `TaskList` | Read Plans.md and check WIP/TODO tasks |
-| Update status with `TaskUpdate` | Directly update Plans.md markers with `Edit` (e.g., `cc:WIP` → `cc:Done`) |
-| Write review result to Task | Output review result to stdout |
-
-### Detection Method
-
-```bash
-if [ "${CODEX_CLI:-}" = "1" ]; then
-  # Codex environment: Plans.md-based fallback
-fi
-```
-
-### Review Output in Codex Environment
-
-Since Task tools are not supported, review results are output to stdout in markdown format.
-The Lead agent or user reads the results and decides the next action.
+> Load [`${CLAUDE_SKILL_DIR}/references/codex-review.md`](${CLAUDE_SKILL_DIR}/references/codex-review.md)
+> only when `command -v codex` succeeds **and** the user explicitly requests Codex or duo review.
 
 ## Related Skills
 
