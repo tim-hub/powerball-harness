@@ -7,7 +7,7 @@ on:
       - 'commands/**'
       - 'skills/**'
       - 'codex/.codex/skills/**'
-      - 'scripts/build-opencode.js'
+      - '.claude/scripts/build-opencode.mjs'
       - 'scripts/validate-opencode.js'
   pull_request:
     paths:
@@ -15,7 +15,7 @@ on:
       - 'commands/**'
       - 'skills/**'
       - 'codex/.codex/skills/**'
-      - 'scripts/build-opencode.js'
+      - '.claude/scripts/build-opencode.mjs'
       - 'scripts/validate-opencode.js'
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
           node-version: '20'
 
       - name: Build opencode version
-        run: node scripts/build-opencode.js
+        run: node .claude/scripts/build-opencode.mjs
 
       - name: Validate opencode format
         run: node scripts/validate-opencode.js
@@ -40,7 +40,7 @@ jobs:
         run: |
           if ! git diff --quiet opencode/; then
             echo "::error::opencode/ is out of sync with commands/"
-            echo "Run 'node scripts/build-opencode.js' and commit the changes."
+            echo "Run 'node .claude/scripts/build-opencode.mjs' and commit the changes."
             git diff --stat opencode/
             exit 1
           fi

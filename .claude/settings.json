@@ -1,11 +1,23 @@
 {
   "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/scripts/sync-skills.mjs",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
     "TaskCompleted": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${PWD}/.claude/scripts/check-japanese.mjs\"",
+            "command": "node .claude/scripts/check-japanese.mjs",
             "timeout": 15
           }
         ]

@@ -182,7 +182,7 @@ else
 fi
 
 log_test "Public skill mirrors stay in sync"
-if ./scripts/sync-skill-mirrors.sh --check >/tmp/codex-skill-mirrors.$$ 2>&1; then
+if node ./.claude/scripts/sync-skill-mirrors.mjs --check >/tmp/codex-skill-mirrors.$$ 2>&1; then
   log_pass "Public skill mirrors match skills"
 else
   cat /tmp/codex-skill-mirrors.$$ | sed 's/^/  /'

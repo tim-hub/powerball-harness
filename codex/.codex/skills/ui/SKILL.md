@@ -1,6 +1,6 @@
 ---
 name: ui
-description: "Use this skill whenever the user asks to create UI components, build a hero section, design a landing page section, create feedback or contact forms, or generate front-end visual elements. Also use when the user mentions component generation, form creation, or UI scaffolding. Do NOT load for: authentication features, backend API implementation, database operations, or business logic. Generates UI components, hero sections, and feedback/contact forms with production-ready styling."
+description: "Use when building UI components, hero sections, landing-page sections, feedback/contact forms, or front-end visual elements. Do NOT load for: auth, backend APIs, database ops, or business logic."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 user-invocable: false
 ---

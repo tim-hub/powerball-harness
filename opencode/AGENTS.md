@@ -1,4 +1,4 @@
-<!-- Generated from CLAUDE.md by build-opencode.js -->
+<!-- Generated from CLAUDE.md by build-opencode.mjs -->
 <!-- opencode.ai compatible version of Claude Code Harness -->
 
 ## General Rules
