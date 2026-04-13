@@ -293,16 +293,21 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 ### Conclusion
 
 - `bin/harness` exits 0 (approve/no-op) when the platform binary is not installed
+- Warns **once** to stderr: `[harness] binary not installed — guardrails inactive. Run /harness-setup binary to install.`
+- Warning suppressed after first occurrence via flag file `~/.claude/harness-binary-missing.warned`
+- Flag is cleared when binary is successfully installed (by download-binary.sh)
 - Previously exited 1, causing `UserPromptSubmit hook error` on every prompt for new users
 
 ### Background
 
 - Binary is gitignored (built artifact); new installs had no binary until manually downloaded
 - Exit 1 from any hook surfaces as a visible error in Claude Code UI
+- Silent exit 0 (original fix) was invisible — user had no indication guardrails were inactive
 
 ### Rationale
 
 - Fail-open is safer UX: hooks that can't run should not block the user
+- One-time warning gives visibility without becoming noise on every prompt
 - The guardrails are a hardening layer, not a blocker — absence degrades gracefully
 
 ### Review Conditions
