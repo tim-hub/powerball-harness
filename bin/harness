@@ -9,6 +9,7 @@ BINARY="$(dirname "$0")/harness-${OS}-${ARCH}"
 if [ -x "$BINARY" ]; then
   exec "$BINARY" "$@"
 else
-  echo "{\"decision\":\"approve\",\"reason\":\"platform not supported: ${OS}-${ARCH}\"}" >&2
-  exit 1
+  # Binary not yet installed — fail open so hooks don't block the user.
+  # Run /harness-setup to install the binary for your platform.
+  exit 0
 fi
