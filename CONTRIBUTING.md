@@ -43,7 +43,7 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 ## Plugin Structure
 
 ```
-claude-code-harness/
+powerball-harness/
 ├── .claude-plugin/
 │   ├── plugin.json      # Plugin manifest
 │   └── marketplace.json # Marketplace config

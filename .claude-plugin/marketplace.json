@@ -1,16 +1,18 @@
 {
-  "name": "claude-code-harness-marketplace",
+  "name": "powerball-harness-marketplace",
+  "version": "4.0.2",
   "metadata": {
-    "description": "A single-plugin marketplace for distributing and installing claude-code-harness"
+    "description": "A single-plugin marketplace for distributing and installing powerball-harness"
   },
   "owner": {
-    "name": "tim-hub"
+    "name": "tim-hub",
+    "url": "https://github.com/tim-hub"
   },
   "plugins": [
     {
-      "name": "claude-code-harness",
+      "name": "harness",
       "source": "./",
-      "description": "A harness for solo developers (Vibecoders) to handle full-cycle contract development.",
+      "description": "A harness for coders to handle full-cycle contract development.",
       "author": {
         "name": "tim-hub",
         "url": "https://github.com/tim-hub"
@@ -23,10 +25,13 @@
         "plugin",
         "vibecoder",
         "workflow",
-        "plan-work-review"
+        "plan-work-review",
+        "contract-development",
+        "harness-workflow"
       ],
       "category": "productivity",
-      "strict": true
+      "strict": false,
+      "outputStyles": "./output-styles/"
     }
   ]
 }

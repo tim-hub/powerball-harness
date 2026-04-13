@@ -9,7 +9,7 @@
 set -euo pipefail
 
 VERSION_FILE="VERSION"
-PLUGIN_JSON=".claude-plugin/plugin.json"
+PLUGIN_JSON=".claude-plugin/marketplace.json"
 HARNESS_TOML="harness.toml"
 
 # Get current version
