@@ -68,6 +68,12 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/download-binary.sh\"",
+            "timeout": 60,
+            "once": true
+          },
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook setup-init",
             "timeout": 60,
             "once": true
@@ -77,6 +83,12 @@
       {
         "matcher": "init-only",
         "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/download-binary.sh\"",
+            "timeout": 60,
+            "once": true
+          },
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook setup-init",
