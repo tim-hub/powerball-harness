@@ -35,7 +35,7 @@ deleted_paths:
     reason: "TypeScript guardrail engine ported to Go-native (Hokage migration). Entire core/ including TS engine was discontinued"
     allowlist:
       - "CHANGELOG.md"
-      - ".claude/memory/archive/"
+      - ".claude/memory/"  # Historical memory records (decisions.md, patterns.md contain pre-v4 architecture)
       - ".claude/worktrees/"
       - ".claude/state/"
       - "go/"  # Excluded because Go version file paths contain "guardrails"
@@ -51,7 +51,7 @@ deleted_paths:
     reason: "TypeScript build artifacts. No longer needed after Go migration"
     allowlist:
       - "CHANGELOG.md"
-      - ".claude/memory/archive/"
+      - ".claude/memory/"  # Historical memory records (decisions.md, patterns.md contain pre-v4 architecture)
       - ".claude/worktrees/"
       - ".claude/state/"
       - "Plans.md"

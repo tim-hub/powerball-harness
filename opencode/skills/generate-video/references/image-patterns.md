@@ -1,59 +1,59 @@
 # Image Patterns Reference
 
-画像生成の4つのパターン（comparison, concept, flow, highlight）の使用ガイド。
+Usage guide for the 4 image generation patterns (comparison, concept, flow, highlight).
 
 ---
 
-## 概要
+## Overview
 
-動画シーンに最適化された画像パターンを定義。各パターンは特定の目的に最適化されており、AI画像生成プロンプトテンプレートと連携します。
+Defines image patterns optimized for video scenes. Each pattern is optimized for a specific purpose and works with AI image generation prompt templates.
 
-### パターン一覧
+### Pattern List
 
-| パターン | 用途 | 最適シーン | プロンプトテンプレート |
-|---------|------|-----------|---------------------|
-| **comparison** | Before/After、良い例/悪い例の対比 | 問題提起、改善効果の提示 | `templates/image-prompts/comparison.txt` |
-| **concept** | 抽象概念、階層構造、関係性の視覚化 | アーキテクチャ解説、コンセプト説明 | `templates/image-prompts/concept.txt` |
-| **flow** | 手順、プロセス、ワークフローの図示 | デモ手順、処理フロー | `templates/image-prompts/flow.txt` |
-| **highlight** | 重要ポイント、メッセージの強調 | Hook、CTA、結論 | `templates/image-prompts/highlight.txt` |
+| Pattern | Use Case | Optimal Scene | Prompt Template |
+|---------|----------|---------------|-----------------|
+| **comparison** | Before/After, good/bad example contrast | Problem statement, improvement effect presentation | `templates/image-prompts/comparison.txt` |
+| **concept** | Visualizing abstract concepts, hierarchies, relationships | Architecture explanation, concept description | `templates/image-prompts/concept.txt` |
+| **flow** | Illustrating steps, processes, workflows | Demo procedures, processing flow | `templates/image-prompts/flow.txt` |
+| **highlight** | Emphasizing key points, messages | Hook, CTA, conclusion | `templates/image-prompts/highlight.txt` |
 
 ---
 
-## 1. Comparison パターン {#comparison}
+## 1. Comparison Pattern {#comparison}
 
-### 目的
+### Purpose
 
-Before/After、良い例/悪い例など、2つの状態や選択肢を視覚的に対比させる。
+Visually contrast two states or choices such as Before/After or good/bad examples.
 
-### 使用場面
+### Use Cases
 
-| シーン | 例 |
-|--------|-----|
-| **問題提起** | 既存ツールの煩雑さ vs 本製品のシンプルさ |
-| **改善効果** | 導入前（手動、遅い）vs 導入後（自動、速い） |
-| **機能比較** | 従来の方法 vs 新機能 |
-| **リリースノート** | 旧バージョン vs 新バージョン |
+| Scene | Example |
+|-------|---------|
+| **Problem statement** | Complexity of existing tools vs simplicity of this product |
+| **Improvement effect** | Before (manual, slow) vs After (automated, fast) |
+| **Feature comparison** | Traditional method vs new feature |
+| **Release notes** | Old version vs new version |
 
-### 視覚構成
+### Visual Composition
 
 ```
-┌──────────────────────────────────────────┐
-│                                          │
-│  [悪い例/Before]  🠖  [良い例/After]      │
-│                                          │
-│  ❌ 問題点1         ✅ 改善点1           │
-│  ❌ 問題点2         ✅ 改善点2           │
-│  ❌ 問題点3         ✅ 改善点3           │
-│                                          │
-└──────────────────────────────────────────┘
++----------------------------------------------+
+|                                              |
+|  [Bad example/Before]  →  [Good example/After] |
+|                                              |
+|  ❌ Issue 1              ✅ Improvement 1     |
+|  ❌ Issue 2              ✅ Improvement 2     |
+|  ❌ Issue 3              ✅ Improvement 3     |
+|                                              |
++----------------------------------------------+
 ```
 
-### JSON 例
+### JSON Example
 
 ```json
 {
   "type": "comparison",
-  "topic": "タスク管理の改善",
+  "topic": "Task management improvement",
   "style": "modern",
   "colorScheme": {
     "primary": "#3B82F6",
@@ -64,9 +64,9 @@ Before/After、良い例/悪い例など、2つの状態や選択肢を視覚的
     "leftSide": {
       "label": "Before",
       "items": [
-        "手動でスプレッドシート管理",
-        "更新漏れが頻発",
-        "ステータス把握に30分"
+        "Manual spreadsheet management",
+        "Frequent update omissions",
+        "30 minutes to grasp status"
       ],
       "icon": "x",
       "sentiment": "negative"
@@ -74,9 +74,9 @@ Before/After、良い例/悪い例など、2つの状態や選択肢を視覚的
     "rightSide": {
       "label": "After",
       "items": [
-        "自動でダッシュボード更新",
-        "リアルタイム同期",
-        "ステータス把握が一目瞭然"
+        "Automatic dashboard updates",
+        "Real-time sync",
+        "Status visible at a glance"
       ],
       "icon": "check",
       "sentiment": "positive"
@@ -86,63 +86,63 @@ Before/After、良い例/悪い例など、2つの状態や選択肢を視覚的
 }
 ```
 
-### プロンプト生成のポイント
+### Prompt Generation Tips
 
-- **左側（Before/悪い例）**: 赤系、警告アイコン、散らかった印象
-- **右側（After/良い例）**: 緑系、チェックアイコン、整理された印象
-- **区切り**: 明確な矢印または "VS" で視覚的分離
-- **テキスト**: 短く具体的（各項目20文字以内推奨）
+- **Left side (Before/Bad example)**: Red tones, warning icons, cluttered appearance
+- **Right side (After/Good example)**: Green tones, check icons, organized appearance
+- **Divider**: Clear arrow or "VS" for visual separation
+- **Text**: Short and specific (recommended 20 characters or less per item)
 
-### 避けるべきパターン
+### Patterns to Avoid
 
-| ❌ 避ける | ✅ 推奨 |
-|----------|---------|
-| 長文の羅列 | 短いキーワード |
-| 抽象的な説明 | 具体的な数値・結果 |
-| 中間的な評価 | 明確な対比 |
-| 両側に同じアイコン | 異なる感情のアイコン |
+| Avoid | Recommended |
+|-------|-------------|
+| Long text lists | Short keywords |
+| Abstract descriptions | Specific numbers/results |
+| Ambiguous evaluations | Clear contrast |
+| Same icons on both sides | Different emotion icons |
 
 ---
 
-## 2. Concept パターン {#concept}
+## 2. Concept Pattern {#concept}
 
-### 目的
+### Purpose
 
-抽象的な概念、階層構造、要素間の関係性を視覚的に表現する。
+Visually represent abstract concepts, hierarchical structures, and relationships between elements.
 
-### 使用場面
+### Use Cases
 
-| シーン | 例 |
-|--------|-----|
-| **アーキテクチャ解説** | システム構成図、レイヤー構造 |
-| **コンセプト説明** | 哲学、設計思想、価値提供の図示 |
-| **関係性** | コンポーネント間の依存関係 |
-| **プロセス全体像** | エコシステム、ワークフロー全体 |
+| Scene | Example |
+|-------|---------|
+| **Architecture explanation** | System architecture diagrams, layer structure |
+| **Concept description** | Philosophy, design principles, value proposition illustration |
+| **Relationships** | Dependencies between components |
+| **Process overview** | Ecosystem, overall workflow |
 
-### 視覚構成（階層例）
+### Visual Composition (Hierarchy Example)
 
 ```
-        ┌───────────┐
-        │  最上位   │
-        └─────┬─────┘
-              │
-     ┌────────┴────────┐
-     │                 │
-┌────▼────┐       ┌────▼────┐
-│ レベル1 │       │ レベル1 │
-└─────────┘       └────┬────┘
-                       │
-                  ┌────▼────┐
-                  │ レベル2 │
-                  └─────────┘
+        +-------------+
+        |   Top level  |
+        +------+------+
+               |
+      +--------+--------+
+      |                 |
++-----v-----+     +-----v-----+
+|  Level 1  |     |  Level 1  |
++-----------+     +-----+-----+
+                        |
+                  +-----v-----+
+                  |  Level 2  |
+                  +-----------+
 ```
 
-### JSON 例
+### JSON Example
 
 ```json
 {
   "type": "concept",
-  "topic": "マイクロサービスアーキテクチャ",
+  "topic": "Microservices architecture",
   "style": "technical",
   "colorScheme": {
     "primary": "#6366F1",
@@ -154,14 +154,14 @@ Before/After、良い例/悪い例など、2つの状態や選択肢を視覚的
       {
         "id": "api-gateway",
         "label": "API Gateway",
-        "description": "全リクエストの入り口",
+        "description": "Entry point for all requests",
         "level": 0,
         "icon": "cloud",
         "emphasis": "high"
       },
       {
         "id": "auth-service",
-        "label": "認証サービス",
+        "label": "Auth Service",
         "level": 1,
         "parentId": "api-gateway",
         "icon": "server",
@@ -169,7 +169,7 @@ Before/After、良い例/悪い例など、2つの状態や選択肢を視覚的
       },
       {
         "id": "data-service",
-        "label": "データサービス",
+        "label": "Data Service",
         "level": 1,
         "parentId": "api-gateway",
         "icon": "database",
@@ -180,13 +180,13 @@ Before/After、良い例/悪い例など、2つの状態や選択肢を視覚的
       {
         "from": "api-gateway",
         "to": "auth-service",
-        "label": "認証確認",
+        "label": "Auth check",
         "type": "flow"
       },
       {
         "from": "api-gateway",
         "to": "data-service",
-        "label": "データ取得",
+        "label": "Data retrieval",
         "type": "flow"
       }
     ],
@@ -195,62 +195,62 @@ Before/After、良い例/悪い例など、2つの状態や選択肢を視覚的
 }
 ```
 
-### レイアウトタイプ
+### Layout Types
 
-| レイアウト | 用途 | 視覚イメージ |
-|-----------|------|------------|
-| **hierarchy** | 階層構造（組織図、依存関係） | 上から下へのツリー |
-| **radial** | 中心から放射（エコシステム） | 中央に主要要素、周囲に関連要素 |
-| **grid** | 並列配置（カテゴリ分類） | マトリックス配置 |
-| **flow** | 処理フロー（パイプライン） | 左から右への流れ |
-| **circular** | 循環プロセス（ライフサイクル） | 円環状 |
+| Layout | Use Case | Visual Image |
+|--------|----------|--------------|
+| **hierarchy** | Hierarchical structure (org chart, dependencies) | Top-down tree |
+| **radial** | Radial from center (ecosystem) | Main element at center, related elements around |
+| **grid** | Parallel arrangement (category classification) | Matrix layout |
+| **flow** | Processing flow (pipeline) | Left-to-right flow |
+| **circular** | Cyclic process (lifecycle) | Circular ring |
 
-### プロンプト生成のポイント
+### Prompt Generation Tips
 
-- **要素数**: 2-10個（多すぎると見づらい）
-- **階層**: 最大3-4レベルまで
-- **アイコン**: 要素の性質を直感的に表現
-- **関係性**: 矢印の太さや色で重要度を表現
+- **Element count**: 2-10 (too many becomes hard to read)
+- **Levels**: Maximum 3-4 levels
+- **Icons**: Intuitively represent element characteristics
+- **Relationships**: Express importance through arrow thickness and color
 
-### 避けるべきパターン
+### Patterns to Avoid
 
-| ❌ 避ける | ✅ 推奨 |
-|----------|---------|
-| 10個以上の要素 | 7個以内に絞る |
-| 複雑な関係線 | 主要な関係のみ |
-| 長い説明文 | 短いラベル + アイコン |
-| 同じ見た目の要素 | 強調度で差別化 |
+| Avoid | Recommended |
+|-------|-------------|
+| 10+ elements | Keep to 7 or fewer |
+| Complex relationship lines | Only key relationships |
+| Long description text | Short labels + icons |
+| Same-looking elements | Differentiate by emphasis level |
 
 ---
 
-## 3. Flow パターン {#flow}
+## 3. Flow Pattern {#flow}
 
-### 目的
+### Purpose
 
-手順、プロセス、ワークフローを時系列またはステップ順で視覚化する。
+Visualize procedures, processes, and workflows in chronological or step order.
 
-### 使用場面
+### Use Cases
 
-| シーン | 例 |
-|--------|-----|
-| **デモ手順** | セットアップから実行までのステップ |
-| **ユーザーフロー** | ログイン → 操作 → 完了の流れ |
-| **処理フロー** | データパイプライン、CI/CDフロー |
-| **オンボーディング** | 初回利用の導線 |
+| Scene | Example |
+|-------|---------|
+| **Demo procedures** | Steps from setup to execution |
+| **User flow** | Login → operation → completion flow |
+| **Processing flow** | Data pipeline, CI/CD flow |
+| **Onboarding** | First-time user journey |
 
-### 視覚構成（水平例）
+### Visual Composition (Horizontal Example)
 
 ```
-[1. 開始] ──▶ [2. 入力] ──▶ [3. 処理] ──▶ [4. 完了]
-   ⏱2分         ⏱1分         ⏱3秒         即座
+[1. Start] ──▶ [2. Input] ──▶ [3. Process] ──▶ [4. Complete]
+   ⏱2min         ⏱1min         ⏱3sec         Instant
 ```
 
-### JSON 例
+### JSON Example
 
 ```json
 {
   "type": "flow",
-  "topic": "動画生成フロー",
+  "topic": "Video generation flow",
   "style": "modern",
   "colorScheme": {
     "primary": "#F59E0B",
@@ -261,39 +261,39 @@ Before/After、良い例/悪い例など、2つの状態や選択肢を視覚的
     "steps": [
       {
         "id": "analyze",
-        "label": "コードベース分析",
-        "description": "プロジェクト構造を自動検出",
+        "label": "Codebase analysis",
+        "description": "Auto-detect project structure",
         "order": 1,
         "type": "start",
         "icon": "circle",
-        "duration": "10秒"
+        "duration": "10 sec"
       },
       {
         "id": "plan",
-        "label": "シナリオ生成",
-        "description": "最適な動画構成を提案",
+        "label": "Scenario generation",
+        "description": "Propose optimal video composition",
         "order": 2,
         "type": "process",
         "icon": "square",
-        "duration": "20秒"
+        "duration": "20 sec"
       },
       {
         "id": "generate",
-        "label": "並列生成",
-        "description": "各シーンを同時作成",
+        "label": "Parallel generation",
+        "description": "Create each scene simultaneously",
         "order": 3,
         "type": "parallel",
         "icon": "rounded",
-        "duration": "2分"
+        "duration": "2 min"
       },
       {
         "id": "render",
-        "label": "レンダリング",
-        "description": "最終動画を出力",
+        "label": "Rendering",
+        "description": "Output final video",
         "order": 4,
         "type": "end",
         "icon": "hexagon",
-        "duration": "30秒"
+        "duration": "30 sec"
       }
     ],
     "direction": "horizontal",
@@ -303,69 +303,70 @@ Before/After、良い例/悪い例など、2つの状態や選択肢を視覚的
 }
 ```
 
-### ステップタイプ
+### Step Types
 
-| タイプ | 用途 | 視覚表現 |
-|--------|------|---------|
-| **start** | フローの開始点 | 丸アイコン、緑色 |
-| **process** | 通常の処理ステップ | 四角、青色 |
-| **decision** | 条件分岐 | ひし形、黄色 |
-| **parallel** | 並列処理 | 複数アイコン、紫色 |
-| **subprocess** | サブフロー | 角丸四角 |
-| **end** | フローの終了点 | 二重丸、赤色 |
+| Type | Use Case | Visual Representation |
+|------|----------|----------------------|
+| **start** | Flow start point | Circle icon, green |
+| **process** | Normal processing step | Square, blue |
+| **decision** | Conditional branch | Diamond, yellow |
+| **parallel** | Parallel processing | Multiple icons, purple |
+| **subprocess** | Sub-flow | Rounded square |
+| **end** | Flow end point | Double circle, red |
 
-### プロンプト生成のポイント
+### Prompt Generation Tips
 
-- **方向**: 横（horizontal）が読みやすい（英語圏向け）
-- **ステップ数**: 2-10ステップ（多すぎると複雑）
-- **所要時間**: 各ステップに時間を表示すると実用的
-- **番号**: 順序を明示（showNumbers: true）
+- **Direction**: Horizontal is most readable (for English audiences)
+- **Step count**: 2-10 steps (too many becomes complex)
+- **Duration**: Showing time per step is practical
+- **Numbers**: Indicate order explicitly (showNumbers: true)
 
-### 避けるべきパターン
+### Patterns to Avoid
 
-| ❌ 避ける | ✅ 推奨 |
-|----------|---------|
-| 10ステップ以上 | 7ステップ以内に統合 |
-| 複雑な分岐 | 線形フローに単純化 |
-| 長いステップ名 | 動詞 + 名詞で簡潔に |
-| 不明確な順序 | order フィールドで明示 |
+| Avoid | Recommended |
+|-------|-------------|
+| 10+ steps | Consolidate to 7 or fewer |
+| Complex branching | Simplify to linear flow |
+| Long step names | Concise verb + noun |
+| Unclear ordering | Make explicit with order field |
 
 ---
 
-## 4. Highlight パターン {#highlight}
+## 4. Highlight Pattern {#highlight}
 
-### 目的
+### Purpose
 
-単一のメッセージ、キーワード、数値を強調表示する。
+Emphasize a single message, keyword, or numeric value.
 
-### 使用場面
+### Use Cases
 
-| シーン | 例 |
-|--------|-----|
-| **Hook（冒頭）** | "もう手動で消耗していませんか？" |
-| **CTA（行動喚起）** | "今すぐ試す" |
-| **結論** | "3倍速く、10倍簡単" |
-| **重要メトリクス** | "95%の時間削減" |
+| Scene | Example |
+|-------|---------|
+| **Hook (opening)** | "Tired of manual work?" |
+| **CTA (call to action)** | "Try it now" |
+| **Conclusion** | "3x faster, 10x simpler" |
+| **Key metrics** | "95% time reduction" |
 
-### 視覚構成
+### Visual Composition
 
 ```
-┌────────────────────────────────────────┐
-│                                        │
-│                                        │
-│          ⚡ 3倍速く、10倍簡単 ⚡         │
-│                                        │
-│         自動化で変わる開発体験          │
-│                                        │
-└────────────────────────────────────────┘
++----------------------------------------+
+|                                        |
+|                                        |
+|        ⚡ 3x faster, 10x simpler ⚡    |
+|                                        |
+|    Development experience transformed  |
+|           by automation                |
+|                                        |
++----------------------------------------+
 ```
 
-### JSON 例
+### JSON Example
 
 ```json
 {
   "type": "highlight",
-  "topic": "製品価値の強調",
+  "topic": "Product value emphasis",
   "style": "gradient",
   "colorScheme": {
     "primary": "#EC4899",
@@ -373,8 +374,8 @@ Before/After、良い例/悪い例など、2つの状態や選択肢を視覚的
     "background": "#18181B"
   },
   "highlight": {
-    "mainText": "95%の時間削減",
-    "subText": "手動作業から解放される開発チーム",
+    "mainText": "95% time reduction",
+    "subText": "Development teams freed from manual work",
     "icon": "rocket",
     "position": "center",
     "effect": "glow",
@@ -384,120 +385,120 @@ Before/After、良い例/悪い例など、2つの状態や選択肢を視覚的
 }
 ```
 
-### エフェクトタイプ
+### Effect Types
 
-| エフェクト | 用途 | 視覚表現 |
-|-----------|------|---------|
-| **glow** | 神々しい強調（CTA、結論） | 発光エフェクト |
-| **shadow** | 落ち着いた強調（Hook） | ドロップシャドウ |
-| **gradient** | モダンな印象 | グラデーション背景 |
-| **outline** | シャープな印象 | アウトラインのみ |
-| **none** | ミニマル | 装飾なし |
+| Effect | Use Case | Visual Representation |
+|--------|----------|----------------------|
+| **glow** | Radiant emphasis (CTA, conclusion) | Glow effect |
+| **shadow** | Subtle emphasis (Hook) | Drop shadow |
+| **gradient** | Modern impression | Gradient background |
+| **outline** | Sharp impression | Outline only |
+| **none** | Minimal | No decoration |
 
-### アイコンと感情
+### Icons and Emotions
 
-| アイコン | 感情・意味 | 使用場面 |
-|---------|-----------|---------|
-| **star** | 優秀、品質 | 機能紹介、評価 |
-| **check** | 完了、成功 | 導入効果、結果 |
-| **alert** | 注意喚起 | 問題提起、警告 |
-| **trophy** | 達成、勝利 | 成果、実績 |
-| **rocket** | 高速、革新 | パフォーマンス、新機能 |
-| **fire** | 人気、話題 | トレンド、注目 |
-| **bolt** | 即座、パワー | 速度、効率 |
+| Icon | Emotion/Meaning | Use Case |
+|------|-----------------|----------|
+| **star** | Excellence, quality | Feature introduction, ratings |
+| **check** | Completion, success | Implementation effect, results |
+| **alert** | Attention | Problem statement, warnings |
+| **trophy** | Achievement, victory | Results, accomplishments |
+| **rocket** | Speed, innovation | Performance, new features |
+| **fire** | Popularity, trending | Trends, attention |
+| **bolt** | Instant, power | Speed, efficiency |
 
-### プロンプト生成のポイント
+### Prompt Generation Tips
 
-- **短さが命**: メインテキストは10文字以内が理想
-- **数値**: 具体的な数値は説得力が高い（"95%", "3倍"）
-- **対比**: "速く、簡単" のように2つの価値を並べる
-- **感情**: アイコン + エフェクトで感情を増幅
+- **Brevity is key**: Main text ideally 10 characters or less
+- **Numbers**: Specific numbers are more persuasive ("95%", "3x")
+- **Contrast**: Pair two values like "faster, simpler"
+- **Emotion**: Amplify emotion with icon + effect
 
-### 避けるべきパターン
+### Patterns to Avoid
 
-| ❌ 避ける | ✅ 推奨 |
-|----------|---------|
-| 長文（20文字以上） | 短いキャッチコピー |
-| 複数の主張 | 1つに絞る |
-| 地味なデザイン | エフェクトで目立たせる |
-| 小さいフォント | xlarge 推奨 |
+| Avoid | Recommended |
+|-------|-------------|
+| Long text (20+ characters) | Short catchcopy |
+| Multiple claims | Focus on one |
+| Plain design | Stand out with effects |
+| Small font | xlarge recommended |
 
 ---
 
-## パターン選択ガイド
+## Pattern Selection Guide
 
-### シーンタイプ別の推奨パターン
+### Recommended Patterns by Scene Type
 
-| シーンタイプ | 第1推奨 | 第2推奨 | 用途 |
-|------------|---------|---------|------|
-| **Hook** | highlight | comparison | 強烈な第一印象 |
-| **Problem** | comparison | concept | 現状の課題を明示 |
-| **Solution** | concept | flow | 解決策の仕組み |
-| **Demo** | flow | comparison | 手順の可視化 |
-| **Differentiator** | comparison | concept | 差別化ポイント |
-| **CTA** | highlight | - | 行動喚起 |
+| Scene Type | Primary | Secondary | Purpose |
+|------------|---------|-----------|---------|
+| **Hook** | highlight | comparison | Strong first impression |
+| **Problem** | comparison | concept | Clearly show current issues |
+| **Solution** | concept | flow | Mechanism of the solution |
+| **Demo** | flow | comparison | Visualize procedures |
+| **Differentiator** | comparison | concept | Differentiation points |
+| **CTA** | highlight | - | Call to action |
 
-### ファネル別の使用頻度
+### Usage Frequency by Funnel
 
-| パターン | 認知・興味 | 検討 | 確信 | 継続 |
-|---------|-----------|------|------|------|
+| Pattern | Awareness/Interest | Consideration | Conviction | Retention |
+|---------|-------------------|---------------|------------|-----------|
 | **comparison** | ★★★ | ★★★ | ★★☆ | ★☆☆ |
 | **concept** | ★☆☆ | ★★★ | ★★★ | ★★☆ |
 | **flow** | ★★☆ | ★★★ | ★★☆ | ★★★ |
 | **highlight** | ★★★ | ★★☆ | ★★★ | ★☆☆ |
 
-### 複数パターンの組み合わせ
+### Combining Multiple Patterns
 
-**90秒ティザー（LP/広告向け）の例**:
+**Example for 90-second teaser (LP/ads)**:
 
-| 秒数 | シーン | パターン | 内容 |
-|------|--------|---------|------|
-| 0-5秒 | Hook | **highlight** | "もう手動で消耗していませんか？" |
-| 5-15秒 | Problem | **comparison** | Before（手動）vs After（自動） |
-| 15-55秒 | Solution | **flow** | セットアップ → 実行 → 完了の3ステップ |
-| 55-70秒 | Proof | **concept** | アーキテクチャの堅牢性 |
-| 70-90秒 | CTA | **highlight** | "今すぐ無料で始める" |
-
----
-
-## 実装時の注意事項
-
-### 1. JSON Schema バリデーション
-
-- **必須**: `type`, `topic` フィールドは必須
-- **oneOf**: パターンに応じた専用フィールドが必須（例: type="comparison" なら comparison フィールド必須）
-- **バリデーション**: `scripts/validate-visual-pattern.js` で検証
-
-### 2. プロンプトテンプレートとの連携
-
-- **テンプレート**: `templates/image-prompts/{type}.txt` を使用
-- **プレースホルダー**: `{{topic}}`, `{{items}}`, `{{style}}` 等を JSON 値で置換
-- **生成**: `references/image-generator.md` が実際の生成を担当
-
-### 3. 画像品質チェック
-
-- **自動判定**: `references/image-quality-check.md` で品質評価
-- **再試行**: 不合格の場合、最大3回まで再生成
-- **決定性**: seed 値を保存し、再現性を確保
-
-### 4. アセット管理
-
-- **出力先**: `out/video-{id}/assets/generated/`
-- **マニフェスト**: `assets.manifest.schema.json` に記録
-- **ハッシュ**: SHA-256 で改ざん検出
+| Time | Scene | Pattern | Content |
+|------|-------|---------|---------|
+| 0-5 sec | Hook | **highlight** | "Tired of manual work?" |
+| 5-15 sec | Problem | **comparison** | Before (manual) vs After (automated) |
+| 15-55 sec | Solution | **flow** | 3 steps: Setup → Execute → Complete |
+| 55-70 sec | Proof | **concept** | Architecture robustness |
+| 70-90 sec | CTA | **highlight** | "Start free now" |
 
 ---
 
-## 関連ドキュメント
+## Implementation Notes
 
-- [visual-patterns.schema.json](../schemas/visual-patterns.schema.json) - JSON Schema 定義
-- [image-generator.md](./image-generator.md) - AI画像生成実装
-- [image-quality-check.md](./image-quality-check.md) - 品質判定ロジック
-- [templates/image-prompts/](../templates/image-prompts/) - プロンプトテンプレート
-- [best-practices.md](./best-practices.md) - 動画全体のベストプラクティス
+### 1. JSON Schema Validation
+
+- **Required**: `type`, `topic` fields are required
+- **oneOf**: Pattern-specific field required based on type (e.g., type="comparison" requires comparison field)
+- **Validation**: Verify with `scripts/validate-visual-pattern.js`
+
+### 2. Integration with Prompt Templates
+
+- **Templates**: Use `templates/image-prompts/{type}.txt`
+- **Placeholders**: Replace `{{topic}}`, `{{items}}`, `{{style}}` etc. with JSON values
+- **Generation**: `references/image-generator.md` handles actual generation
+
+### 3. Image Quality Check
+
+- **Auto assessment**: Quality evaluation via `references/image-quality-check.md`
+- **Retry**: Up to 3 regeneration attempts on failure
+- **Determinism**: Save seed values for reproducibility
+
+### 4. Asset Management
+
+- **Output**: `out/video-{id}/assets/generated/`
+- **Manifest**: Recorded in `assets.manifest.schema.json`
+- **Hash**: SHA-256 for tamper detection
 
 ---
 
-**作成日**: 2026-02-02
-**対象Phase**: Phase 6 - 画像生成パターン
-**メンテナンス**: スキーマ変更時に更新
+## Related Documents
+
+- [visual-patterns.schema.json](../schemas/visual-patterns.schema.json) - JSON Schema definitions
+- [image-generator.md](./image-generator.md) - AI image generation implementation
+- [image-quality-check.md](./image-quality-check.md) - Quality assessment logic
+- [templates/image-prompts/](../templates/image-prompts/) - Prompt templates
+- [best-practices.md](./best-practices.md) - Overall video best practices
+
+---
+
+**Created**: 2026-02-02
+**Target Phase**: Phase 6 - Image Generation Patterns
+**Maintenance**: Update when schema changes

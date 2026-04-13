@@ -1,15 +1,15 @@
 ---
 name: harness-release
-description: "Use this skill whenever the user mentions releasing, version bumps, creating tags, publishing, cutting a release, or runs /harness-release. Also use when the user asks about the release process or wants to finalize and ship changes. Do NOT load for: code implementation (use harness-work), code review (use harness-review), planning (use harness-plan), or project setup. Unified release skill for Harness v3 — automates CHANGELOG updates, version bumps, git tags, GitHub Releases, mirror sync, and release validation."
+description: "Use this skill whenever the user mentions releasing, version bumps, creating tags, publishing, cutting a release, or runs /harness-release. Also use when the user asks about the release process or wants to finalize and ship changes. Do NOT load for: code implementation (use harness-work), code review (use harness-review), planning (use harness-plan), or project setup. Unified release skill for Harness — automates CHANGELOG updates, version bumps, git tags, GitHub Releases, mirror sync, and release validation."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[patch|minor|major|--dry-run|--announce|--complete]"
 context: fork
 effort: high
 ---
 
-# Harness Release (v3)
+# Harness Release
 
-Unified release skill for Harness v3.
+Unified release skill for Harness.
 Consolidates the following legacy skills:
 
 - `release-har` -- General-purpose release automation
@@ -367,7 +367,7 @@ Verify the following regressions before release:
 | Preflight | `scripts/release-preflight.sh` | Working tree, CHANGELOG, CI, remnants |
 | Release notes | `scripts/validate-release-notes.sh vX.Y.Z` | GitHub Release format validation |
 | VERSION sync | `scripts/sync-version.sh check` | Match between VERSION and plugin.json |
-| Guardrails | R01-R13 in `core/src/guardrails/rules.ts` | TypeScript rule health |
+| Guardrails | R01-R13 in `go/internal/guardrail/rules.go` | Go rule health |
 | Tag continuity | `git tag --sort=-version:refname \| head -5` | No missing tags |
 | Locale | Match between description and description-ja | Switchable via `set-locale.sh` |
 

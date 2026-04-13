@@ -20,12 +20,125 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 export REPO_ROOT_PY="${REPO_ROOT}"
 
 exec python3 - "$@" <<'PYEOF'
-import yaml
 import subprocess
 import sys
 import os
 import time
 import re
+
+try:
+    import yaml
+    def _load_yaml(path):
+        with open(path, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f)
+except ImportError:
+    # PyYAML not installed — fall back to an indent-aware minimal parser.
+    # Handles the known schema: version, deleted_paths[], deleted_concepts[]
+    # each with path/term, deleted_in, reason, allowlist[], optional fields.
+    def _load_yaml(path):
+        """Indent-aware YAML loader for deleted-concepts.yaml (stdlib only)."""
+        with open(path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        result = {"version": 1, "deleted_paths": [], "deleted_concepts": []}
+        current_section = None   # 'deleted_paths' or 'deleted_concepts'
+        current_entry = None     # dict being built
+        in_allowlist = False     # True when inside an allowlist: block
+        allowlist_indent = -1    # indent level of allowlist items
+
+        def _strip_value(s):
+            """Strip inline comments, then quotes from a YAML scalar value."""
+            # Remove inline comment (space + #) — but only outside quoted strings
+            # Simple heuristic: if starts with " or ', strip until matching close quote
+            s = s.strip()
+            if s.startswith('"'):
+                end = s.find('"', 1)
+                return s[1:end] if end != -1 else s[1:]
+            if s.startswith("'"):
+                end = s.find("'", 1)
+                return s[1:end] if end != -1 else s[1:]
+            # No quotes: strip trailing inline comment
+            if '  #' in s:
+                s = s[:s.index('  #')]
+            elif s.startswith('#'):
+                return ''
+            return s.strip()
+
+        def flush_entry():
+            if current_entry is not None and current_section is not None:
+                result[current_section].append(current_entry)
+
+        for raw in lines:
+            if not raw.strip() or raw.strip().startswith('#'):
+                continue
+            indent = len(raw) - len(raw.lstrip())
+            stripped = raw.strip()
+
+            # Top-level keys (indent == 0)
+            if indent == 0:
+                if stripped.startswith('version:'):
+                    m = re.match(r'version:\s*(\d+)', stripped)
+                    if m:
+                        result['version'] = int(m.group(1))
+                elif stripped.startswith('deleted_paths:'):
+                    flush_entry()
+                    current_section = 'deleted_paths'
+                    current_entry = None
+                    in_allowlist = False
+                elif stripped.startswith('deleted_concepts:'):
+                    flush_entry()
+                    current_section = 'deleted_concepts'
+                    current_entry = None
+                    in_allowlist = False
+                continue
+
+            if current_section is None:
+                continue
+
+            # New list entry: starts with '- ' at indent 2
+            if stripped.startswith('- ') and indent <= 4:
+                flush_entry()
+                current_entry = {'allowlist': []}
+                in_allowlist = False
+                rest = stripped[2:]
+                if ':' in rest:
+                    k, v = rest.split(':', 1)
+                    val = _strip_value(v)
+                    current_entry[k.strip()] = val if val else None
+                continue
+
+            if current_entry is None:
+                continue
+
+            # Inside an entry
+            if in_allowlist and indent > allowlist_indent - 4:
+                # This is an allowlist item
+                if stripped.startswith('- '):
+                    item = _strip_value(stripped[2:])
+                    if item:
+                        current_entry['allowlist'].append(item)
+                    continue
+                else:
+                    in_allowlist = False
+
+            if stripped.startswith('allowlist:'):
+                in_allowlist = True
+                allowlist_indent = indent + 2
+                continue
+
+            if ':' in stripped and not stripped.startswith('-'):
+                k, v = stripped.split(':', 1)
+                k = k.strip()
+                v = _strip_value(v)
+                if k == '_scan_disabled':
+                    current_entry[k] = v.lower() in ('true', '1', 'yes')
+                elif v:
+                    current_entry[k] = v
+                else:
+                    current_entry[k] = None
+
+        flush_entry()
+        return result
 
 REPO_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
@@ -51,8 +164,7 @@ if not os.path.exists(YAML_PATH):
     print(f"ERROR: {YAML_PATH} not found", file=sys.stderr)
     sys.exit(2)
 
-with open(YAML_PATH, "r", encoding="utf-8") as f:
-    config = yaml.safe_load(f)
+config = _load_yaml(YAML_PATH)
 
 deleted_paths    = config.get("deleted_paths", [])
 deleted_concepts = config.get("deleted_concepts", [])

@@ -1,4 +1,4 @@
 #!/bin/bash
-# pre-tool.sh — Harness v3 PreToolUse thin shim (under 5 lines)
-# stdin JSON → core engine → stdout JSON
-node "${CLAUDE_PLUGIN_ROOT}/core/dist/index.js" pre-tool
+# pre-tool.sh — Harness v4 PreToolUse thin shim
+# Delegates to Go binary: stdin JSON → bin/harness hook pre-tool → stdout JSON
+"${CLAUDE_PLUGIN_ROOT}/bin/harness" hook pre-tool

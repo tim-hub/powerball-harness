@@ -43,6 +43,16 @@ var validTargets = map[string]bool{
 	"codex-notify":  true,
 }
 
+// pascalToTarget maps Claude Code's PascalCase hook_event_name values to the
+// kebab-case internal target names. CC sends PascalCase (e.g. "SessionStart")
+// but our validTargets map uses kebab-case (e.g. "session-start").
+var pascalToTarget = map[string]string{
+	"SessionStart":     "session-start",
+	"UserPromptSubmit": "user-prompt",
+	"PostToolUse":      "post-tool-use",
+	"Stop":             "stop",
+}
+
 // bridgeToEventType maps hook target names to harness-mem event_type values.
 var bridgeToEventType = map[string]string{
 	"session-start": "session_start",
@@ -94,6 +104,11 @@ func (c *MemoryBridgeClient) Handle(in io.Reader, out io.Writer) error {
 	}
 
 	target := input.HookEventName
+	// Normalize PascalCase CC event names (e.g. "SessionStart") to the
+	// kebab-case internal targets (e.g. "session-start").
+	if normalized, ok := pascalToTarget[target]; ok {
+		target = normalized
+	}
 	if !validTargets[target] {
 		// Unknown target: log to stderr (matching bash `echo ... >&2; exit 0`)
 		fmt.Fprintf(os.Stderr, "[claude-code-harness] unknown memory bridge target: %s\n", target)

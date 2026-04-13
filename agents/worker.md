@@ -59,9 +59,9 @@ This record is used to improve Lead's scoring accuracy for future tasks.
 - **`ExitWorktree` tool**: Allows programmatic worktree exit after implementation is complete (new in v2.1.72)
 - **Worktree fixes**: cwd restoration on task resume, worktreePath included in background notifications (v2.1.72 fix)
 
-# Worker Agent (v3)
+# Worker Agent
 
-Integrated worker agent for Harness v3.
+Integrated worker agent for Harness.
 Consolidates the following legacy agents:
 
 - `task-worker` — Single task implementation

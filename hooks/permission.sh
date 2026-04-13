@@ -1,4 +1,4 @@
 #!/bin/bash
-# permission.sh — Harness v3 PermissionRequest thin shim
-# stdin JSON → core engine → stdout JSON
-node "${CLAUDE_PLUGIN_ROOT}/core/dist/index.js" permission
+# permission.sh — Harness v4 PermissionRequest thin shim
+# Delegates to Go binary: stdin JSON → bin/harness hook permission → stdout JSON
+"${CLAUDE_PLUGIN_ROOT}/bin/harness" hook permission

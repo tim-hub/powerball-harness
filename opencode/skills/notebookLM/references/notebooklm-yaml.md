@@ -1,33 +1,34 @@
 ---
 name: notebooklm-yaml
+description: "Generates 2 design YAML proposals for NotebookLM's 'Customize Slide Materials'. Use when creating presentation materials."
 allowed-tools: ["Read", "Write"]
 ---
 
 # NotebookLM YAML Skill
 
-NotebookLM のスライド生成で、デザインの方向性をYAMLでコントロールするためのスキル。
+A skill for controlling design direction via YAML in NotebookLM's slide generation.
 
 ---
 
-## トリガーフレーズ
+## Trigger Phrases
 
-- 「NotebookLMのスライドをいい感じのデザインで作りたい」
-- 「プレゼン用のYAMLを作って」
-- 「スライドデザインを2案出して」
-
----
-
-## ヒアリング項目
-
-1. 目的（社内共有/営業/採用/投資家向け）
-2. 想定読者（経営/開発/非エンジニア）
-3. トーン（信頼感/革新/親しみ）
-4. ブランド要素（ロゴ/ブランドカラー/フォント指定）
-5. 写真/図表の比率（写真多め/データ多め）
+- "I want to create NotebookLM slides with a nice design"
+- "Create a YAML for presentations"
+- "Show me 2 slide design proposals"
 
 ---
 
-## 出力
+## Interview Items
 
-- **案A**: ミニマル/コーポレート（可読性・信頼感・データ重視）
-- **案B**: エディトリアル/ストーリー（余白・写真・情緒重視）
+1. Purpose (internal sharing / sales / recruiting / investor-facing)
+2. Target audience (executives / developers / non-engineers)
+3. Tone (trustworthy / innovative / friendly)
+4. Brand elements (logo / brand colors / font preferences)
+5. Photo/chart ratio (photo-heavy / data-heavy)
+
+---
+
+## Output
+
+- **Proposal A**: Minimal/Corporate (readability, trustworthiness, data-focused)
+- **Proposal B**: Editorial/Story (whitespace, photos, emotional appeal)

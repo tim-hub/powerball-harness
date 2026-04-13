@@ -64,7 +64,7 @@ steps:
         - current_phase
     mode: required
 
-  # Step 2.5: Update marker to WIP at task start (absorbs /start-task equivalent)
+  # Step 2.5: Update marker to WIP at task start
   # pm:requested / cursor:requested / cc:TODO → auto-transition to cc:WIP
   - id: update-marker-to-wip
     skill: plans-management

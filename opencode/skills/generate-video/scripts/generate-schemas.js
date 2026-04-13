@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * @file generate-schemas.js
- * @description JSON Schema から Zod スキーマを自動生成
+ * @description Auto-generate Zod schemas from JSON Schema
  *
  * Usage:
  *   npm run generate:schemas
@@ -15,29 +15,29 @@ const path = require('path');
 const { jsonSchemaToZod } = require('json-schema-to-zod');
 const deref = require('json-schema-deref-sync');
 
-// ディレクトリパス
+// Directory paths
 const SCHEMAS_DIR = path.join(__dirname, '../schemas');
 const OUTPUT_DIR = path.join(__dirname, '../src/schemas');
 
 /**
- * JSON Schemaファイルを読み込み、Zodスキーマに変換
+ * Read JSON Schema files and convert them to Zod schemas
  */
 function generateSchemas() {
   console.log('🔧 Starting schema generation...\n');
 
-  // schemasディレクトリの確認
+  // Verify schemas directory exists
   if (!fs.existsSync(SCHEMAS_DIR)) {
     console.error(`❌ Error: schemas directory not found at ${SCHEMAS_DIR}`);
     process.exit(1);
   }
 
-  // 出力ディレクトリの作成
+  // Create output directory
   if (!fs.existsSync(OUTPUT_DIR)) {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     console.log(`✅ Created output directory: ${OUTPUT_DIR}\n`);
   }
 
-  // .schema.json ファイルを検索
+  // Search for .schema.json files
   const schemaFiles = fs
     .readdirSync(SCHEMAS_DIR)
     .filter(file => file.endsWith('.schema.json'));
@@ -51,7 +51,7 @@ function generateSchemas() {
 
   const results = [];
 
-  // 各スキーマファイルを変換
+  // Convert each schema file
   for (const schemaFile of schemaFiles) {
     const schemaPath = path.join(SCHEMAS_DIR, schemaFile);
     const baseName = schemaFile.replace('.schema.json', '');
@@ -60,23 +60,23 @@ function generateSchemas() {
     try {
       console.log(`  Processing: ${schemaFile}`);
 
-      // JSON Schemaを読み込み
+      // Read JSON Schema
       const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
       const schema = JSON.parse(schemaContent);
 
-      // $ref を解決（事前にデリファレンス）
+      // Resolve $ref references (pre-dereference)
       const dereferencedSchema = deref(schema, {
         baseFolder: SCHEMAS_DIR,
         failOnMissing: true,
       });
 
-      // Zodスキーマに変換
+      // Convert to Zod schema
       const zodSchema = jsonSchemaToZod(dereferencedSchema, {
-        module: 'esm', // ES Modules形式
-        name: toPascalCase(baseName), // スキーマ名をPascalCaseに
+        module: 'esm', // ES Modules format
+        name: toPascalCase(baseName), // Convert schema name to PascalCase
       });
 
-      // TypeScript ファイルとして出力
+      // Output as TypeScript file
       const outputContent = generateTypeScriptFile(baseName, zodSchema, schema);
       fs.writeFileSync(outputPath, outputContent, 'utf-8');
 
@@ -92,10 +92,10 @@ function generateSchemas() {
     }
   }
 
-  // インデックスファイルを生成
+  // Generate index file
   generateIndexFile(schemaFiles);
 
-  // 結果サマリー
+  // Results summary
   console.log('\n📊 Generation Summary:');
   const successful = results.filter(r => r.success).length;
   const failed = results.filter(r => !r.success).length;
@@ -110,7 +110,7 @@ function generateSchemas() {
 }
 
 /**
- * TypeScriptファイルの内容を生成
+ * Generate TypeScript file content
  */
 function generateTypeScriptFile(baseName, zodSchema, originalSchema) {
   const schemaName = toPascalCase(baseName);
@@ -168,7 +168,7 @@ export const ${schemaName}Meta = {
 }
 
 /**
- * インデックスファイルを生成
+ * Generate index file
  */
 function generateIndexFile(schemaFiles) {
   const indexPath = path.join(OUTPUT_DIR, 'index.ts');
@@ -193,7 +193,7 @@ ${exports}
 }
 
 /**
- * 文字列をPascalCaseに変換
+ * Convert a string to PascalCase
  */
 function toPascalCase(str) {
   return str
@@ -202,7 +202,7 @@ function toPascalCase(str) {
     .join('');
 }
 
-// 実行
+// Execute
 if (require.main === module) {
   try {
     generateSchemas();

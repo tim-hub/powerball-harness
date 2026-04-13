@@ -1,22 +1,22 @@
 ---
 name: session-control
-description: "Controls session resume/fork(branch) for /work based on --resume/--fork flags. Updates session.json and session.events.jsonl. Internal workflow use only. Do NOT load for: user session management, login state, app state handling."
+description: "Auto-triggered by harness-work when session --resume/--fork flags are present. Do NOT load for: user-facing session management, login state, app state handling, or direct user requests. Internal workflow skill — controls session resume/fork(branch) for /work, updates session.json and session.events.jsonl."
 allowed-tools: ["Read", "Bash", "Write", "Edit"]
 user-invocable: false
 ---
 
 # Session Control Skill
 
-/work の `--resume` / `--fork` フラグに応じてセッション状態を切り替える。
+Switches session state based on the `--resume` / `--fork` flags of /work.
 
-## 機能詳細
+## Feature Details
 
-| 機能 | 詳細 |
-|------|------|
-| **セッション再開/分岐** | See [references/session-control.md](${CLAUDE_SKILL_DIR}/references/session-control.md) |
+| Feature | Details |
+|---------|---------|
+| **Session resume/fork** | See [references/session-control.md](${CLAUDE_SKILL_DIR}/references/session-control.md) |
 
-## 実行手順
+## Execution Steps
 
-1. workflow から渡された変数を確認
-2. `scripts/session-control.sh` を適切な引数で実行
-3. `session.json` と `session.events.jsonl` の更新を確認
+1. Verify variables passed from the workflow
+2. Execute `scripts/session-control.sh` with the appropriate arguments
+3. Confirm updates to `session.json` and `session.events.jsonl`

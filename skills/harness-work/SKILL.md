@@ -1,14 +1,14 @@
 ---
 name: harness-work
-description: "Use this skill whenever the user asks to implement, execute, build, code, 'do everything', 'run all tasks', or mentions harness-work, breezing, team run, parallel execution, or --codex. Also use when the user selects specific task numbers or ranges to execute. Do NOT load for: planning (use harness-plan), code review (use harness-review), release (use harness-release), or project setup (use harness-setup). Unified execution skill for Harness v3 — implements Plans.md tasks from single task to full parallel team runs."
+description: "Use this skill whenever the user asks to implement, execute, build, code, 'do everything', 'run all tasks', or mentions harness-work, breezing, team run, parallel execution, or --codex. Also use when the user selects specific task numbers or ranges to execute. Do NOT load for: planning (use harness-plan), code review (use harness-review), release (use harness-release), or project setup (use harness-setup). Unified execution skill for Harness — implements Plans.md tasks from single task to full parallel team runs."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[all] [task-number|range] [--codex] [--parallel N] [--no-commit] [--resume id] [--breezing] [--auto-mode]"
 effort: high
 ---
 
-# Harness Work (v3)
+# Harness Work
 
-Unified execution skill for Harness v3.
+Unified execution skill for Harness.
 Consolidates the following legacy skills:
 
 - `work` — Plans.md task implementation (auto scope detection)

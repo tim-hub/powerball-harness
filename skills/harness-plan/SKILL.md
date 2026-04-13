@@ -1,15 +1,15 @@
 ---
 name: harness-plan
-description: "Use this skill whenever the user asks to create a plan, add tasks, update Plans.md, mark tasks complete, check progress, sync status, or says 'where am I' or 'what's next'. Also use when the user runs /harness-plan, /harness-sync, or needs to organize work into actionable tasks. Do NOT load for: code implementation (use harness-work), code review (use harness-review), or release tasks (use harness-release). Unified planning skill for Harness v3 — task planning, Plans.md management, and progress sync."
+description: "Use this skill whenever the user asks to create a plan, add tasks, update Plans.md, mark tasks complete, check progress, sync status, or says 'where am I' or 'what's next'. Also use when the user runs /harness-plan, /harness-sync, or needs to organize work into actionable tasks. Do NOT load for: code implementation (use harness-work), code review (use harness-review), or release tasks (use harness-release). Unified planning skill for Harness — task planning, Plans.md management, and progress sync."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "Task"]
 argument-hint: "[create|add|update|sync|sync --no-retro|--ci]"
 effort: medium
 model: opus
 ---
 
-# Harness Plan (v3)
+# Harness Plan
 
-Unified planning skill for Harness v3.
+Unified planning skill for Harness.
 Consolidates the following 3 legacy skills:
 
 - `planning` (plan-with-agent) — Convert ideas into Plans.md

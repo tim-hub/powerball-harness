@@ -99,6 +99,48 @@ func TestHandleMemoryBridge_LogEntry_Format(t *testing.T) {
 	}
 }
 
+// TestHandleMemoryBridge_PascalCaseNormalization verifies that Claude Code's
+// PascalCase hook_event_name values (e.g. "SessionStart") are correctly mapped
+// to their kebab-case internal targets and dispatched properly.
+func TestHandleMemoryBridge_PascalCaseNormalization(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HARNESS_PROJECT_ROOT", dir)
+
+	cases := []struct {
+		ccEventName    string // CC sends this PascalCase name
+		wantLogTarget  string // kebab-case target expected in the JSONL log
+	}{
+		{"SessionStart", "session-start"},
+		{"UserPromptSubmit", "user-prompt"},
+		{"PostToolUse", "post-tool-use"},
+		{"Stop", "stop"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.ccEventName, func(t *testing.T) {
+			var out bytes.Buffer
+			payload := `{"hook_event_name":"` + tc.ccEventName + `","session_id":"s1","cwd":"` + dir + `"}`
+			if err := HandleMemoryBridge(strings.NewReader(payload), &out); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			assertApprove(t, out.String())
+
+			// For "stop" there is no JSONL log entry (finalize-only path skips log for stop)
+			if tc.ccEventName == "Stop" {
+				return
+			}
+			logPath := filepath.Join(dir, ".claude", "state", "memory-bridge-events.jsonl")
+			logData, err := os.ReadFile(logPath)
+			if err != nil {
+				t.Fatalf("event log not created: %v", err)
+			}
+			if !strings.Contains(string(logData), tc.wantLogTarget) {
+				t.Errorf("event log does not contain %q: %s", tc.wantLogTarget, string(logData))
+			}
+		})
+	}
+}
+
 // --- New tests for harness-mem HTTP integration ---
 
 func TestMemoryBridgeClient_PostEvents(t *testing.T) {

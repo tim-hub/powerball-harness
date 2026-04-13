@@ -1,41 +1,41 @@
 # Dual Review (--dual)
 
-Claude Reviewer と Codex Reviewer を並行実行し、異なるモデル視点でレビュー品質を向上させる。
+Run Claude Reviewer and Codex Reviewer in parallel to improve review quality through different model perspectives.
 
-## 前提条件
+## Prerequisites
 
-- Codex CLI がインストール済み（`scripts/codex-companion.sh setup --json` で確認）
-- Codex が利用不可の場合、Claude 単独レビューにフォールバック
+- Codex CLI must be installed (verify with `scripts/codex-companion.sh setup --json`)
+- If Codex is unavailable, falls back to Claude-only review
 
-## 実行フロー
+## Execution Flow
 
-1. Codex の利用可否を確認する
+1. Check Codex availability
 
    ```bash
    CODEX_AVAILABLE="$(bash scripts/codex-companion.sh setup --json 2>/dev/null | jq -r '.ready // false')"
    ```
 
-2. Claude Reviewer を Task ツールで起動（通常の review フロー）
+2. Launch Claude Reviewer via the Task tool (standard review flow)
 
-3. Codex が利用可能であれば `scripts/codex-companion.sh review` を並行起動
+3. If Codex is available, launch `scripts/codex-companion.sh review` in parallel
 
    ```bash
-   # BASE_REF が渡されている場合は --base を指定。--json で構造化出力を取得
+   # If BASE_REF is provided, specify --base. Use --json for structured output
    bash scripts/codex-companion.sh review --base "${BASE_REF:-HEAD~1}" --json
    ```
 
-4. 両方の結果を待ち合わせ
+4. Wait for both results
 
-5. Verdict マージルール（以下の順に評価）:
-   - 両方 APPROVE → `APPROVE`
-   - どちらかが REQUEST_CHANGES → `REQUEST_CHANGES`（厳しい方を採用）
-   - `critical_issues` は両方のリストを統合（重複排除なし）
-   - `major_issues` は両方のリストを統合（重複排除なし）
-   - `recommendations` は重複排除して統合
+5. Verdict merge rules (evaluated in this order):
+   - Both APPROVE -> `APPROVE`
+   - Either is REQUEST_CHANGES -> `REQUEST_CHANGES` (adopt the stricter verdict)
+   - `critical_issues` are combined from both lists (no deduplication)
+   - `major_issues` are combined from both lists (no deduplication)
+   - `recommendations` are deduplicated and combined
 
-## 出力形式
+## Output Format
 
-通常の `review-result.v1` スキーマに `dual_review` フィールドを追加する:
+Adds a `dual_review` field to the standard `review-result.v1` schema:
 
 ```json
 {
@@ -45,7 +45,7 @@ Claude Reviewer と Codex Reviewer を並行実行し、異なるモデル視点
     "claude_verdict": "APPROVE | REQUEST_CHANGES",
     "codex_verdict": "APPROVE | REQUEST_CHANGES | unavailable | timeout",
     "merged_verdict": "APPROVE | REQUEST_CHANGES",
-    "divergence_notes": "判定が分かれた場合の理由。例: Claude は Performance で major 検出、Codex は問題なし"
+    "divergence_notes": "Reason when verdicts diverge. E.g.: Claude detected a major issue in Performance, Codex found no issues"
   },
   "critical_issues": [],
   "major_issues": [],
@@ -54,29 +54,29 @@ Claude Reviewer と Codex Reviewer を並行実行し、異なるモデル視点
 }
 ```
 
-### `codex_verdict` の特殊値
+### Special Values for `codex_verdict`
 
-| 値 | 意味 |
-|----|------|
-| `"unavailable"` | Codex CLI がインストールされていないか利用不可 |
-| `"timeout"` | Codex レビューがタイムアウト（120 秒以内に応答なし） |
+| Value | Meaning |
+|-------|---------|
+| `"unavailable"` | Codex CLI is not installed or unavailable |
+| `"timeout"` | Codex review timed out (no response within 120 seconds) |
 
-## フォールバック
+## Fallback
 
-- **Codex が利用不可**: Claude 単独で実行し、`codex_verdict: "unavailable"` を記録する
-- **Codex がタイムアウト**: Claude の verdict をそのまま採用し、`codex_verdict: "timeout"` を記録する
-- **Codex のレビュー出力が不正**: パース失敗として扱い、`codex_verdict: "unavailable"` を記録する
+- **Codex unavailable**: Execute Claude-only and record `codex_verdict: "unavailable"`
+- **Codex timeout**: Adopt Claude's verdict as-is and record `codex_verdict: "timeout"`
+- **Codex review output invalid**: Treat as parse failure and record `codex_verdict: "unavailable"`
 
-いずれのフォールバックでも、Claude 単独レビューの結果が最終 verdict となる。
+In all fallback cases, the Claude-only review result becomes the final verdict.
 
-## Divergence Notes の書き方
+## Divergence Notes Format
 
-判定が一致した場合（`claude_verdict == codex_verdict`）は `divergence_notes` を空文字列にする。
+When verdicts match (`claude_verdict == codex_verdict`), set `divergence_notes` to an empty string.
 
-判定が分かれた場合は以下の形式で記録する:
+When verdicts diverge, record in the following format:
 
 ```
-Claude: REQUEST_CHANGES（Security - SQLインジェクションのリスク）
-Codex: APPROVE（同箇所を問題なしと判定）
-採用: REQUEST_CHANGES（厳しい方を優先）
+Claude: REQUEST_CHANGES (Security - SQL injection risk)
+Codex: APPROVE (assessed the same location as no issue)
+Adopted: REQUEST_CHANGES (prioritize the stricter verdict)
 ```

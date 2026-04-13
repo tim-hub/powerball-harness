@@ -1,33 +1,34 @@
 ---
 name: frontend-design-summary
+description: "Summary of frontend-design thinking and aesthetic guidelines"
 ---
 
 # Frontend Design Summary
 
-UI の独自性と美的完成度を高めるための設計指針。
-明示要求がある場合のみ適用する。
+Design guidelines for enhancing UI uniqueness and aesthetic completeness.
+Apply only when explicitly requested.
 
-## 設計思考（最初に決める）
-- Purpose: 誰の何を解決する UI か
-- Tone: 大胆な方向性を 1 つ選ぶ（例: minimal / brutalist / editorial / playful）
-- Constraints: 技術制約と a11y
-- Differentiation: その UI の「記憶に残る 1 点」を決める
+## Design Thinking (Decide First)
+- Purpose: Whose problem is this UI solving?
+- Tone: Choose one bold direction (e.g., minimal / brutalist / editorial / playful)
+- Constraints: Technical constraints and a11y
+- Differentiation: Decide on the "one memorable thing" about this UI
 
-## 実装の品質基準
-- Production-grade で実際に動く
-- 視覚的に印象が強く、一貫した方向性
-- 細部の詰め（余白、階層、状態）
+## Implementation Quality Criteria
+- Production-grade and actually functional
+- Visually striking with a consistent direction
+- Attention to detail (spacing, hierarchy, states)
 
-## デザイン指針
-- Typography: 目を引く display と読みやすい body のペア
-- Color: 主役色と鋭いアクセントを明確に
-- Motion: 大きな 1 回の演出に集中（分散しすぎない）
-- Space: 余白 or 高密度を意図的に選ぶ
-- Background: 雰囲気のあるレイヤーや質感（必要なら）
+## Design Guidelines
+- Typography: Pair an eye-catching display font with a readable body font
+- Color: Clearly define a primary color and a sharp accent
+- Motion: Focus on one big impactful moment (avoid scattering)
+- Space: Intentionally choose generous whitespace or high density
+- Background: Atmospheric layers and textures (when needed)
 
-## 注意
-- 方向性は「意図の強さ」が重要。派手さの有無ではない。
-- 実装の複雑さはデザインの方向性に合わせる。
+## Notes
+- What matters for direction is "strength of intent", not whether it's flashy.
+- Implementation complexity should match the design direction.
 
 ## Source
 - external frontend-design skill (Anthropic)

@@ -32,9 +32,9 @@ hooks:
 - **Lead's responsibility**: For security-related tasks, inject `ultrathink` into Reviewer spawn prompt
 - **model override (v2.1.72)**: Lead can specify Reviewer's model at spawn time via Agent tool's `model` parameter (future use)
 
-# Reviewer Agent (v3)
+# Reviewer Agent
 
-Integrated reviewer agent for Harness v3.
+Integrated reviewer agent for Harness.
 Consolidates the following legacy agents:
 
 - `code-reviewer` — Code review (Security/Performance/Quality/Accessibility)

@@ -1,83 +1,84 @@
 ---
 name: core-general-principles
+description: "Provides fundamental development principles and safety rules. Basic guidelines applied to all tasks."
 ---
 
 # General Principles
 
-claude-code-harness を使用する際の基本原則です。すべてのワークフローで適用されます。
+Fundamental principles for using claude-code-harness. Applied to all workflows.
 
 ---
 
-## 安全性の原則
+## Safety Principles
 
-### 1. 確認してから変更する
+### 1. Verify Before Modifying
 
-ファイルを編集する前に、必ず以下を確認：
+Before editing a file, always verify the following:
 
-- **Read ツールで内容を確認**: 既存のコードを理解してから変更
-- **影響範囲を把握**: 変更が他のファイルに与える影響を考慮
-- **バックアップの考慮**: 重要な変更前は git status を確認
+- **Check contents with the Read tool**: Understand existing code before making changes
+- **Understand the scope of impact**: Consider how changes affect other files
+- **Consider backups**: Check git status before making significant changes
 
-### 2. 最小限の差分で編集
+### 2. Edit with Minimal Diffs
 
 ```
-❌ 悪い例: ファイル全体を書き換える
-✅ 良い例: Edit ツールで必要な部分のみ変更
+Bad example: Rewrite the entire file
+Good example: Change only the necessary parts with the Edit tool
 ```
 
-### 3. 設定ファイルの尊重
+### 3. Respect Configuration Files
 
-`claude-code-harness.config.json` の設定に従う：
+Follow the settings in `claude-code-harness.config.json`:
 
 - `safety.mode`: dry-run / apply-local / apply-and-push
-- `paths.protected`: 保護されたパスは変更しない
-- `paths.allowed_modify`: 許可されたパスのみ変更
+- `paths.protected`: Do not modify protected paths
+- `paths.allowed_modify`: Only modify allowed paths
 
 ---
 
-## 作業の原則
+## Work Principles
 
-### 1. Plans.md を常に更新
+### 1. Always Update Plans.md
 
-- タスク開始時: `cc:TODO` → `cc:WIP`
-- タスク完了時: `cc:WIP` → `cc:完了`
-- ブロック時: `blocked` を付与し理由を記載
+- At task start: `cc:TODO` -> `cc:WIP`
+- At task completion: `cc:WIP` -> `cc:done`
+- When blocked: Add `blocked` with a reason
 
-### 2. 段階的に進める
+### 2. Proceed Incrementally
 
 ```
-1. 調査・理解 → 2. 計画 → 3. 実装 → 4. 確認 → 5. 報告
+1. Research & Understand -> 2. Plan -> 3. Implement -> 4. Verify -> 5. Report
 ```
 
-### 3. エラー時の対応
+### 3. Error Handling
 
-- 最大 3 回の自動リトライ
-- 解決しない場合はエスカレーション（報告）
-- エラー内容と試した対処を明記
-
----
-
-## コミュニケーションの原則
-
-### VibeCoder 対応
-
-技術知識がなくても理解できるよう：
-
-- **専門用語を避ける**: または説明を添える
-- **次のアクションを提示**: 「次は〇〇と言ってください」
-- **進捗を可視化**: 完了したこと、残っていることを明確に
-
-### PM（Cursor）との連携
-
-- **Plans.md で状態を共有**: 単一ソースとして維持
-- **完了報告は `/handoff-to-cursor`**: フォーマットに従う
-- **スコープを守る**: 依頼された範囲外の作業は確認を取る
+- Up to 3 automatic retries
+- Escalate (report) if unresolved
+- Clearly state the error and attempted fixes
 
 ---
 
-## 禁止事項
+## Communication Principles
 
-1. **本番環境への直接デプロイ**（staging まで）
-2. **機密情報のハードコード**（.env を使用）
-3. **保護されたパスの変更**（.github/, secrets/ など）
-4. **ユーザー確認なしの破壊的操作**（rm -rf など）
+### VibeCoder Support
+
+To ensure understanding even without technical knowledge:
+
+- **Avoid jargon**: Or add explanations alongside
+- **Suggest next actions**: "Next, please say [something]"
+- **Visualize progress**: Clearly show what's done and what remains
+
+### Collaboration with PM (Cursor)
+
+- **Share state via Plans.md**: Maintain as a single source of truth
+- **Use `/handoff-to-cursor` for completion reports**: Follow the format
+- **Stay within scope**: Get confirmation before working outside the requested scope
+
+---
+
+## Prohibited Actions
+
+1. **Direct deployment to production** (staging only)
+2. **Hardcoding sensitive information** (use .env)
+3. **Modifying protected paths** (.github/, secrets/, etc.)
+4. **Destructive operations without user confirmation** (rm -rf, etc.)

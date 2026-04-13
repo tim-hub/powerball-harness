@@ -1,25 +1,25 @@
 ---
 name: principles
-description: "Provides development principles, guidelines, and VibeCoder guidance. Use when user mentions principles, guidelines, safety, or diff-aware editing. Do not use for actual implementation—use the impl skill instead."
+description: "Use this skill when the user asks about coding principles, development guidelines, safe editing practices, or VibeCoder guidance. Also use when another skill needs to reference general development standards. Do NOT load for: actual code implementation (use harness-work instead), code reviews, or project setup. Reference for development principles, guidelines, and VibeCoder best practices — including diff-aware editing, repo context reading, and safety guardrails."
 allowed-tools: ["Read"]
 user-invocable: false
 ---
 
 # Principles Skills
 
-開発原則とガイドラインを提供するスキル群です。
+A collection of skills that provide development principles and guidelines.
 
-## 機能詳細
+## Feature Details
 
-| 機能 | 詳細 |
-|------|------|
-| **基本原則** | See [references/general-principles.md](${CLAUDE_SKILL_DIR}/references/general-principles.md) |
-| **差分編集** | See [references/diff-aware-editing.md](${CLAUDE_SKILL_DIR}/references/diff-aware-editing.md) |
-| **コンテキスト読み取り** | See [references/repo-context-reading.md](${CLAUDE_SKILL_DIR}/references/repo-context-reading.md) |
+| Feature | Details |
+|---------|--------|
+| **General Principles** | See [references/general-principles.md](${CLAUDE_SKILL_DIR}/references/general-principles.md) |
+| **Diff-Aware Editing** | See [references/diff-aware-editing.md](${CLAUDE_SKILL_DIR}/references/diff-aware-editing.md) |
+| **Context Reading** | See [references/repo-context-reading.md](${CLAUDE_SKILL_DIR}/references/repo-context-reading.md) |
 | **VibeCoder** | See [references/vibecoder-guide.md](${CLAUDE_SKILL_DIR}/references/vibecoder-guide.md) |
 
-## 実行手順
+## Execution Steps
 
-1. ユーザーのリクエストを分類
-2. 上記の「機能詳細」から適切な参照ファイルを読む
-3. その内容を参照・適用
+1. Classify the user's request
+2. Read the appropriate reference file from "Feature Details" above
+3. Reference and apply its contents

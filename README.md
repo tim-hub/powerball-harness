@@ -29,7 +29,7 @@ Claude Code is powerful. Harness turns that raw capability into a delivery loop 
   <img src="assets/readme-visuals-en/generated/why-harness-pillars.svg" alt="What changes with Claude Harness: shared plan, runtime guardrails, and rerunnable validation" width="860">
 </p>
 
-The 5 verb skills keep setup, plan, work, review, and release on one path. The TypeScript guardrail engine protects execution, and validation can be rerun when you need proof.
+The 5 verb skills keep setup, plan, work, review, and release on one path. The Go-native guardrail engine protects execution, and validation can be rerun when you need proof.
 
 ## Compared With Popular Claude Code Harnesses
 
@@ -53,7 +53,7 @@ Supported baseline and latest verified snapshot: see [Claude Code Compatibility]
 ## Requirements
 
 - **Claude Code v2.1+** ([Install Guide](https://docs.anthropic.com/claude-code))
-- **Node.js 18+** (for TypeScript core engine & safety hooks)
+- **Go 1.22+** runtime (included in pre-built binary; no separate install needed)
 
 ---
 
@@ -174,7 +174,7 @@ Packages the verified result into CHANGELOG, tag, and release handoff steps afte
   <img src="assets/readme-visuals-en/generated/safety-guardrails.svg" alt="Safety Protection System" width="640">
 </p>
 
-Harness v3 protects your codebase with a **TypeScript guardrail engine** (`core/`) — 13 declarative rules (R01–R13), compiled and type-checked:
+Harness protects your codebase with a **Go-native guardrail engine** (`go/internal/guardrail/`) — 13 declarative rules (R01–R13), compiled and type-checked:
 
 | Rule | Protected | Action |
 |------|-----------|--------|
@@ -244,14 +244,12 @@ v3 unifies 42 skills into **5 verb skills**. Start with the verbs first, then ad
 
 ```
 claude-code-harness/
-├── core/           # TypeScript guardrail engine (strict ESM, NodeNext)
-│   └── src/        #   guardrails/ state/ engine/
-├── skills/      # 5 verb skills (plan/execute/review/release/setup)
-├── agents/      # 3 agents (worker/reviewer/scaffolder)
-├── hooks/          # Thin shims → core/ engine
-├── skills/         # Legacy skills (retained for compatibility)
-├── agents/         # Legacy agents (retained for compatibility)
-├── scripts/        # Hook scripts (coexist with v3 core)
+├── go/             # Go-native guardrail engine (bin/harness binary)
+│   └── internal/   #   guardrail/ hookhandler/ doctor/
+├── skills/         # 5 verb skills (plan/execute/review/release/setup)
+├── agents/         # 3 agents (worker/reviewer/scaffolder)
+├── hooks/          # Thin shims → Go binary
+├── scripts/        # Helper scripts
 └── templates/      # Generation templates
 ```
 
@@ -356,7 +354,7 @@ Skill packs can teach a prompt. Harness also enforces behavior at runtime.
 | Command not found | Run `/harness-setup` first |
 | `harness-*` commands missing on Windows | Update or reinstall the plugin. Public command skills now ship as real directories, so `core.symlinks=false` no longer hides them. |
 | Plugin not loading | Clear cache: `rm -rf ~/.claude/plugins/cache/claude-code-harness-marketplace/` and restart |
-| Hooks not working | Ensure Node.js 18+ is installed |
+| Hooks not working | Ensure `bin/harness` is executable (`chmod +x bin/harness`) and `CLAUDE_PLUGIN_ROOT` is set |
 
 For more help, [open an issue](https://github.com/tim-hub/powerball-harness/issues).
 
@@ -385,6 +383,7 @@ Full list: [docs/CLAUDE-feature-table.md](docs/CLAUDE-feature-table.md)
 | [Changelog](CHANGELOG.md) | Version history |
 | [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md) | Requirements |
 | [Distribution Scope](docs/distribution-scope.md) | Included vs compatibility vs development-only paths |
+| [Cursor Integration](docs/CURSOR_INTEGRATION.md) | Using Harness with Cursor IDE |
 | [Work All Evidence Pack](docs/evidence/work-all.md) | Success/failure verification contract |
 | [Benchmark Rubric](docs/benchmark-rubric.md) | Static vs executed evidence scoring |
 | [Positioning Notes](docs/positioning-notes.md) | Public-facing differentiation language |

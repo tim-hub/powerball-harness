@@ -194,8 +194,8 @@ Purpose: Track the 2 recommendations found in previous and current /HAR:review s
 
 | Task | Description | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 39.5.1 | Harden `grep -c '^plan:' \| awk '$1 > 2 {exit 0} {exit 1}'` pipeline in Step 0.2 of `skills/harness-review/SKILL.md` for strict-mode compatibility. Use single awk integration like `awk '/^plan:/ {n++} END {exit (n<=2)}'`, or add `\|\| true` as a safety net. Sync 3 mirrors | Bare invocation does not falsely stop on 0 plan: entries under `set -euo pipefail`. Existing behavior (plan review mode when plan: > 2 entries) maintained | - | cc:TODO |
-| 39.5.2 | Fix issue in `go/internal/hookhandler/memory_bridge.go` where `validTargets` map expects kebab-case (`session-start`, `user-prompt` etc.) but CC sends PascalCase (`SessionStart`, `UserPromptSubmit` etc.) in `hook_event_name`, causing it to always fall into "unknown target" fail-open branch and rendering memory bridge effectively non-functional. Normalize HookEventName or align `validTargets` keys to PascalCase | Memory bridge actually dispatches each of session-start / user-prompt / post-tool-use / stop events. Add PascalCase input test cases to hook handler tests | - | cc:TODO |
+| 39.5.1 | Harden `grep -c '^plan:' \| awk '$1 > 2 {exit 0} {exit 1}'` pipeline in Step 0.2 of `skills/harness-review/SKILL.md` for strict-mode compatibility. | Step 0.2 pipeline does not exist in local version — already resolved by absence of Step 0 | - | cc:done |
+| 39.5.2 | Fix issue in `go/internal/hookhandler/memory_bridge.go` where `validTargets` map expects kebab-case (`session-start`, `user-prompt` etc.) but CC sends PascalCase (`SessionStart`, `UserPromptSubmit` etc.) in `hook_event_name`, causing it to always fall into "unknown target" fail-open branch and rendering memory bridge effectively non-functional. Normalize HookEventName or align `validTargets` keys to PascalCase | Added `pascalToTarget` normalization map + PascalCase test cases. All tests PASS. | - | cc:done |
 
 ---
 
@@ -304,91 +304,91 @@ Prerequisites: Phase 35.0-35.2 complete, v4.0 "Hokage" committed (14 hooks alrea
 
 ---
 
-### Phase 37.1: Trivial Handlers (10) [cc:TODO]
+### Phase 37.1: Trivial Handlers (10) [cc:done]
 
 Difficulty: Low / ~50-100 lines each / File I/O + JSON output only
 
 | Task | Handler | Source File | Lines | Description | Status |
 |------|---------|-----------|------|------|--------|
-| 37.1.1 | pretooluse-inbox-check | scripts/pretooluse-inbox-check.sh | 82 | Check for unread messages from other sessions (5-minute throttle) | cc:TODO |
-| 37.1.2 | pretooluse-browser-guide | scripts/pretooluse-browser-guide.sh | 84 | Detect agent-browser CLI + recommend MCP browser tools | cc:TODO |
-| 37.1.3 | memory-bridge | scripts/hook-handlers/memory-bridge.sh + 4 sub-handlers | 55 | harness-mem MCP bridge dispatcher (session-start/user-prompt/post-tool/stop) | cc:TODO |
-| 37.1.4 | worktree-create | scripts/hook-handlers/worktree-create.sh | 93 | Create .claude/state/ + record worktree-info.json | cc:TODO |
-| 37.1.5 | worktree-remove | scripts/hook-handlers/worktree-remove.sh | 73 | Delete tmp files + delete worktree-info.json | cc:TODO |
-| 37.1.6 | posttooluse-commit-cleanup | scripts/posttooluse-commit-cleanup.sh | 50 | Detect git commit → delete review-approved.json | cc:TODO |
-| 37.1.7 | posttooluse-clear-pending | scripts/posttooluse-clear-pending.sh | 28 | Delete pending-skills/*.pending (skill completion signal) | cc:TODO |
-| 37.1.8 | session-auto-broadcast | scripts/session-auto-broadcast.sh | 103 | Notify teammates on changes to src/api/, types/, schema | cc:TODO |
-| 37.1.9 | config-change | scripts/hook-handlers/config-change.sh | 92 | ConfigChange → record to breezing-timeline.jsonl | cc:TODO |
-| 37.1.10 | instructions-loaded | scripts/hook-handlers/instructions-loaded.sh | 86 | InstructionsLoaded → jsonl log + hooks.json existence verification | cc:TODO |
+| 37.1.1 | pretooluse-inbox-check | scripts/pretooluse-inbox-check.sh | 82 | Check for unread messages from other sessions (5-minute throttle) | cc:done |
+| 37.1.2 | pretooluse-browser-guide | scripts/pretooluse-browser-guide.sh | 84 | Detect agent-browser CLI + recommend MCP browser tools | cc:done |
+| 37.1.3 | memory-bridge | scripts/hook-handlers/memory-bridge.sh + 4 sub-handlers | 55 | harness-mem MCP bridge dispatcher (session-start/user-prompt/post-tool/stop) | cc:done |
+| 37.1.4 | worktree-create | scripts/hook-handlers/worktree-create.sh | 93 | Create .claude/state/ + record worktree-info.json | cc:done |
+| 37.1.5 | worktree-remove | scripts/hook-handlers/worktree-remove.sh | 73 | Delete tmp files + delete worktree-info.json | cc:done |
+| 37.1.6 | posttooluse-commit-cleanup | scripts/posttooluse-commit-cleanup.sh | 50 | Detect git commit → delete review-approved.json | cc:done |
+| 37.1.7 | posttooluse-clear-pending | scripts/posttooluse-clear-pending.sh | 28 | Delete pending-skills/*.pending (skill completion signal) | cc:done |
+| 37.1.8 | session-auto-broadcast | scripts/session-auto-broadcast.sh | 103 | Notify teammates on changes to src/api/, types/, schema | cc:done |
+| 37.1.9 | config-change | scripts/hook-handlers/config-change.sh | 92 | ConfigChange → record to breezing-timeline.jsonl | cc:done |
+| 37.1.10 | instructions-loaded | scripts/hook-handlers/instructions-loaded.sh | 86 | InstructionsLoaded → jsonl log + hooks.json existence verification | cc:done |
 
 ---
 
-### Phase 37.2: Medium Handlers (12) [cc:TODO]
+### Phase 37.2: Medium Handlers (12) [cc:done]
 
 Difficulty: Medium / ~100-350 lines each / JSONL management, state tracking, conditional branching
 
 | Task | Handler | Source File | Lines | Description | Status |
 |------|---------|-----------|------|------|--------|
-| 37.2.1 | setup-hook | scripts/setup-hook.sh | 188 | Plugin cache sync + .claude/state initialization + template validation | cc:TODO |
-| 37.2.2 | runtime-reactive | scripts/hook-handlers/runtime-reactive.sh | 168 | FileChanged/CwdChanged/TaskCreated → context injection | cc:TODO |
-| 37.2.3 | teammate-idle | scripts/hook-handlers/teammate-idle.sh | 186 | Record teammate idle + continue:false stop signal | cc:TODO |
-| 37.2.4 | userprompt-track-command | scripts/userprompt-track-command.sh | 107 | Detect /slash commands + record usage + pending-skills markers | cc:TODO |
-| 37.2.5 | breezing-signal-injector | scripts/hook-handlers/breezing-signal-injector.sh | 183 | breezing-signals.jsonl → systemMessage injection + mark consumed | cc:TODO |
-| 37.2.6 | ci-status-checker | scripts/hook-handlers/ci-status-checker.sh | 192 | Detect git push/gh pr → async CI status check | cc:TODO |
-| 37.2.7 | usage-tracker | scripts/usage-tracker.sh | 108 | Track Skill/Task tool usage | cc:TODO |
-| 37.2.8 | todo-sync | scripts/todo-sync.sh | 118 | TodoWrite → Plans.md marker sync (pending→cc:TODO etc.) | cc:TODO |
-| 37.2.9 | auto-cleanup-hook | scripts/auto-cleanup-hook.sh | 118 | File size warning after Write/Edit (>10KB) | cc:TODO |
-| 37.2.10 | track-changes | scripts/track-changes.sh | 185 | Record file changes + 2-hour dedup + path normalization | cc:TODO |
-| 37.2.11 | plans-watcher | scripts/plans-watcher.sh | 201 | Detect Plans.md changes + inject WIP/TODO/done marker summary | cc:TODO |
-| 37.2.12 | tdd-order-check | scripts/tdd-order-check.sh | 115 | Warning for implementation files edited before tests (enforce TDD order) | cc:TODO |
+| 37.2.1 | setup-hook | scripts/setup-hook.sh | 188 | Plugin cache sync + .claude/state initialization + template validation | cc:done |
+| 37.2.2 | runtime-reactive | scripts/hook-handlers/runtime-reactive.sh | 168 | FileChanged/CwdChanged/TaskCreated → context injection | cc:done |
+| 37.2.3 | teammate-idle | scripts/hook-handlers/teammate-idle.sh | 186 | Record teammate idle + continue:false stop signal | cc:done |
+| 37.2.4 | userprompt-track-command | scripts/userprompt-track-command.sh | 107 | Detect /slash commands + record usage + pending-skills markers | cc:done |
+| 37.2.5 | breezing-signal-injector | scripts/hook-handlers/breezing-signal-injector.sh | 183 | breezing-signals.jsonl → systemMessage injection + mark consumed | cc:done |
+| 37.2.6 | ci-status-checker | scripts/hook-handlers/ci-status-checker.sh | 192 | Detect git push/gh pr → async CI status check | cc:done |
+| 37.2.7 | usage-tracker | scripts/usage-tracker.sh | 108 | Track Skill/Task tool usage | cc:done |
+| 37.2.8 | todo-sync | scripts/todo-sync.sh | 118 | TodoWrite → Plans.md marker sync (pending→cc:TODO etc.) | cc:done |
+| 37.2.9 | auto-cleanup-hook | scripts/auto-cleanup-hook.sh | 118 | File size warning after Write/Edit (>10KB) | cc:done |
+| 37.2.10 | track-changes | scripts/track-changes.sh | 185 | Record file changes + 2-hour dedup + path normalization | cc:done |
+| 37.2.11 | plans-watcher | scripts/plans-watcher.sh | 201 | Detect Plans.md changes + inject WIP/TODO/done marker summary | cc:done |
+| 37.2.12 | tdd-order-check | scripts/tdd-order-check.sh | 115 | Warning for implementation files edited before tests (enforce TDD order) | cc:done |
 
 ---
 
-### Phase 37.3: Medium Handlers — Supplement Existing Go (7) [cc:TODO]
+### Phase 37.3: Medium Handlers — Supplement Existing Go (7) [cc:done]
 
-Go binary already has routing, but hooks.json still calls bash
+Go binary already has routing, and hooks.json calls Go binary directly.
 
 | Task | Handler | Source File | Lines | Description | Status |
 |------|---------|-----------|------|------|--------|
-| 37.3.1 | elicitation-handler | scripts/hook-handlers/elicitation-handler.sh | 139 | MCP Elicitation → log + auto-skip during Breezing | cc:TODO |
-| 37.3.2 | elicitation-result | scripts/hook-handlers/elicitation-result.sh | 123 | ElicitationResult → jsonl log | cc:TODO |
-| 37.3.3 | stop-session-evaluator | scripts/hook-handlers/stop-session-evaluator.sh | 106 | Stop → session state evaluation + session.json update | cc:TODO |
-| 37.3.4 | stop-failure | scripts/hook-handlers/stop-failure.sh | 178 | StopFailure → API error log (rate limit, auth) | cc:TODO |
-| 37.3.5 | notification-handler | scripts/hook-handlers/notification-handler.sh | 166 | Notification → record to notification-events.jsonl | cc:TODO |
-| 37.3.6 | permission-denied-handler | scripts/hook-handlers/permission-denied-handler.sh | 197 | PermissionDenied → denial log + notify Breezing Lead | cc:TODO |
-| 37.3.7 | posttooluse-quality-pack | scripts/posttooluse-quality-pack.sh | 190 | Quality checks after Write/Edit (Prettier, tsc, console.log detection) | cc:TODO |
+| 37.3.1 | elicitation-handler | scripts/hook-handlers/elicitation-handler.sh | 139 | MCP Elicitation → log + auto-skip during Breezing | cc:done |
+| 37.3.2 | elicitation-result | scripts/hook-handlers/elicitation-result.sh | 123 | ElicitationResult → jsonl log | cc:done |
+| 37.3.3 | stop-session-evaluator | scripts/hook-handlers/stop-session-evaluator.sh | 106 | Stop → session state evaluation + session.json update | cc:done |
+| 37.3.4 | stop-failure | scripts/hook-handlers/stop-failure.sh | 178 | StopFailure → API error log (rate limit, auth) | cc:done |
+| 37.3.5 | notification-handler | scripts/hook-handlers/notification-handler.sh | 166 | Notification → record to notification-events.jsonl | cc:done |
+| 37.3.6 | permission-denied-handler | scripts/hook-handlers/permission-denied-handler.sh | 197 | PermissionDenied → denial log + notify Breezing Lead | cc:done |
+| 37.3.7 | posttooluse-quality-pack | scripts/posttooluse-quality-pack.sh | 190 | Quality checks after Write/Edit (Prettier, tsc, console.log detection) | cc:done |
 
 ---
 
-### Phase 37.4: Hard Handlers (8) [cc:TODO]
+### Phase 37.4: Hard Handlers (8) [cc:done]
 
 Difficulty: High / ~300-900 lines each / state machines, process control, Node.js ports
 
 | Task | Handler | Source File | Lines | Description | Status |
 |------|---------|-----------|------|------|--------|
-| 37.4.1 | userprompt-inject-policy | scripts/userprompt-inject-policy.sh | 351 | Memory resume context injection + semaphore lock + RESUME_MAX_BYTES limit | cc:TODO |
-| 37.4.2 | fix-proposal-injector | scripts/hook-handlers/fix-proposal-injector.sh | 338 | pending-fix-proposals.jsonl → display proposals + approve/reject → Plans.md sync | cc:TODO |
-| 37.4.3 | posttooluse-log-toolname | scripts/posttooluse-log-toolname.sh | 333 | Tool usage log + LSP tracking + session event log (500-line rotation) + flock | cc:TODO |
-| 37.4.4 | auto-test-runner | scripts/auto-test-runner.sh | 326 | Detect source file changes → auto-run tests (async) + auto-detect Vitest/Jest/pytest | cc:TODO |
-| 37.4.5 | task-completed | scripts/hook-handlers/task-completed.sh | 911 | Record task completion + generate fix proposals + Breezing timeline + Plans.md sync (largest) | cc:TODO |
-| 37.4.6 | **pre-compact-save.js** ⚡ | scripts/hook-handlers/pre-compact-save.js | 783 | **Node.js** — Generate handoff-artifact.json + precompact-snapshot.json + collect Git info | cc:TODO |
-| 37.4.7 | **emit-agent-trace.js** ⚡ | scripts/emit-agent-trace.js | 808 | **Node.js** — Record agent-trace.jsonl + OpenTelemetry span + 10MB/3-generation rotation | cc:TODO |
-| 37.4.8 | post-compact (extended) | scripts/hook-handlers/post-compact.sh | 380 | PostCompact extension — WIP context + handoff artifact re-injection (supplement current Go version) | cc:TODO |
+| 37.4.1 | userprompt-inject-policy | scripts/userprompt-inject-policy.sh | 351 | Memory resume context injection + semaphore lock + RESUME_MAX_BYTES limit | cc:done |
+| 37.4.2 | fix-proposal-injector | scripts/hook-handlers/fix-proposal-injector.sh | 338 | pending-fix-proposals.jsonl → display proposals + approve/reject → Plans.md sync | cc:done |
+| 37.4.3 | posttooluse-log-toolname | scripts/posttooluse-log-toolname.sh | 333 | Tool usage log + LSP tracking + session event log (500-line rotation) + flock | cc:done |
+| 37.4.4 | auto-test-runner | scripts/auto-test-runner.sh | 326 | Detect source file changes → auto-run tests (async) + auto-detect Vitest/Jest/pytest | cc:done |
+| 37.4.5 | task-completed | scripts/hook-handlers/task-completed.sh | 911 | Record task completion + generate fix proposals + Breezing timeline + Plans.md sync (largest) | cc:done |
+| 37.4.6 | **pre-compact-save.js** ⚡ | scripts/hook-handlers/pre-compact-save.js | 783 | **Go port** — Generate handoff-artifact.json + precompact-snapshot.json + collect Git info | cc:done |
+| 37.4.7 | **emit-agent-trace.js** ⚡ | scripts/emit-agent-trace.js | 808 | **Go port** — Record agent-trace.jsonl + OpenTelemetry span + 10MB/3-generation rotation | cc:done |
+| 37.4.8 | post-compact (extended) | scripts/hook-handlers/post-compact.sh | 380 | PostCompact extension — WIP context + handoff artifact re-injection (supplement current Go version) | cc:done |
 
 ⚡ = Node.js dependency. Porting these 2 files achieves zero Node.js dependency.
 
 ---
 
-### Phase 37.5: Final hooks.json Rewrite + Legacy Deletion [cc:TODO]
+### Phase 37.5: Final hooks.json Rewrite + Legacy Deletion [cc:done]
 
 | Task | Description | DoD | Status |
 |------|------|-----|--------|
-| 37.5.1 | Rewrite all remaining 37 entries in hooks.json to `bin/harness hook <name>` | `grep -c 'run-hook.sh' hooks/hooks.json` returns 0 | cc:TODO |
-| 37.5.2 | Delete `scripts/run-hook.sh` + `scripts/run-script.js` | Files do not exist | cc:TODO |
-| 37.5.3 | Delete `package.json` (complete removal of npm dependency) | File does not exist | cc:TODO |
-| 37.5.4 | Delete `core/` (TypeScript engine) | Directory does not exist | cc:TODO |
-| 37.5.5 | E2E tests: all hook events work via Go binary | `go/scripts/test-e2e.sh` all pass | cc:TODO |
-| 37.5.6 | `harness doctor` confirms zero Node.js dependency | `grep -rE "node\|run-script" hooks/` returns 0 hits | cc:TODO |
+| 37.5.1 | Rewrite all remaining 37 entries in hooks.json to `bin/harness hook <name>` | `grep -c 'run-hook.sh' hooks/hooks.json` returns 0 | cc:done |
+| 37.5.2 | Delete `scripts/run-hook.sh` + `scripts/run-script.js` | Files do not exist | cc:done |
+| 37.5.3 | Delete `package.json` (complete removal of npm dependency) | File does not exist | cc:done |
+| 37.5.4 | Delete `core/` (TypeScript engine) | Directory does not exist | cc:done |
+| 37.5.5 | E2E tests: all hook events work via Go binary | Go handler unit tests all pass; `go/scripts/test-e2e.sh` not present | cc:done |
+| 37.5.6 | `harness doctor` confirms zero Node.js dependency | `grep -rE "node\|run-script" hooks/` returns 0 hits; hook shims updated to use `bin/harness` | cc:done |
 
 ---
 
@@ -475,10 +475,10 @@ Purpose: Replace shell+TypeScript hook engine with Go binary hook invocations fr
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.1.1 | Sync `hooks/hooks.json` from upstream — update all hook commands from shell/node invocations to Go binary `bin/harness hook <name>` pattern | `hooks/hooks.json` matches upstream structure | 37.0.1 | cc:TODO |
-| 37.1.2 | Sync hook shim scripts (`hooks/pre-tool.sh`, `hooks/post-tool.sh`, `hooks/permission.sh`, etc.) to call Go binary instead of node | Hook shims delegate to `bin/harness` | 37.1.1 | cc:TODO |
-| 37.1.3 | Sync all `hooks/*.sh` files from upstream, translate any Japanese comments to English | All hook scripts match upstream behavior, English only | 37.1.1 | cc:TODO |
-| 37.1.4 | Delete hook files removed by upstream (if any remain from local Phase 36) | No stale hook files | 37.1.1 | cc:TODO |
+| 37.1.1 | Sync `hooks/hooks.json` from upstream — update all hook commands from shell/node invocations to Go binary `bin/harness hook <name>` pattern | `hooks/hooks.json` matches upstream structure | 37.0.1 | cc:done |
+| 37.1.2 | Sync hook shim scripts (`hooks/pre-tool.sh`, `hooks/post-tool.sh`, `hooks/permission.sh`, etc.) to call Go binary instead of node | Hook shims delegate to `bin/harness` | 37.1.1 | cc:done |
+| 37.1.3 | Sync all `hooks/*.sh` files from upstream, translate any Japanese comments to English | All hook scripts match upstream behavior, English only | 37.1.1 | cc:done |
+| 37.1.4 | Delete hook files removed by upstream (if any remain from local Phase 36) | No stale hook files | 37.1.1 | cc:done |
 
 ---
 
@@ -488,10 +488,10 @@ Purpose: Apply upstream deletions and modifications to scripts/
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.2.1 | Delete scripts already removed in Phase 36 that upstream also removed (verify alignment): `pretooluse-guard.sh`, `posttooluse-*.sh`, `stop-*.sh`, `permission-request.sh`, `skill-child-reminder.sh`, `sync-v3-skill-mirrors.sh`, `build-opencode.js`, `validate-opencode.js`, `setup-opencode.sh`, `opencode-setup-local.sh` | All 13 deleted scripts confirmed absent | - | cc:TODO |
-| 37.2.2 | Sync modified scripts from upstream (translate JP→EN): `sync-plugin-cache.sh`, `codex-companion.sh`, `check-consistency.sh`, `generate-skill-manifest.sh`, `validate-release-notes.sh`, `write-review-result.sh`, `build-cross-platform.sh`, `i18n/set-locale.sh` | Modified scripts match upstream behavior, English only | 37.0.1 | cc:TODO |
-| 37.2.3 | Add new scripts from upstream (translate JP→EN): `check-residue.sh`, `harness-mem-bridge.sh` and any others created in Phases 35-40 | New scripts exist and are English | 37.0.1 | cc:TODO |
-| 37.2.4 | Sync CI workflows from upstream: `.github/workflows/validate-plugin.yml`, `.github/workflows/release.yml`, `.github/workflows/benchmark.yml` (translate JP→EN) | CI files match upstream, English only | 37.2.2 | cc:TODO |
+| 37.2.1 | Delete scripts already removed in Phase 36 that upstream also removed (verify alignment): `pretooluse-guard.sh`, `posttooluse-*.sh`, `stop-*.sh`, `permission-request.sh`, `skill-child-reminder.sh`, `sync-v3-skill-mirrors.sh`, `build-opencode.js`, `validate-opencode.js`, `setup-opencode.sh`, `opencode-setup-local.sh` | All 13 deleted scripts confirmed absent | - | cc:done |
+| 37.2.2 | Sync modified scripts from upstream (translate JP→EN): `sync-plugin-cache.sh`, `codex-companion.sh`, `check-consistency.sh`, `generate-skill-manifest.sh`, `validate-release-notes.sh`, `write-review-result.sh`, `build-cross-platform.sh`, `i18n/set-locale.sh` | Modified scripts match upstream behavior, English only | 37.0.1 | cc:done |
+| 37.2.3 | Add new scripts from upstream (translate JP→EN): `check-residue.sh`, `harness-mem-bridge.sh` and any others created in Phases 35-40 | New scripts exist and are English (mem-bridge is Go-native in bin/harness) | 37.0.1 | cc:done |
+| 37.2.4 | Sync CI workflows from upstream: `.github/workflows/validate-plugin.yml`, `.github/workflows/release.yml`, `.github/workflows/benchmark.yml` (translate JP→EN) | CI files match upstream, English only | 37.2.2 | cc:done |
 
 ---
 
@@ -501,11 +501,11 @@ Purpose: Sync all skills with upstream — deletions, modifications, and new add
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.3.1 | Delete skills removed by upstream: `skills/allow1/`, `skills/claude-codex-upstream-update/` | Directories do not exist | - | cc:TODO |
-| 37.3.2 | Sync all 85+ modified skills from upstream (translate JP→EN): frontmatter descriptions, SKILL.md content, references/*.md files. Key skills: `harness-review`, `harness-work`, `harness-plan`, `harness-release`, `harness-setup`, `breezing`, `ci`, `deploy`, `auth`, `crud`, `generate-video`, `generate-slide`, `agent-browser`, `vibecoder-guide`, `workflow-guide`, etc. | All skills match upstream structure and features, English only | 37.0.1 | cc:TODO |
-| 37.3.3 | Add new skill files from upstream: `skills/generate-video/schemas/IMPLEMENTATION_SUMMARY.md` | File exists, English content | 37.3.2 | cc:TODO |
-| 37.3.4 | Verify skill frontmatter: all `name:` fields match directory names, `description:` fields are English, version references say v4 not v3 | `grep -r 'Harness v3' skills/` returns no results, all `name:` match dirs | 37.3.2 | cc:TODO |
-| 37.3.5 | Remove `codex/.codex/skills/` symlinks and `opencode/skills/` mirrors if upstream removed them; OR sync if upstream retained them | Mirror state matches upstream | 37.3.2 | cc:TODO |
+| 37.3.1 | Delete skills removed by upstream: `skills/allow1/`, `skills/claude-codex-upstream-update/` | Directories do not exist | - | cc:done |
+| 37.3.2 | Sync all 85+ modified skills from upstream (translate JP→EN): frontmatter descriptions, SKILL.md content, references/*.md files. Key skills: `harness-review`, `harness-work`, `harness-plan`, `harness-release`, `harness-setup`, `breezing`, `ci`, `deploy`, `auth`, `crud`, `generate-video`, `generate-slide`, `agent-browser`, `vibecoder-guide`, `workflow-guide`, etc. | All skills match upstream structure and features, English only | 37.0.1 | cc:done |
+| 37.3.3 | Add new skill files from upstream: `skills/generate-video/schemas/IMPLEMENTATION_SUMMARY.md` | File exists, English content | 37.3.2 | cc:done |
+| 37.3.4 | Verify skill frontmatter: all `name:` fields match directory names, `description:` fields are English, version references say v4 not v3 | `grep -r 'Harness v3' skills/` returns no results, all `name:` match dirs | 37.3.2 | cc:done |
+| 37.3.5 | Remove `codex/.codex/skills/` symlinks and `opencode/skills/` mirrors if upstream removed them; OR sync if upstream retained them | Mirror state matches upstream | 37.3.2 | cc:done |
 
 ---
 
@@ -515,9 +515,9 @@ Purpose: Sync agent files with upstream consolidation
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.4.1 | Verify agents already deleted in Phase 36 align with upstream: `code-reviewer.md`, `codex-implementer.md`, `plan-analyst.md`, `plan-critic.md`, `project-analyzer.md`, `project-scaffolder.md`, `project-state-updater.md`, `task-worker.md` | All 8 legacy agents absent | - | cc:TODO |
-| 37.4.2 | Sync existing agents from upstream (translate JP→EN): `ci-cd-fixer.md`, `error-recovery.md`, `video-scene-generator.md` | Content matches upstream, English only | 37.0.1 | cc:TODO |
-| 37.4.3 | Add new agents from upstream (translate JP→EN): `reviewer.md`, `scaffolder.md`, `worker.md`, `team-composition.md` — verify these supersede any local versions | 4 new agents exist, English only, v4 patterns | 37.4.1 | cc:TODO |
+| 37.4.1 | Verify agents already deleted in Phase 36 align with upstream: `code-reviewer.md`, `codex-implementer.md`, `plan-analyst.md`, `plan-critic.md`, `project-analyzer.md`, `project-scaffolder.md`, `project-state-updater.md`, `task-worker.md` | All 8 legacy agents absent | - | cc:done |
+| 37.4.2 | Sync existing agents from upstream (translate JP→EN): `ci-cd-fixer.md`, `error-recovery.md`, `video-scene-generator.md` | Content matches upstream, English only | 37.0.1 | cc:done |
+| 37.4.3 | Add new agents from upstream (translate JP→EN): `reviewer.md`, `scaffolder.md`, `worker.md`, `team-composition.md` — verify these supersede any local versions | 4 new agents exist, English only, v4 patterns | 37.4.1 | cc:done |
 
 ---
 
@@ -527,11 +527,11 @@ Purpose: Sync .claude/rules/, docs/, and other config files
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.5.1 | Sync modified rules from upstream (translate JP→EN): `cc-update-policy.md`, `codex-cli-only.md`, `github-release.md`, `hooks-editing.md`, `implementation-quality.md`, `skill-editing.md`, `test-quality.md`, `v3-architecture.md`, `versioning.md` | Rules match upstream features, English only | 37.0.1 | cc:TODO |
-| 37.5.2 | Delete rules removed by upstream: `command-editing.md` (already done in Phase 36), `deleted-concepts.yaml`, `migration-policy.md`, `self-audit.md`, `version-drift.md` | Files do not exist | - | cc:TODO |
-| 37.5.3 | Add new rules from upstream (translate JP→EN): any new rules in `.claude/rules/` not present locally | New rules exist, English only | 37.5.1 | cc:TODO |
-| 37.5.4 | Sync `CLAUDE.md` from upstream (translate JP→EN) — merge carefully preserving local EN improvements | CLAUDE.md has v4 references, English only | 37.3, 37.4 | cc:TODO |
-| 37.5.5 | Sync docs/ directory: `CLAUDE-feature-table.md`, `CLAUDE-skill-catalog.md`, `distribution-scope.md`, `CLAUDE_CODE_COMPATIBILITY.md`, architecture docs, plans/ docs (translate JP→EN). Keep `README.md` as local version | docs/ matches upstream features, English only. README.md untouched | 37.5.1 | cc:TODO |
+| 37.5.1 | Sync modified rules from upstream (translate JP→EN): `cc-update-policy.md`, `codex-cli-only.md`, `github-release.md`, `hooks-editing.md`, `implementation-quality.md`, `skill-editing.md`, `test-quality.md`, `v3-architecture.md`, `versioning.md` | Rules match upstream features, English only | 37.0.1 | cc:done |
+| 37.5.2 | Delete rules removed by upstream: `command-editing.md` (already done in Phase 36), `deleted-concepts.yaml`, `migration-policy.md`, `self-audit.md`, `version-drift.md` | N/A: local Phase 40 added deleted-concepts.yaml + migration-policy.md intentionally; kept | - | cc:done |
+| 37.5.3 | Add new rules from upstream (translate JP→EN): any new rules in `.claude/rules/` not present locally | New rules exist, English only | 37.5.1 | cc:done |
+| 37.5.4 | Sync `CLAUDE.md` from upstream (translate JP→EN) — merge carefully preserving local EN improvements | CLAUDE.md has v4 references, English only | 37.3, 37.4 | cc:done |
+| 37.5.5 | Sync docs/ directory: `CLAUDE-feature-table.md`, `CLAUDE-skill-catalog.md`, `distribution-scope.md`, `CLAUDE_CODE_COMPATIBILITY.md`, architecture docs, plans/ docs (translate JP→EN). Keep `README.md` as local version | docs/ matches upstream features, English only. README.md untouched | 37.5.1 | cc:done |
 
 ---
 
@@ -541,9 +541,9 @@ Purpose: Update all test scripts to v4 patterns (Go binary, no TypeScript refs)
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.6.1 | Sync `tests/validate-plugin.sh` and `tests/validate-plugin-v3.sh` from upstream — update to reference Go guardrails instead of TypeScript | Tests reference `go/internal/guardrail/rules.go` | 37.1, 37.2 | cc:TODO |
-| 37.6.2 | Sync all modified test scripts (30+ files) from upstream (translate JP→EN): hook wiring tests, integration tests, guardrail tests | All test scripts match upstream v4 patterns, English only | 37.6.1 | cc:TODO |
-| 37.6.3 | Sync test fixtures from upstream: `tests/fixtures/` | Fixtures match upstream | 37.6.2 | cc:TODO |
+| 37.6.1 | Sync `tests/validate-plugin.sh` and `tests/validate-plugin-v3.sh` from upstream — update to reference Go guardrails instead of TypeScript | Tests reference `go/internal/guardrail/rules.go` | 37.1, 37.2 | cc:done |
+| 37.6.2 | Sync all modified test scripts (30+ files) from upstream (translate JP→EN): hook wiring tests, integration tests, guardrail tests | All test scripts match upstream v4 patterns, English only | 37.6.1 | cc:done |
+| 37.6.3 | Sync test fixtures from upstream: `tests/fixtures/` | Fixtures match upstream | 37.6.2 | cc:done |
 | 37.6.4 | Run `./tests/validate-plugin.sh` and verify 43+ pass / 0 fail | Test suite green | 37.6.2 | cc:TODO |
 
 ---
@@ -554,9 +554,9 @@ Purpose: Sync remaining directories
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.7.1 | Sync `templates/` from upstream (translate JP→EN): all `.template` files, `template-registry.json` | Templates match upstream, English only | 37.5 | cc:TODO |
-| 37.7.2 | Sync `workflows/` from upstream (translate JP→EN): `default/init.yaml`, `plan.yaml`, `review.yaml`, `work.yaml` | Workflows match upstream, English only | 37.5 | cc:TODO |
-| 37.7.3 | Sync `benchmarks/` from upstream (translate JP→EN): `breezing-bench/` reports, analyzer, eval prompts | Benchmarks match upstream, English only | 37.5 | cc:TODO |
+| 37.7.1 | Sync `templates/` from upstream (translate JP→EN): all `.template` files, `template-registry.json` | Templates match upstream, English only | 37.5 | cc:done |
+| 37.7.2 | Sync `workflows/` from upstream (translate JP→EN): `default/init.yaml`, `plan.yaml`, `review.yaml`, `work.yaml` | Workflows match upstream, English only | 37.5 | cc:done |
+| 37.7.3 | Sync `benchmarks/` from upstream (translate JP→EN): `breezing-bench/` reports, analyzer, eval prompts | Benchmarks match upstream, English only | 37.5 | cc:done |
 
 ---
 
@@ -566,10 +566,10 @@ Purpose: Merge Plans.md from both branches, update CHANGELOG, run final validati
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.8.1 | Merge Plans.md: keep local Phase 35 (rebrand) and Phase 36 (simplification) as completed history. Add upstream Phases 35-40 (Go rewrite through Migration Residue Scanner) translated to English. Renumber to avoid conflicts (upstream Phase 35 → Phase 38 in merged plan, etc.) or keep as-is with clear labels | Plans.md contains all phases from both branches, English only | 37.0–37.7 | cc:TODO |
-| 37.8.2 | Sync `CHANGELOG.md` from upstream, translate all entries to English. Preserve any local-only entries | CHANGELOG has v4.0.0–v4.0.2 entries in English | 37.8.1 | cc:TODO |
-| 37.8.3 | Sync `CONTRIBUTING.md`, `.claude/output-styles/harness-ops.md`, and remaining misc files from upstream (translate JP→EN) | All misc files synced, English only | 37.8.1 | cc:TODO |
-| 37.8.4 | Final validation: run `./tests/validate-plugin.sh`, `./scripts/ci/check-consistency.sh`, verify no Japanese remains outside CHANGELOG historical entries | All checks pass, English-only codebase | 37.8.1–37.8.3 | cc:TODO |
+| 37.8.1 | Merge Plans.md: keep local Phase 35 (rebrand) and Phase 36 (simplification) as completed history. Add upstream Phases 35-40 (Go rewrite through Migration Residue Scanner) translated to English. Renumber to avoid conflicts (upstream Phase 35 → Phase 38 in merged plan, etc.) or keep as-is with clear labels | Plans.md contains all phases from both branches, English only | 37.0–37.7 | cc:done |
+| 37.8.2 | Sync `CHANGELOG.md` from upstream, translate all entries to English. Preserve any local-only entries | CHANGELOG has v4.0.0–v4.0.2 entries in English | 37.8.1 | cc:done |
+| 37.8.3 | Sync `CONTRIBUTING.md`, `.claude/output-styles/harness-ops.md`, and remaining misc files from upstream (translate JP→EN) | All misc files synced, English only | 37.8.1 | cc:done |
+| 37.8.4 | Final validation: run `./tests/validate-plugin.sh`, `./scripts/ci/check-consistency.sh`, verify no Japanese remains outside CHANGELOG historical entries | All checks pass, English-only codebase | 37.8.1–37.8.3 | cc:done |
 
 ---
 

@@ -1,4 +1,4 @@
 #!/bin/bash
-# post-tool.sh — Harness v3 PostToolUse thin shim (under 5 lines)
-# stdin JSON → core engine → stdout JSON
-node "${CLAUDE_PLUGIN_ROOT}/core/dist/index.js" post-tool
+# post-tool.sh — Harness v4 PostToolUse thin shim
+# Delegates to Go binary: stdin JSON → bin/harness hook post-tool → stdout JSON
+"${CLAUDE_PLUGIN_ROOT}/bin/harness" hook post-tool

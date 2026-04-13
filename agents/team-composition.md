@@ -1,6 +1,6 @@
-# Team Composition (v3)
+# Team Composition
 
-3-agent composition for Harness v3.
+3-agent composition for Harness.
 Consolidated from 11 agents to 3 agents.
 
 ## Team Structure Diagram
@@ -20,9 +20,9 @@ Lead (Execute skill's --breezing mode) - orchestration only
         REQUEST_CHANGES -> Lead creates fix tasks
 ```
 
-## Legacy Agent -> v3 Mapping
+## Legacy Agent Mapping
 
-| Legacy Agent | v3 Agent |
+| Legacy Agent | Current Agent |
 |--------------|--------------|
 | task-worker | worker |
 | codex-implementer | worker (--codex included) |

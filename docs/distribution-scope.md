@@ -16,6 +16,7 @@ When uncertain in `Plans.md`, README, distribution scripts, or validation script
 | `scripts/hook-handlers/memory-bridge.sh`, `scripts/hook-handlers/memory-*.sh` | Distribution-included | Bridge and wrapper for harness-mem integration. Hooks reference the stable bridge, wrappers are for compatibility and testing | `validate-plugin`, `test-memory-hook-wiring.sh` |
 | `templates/` | Distribution-included | Authoritative source for project init and rules distribution | `check-consistency.sh` |
 | `codex/` | Distribution-included | Codex CLI distribution (symlinked skills) | `tests/test-codex-package.sh` |
+| `commands/` | Compatibility-retained | Legacy slash commands retained for backwards compatibility; skills/ is the SSOT going forward | README, validate-plugin |
 | `mcp-server/` | Development-only and distribution-excluded | Optional feature. Retained in repo for development/investigation but not included in distribution payload | `.gitignore`, CHANGELOG history |
 | `harness-ui/`, `harness-ui-archive/` | Development-only and distribution-excluded | Optional UI experiments and legacy implementation archive | `.gitignore`, CHANGELOG history |
 | `docs/research/`, `docs/private/` | Private reference | Comparison notes, investigation records, pre-publication drafts | repo reference only |

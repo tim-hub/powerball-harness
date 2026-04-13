@@ -1,225 +1,225 @@
-# Video Planner - シナリオプランナー
+# Video Planner - Scenario Planner
 
-分析結果からシーン構成を自動提案し、ユーザーと確認・調整を行います。
-
----
-
-## 概要
-
-`/generate-video` の Step 2 で実行されるシナリオプランナーです。
-analyzer.md の出力を受けて、最適なシーン構成を提案します。
-
-> **重要**: シーン構成は [best-practices.md](best-practices.md) のファネル別ガイドラインに従って設計すること
-
-## 入力
-
-analyzer.md からの分析結果:
-- プロジェクト情報（名前、description）
-- 検出された機能リスト
-- 推奨動画タイプ
-- 最近の変更点
+Automatically proposes scene composition from analysis results, then confirms and adjusts with the user.
 
 ---
 
-## ファネル別テンプレート選択
+## Overview
 
-### Step 0: 目的の確認（必須）
+This is the scenario planner executed in Step 2 of `/generate-video`.
+It receives output from analyzer.md and proposes the optimal scene composition.
 
-動画の目的を確認し、適切なテンプレートを選択する。
+> **Important**: Scene composition must follow the funnel-specific guidelines in [best-practices.md](best-practices.md)
 
-| 目的（ファネル） | 動画タイプ | 長さ目安 | 構成の芯 |
-|------------------|------------|----------|----------|
-| 認知〜興味 | LP/広告ティザー | 30-90秒 | 痛み→結果→CTA |
-| 興味→検討 | Introデモ | 2-3分 | 1ユースケース完走 |
-| 検討→確信 | Demo/リリースノート | 2-5分 | 反論を先に潰す |
-| 確信→決裁 | ウォークスルー | 5-30分 | 実運用+証拠 |
-| 継続・活用 | オンボーディング | 30秒-数分 | Aha体験への最短パス |
+## Input
 
-### 90秒ティザーテンプレート
-
-**用途**: LP/広告、認知〜興味ファネル
-
-```
-0:00-0:05 (150f)  → HookScene: 痛み or 望む結果
-0:05-0:15 (300f)  → ProblemPromise: 対象ユーザーと約束
-0:15-0:55 (1200f) → WorkflowDemo: 象徴ワークフロー
-0:55-1:10 (450f)  → Differentiator: 差別化の根拠
-1:10-1:30 (600f)  → CTA: 次の一手
-```
-
-### 3分Introデモテンプレート
-
-**用途**: 検討向け、興味→検討ファネル
-
-```
-0:00-0:10 (300f)  → Hook: 結論+痛み
-0:10-0:30 (600f)  → UseCase: ユースケース宣言
-0:30-2:20 (3300f) → Demo: 実画面で完走
-2:20-2:50 (900f)  → Objection: よくある不安1つ潰す
-2:50-3:00 (300f)  → CTA: 行動喚起
-```
-
-### 20分ウォークスルーテンプレート
-
-**用途**: 決裁向け、確信→決裁ファネル
-
-```
-0:00-1:00   → Intro: 対象と課題
-1:00-8:00   → BasicFlow: 基本フロー
-8:00-12:00  → Objections: 反論トップ2
-12:00-15:00 → Security: 管理/セキュリティ
-15:00-20:00 → CaseStudy+CTA: 成功事例＋CTA
-```
-
-## シーンテンプレート
-
-### 共通シーン
-
-| シーン | 推奨時間 | 内容 | 必須 |
-|--------|----------|------|------|
-| **イントロ** | 3-5秒 | ロゴ + タグライン + フェードイン | ✅ |
-| **CTA** | 3-5秒 | URL + 連絡先 + フェードアウト | ✅ |
-
-### プロダクトデモ用シーン
-
-| シーン | 推奨時間 | 内容 |
-|--------|----------|------|
-| **機能紹介** | 5-10秒 | 機能名 + 1行説明 |
-| **UIデモ** | 10-30秒 | Playwrightキャプチャ |
-| **ハイライト** | 5-10秒 | 主要な特徴を強調 |
-
-### アーキテクチャ解説用シーン
-
-| シーン | 推奨時間 | 内容 |
-|--------|----------|------|
-| **概要図** | 5-10秒 | 全体構成のMermaid図 |
-| **詳細解説** | 10-20秒 | 各コンポーネントにズーム |
-| **データフロー** | 10-15秒 | シーケンス図アニメーション |
-
-### リリースノート用シーン
-
-| シーン | 推奨時間 | 内容 |
-|--------|----------|------|
-| **バージョン表示** | 3-5秒 | vX.Y.Z + リリース日 |
-| **変更点リスト** | 5-15秒 | Added/Changed/Fixed のアニメーション |
-| **Before/After** | 10-20秒 | UI変更のサイドバイサイド比較 |
-| **新機能デモ** | 10-30秒 | 追加機能のUIデモ |
+Analysis results from analyzer.md:
+- Project information (name, description)
+- Detected feature list
+- Recommended video type
+- Recent changes
 
 ---
 
-## シナリオ生成ロジック
+## Funnel-Specific Template Selection
 
-### Step 1: 動画タイプ別テンプレート選択
+### Step 0: Confirm Purpose (Required)
+
+Confirm the video's purpose and select the appropriate template.
+
+| Purpose (Funnel) | Video Type | Target Length | Composition Core |
+|-------------------|------------|---------------|------------------|
+| Awareness to Interest | LP/Ad Teaser | 30-90 sec | Pain → Result → CTA |
+| Interest → Consideration | Intro Demo | 2-3 min | Complete 1 use case |
+| Consideration → Conviction | Demo/Release Notes | 2-5 min | Preemptively address objections |
+| Conviction → Decision | Walkthrough | 5-30 min | Real operations + evidence |
+| Retention/Utilization | Onboarding | 30 sec - few min | Shortest path to Aha moment |
+
+### 90-Second Teaser Template
+
+**Use case**: LP/Ads, Awareness to Interest funnel
 
 ```
-推奨動画タイプに基づいてベーステンプレートを選択:
-    │
-    ├─ LP/広告ティザー（30-90秒）
-    │   └─ Hook → ProblemPromise → WorkflowDemo → Differentiator → CTA
-    │
-    ├─ Introデモ（2-3分）
-    │   └─ Hook → UseCase宣言 → 実画面Demo → Objection → CTA
-    │
-    ├─ リリースノート（1-3分）
-    │   └─ Hook → バージョン → Before/After → 新機能Demo → CTA
-    │
-    ├─ アーキテクチャ解説（5-30分）
-    │   └─ Intro → 概要図 → 詳細解説×N → データフロー → 管理/セキュリティ → CTA
-    │
-    └─ オンボーディング（30秒-数分）
-        └─ Welcome → クイックウィン → 次のステップ
+0:00-0:05 (150f)  → HookScene: Pain or desired outcome
+0:05-0:15 (300f)  → ProblemPromise: Target user and promise
+0:15-0:55 (1200f) → WorkflowDemo: Signature workflow
+0:55-1:10 (450f)  → Differentiator: Basis for differentiation
+1:10-1:30 (600f)  → CTA: Next step
 ```
 
-**重要な原則**:
-- 冒頭でロゴや会社紹介を長く出さない（離脱防止）
-- CTAは最後だけでなく途中にも配置
-- 機能羅列ではなく「痛み→解決」のストーリー
+### 3-Minute Intro Demo Template
 
-### Step 2: 検出機能からシーンを生成
+**Use case**: Consideration, Interest → Consideration funnel
+
+```
+0:00-0:10 (300f)  → Hook: Conclusion + pain
+0:10-0:30 (600f)  → UseCase: Use case declaration
+0:30-2:20 (3300f) → Demo: Complete walkthrough on real screen
+2:20-2:50 (900f)  → Objection: Address one common concern
+2:50-3:00 (300f)  → CTA: Call to action
+```
+
+### 20-Minute Walkthrough Template
+
+**Use case**: Decision, Conviction → Decision funnel
+
+```
+0:00-1:00   → Intro: Target audience and challenges
+1:00-8:00   → BasicFlow: Basic flow
+8:00-12:00  → Objections: Top 2 objections
+12:00-15:00 → Security: Management/security
+15:00-20:00 → CaseStudy+CTA: Success stories + CTA
+```
+
+## Scene Templates
+
+### Common Scenes
+
+| Scene | Recommended Duration | Content | Required |
+|-------|---------------------|---------|----------|
+| **Intro** | 3-5 sec | Logo + tagline + fade in | Yes |
+| **CTA** | 3-5 sec | URL + contact + fade out | Yes |
+
+### Product Demo Scenes
+
+| Scene | Recommended Duration | Content |
+|-------|---------------------|---------|
+| **Feature Introduction** | 5-10 sec | Feature name + one-line description |
+| **UI Demo** | 10-30 sec | Playwright capture |
+| **Highlight** | 5-10 sec | Emphasize key characteristics |
+
+### Architecture Explanation Scenes
+
+| Scene | Recommended Duration | Content |
+|-------|---------------------|---------|
+| **Overview Diagram** | 5-10 sec | Overall architecture Mermaid diagram |
+| **Detailed Explanation** | 10-20 sec | Zoom into each component |
+| **Data Flow** | 10-15 sec | Sequence diagram animation |
+
+### Release Notes Scenes
+
+| Scene | Recommended Duration | Content |
+|-------|---------------------|---------|
+| **Version Display** | 3-5 sec | vX.Y.Z + release date |
+| **Change List** | 5-15 sec | Added/Changed/Fixed animation |
+| **Before/After** | 10-20 sec | Side-by-side UI change comparison |
+| **New Feature Demo** | 10-30 sec | UI demo of added features |
+
+---
+
+## Scenario Generation Logic
+
+### Step 1: Template Selection by Video Type
+
+```
+Select base template based on recommended video type:
+    |
+    +-- LP/Ad Teaser (30-90 sec)
+    |   +-- Hook → ProblemPromise → WorkflowDemo → Differentiator → CTA
+    |
+    +-- Intro Demo (2-3 min)
+    |   +-- Hook → UseCase Declaration → Real Screen Demo → Objection → CTA
+    |
+    +-- Release Notes (1-3 min)
+    |   +-- Hook → Version → Before/After → New Feature Demo → CTA
+    |
+    +-- Architecture Explanation (5-30 min)
+    |   +-- Intro → Overview Diagram → Detailed Explanation x N → Data Flow → Management/Security → CTA
+    |
+    +-- Onboarding (30 sec - few min)
+        +-- Welcome → Quick Win → Next Steps
+```
+
+**Key Principles**:
+- Don't show logo or company intro for too long at the start (prevent drop-off)
+- Place CTAs not only at the end but also in the middle
+- Tell a "pain → solution" story, not a feature list
+
+### Step 2: Generate Scenes from Detected Features
 
 ```python
-# 擬似コード
+# Pseudocode
 for feature in detected_features:
     if feature.type == "auth":
-        add_scene("認証フローデモ", duration=15, source="playwright")
+        add_scene("Auth Flow Demo", duration=15, source="playwright")
     elif feature.type == "dashboard":
-        add_scene("ダッシュボード紹介", duration=20, source="playwright")
+        add_scene("Dashboard Introduction", duration=20, source="playwright")
     elif feature.type == "api":
-        add_scene("API概要", duration=10, source="mermaid")
+        add_scene("API Overview", duration=10, source="mermaid")
 ```
 
-### Step 3: 時間配分の最適化
+### Step 3: Duration Optimization
 
-| 動画長 | 推奨用途 | シーン数目安 |
-|--------|----------|-------------|
-| 15秒 | SNS広告 | 3-4 |
-| 30秒 | ショート動画 | 5-6 |
-| 60秒 | 標準デモ | 8-10 |
-| 2-3分 | 詳細解説 | 15-20 |
+| Video Length | Recommended Use | Scene Count Guide |
+|-------------|-----------------|-------------------|
+| 15 sec | Social media ads | 3-4 |
+| 30 sec | Short videos | 5-6 |
+| 60 sec | Standard demo | 8-10 |
+| 2-3 min | Detailed explanation | 15-20 |
 
 ---
 
-## ユーザー確認フロー
+## User Confirmation Flow
 
-### 提案表示
+### Proposal Display
 
 ```markdown
-🎬 シナリオプラン
+🎬 Scenario Plan
 
-**動画タイプ**: プロダクトデモ
-**合計時間**: 45秒
+**Video Type**: Product Demo
+**Total Duration**: 45 sec
 
-| # | シーン | 時間 | 内容 | ソース |
-|---|--------|------|------|--------|
-| 1 | イントロ | 5秒 | MyApp - タスク管理を簡単に | テンプレート |
-| 2 | 認証フロー | 15秒 | ログイン画面のデモ | Playwright |
-| 3 | ダッシュボード | 20秒 | メイン機能の紹介 | Playwright |
-| 4 | CTA | 5秒 | myapp.com | テンプレート |
+| # | Scene | Duration | Content | Source |
+|---|-------|----------|---------|--------|
+| 1 | Intro | 5 sec | MyApp - Task management made easy | Template |
+| 2 | Auth Flow | 15 sec | Login screen demo | Playwright |
+| 3 | Dashboard | 20 sec | Main feature introduction | Playwright |
+| 4 | CTA | 5 sec | myapp.com | Template |
 
-この構成でよろしいですか？
-1. OK、生成開始
-2. 編集したい
-3. キャンセル
+Is this composition acceptable?
+1. OK, start generation
+2. I want to edit
+3. Cancel
 ```
 
-### AskUserQuestion 実装
+### AskUserQuestion Implementation
 
 ```
 AskUserQuestion:
-  question: "このシナリオで動画を生成しますか？"
-  header: "シナリオ確認"
+  question: "Would you like to generate the video with this scenario?"
+  header: "Scenario Confirmation"
   options:
-    - label: "OK、生成開始"
-      description: "このシーン構成で動画を生成します"
-    - label: "編集したい"
-      description: "シーンの追加/削除/変更を行います"
-    - label: "キャンセル"
-      description: "動画生成を中止します"
+    - label: "OK, start generation"
+      description: "Generate the video with this scene composition"
+    - label: "I want to edit"
+      description: "Add/remove/modify scenes"
+    - label: "Cancel"
+      description: "Cancel video generation"
 ```
 
-### 編集モード
+### Edit Mode
 
-ユーザーが「編集したい」を選択した場合:
+When the user selects "I want to edit":
 
 ```markdown
-📝 シナリオ編集
+📝 Scenario Editor
 
-以下のコマンドで編集できます：
+You can edit with the following commands:
 
-- **追加**: 「機能Xのデモを追加」
-- **削除**: 「シーン2を削除」
-- **変更**: 「イントロを3秒に短縮」
-- **入替**: 「シーン2と3を入れ替え」
-- **完了**: 「これでOK」
+- **Add**: "Add a demo of Feature X"
+- **Remove**: "Remove scene 2"
+- **Modify**: "Shorten intro to 3 seconds"
+- **Swap**: "Swap scenes 2 and 3"
+- **Done**: "This is fine"
 
-何を編集しますか？
+What would you like to edit?
 ```
 
 ---
 
-## 出力フォーマット
+## Output Format
 
-planner.md の出力（generator.md への入力）:
+planner.md output (input to generator.md):
 
 ```yaml
 video:
@@ -235,7 +235,7 @@ scenes:
     template: "intro"
     content:
       title: "MyApp"
-      tagline: "タスク管理を簡単に"
+      tagline: "Task management made easy"
       logo: "public/logo.svg"
 
   - id: 2
@@ -267,13 +267,13 @@ scenes:
     template: "cta"
     content:
       url: "https://myapp.com"
-      text: "今すぐ試す"
+      text: "Try it now"
 ```
 
 ---
 
 ## Notes
 
-- シーン数が多すぎる場合は自動的に優先度の低いものを提案から除外
-- ユーザーが手動でシーンを追加することも可能
-- Playwrightソースのシーンはアプリが起動している必要がある
+- If there are too many scenes, lower-priority ones are automatically excluded from the proposal
+- Users can manually add scenes
+- Scenes with Playwright source require the app to be running

@@ -1,14 +1,14 @@
 ---
 name: harness-setup
-description: "Use this skill whenever the user mentions setup, initialization, starting a new project, CI setup, Codex CLI setup, harness-mem, agent configuration, symlinks, mirrors, or runs /harness-setup. Also use when the user needs to configure the harness environment or onboard a new repository. Do NOT load for: code implementation (use harness-work), code review (use harness-review), release (use harness-release), or planning (use harness-plan). Unified setup skill for Harness v3 — project initialization, tool configuration, 2-agent setup, memory config, symlinks, and mirror sync."
+description: "Use this skill whenever the user mentions setup, initialization, starting a new project, CI setup, Codex CLI setup, harness-mem, agent configuration, symlinks, mirrors, or runs /harness-setup. Also use when the user needs to configure the harness environment or onboard a new repository. Do NOT load for: code implementation (use harness-work), code review (use harness-review), release (use harness-release), or planning (use harness-plan). Unified setup skill for Harness — project initialization, tool configuration, 2-agent setup, memory config, symlinks, and mirror sync."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
 argument-hint: "[init|ci|codex|harness-mem|mirrors|agents|localize]"
 effort: medium
 ---
 
-# Harness Setup (v3)
+# Harness Setup
 
-Unified setup skill for Harness v3.
+Unified setup skill for Harness.
 Consolidates the following legacy skills:
 
 - `setup` — Unified setup hub
@@ -32,7 +32,7 @@ Consolidates the following legacy skills:
 
 ### init — Project Initialization
 
-Introduce Harness v3 to a new project.
+Introduce Harness to a new project.
 
 **Generated files**:
 ```

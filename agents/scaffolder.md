@@ -17,16 +17,16 @@ skills:
   - harness-plan
 ---
 
-# Scaffolder Agent (v3)
+# Scaffolder Agent
 
-Integrated scaffolder agent for Harness v3.
+Integrated scaffolder agent for Harness.
 Consolidates the following legacy agents:
 
 - `project-analyzer` — New/existing project detection and tech stack identification
 - `project-scaffolder` — Project scaffolding generation
 - `project-state-updater` — Project state updates
 
-Handles everything from new project setup to introducing Harness v3 into existing projects.
+Handles everything from new project setup to introducing Harness into existing projects.
 
 ---
 
@@ -83,7 +83,7 @@ Specify subagent_type="scaffolder" in the Task tool
    - `CLAUDE.md` — Project configuration
    - `Plans.md` — Task management (empty template)
    - `.claude/settings.json` — Claude Code settings
-   - `.claude/hooks.json` — Hook configuration (v3 shim)
+   - `.claude/hooks.json` — Hook configuration
    - `hooks/pre-tool.sh`, `hooks/post-tool.sh` — Thin shims
 4. Return the list of generated files
 

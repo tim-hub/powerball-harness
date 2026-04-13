@@ -1,163 +1,164 @@
 ---
 name: harness-plan
-description: "HAR: Task planning, Plans.md management, progress sync. Trigger: create a plan, add tasks, update Plans.md, mark complete, check progress. Do NOT load for: implementation, review, release."
+description: "Use this skill whenever the user asks to create a plan, add tasks, update Plans.md, mark tasks complete, check progress, sync status, or says 'where am I' or 'what's next'. Also use when the user runs /harness-plan, /harness-sync, or needs to organize work into actionable tasks. Do NOT load for: code implementation (use harness-work), code review (use harness-review), or release tasks (use harness-release). Unified planning skill for Harness — task planning, Plans.md management, and progress sync."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "Task"]
 argument-hint: "[create|add|update|sync|sync --no-retro|--ci]"
 effort: medium
+model: opus
 ---
 
 # Harness Plan
 
-Harness の統合プランニングスキル。
-以下の3つの旧スキルを統合:
+Unified planning skill for Harness.
+Consolidates the following 3 legacy skills:
 
-- `planning` (plan-with-agent) — アイデア → Plans.md への落とし込み
-- `plans-management` — タスク状態管理・マーカー更新
-- `sync-status` — Plans.md と実装の同期確認
+- `planning` (plan-with-agent) — Convert ideas into Plans.md
+- `plans-management` — Task state management and marker updates
+- `sync-status` — Sync verification between Plans.md and implementation
 
 ## Quick Reference
 
-| ユーザー入力 | サブコマンド | 動作 |
-|------------|------------|------|
-| "計画を作って" / "create a plan" | `create` | 対話型ヒアリング → Plans.md 生成 |
-| "タスクを追加して" / "add a task" | `add` | Plans.md に新タスク追加 |
-| "完了にして" / "mark complete" | `update` | タスクマーカーを cc:完了 に変更 |
-| "今どこ？" / "check progress" | `sync` | 実装とPlans.mdを照合・同期 |
-| `harness-sync` | `sync` | 進捗確認（独立 sync surface と同等） |
-| `harness-plan create` | `create` | 計画作成 |
+| User Input | Subcommand | Action |
+|------------|------------|--------|
+| "create a plan" | `create` | Interactive interview → Plans.md generation |
+| "add a task" | `add` | Add new task to Plans.md |
+| "mark complete" | `update` | Change task marker to cc:done |
+| "where am I?" / "check progress" | `sync` | Compare implementation with Plans.md and sync |
+| `harness-sync` | `sync` | Progress check (equivalent to standalone sync surface) |
+| `harness-plan create` | `create` | Create plan |
 
-## サブコマンド詳細
+## Subcommand Details
 
-### create — 計画作成
+### create — Plan Creation
 
 See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md)
 
-アイデア・要件をヒアリングし、実行可能な Plans.md を生成する。
+Interviews for ideas and requirements, then generates an actionable Plans.md.
 
-**フロー**:
-1. 会話コンテキスト確認（直前の議論から抽出 or 新規ヒアリング）
-2. 何を作るか聞く（max 3問）
-3. 技術調査（WebSearch）
-4. 機能リスト抽出
-5. 優先度マトリクス（Required / Recommended / Optional）
-6. TDD 採用判断（テスト設計）
-7. Plans.md 生成（`cc:TODO` マーカー付き）
-8. 次のアクション案内
+**Flow**:
+1. Check conversation context (extract from preceding discussion or start new interview)
+2. Ask what to build (max 3 questions)
+3. Technical research (WebSearch)
+4. Feature list extraction
+5. Priority matrix (Required / Recommended / Optional)
+6. TDD adoption decision (test design)
+7. Plans.md generation (with `cc:TODO` markers)
+8. Suggest next actions
 
-**CI モード** (`--ci`):
-ヒアリングなし。既存の Plans.md をそのまま利用してタスク分解のみ行う。
+**CI mode** (`--ci`):
+No interview. Uses existing Plans.md as-is and only performs task decomposition.
 
-### add — タスク追加
+### add — Add Task
 
-Plans.md に新しいタスクを追加する。
-
-```
-harness-plan add タスク名: 詳細説明 [--phase フェーズ番号]
-```
-
-タスクは `cc:TODO` マーカーで追加される。
-
-### update — マーカー更新
-
-タスクのステータスマーカーを変更する。
+Adds a new task to Plans.md.
 
 ```
-harness-plan update [タスク名|タスク番号] [WIP|完了|blocked]
+harness-plan add task-name: detailed description [--phase phase-number]
 ```
 
-マーカー対応表:
+Tasks are added with the `cc:TODO` marker.
 
-| コマンド | マーカー |
-|---------|---------|
+### update — Update Marker
+
+Changes a task's status marker.
+
+```
+harness-plan update [task-name|task-number] [WIP|done|blocked]
+```
+
+Marker mapping:
+
+| Command | Marker |
+|---------|--------|
 | `WIP` | `cc:WIP` |
-| `完了` / `done` | `cc:完了` |
+| `done` | `cc:done` |
 | `blocked` | `blocked` |
 | `TODO` | `cc:TODO` |
 
-### sync — 進捗同期
+### sync — Progress Sync
 
-実装状況と Plans.md を照合し、差分を検出・更新する。
+Compares implementation status with Plans.md and detects/updates differences.
 
 See [references/sync.md](${CLAUDE_SKILL_DIR}/references/sync.md)
 
-**フロー**:
-1. Plans.md の現状取得
-2. Plans.md フォーマット検出（v1: 3 カラム / v2: 5 カラム）
-3. git status / git log から実装状況取得
-4. エージェントトレース確認（`.claude/state/agent-trace.jsonl`）
-5. Plans.md と実装の差分検出
-6. 未更新マーカーの自動修正提案
-7. 次のアクション提示
+**Flow**:
+1. Retrieve current state of Plans.md
+2. Detect Plans.md format (v1: 3 columns / v2: 5 columns)
+3. Retrieve implementation status from git status / git log
+4. Check agent traces (`.claude/state/agent-trace.jsonl`)
+5. Detect differences between Plans.md and implementation
+6. Propose automatic corrections for outdated markers
+7. Present next actions
 
-**レトロスペクティブ**（デフォルト ON）:
-`cc:完了` タスクが 1 件以上あれば自動的に振り返りを実行する。
-見積もり精度、ブロック原因パターン、スコープ変動を分析し、学びを記録。
-`sync --no-retro` で明示的にスキップ可能。
+**Retrospective** (ON by default):
+Automatically runs a retrospective if there is at least one `cc:done` task.
+Analyzes estimation accuracy, blocker cause patterns, and scope changes, then records learnings.
+Can be explicitly skipped with `sync --no-retro`.
 
 ### team mode / issue bridge
 
-Plans.md は正本のまま維持し、GitHub Issue 連携は opt-in の team mode だけで使う。
+Plans.md is maintained as the source of truth, and GitHub Issue integration is only used in opt-in team mode.
 
-- solo 開発では bridge を使わない
-- team mode は tracking issue を 1 つ作り、その配下に task ごとの sub-issue payload を dry-run で生成する
-- `scripts/plans-issue-bridge.sh` は実際に GitHub を更新せず、常に dry-run の payload を返す
-- Plans.md への変更はこの bridge では行わない
+- Do not use the bridge for solo development
+- Team mode creates one tracking issue and generates dry-run sub-issue payloads for each task underneath it
+- `scripts/plans-issue-bridge.sh` does not actually update GitHub; it always returns dry-run payloads
+- This bridge does not modify Plans.md
 
-参照:
+Reference:
 
 - `docs/plans/team-mode.md`
 
-## Plans.md フォーマット規約
+## Plans.md Format Conventions
 
-### フォーマット
+### Format
 
 ```markdown
-# [プロジェクト名] Plans.md
+# [Project Name] Plans.md
 
-作成日: YYYY-MM-DD
+Created: YYYY-MM-DD
 
 ---
 
-## Phase N: フェーズ名
+## Phase N: Phase Name
 
-| Task | 内容 | DoD | Depends | Status |
-|------|------|-----|---------|--------|
-| N.1  | 説明 | テスト通過 | - | cc:TODO |
-| N.2  | 説明 | lint エラー 0 | N.1 | cc:WIP |
-| N.3  | 説明 | マイグレーション実行可能 | N.1, N.2 | cc:完了 |
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| N.1  | Description | Tests pass | - | cc:TODO |
+| N.2  | Description | 0 lint errors | N.1 | cc:WIP |
+| N.3  | Description | Migration executable | N.1, N.2 | cc:done |
 ```
 
-**DoD（Definition of Done）**: 検証可能な完了条件を 1 行で記述。「いい感じ」「ちゃんと動く」は禁止。Yes/No で判定できる形にする。
+**DoD (Definition of Done)**: Write a verifiable completion condition in one line. Vague criteria like "looks good" or "works properly" are prohibited. Must be answerable with Yes/No.
 
-**Depends**: タスク間の依存関係。`-`（依存なし）、タスク番号（`N.1`）、カンマ区切り（`N.1, N.2`）、フェーズ依存（`Phase N`）。
+**Depends**: Dependencies between tasks. `-` (no dependencies), task number (`N.1`), comma-separated (`N.1, N.2`), or phase dependency (`Phase N`).
 
 ### optional briefs / manifest
 
-`harness-plan create` は、必要なときだけ brief を付ける。
+`harness-plan create` attaches briefs only when needed.
 
-- UI を含むタスクでは `design brief`
-- API を含むタスクでは `contract brief`
-- brief は「何を作るか」を短く固定する補助資料で、Plans.md を置き換えない
-- skill frontmatter の一覧は `scripts/generate-skill-manifest.sh` で machine-readable JSON にできる
+- Tasks involving UI get a `design brief`
+- Tasks involving API get a `contract brief`
+- Briefs are supplementary materials that briefly define what to build; they do not replace Plans.md
+- A machine-readable JSON list of skill frontmatter can be generated with `scripts/generate-skill-manifest.sh`
 
-参照:
+Reference:
 
 - `docs/plans/briefs-manifest.md`
 
-### マーカー一覧
+### Marker List
 
-| マーカー | 意味 |
-|---------|------|
-| `pm:依頼中` | PM から依頼済み |
-| `cc:TODO` | 未着手 |
-| `cc:WIP` | 作業中 |
-| `cc:完了` | Worker 作業完了 |
-| `pm:確認済` | PM レビュー完了 |
-| `blocked` | ブロック中（理由を必ず記載） |
+| Marker | Meaning |
+|--------|---------|
+| `pm:requested` | Requested by PM |
+| `cc:TODO` | Not started |
+| `cc:WIP` | In progress |
+| `cc:done` | Worker completed |
+| `pm:confirmed` | PM review completed |
+| `blocked` | Blocked (reason must always be noted) |
 
-## 関連スキル
+## Related Skills
 
-- `harness-sync` — 実装と Plans.md を同期する
-- `harness-work` — 計画したタスクを実装する
-- `harness-review` — 実装のレビュー
-- `harness-setup` — プロジェクト初期化
+- `harness-sync` — Sync implementation with Plans.md
+- `harness-work` — Implement planned tasks
+- `harness-review` — Review implementation
+- `harness-setup` — Project initialization

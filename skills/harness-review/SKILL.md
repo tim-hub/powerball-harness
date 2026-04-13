@@ -1,15 +1,15 @@
 ---
 name: harness-review
-description: "Use this skill whenever the user asks to review code, review a plan, check quality, analyze scope, run security checks, examine PRs or diffs, or runs /harness-review. Also use when the user wants a second opinion on changes, performance review, or pre-merge quality gate. Do NOT load for: code implementation (use harness-work), new features, bug fixes, project setup, or release. Unified review skill for Harness v3 — multi-angle code, plan, and scope review with optional dual-reviewer and security analysis."
+description: "Use this skill whenever the user asks to review code, review a plan, check quality, analyze scope, run security checks, examine PRs or diffs, or runs /harness-review. Also use when the user wants a second opinion on changes, performance review, or pre-merge quality gate. Do NOT load for: code implementation (use harness-work), new features, bug fixes, project setup, or release. Unified review skill for Harness — multi-angle code, plan, and scope review with optional dual-reviewer and security analysis."
 allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[code|plan|scope] [--dual] [--security]"
 context: fork
 effort: high
 ---
 
-# Harness Review (v3)
+# Harness Review
 
-Unified review skill for Harness v3.
+Unified review skill for Harness.
 Consolidates the following legacy skills:
 
 - `harness-review` — Multi-angle code, plan, and scope review
