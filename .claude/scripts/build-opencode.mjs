@@ -333,7 +333,6 @@ function main() {
   console.log('Building opencode version...\n');
 
   clearDir(OPENCODE_COMMANDS_DIR);
-  clearDir(OPENCODE_SKILLS_DIR);
   ensureDir(OPENCODE_DIR);
 
   console.log('Converting commands:');
@@ -358,8 +357,8 @@ function main() {
     console.log('   templates/opencode/commands/ not found, skipping PM commands');
   }
 
-  console.log('\nCopying skills:');
-  const skillCount = copySkills();
+  // Skills are synced by sync-skill-mirrors.mjs — not here
+  console.log('\nNote: skills/ sync delegated to sync-skill-mirrors.mjs');
 
   console.log('\nGenerating additional files:');
   generateAgentsMd();
@@ -369,7 +368,6 @@ function main() {
   console.log(`\nDone!`);
   console.log(`   Commands: ${commandCount} files`);
   console.log(`   PM Commands: ${pmCount} files`);
-  console.log(`   Skills: ${skillCount} directories`);
   console.log(`   Output: ${path.relative(process.cwd(), OPENCODE_DIR)}/`);
 }
 

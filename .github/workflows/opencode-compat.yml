@@ -31,7 +31,9 @@ jobs:
           node-version: '20'
 
       - name: Build opencode version
-        run: node .claude/scripts/build-opencode.mjs
+        run: |
+          node .claude/scripts/build-opencode.mjs
+          node .claude/scripts/sync-skill-mirrors.mjs
 
       - name: Validate opencode format
         run: node scripts/validate-opencode.js
