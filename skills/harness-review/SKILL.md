@@ -9,14 +9,6 @@ effort: high
 
 # Harness Review
 
-Unified review skill for Harness.
-Consolidates the following legacy skills:
-
-- `harness-review` — Multi-angle code, plan, and scope review
-- `codex-review` — Second opinion via Codex CLI
-- `verify` — Build verification, error recovery, and review fix application
-- `troubleshoot` — Error and incident diagnosis and repair
-
 ## Quick Reference
 
 | User Input | Subcommand | Behavior |
