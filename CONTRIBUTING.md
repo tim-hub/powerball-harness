@@ -45,7 +45,7 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 ```
 powerball-harness/
 ├── .claude-plugin/
-│   ├── plugin.json      # Plugin manifest
+│   ├── plugin.json      # Plugin manifest (optional)
 │   └── marketplace.json # Marketplace config
 ├── skills/              # Skills (primary - v2.17.0+)
 ├── agents/              # Subagents
@@ -77,13 +77,13 @@ powerball-harness/
 2. Define the agent with YAML frontmatter
 3. Update README.md (recommended)
 
-> Note: agents/ are auto-discovered by Claude Code. You typically do not need to manually enumerate them in `plugin.json`.
+> Note: agents/ are auto-discovered by Claude Code. You typically do not need to manually enumerate them in `marketplace.json`.
 
 ## Version Management
 
 Version is defined in two places that must stay in sync:
 - `VERSION` - Source of truth
-- `.claude-plugin/plugin.json` - Used by plugin system
+- `.claude-plugin/marketplace.json` - Used by plugin system
 
 Normal feature/docs PRs should leave both files unchanged and record user-facing changes in `CHANGELOG.md` under `[Unreleased]`.
 Use a version bump only when you are intentionally cutting a release.
@@ -94,7 +94,7 @@ Use a version bump only when you are intentionally cutting a release.
 # Check if versions are in sync
 ./scripts/sync-version.sh check
 
-# Sync plugin.json to VERSION
+# Sync marketplace.json to VERSION
 ./scripts/sync-version.sh sync
 
 # Bump patch version for a release (e.g., 2.0.0 → 2.0.1)
@@ -103,9 +103,9 @@ Use a version bump only when you are intentionally cutting a release.
 
 ### Release-only Versioning Policy
 
-- Normal PRs: do not edit `VERSION` or `.claude-plugin/plugin.json`; add notes under `[Unreleased]`
+- Normal PRs: do not edit `VERSION` or `.claude-plugin/marketplace.json`; add notes under `[Unreleased]`
 - Release work: run `./scripts/sync-version.sh bump`, add a versioned `CHANGELOG.md` entry, then create the tag / GitHub Release
-- The repo pre-commit hook only syncs `plugin.json` to `VERSION` when you intentionally edit release metadata; it does not auto-bump patch versions
+- The repo pre-commit hook only syncs `marketplace.json` to `VERSION` when you intentionally edit release metadata; it does not auto-bump patch versions
 
 ### Version Consistency Checks
 
