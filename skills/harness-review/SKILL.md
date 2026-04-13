@@ -5,6 +5,7 @@ allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[code|plan|scope] [--dual] [--security]"
 context: fork
 effort: high
+model: opus
 ---
 
 # Harness Review
