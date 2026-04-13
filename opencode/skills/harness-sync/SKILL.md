@@ -1,6 +1,6 @@
 ---
 name: harness-sync
-description: "Use this skill whenever the user asks to sync progress, check what's done, see current status, asks 'where am I', 'how far along', or runs /harness-sync. Also supports --snapshot for progress snapshots. Do NOT load for: creating new plans (use harness-plan), code implementation (use harness-work), code review (use harness-review), or release. Syncs progress between Plans.md and actual implementation — detects drift, updates task markers, and runs retrospectives."
+description: "Use when syncing progress between Plans.md and implementation — drift detection, marker updates, retrospectives, or 'where am I' checks. Supports --snapshot. Do NOT load for: creating plans, implementation, or review."
 allowed-tools: ["Read", "Edit", "Bash", "Grep", "Glob"]
 argument-hint: "[--snapshot|--no-retro]"
 effort: medium

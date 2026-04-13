@@ -1,6 +1,6 @@
 ---
 name: session-memory
-description: "Use this skill when the user asks about previous sessions, wants to continue from where they left off, references past work history, or needs to recall what was decided in earlier sessions. Do NOT load for: code implementation, code reviews, ad-hoc information, or in-session note-taking. Manages cross-session learning and memory persistence — records patterns, decisions, and context that carry across sessions."
+description: "Use when recalling prior sessions, continuing past work, referencing earlier decisions, or persisting cross-session context. Do NOT load for: implementation, reviews, ad-hoc notes, or in-session logging."
 allowed-tools: ["Read", "Write", "Edit"]
 user-invocable: false
 ---

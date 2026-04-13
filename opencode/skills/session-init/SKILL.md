@@ -1,6 +1,6 @@
 ---
 name: session-init
-description: "Use this skill when the user starts a new session, asks for a status check before beginning work, or wants to verify the environment is ready. Do NOT load for: mid-session implementation work, code reviews, or ongoing task execution. Initializes a work session with environment checks, Plans.md status overview, and readiness verification."
+description: "Use when starting a new session — pre-work status check, environment readiness verification, or Plans.md overview. Do NOT load for: mid-session implementation, reviews, or ongoing tasks."
 allowed-tools: ["Read", "Write", "Bash"]
 user-invocable: false
 ---

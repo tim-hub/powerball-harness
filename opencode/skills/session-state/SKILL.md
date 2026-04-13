@@ -1,6 +1,6 @@
 ---
 name: session-state
-description: "Auto-triggered by the orchestration system at /work phase boundaries. Do NOT load for: user-facing session management, login state, app state handling, or direct user requests. Internal workflow skill — manages session state transitions per SESSION_ORCHESTRATION.md, escalated transitions on error, and initialized restoration on session resume."
+description: "Use when orchestration system hits /work phase boundaries (auto-triggered). Internal workflow skill. Do NOT load for: user-facing session management, login state, or direct user requests."
 allowed-tools: ["Read", "Bash"]
 user-invocable: false
 ---

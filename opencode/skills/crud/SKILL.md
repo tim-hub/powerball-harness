@@ -1,6 +1,6 @@
 ---
 name: crud
-description: "Use this skill whenever the user asks to create CRUD for an entity, generate API endpoints, scaffold a resource, build a REST API for a table, or mentions entity generation. Also use when the user wants to add standard create/read/update/delete operations with authorization rules. Do NOT load for: UI component creation, form design, database schema-only discussions, or non-CRUD business logic. Auto-generates production-ready CRUD operations for entities — API endpoints, database models, validation, search, and pagination."
+description: "Use when scaffolding CRUD — API endpoints, database models, REST resources for a table, or standard create/read/update/delete with authorization. Do NOT load for: UI/form design, schema-only discussions, or non-CRUD business logic."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
 argument-hint: "<entity-name>"
 user-invocable: false
