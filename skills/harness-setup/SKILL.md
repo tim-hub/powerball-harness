@@ -41,25 +41,30 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/download-binary.sh"
 
 Introduce Harness to a new project.
 
-**Generated files**:
+**Generated files** (user's project):
 ```
 project/
 ├── CLAUDE.md            # Project configuration
 ├── Plans.md             # Task management (empty template)
 ├── .gitignore           # Standard ignore rules (harness-managed block appended)
-├── .claude/
-│   ├── settings.json    # Claude Code configuration
-│   └── hooks.json       # Hook configuration (v3 shim)
-└── hooks/
-    ├── pre-tool.sh      # Thin shim (→ core/src/index.ts)
-    └── post-tool.sh     # Thin shim (→ core/src/index.ts)
+└── .claude/
+    └── settings.json    # Claude Code permissions/sandbox/env
 ```
+
+> **Note**: Neither `hooks/` nor `harness.toml` is generated into a user's project.
+> - Hooks ship inside the installed plugin (`.claude-plugin/hooks.json`) — Claude Code
+>   loads them from there automatically.
+> - `harness.toml` + `harness sync` is a *plugin-author* workflow for regenerating
+>   `.claude-plugin/*` files from a single TOML SSOT. User projects have no
+>   `.claude-plugin/` to regenerate, so the TOML would be an orphaned file. Users who
+>   want unified TOML authoring for their own `.claude/settings.json` can opt in later
+>   via a dedicated subcommand (future work).
 
 **Flow**:
 1. Detect project type (Node.js/Python/Go/Rust/Other)
 2. Generate minimal CLAUDE.md
 3. Generate Plans.md template
-4. Deploy hooks.json
+4. Generate `.claude/settings.json` (permissions/sandbox/env — safe defaults)
 5. Merge `templates/gitignore-harness` into `.gitignore` (idempotent — skips if `# >>> harness-managed >>>` marker already present)
 
 **gitignore merge logic**:
