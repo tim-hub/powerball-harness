@@ -1,6 +1,6 @@
 ---
 name: vibecoder-guide
-description: "Use this skill when the user appears non-technical, asks 'what should I do next?', 'how does this work?', seems confused about the development process, or needs step-by-step guidance in plain language. Do NOT load for: experienced developers making direct implementation requests, code reviews, or technical debugging. Guides non-technical users (VibeCoders) through natural language development — explains what to do next, how the system works, and how to express requirements."
+description: "Use when the user seems non-technical, asks 'what next?' or 'how does this work?', or needs step-by-step guidance in plain language. Do NOT load for: experienced direct implementation requests, reviews, or debugging."
 allowed-tools: ["Read"]
 user-invocable: false
 ---

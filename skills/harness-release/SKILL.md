@@ -1,6 +1,6 @@
 ---
 name: harness-release
-description: "Use this skill whenever the user mentions releasing, version bumps, creating tags, publishing, cutting a release, or runs /harness-release. Also use when the user asks about the release process or wants to finalize and ship changes. Do NOT load for: code implementation (use harness-work), code review (use harness-review), planning (use harness-plan), or project setup. Unified release skill for Harness — automates CHANGELOG updates, version bumps, git tags, GitHub Releases, mirror sync, and release validation."
+description: "Use when releasing — version bumps, CHANGELOG, git tags, GitHub Releases, or /harness-release. Do NOT load for: implementation (harness-work), review (harness-review), planning (harness-plan), or setup."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[patch|minor|major|--dry-run|--announce|--complete]"
 context: fork

@@ -1,6 +1,6 @@
 ---
 name: agent-browser
-description: "Use this skill whenever the user asks to visit a URL, click elements, fill out forms, scrape content, automate a website, log into a service, take a screenshot of a page, or perform any browser-driven workflow. Also use when the user needs UI testing, visual regression checks, or web data extraction. Do NOT load for: sharing or embedding URLs in code, reading local screenshot image files, or non-browser file operations. Automates browser interactions — navigate pages, fill forms, take screenshots, extract web data, and test web apps."
+description: "Use when automating browser workflows — visiting URLs, clicking, filling forms, scraping, screenshots, UI testing, or web data extraction. Do NOT load for: embedding URLs in code, reading local screenshots, or non-browser file ops."
 allowed-tools: ["Bash", "Read"]
 user-invocable: false
 context: fork
