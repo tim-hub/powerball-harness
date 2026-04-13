@@ -54,6 +54,8 @@ echo "[harness] downloading ${BINARY_NAME} ${LATEST_TAG}..."
 if curl -fsSL "$URL" -o "$TARGET"; then
   chmod +x "$TARGET"
   echo "[harness] installed: $TARGET"
+  # Clear the "binary missing" warning flag so it won't show again
+  rm -f "${HOME}/.claude/harness-binary-missing.warned"
 else
   echo "[harness] warning: download failed (${URL}), skipping" >&2
   # Exit 0 so the hook doesn't block the user

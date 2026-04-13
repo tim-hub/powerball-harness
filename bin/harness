@@ -10,6 +10,12 @@ if [ -x "$BINARY" ]; then
   exec "$BINARY" "$@"
 else
   # Binary not yet installed — fail open so hooks don't block the user.
-  # Run /harness-setup to install the binary for your platform.
+  # Warn once per install so the user knows guardrails are inactive.
+  FLAG="${HOME}/.claude/harness-binary-missing.warned"
+  if [ ! -f "$FLAG" ]; then
+    mkdir -p "$(dirname "$FLAG")"
+    echo "[harness] binary not installed — guardrails inactive. Run /harness-setup binary to install." >&2
+    touch "$FLAG"
+  fi
   exit 0
 fi
