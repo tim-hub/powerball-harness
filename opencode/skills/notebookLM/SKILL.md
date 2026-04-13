@@ -1,6 +1,6 @@
 ---
 name: notebookLM
-description: "Use this skill whenever the user mentions NotebookLM, wants to create YAML for NotebookLM, needs structured slide content, or asks for presentation material generation. Also use when the user wants to convert project documentation into NotebookLM format. Do NOT load for: code implementation, bug fixes, code reviews, deployments, or general slide images (use generate-slide instead). Generates NotebookLM-compatible YAML documents and structured slide content."
+description: "Use when creating NotebookLM YAML, structured slide content, or converting project docs into NotebookLM format. Do NOT load for: code implementation, reviews, deploys, or general slide images (use generate-slide)."
 allowed-tools: ["Read", "Write", "Edit"]
 argument-hint: "[yaml|slides]"
 ---

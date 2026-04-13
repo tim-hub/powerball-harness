@@ -1,6 +1,6 @@
 ---
 name: ci
-description: "Use this skill whenever the user mentions CI failures, GitHub Actions errors, build pipeline issues, test failures in CI, red builds, or needs to debug why a pipeline broke. Also trigger when the user pastes CI logs or error output from a remote build. Do NOT load for: local builds, local test runs, standard implementation work, code reviews, or project setup. Diagnoses and fixes CI/CD pipeline failures — analyzes logs, identifies root causes, and applies fixes."
+description: "Use when diagnosing CI/CD failures — GitHub Actions errors, pipeline breakage, red builds, or pasted CI logs. Do NOT load for: local builds, local test runs, or standard implementation."
 allowed-tools: ["Read", "Grep", "Bash", "Task"]
 user-invocable: false
 context: fork

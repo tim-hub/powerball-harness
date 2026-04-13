@@ -1,6 +1,6 @@
 ---
 name: cc-cursor-cc
-description: "Use this skill when the user mentions Cursor PM handoff, 2-agent plan validation, CC-Cursor round trip, brainstorm review with Cursor, or cross-agent plan sync. Do NOT load for: direct implementation work, single-agent coding tasks, or standard code editing. Validates brainstormed ideas with Cursor PM agent, updates Plans.md, and hands off between agents in the Cursor ↔ Claude Code 2-agent workflow."
+description: "Use when handing off between Cursor and Claude Code — PM plan validation, brainstorm review, Plans.md sync, or cross-agent round trip. Do NOT load for: single-agent direct implementation or standard code editing."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 user-invocable: false
 ---

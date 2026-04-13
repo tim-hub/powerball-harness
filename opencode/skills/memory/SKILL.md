@@ -1,6 +1,6 @@
 ---
 name: memory
-description: "Use this skill whenever the user mentions SSOT, decisions.md, patterns.md, memory search, save learnings, record a decision, harness-mem, sync memory, promote patterns, merge plans, migrate memory, or recall past decisions. Also use when the user wants to persist cross-session knowledge or search for previously recorded patterns. Do NOT load for: code implementation, code reviews, ad-hoc notes, or in-session task logging. Manages SSOT (Single Source of Truth) memory — decisions.md, patterns.md, cross-tool memory search, and memory sync."
+description: "Use when managing SSOT, recording decisions, searching memory, promoting learnings to decisions.md/patterns.md, or invoking harness-mem. Do NOT load for: implementation, reviews, ad-hoc notes, or in-session logging."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "mcp__harness__harness_mem_*"]
 argument-hint: "[ssot|sync|migrate|search|record]"
 context: fork

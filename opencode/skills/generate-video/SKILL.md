@@ -1,6 +1,6 @@
 ---
 name: generate-video
-description: "Use this skill whenever the user mentions video generation, product demo videos, visual documentation, animated project overviews, or '/generate-video'. Also use when the user wants to create a video walkthrough of features or a release video. Requires Remotion setup. Do NOT load for: embedding video players in UI, live demo recording, video playback features, or slide generation. Auto-generates product demo videos using Remotion — architecture overviews, feature demos, and release announcement videos."
+description: "Use when generating product demo videos, visual documentation, or release walkthroughs via Remotion. Do NOT load for: embedding video players, live recording, playback features, or slide generation."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task", "AskUserQuestion", "WebFetch"]
 disable-model-invocation: true
 argument-hint: "[demo|arch|release]"

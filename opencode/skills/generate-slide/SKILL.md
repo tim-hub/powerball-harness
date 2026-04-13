@@ -1,6 +1,6 @@
 ---
 name: generate-slide
-description: "Use this skill whenever the user asks for a project slide, one-page visual summary, project introduction image, or visual overview of a project. Also use when the user wants to present a project visually or create a promotional image for a repository. Do NOT load for: presentation decks (multiple slides), video generation, text-only documentation, or code implementation. Generates project introduction slide images using Nano Banana Pro (Gemini image API) with 3 visual patterns, quality checks, and retries."
+description: "Use when creating a single project slide or one-page visual summary — project intro image or promotional image for a repo. Do NOT load for: multi-slide decks, video generation, or text-only docs."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "AskUserQuestion"]
 argument-hint: "[project-path|description]"
 ---

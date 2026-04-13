@@ -1,6 +1,6 @@
 ---
 name: harness-review
-description: "Use this skill whenever the user asks to review code, review a plan, check quality, analyze scope, run security checks, examine PRs or diffs, or runs /harness-review. Also use when the user wants a second opinion on changes, performance review, or pre-merge quality gate. Do NOT load for: code implementation (use harness-work), new features, bug fixes, project setup, or release. Unified review skill for Harness — multi-angle code, plan, and scope review with optional dual-reviewer and security analysis."
+description: "Use when reviewing code, plans, or scope — pre-merge quality gate, security audit, PR examination, or second-opinion runs. Do NOT load for: implementation (harness-work), planning, or release."
 allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[code|plan|scope] [--dual] [--security]"
 context: fork
