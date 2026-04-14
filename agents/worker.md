@@ -135,23 +135,30 @@ Task tool で subagent_type="worker" を指定
 9. **エラー復旧**: 失敗時は原因分析→修正（最大3回）
 10. **コミット**（モードにより分岐）:
     - `mode: solo` → `git commit` で main に直接記録
-    - `mode: breezing` → worktree 内で `git commit`（main には反映しない）
+    - `mode: breezing` → **ブランチガード必須**（main 汚染防止の最終防壁）:
+      1. commit 前に必ず `git branch --show-current` を実行
+      2. 現在ブランチが `main` / `master` なら `git switch -c harness-work/<task-id>` で feature ブランチを作成してから commit
+         （`isolation: worktree` が環境依存で失敗しても main HEAD は動かない）
+      3. feature ブランチ上で `git commit` 実行（main には反映されない）
+      4. 以降の amend も feature ブランチ上で実施
 11. **Lead への結果返却**（`mode: breezing` 時）:
-    - worktree 内の commit hash を取得
+    - feature ブランチ上の commit hash と branch 名を取得
     - 以下の JSON を Lead に返す:
       ```json
       {
         "status": "completed",
-        "commit": "worktree 内の commit hash",
-        "worktreePath": "worktree のパス",
+        "commit": "feature ブランチ上の commit hash",
+        "branch": "harness-work/<task-id>（ブランチガードで作成した feature ブランチ名）",
+        "worktreePath": "worktree のパス（isolation 有効時）、無効時は main repo パス",
         "files_changed": ["変更ファイルリスト"],
         "summary": "変更内容の 1 行サマリ"
       }
       ```
     - **この時点では main に cc:完了 を書かない**（Lead がレビュー後に更新）
+    - **main HEAD も動かない**（Lead が feature ブランチから cherry-pick するまで）
 12. **外部レビュー受付**（`mode: breezing` 時のみ）:
     - Lead から SendMessage で REQUEST_CHANGES の指摘を受け取る
-    - 指摘に基づいて修正を実施 → worktree 内で `git commit --amend`
+    - 指摘に基づいて修正を実施 → feature ブランチ上で `git commit --amend`
     - 修正後、更新された commit hash を Lead に返す（最大 3 回）
 13. **独立レビュー待ち**:
     - Worker の preflight 自己点検だけでは完了を確定しない
@@ -174,7 +181,8 @@ Task tool で subagent_type="worker" を指定
   "status": "completed | failed | escalated",
   "task": "完了したタスク",
   "files_changed": ["変更ファイルリスト"],
-  "commit": "コミットハッシュ",
+  "commit": "コミットハッシュ（mode: breezing 時は feature ブランチ上）",
+  "branch": "feature ブランチ名（mode: breezing 時のみ、例: harness-work/41.0.2）",
   "worktreePath": "worktree のパス（mode: breezing 時のみ）",
   "summary": "変更内容の 1 行サマリ（mode: breezing 時のみ）",
   "memory_updates": ["メモリに追記した内容"],
