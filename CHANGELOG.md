@@ -6,29 +6,39 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
-### Changed
+## [4.3.0] - 2026-04-15
 
-- Moved `allow1`, `generate-slide`, `generate-video` skills from `skills/` to `.claude/skills/` — keeps `skills/` focused on software development workflow
-- Moved `agents/video-scene-generator.md` to `.claude/agents/` — video scene generation is not a core dev agent
-- Moved `skills/routing-rules.md` to `.claude/rules/skill-routing-rules.md` — it's a reference doc, not a skill
+### Theme: Phase 50+51 — Refocus skills directory, eliminate 600-file mirror dirs
 
-#### Phase 51: Eliminate mirror directories — setup-time copy replaces build-time sync
+**Removes non-development skills from `skills/` and replaces build-time mirror sync with setup-time copy, shrinking the plugin by ~600 duplicate files.**
 
-**Before**: `codex/.codex/skills/` and `opencode/skills/` were build-time mirrors kept in sync by `sync-skill-mirrors.mjs` and `build-opencode.mjs`. Any edit to `skills/` required re-running sync scripts or CI would fail. The plugin shipped ~600 duplicate skill files.
+---
 
-**After**: Mirror directories deleted. `harness-setup codex` and `harness-setup opencode` copy skills from the plugin's `skills/` to the user's project at setup time. `harness-setup duo` runs both. `templates/codex/`, `templates/opencode/`, and `templates/codex-skills/` hold the config templates. No ongoing sync needed.
+#### 1. Refocus `skills/` on software development (Phase 50)
 
-- Deleted `codex/` and `opencode/` mirror directories from the plugin repo
-- Moved `skills-codex/` → `templates/codex-skills/` (codex-native skill overrides: breezing, harness-work)
-- Created `templates/codex/` with config.toml, rules/harness.rules, .codexignore, AGENTS.md
-- Added opencode.json, AGENTS.md, README.md to `templates/opencode/`
-- Added `harness-setup codex` subcommand: copies templates + skills to `.codex/`, patches `disable-model-invocation: true` into each SKILL.md, overlays codex-native overrides from `templates/codex-skills/`
-- Added `harness-setup opencode` subcommand: copies templates + skills to `.opencode/`
-- Added `harness-setup duo` subcommand: runs both codex and opencode setup
-- Removed mirror sync scripts: `sync-skill-mirrors.mjs`, `build-opencode.mjs`, `sync-skills.mjs`, `validate-opencode.mjs`
-- Replaced mirror sync CI (`compatibility-check.yml`) with template existence check
-- Replaced mirror sync check in `check-consistency.sh` with template existence check
-- Removed PostToolUse auto-sync hook from `.claude/settings.json`
+**Before**: `allow1` (image generation), `generate-slide`, `generate-video`, and `video-scene-generator` lived in `skills/` and `agents/` alongside core development tools, cluttering the skill palette. `routing-rules.md` was filed as a skill despite being a reference document.
+
+**After**: Non-development skills moved to `.claude/skills/` and `.claude/agents/` — out of the user-facing palette. `routing-rules.md` relocated to `.claude/rules/skill-routing-rules.md`.
+
+- `skills/allow1` → `.claude/skills/allow1`
+- `skills/generate-slide` → `.claude/skills/generate-slide`
+- `skills/generate-video` → `.claude/skills/generate-video`
+- `agents/video-scene-generator.md` → `.claude/agents/video-scene-generator.md`
+- `skills/routing-rules.md` → `.claude/rules/skill-routing-rules.md`
+
+#### 2. Eliminate mirror directories — setup-time copy replaces build-time sync (Phase 51)
+
+**Before**: `codex/.codex/skills/` and `opencode/skills/` were build-time mirrors of `skills/`, kept in sync by `sync-skill-mirrors.mjs` and `build-opencode.mjs`. Every skill edit required re-running sync scripts or CI would fail. The plugin repo shipped ~600 duplicate skill files.
+
+**After**: Mirror directories deleted. `harness-setup codex` and `harness-setup opencode` copy skills from the plugin's `skills/` into the user's project at setup time. `harness-setup duo` sets up both. Config templates live in `templates/codex/`, `templates/opencode/`, and `templates/codex-skills/`. No ongoing sync required.
+
+- Deleted `codex/` and `opencode/` mirror directories (~600 files removed from plugin repo)
+- Moved `skills-codex/` → `templates/codex-skills/` (codex-native overrides: breezing, harness-work)
+- Added `harness-setup codex`: copies templates + skills to `.codex/`, patches `disable-model-invocation: true` into each SKILL.md, overlays codex-native overrides
+- Added `harness-setup opencode`: copies templates + skills to `.opencode/`
+- Added `harness-setup duo`: runs codex + opencode setup in one step
+- Removed 4 mirror sync scripts (`sync-skill-mirrors.mjs`, `build-opencode.mjs`, `sync-skills.mjs`, `validate-opencode.mjs`)
+- Replaced mirror sync CI with template existence check; removed PostToolUse auto-sync hook
 
 ## [4.2.0] - 2026-04-14
 
