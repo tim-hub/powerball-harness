@@ -6,19 +6,46 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
-### Changed
+## [4.4.0] - 2026-04-15
 
-- **Multi-plugin marketplace restructure (Phase 52)**: All harness plugin files moved from repo root into `harness/` subfolder. `marketplace.json` now points `source: "./harness/"`, making the repo ready for additional plugins to coexist. Files that remain at root: `docs/`, `go/`, `tests/`, `.github/`, `README.md`, `CHANGELOG.md`, `Plans.md`.
+### Theme: Phase 52-54 — Marketplace restructure, Makefile CI layer, test suite hardening
 
-#### Before / After
+**Moves all plugin files into a `harness/` subfolder enabling multi-plugin coexistence, stabilizes CI against path changes via a Makefile abstraction layer, and hardens the test suite against macOS sandbox TMPDIR restrictions.**
+
+---
+
+#### 1. Multi-plugin marketplace restructure (Phase 52)
+
+**Before**: All plugin files (`skills/`, `agents/`, `hooks/`, `scripts/`, `templates/`, `bin/`, `VERSION`, etc.) lived at the repo root. `marketplace.json source: "./"` pointed to the whole repo. Only one plugin could coexist in the repo.
+
+**After**: All plugin files now live under `harness/`. `marketplace.json` points `source: "./harness/"`. The repo root holds only shared infrastructure (`docs/`, `go/`, `tests/`, `.github/`, `README.md`, `CHANGELOG.md`), with room for additional plugins. Developer-only tooling lives in `local-scripts/` (not shipped to users).
 
 | Before | After |
 |--------|-------|
-| `skills/`, `agents/`, `hooks/` at repo root | Under `harness/skills/`, `harness/agents/`, `harness/hooks/` |
-| `scripts/`, `templates/`, `bin/` at root | Under `harness/scripts/`, `harness/templates/`, `harness/bin/` |
-| `VERSION`, `harness.toml`, `settings.json` at root | Under `harness/VERSION`, `harness/harness.toml`, `harness/settings.json` |
+| `skills/`, `agents/`, `hooks/` at repo root | `harness/skills/`, `harness/agents/`, `harness/hooks/` |
+| `scripts/`, `templates/`, `bin/` at root | `harness/scripts/`, `harness/templates/`, `harness/bin/` |
+| `VERSION`, `harness.toml`, `settings.json` at root | `harness/VERSION`, `harness/harness.toml`, `harness/settings.json` |
 | `marketplace.json source: "./"` | `marketplace.json source: "./harness/"` |
 | `marketplace.json` had `version` field (CC validator rejected) | Version tracked only in `harness/VERSION` + `harness/harness.toml` |
+| `.claude/scripts/` held dev tools mixed with plugin scripts | Dev tools moved to `local-scripts/` at repo root |
+
+#### 2. Makefile as stable CI interface layer (Phase 53)
+
+**Before**: CI workflow steps and local dev commands referenced raw script paths (`bash ./tests/validate-plugin.sh`, `bash ./local-scripts/check-consistency.sh`). After Phase 52 moved scripts into subfolders, every path had to be updated in N places — drift was invisible until CI ran.
+
+**After**: All CI steps and local dev commands call `make <target>`. The Makefile is the single point of update when script paths change; workflow files stay untouched.
+
+```sh
+make validate    # bash tests/validate-plugin.sh
+make check       # bash local-scripts/check-consistency.sh
+make test-all    # run all tests under tests/ and harness/tests/
+```
+
+#### 3. Test suite hardening (Phase 54)
+
+**Before**: 8 of 29 tests failed in the Claude Code sandbox: macOS sets `TMPDIR` to `/var/folders/...` which the sandbox blocks for writes, causing silent `mktemp` failures. Several tests also referenced pre-Phase-52 script paths and old skill names (`impl`, `verify`, `harness-init`, `harness-update`).
+
+**After**: All 29 tests pass. Every test script exports `TMPDIR=/tmp` before any `mktemp` call. Tests that require unavailable external resources (socket binding, sibling repos) skip with a `SKIP:` message instead of failing.
 
 ## [4.3.0] - 2026-04-15
 
