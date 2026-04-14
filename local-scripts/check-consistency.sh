@@ -2,14 +2,14 @@
 # check-consistency.sh
 # Plugin consistency check
 #
-# Usage: ./.claude/scripts/check-consistency.sh
+# Usage: ./local-scripts/check-consistency.sh
 # Exit codes:
 #   0 - All checks passed
 #   1 - Inconsistencies found
 
 set -euo pipefail
 
-PLUGIN_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+PLUGIN_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 HARNESS_ROOT="$PLUGIN_ROOT/harness"
 ERRORS=0
 

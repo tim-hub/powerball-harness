@@ -16,7 +16,7 @@
 #   Summary is printed to stderr and does not affect parseable stdout.
 #
 # Usage:
-#   bash .claude/scripts/audit-skill-descriptions.sh [target-dir]
+#   bash local-scripts/audit-skill-descriptions.sh [target-dir]
 #
 #   With no argument, scans skills/ and templates/codex-skills/.
 #   With one argument, scans only that directory.
@@ -29,7 +29,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 REQUIRED_PREFIX="Use when "
 MAX_LEN=300
@@ -41,7 +41,7 @@ FORBIDDEN_PHRASES=(
   "Use this skill"
 )
 
-DEFAULT_TARGETS=("skills" "templates/codex-skills")
+DEFAULT_TARGETS=("harness/skills" "harness/templates/codex-skills")
 
 # ---- arg parsing ----
 if [ "$#" -gt 1 ]; then

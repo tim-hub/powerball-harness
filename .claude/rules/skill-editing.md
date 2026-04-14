@@ -69,7 +69,7 @@ allowed-tools: ["Read", "Write", "Edit", "Bash", ...]
 
 See [skill-description.md](./skill-description.md) for the authoritative format rule.
 
-Summary: `description:` must start with the literal prefix `Use when `, describe task shape rather than user phrases, keep the introduction/capability summary in the SKILL.md body (not the description), and stay within 300 characters. Enforced by `.claude/scripts/audit-skill-descriptions.sh`.
+Summary: `description:` must start with the literal prefix `Use when `, describe task shape rather than user phrases, keep the introduction/capability summary in the SKILL.md body (not the description), and stay within 300 characters. Enforced by `local-scripts/audit-skill-descriptions.sh`.
 
 ## Skill File Structure Template
 

@@ -26,9 +26,9 @@ go/.claude/*
 !.claude/rules/
 !.claude/output-styles/
 !.claude/settings.json
-!.claude/scripts/
 !.claude/skills/
 !.claude/memory/
+!local-scripts/
 .claude/memory/session-log.md
 
 .serena/

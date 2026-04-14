@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .claude/scripts/check-japanese.mjs",
+            "command": "node local-scripts/check-japanese.mjs",
             "timeout": 15
           }
         ]

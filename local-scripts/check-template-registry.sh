@@ -10,9 +10,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PLUGIN_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-REGISTRY_FILE="$PLUGIN_ROOT/templates/template-registry.json"
-TEMPLATES_DIR="$PLUGIN_ROOT/templates"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REGISTRY_FILE="$REPO_ROOT/harness/templates/template-registry.json"
+TEMPLATES_DIR="$REPO_ROOT/harness/templates"
 
 echo "=== Template Registry Consistency Check ==="
 echo ""

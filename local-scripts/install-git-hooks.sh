@@ -4,7 +4,7 @@
 # Repo-managed git hooks installer (uses core.hooksPath).
 #
 # Usage:
-#   ./.claude/scripts/install-git-hooks.sh
+#   ./local-scripts/install-git-hooks.sh
 #
 # Windows:
 #   Requires Git for Windows (includes Git Bash).
