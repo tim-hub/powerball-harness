@@ -18,9 +18,9 @@ Goal: Clean up skill naming, move private skills to `.claude/skills/`, extract s
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 46.1 | Rename `notebookLM` → `notebook-lm` across `skills/`, `codex/`, `opencode/`, and all cross-references (docs, scripts, feature table) | `grep -r notebookLM` returns only CHANGELOG historical records | - | cc:done |
-| 46.2 | Move `cc-update-review` from `skills/` to `.claude/skills/`; remove codex/opencode mirrors; update path refs in `claude-codex-upstream-update/SKILL.md` (×3), `build-opencode.mjs`, `test-codex-package.sh` | Skill loads from `.claude/skills/cc-update-review/`; no stale refs outside CHANGELOG | - | cc:done |
-| 46.3 | Extract `harness-setup` gitignore merge into `scripts/merge-gitignore.sh`; add `gitignore` subcommand; move codex section to `references/codex.md`; upgrade Quick Reference to 3-column format per `skill-quick-reference.md` rule | Script is idempotent; SKILL.md < 120 lines; codex/opencode mirrors in sync | - | cc:done |
+| 46.1 | Rename `notebookLM` → `notebook-lm` across `skills/`, `codex/`, `opencode/`, and all cross-references (docs, scripts, feature table) | `grep -r notebookLM` returns only CHANGELOG historical records | - | cc:done [1fd01a5] |
+| 46.2 | Move `cc-update-review` from `skills/` to `.claude/skills/`; remove codex/opencode mirrors; update path refs in `claude-codex-upstream-update/SKILL.md` (×3), `build-opencode.mjs`, `test-codex-package.sh` | Skill loads from `.claude/skills/cc-update-review/`; no stale refs outside CHANGELOG | - | cc:done [1fd01a5] |
+| 46.3 | Extract `harness-setup` gitignore merge into `scripts/merge-gitignore.sh`; add `gitignore` subcommand; move codex section to `references/codex.md`; upgrade Quick Reference to 3-column format per `skill-quick-reference.md` rule | Script is idempotent; SKILL.md < 120 lines; codex/opencode mirrors in sync | - | cc:done [1fd01a5] |
 
 ---
 
@@ -268,12 +268,12 @@ Total: **6 tasks**
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 41.1.1 | Add `templates/gitignore-harness` template file with documented ignore patterns (`.claude/sessions/`, `logs/`, `settings.local.json`, `states/`) and force-include rules (`!.claude/memory/decisions.md`, `!.claude/memory/patterns.md`, `!.claude/output-styles/`, `!.claude/rules/`, `!.claude/scripts/`, `!.claude/skills/`, `!.claude/settings.json`) | Template file exists and renders a valid `.gitignore` block | - | cc:done |
-| 41.1.2 | Update `skills/harness-setup/SKILL.md` `init` subcommand to append/merge the template into the project `.gitignore` (idempotent; skip if markers already present) | Running `harness-setup init` twice produces identical `.gitignore`; `git check-ignore` rules verified | 41.1.1 | cc:done |
-| 41.2.1 | Remove "Unified review skill" wording from `skills/harness-review/SKILL.md` description and body; tighten framing to "multi-angle review" | `grep -i "unified" skills/harness-review/SKILL.md` → 0 matches | - | cc:done |
-| 41.2.2 | Extract the "Codex Environment" block (SKILL.md ~lines 209-231) into `skills/harness-review/references/codex-review.md`; SKILL.md references it conditionally ("if `command -v codex` succeeds AND user requests Codex or duo review, load `${CLAUDE_SKILL_DIR}/references/codex-review.md`") | Reference file exists; SKILL.md has conditional load pointer only; reviewing without codex installed never mentions codex | 41.2.1 | cc:done |
-| 41.3.1 | Extract `--codex` logic (flag parsing, Codex Mode section, Codex review path, fallback) from `skills/harness-work/SKILL.md` into `skills/harness-work/references/codex-work.md`, mirroring the pattern established in 41.2 | Reference file exists; covers flag, prompt dispatch, resume, review, fallback | 41.2.2 | cc:done |
-| 41.3.2 | Update `skills/harness-work/SKILL.md` main flow to default to Claude path; conditional pointer loads `codex-work.md` only when codex is available AND user passes `--codex` or asks to use Codex | `grep -c "codex" skills/harness-work/SKILL.md` reduced to pointer + flag mention only; SKILL.md under 500 lines; `./tests/validate-plugin.sh` passes | 41.3.1 | cc:done |
+| 41.1.1 | Add `templates/gitignore-harness` template file with documented ignore patterns (`.claude/sessions/`, `logs/`, `settings.local.json`, `states/`) and force-include rules (`!.claude/memory/decisions.md`, `!.claude/memory/patterns.md`, `!.claude/output-styles/`, `!.claude/rules/`, `!.claude/scripts/`, `!.claude/skills/`, `!.claude/settings.json`) | Template file exists and renders a valid `.gitignore` block | - | cc:done [1fd01a5] |
+| 41.1.2 | Update `skills/harness-setup/SKILL.md` `init` subcommand to append/merge the template into the project `.gitignore` (idempotent; skip if markers already present) | Running `harness-setup init` twice produces identical `.gitignore`; `git check-ignore` rules verified | 41.1.1 | cc:done [1fd01a5] |
+| 41.2.1 | Remove "Unified review skill" wording from `skills/harness-review/SKILL.md` description and body; tighten framing to "multi-angle review" | `grep -i "unified" skills/harness-review/SKILL.md` → 0 matches | - | cc:done [1fd01a5] |
+| 41.2.2 | Extract the "Codex Environment" block (SKILL.md ~lines 209-231) into `skills/harness-review/references/codex-review.md`; SKILL.md references it conditionally ("if `command -v codex` succeeds AND user requests Codex or duo review, load `${CLAUDE_SKILL_DIR}/references/codex-review.md`") | Reference file exists; SKILL.md has conditional load pointer only; reviewing without codex installed never mentions codex | 41.2.1 | cc:done [1fd01a5] |
+| 41.3.1 | Extract `--codex` logic (flag parsing, Codex Mode section, Codex review path, fallback) from `skills/harness-work/SKILL.md` into `skills/harness-work/references/codex-work.md`, mirroring the pattern established in 41.2 | Reference file exists; covers flag, prompt dispatch, resume, review, fallback | 41.2.2 | cc:done [1fd01a5] |
+| 41.3.2 | Update `skills/harness-work/SKILL.md` main flow to default to Claude path; conditional pointer loads `codex-work.md` only when codex is available AND user passes `--codex` or asks to use Codex | `grep -c "codex" skills/harness-work/SKILL.md` reduced to pointer + flag mention only; SKILL.md under 500 lines; `./tests/validate-plugin.sh` passes | 41.3.1 | cc:done [1fd01a5] |
 
 ---
 
@@ -461,8 +461,8 @@ Purpose: Track the 2 recommendations found in previous and current /HAR:review s
 
 | Task | Description | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 39.5.1 | Harden `grep -c '^plan:' \| awk '$1 > 2 {exit 0} {exit 1}'` pipeline in Step 0.2 of `skills/harness-review/SKILL.md` for strict-mode compatibility. | Step 0.2 pipeline does not exist in local version — already resolved by absence of Step 0 | - | cc:done |
-| 39.5.2 | Fix issue in `go/internal/hookhandler/memory_bridge.go` where `validTargets` map expects kebab-case (`session-start`, `user-prompt` etc.) but CC sends PascalCase (`SessionStart`, `UserPromptSubmit` etc.) in `hook_event_name`, causing it to always fall into "unknown target" fail-open branch and rendering memory bridge effectively non-functional. Normalize HookEventName or align `validTargets` keys to PascalCase | Added `pascalToTarget` normalization map + PascalCase test cases. All tests PASS. | - | cc:done |
+| 39.5.1 | Harden `grep -c '^plan:' \| awk '$1 > 2 {exit 0} {exit 1}'` pipeline in Step 0.2 of `skills/harness-review/SKILL.md` for strict-mode compatibility. | Step 0.2 pipeline does not exist in local version — already resolved by absence of Step 0 | - | cc:done [1fd01a5] |
+| 39.5.2 | Fix issue in `go/internal/hookhandler/memory_bridge.go` where `validTargets` map expects kebab-case (`session-start`, `user-prompt` etc.) but CC sends PascalCase (`SessionStart`, `UserPromptSubmit` etc.) in `hook_event_name`, causing it to always fall into "unknown target" fail-open branch and rendering memory bridge effectively non-functional. Normalize HookEventName or align `validTargets` keys to PascalCase | Added `pascalToTarget` normalization map + PascalCase test cases. All tests PASS. | - | cc:done [1fd01a5] |
 
 ---
 
@@ -577,16 +577,16 @@ Difficulty: Low / ~50-100 lines each / File I/O + JSON output only
 
 | Task | Handler | Source File | Lines | Description | Status |
 |------|---------|-----------|------|------|--------|
-| 37.1.1 | pretooluse-inbox-check | scripts/pretooluse-inbox-check.sh | 82 | Check for unread messages from other sessions (5-minute throttle) | cc:done |
-| 37.1.2 | pretooluse-browser-guide | scripts/pretooluse-browser-guide.sh | 84 | Detect agent-browser CLI + recommend MCP browser tools | cc:done |
-| 37.1.3 | memory-bridge | scripts/hook-handlers/memory-bridge.sh + 4 sub-handlers | 55 | harness-mem MCP bridge dispatcher (session-start/user-prompt/post-tool/stop) | cc:done |
-| 37.1.4 | worktree-create | scripts/hook-handlers/worktree-create.sh | 93 | Create .claude/state/ + record worktree-info.json | cc:done |
-| 37.1.5 | worktree-remove | scripts/hook-handlers/worktree-remove.sh | 73 | Delete tmp files + delete worktree-info.json | cc:done |
-| 37.1.6 | posttooluse-commit-cleanup | scripts/posttooluse-commit-cleanup.sh | 50 | Detect git commit → delete review-approved.json | cc:done |
-| 37.1.7 | posttooluse-clear-pending | scripts/posttooluse-clear-pending.sh | 28 | Delete pending-skills/*.pending (skill completion signal) | cc:done |
-| 37.1.8 | session-auto-broadcast | scripts/session-auto-broadcast.sh | 103 | Notify teammates on changes to src/api/, types/, schema | cc:done |
-| 37.1.9 | config-change | scripts/hook-handlers/config-change.sh | 92 | ConfigChange → record to breezing-timeline.jsonl | cc:done |
-| 37.1.10 | instructions-loaded | scripts/hook-handlers/instructions-loaded.sh | 86 | InstructionsLoaded → jsonl log + hooks.json existence verification | cc:done |
+| 37.1.1 | pretooluse-inbox-check | scripts/pretooluse-inbox-check.sh | 82 | Check for unread messages from other sessions (5-minute throttle) | cc:done [1fd01a5] |
+| 37.1.2 | pretooluse-browser-guide | scripts/pretooluse-browser-guide.sh | 84 | Detect agent-browser CLI + recommend MCP browser tools | cc:done [1fd01a5] |
+| 37.1.3 | memory-bridge | scripts/hook-handlers/memory-bridge.sh + 4 sub-handlers | 55 | harness-mem MCP bridge dispatcher (session-start/user-prompt/post-tool/stop) | cc:done [1fd01a5] |
+| 37.1.4 | worktree-create | scripts/hook-handlers/worktree-create.sh | 93 | Create .claude/state/ + record worktree-info.json | cc:done [1fd01a5] |
+| 37.1.5 | worktree-remove | scripts/hook-handlers/worktree-remove.sh | 73 | Delete tmp files + delete worktree-info.json | cc:done [1fd01a5] |
+| 37.1.6 | posttooluse-commit-cleanup | scripts/posttooluse-commit-cleanup.sh | 50 | Detect git commit → delete review-approved.json | cc:done [1fd01a5] |
+| 37.1.7 | posttooluse-clear-pending | scripts/posttooluse-clear-pending.sh | 28 | Delete pending-skills/*.pending (skill completion signal) | cc:done [1fd01a5] |
+| 37.1.8 | session-auto-broadcast | scripts/session-auto-broadcast.sh | 103 | Notify teammates on changes to src/api/, types/, schema | cc:done [1fd01a5] |
+| 37.1.9 | config-change | scripts/hook-handlers/config-change.sh | 92 | ConfigChange → record to breezing-timeline.jsonl | cc:done [1fd01a5] |
+| 37.1.10 | instructions-loaded | scripts/hook-handlers/instructions-loaded.sh | 86 | InstructionsLoaded → jsonl log + hooks.json existence verification | cc:done [1fd01a5] |
 
 ---
 
@@ -596,18 +596,18 @@ Difficulty: Medium / ~100-350 lines each / JSONL management, state tracking, con
 
 | Task | Handler | Source File | Lines | Description | Status |
 |------|---------|-----------|------|------|--------|
-| 37.2.1 | setup-hook | scripts/setup-hook.sh | 188 | Plugin cache sync + .claude/state initialization + template validation | cc:done |
-| 37.2.2 | runtime-reactive | scripts/hook-handlers/runtime-reactive.sh | 168 | FileChanged/CwdChanged/TaskCreated → context injection | cc:done |
-| 37.2.3 | teammate-idle | scripts/hook-handlers/teammate-idle.sh | 186 | Record teammate idle + continue:false stop signal | cc:done |
-| 37.2.4 | userprompt-track-command | scripts/userprompt-track-command.sh | 107 | Detect /slash commands + record usage + pending-skills markers | cc:done |
-| 37.2.5 | breezing-signal-injector | scripts/hook-handlers/breezing-signal-injector.sh | 183 | breezing-signals.jsonl → systemMessage injection + mark consumed | cc:done |
-| 37.2.6 | ci-status-checker | scripts/hook-handlers/ci-status-checker.sh | 192 | Detect git push/gh pr → async CI status check | cc:done |
-| 37.2.7 | usage-tracker | scripts/usage-tracker.sh | 108 | Track Skill/Task tool usage | cc:done |
-| 37.2.8 | todo-sync | scripts/todo-sync.sh | 118 | TodoWrite → Plans.md marker sync (pending→cc:TODO etc.) | cc:done |
-| 37.2.9 | auto-cleanup-hook | scripts/auto-cleanup-hook.sh | 118 | File size warning after Write/Edit (>10KB) | cc:done |
-| 37.2.10 | track-changes | scripts/track-changes.sh | 185 | Record file changes + 2-hour dedup + path normalization | cc:done |
-| 37.2.11 | plans-watcher | scripts/plans-watcher.sh | 201 | Detect Plans.md changes + inject WIP/TODO/done marker summary | cc:done |
-| 37.2.12 | tdd-order-check | scripts/tdd-order-check.sh | 115 | Warning for implementation files edited before tests (enforce TDD order) | cc:done |
+| 37.2.1 | setup-hook | scripts/setup-hook.sh | 188 | Plugin cache sync + .claude/state initialization + template validation | cc:done [1fd01a5] |
+| 37.2.2 | runtime-reactive | scripts/hook-handlers/runtime-reactive.sh | 168 | FileChanged/CwdChanged/TaskCreated → context injection | cc:done [1fd01a5] |
+| 37.2.3 | teammate-idle | scripts/hook-handlers/teammate-idle.sh | 186 | Record teammate idle + continue:false stop signal | cc:done [1fd01a5] |
+| 37.2.4 | userprompt-track-command | scripts/userprompt-track-command.sh | 107 | Detect /slash commands + record usage + pending-skills markers | cc:done [1fd01a5] |
+| 37.2.5 | breezing-signal-injector | scripts/hook-handlers/breezing-signal-injector.sh | 183 | breezing-signals.jsonl → systemMessage injection + mark consumed | cc:done [1fd01a5] |
+| 37.2.6 | ci-status-checker | scripts/hook-handlers/ci-status-checker.sh | 192 | Detect git push/gh pr → async CI status check | cc:done [1fd01a5] |
+| 37.2.7 | usage-tracker | scripts/usage-tracker.sh | 108 | Track Skill/Task tool usage | cc:done [1fd01a5] |
+| 37.2.8 | todo-sync | scripts/todo-sync.sh | 118 | TodoWrite → Plans.md marker sync (pending→cc:TODO etc.) | cc:done [1fd01a5] |
+| 37.2.9 | auto-cleanup-hook | scripts/auto-cleanup-hook.sh | 118 | File size warning after Write/Edit (>10KB) | cc:done [1fd01a5] |
+| 37.2.10 | track-changes | scripts/track-changes.sh | 185 | Record file changes + 2-hour dedup + path normalization | cc:done [1fd01a5] |
+| 37.2.11 | plans-watcher | scripts/plans-watcher.sh | 201 | Detect Plans.md changes + inject WIP/TODO/done marker summary | cc:done [1fd01a5] |
+| 37.2.12 | tdd-order-check | scripts/tdd-order-check.sh | 115 | Warning for implementation files edited before tests (enforce TDD order) | cc:done [1fd01a5] |
 
 ---
 
@@ -617,13 +617,13 @@ Go binary already has routing, and hooks.json calls Go binary directly.
 
 | Task | Handler | Source File | Lines | Description | Status |
 |------|---------|-----------|------|------|--------|
-| 37.3.1 | elicitation-handler | scripts/hook-handlers/elicitation-handler.sh | 139 | MCP Elicitation → log + auto-skip during Breezing | cc:done |
-| 37.3.2 | elicitation-result | scripts/hook-handlers/elicitation-result.sh | 123 | ElicitationResult → jsonl log | cc:done |
-| 37.3.3 | stop-session-evaluator | scripts/hook-handlers/stop-session-evaluator.sh | 106 | Stop → session state evaluation + session.json update | cc:done |
-| 37.3.4 | stop-failure | scripts/hook-handlers/stop-failure.sh | 178 | StopFailure → API error log (rate limit, auth) | cc:done |
-| 37.3.5 | notification-handler | scripts/hook-handlers/notification-handler.sh | 166 | Notification → record to notification-events.jsonl | cc:done |
-| 37.3.6 | permission-denied-handler | scripts/hook-handlers/permission-denied-handler.sh | 197 | PermissionDenied → denial log + notify Breezing Lead | cc:done |
-| 37.3.7 | posttooluse-quality-pack | scripts/posttooluse-quality-pack.sh | 190 | Quality checks after Write/Edit (Prettier, tsc, console.log detection) | cc:done |
+| 37.3.1 | elicitation-handler | scripts/hook-handlers/elicitation-handler.sh | 139 | MCP Elicitation → log + auto-skip during Breezing | cc:done [1fd01a5] |
+| 37.3.2 | elicitation-result | scripts/hook-handlers/elicitation-result.sh | 123 | ElicitationResult → jsonl log | cc:done [1fd01a5] |
+| 37.3.3 | stop-session-evaluator | scripts/hook-handlers/stop-session-evaluator.sh | 106 | Stop → session state evaluation + session.json update | cc:done [1fd01a5] |
+| 37.3.4 | stop-failure | scripts/hook-handlers/stop-failure.sh | 178 | StopFailure → API error log (rate limit, auth) | cc:done [1fd01a5] |
+| 37.3.5 | notification-handler | scripts/hook-handlers/notification-handler.sh | 166 | Notification → record to notification-events.jsonl | cc:done [1fd01a5] |
+| 37.3.6 | permission-denied-handler | scripts/hook-handlers/permission-denied-handler.sh | 197 | PermissionDenied → denial log + notify Breezing Lead | cc:done [1fd01a5] |
+| 37.3.7 | posttooluse-quality-pack | scripts/posttooluse-quality-pack.sh | 190 | Quality checks after Write/Edit (Prettier, tsc, console.log detection) | cc:done [1fd01a5] |
 
 ---
 
@@ -633,14 +633,14 @@ Difficulty: High / ~300-900 lines each / state machines, process control, Node.j
 
 | Task | Handler | Source File | Lines | Description | Status |
 |------|---------|-----------|------|------|--------|
-| 37.4.1 | userprompt-inject-policy | scripts/userprompt-inject-policy.sh | 351 | Memory resume context injection + semaphore lock + RESUME_MAX_BYTES limit | cc:done |
-| 37.4.2 | fix-proposal-injector | scripts/hook-handlers/fix-proposal-injector.sh | 338 | pending-fix-proposals.jsonl → display proposals + approve/reject → Plans.md sync | cc:done |
-| 37.4.3 | posttooluse-log-toolname | scripts/posttooluse-log-toolname.sh | 333 | Tool usage log + LSP tracking + session event log (500-line rotation) + flock | cc:done |
-| 37.4.4 | auto-test-runner | scripts/auto-test-runner.sh | 326 | Detect source file changes → auto-run tests (async) + auto-detect Vitest/Jest/pytest | cc:done |
-| 37.4.5 | task-completed | scripts/hook-handlers/task-completed.sh | 911 | Record task completion + generate fix proposals + Breezing timeline + Plans.md sync (largest) | cc:done |
-| 37.4.6 | **pre-compact-save.js** ⚡ | scripts/hook-handlers/pre-compact-save.js | 783 | **Go port** — Generate handoff-artifact.json + precompact-snapshot.json + collect Git info | cc:done |
-| 37.4.7 | **emit-agent-trace.js** ⚡ | scripts/emit-agent-trace.js | 808 | **Go port** — Record agent-trace.jsonl + OpenTelemetry span + 10MB/3-generation rotation | cc:done |
-| 37.4.8 | post-compact (extended) | scripts/hook-handlers/post-compact.sh | 380 | PostCompact extension — WIP context + handoff artifact re-injection (supplement current Go version) | cc:done |
+| 37.4.1 | userprompt-inject-policy | scripts/userprompt-inject-policy.sh | 351 | Memory resume context injection + semaphore lock + RESUME_MAX_BYTES limit | cc:done [1fd01a5] |
+| 37.4.2 | fix-proposal-injector | scripts/hook-handlers/fix-proposal-injector.sh | 338 | pending-fix-proposals.jsonl → display proposals + approve/reject → Plans.md sync | cc:done [1fd01a5] |
+| 37.4.3 | posttooluse-log-toolname | scripts/posttooluse-log-toolname.sh | 333 | Tool usage log + LSP tracking + session event log (500-line rotation) + flock | cc:done [1fd01a5] |
+| 37.4.4 | auto-test-runner | scripts/auto-test-runner.sh | 326 | Detect source file changes → auto-run tests (async) + auto-detect Vitest/Jest/pytest | cc:done [1fd01a5] |
+| 37.4.5 | task-completed | scripts/hook-handlers/task-completed.sh | 911 | Record task completion + generate fix proposals + Breezing timeline + Plans.md sync (largest) | cc:done [1fd01a5] |
+| 37.4.6 | **pre-compact-save.js** ⚡ | scripts/hook-handlers/pre-compact-save.js | 783 | **Go port** — Generate handoff-artifact.json + precompact-snapshot.json + collect Git info | cc:done [1fd01a5] |
+| 37.4.7 | **emit-agent-trace.js** ⚡ | scripts/emit-agent-trace.js | 808 | **Go port** — Record agent-trace.jsonl + OpenTelemetry span + 10MB/3-generation rotation | cc:done [1fd01a5] |
+| 37.4.8 | post-compact (extended) | scripts/hook-handlers/post-compact.sh | 380 | PostCompact extension — WIP context + handoff artifact re-injection (supplement current Go version) | cc:done [1fd01a5] |
 
 ⚡ = Node.js dependency. Porting these 2 files achieves zero Node.js dependency.
 
@@ -650,12 +650,12 @@ Difficulty: High / ~300-900 lines each / state machines, process control, Node.j
 
 | Task | Description | DoD | Status |
 |------|------|-----|--------|
-| 37.5.1 | Rewrite all remaining 37 entries in hooks.json to `bin/harness hook <name>` | `grep -c 'run-hook.sh' hooks/hooks.json` returns 0 | cc:done |
-| 37.5.2 | Delete `scripts/run-hook.sh` + `scripts/run-script.js` | Files do not exist | cc:done |
-| 37.5.3 | Delete `package.json` (complete removal of npm dependency) | File does not exist | cc:done |
-| 37.5.4 | Delete `core/` (TypeScript engine) | Directory does not exist | cc:done |
-| 37.5.5 | E2E tests: all hook events work via Go binary | Go handler unit tests all pass; `go/scripts/test-e2e.sh` not present | cc:done |
-| 37.5.6 | `harness doctor` confirms zero Node.js dependency | `grep -rE "node\|run-script" hooks/` returns 0 hits; hook shims updated to use `bin/harness` | cc:done |
+| 37.5.1 | Rewrite all remaining 37 entries in hooks.json to `bin/harness hook <name>` | `grep -c 'run-hook.sh' hooks/hooks.json` returns 0 | cc:done [1fd01a5] |
+| 37.5.2 | Delete `scripts/run-hook.sh` + `scripts/run-script.js` | Files do not exist | cc:done [1fd01a5] |
+| 37.5.3 | Delete `package.json` (complete removal of npm dependency) | File does not exist | cc:done [1fd01a5] |
+| 37.5.4 | Delete `core/` (TypeScript engine) | Directory does not exist | cc:done [1fd01a5] |
+| 37.5.5 | E2E tests: all hook events work via Go binary | Go handler unit tests all pass; `go/scripts/test-e2e.sh` not present | cc:done [1fd01a5] |
+| 37.5.6 | `harness doctor` confirms zero Node.js dependency | `grep -rE "node\|run-script" hooks/` returns 0 hits; hook shims updated to use `bin/harness` | cc:done [1fd01a5] |
 
 ---
 
@@ -728,11 +728,11 @@ Purpose: Bring the entire `go/` directory and updated `core/` from upstream, tra
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.0.1 | Checkout `go/` directory from upstream/main (entire Go engine: cmd/, internal/, pkg/, go.mod, go.sum, DESIGN.md, SPEC.md) and translate all Japanese comments/docs to English | `go/` exists, `go build ./...` succeeds, no Japanese in `.go` or `.md` files under `go/` | - | cc:done |
-| 37.0.2 | Sync `core/` from upstream (bun.lock, dist/ updates, src/ updates for v4 compat) | `core/` matches upstream structure, `ls core/bun.lock` exists | 37.0.1 | cc:done |
-| 37.0.3 | Sync root config files: `.claude-code-harness.config.yaml`, `.gitignore` from upstream | Files match upstream content | - | cc:done |
-| 37.0.4 | Delete files removed by upstream: `VERSION`, `LICENSE.ja.md`, `README_ja.md`, `.claude-plugin/plugin.json`, `.cursor/rules/skill-subagent-usage.mdc`, `.github/workflows/opencode-compat.yml` | None of these files exist | - | cc:done |
-| 37.0.5 | Sync `.claude-plugin/marketplace.json`, `.claude-plugin/hooks.json` from upstream (translate JP descriptions to EN) | Files match upstream structure, all descriptions in English | 37.0.1 | cc:done |
+| 37.0.1 | Checkout `go/` directory from upstream/main (entire Go engine: cmd/, internal/, pkg/, go.mod, go.sum, DESIGN.md, SPEC.md) and translate all Japanese comments/docs to English | `go/` exists, `go build ./...` succeeds, no Japanese in `.go` or `.md` files under `go/` | - | cc:done [1fd01a5] |
+| 37.0.2 | Sync `core/` from upstream (bun.lock, dist/ updates, src/ updates for v4 compat) | `core/` matches upstream structure, `ls core/bun.lock` exists | 37.0.1 | cc:done [1fd01a5] |
+| 37.0.3 | Sync root config files: `.claude-code-harness.config.yaml`, `.gitignore` from upstream | Files match upstream content | - | cc:done [1fd01a5] |
+| 37.0.4 | Delete files removed by upstream: `VERSION`, `LICENSE.ja.md`, `README_ja.md`, `.claude-plugin/plugin.json`, `.cursor/rules/skill-subagent-usage.mdc`, `.github/workflows/opencode-compat.yml` | None of these files exist | - | cc:done [1fd01a5] |
+| 37.0.5 | Sync `.claude-plugin/marketplace.json`, `.claude-plugin/hooks.json` from upstream (translate JP descriptions to EN) | Files match upstream structure, all descriptions in English | 37.0.1 | cc:done [1fd01a5] |
 
 ---
 
@@ -742,10 +742,10 @@ Purpose: Replace shell+TypeScript hook engine with Go binary hook invocations fr
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.1.1 | Sync `hooks/hooks.json` from upstream — update all hook commands from shell/node invocations to Go binary `bin/harness hook <name>` pattern | `hooks/hooks.json` matches upstream structure | 37.0.1 | cc:done |
-| 37.1.2 | Sync hook shim scripts (`hooks/pre-tool.sh`, `hooks/post-tool.sh`, `hooks/permission.sh`, etc.) to call Go binary instead of node | Hook shims delegate to `bin/harness` | 37.1.1 | cc:done |
-| 37.1.3 | Sync all `hooks/*.sh` files from upstream, translate any Japanese comments to English | All hook scripts match upstream behavior, English only | 37.1.1 | cc:done |
-| 37.1.4 | Delete hook files removed by upstream (if any remain from local Phase 36) | No stale hook files | 37.1.1 | cc:done |
+| 37.1.1 | Sync `hooks/hooks.json` from upstream — update all hook commands from shell/node invocations to Go binary `bin/harness hook <name>` pattern | `hooks/hooks.json` matches upstream structure | 37.0.1 | cc:done [1fd01a5] |
+| 37.1.2 | Sync hook shim scripts (`hooks/pre-tool.sh`, `hooks/post-tool.sh`, `hooks/permission.sh`, etc.) to call Go binary instead of node | Hook shims delegate to `bin/harness` | 37.1.1 | cc:done [1fd01a5] |
+| 37.1.3 | Sync all `hooks/*.sh` files from upstream, translate any Japanese comments to English | All hook scripts match upstream behavior, English only | 37.1.1 | cc:done [1fd01a5] |
+| 37.1.4 | Delete hook files removed by upstream (if any remain from local Phase 36) | No stale hook files | 37.1.1 | cc:done [1fd01a5] |
 
 ---
 
@@ -755,10 +755,10 @@ Purpose: Apply upstream deletions and modifications to scripts/
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.2.1 | Delete scripts already removed in Phase 36 that upstream also removed (verify alignment): `pretooluse-guard.sh`, `posttooluse-*.sh`, `stop-*.sh`, `permission-request.sh`, `skill-child-reminder.sh`, `sync-v3-skill-mirrors.sh`, `build-opencode.js`, `validate-opencode.js`, `setup-opencode.sh`, `opencode-setup-local.sh` | All 13 deleted scripts confirmed absent | - | cc:done |
-| 37.2.2 | Sync modified scripts from upstream (translate JP→EN): `sync-plugin-cache.sh`, `codex-companion.sh`, `check-consistency.sh`, `generate-skill-manifest.sh`, `validate-release-notes.sh`, `write-review-result.sh`, `build-cross-platform.sh`, `i18n/set-locale.sh` | Modified scripts match upstream behavior, English only | 37.0.1 | cc:done |
-| 37.2.3 | Add new scripts from upstream (translate JP→EN): `check-residue.sh`, `harness-mem-bridge.sh` and any others created in Phases 35-40 | New scripts exist and are English (mem-bridge is Go-native in bin/harness) | 37.0.1 | cc:done |
-| 37.2.4 | Sync CI workflows from upstream: `.github/workflows/validate-plugin.yml`, `.github/workflows/release.yml`, `.github/workflows/benchmark.yml` (translate JP→EN) | CI files match upstream, English only | 37.2.2 | cc:done |
+| 37.2.1 | Delete scripts already removed in Phase 36 that upstream also removed (verify alignment): `pretooluse-guard.sh`, `posttooluse-*.sh`, `stop-*.sh`, `permission-request.sh`, `skill-child-reminder.sh`, `sync-v3-skill-mirrors.sh`, `build-opencode.js`, `validate-opencode.js`, `setup-opencode.sh`, `opencode-setup-local.sh` | All 13 deleted scripts confirmed absent | - | cc:done [1fd01a5] |
+| 37.2.2 | Sync modified scripts from upstream (translate JP→EN): `sync-plugin-cache.sh`, `codex-companion.sh`, `check-consistency.sh`, `generate-skill-manifest.sh`, `validate-release-notes.sh`, `write-review-result.sh`, `build-cross-platform.sh`, `i18n/set-locale.sh` | Modified scripts match upstream behavior, English only | 37.0.1 | cc:done [1fd01a5] |
+| 37.2.3 | Add new scripts from upstream (translate JP→EN): `check-residue.sh`, `harness-mem-bridge.sh` and any others created in Phases 35-40 | New scripts exist and are English (mem-bridge is Go-native in bin/harness) | 37.0.1 | cc:done [1fd01a5] |
+| 37.2.4 | Sync CI workflows from upstream: `.github/workflows/validate-plugin.yml`, `.github/workflows/release.yml`, `.github/workflows/benchmark.yml` (translate JP→EN) | CI files match upstream, English only | 37.2.2 | cc:done [1fd01a5] |
 
 ---
 
@@ -768,11 +768,11 @@ Purpose: Sync all skills with upstream — deletions, modifications, and new add
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.3.1 | Delete skills removed by upstream: `skills/allow1/`, `skills/claude-codex-upstream-update/` | Directories do not exist | - | cc:done |
-| 37.3.2 | Sync all 85+ modified skills from upstream (translate JP→EN): frontmatter descriptions, SKILL.md content, references/*.md files. Key skills: `harness-review`, `harness-work`, `harness-plan`, `harness-release`, `harness-setup`, `breezing`, `ci`, `deploy`, `auth`, `crud`, `generate-video`, `generate-slide`, `agent-browser`, `vibecoder-guide`, `workflow-guide`, etc. | All skills match upstream structure and features, English only | 37.0.1 | cc:done |
-| 37.3.3 | Add new skill files from upstream: `skills/generate-video/schemas/IMPLEMENTATION_SUMMARY.md` | File exists, English content | 37.3.2 | cc:done |
-| 37.3.4 | Verify skill frontmatter: all `name:` fields match directory names, `description:` fields are English, version references say v4 not v3 | `grep -r 'Harness v3' skills/` returns no results, all `name:` match dirs | 37.3.2 | cc:done |
-| 37.3.5 | Remove `codex/.codex/skills/` symlinks and `opencode/skills/` mirrors if upstream removed them; OR sync if upstream retained them | Mirror state matches upstream | 37.3.2 | cc:done |
+| 37.3.1 | Delete skills removed by upstream: `skills/allow1/`, `skills/claude-codex-upstream-update/` | Directories do not exist | - | cc:done [1fd01a5] |
+| 37.3.2 | Sync all 85+ modified skills from upstream (translate JP→EN): frontmatter descriptions, SKILL.md content, references/*.md files. Key skills: `harness-review`, `harness-work`, `harness-plan`, `harness-release`, `harness-setup`, `breezing`, `ci`, `deploy`, `auth`, `crud`, `generate-video`, `generate-slide`, `agent-browser`, `vibecoder-guide`, `workflow-guide`, etc. | All skills match upstream structure and features, English only | 37.0.1 | cc:done [1fd01a5] |
+| 37.3.3 | Add new skill files from upstream: `skills/generate-video/schemas/IMPLEMENTATION_SUMMARY.md` | File exists, English content | 37.3.2 | cc:done [1fd01a5] |
+| 37.3.4 | Verify skill frontmatter: all `name:` fields match directory names, `description:` fields are English, version references say v4 not v3 | `grep -r 'Harness v3' skills/` returns no results, all `name:` match dirs | 37.3.2 | cc:done [1fd01a5] |
+| 37.3.5 | Remove `codex/.codex/skills/` symlinks and `opencode/skills/` mirrors if upstream removed them; OR sync if upstream retained them | Mirror state matches upstream | 37.3.2 | cc:done [1fd01a5] |
 
 ---
 
@@ -782,9 +782,9 @@ Purpose: Sync agent files with upstream consolidation
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.4.1 | Verify agents already deleted in Phase 36 align with upstream: `code-reviewer.md`, `codex-implementer.md`, `plan-analyst.md`, `plan-critic.md`, `project-analyzer.md`, `project-scaffolder.md`, `project-state-updater.md`, `task-worker.md` | All 8 legacy agents absent | - | cc:done |
-| 37.4.2 | Sync existing agents from upstream (translate JP→EN): `ci-cd-fixer.md`, `error-recovery.md`, `video-scene-generator.md` | Content matches upstream, English only | 37.0.1 | cc:done |
-| 37.4.3 | Add new agents from upstream (translate JP→EN): `reviewer.md`, `scaffolder.md`, `worker.md`, `team-composition.md` — verify these supersede any local versions | 4 new agents exist, English only, v4 patterns | 37.4.1 | cc:done |
+| 37.4.1 | Verify agents already deleted in Phase 36 align with upstream: `code-reviewer.md`, `codex-implementer.md`, `plan-analyst.md`, `plan-critic.md`, `project-analyzer.md`, `project-scaffolder.md`, `project-state-updater.md`, `task-worker.md` | All 8 legacy agents absent | - | cc:done [1fd01a5] |
+| 37.4.2 | Sync existing agents from upstream (translate JP→EN): `ci-cd-fixer.md`, `error-recovery.md`, `video-scene-generator.md` | Content matches upstream, English only | 37.0.1 | cc:done [1fd01a5] |
+| 37.4.3 | Add new agents from upstream (translate JP→EN): `reviewer.md`, `scaffolder.md`, `worker.md`, `team-composition.md` — verify these supersede any local versions | 4 new agents exist, English only, v4 patterns | 37.4.1 | cc:done [1fd01a5] |
 
 ---
 
@@ -794,11 +794,11 @@ Purpose: Sync .claude/rules/, docs/, and other config files
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.5.1 | Sync modified rules from upstream (translate JP→EN): `cc-update-policy.md`, `codex-cli-only.md`, `github-release.md`, `hooks-editing.md`, `implementation-quality.md`, `skill-editing.md`, `test-quality.md`, `v3-architecture.md`, `versioning.md` | Rules match upstream features, English only | 37.0.1 | cc:done |
-| 37.5.2 | Delete rules removed by upstream: `command-editing.md` (already done in Phase 36), `deleted-concepts.yaml`, `migration-policy.md`, `self-audit.md`, `version-drift.md` | N/A: local Phase 40 added deleted-concepts.yaml + migration-policy.md intentionally; kept | - | cc:done |
-| 37.5.3 | Add new rules from upstream (translate JP→EN): any new rules in `.claude/rules/` not present locally | New rules exist, English only | 37.5.1 | cc:done |
-| 37.5.4 | Sync `CLAUDE.md` from upstream (translate JP→EN) — merge carefully preserving local EN improvements | CLAUDE.md has v4 references, English only | 37.3, 37.4 | cc:done |
-| 37.5.5 | Sync docs/ directory: `CLAUDE-feature-table.md`, `CLAUDE-skill-catalog.md`, `distribution-scope.md`, `CLAUDE_CODE_COMPATIBILITY.md`, architecture docs, plans/ docs (translate JP→EN). Keep `README.md` as local version | docs/ matches upstream features, English only. README.md untouched | 37.5.1 | cc:done |
+| 37.5.1 | Sync modified rules from upstream (translate JP→EN): `cc-update-policy.md`, `codex-cli-only.md`, `github-release.md`, `hooks-editing.md`, `implementation-quality.md`, `skill-editing.md`, `test-quality.md`, `v3-architecture.md`, `versioning.md` | Rules match upstream features, English only | 37.0.1 | cc:done [1fd01a5] |
+| 37.5.2 | Delete rules removed by upstream: `command-editing.md` (already done in Phase 36), `deleted-concepts.yaml`, `migration-policy.md`, `self-audit.md`, `version-drift.md` | N/A: local Phase 40 added deleted-concepts.yaml + migration-policy.md intentionally; kept | - | cc:done [1fd01a5] |
+| 37.5.3 | Add new rules from upstream (translate JP→EN): any new rules in `.claude/rules/` not present locally | New rules exist, English only | 37.5.1 | cc:done [1fd01a5] |
+| 37.5.4 | Sync `CLAUDE.md` from upstream (translate JP→EN) — merge carefully preserving local EN improvements | CLAUDE.md has v4 references, English only | 37.3, 37.4 | cc:done [1fd01a5] |
+| 37.5.5 | Sync docs/ directory: `CLAUDE-feature-table.md`, `CLAUDE-skill-catalog.md`, `distribution-scope.md`, `CLAUDE_CODE_COMPATIBILITY.md`, architecture docs, plans/ docs (translate JP→EN). Keep `README.md` as local version | docs/ matches upstream features, English only. README.md untouched | 37.5.1 | cc:done [1fd01a5] |
 
 ---
 
@@ -808,10 +808,10 @@ Purpose: Update all test scripts to v4 patterns (Go binary, no TypeScript refs)
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.6.1 | Sync `tests/validate-plugin.sh` and `tests/validate-plugin-v3.sh` from upstream — update to reference Go guardrails instead of TypeScript | Tests reference `go/internal/guardrail/rules.go` | 37.1, 37.2 | cc:done |
-| 37.6.2 | Sync all modified test scripts (30+ files) from upstream (translate JP→EN): hook wiring tests, integration tests, guardrail tests | All test scripts match upstream v4 patterns, English only | 37.6.1 | cc:done |
-| 37.6.3 | Sync test fixtures from upstream: `tests/fixtures/` | Fixtures match upstream | 37.6.2 | cc:done |
-| 37.6.4 | Run `./tests/validate-plugin.sh` and verify 43+ pass / 0 fail | Test suite green | 37.6.2 | cc:done |
+| 37.6.1 | Sync `tests/validate-plugin.sh` and `tests/validate-plugin-v3.sh` from upstream — update to reference Go guardrails instead of TypeScript | Tests reference `go/internal/guardrail/rules.go` | 37.1, 37.2 | cc:done [1fd01a5] |
+| 37.6.2 | Sync all modified test scripts (30+ files) from upstream (translate JP→EN): hook wiring tests, integration tests, guardrail tests | All test scripts match upstream v4 patterns, English only | 37.6.1 | cc:done [1fd01a5] |
+| 37.6.3 | Sync test fixtures from upstream: `tests/fixtures/` | Fixtures match upstream | 37.6.2 | cc:done [1fd01a5] |
+| 37.6.4 | Run `./tests/validate-plugin.sh` and verify 43+ pass / 0 fail | Test suite green | 37.6.2 | cc:done [1fd01a5] |
 
 ---
 
@@ -821,9 +821,9 @@ Purpose: Sync remaining directories
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.7.1 | Sync `templates/` from upstream (translate JP→EN): all `.template` files, `template-registry.json` | Templates match upstream, English only | 37.5 | cc:done |
-| 37.7.2 | Sync `workflows/` from upstream (translate JP→EN): `default/init.yaml`, `plan.yaml`, `review.yaml`, `work.yaml` | Workflows match upstream, English only | 37.5 | cc:done |
-| 37.7.3 | Sync `benchmarks/` from upstream (translate JP→EN): `breezing-bench/` reports, analyzer, eval prompts | Benchmarks match upstream, English only | 37.5 | cc:done |
+| 37.7.1 | Sync `templates/` from upstream (translate JP→EN): all `.template` files, `template-registry.json` | Templates match upstream, English only | 37.5 | cc:done [1fd01a5] |
+| 37.7.2 | Sync `workflows/` from upstream (translate JP→EN): `default/init.yaml`, `plan.yaml`, `review.yaml`, `work.yaml` | Workflows match upstream, English only | 37.5 | cc:done [1fd01a5] |
+| 37.7.3 | Sync `benchmarks/` from upstream (translate JP→EN): `breezing-bench/` reports, analyzer, eval prompts | Benchmarks match upstream, English only | 37.5 | cc:done [1fd01a5] |
 
 ---
 
@@ -833,10 +833,10 @@ Purpose: Merge Plans.md from both branches, update CHANGELOG, run final validati
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 37.8.1 | Merge Plans.md: keep local Phase 35 (rebrand) and Phase 36 (simplification) as completed history. Add upstream Phases 35-40 (Go rewrite through Migration Residue Scanner) translated to English. Renumber to avoid conflicts (upstream Phase 35 → Phase 38 in merged plan, etc.) or keep as-is with clear labels | Plans.md contains all phases from both branches, English only | 37.0–37.7 | cc:done |
-| 37.8.2 | Sync `CHANGELOG.md` from upstream, translate all entries to English. Preserve any local-only entries | CHANGELOG has v4.0.0–v4.0.2 entries in English | 37.8.1 | cc:done |
-| 37.8.3 | Sync `CONTRIBUTING.md`, `.claude/output-styles/harness-ops.md`, and remaining misc files from upstream (translate JP→EN) | All misc files synced, English only | 37.8.1 | cc:done |
-| 37.8.4 | Final validation: run `./tests/validate-plugin.sh`, `./scripts/ci/check-consistency.sh`, verify no Japanese remains outside CHANGELOG historical entries | All checks pass, English-only codebase | 37.8.1–37.8.3 | cc:done |
+| 37.8.1 | Merge Plans.md: keep local Phase 35 (rebrand) and Phase 36 (simplification) as completed history. Add upstream Phases 35-40 (Go rewrite through Migration Residue Scanner) translated to English. Renumber to avoid conflicts (upstream Phase 35 → Phase 38 in merged plan, etc.) or keep as-is with clear labels | Plans.md contains all phases from both branches, English only | 37.0–37.7 | cc:done [1fd01a5] |
+| 37.8.2 | Sync `CHANGELOG.md` from upstream, translate all entries to English. Preserve any local-only entries | CHANGELOG has v4.0.0–v4.0.2 entries in English | 37.8.1 | cc:done [1fd01a5] |
+| 37.8.3 | Sync `CONTRIBUTING.md`, `.claude/output-styles/harness-ops.md`, and remaining misc files from upstream (translate JP→EN) | All misc files synced, English only | 37.8.1 | cc:done [1fd01a5] |
+| 37.8.4 | Final validation: run `./tests/validate-plugin.sh`, `./scripts/ci/check-consistency.sh`, verify no Japanese remains outside CHANGELOG historical entries | All checks pass, English-only codebase | 37.8.1–37.8.3 | cc:done [1fd01a5] |
 
 ---
 
@@ -861,18 +861,18 @@ Phase B is the `skills-v3/` consolidation, which was separated into its own PR b
 
 | Task | Description | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 36.1 | Final sync of `skills-v3/` content to `skills/`, confirm no diff | `diff -r skills-v3/{skill} skills/{skill}` shows diff 0 | - | cc:done |
-| 36.2 | Rewrite `sync-v3-skill-mirrors.sh`: change source to `skills/`, rename script to `sync-skill-mirrors.sh` | `./scripts/sync-skill-mirrors.sh` and `--check` work correctly | 36.1 | cc:done |
-| 36.3 | Update section [10/12] in `check-consistency.sh`: change `skills-v3/` references to `skills/` | `./scripts/ci/check-consistency.sh` passes all paths | 36.2 | cc:done |
-| 36.4 | Update `validate-plugin-v3.sh`: `skills-v3/` → `skills/` | Script works correctly | 36.2 | cc:done |
-| 36.5 | Remove `skills-v3` from roots in `generate-skill-manifest.sh` | Manifest generation scans only `skills/` | 36.2 | cc:done |
-| 36.6 | Change source paths in `fix-symlinks.sh` to `skills/` | Windows-compatible repair logic treats `skills/` as source of truth | 36.2 | cc:done |
-| 36.7 | Remove `skills-v3` references from `set-locale.sh` | Locale switching processes only `skills/` | 36.2 | cc:done |
-| 36.8 | Bulk documentation update: update `skills-v3` references in README.md, README_ja.md, v3-architecture.md, CLAUDE.md, etc. | `grep -r 'skills-v3' --include='*.md'` returns 0 hits outside CHANGELOG | 36.1 | cc:done |
-| 36.9 | Update `skills-v3` references in SKILL.md files (including all mirrors) | No `skills-v3` references in any SKILL.md | 36.8 | cc:done |
-| 36.10 | Delete `skills-v3/` directory + old `sync-v3-skill-mirrors.sh` | `ls skills-v3/` shows it does not exist | 36.1-36.9 | cc:done |
-| 36.11 | Update `skills-v3` references in test files | `grep -r 'skills-v3' tests/` returns 0 hits | 36.10 | cc:done |
-| 36.12 | Integration verification: `check-consistency.sh` + `validate-plugin.sh` + `go build` + `go test` all pass | All CI-equivalent verifications pass (excluding known pre-existing issues) | 36.10, 36.11 | cc:done |
+| 36.1 | Final sync of `skills-v3/` content to `skills/`, confirm no diff | `diff -r skills-v3/{skill} skills/{skill}` shows diff 0 | - | cc:done [1fd01a5] |
+| 36.2 | Rewrite `sync-v3-skill-mirrors.sh`: change source to `skills/`, rename script to `sync-skill-mirrors.sh` | `./scripts/sync-skill-mirrors.sh` and `--check` work correctly | 36.1 | cc:done [1fd01a5] |
+| 36.3 | Update section [10/12] in `check-consistency.sh`: change `skills-v3/` references to `skills/` | `./scripts/ci/check-consistency.sh` passes all paths | 36.2 | cc:done [1fd01a5] |
+| 36.4 | Update `validate-plugin-v3.sh`: `skills-v3/` → `skills/` | Script works correctly | 36.2 | cc:done [1fd01a5] |
+| 36.5 | Remove `skills-v3` from roots in `generate-skill-manifest.sh` | Manifest generation scans only `skills/` | 36.2 | cc:done [1fd01a5] |
+| 36.6 | Change source paths in `fix-symlinks.sh` to `skills/` | Windows-compatible repair logic treats `skills/` as source of truth | 36.2 | cc:done [1fd01a5] |
+| 36.7 | Remove `skills-v3` references from `set-locale.sh` | Locale switching processes only `skills/` | 36.2 | cc:done [1fd01a5] |
+| 36.8 | Bulk documentation update: update `skills-v3` references in README.md, README_ja.md, v3-architecture.md, CLAUDE.md, etc. | `grep -r 'skills-v3' --include='*.md'` returns 0 hits outside CHANGELOG | 36.1 | cc:done [1fd01a5] |
+| 36.9 | Update `skills-v3` references in SKILL.md files (including all mirrors) | No `skills-v3` references in any SKILL.md | 36.8 | cc:done [1fd01a5] |
+| 36.10 | Delete `skills-v3/` directory + old `sync-v3-skill-mirrors.sh` | `ls skills-v3/` shows it does not exist | 36.1-36.9 | cc:done [1fd01a5] |
+| 36.11 | Update `skills-v3` references in test files | `grep -r 'skills-v3' tests/` returns 0 hits | 36.10 | cc:done [1fd01a5] |
+| 36.12 | Integration verification: `check-consistency.sh` + `validate-plugin.sh` + `go build` + `go test` all pass | All CI-equivalent verifications pass (excluding known pre-existing issues) | 36.10, 36.11 | cc:done [1fd01a5] |
 
 ---
 
@@ -895,11 +895,11 @@ Purpose: Restore `codex/` directory with symlinked skills so Codex CLI integrati
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 36.0.1 | Create `codex/.codex/skills/` with symlinks to `../../skills/` for core harness skills | All symlinks resolve correctly | - | cc:done |
-| 36.0.2 | Restore `codex/.codex/config.toml` (multi-agent config) from git history | File exists and is valid TOML | 36.0.1 | cc:done |
-| 36.0.3 | Restore `codex/.codex/rules/harness.rules` from git history | File exists | 36.0.1 | cc:done |
-| 36.0.4 | Create English `codex/AGENTS.md` and `codex/README.md` with correct `tim-hub/powerball-harness` URLs | Files exist, no stale URLs | 36.0.2 | cc:done |
-| 36.0.5 | Restore `codex/.codexignore` | File exists | - | cc:done |
+| 36.0.1 | Create `codex/.codex/skills/` with symlinks to `../../skills/` for core harness skills | All symlinks resolve correctly | - | cc:done [1fd01a5] |
+| 36.0.2 | Restore `codex/.codex/config.toml` (multi-agent config) from git history | File exists and is valid TOML | 36.0.1 | cc:done [1fd01a5] |
+| 36.0.3 | Restore `codex/.codex/rules/harness.rules` from git history | File exists | 36.0.1 | cc:done [1fd01a5] |
+| 36.0.4 | Create English `codex/AGENTS.md` and `codex/README.md` with correct `tim-hub/powerball-harness` URLs | Files exist, no stale URLs | 36.0.2 | cc:done [1fd01a5] |
+| 36.0.5 | Restore `codex/.codexignore` | File exists | - | cc:done [1fd01a5] |
 
 ### Phase 36.1: OpenCode Script Removal
 
@@ -907,8 +907,8 @@ Purpose: Remove OpenCode platform scripts (fully retired, no restoration planned
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 36.1.1 | Remove `scripts/build-opencode.js`, `scripts/validate-opencode.js`, `scripts/setup-opencode.sh`, `scripts/opencode-setup-local.sh` | Files do not exist | - | cc:done |
-| 36.1.2 | Remove `.github/workflows/opencode-compat.yml` | File does not exist | 36.1.1 | cc:done |
+| 36.1.1 | Remove `scripts/build-opencode.js`, `scripts/validate-opencode.js`, `scripts/setup-opencode.sh`, `scripts/opencode-setup-local.sh` | Files do not exist | - | cc:done [1fd01a5] |
+| 36.1.2 | Remove `.github/workflows/opencode-compat.yml` | File does not exist | 36.1.1 | cc:done [1fd01a5] |
 
 ### Phase 36.2: Pre-Consolidation Agent Removal (~2,251 lines)
 
@@ -916,12 +916,12 @@ Purpose: Remove old agents superseded by v3 consolidation (worker.md, reviewer.m
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 36.2.1 | Remove `agents/task-worker.md` (consolidated into `worker.md`) | File does not exist | - | cc:done |
-| 36.2.2 | Remove `agents/code-reviewer.md` (consolidated into `reviewer.md`) | File does not exist | - | cc:done |
-| 36.2.3 | Remove `agents/plan-analyst.md`, `agents/plan-critic.md` (consolidated into `reviewer.md`) | Files do not exist | - | cc:done |
-| 36.2.4 | ~~Remove `agents/error-recovery.md`~~ — Restored: still actively referenced by `worker.md`, `team-composition.md`, and `workflows/` | File exists (kept) | - | cc:done |
-| 36.2.5 | Remove `agents/project-analyzer.md`, `agents/project-state-updater.md`, `agents/project-scaffolder.md` (consolidated into `scaffolder.md`) | Files do not exist | - | cc:done |
-| 36.2.6 | Remove `agents/codex-implementer.md` (uses Codex MCP which is deprecated; v3 worker handles Codex via companion script) | File does not exist | - | cc:done |
+| 36.2.1 | Remove `agents/task-worker.md` (consolidated into `worker.md`) | File does not exist | - | cc:done [1fd01a5] |
+| 36.2.2 | Remove `agents/code-reviewer.md` (consolidated into `reviewer.md`) | File does not exist | - | cc:done [1fd01a5] |
+| 36.2.3 | Remove `agents/plan-analyst.md`, `agents/plan-critic.md` (consolidated into `reviewer.md`) | Files do not exist | - | cc:done [1fd01a5] |
+| 36.2.4 | ~~Remove `agents/error-recovery.md`~~ — Restored: still actively referenced by `worker.md`, `team-composition.md`, and `workflows/` | File exists (kept) | - | cc:done [1fd01a5] |
+| 36.2.5 | Remove `agents/project-analyzer.md`, `agents/project-state-updater.md`, `agents/project-scaffolder.md` (consolidated into `scaffolder.md`) | Files do not exist | - | cc:done [1fd01a5] |
+| 36.2.6 | Remove `agents/codex-implementer.md` (uses Codex MCP which is deprecated; v3 worker handles Codex via companion script) | File does not exist | - | cc:done [1fd01a5] |
 
 ### Phase 36.3: Unwired Script Removal (~1,279+ lines)
 
@@ -929,10 +929,10 @@ Purpose: Remove scripts not referenced in hooks.json or any active hook handler
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 36.3.1 | Remove `scripts/pretooluse-guard.sh` (1,279 lines, replaced by `hooks/pre-tool.sh` + core TypeScript) | File does not exist | - | cc:done |
-| 36.3.2 | Remove old stop scripts: `scripts/stop-check-pending.sh`, `scripts/stop-cleanup-check.sh`, `scripts/stop-plans-reminder.sh` (replaced by `hook-handlers/stop-session-evaluator`) | Files do not exist | - | cc:done |
-| 36.3.3 | Remove `scripts/posttooluse-security-review.sh`, `scripts/posttooluse-tampering-detector.sh` (consolidated into core TypeScript + haiku agent hook) | Files do not exist | - | cc:done |
-| 36.3.4 | Remove `scripts/permission-request.sh`, `scripts/skill-child-reminder.sh`, `scripts/sync-v3-skill-mirrors.sh` (unwired, referencing removed dirs) | Files do not exist | - | cc:done |
+| 36.3.1 | Remove `scripts/pretooluse-guard.sh` (1,279 lines, replaced by `hooks/pre-tool.sh` + core TypeScript) | File does not exist | - | cc:done [1fd01a5] |
+| 36.3.2 | Remove old stop scripts: `scripts/stop-check-pending.sh`, `scripts/stop-cleanup-check.sh`, `scripts/stop-plans-reminder.sh` (replaced by `hook-handlers/stop-session-evaluator`) | Files do not exist | - | cc:done [1fd01a5] |
+| 36.3.3 | Remove `scripts/posttooluse-security-review.sh`, `scripts/posttooluse-tampering-detector.sh` (consolidated into core TypeScript + haiku agent hook) | Files do not exist | - | cc:done [1fd01a5] |
+| 36.3.4 | Remove `scripts/permission-request.sh`, `scripts/skill-child-reminder.sh`, `scripts/sync-v3-skill-mirrors.sh` (unwired, referencing removed dirs) | Files do not exist | - | cc:done [1fd01a5] |
 
 ### Phase 36.4: Stale Reference Cleanup (rules + architecture)
 
@@ -940,8 +940,8 @@ Purpose: Remove deprecated rules, update stale references
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 36.4.1 | Remove `.claude/rules/command-editing.md` (self-labeled DEPRECATED since v2.17.0) | File does not exist | - | cc:done |
-| 36.4.2 | Update `.claude/rules/v3-architecture.md` to reflect actual structure | v3-architecture.md matches reality | - | cc:done |
+| 36.4.1 | Remove `.claude/rules/command-editing.md` (self-labeled DEPRECATED since v2.17.0) | File does not exist | - | cc:done [1fd01a5] |
+| 36.4.2 | Update `.claude/rules/v3-architecture.md` to reflect actual structure | v3-architecture.md matches reality | - | cc:done [1fd01a5] |
 
 ### Phase 36.5: Stale Reference Cleanup (skills, scripts, tests, docs)
 
@@ -949,16 +949,16 @@ Purpose: Fix references to removed files across the project. CHANGELOG.md is exc
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 36.5.1 | Clean `sync-v3-skill-mirrors.sh` references from `skills/harness-release/SKILL.md` (6 refs) and `skills/harness-setup/SKILL.md` (2 refs) | `grep -r sync-v3-skill-mirrors skills/` returns no results | 36.3.4 | cc:done |
-| 36.5.2 | Clean `opencode/` references from `skills/harness-release/SKILL.md`, `skills/harness-setup/SKILL.md`, `scripts/i18n/set-locale.sh`, `scripts/generate-skill-manifest.sh`, `scripts/ci/check-consistency.sh` | `grep -rn 'opencode/' --include='*.sh' --include='*.js' --include='*.md' scripts/ skills/` returns only CHANGELOG.md hits | 36.1 | cc:done |
-| 36.5.3 | Update `tests/test-codex-package.sh` to reflect symlink-based codex/ (remove opencode refs, update skill path checks) | Test passes against new codex/ structure | 36.0, 36.1 | cc:done |
-| 36.5.4 | Clean `pretooluse-guard.sh` references from `scripts/sync-plugin-cache.sh`, `tests/test-commit-guard.sh` | `grep -rn pretooluse-guard scripts/ tests/` returns only CHANGELOG.md and core/ source comments | 36.3.1 | cc:done |
-| 36.5.5 | Clean `stop-cleanup-check.sh`, `stop-plans-reminder.sh` references from `scripts/sync-plugin-cache.sh` | `grep -rn 'stop-cleanup-check\|stop-plans-reminder' scripts/` returns no results | 36.3.2 | cc:done |
-| 36.5.6 | Update `docs/distribution-scope.md` to reflect current structure (no opencode, codex is symlinks) | Doc matches reality | 36.0, 36.1 | cc:done |
-| 36.5.7 | Clean `opencode/` patterns from `.gitignore` | No opencode patterns in .gitignore | 36.1 | cc:done |
-| 36.5.8 | Update `docs/CLAUDE_CODE_COMPATIBILITY.md` to remove opencode references | No opencode references | 36.1 | cc:done |
-| 36.5.9 | Update `docs/plans/briefs-manifest.md` to remove opencode surface reference | No opencode references | 36.1 | cc:done |
-| 36.5.10 | Remove dead link in `.claude/rules/skill-editing.md` to `command-editing.md` | No reference to command-editing.md | 36.4.1 | cc:done |
+| 36.5.1 | Clean `sync-v3-skill-mirrors.sh` references from `skills/harness-release/SKILL.md` (6 refs) and `skills/harness-setup/SKILL.md` (2 refs) | `grep -r sync-v3-skill-mirrors skills/` returns no results | 36.3.4 | cc:done [1fd01a5] |
+| 36.5.2 | Clean `opencode/` references from `skills/harness-release/SKILL.md`, `skills/harness-setup/SKILL.md`, `scripts/i18n/set-locale.sh`, `scripts/generate-skill-manifest.sh`, `scripts/ci/check-consistency.sh` | `grep -rn 'opencode/' --include='*.sh' --include='*.js' --include='*.md' scripts/ skills/` returns only CHANGELOG.md hits | 36.1 | cc:done [1fd01a5] |
+| 36.5.3 | Update `tests/test-codex-package.sh` to reflect symlink-based codex/ (remove opencode refs, update skill path checks) | Test passes against new codex/ structure | 36.0, 36.1 | cc:done [1fd01a5] |
+| 36.5.4 | Clean `pretooluse-guard.sh` references from `scripts/sync-plugin-cache.sh`, `tests/test-commit-guard.sh` | `grep -rn pretooluse-guard scripts/ tests/` returns only CHANGELOG.md and core/ source comments | 36.3.1 | cc:done [1fd01a5] |
+| 36.5.5 | Clean `stop-cleanup-check.sh`, `stop-plans-reminder.sh` references from `scripts/sync-plugin-cache.sh` | `grep -rn 'stop-cleanup-check\|stop-plans-reminder' scripts/` returns no results | 36.3.2 | cc:done [1fd01a5] |
+| 36.5.6 | Update `docs/distribution-scope.md` to reflect current structure (no opencode, codex is symlinks) | Doc matches reality | 36.0, 36.1 | cc:done [1fd01a5] |
+| 36.5.7 | Clean `opencode/` patterns from `.gitignore` | No opencode patterns in .gitignore | 36.1 | cc:done [1fd01a5] |
+| 36.5.8 | Update `docs/CLAUDE_CODE_COMPATIBILITY.md` to remove opencode references | No opencode references | 36.1 | cc:done [1fd01a5] |
+| 36.5.9 | Update `docs/plans/briefs-manifest.md` to remove opencode surface reference | No opencode references | 36.1 | cc:done [1fd01a5] |
+| 36.5.10 | Remove dead link in `.claude/rules/skill-editing.md` to `command-editing.md` | No reference to command-editing.md | 36.4.1 | cc:done [1fd01a5] |
 
 ---
 
@@ -1022,10 +1022,10 @@ Purpose: Replace the `pre-tool.sh` → `node core/dist/index.js` call chain with
 
 | Task | Description | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.0.1 | Go module initialization + full compliance type definitions for official stdin/stdout JSON schema in `pkg/protocol/types.go` | `transcript_path`, `permission_mode`, `hook_event_name`, `defer`, `updatedInput`, `additionalContext` included in types | - | cc:done |
-| 35.0.2 | Port all R01-R13 rules 1:1 into `internal/guard/rules.go` + stdin parser implementation in `internal/hook/codec.go` | All 58 tests PASS | 35.0.1 | cc:done |
-| 35.0.3 | `cmd/harness/main.go` CLI + PreToolUse/PostToolUse/PermissionRequest handlers + `bin/harness` build | E2E 8 scenarios PASS, p99 5ms | 35.0.2 | cc:done |
-| 35.0.4 | Rewrite 3 hook shims (`pre-tool.sh`, `post-tool.sh`, `permission.sh`) to call Go binary directly | Node.js fallback removed, clear error when binary not found | 35.0.3 | cc:done |
+| 35.0.1 | Go module initialization + full compliance type definitions for official stdin/stdout JSON schema in `pkg/protocol/types.go` | `transcript_path`, `permission_mode`, `hook_event_name`, `defer`, `updatedInput`, `additionalContext` included in types | - | cc:done [1fd01a5] |
+| 35.0.2 | Port all R01-R13 rules 1:1 into `internal/guard/rules.go` + stdin parser implementation in `internal/hook/codec.go` | All 58 tests PASS | 35.0.1 | cc:done [1fd01a5] |
+| 35.0.3 | `cmd/harness/main.go` CLI + PreToolUse/PostToolUse/PermissionRequest handlers + `bin/harness` build | E2E 8 scenarios PASS, p99 5ms | 35.0.2 | cc:done [1fd01a5] |
+| 35.0.4 | Rewrite 3 hook shims (`pre-tool.sh`, `post-tool.sh`, `permission.sh`) to call Go binary directly | Node.js fallback removed, clear error when binary not found | 35.0.3 | cc:done [1fd01a5] |
 
 ---
 
@@ -1035,9 +1035,9 @@ Purpose: Go port of `core/src/state/` + leveraging `${CLAUDE_PLUGIN_DATA}` persi
 
 | Task | Description | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.1.1 | `internal/state/schema.go` — Existing DDL (sessions, signals, task_failures, work_states, schema_meta) + add assumptions table | Schema initialization with migrations works | 35.0.3 | cc:done |
-| 35.1.2 | `internal/state/store.go` — Go port of HarnessStore (WAL mode, busy timeout 5s) | No deadlocks with 3 goroutines running parallel INSERT/SELECT | 35.1.1 | cc:done |
-| 35.1.3 | Integrate SQLite work_states lookup into BuildContext in `pre_tool.go` | Retrieve codexMode/workMode from DB with session_id in input | 35.1.2 | cc:done |
+| 35.1.1 | `internal/state/schema.go` — Existing DDL (sessions, signals, task_failures, work_states, schema_meta) + add assumptions table | Schema initialization with migrations works | 35.0.3 | cc:done [1fd01a5] |
+| 35.1.2 | `internal/state/store.go` — Go port of HarnessStore (WAL mode, busy timeout 5s) | No deadlocks with 3 goroutines running parallel INSERT/SELECT | 35.1.1 | cc:done [1fd01a5] |
+| 35.1.3 | Integrate SQLite work_states lookup into BuildContext in `pre_tool.go` | Retrieve codexMode/workMode from DB with session_id in input | 35.1.2 | cc:done [1fd01a5] |
 
 ---
 
@@ -1047,10 +1047,10 @@ Purpose: Root-fix the dual hooks.json sync problem through auto-generation of `h
 
 | Task | Description | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.2.1 | `pkg/config/toml.go` — harness.toml parser ([project], [safety], [agent], [env], [hooks], [telemetry] sections). Mapping Table conforms to SPEC.md §5 | TOML parse + validation + unsupported key rejection | 35.0.3 | cc:done |
-| 35.2.2 | `harness sync` — auto-generate harness.toml → hooks.json + settings.json (permissions/sandbox/env/agent) + plugin.json | Generated files functionally equivalent to current files | 35.2.1 | cc:done |
-| 35.2.3 | `harness init` subcommand — project initialization (generate harness.toml template) | `harness init && harness sync` works in new project | 35.2.2 | cc:done |
-| 35.2.4 | Integrate dual hooks.json sync script (`sync-plugin-cache.sh`) into `harness sync` | `sync-plugin-cache.sh` becomes a wrapper for `harness sync` | 35.2.2 | cc:done |
+| 35.2.1 | `pkg/config/toml.go` — harness.toml parser ([project], [safety], [agent], [env], [hooks], [telemetry] sections). Mapping Table conforms to SPEC.md §5 | TOML parse + validation + unsupported key rejection | 35.0.3 | cc:done [1fd01a5] |
+| 35.2.2 | `harness sync` — auto-generate harness.toml → hooks.json + settings.json (permissions/sandbox/env/agent) + plugin.json | Generated files functionally equivalent to current files | 35.2.1 | cc:done [1fd01a5] |
+| 35.2.3 | `harness init` subcommand — project initialization (generate harness.toml template) | `harness init && harness sync` works in new project | 35.2.2 | cc:done [1fd01a5] |
+| 35.2.4 | Integrate dual hooks.json sync script (`sync-plugin-cache.sh`) into `harness sync` | `sync-plugin-cache.sh` becomes a wrapper for `harness sync` | 35.2.2 | cc:done [1fd01a5] |
 
 ---
 
@@ -1060,11 +1060,11 @@ Purpose: Incrementally absorb 127 scripts into Go subcommands by category
 
 | Task | Description | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.3.1 | Port 5 hook-handlers to Go (session-env, post-tool-failure, post-compact, notification, permission-denied) | 25 tests PASS, symlink check included | 35.2.2 | cc:done |
-| 35.3.2 | Port 4 session-* scripts to Go (init, cleanup, monitor, summary) | 30 tests PASS | 35.3.1 | cc:done |
-| 35.3.3 | codex-companion.sh is **excluded** from Go integration (SPEC.md decision). Maintain shell wrapper | No change (policy documented in SPEC.md) | - | cc:done |
-| 35.3.4 | Port ci-status-checker + evidence collector to Go | 15 tests PASS | 35.3.2 | cc:done |
-| 35.3.5 | `harness doctor` + `--migration` list hook migration status. Mixed-mode warnings, hooks.json divergence detection | `harness doctor` 11 tests PASS | 35.3.1 | cc:done |
+| 35.3.1 | Port 5 hook-handlers to Go (session-env, post-tool-failure, post-compact, notification, permission-denied) | 25 tests PASS, symlink check included | 35.2.2 | cc:done [1fd01a5] |
+| 35.3.2 | Port 4 session-* scripts to Go (init, cleanup, monitor, summary) | 30 tests PASS | 35.3.1 | cc:done [1fd01a5] |
+| 35.3.3 | codex-companion.sh is **excluded** from Go integration (SPEC.md decision). Maintain shell wrapper | No change (policy documented in SPEC.md) | - | cc:done [1fd01a5] |
+| 35.3.4 | Port ci-status-checker + evidence collector to Go | 15 tests PASS | 35.3.2 | cc:done [1fd01a5] |
+| 35.3.5 | `harness doctor` + `--migration` list hook migration status. Mixed-mode warnings, hooks.json divergence detection | `harness doctor` 11 tests PASS | 35.3.1 | cc:done [1fd01a5] |
 
 ---
 
@@ -1074,9 +1074,9 @@ Purpose: SPAWNING→RUNNING→REVIEWING→APPROVED→COMMITTED state machine + 4
 
 | Task | Description | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.4.1 | `internal/lifecycle/state.go` — State machine definition + transition rules. Full states from SPEC.md §8 (including FAILED/CANCELLED/STALE/RECOVERING/ABORTED) | Invalid transitions prevented at type level, all anomalous states defined | 35.3.2 | cc:done |
-| 35.4.2 | `internal/lifecycle/recovery.go` — 4-stage recovery (self-repair → peer-repair → commander intervention → stop) | Trigger conditions and behavior for each stage defined | 35.4.1 | cc:done |
-| 35.4.3 | Integration with SubagentStart/Stop hooks | State transitions persisted to SQLite, displayed via `harness status` | 35.4.2, 35.1.2 | cc:done |
+| 35.4.1 | `internal/lifecycle/state.go` — State machine definition + transition rules. Full states from SPEC.md §8 (including FAILED/CANCELLED/STALE/RECOVERING/ABORTED) | Invalid transitions prevented at type level, all anomalous states defined | 35.3.2 | cc:done [1fd01a5] |
+| 35.4.2 | `internal/lifecycle/recovery.go` — 4-stage recovery (self-repair → peer-repair → commander intervention → stop) | Trigger conditions and behavior for each stage defined | 35.4.1 | cc:done [1fd01a5] |
+| 35.4.3 | Integration with SubagentStart/Stop hooks | State transitions persisted to SQLite, displayed via `harness status` | 35.4.2, 35.1.2 | cc:done [1fd01a5] |
 
 ---
 
@@ -1086,8 +1086,8 @@ Purpose: Type-safe validation of SKILL.md frontmatter
 
 | Task | Description | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.5.1 | `harness validate skills` — Match all SKILL.md frontmatter against official schema. Regex-based (no external YAML dependency) | name, description required fields + optional type validation | 35.2.1 | cc:done |
-| 35.5.2 | `harness validate agents` — Validate frontmatter in agents/*.md (tools, disallowedTools, isolation, background, maxTurns) | 22 tests PASS | 35.5.1 | cc:done |
+| 35.5.1 | `harness validate skills` — Match all SKILL.md frontmatter against official schema. Regex-based (no external YAML dependency) | name, description required fields + optional type validation | 35.2.1 | cc:done [1fd01a5] |
+| 35.5.2 | `harness validate agents` — Validate frontmatter in agents/*.md (tools, disallowedTools, isolation, background, maxTurns) | 22 tests PASS | 35.5.1 | cc:done [1fd01a5] |
 
 ---
 
@@ -1097,9 +1097,9 @@ Purpose: Safe parallel task execution via goroutines + worktrees
 
 | Task | Description | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.6.1 | `internal/breezing/orchestrator.go` — Worker/Reviewer goroutine management | Max concurrency control, graceful shutdown | 35.4.3 | cc:done |
-| 35.6.2 | Go implementation of automatic worktree creation/cleanup | Integrates with CC WorktreeCreate/Remove hooks | 35.6.1 | cc:done |
-| 35.6.3 | Automatic task dependency resolution + file-lock claiming | Auto-unblock of dependent tasks works | 35.6.2 | cc:done |
+| 35.6.1 | `internal/breezing/orchestrator.go` — Worker/Reviewer goroutine management | Max concurrency control, graceful shutdown | 35.4.3 | cc:done [1fd01a5] |
+| 35.6.2 | Go implementation of automatic worktree creation/cleanup | Integrates with CC WorktreeCreate/Remove hooks | 35.6.1 | cc:done [1fd01a5] |
+| 35.6.3 | Automatic task dependency resolution + file-lock claiming | Auto-unblock of dependent tasks works | 35.6.2 | cc:done [1fd01a5] |
 
 ---
 
@@ -1109,9 +1109,9 @@ Purpose: Go binary distribution using `bin/` directory
 
 | Task | Description | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 35.7.1 | Cross-compilation (darwin-arm64/amd64, linux-amd64). CGO_ENABLED=0 + modernc.org/sqlite | All 3 binaries at 6.6-6.8MB | 35.3.1 | cc:done |
-| 35.7.2 | npm package configuration + postinstall places platform-specific binary | `npm install` places `bin/harness` in PATH | 35.7.1 | cc:done |
-| 35.7.3 | Migration notice to old package + GitHub Release automation | Release workflow includes Go binary | 35.7.2 | cc:done |
+| 35.7.1 | Cross-compilation (darwin-arm64/amd64, linux-amd64). CGO_ENABLED=0 + modernc.org/sqlite | All 3 binaries at 6.6-6.8MB | 35.3.1 | cc:done [1fd01a5] |
+| 35.7.2 | npm package configuration + postinstall places platform-specific binary | `npm install` places `bin/harness` in PATH | 35.7.1 | cc:done [1fd01a5] |
+| 35.7.3 | Migration notice to old package + GitHub Release automation | Release workflow includes Go binary | 35.7.2 | cc:done [1fd01a5] |
 
 ---
 
@@ -1127,9 +1127,9 @@ Purpose: Update all references from old repository URLs to `tim-hub/powerball-ha
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 35.0.1 | Replace all `Chachamaru127/claude-code-harness` and `tim-hub/claude-code-harness` URLs with `tim-hub/powerball-harness` across README, marketplace.json, CONTRIBUTING, install scripts, CI scripts, social posts, and benchmark docs | `grep -r 'Chachamaru127\|tim-hub/claude-code-harness'` returns only intentional attribution in README Origin section | - | cc:done |
-| 35.0.2 | Update marketplace.json owner, author, homepage, and repository fields | `marketplace.json` owner is `tim-hub`, all URLs point to `tim-hub/powerball-harness` | 35.0.1 | cc:done |
-| 35.0.3 | Add Origin section to README crediting the original upstream repository | README bottom contains attribution link to `Chachamaru127/claude-code-harness` | 35.0.1 | cc:done |
+| 35.0.1 | Replace all `Chachamaru127/claude-code-harness` and `tim-hub/claude-code-harness` URLs with `tim-hub/powerball-harness` across README, marketplace.json, CONTRIBUTING, install scripts, CI scripts, social posts, and benchmark docs | `grep -r 'Chachamaru127\|tim-hub/claude-code-harness'` returns only intentional attribution in README Origin section | - | cc:done [1fd01a5] |
+| 35.0.2 | Update marketplace.json owner, author, homepage, and repository fields | `marketplace.json` owner is `tim-hub`, all URLs point to `tim-hub/powerball-harness` | 35.0.1 | cc:done [1fd01a5] |
+| 35.0.3 | Add Origin section to README crediting the original upstream repository | README bottom contains attribution link to `Chachamaru127/claude-code-harness` | 35.0.1 | cc:done [1fd01a5] |
 
 ### Phase 35.1: v3 Directory Consolidation
 
@@ -1137,10 +1137,10 @@ Purpose: Eliminate redundant `skills-v3/` and `agents-v3/` directories by mergin
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 35.1.1 | Copy `agents-v3/` files (worker.md, reviewer.md, scaffolder.md, team-composition.md) into `agents/` | All 4 files exist in `agents/` | - | cc:done |
-| 35.1.2 | Remove `skills-v3/` directory (core skills are duplicates of `skills/`, extensions are symlinks back to `skills/`) | `skills-v3/` does not exist | 35.1.1 | cc:done |
-| 35.1.3 | Remove `agents-v3/` directory | `agents-v3/` does not exist | 35.1.1 | cc:done |
-| 35.1.4 | Update all `skills-v3` and `agents-v3` references across docs, scripts, rules, CI tests, and CLAUDE.md to point to `skills/` and `agents/` | `grep -r 'skills-v3\|agents-v3'` returns only CHANGELOG.md and Plans.md (historical records) | 35.1.2 | cc:done |
+| 35.1.1 | Copy `agents-v3/` files (worker.md, reviewer.md, scaffolder.md, team-composition.md) into `agents/` | All 4 files exist in `agents/` | - | cc:done [1fd01a5] |
+| 35.1.2 | Remove `skills-v3/` directory (core skills are duplicates of `skills/`, extensions are symlinks back to `skills/`) | `skills-v3/` does not exist | 35.1.1 | cc:done [1fd01a5] |
+| 35.1.3 | Remove `agents-v3/` directory | `agents-v3/` does not exist | 35.1.1 | cc:done [1fd01a5] |
+| 35.1.4 | Update all `skills-v3` and `agents-v3` references across docs, scripts, rules, CI tests, and CLAUDE.md to point to `skills/` and `agents/` | `grep -r 'skills-v3\|agents-v3'` returns only CHANGELOG.md and Plans.md (historical records) | 35.1.2 | cc:done [1fd01a5] |
 
 ### Phase 35.2: Skill Configuration
 
@@ -1148,7 +1148,7 @@ Purpose: Improve planning quality by routing to the best model
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 35.2.1 | Add `model: opus` to `harness-plan` SKILL.md frontmatter | `harness-plan/SKILL.md` contains `model: opus` | - | cc:done |
+| 35.2.1 | Add `model: opus` to `harness-plan` SKILL.md frontmatter | `harness-plan/SKILL.md` contains `model: opus` | - | cc:done [1fd01a5] |
 
 ---
 
