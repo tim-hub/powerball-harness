@@ -5,6 +5,86 @@ Last release: v4.3.0 on 2026-04-15 (Phase 50+51)
 
 ---
 
+## Phase 52: Marketplace restructure — move plugin files to `harness/` subfolder
+
+Created: 2026-04-15
+
+Goal: Restructure the repo from single-plugin (`source: "./"`) to multi-plugin marketplace (`source: "./harness/"`). Move all harness-plugin-specific directories into a `harness/` subfolder. Keep repo-level files (docs, tests, Go source, CI, README, CHANGELOG, Plans.md) at root. Move `assets/` under `docs/`.
+
+Design decisions (confirmed with Opus agent):
+- `.claude-plugin/` at root keeps ONLY `marketplace.json`; plugin-specific `plugin.json`, `hooks.json`, `settings.json` move to `harness/.claude-plugin/`
+- `.claude/rules/` stays at root (Claude Code reads rules from project root; SSOT for both dev and distribution)
+- `.claude/scripts/` stays at root (dev/CI scripts for this repo)
+- `.claude/memory/`, `.claude/settings.json`, `.claude/state/`, `.claude/sessions/`, `.claude/logs/` stay at root (project-level)
+- `.claude/skills/` (internal skills: allow1, generate-video, etc.) moves to `harness/.claude/skills/`
+- `.claude/agents/` (internal agents: video-scene-generator) moves to `harness/.claude/agents/`
+- `hooks/` directory eliminated — canonical hooks.json is `harness/.claude-plugin/hooks.json`
+- `VERSION`, `harness.toml` move to `harness/` (plugin-specific metadata)
+- `benchmarks/` stays at root alongside `tests/`
+- Config files (`claude-code-harness.config.*`) move to `harness/`
+- CLAUDE.md stays at root; path references updated
+
+### Batch 1: Create harness/ and move plugin directories
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 52.1 | Move `skills/` → `harness/skills/` | `harness/skills/` has all 25+ skill dirs; root `skills/` removed | - | cc:TODO |
+| 52.2 | Move `agents/` → `harness/agents/` | `harness/agents/` has all agent .md files; root `agents/` removed | - | cc:TODO |
+| 52.3 | Move `templates/` → `harness/templates/` | `harness/templates/` has codex/, opencode/, codex-skills/, modes/ | - | cc:TODO |
+| 52.4 | Move `scripts/` → `harness/scripts/` | `harness/scripts/` has all script files; root `scripts/` removed | - | cc:TODO |
+| 52.5 | Move `bin/` → `harness/bin/` | `harness/bin/` exists; root `bin/` removed | - | cc:TODO |
+| 52.6 | Move `output-styles/` → `harness/output-styles/` | `harness/output-styles/` has all style files; root removed | - | cc:TODO |
+| 52.7 | Move `workflows/` → `harness/workflows/` | `harness/workflows/` has all workflow files; root removed | - | cc:TODO |
+| 52.8 | Move `VERSION`, `harness.toml`, `claude-code-harness.config.*` → `harness/` | Files in `harness/`; root copies removed | - | cc:TODO |
+| 52.9 | Move `.claude/skills/` → `harness/.claude/skills/` (internal skills) | Internal skills accessible from plugin; root `.claude/skills/` removed | - | cc:TODO |
+| 52.10 | Move `.claude/agents/` → `harness/.claude/agents/` (internal agents) | Internal agents accessible from plugin; root `.claude/agents/` removed | - | cc:TODO |
+| 52.11 | Move `.claude/output-styles/` → `harness/.claude/output-styles/` if exists | Styles in plugin dir; root copy removed | - | cc:TODO |
+
+### Batch 2: Restructure .claude-plugin/ and marketplace config
+
+Per official plugin docs: only `plugin.json` goes inside `.claude-plugin/`. `hooks.json` → `hooks/hooks.json` at plugin root; `settings.json` → plugin root.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 52.12 | Move `plugin.json` → `harness/.claude-plugin/plugin.json`; root `.claude-plugin/` keeps only `marketplace.json` | `harness/.claude-plugin/plugin.json` exists; root `.claude-plugin/` has only `marketplace.json` | 52.1–52.4 | cc:TODO |
+| 52.13 | Move `hooks.json` → `harness/hooks/hooks.json`; delete root `hooks/` symlink dir | `harness/hooks/hooks.json` exists (canonical, no symlink); root `hooks/` removed | 52.12 | cc:TODO |
+| 52.14 | Move `settings.json` → `harness/settings.json` (plugin root, not inside `.claude-plugin/`) | `harness/settings.json` exists; original `.claude-plugin/settings.json` removed | 52.12 | cc:TODO |
+| 52.15 | Update `marketplace.json`: `source: "./"` → `source: "./harness/"` and `outputStyles: "./harness/output-styles/"` | marketplace.json points to `./harness/` | 52.12–52.14 | cc:TODO |
+
+### Batch 3: Move assets and clean up empty dirs
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 52.16 | Move `assets/` → `docs/assets/` | `docs/assets/` has all SVGs; root `assets/` removed | - | cc:TODO |
+| 52.17 | Delete empty `codex/` and `opencode/` dirs if still present | No empty ghost directories | - | cc:TODO |
+
+### Batch 4: Update all path references
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 52.18 | Update `CLAUDE.md` path references | All paths in CLAUDE.md resolve correctly | 52.1–52.17 | cc:TODO |
+| 52.19 | Update `hooks.json` `${CLAUDE_PLUGIN_ROOT}` paths (scripts, bin now under harness/) | Hook commands resolve; `harness hook pre-tool` works | 52.4, 52.5, 52.13 | cc:TODO |
+| 52.20 | Update `harness.toml` internal paths | `harness sync` produces correct output | 52.8 | cc:TODO |
+| 52.21 | Update `scripts/sync-version.sh` and `scripts/build-binary.sh` paths to `VERSION`, `marketplace.json` | Version sync and binary build work from new locations | 52.4, 52.8 | cc:TODO |
+| 52.22 | Update Go source paths (any references to `scripts/`, `bin/`, `skills/`, `agents/`) | `go build` succeeds; runtime paths correct | 52.1–52.8 | cc:TODO |
+| 52.23 | Update CI workflows (`.github/workflows/*.yml`) paths | CI passes (template checks, validate-plugin, consistency) | 52.1–52.17 | cc:TODO |
+| 52.24 | Update test files (`tests/validate-plugin.sh`, `tests/test-codex-package.sh`, etc.) paths | All tests pass with new paths | 52.1–52.17 | cc:TODO |
+| 52.25 | Update `.claude/scripts/check-consistency.sh` and `.claude/scripts/check-residue.sh` paths | Consistency check passes; residue check clean | 52.1–52.17 | cc:TODO |
+| 52.26 | Update README.md, CONTRIBUTING.md, docs/ path references | All doc links resolve | 52.1–52.17 | cc:TODO |
+| 52.27 | Update `docs/repository-structure.md` to reflect new layout | Matches actual directory tree | 52.1–52.17 | cc:TODO |
+| 52.28 | Update skill SKILL.md files that reference `${CLAUDE_PLUGIN_ROOT}/scripts/` or sibling paths | Skills resolve correct paths | 52.1, 52.4 | cc:TODO |
+| 52.29 | Update `deleted-concepts.yaml` with old root-level paths | `check-residue.sh` 0 detections on HEAD | 52.1–52.17 | cc:TODO |
+| 52.30 | Update `.gitignore` paths (bin/harness-*, harness-managed block) | gitignore covers new paths | 52.5, 52.8 | cc:TODO |
+
+### Batch 5: Validation
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 52.31 | Full validation: `validate-plugin.sh` + `check-consistency.sh` + `check-residue.sh` + `test-codex-package.sh` | All pass (existing sandbox failures excepted) | 52.18–52.30 | cc:TODO |
+| 52.32 | Update CHANGELOG `[Unreleased]` with Phase 52 entry | Before/After documented | 52.31 | cc:TODO |
+
+---
+
 ## Future Considerations
 
 (none currently)
