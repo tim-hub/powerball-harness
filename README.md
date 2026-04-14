@@ -154,4 +154,5 @@ Forked from [claude-code-harness](https://github.com/Chachamaru127/claude-code-h
 - Repository structure reorganized for clarity and maintainability
 - Optimise skills descriptions
 - Use English for wider audience and consistency with code/comments
+- No binrary files committed to repo — use setup script to either build from go source or download from GitHub Releases instead
 - Fix [a couple of issues](https://github.com/tim-hub/powerball-harness/blob/master/CHANGELOG.md#403---2026-04-13).
