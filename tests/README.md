@@ -15,7 +15,7 @@ Validates that the basic plugin structure is correct:
 ```bash
 ./tests/validate-plugin.sh
 ./tests/validate-plugin-v3.sh
-./scripts/ci/check-consistency.sh
+./.claude/scripts/check-consistency.sh
 ```
 
 ### Unified Memory Validation
@@ -82,7 +82,7 @@ When adding new commands or skills, run this test to confirm the structure is co
 GitHub Actions runs the following via `.github/workflows/validate-plugin.yml`:
 
 - `./tests/validate-plugin.sh`
-- `./scripts/ci/check-consistency.sh`
+- `./.claude/scripts/check-consistency.sh`
 - `./tests/test-codex-package.sh`
 - `cd core && npm test`
 

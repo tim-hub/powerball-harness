@@ -16,7 +16,7 @@ This checklist is a verification table for release decisions involving `trust re
 
 - [ ] `./tests/validate-plugin.sh`
 - [ ] `./tests/validate-plugin-v3.sh`
-- [ ] `./scripts/ci/check-consistency.sh`
+- [ ] `./.claude/scripts/check-consistency.sh`
 - [ ] `cd core && npm test`
 - [ ] `./scripts/evidence/run-work-all-smoke.sh`
 - [ ] `./scripts/evidence/run-work-all-success.sh --full` if needed

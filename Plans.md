@@ -10,6 +10,64 @@ Last archive: 2026-04-12 (Phase 25–34 → `.claude/memory/archive/Plans-2026-0
 
 ---
 
+## Phase 45: Script Reorganization — categorize, relocate, and clean up `scripts/`
+
+Created: 2026-04-14
+
+Goal: Every script lives in exactly one place dictated by who calls it. Delete dead code, merge duplicates, update all references.
+
+| Location | Rule |
+|----------|------|
+| `.claude/scripts/` | Called by `.claude/settings.json` hooks **or** `.github/workflows/` CI |
+| `tests/` | Called only by test files (`tests/*.sh`) |
+| `scripts/` | Called by plugin hooks (`hooks/hooks.json`), skills, or agents |
+| **delete** | Not referenced anywhere (or marked "deleted in v4.0") |
+
+### Phase 45.1: Delete unused / v4.0-deleted scripts
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 45.1.1 | Delete scripts marked "deleted in v4.0" that still exist on disk: `posttooluse-security-review.sh`, `posttooluse-tampering-detector.sh`, `pretooluse-guard.sh`, `permission-request.sh`, `skill-child-reminder.sh`, `setup-opencode.sh` | `ls` confirms files are gone; no grep hits outside CHANGELOG/Plans | - | cc:Done |
+| 45.1.2 | Delete `scripts/ci/diagnose-and-fix.sh` (zero references anywhere) | File removed; grep confirms no references | - | cc:Done |
+| 45.1.3 | Verify no remaining scripts have zero references (final sweep) | Running `scripts/` inventory produces no unreferenced scripts | 45.1.1, 45.1.2 | cc:Done |
+
+### Phase 45.2: Move CI-only scripts to `.claude/scripts/`
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 45.2.1 | Move `scripts/ci/check-consistency.sh` → `.claude/scripts/check-consistency.sh`; update `.github/workflows/validate-plugin.yml`, `tests/validate-plugin.sh`, skill references | Old path gone; CI + tests pass with new path | 45.1 | cc:Done |
+| 45.2.2 | Move `scripts/ci/check-version-bump.sh` → `.claude/scripts/check-version-bump.sh`; update `.github/workflows/validate-plugin.yml` | Old path gone; CI passes | 45.1 | cc:Done |
+| 45.2.3 | Move `scripts/ci/check-template-registry.sh` → `.claude/scripts/check-template-registry.sh`; update any references | Old path gone | 45.1 | cc:Done |
+| 45.2.4 | Move `scripts/validate-opencode.js` → `.claude/scripts/validate-opencode.mjs` (convert to ESM); update `.github/workflows/compatibility-check.yml` | Old path gone; CI passes | 45.1 | cc:Done |
+| 45.2.5 | Move `scripts/check-residue.sh` → `.claude/scripts/check-residue.sh`; update `tests/validate-plugin.sh`, `skills/harness-release/SKILL.md` | Old path gone; validate-plugin + release skill reference new path | 45.1 | cc:Done |
+| 45.2.6 | Move `scripts/audit-skill-descriptions.sh` → `.claude/scripts/audit-skill-descriptions.sh`; update `tests/validate-plugin.sh` | Old path gone; validate-plugin passes | 45.1 | cc:Done |
+| 45.2.7 | Remove empty `scripts/ci/` directory if vacant | Directory gone or contains only remaining scripts | 45.2.1–45.2.3 | cc:Done |
+
+### Phase 45.3: Move test-only scripts to `tests/`
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 45.3.1 | Identify scripts in `scripts/` referenced ONLY by `tests/*.sh` (not by hooks.json, skills, CI, or settings.json) | List produced and reviewed | 45.2 | cc:Done |
+| 45.3.2 | Move identified test-only scripts to `tests/` (or `tests/helpers/`); update test references | Old paths gone; all tests pass | 45.3.1 | cc:Done |
+
+### Phase 45.4: Identify and merge duplicates
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 45.4.1 | Audit for duplicate/overlapping scripts (e.g., `session-init.sh` vs `session-env-setup.sh`, memory-bridge vs individual memory-*.sh handlers) | Duplicate pairs listed with recommendation (keep/merge/delete) | 45.3 | cc:Done |
+| 45.4.2 | Execute merges: consolidate duplicates into the canonical location per categories 1/2/3; update all references | Merged scripts work; old paths removed; grep confirms no stale refs | 45.4.1 | cc:Done |
+
+### Phase 45.5: Validation
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 45.5.1 | Run `bash tests/validate-plugin.sh` — all sections pass (or pre-existing failures only) | 0 new failures | 45.4 | cc:Done |
+| 45.5.2 | Run `bash tests/test-codex-package.sh` — mirrors in sync | 0 new failures | 45.4 | cc:Done |
+| 45.5.3 | Run compatibility-check workflow steps locally (build-opencode + sync + validate + diff) | All 4 steps pass | 45.4 | cc:Done |
+| 45.5.4 | Grep for any remaining references to old paths (`scripts/ci/`, moved scripts) | 0 hits outside CHANGELOG.md and Plans.md | 45.5.1–45.5.3 | cc:Done |
+
+---
+
 ## Phase 44: Skill description standardization — "Use when" rule
 
 Created: 2026-04-14
@@ -20,7 +78,7 @@ Purpose: Establish and enforce a uniform `description` frontmatter style across 
 - Current descriptions mix three intents into one string: (a) triggers, (b) exclusions, (c) introduction/summary. Examples:
   - `skills/harness-work/SKILL.md`: `"Use this skill whenever the user asks to implement... Implements Plans.md tasks from single task to full parallel team runs."` — trigger + exclusion + body intro all inline.
   - `skills/auth/SKILL.md`: ends with `"Implements authentication and payment features using Clerk, Supabase Auth, or Stripe."` — that sentence belongs in the body.
-  - `skills/notebookLM/SKILL.md`: same pattern.
+  - `skills/notebook-lm/SKILL.md`: same pattern.
 - Many descriptions start with `Use this skill whenever the user mentions/asks...`. The "user mentions" framing biases the auto-loader toward literal keyword matches rather than task-shape matches, and adds words without adding signal.
 - 59 SKILL.md files total: `skills/` (31), `opencode/skills/` (26), `skills-codex/` (2). `opencode/skills/` are independent copies, not symlinks, so they need matching updates.
 - No written rule currently governs this — resulting drift recurs every time a new skill is added.

@@ -1,5 +1,5 @@
 ---
-name: notebookLM
+name: notebook-lm
 description: "Use when creating NotebookLM YAML, structured slide content, or converting project docs into NotebookLM format. Do NOT load for: code implementation, reviews, deploys, or general slide images (use generate-slide)."
 allowed-tools: ["Read", "Write", "Edit"]
 argument-hint: "[yaml|slides]"

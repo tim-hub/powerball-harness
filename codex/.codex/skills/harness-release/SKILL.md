@@ -89,7 +89,7 @@ bash scripts/release-preflight.sh
 bash tests/validate-plugin.sh
 
 # 4. Consistency check
-bash scripts/ci/check-consistency.sh
+bash .claude/scripts/check-consistency.sh
 
 # 5. Verify codex symlinks
 ls -la codex/.codex/skills/
@@ -290,14 +290,14 @@ Executes only Phase 9. Verifies that the GitHub Release was not missed, then cre
 Verify the following regressions before release:
 
 - [ ] **Plugin structure** — `bash tests/validate-plugin.sh` (marketplace.json, skills, hooks, scripts)
-- [ ] **Consistency** — `bash scripts/ci/check-consistency.sh` (templates, versions, mirrors, CHANGELOG)
+- [ ] **Consistency** — `bash .claude/scripts/check-consistency.sh` (templates, versions, mirrors, CHANGELOG)
 - [ ] **Mirror sync** — `node .claude/scripts/sync-skill-mirrors.mjs --check` (all skills in sync)
 - [ ] **Preflight** — `bash scripts/release-preflight.sh` (working tree, CHANGELOG, CI, remnants)
 - [ ] **Release notes** — `bash scripts/validate-release-notes.sh vX.Y.Z` (GitHub Release format)
 - [ ] **VERSION sync** — `bash scripts/sync-version.sh check` (VERSION matches marketplace.json)
 - [ ] **Guardrails** — R01-R13 in `go/internal/guardrail/rules.go` (Go rule health)
 - [ ] **Tag continuity** — `git tag --sort=-version:refname | head -5` (no missing tags)
-- [ ] **Migration residue** — `bash scripts/check-residue.sh` (no deleted-concept references)
+- [ ] **Migration residue** — `bash .claude/scripts/check-residue.sh` (no deleted-concept references)
 
 ## CI Safety Net
 

@@ -3,7 +3,7 @@
 
 ## General Rules
 - This project use English as the main language for all code, comments, documentation, and communication. 
-- When merge or rebase from upstream, for all skills, agents, etc this kind of markdown files, keep using the local version. Do not merge Japanese translation over English translation.
+  - When merge or rebase from upstream, for all skills, agents, etc this kind of markdown files, keep using the local version. Do not merge Japanese translation over English translation.
 
 ## Development Rules
 
@@ -22,7 +22,7 @@
 1. **Plan**: `/harness-plan` to add tasks to Plans.md
 2. **Implement**: `/harness-work` (single task or parallel workers)
 3. **Review**: `/harness-review` (runs automatically after work; manual trigger available)
-4. **Validate**: `./tests/validate-plugin.sh` and `./scripts/ci/check-consistency.sh`
+4. **Validate**: `./tests/validate-plugin.sh` and `./.claude/scripts/check-consistency.sh`
 
 ## Skills
 
@@ -45,3 +45,4 @@ Full catalog: [docs/CLAUDE-skill-catalog.md](docs/CLAUDE-skill-catalog.md)
 
 - `.claude/memory/decisions.md` - Decisions (Why)
 - `.claude/memory/patterns.md` - Reusable patterns (How)
+- `.claude/memory/session-log.md` - Session log (What + context)

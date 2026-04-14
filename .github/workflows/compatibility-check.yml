@@ -36,7 +36,7 @@ jobs:
           node .claude/scripts/sync-skill-mirrors.mjs
 
       - name: Validate opencode format
-        run: node scripts/validate-opencode.js
+        run: node .claude/scripts/validate-opencode.mjs
 
       - name: Check opencode mirror sync
         run: |

@@ -2,7 +2,7 @@
 # check-consistency.sh
 # Plugin consistency check
 #
-# Usage: ./scripts/ci/check-consistency.sh
+# Usage: ./.claude/scripts/check-consistency.sh
 # Exit codes:
 #   0 - All checks passed
 #   1 - Inconsistencies found

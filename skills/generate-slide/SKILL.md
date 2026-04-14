@@ -221,4 +221,4 @@ Options:
 ## Related Skills
 
 - `generate-video` — Product demo video generation (shares the image generation engine)
-- `notebookLM` — Document and slide generation (different approach)
+- `notebook-lm` — Document and slide generation (different approach)

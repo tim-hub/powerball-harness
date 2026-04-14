@@ -20,13 +20,6 @@ Uses the Quiver AI API to perform professional-level SVG generation from text pr
 
 ## Quick Reference
 
-- "**Create SVG**" / "**Generate logo**" / "**Create icon**" → Text-to-SVG
-- "**Convert image to SVG**" / "**Vectorize**" / "**Trace**" → Image-to-SVG
-- "**allow1**" / "**quiver**" → This skill in general
-- "**Batch SVG**" / "**Multiple SVG**" → Batch generation
-
-## Feature List
-
 | Feature | Subcommand | Reference |
 |------|-------------|-------------|
 | **Text-to-SVG Generation** | `generate` | [references/text-to-svg.md](${CLAUDE_SKILL_DIR}/references/text-to-svg.md) |
@@ -34,6 +27,14 @@ Uses the Quiver AI API to perform professional-level SVG generation from text pr
 | **Batch Generation** | `batch` | [references/batch-workflow.md](${CLAUDE_SKILL_DIR}/references/batch-workflow.md) |
 | **API Reference** | — | [references/api-reference.md](${CLAUDE_SKILL_DIR}/references/api-reference.md) |
 | **Prompt Guide** | — | [references/prompt-guide.md](${CLAUDE_SKILL_DIR}/references/prompt-guide.md) |
+
+- "**Create SVG**" / "**Generate logo**" / "**Create icon**" → Text-to-SVG
+- "**Convert image to SVG**" / "**Vectorize**" / "**Trace**" → Image-to-SVG
+- "**allow1**" / "**quiver**" → This skill in general
+- "**Batch SVG**" / "**Multiple SVG**" → Batch generation
+
+
+
 
 ---
 

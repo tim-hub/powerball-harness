@@ -226,7 +226,7 @@ function pickRuntimeCommands(root) {
   if (commands.length === 0) {
     const shellFallbacks = [
       { path: 'tests/validate-plugin.sh', label: 'validate-plugin', command: './tests/validate-plugin.sh' },
-      { path: 'scripts/ci/check-consistency.sh', label: 'check-consistency', command: './scripts/ci/check-consistency.sh' },
+      { path: '.claude/scripts/check-consistency.sh', label: 'check-consistency', command: './.claude/scripts/check-consistency.sh' },
     ];
     for (const fb of shellFallbacks) {
       if (fs.existsSync(path.join(root, fb.path))) {

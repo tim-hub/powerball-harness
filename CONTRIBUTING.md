@@ -116,7 +116,7 @@ Use a version bump only when you are intentionally cutting a release.
 ### Version Consistency Checks
 
 - **Local (recommended)**: run `./scripts/sync-version.sh check` before committing
-- **CI (recommended)**: run `./tests/validate-plugin.sh` and `./scripts/ci/check-consistency.sh` on PRs
+- **CI (recommended)**: run `./tests/validate-plugin.sh` and `./.claude/scripts/check-consistency.sh` on PRs
 
 ## CHANGELOG Rules (Required)
 
@@ -177,7 +177,7 @@ Before submitting:
 
    ```bash
    ./tests/validate-plugin.sh
-   ./scripts/ci/check-consistency.sh
+   ./.claude/scripts/check-consistency.sh
    ```
 
 2. (Recommended) Enable pre-commit hooks (keep release metadata in sync without auto-bumping):

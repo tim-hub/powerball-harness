@@ -143,7 +143,7 @@ skills/
 ├── deploy/                # デプロイ（Vercel、Netlify、アナリティクス）
 ├── ui/                    # UI（コンポーネント、フィードバック）
 ├── handoff/               # ワークフロー（ハンドオフ、自動修正）
-├── notebookLM/            # ドキュメント（NotebookLM、YAML）
+├── notebook-lm/            # ドキュメント（NotebookLM、YAML）
 ├── ci/                    # CI/CD（失敗分析、テスト修正）
 └── maintenance/           # メンテナンス（クリーンアップ）
 ```
@@ -181,7 +181,7 @@ skills/
 | deploy | デプロイ、アナリティクス | 「デプロイ」「Vercel」「GA」 |
 | ui | UIコンポーネント生成 | 「コンポーネント」「ヒーロー」「フォーム」 |
 | handoff | ハンドオフ、自動修正 | 「ハンドオフ」「PMに報告」「自動修正」 |
-| notebookLM | ドキュメント生成 | 「ドキュメント」「NotebookLM」「スライド」 |
+| notebook-lm | ドキュメント生成 | 「ドキュメント」「NotebookLM」「スライド」 |
 | ci | CI/CD問題解決 | 「CIが落ちた」「テスト失敗」 |
 | maintenance | ファイル整理 | 「整理して」「クリーンアップ」 |
 
@@ -198,7 +198,7 @@ skills/
 ```bash
 # プラグイン構造の検証
 ./tests/validate-plugin.sh
-./scripts/ci/check-consistency.sh
+./.claude/scripts/check-consistency.sh
 
 # Codex CLI での確認（手動）
 # - `${CODEX_HOME:-~/.codex}/skills` または `.codex/skills` が読み込まれること

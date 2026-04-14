@@ -99,9 +99,7 @@ GitHub Releases use **English** and a condensed format with a Before/After table
 ## Changed / Fixed
 - **Change**: Description
 
----
 
-Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
 Full format rules: `.claude/rules/github-release.md`

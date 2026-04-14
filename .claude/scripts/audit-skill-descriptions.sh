@@ -16,7 +16,7 @@
 #   Summary is printed to stderr and does not affect parseable stdout.
 #
 # Usage:
-#   bash scripts/audit-skill-descriptions.sh [target-dir]
+#   bash .claude/scripts/audit-skill-descriptions.sh [target-dir]
 #
 #   With no argument, scans skills/, opencode/skills/, and skills-codex/.
 #   With one argument, scans only that directory.
@@ -29,7 +29,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 REQUIRED_PREFIX="Use when "
 MAX_LEN=300

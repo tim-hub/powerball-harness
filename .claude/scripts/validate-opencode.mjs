@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * validate-opencode.js
+ * validate-opencode.mjs
  *
  * Validate that files converted for opencode are in the correct format.
  *
@@ -10,17 +10,19 @@
  * - JSON files are valid
  *
  * Usage:
- *   node scripts/validate-opencode.js
+ *   node .claude/scripts/validate-opencode.mjs
  *
  * Exit codes:
  *   0: Validation succeeded
  *   1: Validation failed
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT_DIR = path.join(__dirname, '..');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT_DIR = path.join(__dirname, '..', '..');
 const OPENCODE_DIR = path.join(ROOT_DIR, 'opencode');
 
 // Frontmatter fields that are invalid for opencode

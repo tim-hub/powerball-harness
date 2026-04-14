@@ -139,7 +139,7 @@ grep -rn '[Japanese-characters]' core/src/ | wc -l  # Should be 0
 
 ### Solution
 
-- Automatically verify symlink health in CI with `scripts/ci/check-consistency.sh`
+- Automatically verify symlink health in CI with `.claude/scripts/check-consistency.sh`
 - The check validates that each symlink in `codex/.codex/skills/` resolves to a valid directory in `skills/`
 - OpenCode platform was retired in Phase 36; `sync-v3-skill-mirrors.sh` was removed (symlinks replaced file-copy mirrors)
 
@@ -154,7 +154,7 @@ grep -rn '[Japanese-characters]' core/src/ | wc -l  # Should be 0
 ### Related
 
 - decisions: D1
-- files: `scripts/ci/check-consistency.sh`
+- files: `.claude/scripts/check-consistency.sh`
 
 ---
 

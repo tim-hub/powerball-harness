@@ -38,7 +38,7 @@ skills/
 ├── deploy/                # Deployment (Vercel, Netlify, analytics)
 ├── ui/                    # UI (components, feedback)
 ├── handoff/               # Workflow (handoffs, auto-fix)
-├── notebookLM/            # Documentation (NotebookLM, YAML)
+├── notebook-lm/           # Documentation (NotebookLM, YAML)
 └── maintenance/           # Maintenance (cleanup)
 ```
 
@@ -63,7 +63,7 @@ skills/
 | deploy | Deployment, analytics | "deploy", "Vercel", "GA" |
 | ui | UI component generation | "component", "hero", "form" |
 | handoff | Handoffs, auto-fix | "handoff", "report to PM", "auto-fix" |
-| notebookLM | Document generation | "document", "NotebookLM", "slides" |
+| notebook-lm | Document generation | "document", "NotebookLM", "slides" |
 | troubleshoot | Diagnosis and repair (including CI failures) | "not working", "error", "CI failed" |
 | maintenance | File organization | "organize", "cleanup" |
 

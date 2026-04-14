@@ -1,7 +1,7 @@
 ---
 name: claude-codex-upstream-update
 description: "Use when researching Claude Code or Codex upstream releases, selecting adaptations, or preparing Harness upgrades. Local-only; not for distribution."
-user-invocable: false
+user-invocable: true
 ---
 
 # Claude / Codex Upstream Update
@@ -28,7 +28,7 @@ The goal is not to "introduce updates" but to "actually make Harness stronger."
    - Codex: `https://github.com/openai/codex/releases`
 2. Verify existing Harness implementation
    - `docs/CLAUDE-feature-table.md`
-   - `skills/cc-update-review/SKILL.md`
+   - `.claude/skills/cc-update-review/SKILL.md`
    - `hooks/hooks.json`
    - `.claude-plugin/hooks.json`
    - `scripts/hook-handlers/`
@@ -36,7 +36,7 @@ The goal is not to "introduce updates" but to "actually make Harness stronger."
    - `tests/test-claude-upstream-integration.sh`
    - `tests/validate-plugin.sh`
 3. Do not stop at just writing to the Feature Table
-   - Follow the A/B/C classification in `skills/cc-update-review/SKILL.md`
+   - Follow the A/B/C classification in `.claude/skills/cc-update-review/SKILL.md`
    - `B = documentation only` is not acceptable. Proceed to an implementation proposal or the implementation itself
 4. Prioritize Claude side decisions first
    - What to implement immediately this round

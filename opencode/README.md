@@ -4,32 +4,14 @@ Claude Code Harness の opencode.ai 互換版です。
 
 ## セットアップ方法
 
-### 方法 1: ワンコマンドセットアップ（推奨）
-
-Claude Code を持っていなくても、以下のコマンドでセットアップできます：
-
-```bash
-cd your-project
-curl -fsSL https://raw.githubusercontent.com/tim-hub/powerball-harness/main/scripts/setup-opencode.sh | bash
-```
-
-Unified Memory まで一気に設定する場合:
-
-```bash
-cd your-project
-/path/to/claude-code-harness/scripts/harness-mem setup --platform opencode
-```
-
-### 方法 2: Claude Code からセットアップ
-
-Claude Code を使っている場合は、コマンド一つでセットアップ：
+### 方法 1: Claude Code からセットアップ（推奨）
 
 ```bash
 # Claude Code 内で実行
-/opencode-setup
+/harness-setup --platform opencode
 ```
 
-### 方法 3: 手動セットアップ
+### 方法 2: 手動セットアップ
 
 ```bash
 # Harness をクローン

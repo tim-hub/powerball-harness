@@ -3,7 +3,6 @@
 # Tests for the Commit Guard feature
 #
 # Test targets:
-# - scripts/pretooluse-guard.sh (git commit block logic)
 # - scripts/posttooluse-commit-cleanup.sh (review approval state clear)
 # - hooks.json (hook registration)
 
@@ -69,40 +68,7 @@ test_cleanup_script_executable() {
 }
 
 # ==================================================
-# Test 3: Does pretooluse-guard.sh have git commit detection logic?
-# ==================================================
-test_pretooluse_has_commit_guard() {
-  local script="$PROJECT_ROOT/scripts/pretooluse-guard.sh"
-
-  if ! grep -q "git[[:space:]]*commit" "$script" 2>/dev/null; then
-    echo "    Error: git commit detection not found in pretooluse-guard.sh"
-    return 1
-  fi
-
-  if ! grep -Eq "review-approved.json|review-result.json" "$script" 2>/dev/null; then
-    echo "    Error: review artifact check not found in pretooluse-guard.sh"
-    return 1
-  fi
-
-  return 0
-}
-
-# ==================================================
-# Test 4: Does pretooluse-guard.sh have a block message?
-# ==================================================
-test_pretooluse_has_block_message() {
-  local script="$PROJECT_ROOT/scripts/pretooluse-guard.sh"
-
-  if ! grep -q "deny_git_commit_no_review" "$script" 2>/dev/null; then
-    echo "    Error: deny_git_commit_no_review message not found"
-    return 1
-  fi
-
-  return 0
-}
-
-# ==================================================
-# Test 5: Does posttooluse-commit-cleanup.sh detect git commit?
+# Test 3: Does posttooluse-commit-cleanup.sh detect git commit?
 # ==================================================
 test_cleanup_detects_git_commit() {
   local script="$PROJECT_ROOT/scripts/posttooluse-commit-cleanup.sh"
@@ -116,7 +82,7 @@ test_cleanup_detects_git_commit() {
 }
 
 # ==================================================
-# Test 6: Does posttooluse-commit-cleanup.sh have state file removal logic?
+# Test 4: Does posttooluse-commit-cleanup.sh have state file removal logic?
 # ==================================================
 test_cleanup_removes_state_file() {
   local script="$PROJECT_ROOT/scripts/posttooluse-commit-cleanup.sh"
@@ -137,7 +103,7 @@ test_cleanup_removes_state_file() {
 }
 
 # ==================================================
-# Test 7: Is the commit-cleanup hook registered in hooks.json?
+# Test 5: Is the commit-cleanup hook registered in hooks.json?
 # ==================================================
 test_hooks_has_commit_cleanup() {
   local hooks_file="$PROJECT_ROOT/hooks/hooks.json"
@@ -162,7 +128,7 @@ test_hooks_has_commit_cleanup() {
 }
 
 # ==================================================
-# Test 8: Is the same hook also in .claude-plugin/hooks.json?
+# Test 6: Is the same hook also in .claude-plugin/hooks.json?
 # ==================================================
 test_plugin_hooks_has_commit_cleanup() {
   local hooks_file="$PROJECT_ROOT/.claude-plugin/hooks.json"
@@ -176,7 +142,7 @@ test_plugin_hooks_has_commit_cleanup() {
 }
 
 # ==================================================
-# Test 9: Does the config template have the commit_guard setting?
+# Test 7: Does the config template have the commit_guard setting?
 # ==================================================
 test_config_has_commit_guard_option() {
   local config_template="$PROJECT_ROOT/templates/.claude-code-harness.config.yaml.template"
@@ -190,7 +156,7 @@ test_config_has_commit_guard_option() {
 }
 
 # ==================================================
-# Test 10: Does posttooluse-commit-cleanup.sh preserve state on error?
+# Test 8: Does posttooluse-commit-cleanup.sh preserve state on error?
 # ==================================================
 test_cleanup_preserves_on_error() {
   local script="$PROJECT_ROOT/scripts/posttooluse-commit-cleanup.sh"
@@ -213,11 +179,6 @@ echo " Commit Guard Tests"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-echo "  [PreToolUse Guard]"
-run_test "pretooluse-guard.sh has git commit detection logic" test_pretooluse_has_commit_guard
-run_test "pretooluse-guard.sh has a block message" test_pretooluse_has_block_message
-
-echo ""
 echo "  [PostToolUse Cleanup]"
 run_test "posttooluse-commit-cleanup.sh exists" test_cleanup_script_exists
 run_test "posttooluse-commit-cleanup.sh is executable" test_cleanup_script_executable

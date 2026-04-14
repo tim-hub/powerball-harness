@@ -2,7 +2,7 @@
 name: harness-setup
 description: "Use when initializing a project, setting up CI/Codex/memory config, configuring 2-agent workflow, or running /harness-setup. Do NOT load for: implementation, review, release, or planning."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
-argument-hint: "[init|ci|codex|harness-mem|mirrors|agents|localize]"
+argument-hint: "[init|binary|codex|harness-mem|cleanup|gitignore]"
 effort: medium
 ---
 
@@ -10,17 +10,15 @@ effort: medium
 
 ## Quick Reference
 
-| Subcommand | Behavior |
-|------------|----------|
-| `harness-setup` (no args) | Run binary install check, then init |
-| `harness-setup binary` | Download/install the platform binary from GitHub releases |
-| `harness-setup init` | New project initialization (CLAUDE.md + Plans.md + hooks) |
-| `harness-setup ci` | CI/CD pipeline configuration |
-| `harness-setup codex` | Codex CLI installation and configuration |
-| `harness-setup harness-mem` | harness-mem integration and memory configuration |
-| `harness-setup mirrors` | skills/ → public mirror bundle update |
-| `harness-setup agents` | agents/ agent configuration |
-| `harness-setup localize` | CLAUDE.md rule localization |
+| User Input | Subcommand | Behavior |
+|------------|------------|----------|
+| `harness-setup` (no args) | *(all except `codex`)* | Runs `binary` → `init` → `gitignore` → `harness-mem` → `cleanup` in sequence |
+| `harness-setup binary` | `binary` | Check or download/install the platform binary from GitHub releases |
+| `harness-setup init` | `init` | New project initialization (CLAUDE.md + Plans.md + hooks); calls `gitignore` automatically |
+| `harness-setup gitignore` | `gitignore` | Merge harness-managed block into .gitignore (runs `scripts/merge-gitignore.sh`) |
+| `harness-setup harness-mem` | `harness-mem` | harness-mem integration and memory configuration |
+| `harness-setup cleanup` | `cleanup` | Periodic maintenance: delete old logs, compress Plans.md, trim traces |
+| `harness-setup codex` | `codex` | Codex CLI installation and configuration (see `references/codex.md`) |
 
 ## Subcommand Details
 
@@ -65,61 +63,23 @@ project/
 2. Generate minimal CLAUDE.md
 3. Generate Plans.md template
 4. Generate `.claude/settings.json` (permissions/sandbox/env — safe defaults)
-5. Merge `templates/gitignore-harness` into `.gitignore` (idempotent — skips if `# >>> harness-managed >>>` marker already present)
+5. Run the `gitignore` subcommand (idempotent — calls `scripts/merge-gitignore.sh`)
 
-**gitignore merge logic**:
+### gitignore — Harness .gitignore Block
+
+Merges the harness-managed block into the project's `.gitignore`. Safe to run multiple times — skips if the marker is already present.
+
+Implementation: [`scripts/merge-gitignore.sh`](${CLAUDE_SKILL_DIR}/scripts/merge-gitignore.sh)
+
 ```bash
-MARKER="# >>> harness-managed >>>"
-if grep -qF "$MARKER" .gitignore 2>/dev/null; then
-  echo ".gitignore already contains harness-managed block — skipping"
-else
-  echo "" >> .gitignore
-  cat "${CLAUDE_PLUGIN_ROOT}/templates/gitignore-harness" >> .gitignore
-  echo "Appended harness-managed gitignore block"
-fi
+bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/merge-gitignore.sh"
+# Or with an explicit target path:
+bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/merge-gitignore.sh path/to/.gitignore"
 ```
 
 The block ignores `.claude/sessions/`, `logs/`, `settings.local.json`, and `states/`,
-while force-tracking `.claude/memory/decisions.md`, `.claude/memory/patterns.md`,
-`.claude/output-styles/`, `.claude/rules/`, `.claude/scripts/`, `.claude/skills/`,
-and `.claude/settings.json`.
-
-### ci — CI/CD Configuration
-
-Configure GitHub Actions workflows.
-
-```yaml
-# .github/workflows/ci.yml generation example
-name: CI
-on:
-  push:
-    branches: [main]
-  pull_request:
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: npm ci && npm test
-```
-
-### codex — Codex CLI Configuration
-
-```bash
-# Installation check
-which codex || npm install -g @openai/codex
-
-# Timeout command check (macOS)
-TIMEOUT=$(command -v timeout || command -v gtimeout || echo "")
-# For macOS: brew install coreutils
-```
-
-**Usage patterns** (via official plugin):
-```bash
-bash scripts/codex-companion.sh task --write "task content"
-# Or via stdin
-cat /tmp/prompt.md | bash scripts/codex-companion.sh task --write
-```
+while force-tracking `.claude/memory/`, `.claude/output-styles/`, `.claude/rules/`,
+`.claude/scripts/`, `.claude/skills/`, and `.claude/settings.json`.
 
 ### harness-mem — Memory Configuration
 
@@ -142,77 +102,14 @@ cat > .claude/agent-memory/powerball-harness-worker/MEMORY.md << 'EOF'
 EOF
 ```
 
-### mirrors — Public Skill Bundle Sync
+### codex — Codex CLI Configuration
 
-On Windows with `core.symlinks=false`, repository symlinks become regular files, and `harness-*` skills may not appear in the command list. Public bundles are synced as real directory mirrors.
+See [`references/codex.md`](${CLAUDE_SKILL_DIR}/references/codex.md) for full setup and usage instructions.
 
-Codex skills are symlinks to `skills/` — no manual sync needed:
+> **Note**: This subcommand is intentionally excluded from the no-args run because it
+> requires an external npm install (`@openai/codex`) that should be an explicit opt-in.
 
-```bash
-ls -la codex/.codex/skills/
-```
-
-Update targets:
-
-- `skills/` (SSOT)
-- `codex/.codex/skills/` (symlinks → `../../../skills/`)
-
-### agents — Agent Configuration
-
-Configure the 3-agent structure in agents/.
-
-```
-agents/
-├── worker.md      # Implementation (task-worker + codex-implementer + error-recovery)
-├── reviewer.md    # Review (code-reviewer + plan-critic)
-└── scaffolder.md  # Scaffolding (project-analyzer + scaffolder)
-```
-
-### localize — Rule Localization
-
-Adapt `.claude/rules/` rules to the current project.
-
-```bash
-# Check rule list
-ls .claude/rules/
-
-# Add project-specific rules
-cat >> .claude/rules/project-rules.md << 'EOF'
-# Project-Specific Rules
-[Project-specific rules here]
-EOF
-```
-
-## Plugin Installation (v2.1.71+ Marketplace)
-
-Marketplace stability was significantly improved in v2.1.71.
-
-### Recommended Installation Method
-
-```bash
-# Pin version with @ref format (recommended)
-claude plugin install owner/repo@v3.5.0
-
-# Latest version
-claude plugin install owner/repo
-```
-
-The `owner/repo@vX.X.X` format is recommended. With the `@ref` parser fix, tags, branches, and commit hashes are all resolved accurately.
-
-### Updates
-
-```bash
-claude plugin update owner/repo
-```
-
-Merge conflicts during updates were fixed in v2.1.71, enabling stable updates.
-
-### Other Improvements
-
-- MCP server deduplication: Automatically prevents duplicate registration of the same MCP server
-- `/plugin uninstall` uses `settings.local.json`: Accurately reflected in user-local settings
-
-## Maintenance — File Cleanup
+### Cleanup
 
 Periodic maintenance tasks:
 
