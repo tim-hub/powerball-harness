@@ -14,8 +14,7 @@ import (
 //
 // It reads harness.toml from the project root, then generates:
 //   - .claude-plugin/plugin.json   ← [project] section
-//   - hooks/hooks.json             ← current hooks.json template (Phase 35.3 will make this dynamic)
-//   - .claude-plugin/hooks.json    ← identical copy of hooks/hooks.json
+//   - .claude-plugin/hooks.json    ← copied from hooks/hooks.json, or skipped if that file is a symlink
 //   - .claude-plugin/settings.json ← [agent] + [env] + [safety.permissions] + [safety.sandbox]
 //
 // The project root is determined by the first argument (or cwd if omitted).
@@ -153,12 +152,22 @@ func generatePluginJSON(projectRoot string, cfg *config.Config) error {
 // hooks.json sync
 // ---------------------------------------------------------------------------
 
-// syncHooksJSON copies hooks/hooks.json to .claude-plugin/hooks.json.
-// Phase 35.2 uses the existing hooks.json as a static template.
-// Phase 35.3 will make hooks generation dynamic based on harness.toml [hooks].
+// syncHooksJSON ensures hooks/hooks.json and .claude-plugin/hooks.json are in sync.
+//
+// If hooks/hooks.json is a symlink (the preferred setup, pointing to
+// ../.claude-plugin/hooks.json), the two files are always identical by
+// definition and no copy is needed. Otherwise, hooks/hooks.json is treated as
+// the source and copied to .claude-plugin/hooks.json.
 func syncHooksJSON(projectRoot string) error {
 	src := filepath.Join(projectRoot, "hooks", "hooks.json")
 	dst := filepath.Join(projectRoot, ".claude-plugin", "hooks.json")
+
+	// If hooks/hooks.json is a symlink it points directly to the destination,
+	// so they are always in sync — nothing to do.
+	if fi, err := os.Lstat(src); err == nil && fi.Mode()&os.ModeSymlink != 0 {
+		fmt.Printf("  skipped %s (symlinked to %s)\n", rel(projectRoot, src), rel(projectRoot, dst))
+		return nil
+	}
 
 	data, err := os.ReadFile(src)
 	if err != nil {

@@ -1,5 +1,5 @@
 {
-  "description": "claude-code-harness: automation hooks",
+  "description": "powerball-harness: automation hooks",
   "hooks": {
     "PreToolUse": [
       {
@@ -22,9 +22,9 @@
           },
           {
             "type": "agent",
-            "prompt": "Review the following code change for quality issues. Check if the change: (1) introduces hardcoded secrets or credentials, (2) leaves TODO/FIXME stubs without implementation, (3) has obvious security vulnerabilities (SQL injection, XSS, command injection). If any issue is found, return JSON with permissionDecision: 'deny' and permissionDecisionReason explaining the issue. If the change looks acceptable, return nothing (exit 0). Input: $ARGUMENTS",
+            "prompt": "Review the following code change for quality issues. Check if the change: (1) introduces hardcoded secrets or credentials, (2) has obvious security vulnerabilities (SQL injection, XSS, command injection). If any issue is found, return JSON with permissionDecision: 'deny' and permissionDecisionReason explaining the issue. If the change looks acceptable, return nothing (exit 0). Input: $ARGUMENTS",
             "model": "haiku",
-            "timeout": 60
+            "timeout": 30
           }
         ]
       },
@@ -68,13 +68,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/download-binary.sh\"",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/build-binary.sh\"",
             "timeout": 60,
             "once": true
           },
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook setup-init",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook session-init",
             "timeout": 60,
             "once": true
           }
@@ -85,13 +85,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/download-binary.sh\"",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/build-binary.sh\"",
             "timeout": 60,
             "once": true
           },
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook setup-init",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook session-init",
             "timeout": 60,
             "once": true
           }
@@ -333,17 +333,6 @@
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook post-tool",
             "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "agent",
-            "prompt": "First, inspect the `tool_input.file_path` from the input JSON. If the file extension is NOT one of: .ts, .tsx, .js, .jsx, .mjs, .cjs, .py, .go, .rs, .rb, .java, .kt, .swift, .cpp, .cc, .c, .h, .hpp, .cs, .php, .scala, .sh, .bash, .zsh, .lua, .dart, .vue, .svelte — return nothing immediately (exit 0). Otherwise, Read the full file at file_path and perform a WHOLE-FILE review (the PreToolUse hook already covers diff-scope checks like new secrets, new TODOs, and new security vulnerabilities — DO NOT repeat those). Focus only on issues that require seeing the entire file: (1) imports, variables, functions, or types that are defined but never referenced anywhere in this file; (2) leftover debug statements (console.log, console.debug, debugger, print, println!, dbg!, fmt.Println in non-main packages); (3) file-bloat — file exceeds 800 lines, OR a single function exceeds 100 lines; (4) test files (path matches /\\.(test|spec)\\./ or under __tests__/) that contain describe/it/test blocks with zero assertions (no expect/assert/should). This is a non-blocking advisory check. If issues found, include them concisely in systemMessage with file_path:line_number references. If nothing found, return nothing (exit 0). Input: $ARGUMENTS",
-            "model": "haiku",
-            "timeout": 60
           }
         ]
       },
