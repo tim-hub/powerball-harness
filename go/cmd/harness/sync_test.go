@@ -38,7 +38,7 @@ func setupProjectDir(t *testing.T, tomlContent string) string {
 }
 
 // readJSON reads and unmarshals a JSON file into a map.
-func readJSON(t *testing.T, path string) map[string]interface{} {
+func readJSON(t *testing.T, path string) map[string]any {
 	t.Helper()
 
 	data, err := os.ReadFile(path)
@@ -46,7 +46,7 @@ func readJSON(t *testing.T, path string) map[string]interface{} {
 		t.Fatalf("read %s: %v", path, err)
 	}
 
-	var v map[string]interface{}
+	var v map[string]any
 	if err := json.Unmarshal(data, &v); err != nil {
 		t.Fatalf("unmarshal %s: %v", path, err)
 	}
@@ -96,47 +96,11 @@ otel_endpoint = ""
 webhook_url = ""
 `
 
-func TestSync_GeneratesPluginJSON(t *testing.T) {
-	dir := setupProjectDir(t, fullTOML)
-	runSync([]string{dir})
-
-	v := readJSON(t, filepath.Join(dir, ".claude-plugin", "plugin.json"))
-
-	if v["name"] != "claude-code-harness" {
-		t.Errorf("plugin.json name = %v, want claude-code-harness", v["name"])
-	}
-	if v["version"] != "3.17.0" {
-		t.Errorf("plugin.json version = %v, want 3.17.0", v["version"])
-	}
-	if v["description"] != "Claude harness" {
-		t.Errorf("plugin.json description = %v, want 'Claude harness'", v["description"])
-	}
-	if v["author"] != "tim-hub" {
-		t.Errorf("plugin.json author = %v, want tim-hub", v["author"])
-	}
-	if v["homepage"] != "https://github.com/tim-hub/powerball-harness" {
-		t.Errorf("plugin.json homepage = %v", v["homepage"])
-	}
-	// CC 2.1.94+: skills field must be ["./"] so frontmatter `name` drives
-	// invocation. Prevents auto-revert regression when harness sync runs.
-	skillsRaw, ok := v["skills"]
-	if !ok {
-		t.Fatalf("plugin.json missing skills field")
-	}
-	skills, ok := skillsRaw.([]interface{})
-	if !ok {
-		t.Fatalf("plugin.json skills = %v (type %T), want []interface{}", skillsRaw, skillsRaw)
-	}
-	if len(skills) != 1 || skills[0] != "./" {
-		t.Errorf("plugin.json skills = %v, want [./]", skills)
-	}
-}
-
 func TestSync_GeneratesSettingsJSON(t *testing.T) {
 	dir := setupProjectDir(t, fullTOML)
 	runSync([]string{dir})
 
-	v := readJSON(t, filepath.Join(dir, ".claude-plugin", "settings.json"))
+	v := readJSON(t, filepath.Join(dir, "harness", "settings.json"))
 
 	// $schema
 	if v["$schema"] != "https://json.schemastore.org/claude-code-settings.json" {
@@ -149,7 +113,7 @@ func TestSync_GeneratesSettingsJSON(t *testing.T) {
 	}
 
 	// env
-	envRaw, ok := v["env"].(map[string]interface{})
+	envRaw, ok := v["env"].(map[string]any)
 	if !ok {
 		t.Fatalf("settings.json env is not an object: %T", v["env"])
 	}
@@ -158,11 +122,11 @@ func TestSync_GeneratesSettingsJSON(t *testing.T) {
 	}
 
 	// permissions
-	permRaw, ok := v["permissions"].(map[string]interface{})
+	permRaw, ok := v["permissions"].(map[string]any)
 	if !ok {
 		t.Fatalf("settings.json permissions is not an object: %T", v["permissions"])
 	}
-	denyRaw, ok := permRaw["deny"].([]interface{})
+	denyRaw, ok := permRaw["deny"].([]any)
 	if !ok {
 		t.Fatalf("settings.json permissions.deny is not an array")
 	}
@@ -173,7 +137,7 @@ func TestSync_GeneratesSettingsJSON(t *testing.T) {
 		t.Errorf("permissions.deny[0] = %v, want Bash(sudo:*)", denyRaw[0])
 	}
 
-	askRaw, ok := permRaw["ask"].([]interface{})
+	askRaw, ok := permRaw["ask"].([]any)
 	if !ok {
 		t.Fatalf("settings.json permissions.ask is not an array")
 	}
@@ -182,18 +146,18 @@ func TestSync_GeneratesSettingsJSON(t *testing.T) {
 	}
 
 	// sandbox
-	sbRaw, ok := v["sandbox"].(map[string]interface{})
+	sbRaw, ok := v["sandbox"].(map[string]any)
 	if !ok {
 		t.Fatalf("settings.json sandbox is not an object: %T", v["sandbox"])
 	}
 	if sbRaw["failIfUnavailable"] != true {
 		t.Errorf("sandbox.failIfUnavailable = %v, want true", sbRaw["failIfUnavailable"])
 	}
-	fsRaw, ok := sbRaw["filesystem"].(map[string]interface{})
+	fsRaw, ok := sbRaw["filesystem"].(map[string]any)
 	if !ok {
 		t.Fatalf("sandbox.filesystem is not an object")
 	}
-	denyReadRaw, ok := fsRaw["denyRead"].([]interface{})
+	denyReadRaw, ok := fsRaw["denyRead"].([]any)
 	if !ok {
 		t.Fatalf("sandbox.filesystem.denyRead is not an array")
 	}
@@ -206,14 +170,14 @@ func TestSync_CopiesHooksJSON(t *testing.T) {
 	dir := setupProjectDir(t, fullTOML)
 	runSync([]string{dir})
 
-	// Both files must exist and have identical content
+	// Source and generated file must exist and have identical content
 	srcData, err := os.ReadFile(filepath.Join(dir, "hooks", "hooks.json"))
 	if err != nil {
 		t.Fatalf("read hooks/hooks.json: %v", err)
 	}
-	dstData, err := os.ReadFile(filepath.Join(dir, ".claude-plugin", "hooks.json"))
+	dstData, err := os.ReadFile(filepath.Join(dir, "harness", "hooks", "hooks.json"))
 	if err != nil {
-		t.Fatalf("read .claude-plugin/hooks.json: %v", err)
+		t.Fatalf("read harness/hooks/hooks.json: %v", err)
 	}
 
 	if string(srcData) != string(dstData) {
@@ -229,7 +193,7 @@ func TestSync_TelemetryNotInSettings(t *testing.T) {
 	dir := setupProjectDir(t, fullTOML)
 	runSync([]string{dir})
 
-	v := readJSON(t, filepath.Join(dir, ".claude-plugin", "settings.json"))
+	v := readJSON(t, filepath.Join(dir, "harness", "settings.json"))
 
 	if _, ok := v["telemetry"]; ok {
 		t.Error("settings.json must not contain telemetry key")
@@ -253,16 +217,7 @@ name = "minimal"
 `)
 	runSync([]string{dir})
 
-	pv := readJSON(t, filepath.Join(dir, ".claude-plugin", "plugin.json"))
-	if pv["name"] != "minimal" {
-		t.Errorf("plugin.json name = %v, want minimal", pv["name"])
-	}
-	// Version and description must be absent (empty string → omitempty)
-	if _, ok := pv["version"]; ok {
-		t.Error("plugin.json must not have version when not set")
-	}
-
-	sv := readJSON(t, filepath.Join(dir, ".claude-plugin", "settings.json"))
+	sv := readJSON(t, filepath.Join(dir, "harness", "settings.json"))
 	// agent must be absent
 	if _, ok := sv["agent"]; ok {
 		t.Error("settings.json must not have agent when not set")
@@ -320,7 +275,7 @@ failIfUnavailable = false
 `)
 	runSync([]string{dir})
 
-	sv := readJSON(t, filepath.Join(dir, ".claude-plugin", "settings.json"))
+	sv := readJSON(t, filepath.Join(dir, "harness", "settings.json"))
 	if _, ok := sv["sandbox"]; ok {
 		t.Error("settings.json should not have sandbox when failIfUnavailable=false and no filesystem rules")
 	}
@@ -340,8 +295,8 @@ failIfUnavailable = true
 `)
 	runSync([]string{dir})
 
-	sv := readJSON(t, filepath.Join(dir, ".claude-plugin", "settings.json"))
-	sbRaw, ok := sv["sandbox"].(map[string]interface{})
+	sv := readJSON(t, filepath.Join(dir, "harness", "settings.json"))
+	sbRaw, ok := sv["sandbox"].(map[string]any)
 	if !ok {
 		t.Fatalf("settings.json sandbox should be present when failIfUnavailable=true")
 	}

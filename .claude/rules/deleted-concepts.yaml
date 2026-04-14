@@ -145,7 +145,6 @@ deleted_concepts:
       - "Plans.md"
       - "skills/generate-video/"  # Video generation skill may use Node.js (old path, pre-v4.2.1)
       - ".claude/skills/generate-video/"  # Video generation skill relocated here in v4.2.1
-      - "opencode/"
       - ".claude/rules/migration-policy.md"  # Phase 40 historical description (appendix contains old runtime requirements)
 
   - term: "claude-mem"
@@ -270,6 +269,16 @@ deleted_concepts:
     replacement: "template existence checks in compatibility-check.yml"
     deleted_in: "v4.3.0"
     reason: "Phase 51: opencode mirror validation script deleted. Mirror sync checks replaced by template existence checks."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+
+  - term: "opencode/skills/harness-setup"
+    replacement: "skills/harness-setup (harness-setup codex/opencode subcommands)"
+    deleted_in: "v4.3.0"
+    reason: "Stale Phase 51 remnant: opencode/skills/harness-setup/scripts/ contained setup-codex.sh and setup-opencode.sh mirrored from skills/harness-setup. Deleted since harness-setup subcommands in skills/ already cover this."
     allowlist:
       - "CHANGELOG.md"
       - ".claude/memory/archive/"
