@@ -147,60 +147,12 @@ echo "$NEW_VERSION" > VERSION
 
 ### Phase 3: CHANGELOG Update
 
-The release entry finalizes changes accumulated in `[Unreleased]` from normal PRs into a versioned section.
+Finalize the `[Unreleased]` section into a versioned entry. Use the `writing-changelog` skill for format rules, the Before/After template, and the CC version integration pattern.
 
-Write using the **detailed Before/After format** (in English).
-Split each feature into numbered sections, explaining "Before" and "After" with concrete examples.
-
-```markdown
-## [X.Y.Z] - YYYY-MM-DD
-
-### Theme: [One-line summary of all changes]
-
-**[Value to users in 1-2 sentences]**
-
----
-
-#### 1. [Feature Name]
-
-**Before**: [Describe the old behavior concretely. Paint the pain point users experienced]
-
-**After**: [Describe the new behavior concretely. What gets resolved]
-
-```
-[Actual output or command examples]
-```
-
-#### 2. [Next Feature Name]
-
-**Before**: ...
-
-**After**: ...
-```
-
-**CC version integration pattern**: Instead of the usual "Before / After" format, use the "CC update → Harness utilization" format.
-See the "CC Version Integration CHANGELOG Pattern" section in `.claude/rules/github-release.md` for details.
-
-**Writing rules**:
-
-| Rule | Description |
-|------|-------------|
-| Language | **English** |
-| Each feature as a separate section | Numbered with `#### N. Feature Name` |
-| "Before" describes the pain point | Concretely describe the inconvenience users experienced |
-| "After" shows the resolution | What changes and how + concrete examples (code/output) |
-| Always include concrete examples | Command examples, output examples, Plans.md snippets, etc. |
-| Minimize technical details | File names and step numbers as supplements in "After" |
-| Longer is OK | 3-10 lines per feature. Readability is the top priority |
-
-Do not empty the `[Unreleased]` section; keep it for the next release:
-
-```markdown
-## [Unreleased]
-
-## [X.Y.Z] - YYYY-MM-DD
-...
-```
+Key requirements:
+- Move `[Unreleased]` content into a new `## [X.Y.Z] - YYYY-MM-DD` section
+- Keep an empty `## [Unreleased]` placeholder above it for the next release
+- Each feature gets its own `#### N. Feature Name` section with **Before** / **After**
 
 ### Phase 4: Update Version Files
 
@@ -337,17 +289,15 @@ Executes only Phase 9. Verifies that the GitHub Release was not missed, then cre
 
 Verify the following regressions before release:
 
-| Check Item | Verification Method | Notes |
-|------------|-------------------|-------|
-| Plugin structure | `tests/validate-plugin.sh` | Validates marketplace.json, skills, hooks, scripts |
-| Consistency | `scripts/ci/check-consistency.sh` | Templates, versions, mirrors, CHANGELOG |
-| Codex symlinks | `ls -la codex/.codex/skills/` | All symlinks resolve to skills/ |
-| Preflight | `scripts/release-preflight.sh` | Working tree, CHANGELOG, CI, remnants |
-| Release notes | `scripts/validate-release-notes.sh vX.Y.Z` | GitHub Release format validation |
-| VERSION sync | `scripts/sync-version.sh check` | Match between VERSION and marketplace.json |
-| Guardrails | R01-R13 in `go/internal/guardrail/rules.go` | Go rule health |
-| Tag continuity | `git tag --sort=-version:refname \| head -5` | No missing tags |
-| Locale | Match between description and description-ja | Switchable via `set-locale.sh` |
+- [ ] **Plugin structure** — `bash tests/validate-plugin.sh` (marketplace.json, skills, hooks, scripts)
+- [ ] **Consistency** — `bash scripts/ci/check-consistency.sh` (templates, versions, mirrors, CHANGELOG)
+- [ ] **Mirror sync** — `node .claude/scripts/sync-skill-mirrors.mjs --check` (all skills in sync)
+- [ ] **Preflight** — `bash scripts/release-preflight.sh` (working tree, CHANGELOG, CI, remnants)
+- [ ] **Release notes** — `bash scripts/validate-release-notes.sh vX.Y.Z` (GitHub Release format)
+- [ ] **VERSION sync** — `bash scripts/sync-version.sh check` (VERSION matches marketplace.json)
+- [ ] **Guardrails** — R01-R13 in `go/internal/guardrail/rules.go` (Go rule health)
+- [ ] **Tag continuity** — `git tag --sort=-version:refname | head -5` (no missing tags)
+- [ ] **Migration residue** — `bash scripts/check-residue.sh` (no deleted-concept references)
 
 ## CI Safety Net
 
