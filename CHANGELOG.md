@@ -6,6 +6,35 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.1.3] - 2026-04-14
+
+### Theme: Phase 46 — Skill housekeeping: rename, relocate, and complete missing assets
+
+**`notebookLM` renamed to `notebook-lm`, `cc-update-review` moved to `.claude/skills/`, and `harness-setup` gains its missing script and reference file.**
+
+---
+
+#### 1. Rename `notebookLM` → `notebook-lm`
+
+**Before**: The NotebookLM skill directory was named `notebookLM` (camelCase), inconsistent with every other skill's kebab-case naming. Mirror paths also used `notebookLM`.
+
+**After**: Renamed to `notebook-lm` across `skills/`, `codex/.codex/skills/`, and `opencode/skills/`. All cross-references updated.
+
+#### 2. Move `cc-update-review` to `.claude/skills/`
+
+**Before**: `cc-update-review` was in `skills/` alongside user-facing skills, but it's an internal skill only referenced from `claude-codex-upstream-update`. It shouldn't appear in the user-facing skill palette.
+
+**After**: Moved to `.claude/skills/cc-update-review/`. Removed from codex and opencode mirrors. References in `claude-codex-upstream-update/SKILL.md` updated to new path.
+
+#### 3. Complete `harness-setup` missing assets
+
+**Before**: `harness-setup/SKILL.md` referenced `scripts/merge-gitignore.sh` and `references/codex.md` that did not exist on disk. Running `harness-setup gitignore` or `harness-setup codex` would fail.
+
+**After**:
+- `skills/harness-setup/scripts/merge-gitignore.sh` — idempotent script that appends the harness-managed `.gitignore` block (ignore runtime dirs, force-track `.claude/memory/`, `.claude/rules/`, etc.)
+- `skills/harness-setup/references/codex.md` — Codex CLI install, config template copy, skill sync verification, and troubleshooting table
+- SKILL.md trimmed to 118 lines (was 126) by condensing the `harness-mem` inline template to descriptive prose
+
 ## [4.1.2] - 2026-04-14
 
 ### Theme: Phase 45 — Script reorganization into canonical locations
