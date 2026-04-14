@@ -6,6 +6,32 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Added
+
+#### `/maintenance` スキルを復活
+
+**今まで**: `auto-cleanup-hook` が Plans.md や session-log.md の肥大化を検知すると
+「`/maintenance` で古いタスクをアーカイブすることを推奨します」と案内を出していましたが、
+`/maintenance` 本体は v3 で `harness-setup` に統合された際に削除され、ユーザーが実行しようとすると
+「存在しない」と言われる状態でした。警告を受けても対処コマンドが無い不整合が続いていました。
+
+**今後**: `skills/maintenance/SKILL.md` を再導入します。サブコマンドは
+`plans` / `session-log` / `logs` / `state` / `all` の 5 種類で、
+auto-cleanup-hook の警告メッセージに書かれた動作（Plans.md 完了タスクのアーカイブ移動、
+session-log.md の月別分割、`.claude/logs/` の古いファイル削除、`agent-trace.jsonl` のトリム）を
+単一スキル内で完結できます。自由記述の追加指示（閾値変更、除外ファイル指定、`--dry-run`）にも対応。
+
+```
+/maintenance plans          # Plans.md のアーカイブ
+/maintenance session-log    # session-log.md を月別に分割
+/maintenance all            # 4対象を順に実行
+/maintenance plans --dry-run  # 実行せず対象だけ列挙
+```
+
+詳細な実行手順・閾値・アーカイブ先は [skills/maintenance/references/cleanup.md](skills/maintenance/references/cleanup.md) を参照。
+`harness-setup` の「Maintenance — ファイル整理」セクションは引き続き残しますが、
+実行はこのスキルに委譲されます。
+
 ## [4.0.4] - 2026-04-14
 
 ### テーマ: marketplace 配布でプラットフォームバイナリが届かない致命的バグを修正
