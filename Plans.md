@@ -10,6 +10,20 @@ Last archive: 2026-04-12 (Phase 25–34 → `.claude/memory/archive/Plans-2026-0
 
 ---
 
+## Phase 46: Skill Housekeeping — rename, relocate, and refactor skill assets
+
+Created: 2026-04-14
+
+Goal: Clean up skill naming, move private skills to `.claude/skills/`, extract scripts and references from inline SKILL.md content.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 46.1 | Rename `notebookLM` → `notebook-lm` across `skills/`, `codex/`, `opencode/`, and all cross-references (docs, scripts, feature table) | `grep -r notebookLM` returns only CHANGELOG historical records | - | cc:done |
+| 46.2 | Move `cc-update-review` from `skills/` to `.claude/skills/`; remove codex/opencode mirrors; update path refs in `claude-codex-upstream-update/SKILL.md` (×3), `build-opencode.mjs`, `test-codex-package.sh` | Skill loads from `.claude/skills/cc-update-review/`; no stale refs outside CHANGELOG | - | cc:done |
+| 46.3 | Extract `harness-setup` gitignore merge into `scripts/merge-gitignore.sh`; add `gitignore` subcommand; move codex section to `references/codex.md`; upgrade Quick Reference to 3-column format per `skill-quick-reference.md` rule | Script is idempotent; SKILL.md < 120 lines; codex/opencode mirrors in sync | - | cc:done |
+
+---
+
 ## Phase 45: Script Reorganization — categorize, relocate, and clean up `scripts/`
 
 Created: 2026-04-14

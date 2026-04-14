@@ -6,6 +6,32 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.1.2] - 2026-04-14
+
+### Theme: Phase 45 — Script reorganization into canonical locations
+
+**Dead scripts removed and CI-only scripts moved to `.claude/scripts/`, cleaning up the `scripts/` directory after the v4.0 Go migration.**
+
+---
+
+#### 1. Delete 8 dead scripts left over from v4.0 Go migration
+
+**Before**: Six shell hook handlers (`posttooluse-security-review.sh`, `posttooluse-tampering-detector.sh`, `pretooluse-guard.sh`, `permission-request.sh`, `skill-child-reminder.sh`) plus `setup-opencode.sh`, `ci/diagnose-and-fix.sh`, and `ci/check-checklist-sync.sh` still existed on disk despite being replaced by `bin/harness hook ...` Go-native calls in v4.0. Grep confirmed zero references outside CHANGELOG/tests.
+
+**After**: All 8 deleted. `scripts/ci/` directory is now empty and removed. Migration residue scanner confirms no references remain.
+
+#### 2. Move CI-only scripts to `.claude/scripts/`
+
+**Before**: `scripts/ci/check-consistency.sh`, `check-version-bump.sh`, `check-template-registry.sh`, `check-residue.sh`, and `audit-skill-descriptions.sh` were called only by CI pipelines and `tests/validate-plugin.sh` — not by any plugin hook, skill, or agent. They were mixed into `scripts/` alongside plugin infrastructure.
+
+**After**: All five moved to `.claude/scripts/`. Callers updated: `.github/workflows/`, `tests/validate-plugin.sh`, `skills/harness-release/SKILL.md`, and all rule/doc references. `REPO_ROOT` path resolution fixed in `check-residue.sh` and `audit-skill-descriptions.sh` (both needed `../..` instead of `..` after the one-level-deeper location change).
+
+#### 3. Convert `scripts/validate-opencode.js` → `.claude/scripts/validate-opencode.mjs` (ESM)
+
+**Before**: `scripts/validate-opencode.js` used CommonJS `require()` and implicit `__dirname`. GitHub Actions ran it with `node scripts/validate-opencode.js`.
+
+**After**: Converted to ESM (`import` syntax, `fileURLToPath(import.meta.url)` for `__dirname`). Moved to `.claude/scripts/validate-opencode.mjs`. `.github/workflows/compatibility-check.yml` updated to `node .claude/scripts/validate-opencode.mjs`.
+
 ## [4.1.1] - 2026-04-14
 
 ### Theme: Script consolidation and automatic mirror sync
