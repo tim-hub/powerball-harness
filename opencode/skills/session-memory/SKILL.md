@@ -116,7 +116,7 @@ This improves traceability across sessions.
 
 ### Error Handling
 - Wrap in try-catch
-- Error messages in Japanese
+- Error messages
 ```
 
 ### context.json

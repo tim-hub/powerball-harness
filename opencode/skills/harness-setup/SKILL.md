@@ -47,6 +47,12 @@ project/
 ├── .gitignore           # Standard ignore rules (harness-managed block appended)
 └── .claude/
     └── settings.json    # Claude Code permissions/sandbox/env
+    ├── memory/          # Harness SSOT (decisions.md + patterns.md)
+    ├── output-styles/   # Custom output styles (if any)
+    ├── rules/           # Custom rules (if any)
+    ├── scripts/         # Custom scripts (if any)
+    └── skills/          # Custom skills (if any)
+    └── settings.local.json # Local custom settings (gitignored) for user overrides
 ```
 
 > **Note**: Neither `hooks/` nor `harness.toml` is generated into a user's project.
