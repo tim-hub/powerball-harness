@@ -397,7 +397,7 @@ it is **TUI-only** and non-interactive fork is not yet implemented.
 ### codex exec Flag Official Names (Reference: codex-cli 0.115.0+)
 
 > **Note**: Harness uses `scripts/codex-companion.sh` rather than raw `codex exec`.
-> The following is for reference within Codex native skills (`skills-codex/`).
+> The following is for reference within Codex native skills (`templates/codex-skills/`).
 
 | Flag | Short Form | Description |
 |---|---|---|

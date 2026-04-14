@@ -410,7 +410,7 @@ else
     # The script's summary goes to stderr and is dropped here.
     AUDIT_STDOUT="$(bash "$AUDIT_SCRIPT" 2>/dev/null)"
     AUDIT_EXIT=$?
-    SKILL_COUNT="$(find "$PLUGIN_ROOT/skills" "$PLUGIN_ROOT/opencode/skills" "$PLUGIN_ROOT/skills-codex" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')"
+    SKILL_COUNT="$(find "$PLUGIN_ROOT/skills" "$PLUGIN_ROOT/templates/codex-skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')"
     if [ "$AUDIT_EXIT" -eq 0 ]; then
         pass_test "All ${SKILL_COUNT} SKILL.md descriptions conform"
     else

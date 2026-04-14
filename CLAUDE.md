@@ -1,4 +1,5 @@
 ## General Rules
+- Consult an Opus Agent if anything is unclear or uncertain.
 - This project use English as the main language for all code, comments, documentation, and communication. 
   - When merge or rebase from upstream, for all skills, agents, etc this kind of markdown files, keep using the local version. Do not merge Japanese translation over English translation.
 

@@ -114,7 +114,6 @@ deleted_concepts:
       - "scripts/setup-codex.sh"  # Uses "Harness v3" as a grep detection pattern (intentional)
       - "scripts/codex-setup-local.sh"  # Same as above
       - "tests/test-codex-package.sh"  # v3 legacy skill tests (comments)
-      - "skills-codex/"  # Codex skill mirror (independently managed)
       - ".claude/rules/migration-policy.md"  # Phase 40 historical description (appendix contains old version names)
       - "out/"
       - "output/"
@@ -144,8 +143,6 @@ deleted_concepts:
       - "out/"
       - "output/"
       - "Plans.md"
-      - ".opencode/"  # opencode uses a different runtime
-      - "codex/"  # codex uses a different runtime
       - "skills/generate-video/"  # Video generation skill may use Node.js (old path, pre-v4.2.1)
       - ".claude/skills/generate-video/"  # Video generation skill relocated here in v4.2.1
       - "opencode/"
@@ -205,7 +202,6 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
-      - ".claude/scripts/build-opencode.mjs"  # removed from skipSkills in v4.2.1
       - ".claude/skills/generate-video/"  # skill itself contains self-referencing paths (internal docs/scripts)
       - ".claude/agents/video-scene-generator.md"  # uses ../skills/generate-video relative path (resolves correctly)
 
@@ -223,6 +219,57 @@ deleted_concepts:
     replacement: ".claude/rules/skill-routing-rules.md"
     deleted_in: "v4.2.1"
     reason: "routing-rules.md is a reference document (not a skill). Relocated to .claude/rules/ where rule documents belong."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+
+  - term: "skills-codex/"
+    replacement: "templates/codex-skills/"
+    deleted_in: "v4.3.0"
+    reason: "Phase 51: skills-codex/ renamed to templates/codex-skills/ to clarify it's a setup template, not a live skills mirror."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - "templates/codex-skills/"
+
+  - term: "sync-skill-mirrors.mjs"
+    replacement: "harness-setup codex/opencode (setup-time copy)"
+    deleted_in: "v4.3.0"
+    reason: "Phase 51: mirror sync script deleted. Build-time mirror sync replaced by setup-time copy in harness-setup subcommands."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+
+  - term: "build-opencode.mjs"
+    replacement: "harness-setup opencode (setup-time copy)"
+    deleted_in: "v4.3.0"
+    reason: "Phase 51: opencode mirror build script deleted. OpenCode config and skills are now copied at setup time by harness-setup opencode."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+
+  - term: "sync-skills.mjs"
+    replacement: "(no replacement — PostToolUse auto-sync removed)"
+    deleted_in: "v4.3.0"
+    reason: "Phase 51: PostToolUse hook script that auto-synced skills to mirrors deleted. Mirrors are gone; no auto-sync needed."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+
+  - term: "validate-opencode.mjs"
+    replacement: "template existence checks in compatibility-check.yml"
+    deleted_in: "v4.3.0"
+    reason: "Phase 51: opencode mirror validation script deleted. Mirror sync checks replaced by template existence checks."
     allowlist:
       - "CHANGELOG.md"
       - ".claude/memory/archive/"

@@ -1,22 +1,16 @@
-name: Mirror Compatibility Check
+name: Template Existence Check
 
 on:
   push:
     paths:
       - '.github/workflows/compatibility-check.yml'
-      - 'commands/**'
       - 'skills/**'
-      - 'codex/.codex/skills/**'
-      - '.claude/scripts/build-opencode.mjs'
-      - 'scripts/validate-opencode.js'
+      - 'templates/**'
   pull_request:
     paths:
       - '.github/workflows/compatibility-check.yml'
-      - 'commands/**'
       - 'skills/**'
-      - 'codex/.codex/skills/**'
-      - '.claude/scripts/build-opencode.mjs'
-      - 'scripts/validate-opencode.js'
+      - 'templates/**'
 
 jobs:
   validate:
@@ -25,27 +19,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Build opencode version
+      - name: Check Codex template exists
         run: |
-          node .claude/scripts/build-opencode.mjs
-          node .claude/scripts/sync-skill-mirrors.mjs
+          test -f templates/codex/config.toml || { echo "::error::templates/codex/config.toml not found"; exit 1; }
+          test -f templates/codex/rules/harness.rules || { echo "::error::templates/codex/rules/harness.rules not found"; exit 1; }
+          test -f templates/codex/.codexignore || { echo "::error::templates/codex/.codexignore not found"; exit 1; }
+          echo "✅ templates/codex/ verified"
 
-      - name: Validate opencode format
-        run: node .claude/scripts/validate-opencode.mjs
-
-      - name: Check opencode mirror sync
+      - name: Check OpenCode template exists
         run: |
-          if ! git diff --quiet opencode/; then
-            echo "::error::opencode/ is out of sync — run 'node .claude/scripts/build-opencode.mjs && node .claude/scripts/sync-skill-mirrors.mjs' and commit the changes."
-            git diff --stat opencode/
-            exit 1
-          fi
-          echo "✅ opencode/ is in sync"
+          test -f templates/opencode/opencode.json || { echo "::error::templates/opencode/opencode.json not found"; exit 1; }
+          test -d templates/opencode/commands || { echo "::error::templates/opencode/commands/ not found"; exit 1; }
+          echo "✅ templates/opencode/ verified"
 
-      - name: Check codex mirror sync
-        run: node .claude/scripts/sync-skill-mirrors.mjs --check
+      - name: Check codex-native skill overrides exist
+        run: |
+          test -d templates/codex-skills || { echo "::error::templates/codex-skills/ not found"; exit 1; }
+          echo "✅ templates/codex-skills/ verified"
+
+      - name: Verify setup scripts exist
+        run: |
+          test -f skills/harness-setup/scripts/setup-codex.sh || { echo "::error::setup-codex.sh not found"; exit 1; }
+          test -f skills/harness-setup/scripts/setup-opencode.sh || { echo "::error::setup-opencode.sh not found"; exit 1; }
+          echo "✅ harness-setup scripts verified"

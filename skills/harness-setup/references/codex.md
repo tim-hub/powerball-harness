@@ -1,6 +1,6 @@
-# Harness Setup — Codex CLI Configuration
+# Harness Setup — Codex CLI
 
-Reference for `harness-setup codex`: install and configure Codex CLI with Harness project skills.
+Reference for `harness-setup codex`: install Codex CLI and set up Harness skills in your project.
 
 ## Prerequisites
 
@@ -13,45 +13,40 @@ Reference for `harness-setup codex`: install and configure Codex CLI with Harnes
 npm install -g @openai/codex
 ```
 
-Verify the installation:
+Verify:
 
 ```bash
 codex --version
 ```
 
-## Project Configuration
+## Setup
 
-Copy the Harness team config template to your project root:
+Run the setup subcommand from Claude Code:
 
-```bash
-cp "${CLAUDE_PLUGIN_ROOT}/codex/.codex/config.toml" .codex/config.toml
+```
+harness-setup codex
 ```
 
-Or for user-wide config (applies to all projects):
+This copies Harness config and skills to your project's `.codex/` directory:
 
-```bash
-mkdir -p ~/.codex
-cp "${CLAUDE_PLUGIN_ROOT}/codex/.codex/config.toml" ~/.codex/config.toml
 ```
-
-The config enables multi-agent mode (`multi_agent = true`) and defines named agent profiles (`implementer`, `reviewer`, `task_worker`, `code_reviewer`) that Harness breezing mode uses.
-
-## Skill Sync
-
-Harness skills are pre-configured as symlinks in `codex/.codex/skills/` → `skills/`. These are already set up in the plugin. No manual action is needed.
-
-Verify the symlinks are healthy:
-
-```bash
-ls -la codex/.codex/skills/
+project/
+├── .codexignore          — Codex ignore patterns
+├── AGENTS.md             — Agent role reference (points to CLAUDE.md)
+└── .codex/
+    ├── config.toml       — Multi-agent config (8 named agent profiles)
+    ├── rules/
+    │   └── harness.rules — Guardrail rules (until Codex supports hooks)
+    └── skills/           — All Harness skills
+        ├── harness-work/ — Codex-native implementation skill (override)
+        ├── breezing/     — Codex-native team-execution skill (override)
+        └── ...           — All other skills from skills/ (patched with disable-model-invocation)
 ```
-
-Each entry should resolve to `../../../skills/<skill-name>`.
 
 ## Running Codex with Harness Skills
 
 ```bash
-# Interactive session with all Harness skills available
+# Interactive session
 codex
 
 # Run a specific task non-interactively
@@ -61,22 +56,20 @@ codex exec "implement task 3 from Plans.md"
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.sh" task --write "your prompt"
 ```
 
-See `.claude/rules/codex-cli-only.md` for the full policy on Codex invocation (always use `codex-companion.sh` from within Harness, not raw `codex exec`).
+See `.claude/rules/codex-cli-only.md` for the full policy on Codex invocation.
 
-## Verification
+## Re-running Setup
 
-After setup, confirm Codex can see Harness skills:
+Setup is idempotent — re-running `harness-setup codex` overwrites `.codex/skills/` with fresh copies from the plugin. Run this after:
 
-```bash
-codex list-skills 2>/dev/null | grep harness || echo "skills loaded via .codex/skills/ directory"
-ls .codex/skills/
-```
+- Updating the Harness plugin
+- Adding new skills to the plugin
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
 | `codex: command not found` | Re-run `npm install -g @openai/codex` |
-| Skills not loading | Verify `.codex/skills/` symlinks resolve: `ls -la .codex/skills/` |
-| Config not found | Copy `codex/.codex/config.toml` to `.codex/config.toml` in project root |
-| Multi-agent disabled | Ensure `[features] multi_agent = true` is in config |
+| Skills not loading | Re-run `harness-setup codex` to refresh `.codex/skills/` |
+| Config not found | Re-run `harness-setup codex` to recopy `config.toml` |
+| Multi-agent disabled | Ensure `[features] multi_agent = true` is in `.codex/config.toml` |

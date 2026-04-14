@@ -18,7 +18,7 @@
 # Usage:
 #   bash .claude/scripts/audit-skill-descriptions.sh [target-dir]
 #
-#   With no argument, scans skills/, opencode/skills/, and skills-codex/.
+#   With no argument, scans skills/ and templates/codex-skills/.
 #   With one argument, scans only that directory.
 #
 # Exit codes:
@@ -41,7 +41,7 @@ FORBIDDEN_PHRASES=(
   "Use this skill"
 )
 
-DEFAULT_TARGETS=("skills" "opencode/skills" "skills-codex")
+DEFAULT_TARGETS=("skills" "templates/codex-skills")
 
 # ---- arg parsing ----
 if [ "$#" -gt 1 ]; then

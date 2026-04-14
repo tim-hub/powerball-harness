@@ -290,8 +290,8 @@ Executes only Phase 9. Verifies that the GitHub Release was not missed, then cre
 Verify the following regressions before release:
 
 - [ ] **Plugin structure** — `bash tests/validate-plugin.sh` (marketplace.json, skills, hooks, scripts)
-- [ ] **Consistency** — `bash .claude/scripts/check-consistency.sh` (templates, versions, mirrors, CHANGELOG)
-- [ ] **Mirror sync** — `node .claude/scripts/sync-skill-mirrors.mjs --check` (all skills in sync)
+- [ ] **Consistency** — `bash .claude/scripts/check-consistency.sh` (templates, versions, CHANGELOG)
+- [ ] **Templates** — `test -f templates/codex/config.toml && test -f templates/opencode/opencode.json` (setup templates present)
 - [ ] **Preflight** — `bash scripts/release-preflight.sh` (working tree, CHANGELOG, CI, remnants)
 - [ ] **Release notes** — `bash scripts/validate-release-notes.sh vX.Y.Z` (GitHub Release format)
 - [ ] **VERSION sync** — `bash scripts/sync-version.sh check` (VERSION matches marketplace.json)

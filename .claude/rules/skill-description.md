@@ -2,7 +2,7 @@
 
 Rule for the `description:` field in every `SKILL.md` frontmatter.
 
-Applies to all skills under `skills/`, `opencode/skills/`, and `skills-codex/`.
+Applies to all skills under `skills/` and `templates/codex-skills/`.
 
 ## Required Format
 

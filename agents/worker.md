@@ -204,7 +204,7 @@ bash scripts/codex-companion.sh review --base "${TASK_BASE_REF}"
 
 ### Operation within Codex CLI (Incompatibilities)
 
-The following features are incompatible in Codex CLI environments (skills within `skills-codex/`).
+The following features are incompatible in Codex CLI environments (skills within `templates/codex-skills/`).
 
 #### memory frontmatter
 

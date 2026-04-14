@@ -12,6 +12,24 @@ Change history for claude-code-harness.
 - Moved `agents/video-scene-generator.md` to `.claude/agents/` — video scene generation is not a core dev agent
 - Moved `skills/routing-rules.md` to `.claude/rules/skill-routing-rules.md` — it's a reference doc, not a skill
 
+#### Phase 51: Eliminate mirror directories — setup-time copy replaces build-time sync
+
+**Before**: `codex/.codex/skills/` and `opencode/skills/` were build-time mirrors kept in sync by `sync-skill-mirrors.mjs` and `build-opencode.mjs`. Any edit to `skills/` required re-running sync scripts or CI would fail. The plugin shipped ~600 duplicate skill files.
+
+**After**: Mirror directories deleted. `harness-setup codex` and `harness-setup opencode` copy skills from the plugin's `skills/` to the user's project at setup time. `harness-setup duo` runs both. `templates/codex/`, `templates/opencode/`, and `templates/codex-skills/` hold the config templates. No ongoing sync needed.
+
+- Deleted `codex/` and `opencode/` mirror directories from the plugin repo
+- Moved `skills-codex/` → `templates/codex-skills/` (codex-native skill overrides: breezing, harness-work)
+- Created `templates/codex/` with config.toml, rules/harness.rules, .codexignore, AGENTS.md
+- Added opencode.json, AGENTS.md, README.md to `templates/opencode/`
+- Added `harness-setup codex` subcommand: copies templates + skills to `.codex/`, patches `disable-model-invocation: true` into each SKILL.md, overlays codex-native overrides from `templates/codex-skills/`
+- Added `harness-setup opencode` subcommand: copies templates + skills to `.opencode/`
+- Added `harness-setup duo` subcommand: runs both codex and opencode setup
+- Removed mirror sync scripts: `sync-skill-mirrors.mjs`, `build-opencode.mjs`, `sync-skills.mjs`, `validate-opencode.mjs`
+- Replaced mirror sync CI (`compatibility-check.yml`) with template existence check
+- Replaced mirror sync check in `check-consistency.sh` with template existence check
+- Removed PostToolUse auto-sync hook from `.claude/settings.json`
+
 ## [4.2.0] - 2026-04-14
 
 ### Theme: Phase 49 — build-from-source installation, hooks.json SSOT, deny list cleanup

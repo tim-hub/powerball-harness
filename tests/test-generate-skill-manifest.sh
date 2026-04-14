@@ -15,11 +15,11 @@ jq -e '
   .skill_count > 5 and
   ((.skills | map(.path) | sort) == (.skills | map(.path))) and
   any(.skills[]; .name == "harness-plan" and .path == "skills/harness-plan/SKILL.md") and
-  any(.skills[]; .name == "breezing" and (.path | test("skills-codex/breezing/SKILL.md")))
+  any(.skills[]; .name == "breezing" and (.path | test("templates/codex-skills/breezing/SKILL.md")))
 ' "${OUTPUT_JSON}" >/dev/null
 
 jq -e '
-  any(.skills[]; .name == "harness-plan" and (.allowed_tools | index("Read")) != null and (.allowed_tools | index("Task")) != null and .effort == "medium" and .surface == "skills" and (.related_surfaces | index("codex/.codex/skills")) != null and (.do_not_use_for | index("implementation")) != null and (.do_not_use_for | index("release tasks")) != null)
+  any(.skills[]; .name == "harness-plan" and (.allowed_tools | index("Read")) != null and (.allowed_tools | index("Task")) != null and .effort == "medium" and .surface == "skills" and (.do_not_use_for | index("implementation")) != null and (.do_not_use_for | index("release tasks")) != null)
 ' "${OUTPUT_JSON}" >/dev/null
 
 echo "test-generate-skill-manifest: ok"

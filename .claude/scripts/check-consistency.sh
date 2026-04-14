@@ -326,121 +326,51 @@ else
 fi
 
 # ================================
-# 10. Skill Mirror check
+# 10. Template existence check
 # ================================
 echo ""
-echo "📦 [10/13] Skill Mirror check..."
+echo "📦 [10/13] Template existence check..."
 
-SKILLS_DIR="$PLUGIN_ROOT/skills"
-CODEX_MIRROR="$PLUGIN_ROOT/codex/.codex/skills"
-OPENCODE_MIRROR="$PLUGIN_ROOT/opencode/skills"
-MIRROR_ISSUES=0
+TEMPLATE_ISSUES=0
 
-# Core skills (5 verb harness- prefix + aux) mirror check
-# SSOT: skills/ → Mirror targets: codex/.codex/skills/, opencode/skills/
-# NOTE: mirror side has disable-model-invocation: true added (auto-invocation suppression)
-#       This difference is intentional, so exclude it from comparison
-HARNESS_SKILLS="harness-plan harness-work harness-review harness-release harness-setup harness-sync"
-
-# Mirror comparison helper: diff per file excluding disable-model-invocation lines
-# Mirror-specific settings (auto-invocation suppression) are intentional differences and thus permitted
-diff_mirror() {
-  local src_dir="$1"
-  local mirror_dir="$2"
-
-  # Compare file list (verify file structure matches)
-  local src_files mirror_files
-  src_files="$(cd "$src_dir" && find . -type f | sort)"
-  mirror_files="$(cd "$mirror_dir" && find . -type f | sort)"
-  if [ "$src_files" != "$mirror_files" ]; then
-    return 1
+# Codex template
+for f in "templates/codex/config.toml" "templates/codex/rules/harness.rules" "templates/codex/.codexignore" "templates/codex/AGENTS.md"; do
+  if [ ! -f "$PLUGIN_ROOT/$f" ]; then
+    echo "  ❌ $f not found"
+    TEMPLATE_ISSUES=$((TEMPLATE_ISSUES + 1))
   fi
-
-  # Compare each file individually (excluding only disable-model-invocation lines)
-  # Use temp files instead of process substitution for /dev/fd/ portability
-  local f compared=0
-  local tmp_src tmp_dst
-  tmp_src="$(mktemp "${TMPDIR:-/tmp}/diff-mirror-src.XXXXXX")"
-  tmp_dst="$(mktemp "${TMPDIR:-/tmp}/diff-mirror-dst.XXXXXX")"
-  while IFS= read -r f; do
-    [ -z "$f" ] && continue
-    grep -v '^disable-model-invocation:' "$src_dir/$f" > "$tmp_src" 2>/dev/null || true
-    grep -v '^disable-model-invocation:' "$mirror_dir/$f" > "$tmp_dst" 2>/dev/null || true
-    if ! diff -q "$tmp_src" "$tmp_dst" >/dev/null 2>&1; then
-      rm -f "$tmp_src" "$tmp_dst"
-      return 1
-    fi
-    compared=$((compared + 1))
-  done <<< "$src_files"
-  rm -f "$tmp_src" "$tmp_dst"
-
-  # If no file comparisons were performed, fail safe
-  [ "$compared" -gt 0 ]
-}
-
-for skill in $HARNESS_SKILLS; do
-  src="$SKILLS_DIR/$skill"
-  if [ ! -d "$src" ]; then
-    echo "  ❌ skills/$skill does not exist (SSOT missing)"
-    MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
-    continue
-  fi
-
-  for mirror_name in codex opencode; do
-    case "$mirror_name" in
-      codex) mirror_root="$CODEX_MIRROR" ;;
-      opencode) mirror_root="$OPENCODE_MIRROR" ;;
-    esac
-
-    if [ ! -d "$mirror_root" ]; then
-      continue
-    fi
-
-    mirror_path="$mirror_root/$skill"
-    if [ ! -d "$mirror_path" ]; then
-      echo "  ❌ $mirror_name: $skill does not exist as a directory"
-      MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
-      continue
-    fi
-
-    if [ -L "$mirror_path" ]; then
-      echo "  ❌ $mirror_name: $skill is still a symlink"
-      MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
-      continue
-    fi
-
-    if diff_mirror "$src" "$mirror_path"; then
-      echo "  ✅ $mirror_name: $skill mirror is in sync"
-    else
-      echo "  ❌ $mirror_name: $skill mirror differs from skills/"
-      MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
-    fi
-  done
 done
 
-if [ $MIRROR_ISSUES -gt 0 ]; then
-  ERRORS=$((ERRORS + MIRROR_ISSUES))
+# OpenCode template
+for f in "templates/opencode/opencode.json" "templates/opencode/AGENTS.md"; do
+  if [ ! -f "$PLUGIN_ROOT/$f" ]; then
+    echo "  ❌ $f not found"
+    TEMPLATE_ISSUES=$((TEMPLATE_ISSUES + 1))
+  fi
+done
+if [ ! -d "$PLUGIN_ROOT/templates/opencode/commands" ]; then
+  echo "  ❌ templates/opencode/commands/ not found"
+  TEMPLATE_ISSUES=$((TEMPLATE_ISSUES + 1))
 fi
 
-# breezing alias is codex mirror only (SSOT is in skills/)
-BREEZING_SRC="$SKILLS_DIR/breezing"
-if [ -d "$BREEZING_SRC" ]; then
-  BREEZING_CODEX="$CODEX_MIRROR/breezing"
-  if [ ! -d "$BREEZING_CODEX" ]; then
-    echo "  ❌ codex: breezing does not exist as a directory"
-    ERRORS=$((ERRORS + 1))
-  elif [ -L "$BREEZING_CODEX" ]; then
-    echo "  ❌ codex: breezing is still a symlink"
-    ERRORS=$((ERRORS + 1))
-  elif diff_mirror "$BREEZING_SRC" "$BREEZING_CODEX"; then
-    echo "  ✅ codex: breezing mirror is in sync"
-  else
-    echo "  ❌ codex: breezing mirror differs from skills/"
-    ERRORS=$((ERRORS + 1))
+# Codex-native skill overrides
+if [ ! -d "$PLUGIN_ROOT/templates/codex-skills" ]; then
+  echo "  ❌ templates/codex-skills/ not found"
+  TEMPLATE_ISSUES=$((TEMPLATE_ISSUES + 1))
+fi
+
+# Setup scripts
+for script in "skills/harness-setup/scripts/setup-codex.sh" "skills/harness-setup/scripts/setup-opencode.sh"; do
+  if [ ! -f "$PLUGIN_ROOT/$script" ]; then
+    echo "  ❌ $script not found"
+    TEMPLATE_ISSUES=$((TEMPLATE_ISSUES + 1))
   fi
+done
+
+if [ $TEMPLATE_ISSUES -eq 0 ]; then
+  echo "  ✅ All templates and setup scripts present"
 else
-  echo "  ❌ skills/breezing does not exist (SSOT missing)"
-  ERRORS=$((ERRORS + 1))
+  ERRORS=$((ERRORS + TEMPLATE_ISSUES))
 fi
 
 # ================================
