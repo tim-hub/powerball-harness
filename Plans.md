@@ -10,6 +10,33 @@ Last archive: 2026-04-12 (Phase 25–34 → `.claude/memory/archive/Plans-2026-0
 
 ---
 
+## Phase 48: harness-setup cleanup — remove harness-mem, default to init, update gitignore template
+
+Created: 2026-04-14
+
+Goal: Remove the `harness-mem` alias skill (name conflicts with another plugin) and change `harness-setup` default (no-args) to behave as `init` — with binary download running before gitignore setup.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 48.1 | Delete `skills/harness-mem/` directory and its codex/opencode mirrors (`codex/.codex/skills/harness-mem/`, `opencode/skills/harness-mem/`) | Directories gone; `ls skills/harness-mem` fails | - | cc:done [ef1fb6a] |
+| 48.2 | Change `harness-setup` default (no-args) to act as `init`. Update `init` flow to run: binary download first → gitignore → self-run. Update Quick Reference no-args row and `init` flow description in SKILL.md | SKILL.md no-args row maps to `init`; `init` flow lists binary download as step 1 before gitignore | - | cc:done [ef1fb6a] |
+| 48.3 | Sync codex/opencode mirrors for `harness-setup` | `codex/.codex/skills/harness-setup/SKILL.md` and `opencode/skills/harness-setup/SKILL.md` match primary | 48.2 | cc:done [ef1fb6a] |
+
+---
+
+## Phase 47: Fix stale script paths in `.github/workflows/`
+
+Created: 2026-04-14
+
+Goal: Phase 45 moved CI scripts from `scripts/ci/` to `.claude/scripts/`, but `.github/workflows/validate-plugin.yml` was not updated. CI references dead paths.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 47.1 | Update `validate-plugin.yml` lines 25 and 36: `scripts/ci/check-version-bump.sh` → `.claude/scripts/check-version-bump.sh`, `scripts/ci/check-consistency.sh` → `.claude/scripts/check-consistency.sh` | Workflow references existing paths; `grep 'scripts/ci/' .github/workflows/` returns 0 hits | - | cc:done [5f841be] |
+| 47.2 | Add `scripts/ci/` to `deleted-concepts.yaml` to prevent future recurrence | `check-residue.sh` catches any new `scripts/ci/` references | 47.1 | cc:done [5f841be] |
+
+---
+
 ## Phase 46: Skill Housekeeping — rename, relocate, and refactor skill assets
 
 Created: 2026-04-14

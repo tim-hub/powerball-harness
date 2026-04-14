@@ -4,12 +4,13 @@
 
 # Harness runtime outputs (do not commit)
 .claude/sessions/
-logs/
-settings.local.json
-states/
+.claude/logs/
+.claude/settings.local.json
+.claude/states/
 
 # Force-track key Harness files even if a parent .gitignore would exclude them
 !.claude/memory/
+!.claude/agent-memory/
 !.claude/output-styles/
 !.claude/rules/
 !.claude/scripts/
