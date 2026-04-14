@@ -4,13 +4,13 @@ on:
   push:
     paths:
       - '.github/workflows/compatibility-check.yml'
-      - 'skills/**'
-      - 'templates/**'
+      - 'harness/skills/**'
+      - 'harness/templates/**'
   pull_request:
     paths:
       - '.github/workflows/compatibility-check.yml'
-      - 'skills/**'
-      - 'templates/**'
+      - 'harness/skills/**'
+      - 'harness/templates/**'
 
 jobs:
   validate:
@@ -21,24 +21,24 @@ jobs:
 
       - name: Check Codex template exists
         run: |
-          test -f templates/codex/config.toml || { echo "::error::templates/codex/config.toml not found"; exit 1; }
-          test -f templates/codex/rules/harness.rules || { echo "::error::templates/codex/rules/harness.rules not found"; exit 1; }
-          test -f templates/codex/.codexignore || { echo "::error::templates/codex/.codexignore not found"; exit 1; }
-          echo "✅ templates/codex/ verified"
+          test -f harness/templates/codex/config.toml || { echo "::error::harness/templates/codex/config.toml not found"; exit 1; }
+          test -f harness/templates/codex/rules/harness.rules || { echo "::error::harness/templates/codex/rules/harness.rules not found"; exit 1; }
+          test -f harness/templates/codex/.codexignore || { echo "::error::harness/templates/codex/.codexignore not found"; exit 1; }
+          echo "✅ harness/templates/codex/ verified"
 
       - name: Check OpenCode template exists
         run: |
-          test -f templates/opencode/opencode.json || { echo "::error::templates/opencode/opencode.json not found"; exit 1; }
-          test -d templates/opencode/commands || { echo "::error::templates/opencode/commands/ not found"; exit 1; }
-          echo "✅ templates/opencode/ verified"
+          test -f harness/templates/opencode/opencode.json || { echo "::error::harness/templates/opencode/opencode.json not found"; exit 1; }
+          test -d harness/templates/opencode/commands || { echo "::error::harness/templates/opencode/commands/ not found"; exit 1; }
+          echo "✅ harness/templates/opencode/ verified"
 
       - name: Check codex-native skill overrides exist
         run: |
-          test -d templates/codex-skills || { echo "::error::templates/codex-skills/ not found"; exit 1; }
-          echo "✅ templates/codex-skills/ verified"
+          test -d harness/templates/codex-skills || { echo "::error::harness/templates/codex-skills/ not found"; exit 1; }
+          echo "✅ harness/templates/codex-skills/ verified"
 
       - name: Verify setup scripts exist
         run: |
-          test -f skills/harness-setup/scripts/setup-codex.sh || { echo "::error::setup-codex.sh not found"; exit 1; }
-          test -f skills/harness-setup/scripts/setup-opencode.sh || { echo "::error::setup-opencode.sh not found"; exit 1; }
+          test -f harness/skills/harness-setup/scripts/setup-codex.sh || { echo "::error::setup-codex.sh not found"; exit 1; }
+          test -f harness/skills/harness-setup/scripts/setup-opencode.sh || { echo "::error::setup-opencode.sh not found"; exit 1; }
           echo "✅ harness-setup scripts verified"

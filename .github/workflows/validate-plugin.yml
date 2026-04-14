@@ -21,23 +21,19 @@ jobs:
           fetch-depth: 0
 
       - name: Check release metadata policy
-        run: |
-          bash ./local-scripts/check-version-bump.sh
+        run: make version-bump
 
       - name: Install ripgrep
         run: sudo apt-get install -y ripgrep
 
       - name: Validate plugin structure
-        run: |
-          bash ./tests/validate-plugin.sh
+        run: make validate
 
       - name: Check consistency (templates/refs/version/hooks)
-        run: |
-          bash ./local-scripts/check-consistency.sh
+        run: make check
 
       - name: Validate codex package (multi-agent migration guards)
-        run: |
-          bash ./tests/test-codex-package.sh
+        run: make codex-test
 
   test-go:
     runs-on: ubuntu-latest
