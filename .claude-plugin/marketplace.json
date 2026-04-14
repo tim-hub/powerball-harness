@@ -2,7 +2,7 @@
   "name": "powerball-harness-marketplace",
   "version": "4.3.0",
   "metadata": {
-    "description": "A single-plugin marketplace for distributing and installing powerball-harness"
+    "description": "A marketplace for distributing and installing powerball-harness plugins"
   },
   "owner": {
     "name": "tim-hub",
@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "harness",
-      "source": "./",
+      "source": "./harness/",
       "description": "A harness for coders to handle full-cycle contract development.",
       "author": {
         "name": "tim-hub",
@@ -31,7 +31,7 @@
       ],
       "category": "productivity",
       "strict": false,
-      "outputStyles": "./output-styles/"
+      "outputStyles": "./harness/output-styles/"
     }
   ]
 }
