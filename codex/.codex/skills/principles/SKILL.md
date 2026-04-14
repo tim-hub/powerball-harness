@@ -1,6 +1,6 @@
 ---
 name: principles
-description: "Use this skill when the user asks about coding principles, development guidelines, safe editing practices, or VibeCoder guidance. Also use when another skill needs to reference general development standards. Do NOT load for: actual code implementation (use harness-work instead), code reviews, or project setup. Reference for development principles, guidelines, and VibeCoder best practices — including diff-aware editing, repo context reading, and safety guardrails."
+description: "Use when consulting coding principles, development guidelines, safe-editing practices, or VibeCoder guidance — including when another skill needs to reference general standards. Do NOT load for: direct implementation (harness-work), reviews, or setup."
 allowed-tools: ["Read"]
 user-invocable: false
 ---

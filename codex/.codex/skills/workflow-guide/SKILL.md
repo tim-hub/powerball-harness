@@ -1,6 +1,6 @@
 ---
 name: workflow-guide
-description: "Use this skill when the user asks how the 2-agent workflow operates, wants to understand the collaboration process, or needs guidance on Cursor/CC roles and responsibilities. Do NOT load for: actual implementation work, executing handoffs (use cc-cursor-cc instead), or workflow configuration setup. Reference guide for Cursor ↔ Claude Code 2-agent collaboration workflow — explains roles, handoff patterns, and process flow."
+description: "Use when asked how the 2-agent workflow operates — Cursor ↔ Claude Code roles, handoffs, or process flow. Do NOT load for: implementation, executing handoffs (cc-cursor-cc), or workflow config setup."
 allowed-tools: ["Read"]
 user-invocable: false
 ---
