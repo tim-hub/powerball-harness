@@ -68,13 +68,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/download-binary.sh\"",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/build-binary.sh\"",
             "timeout": 60,
             "once": true
           },
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook setup-init",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook session-init",
             "timeout": 60,
             "once": true
           }
@@ -85,13 +85,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/download-binary.sh\"",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/build-binary.sh\"",
             "timeout": 60,
             "once": true
           },
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook setup-init",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook session-init",
             "timeout": 60,
             "once": true
           }

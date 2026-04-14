@@ -21,15 +21,16 @@ effort: medium
 
 ## Subcommand Details
 
-### binary — Platform Binary Install
+### binary — Platform Binary Build
 
-Downloads and installs the `harness-<os>-<arch>` binary from the GitHub release into `$CLAUDE_PLUGIN_ROOT/bin/`.
+Builds the `harness-<os>-<arch>` binary from Go source and installs it into `$CLAUDE_PLUGIN_ROOT/bin/`.
 Run this first if hooks are silently passing through (binary not yet installed).
+Requires `go` to be installed on the system.
 
-Implementation: [`scripts/download-binary.sh`](${CLAUDE_SKILL_DIR}/scripts/download-binary.sh)
+Implementation: [`scripts/build-binary.sh`](${CLAUDE_SKILL_DIR}/scripts/build-binary.sh)
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/download-binary.sh"
+bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/build-binary.sh"
 ```
 
 **When to run**: After fresh plugin install if you see `UserPromptSubmit hook error` messages.
@@ -46,6 +47,12 @@ project/
 ├── .gitignore           # Standard ignore rules (harness-managed block appended)
 └── .claude/
     └── settings.json    # Claude Code permissions/sandbox/env
+    ├── memory/          # Harness SSOT (decisions.md + patterns.md)
+    ├── output-styles/   # Custom output styles (if any)
+    ├── rules/           # Custom rules (if any)
+    ├── scripts/         # Custom scripts (if any)
+    └── skills/          # Custom skills (if any)
+    └── settings.local.json # Local custom settings (gitignored) for user overrides
 ```
 
 > **Note**: Neither `hooks/` nor `harness.toml` is generated into a user's project.
