@@ -478,7 +478,7 @@ if [ -d "opencode/skills" ] && [ -d "codex/.codex/skills" ]; then
       dirname="$(basename "$d")"
       # Skip dev/test/unsupported skills (matches build-opencode.js logic)
       case "$dirname" in
-        test-*|x-*|allow1|breezing|cc-update-review|claude-codex-upstream-update|zz-review-empty|zz-review-escape|_archived|harness-ui) continue ;;
+        test-*|x-*|allow1|breezing|claude-codex-upstream-update|zz-review-empty|zz-review-escape|_archived|harness-ui) continue ;;
       esac
       if [ -f "$d/SKILL.md" ]; then
         sed -n 's/^name:[[:space:]]*//p' "$d/SKILL.md" | head -n 1 | tr -d '\"'
