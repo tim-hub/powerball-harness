@@ -21,7 +21,7 @@ cat > "${TMP_DIR}/input.json" <<'EOF'
 }
 EOF
 
-(cd "$TMP_DIR" && "${PROJECT_ROOT}/scripts/write-review-result.sh" "${TMP_DIR}/input.json" "abc1234" "${TMP_DIR}/review-result.json" >/dev/null)
+(cd "$TMP_DIR" && "${PROJECT_ROOT}/harness/scripts/write-review-result.sh" "${TMP_DIR}/input.json" "abc1234" "${TMP_DIR}/review-result.json" >/dev/null)
 
 jq -e '
   .schema_version == "review-result.v1" and
@@ -58,7 +58,7 @@ cat > "${TMP_DIR}/browser-input.json" <<'EOF'
 }
 EOF
 
-(cd "$TMP_DIR" && "${PROJECT_ROOT}/scripts/write-review-result.sh" "${TMP_DIR}/browser-input.json" "" "${TMP_DIR}/browser-review-result.json" >/dev/null)
+(cd "$TMP_DIR" && "${PROJECT_ROOT}/harness/scripts/write-review-result.sh" "${TMP_DIR}/browser-input.json" "" "${TMP_DIR}/browser-review-result.json" >/dev/null)
 
 jq -e '
   .verdict == "PENDING_BROWSER" and
@@ -93,7 +93,7 @@ cat > "${TMP_DIR}/calibration-input.json" <<'EOF'
 }
 EOF
 
-(cd "$TMP_DIR" && "${PROJECT_ROOT}/scripts/write-review-result.sh" "${TMP_DIR}/calibration-input.json" "" "${TMP_DIR}/calibration-review-result.json" >/dev/null)
+(cd "$TMP_DIR" && "${PROJECT_ROOT}/harness/scripts/write-review-result.sh" "${TMP_DIR}/calibration-input.json" "" "${TMP_DIR}/calibration-review-result.json" >/dev/null)
 
 jq -e '
   .calibration.label == "false_negative" and

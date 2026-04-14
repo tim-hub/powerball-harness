@@ -6,6 +6,20 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Changed
+
+- **Multi-plugin marketplace restructure (Phase 52)**: All harness plugin files moved from repo root into `harness/` subfolder. `marketplace.json` now points `source: "./harness/"`, making the repo ready for additional plugins to coexist. Files that remain at root: `docs/`, `go/`, `tests/`, `.github/`, `README.md`, `CHANGELOG.md`, `Plans.md`.
+
+#### Before / After
+
+| Before | After |
+|--------|-------|
+| `skills/`, `agents/`, `hooks/` at repo root | Under `harness/skills/`, `harness/agents/`, `harness/hooks/` |
+| `scripts/`, `templates/`, `bin/` at root | Under `harness/scripts/`, `harness/templates/`, `harness/bin/` |
+| `VERSION`, `harness.toml`, `settings.json` at root | Under `harness/VERSION`, `harness/harness.toml`, `harness/settings.json` |
+| `marketplace.json source: "./"` | `marketplace.json source: "./harness/"` |
+| `marketplace.json` had `version` field (CC validator rejected) | Version tracked only in `harness/VERSION` + `harness/harness.toml` |
+
 ## [4.3.0] - 2026-04-15
 
 ### Theme: Phase 50+51 — Refocus skills directory, eliminate 600-file mirror dirs

@@ -2,26 +2,26 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+HARNESS_DIR="${ROOT_DIR}/harness"
 
-SETTINGS_FILE="${ROOT_DIR}/.claude-plugin/settings.json"
+SETTINGS_FILE="${HARNESS_DIR}/settings.json"
 HOOK_FILES=(
-  "${ROOT_DIR}/hooks/hooks.json"
-  "${ROOT_DIR}/.claude-plugin/hooks.json"
+  "${HARNESS_DIR}/hooks/hooks.json"
 )
 TEMPLATE_FILES=(
-  "${ROOT_DIR}/templates/rules/coding-standards.md.template"
-  "${ROOT_DIR}/templates/rules/testing.md.template"
-  "${ROOT_DIR}/templates/rules/plans-management.md.template"
+  "${HARNESS_DIR}/templates/rules/coding-standards.md.template"
+  "${HARNESS_DIR}/templates/rules/testing.md.template"
+  "${HARNESS_DIR}/templates/rules/plans-management.md.template"
 )
 SKILL_FILES=(
-  "${ROOT_DIR}/skills/harness-work/SKILL.md"
-  "${ROOT_DIR}/skills/harness-review/SKILL.md"
-  "${ROOT_DIR}/skills/harness-plan/SKILL.md"
+  "${HARNESS_DIR}/skills/harness-work/SKILL.md"
+  "${HARNESS_DIR}/skills/harness-review/SKILL.md"
+  "${HARNESS_DIR}/skills/harness-plan/SKILL.md"
 )
 AGENT_FILES=(
-  "${ROOT_DIR}/agents/worker.md"
-  "${ROOT_DIR}/agents/reviewer.md"
-  "${ROOT_DIR}/agents/scaffolder.md"
+  "${HARNESS_DIR}/agents/worker.md"
+  "${HARNESS_DIR}/agents/reviewer.md"
+  "${HARNESS_DIR}/agents/scaffolder.md"
 )
 
 jq -e '.env.CLAUDE_CODE_SUBPROCESS_ENV_SCRUB == "1"' "${SETTINGS_FILE}" >/dev/null || {
@@ -89,7 +89,7 @@ for hooks_file in "${HOOK_FILES[@]}"; do
 done
 
 # v2.1.89: PermissionDenied handler script exists and is executable
-PERM_DENIED_HANDLER="${ROOT_DIR}/scripts/hook-handlers/permission-denied-handler.sh"
+PERM_DENIED_HANDLER="${HARNESS_DIR}/scripts/hook-handlers/permission-denied-handler.sh"
 [ -f "${PERM_DENIED_HANDLER}" ] || {
   echo "permission-denied-handler.sh does not exist"
   exit 1

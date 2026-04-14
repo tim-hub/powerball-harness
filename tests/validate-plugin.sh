@@ -7,6 +7,7 @@ set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
+HARNESS_ROOT="$PLUGIN_ROOT/harness"
 
 echo "=========================================="
 echo "Claude harness - Plugin validation test"
@@ -93,7 +94,7 @@ else
 fi
 
 # Check required top-level fields
-REQUIRED_FIELDS=("name" "version" "plugins")
+REQUIRED_FIELDS=("name" "plugins")
 for field in "${REQUIRED_FIELDS[@]}"; do
     if json_has_key "$PLUGIN_ROOT/.claude-plugin/marketplace.json" "$field"; then
         pass_test "marketplace.json has $field field"
@@ -145,15 +146,15 @@ echo "3. Skill validation"
 echo "----------------------------------------"
 
 # Check for skills directory
-if [ -d "$PLUGIN_ROOT/skills" ]; then
-    SKILL_COUNT=$(find "$PLUGIN_ROOT/skills" -name "SKILL.md" | wc -l)
+if [ -d "$HARNESS_ROOT/skills" ]; then
+    SKILL_COUNT=$(find "$HARNESS_ROOT/skills" -name "SKILL.md" | wc -l)
     pass_test "$SKILL_COUNT skills defined"
 
     # Check skill frontmatter (sample)
     SKILLS_WITH_DESCRIPTION=0
     SKILLS_WITH_ALLOWED_TOOLS=0
 
-    find "$PLUGIN_ROOT/skills" -name "SKILL.md" | while read -r skill_file; do
+    find "$HARNESS_ROOT/skills" -name "SKILL.md" | while read -r skill_file; do
         if grep -q "^description:" "$skill_file"; then
             ((SKILLS_WITH_DESCRIPTION++))
         fi
@@ -173,8 +174,8 @@ echo ""
 echo "4. Agent validation"
 echo "----------------------------------------"
 
-if [ -d "$PLUGIN_ROOT/agents" ]; then
-    AGENT_COUNT=$(find "$PLUGIN_ROOT/agents" -name "*.md" | wc -l)
+if [ -d "$HARNESS_ROOT/agents" ]; then
+    AGENT_COUNT=$(find "$HARNESS_ROOT/agents" -name "*.md" | wc -l)
     if [ $AGENT_COUNT -gt 0 ]; then
         pass_test "$AGENT_COUNT agents defined"
     else
@@ -188,8 +189,8 @@ echo ""
 echo "5. Hook validation"
 echo "----------------------------------------"
 
-if [ -f "$PLUGIN_ROOT/hooks/hooks.json" ]; then
-    if json_is_valid "$PLUGIN_ROOT/hooks/hooks.json"; then
+if [ -f "$HARNESS_ROOT/hooks/hooks.json" ]; then
+    if json_is_valid "$HARNESS_ROOT/hooks/hooks.json"; then
         pass_test "hooks.json is valid JSON"
 
         pass_test "hooks.json is readable"
@@ -200,7 +201,7 @@ else
     warn_test "hooks.json not found"
 fi
 
-POST_TOOL_FAILURE="$PLUGIN_ROOT/scripts/hook-handlers/post-tool-failure.sh"
+POST_TOOL_FAILURE="$HARNESS_ROOT/scripts/hook-handlers/post-tool-failure.sh"
 if [ -f "$POST_TOOL_FAILURE" ]; then
     tmp_dir="$(mktemp -d)"
     target_file="$tmp_dir/target.txt"
@@ -221,13 +222,13 @@ if [ -f "$POST_TOOL_FAILURE" ]; then
 fi
 
 MEMORY_WRAPPERS=(
-    "$PLUGIN_ROOT/scripts/lib/harness-mem-bridge.sh"
-    "$PLUGIN_ROOT/scripts/hook-handlers/memory-bridge.sh"
-    "$PLUGIN_ROOT/scripts/hook-handlers/memory-session-start.sh"
-    "$PLUGIN_ROOT/scripts/hook-handlers/memory-user-prompt.sh"
-    "$PLUGIN_ROOT/scripts/hook-handlers/memory-post-tool-use.sh"
-    "$PLUGIN_ROOT/scripts/hook-handlers/memory-stop.sh"
-    "$PLUGIN_ROOT/scripts/hook-handlers/memory-codex-notify.sh"
+    "$HARNESS_ROOT/scripts/lib/harness-mem-bridge.sh"
+    "$HARNESS_ROOT/scripts/hook-handlers/memory-bridge.sh"
+    "$HARNESS_ROOT/scripts/hook-handlers/memory-session-start.sh"
+    "$HARNESS_ROOT/scripts/hook-handlers/memory-user-prompt.sh"
+    "$HARNESS_ROOT/scripts/hook-handlers/memory-post-tool-use.sh"
+    "$HARNESS_ROOT/scripts/hook-handlers/memory-stop.sh"
+    "$HARNESS_ROOT/scripts/hook-handlers/memory-codex-notify.sh"
 )
 for wrapper in "${MEMORY_WRAPPERS[@]}"; do
     if [ -f "$wrapper" ]; then
@@ -265,13 +266,13 @@ echo ""
 echo "6. Script validation"
 echo "----------------------------------------"
 
-if [ -d "$PLUGIN_ROOT/scripts" ]; then
-    SCRIPT_COUNT=$(find "$PLUGIN_ROOT/scripts" -name "*.sh" -type f | wc -l)
+if [ -d "$HARNESS_ROOT/scripts" ]; then
+    SCRIPT_COUNT=$(find "$HARNESS_ROOT/scripts" -name "*.sh" -type f | wc -l)
     if [ $SCRIPT_COUNT -gt 0 ]; then
         pass_test "$SCRIPT_COUNT script(s) exist"
 
         # Check execute permissions (GNU/BSD compatible: use -perm -111)
-        EXECUTABLE_COUNT=$(find "$PLUGIN_ROOT/scripts" -name "*.sh" -type f -perm -111 | wc -l | tr -d ' ')
+        EXECUTABLE_COUNT=$(find "$HARNESS_ROOT/scripts" -name "*.sh" -type f -perm -111 | wc -l | tr -d ' ')
         if [ $EXECUTABLE_COUNT -eq $SCRIPT_COUNT ]; then
             pass_test "All scripts have execute permissions"
         else
@@ -313,7 +314,7 @@ echo "----------------------------------------"
 if command -v claude > /dev/null 2>&1; then
     # Check subcommand existence (plugin validate not available below v2.1.77)
     if claude plugin validate --help > /dev/null 2>&1; then
-        if claude plugin validate "$PLUGIN_ROOT/.claude-plugin/plugin.json" > /dev/null 2>&1; then
+        if claude plugin validate "$PLUGIN_ROOT/.claude-plugin/marketplace.json" > /dev/null 2>&1; then
             pass_test "claude plugin validate passed"
         else
             fail_test "claude plugin validate detected errors (CC v2.1.77+ required)"
@@ -330,7 +331,7 @@ echo "8. Hardening parity validation"
 echo "----------------------------------------"
 
 HARDENING_DOC="$PLUGIN_ROOT/docs/hardening-parity.md"
-HARDENING_CONTRACT="$PLUGIN_ROOT/scripts/lib/codex-hardening-contract.txt"
+HARDENING_CONTRACT="$HARNESS_ROOT/scripts/lib/codex-hardening-contract.txt"
 if [ -f "$HARDENING_DOC" ]; then
     pass_test "hardening parity document exists"
 else
@@ -364,21 +365,21 @@ for rule_id in "${RULE_IDS[@]}"; do
     fi
 done
 
-CODEX_WRAPPER="$PLUGIN_ROOT/scripts/codex/codex-exec-wrapper.sh"
+CODEX_WRAPPER="$HARNESS_ROOT/scripts/codex/codex-exec-wrapper.sh"
 if grep -q "codex-hardening-contract.txt" "$CODEX_WRAPPER"; then
     pass_test "Codex wrapper references the hardening contract template"
 else
     fail_test "Codex wrapper does not reference the hardening contract template"
 fi
 
-CODEX_ENGINE="$PLUGIN_ROOT/scripts/codex-worker-engine.sh"
+CODEX_ENGINE="$HARNESS_ROOT/scripts/codex-worker-engine.sh"
 if grep -q "codex-hardening-contract.txt" "$CODEX_ENGINE"; then
     pass_test "Codex worker engine references the hardening contract template"
 else
     fail_test "Codex worker engine does not reference the hardening contract template"
 fi
 
-CODEX_GATE="$PLUGIN_ROOT/scripts/codex-worker-quality-gate.sh"
+CODEX_GATE="$HARNESS_ROOT/scripts/codex-worker-quality-gate.sh"
 if grep -q "gate_hardening()" "$CODEX_GATE" && grep -q '"hardening"' "$CODEX_GATE"; then
     pass_test "Codex quality gate has hardening parity check"
 else
@@ -410,7 +411,7 @@ else
     # The script's summary goes to stderr and is dropped here.
     AUDIT_STDOUT="$(bash "$AUDIT_SCRIPT" 2>/dev/null)"
     AUDIT_EXIT=$?
-    SKILL_COUNT="$(find "$PLUGIN_ROOT/skills" "$PLUGIN_ROOT/templates/codex-skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')"
+    SKILL_COUNT="$(find "$HARNESS_ROOT/skills" "$HARNESS_ROOT/templates/codex-skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')"
     if [ "$AUDIT_EXIT" -eq 0 ]; then
         pass_test "All ${SKILL_COUNT} SKILL.md descriptions conform"
     else

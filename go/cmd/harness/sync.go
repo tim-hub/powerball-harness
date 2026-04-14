@@ -15,9 +15,11 @@ const outputDir = "harness"
 
 // runSync implements the "harness sync" subcommand.
 //
-// It reads harness.toml from the project root, then generates:
-//   - harness/hooks/hooks.json ← copied from hooks/hooks.json
-//   - harness/settings.json    ← [agent] + [env] + [safety.permissions] + [safety.sandbox]
+// It reads harness/harness.toml from the project root, then generates:
+//   - harness/settings.json ← [agent] + [env] + [safety.permissions] + [safety.sandbox]
+//
+// harness/hooks/hooks.json is now the canonical hooks location (no longer
+// synced from a separate source; it is edited directly in harness/hooks/).
 //
 // The project root is determined by the first argument (or cwd if omitted).
 // Exit 0 on success, exit 1 on any error.
@@ -29,29 +31,16 @@ func runSync(args []string) {
 		os.Exit(1)
 	}
 
-	// Parse harness.toml
-	tomlPath := filepath.Join(projectRoot, "harness.toml")
+	// Parse harness/harness.toml
+	tomlPath := filepath.Join(projectRoot, outputDir, "harness.toml")
 	cfg, err := config.ParseFile(tomlPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "harness sync: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Run each generator; collect errors to report all at once
-	var errs []error
-
-	if err := syncHooksJSON(projectRoot); err != nil {
-		errs = append(errs, fmt.Errorf("hooks.json sync: %w", err))
-	}
-
 	if err := generateSettingsJSON(projectRoot, cfg); err != nil {
-		errs = append(errs, fmt.Errorf("settings.json: %w", err))
-	}
-
-	if len(errs) > 0 {
-		for _, e := range errs {
-			fmt.Fprintf(os.Stderr, "harness sync: %v\n", e)
-		}
+		fmt.Fprintf(os.Stderr, "harness sync: settings.json: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -79,34 +68,6 @@ func resolveProjectRoot(args []string) (string, error) {
 		return "", fmt.Errorf("cannot determine working directory: %w", err)
 	}
 	return cwd, nil
-}
-
-// ---------------------------------------------------------------------------
-// hooks.json sync
-// ---------------------------------------------------------------------------
-
-// syncHooksJSON copies hooks/hooks.json → harness/hooks/hooks.json.
-// os.ReadFile follows symlinks, so this works whether hooks/hooks.json is a
-// real file or a symlink (as set up in Phase 49).
-func syncHooksJSON(projectRoot string) error {
-	src := filepath.Join(projectRoot, "hooks", "hooks.json")
-	dst := filepath.Join(projectRoot, outputDir, "hooks", "hooks.json")
-
-	data, err := os.ReadFile(src)
-	if err != nil {
-		return fmt.Errorf("read %s: %w", src, err)
-	}
-
-	if !json.Valid(data) {
-		return fmt.Errorf("%s is not valid JSON", src)
-	}
-
-	if err := writeFile(dst, data); err != nil {
-		return err
-	}
-
-	fmt.Printf("  wrote %s (copied from %s)\n", rel(projectRoot, dst), rel(projectRoot, src))
-	return nil
 }
 
 // ---------------------------------------------------------------------------

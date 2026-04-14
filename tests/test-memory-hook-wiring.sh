@@ -5,17 +5,18 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+HARNESS_DIR="${ROOT_DIR}/harness"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TMP_DIR}"' EXIT
 
 required_wrapper_files=(
-  "${ROOT_DIR}/scripts/lib/harness-mem-bridge.sh"
-  "${ROOT_DIR}/scripts/hook-handlers/memory-bridge.sh"
-  "${ROOT_DIR}/scripts/hook-handlers/memory-session-start.sh"
-  "${ROOT_DIR}/scripts/hook-handlers/memory-user-prompt.sh"
-  "${ROOT_DIR}/scripts/hook-handlers/memory-post-tool-use.sh"
-  "${ROOT_DIR}/scripts/hook-handlers/memory-stop.sh"
-  "${ROOT_DIR}/scripts/hook-handlers/memory-codex-notify.sh"
+  "${HARNESS_DIR}/scripts/lib/harness-mem-bridge.sh"
+  "${HARNESS_DIR}/scripts/hook-handlers/memory-bridge.sh"
+  "${HARNESS_DIR}/scripts/hook-handlers/memory-session-start.sh"
+  "${HARNESS_DIR}/scripts/hook-handlers/memory-user-prompt.sh"
+  "${HARNESS_DIR}/scripts/hook-handlers/memory-post-tool-use.sh"
+  "${HARNESS_DIR}/scripts/hook-handlers/memory-stop.sh"
+  "${HARNESS_DIR}/scripts/hook-handlers/memory-codex-notify.sh"
 )
 
 for wrapper_file in "${required_wrapper_files[@]}"; do
@@ -25,7 +26,7 @@ for wrapper_file in "${required_wrapper_files[@]}"; do
   }
 done
 
-for hooks_file in "${ROOT_DIR}/hooks/hooks.json" "${ROOT_DIR}/.claude-plugin/hooks.json"; do
+for hooks_file in "${HARNESS_DIR}/hooks/hooks.json"; do
   # Matcher checks use strict pipe-token regex to avoid false positives on
   # typos like "startup-only" or "startup_special". The pattern matches
   # "startup" as a standalone token in pipe-separated matchers:
@@ -63,10 +64,10 @@ mkdir -p "${TMP_DIR}/.claude/state/snapshots"
 mkdir -p "${TMP_DIR}/scripts/lib"
 git -C "${TMP_DIR}" init -q
 
-cp "${ROOT_DIR}/VERSION" "${TMP_DIR}/VERSION"
-cp "${ROOT_DIR}/scripts/session-init.sh" "${TMP_DIR}/scripts/session-init.sh"
-cp "${ROOT_DIR}/scripts/session-resume.sh" "${TMP_DIR}/scripts/session-resume.sh"
-cp "${ROOT_DIR}/scripts/lib/progress-snapshot.sh" "${TMP_DIR}/scripts/lib/progress-snapshot.sh"
+cp "${HARNESS_DIR}/VERSION" "${TMP_DIR}/VERSION"
+cp "${HARNESS_DIR}/scripts/session-init.sh" "${TMP_DIR}/scripts/session-init.sh"
+cp "${HARNESS_DIR}/scripts/session-resume.sh" "${TMP_DIR}/scripts/session-resume.sh"
+cp "${HARNESS_DIR}/scripts/lib/progress-snapshot.sh" "${TMP_DIR}/scripts/lib/progress-snapshot.sh"
 
 cat > "${TMP_DIR}/Plans.md" <<'EOF'
 | Task | Description | DoD | Depends | Status |

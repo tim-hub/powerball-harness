@@ -8,7 +8,7 @@ TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 OUTPUT_JSON="${TMP_DIR}/skill-manifest.json"
-(cd "$PROJECT_ROOT" && "${PROJECT_ROOT}/scripts/generate-skill-manifest.sh" --output "${OUTPUT_JSON}" >/dev/null)
+(cd "$PROJECT_ROOT" && "${PROJECT_ROOT}/harness/scripts/generate-skill-manifest.sh" --output "${OUTPUT_JSON}" >/dev/null)
 
 jq -e '
   .schema_version == "skill-manifest.v1" and

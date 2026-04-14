@@ -52,10 +52,10 @@ cat > "${TMP_DIR}/calibration-input-2.json" <<'EOF'
 }
 EOF
 
-(cd "$TMP_DIR" && "${PROJECT_ROOT}/scripts/write-review-result.sh" "${TMP_DIR}/calibration-input-1.json" "" "${TMP_DIR}/result-1.json" >/dev/null)
-(cd "$TMP_DIR" && "${PROJECT_ROOT}/scripts/write-review-result.sh" "${TMP_DIR}/calibration-input-2.json" "" "${TMP_DIR}/result-2.json" >/dev/null)
+(cd "$TMP_DIR" && "${PROJECT_ROOT}/harness/scripts/write-review-result.sh" "${TMP_DIR}/calibration-input-1.json" "" "${TMP_DIR}/result-1.json" >/dev/null)
+(cd "$TMP_DIR" && "${PROJECT_ROOT}/harness/scripts/write-review-result.sh" "${TMP_DIR}/calibration-input-2.json" "" "${TMP_DIR}/result-2.json" >/dev/null)
 
-"${PROJECT_ROOT}/scripts/build-review-few-shot-bank.sh" "${TMP_DIR}/.claude/state/review-calibration.jsonl" "${TMP_DIR}/few-shot-bank.json" >/dev/null
+"${PROJECT_ROOT}/harness/scripts/build-review-few-shot-bank.sh" "${TMP_DIR}/.claude/state/review-calibration.jsonl" "${TMP_DIR}/few-shot-bank.json" >/dev/null
 
 jq -e '
   .schema_version == "review-few-shot-bank.v1" and

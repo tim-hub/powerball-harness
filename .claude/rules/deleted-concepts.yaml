@@ -111,8 +111,8 @@ deleted_concepts:
       - "docs/MIGRATION-v4.md"  # v3→v4 migration guide
       - "docs/distribution-scope.md"  # Distribution scope document
       - "docs/social/"  # v3-era social media posts (historical records)
-      - "scripts/setup-codex.sh"  # Uses "Harness v3" as a grep detection pattern (intentional)
-      - "scripts/codex-setup-local.sh"  # Same as above
+      - "harness/scripts/setup-codex.sh"  # Uses "Harness v3" as a grep detection pattern (intentional)
+      - "harness/scripts/codex-setup-local.sh"  # Same as above
       - "tests/test-codex-package.sh"  # v3 legacy skill tests (comments)
       - ".claude/rules/migration-policy.md"  # Phase 40 historical description (appendix contains old version names)
       - "out/"
@@ -284,3 +284,8 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+
+  # Note: The root-level codex/ mirror directory was deleted in v4.4.0 (Phase 52).
+  # We do NOT add a deleted_concept entry for "codex/.codex/" because many scripts
+  # legitimately reference .codex/skills/ in USER project directories (not our repo's
+  # deleted root codex/ directory). A scan term would cause too many false positives.

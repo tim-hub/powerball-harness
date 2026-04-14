@@ -22,10 +22,10 @@ cd "$PROJECT_ROOT"
 # Test 1: Codex template files exist
 log_test "Codex template files exist"
 required_codex_files=(
-  "templates/codex/config.toml"
-  "templates/codex/rules/harness.rules"
-  "templates/codex/.codexignore"
-  "templates/codex/AGENTS.md"
+  "harness/templates/codex/config.toml"
+  "harness/templates/codex/rules/harness.rules"
+  "harness/templates/codex/.codexignore"
+  "harness/templates/codex/AGENTS.md"
 )
 codex_files_ok=true
 for file in "${required_codex_files[@]}"; do
@@ -45,7 +45,7 @@ fi
 # Test 1.5: execpolicy rules examples are consistent
 log_test "Execpolicy rules examples are valid"
 if command -v python3 >/dev/null 2>&1; then
-  RULES_FILE="templates/codex/rules/harness.rules"
+  RULES_FILE="harness/templates/codex/rules/harness.rules"
   if [ ! -f "$RULES_FILE" ]; then
     log_fail "harness.rules not found at $RULES_FILE"
   elif python3 -c "
@@ -77,14 +77,14 @@ else
 fi
 
 # Test 1.6: Codex config.toml has multi_agent + harness roles
-log_test "templates/codex/config.toml has multi_agent + harness roles"
+log_test "harness/templates/codex/config.toml has multi_agent + harness roles"
 config_ok=true
-if ! grep -q "multi_agent = true" "templates/codex/config.toml"; then
+if ! grep -q "multi_agent = true" "harness/templates/codex/config.toml"; then
   echo "  missing: multi_agent = true"
   config_ok=false
 fi
 for role in "implementer" "reviewer" "claude_implementer" "claude_reviewer"; do
-  if ! grep -q "\[agents\.${role}\]" "templates/codex/config.toml"; then
+  if ! grep -q "\[agents\.${role}\]" "harness/templates/codex/config.toml"; then
     echo "  missing: [agents.${role}]"
     config_ok=false
   fi
@@ -98,8 +98,8 @@ fi
 # Test 2: OpenCode template files exist
 log_test "OpenCode template files exist"
 required_oc_files=(
-  "templates/opencode/opencode.json"
-  "templates/opencode/AGENTS.md"
+  "harness/templates/opencode/opencode.json"
+  "harness/templates/opencode/AGENTS.md"
 )
 oc_files_ok=true
 for file in "${required_oc_files[@]}"; do
@@ -110,8 +110,8 @@ for file in "${required_oc_files[@]}"; do
     oc_files_ok=false
   fi
 done
-if [ ! -d "templates/opencode/commands" ]; then
-  echo "  missing: templates/opencode/commands/"
+if [ ! -d "harness/templates/opencode/commands" ]; then
+  echo "  missing: harness/templates/opencode/commands/"
   oc_files_ok=false
 fi
 if $oc_files_ok; then
@@ -121,22 +121,22 @@ else
 fi
 
 # Test 3: Codex-native skill overrides exist
-log_test "Codex-native skill overrides in templates/codex-skills/"
-if [ -d "templates/codex-skills" ]; then
-  override_count=$(find "templates/codex-skills" -name "SKILL.md" | wc -l | tr -d ' ')
+log_test "Codex-native skill overrides in harness/templates/codex-skills/"
+if [ -d "harness/templates/codex-skills" ]; then
+  override_count=$(find "harness/templates/codex-skills" -name "SKILL.md" | wc -l | tr -d ' ')
   if [ "$override_count" -gt 0 ]; then
-    log_pass "templates/codex-skills/ has $override_count skill override(s)"
+    log_pass "harness/templates/codex-skills/ has $override_count skill override(s)"
   else
-    log_fail "templates/codex-skills/ exists but has no SKILL.md files"
+    log_fail "harness/templates/codex-skills/ exists but has no SKILL.md files"
   fi
 else
-  log_fail "templates/codex-skills/ not found"
+  log_fail "harness/templates/codex-skills/ not found"
 fi
 
 # Test 4: harness-setup setup scripts exist
 log_test "harness-setup scripts exist"
 setup_scripts_ok=true
-for script in "skills/harness-setup/scripts/setup-codex.sh" "skills/harness-setup/scripts/setup-opencode.sh"; do
+for script in "harness/skills/harness-setup/scripts/setup-codex.sh" "harness/skills/harness-setup/scripts/setup-opencode.sh"; do
   if [ -f "$script" ]; then
     echo "  ok: $script"
   else
@@ -152,23 +152,23 @@ fi
 
 # Test 4.1: setup-codex.sh avoids stale notify config
 log_test "setup-codex.sh avoids stale notify config"
-if grep -q '^\[notify\]' "skills/harness-setup/scripts/setup-codex.sh" 2>/dev/null; then
+if grep -q '^\[notify\]' "harness/skills/harness-setup/scripts/setup-codex.sh" 2>/dev/null; then
   echo "  stale [notify] section remains in setup-codex.sh"
   log_fail "setup-codex.sh still injects invalid notify config"
 else
   log_pass "setup-codex.sh does not inject stale notify config"
 fi
 
-# Test 5: Core Harness skills exist in skills/ SSOT
-log_test "Core Harness skills exist in skills/"
+# Test 5: Core Harness skills exist in harness/skills/ SSOT
+log_test "Core Harness skills exist in harness/skills/"
 required_skills=(
-  "skills/harness-plan"
-  "skills/harness-sync"
-  "skills/harness-work"
-  "skills/harness-review"
-  "skills/harness-release"
-  "skills/harness-setup"
-  "skills/breezing"
+  "harness/skills/harness-plan"
+  "harness/skills/harness-sync"
+  "harness/skills/harness-work"
+  "harness/skills/harness-review"
+  "harness/skills/harness-release"
+  "harness/skills/harness-setup"
+  "harness/skills/breezing"
 )
 skills_ok=true
 for dir in "${required_skills[@]}"; do
@@ -180,7 +180,7 @@ for dir in "${required_skills[@]}"; do
   fi
 done
 if $skills_ok; then
-  log_pass "Core Harness skills present in skills/"
+  log_pass "Core Harness skills present in harness/skills/"
 else
   log_fail "Missing core Harness skills"
 fi
@@ -193,7 +193,7 @@ while IFS= read -r skill_file; do
     echo "  missing description: $skill_file"
     skill_frontmatter_ok=false
   fi
-done < <(find skills -name SKILL.md | sort)
+done < <(find harness/skills -name SKILL.md | sort)
 if $skill_frontmatter_ok; then
   log_pass "All skills have description frontmatter"
 else
@@ -202,10 +202,10 @@ fi
 
 # Test 7: Codex-native breezing uses spawn_agent API
 log_test "Codex-native breezing uses spawn_agent API"
-if grep -q 'spawn_agent' "templates/codex-skills/breezing/SKILL.md" 2>/dev/null; then
-  log_pass "templates/codex-skills/breezing uses spawn_agent"
+if grep -q 'spawn_agent' "harness/templates/codex-skills/breezing/SKILL.md" 2>/dev/null; then
+  log_pass "harness/templates/codex-skills/breezing uses spawn_agent"
 else
-  log_fail "templates/codex-skills/breezing missing spawn_agent (should be Codex-native)"
+  log_fail "harness/templates/codex-skills/breezing missing spawn_agent (should be Codex-native)"
 fi
 
 # Summary

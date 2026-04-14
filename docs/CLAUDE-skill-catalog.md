@@ -26,7 +26,7 @@ NO  -> Handle with standard reasoning
 Skills are organized in a hierarchy of **parent skills (categories)** and **child skills (specific features)**.
 
 ```
-skills/
+harness/skills/
 ├── impl/                  # Implementation (feature additions, test creation)
 ├── harness-review/        # Review (quality, security, performance)
 ├── verify/                # Verification (build, error recovery, fix application)
@@ -72,7 +72,7 @@ skills/
 The following skills are for development and experimentation, and are not included in the repository (excluded via .gitignore):
 
 ```
-skills/
+harness/skills/
 ├── test-*/      # Test skills
 └── x-promo/     # X post creation skills (development use)
 ```

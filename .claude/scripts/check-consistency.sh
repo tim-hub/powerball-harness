@@ -10,6 +10,7 @@
 set -euo pipefail
 
 PLUGIN_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+HARNESS_ROOT="$PLUGIN_ROOT/harness"
 ERRORS=0
 
 echo "🔍 claude-code-harness consistency check"
@@ -22,23 +23,23 @@ echo ""
 echo "📁 [1/13] Checking template file existence..."
 
 REQUIRED_TEMPLATES=(
-  "templates/AGENTS.md.template"
-  "templates/CLAUDE.md.template"
-  "templates/Plans.md.template"
-  "templates/.claude-code-harness-version.template"
-  "templates/.claude-code-harness.config.yaml.template"
-  "templates/cursor/commands/start-session.md"
-  "templates/cursor/commands/project-overview.md"
-  "templates/cursor/commands/plan-with-cc.md"
-  "templates/cursor/commands/handoff-to-claude.md"
-  "templates/cursor/commands/review-cc-work.md"
-  "templates/claude/settings.security.json.template"
-  "templates/claude/settings.local.json.template"
-  "templates/rules/workflow.md.template"
-  "templates/rules/coding-standards.md.template"
-  "templates/rules/plans-management.md.template"
-  "templates/rules/testing.md.template"
-  "templates/rules/ui-debugging-agent-browser.md.template"
+  "harness/templates/AGENTS.md.template"
+  "harness/templates/CLAUDE.md.template"
+  "harness/templates/Plans.md.template"
+  "harness/templates/.claude-code-harness-version.template"
+  "harness/templates/.claude-code-harness.config.yaml.template"
+  "harness/templates/cursor/commands/start-session.md"
+  "harness/templates/cursor/commands/project-overview.md"
+  "harness/templates/cursor/commands/plan-with-cc.md"
+  "harness/templates/cursor/commands/handoff-to-claude.md"
+  "harness/templates/cursor/commands/review-cc-work.md"
+  "harness/templates/claude/settings.security.json.template"
+  "harness/templates/claude/settings.local.json.template"
+  "harness/templates/rules/workflow.md.template"
+  "harness/templates/rules/coding-standards.md.template"
+  "harness/templates/rules/plans-management.md.template"
+  "harness/templates/rules/testing.md.template"
+  "harness/templates/rules/ui-debugging-agent-browser.md.template"
 )
 
 for template in "${REQUIRED_TEMPLATES[@]}"; do
@@ -61,10 +62,12 @@ check_command_references() {
   local cmd_file="$1"
   local cmd_name=$(basename "$cmd_file" .md)
 
-  # Extract references to templates
-  local refs=$(grep -oE 'templates/[a-zA-Z0-9/_.-]+' "$cmd_file" 2>/dev/null || true)
+  # Extract references to templates (handle both old templates/ and new harness/templates/)
+  local refs=$(grep -oE '(harness/)?templates/[a-zA-Z0-9/_.-]+' "$cmd_file" 2>/dev/null || true)
 
   for ref in $refs; do
+    # Normalize: add harness/ prefix if missing
+    [[ "$ref" != harness/* ]] && ref="harness/$ref"
     if [ ! -e "$PLUGIN_ROOT/$ref" ] && [ ! -e "$PLUGIN_ROOT/${ref}.template" ]; then
       echo "  ❌ $cmd_name: Referenced path does not exist: $ref"
       ERRORS=$((ERRORS + 1))
@@ -83,18 +86,22 @@ echo "  ✅ Command reference check complete"
 echo ""
 echo "🏷️ [3/13] Version number consistency..."
 
-VERSION_FILE="$PLUGIN_ROOT/VERSION"
-PLUGIN_JSON="$PLUGIN_ROOT/.claude-plugin/marketplace.json"
+VERSION_FILE="$HARNESS_ROOT/VERSION"
+HARNESS_TOML="$HARNESS_ROOT/harness.toml"
 
-if [ -f "$VERSION_FILE" ] && [ -f "$PLUGIN_JSON" ]; then
+if [ -f "$VERSION_FILE" ]; then
   FILE_VERSION=$(cat "$VERSION_FILE" | tr -d '[:space:]')
-  JSON_VERSION=$(grep '"version"' "$PLUGIN_JSON" | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
 
-  if [ "$FILE_VERSION" != "$JSON_VERSION" ]; then
-    echo "  ❌ Version mismatch: VERSION=$FILE_VERSION, marketplace.json=$JSON_VERSION"
-    ERRORS=$((ERRORS + 1))
+  if [ -f "$HARNESS_TOML" ]; then
+    TOML_VERSION=$(grep '^version' "$HARNESS_TOML" | head -1 | sed 's/.*= "\([^"]*\)".*/\1/' || true)
+    if [ "$FILE_VERSION" != "$TOML_VERSION" ]; then
+      echo "  ❌ Version mismatch: VERSION=$FILE_VERSION, harness.toml=$TOML_VERSION"
+      ERRORS=$((ERRORS + 1))
+    else
+      echo "  ✅ VERSION and harness.toml match: $FILE_VERSION"
+    fi
   else
-    echo "  ✅ VERSION and marketplace.json match: $FILE_VERSION"
+    echo "  ✅ VERSION: $FILE_VERSION (harness.toml not found, skipped)"
   fi
 fi
 
@@ -109,11 +116,11 @@ echo "📋 [4/13] Expected skill definition file structure..."
 
 # 2agent config is integrated into harness-setup
 # Check for existence of skills/harness-setup/SKILL.md
-SETUP_SKILL="$PLUGIN_ROOT/skills/harness-setup/SKILL.md"
+SETUP_SKILL="$HARNESS_ROOT/skills/harness-setup/SKILL.md"
 if [ -f "$SETUP_SKILL" ]; then
-  echo "  ✅ skills/harness-setup/SKILL.md exists (includes 2agent config)"
+  echo "  ✅ harness/skills/harness-setup/SKILL.md exists (includes 2agent config)"
 else
-  echo "  ❌ skills/harness-setup/SKILL.md not found"
+  echo "  ❌ harness/skills/harness-setup/SKILL.md not found"
   ERRORS=$((ERRORS + 1))
 fi
 
@@ -123,18 +130,18 @@ fi
 echo ""
 echo "🪝 [5/13] Hooks configuration consistency..."
 
-HOOKS_JSON="$PLUGIN_ROOT/hooks/hooks.json"
+HOOKS_JSON="$HARNESS_ROOT/hooks/hooks.json"
 if [ -f "$HOOKS_JSON" ]; then
   # Check script references in hooks.json
   SCRIPT_REFS=$(grep -oE '\$\{CLAUDE_PLUGIN_ROOT\}/scripts/[a-zA-Z0-9_./-]+' "$HOOKS_JSON" 2>/dev/null || true)
 
   for ref in $SCRIPT_REFS; do
     script_name=$(echo "$ref" | sed 's|\${CLAUDE_PLUGIN_ROOT}/scripts/||')
-    if [ ! -f "$PLUGIN_ROOT/scripts/$script_name" ]; then
-      echo "  ❌ hooks.json: Script does not exist: scripts/$script_name"
+    if [ ! -f "$HARNESS_ROOT/scripts/$script_name" ]; then
+      echo "  ❌ hooks.json: Script does not exist: harness/scripts/$script_name"
       ERRORS=$((ERRORS + 1))
     else
-      echo "  ✅ scripts/$script_name"
+      echo "  ✅ harness/scripts/$script_name"
     fi
   done
 fi
@@ -147,14 +154,10 @@ echo "🚫 [6/13] /start-task deprecation regression check..."
 
 # Operational flow files (excluding history like CHANGELOG)
 START_TASK_TARGETS=(
-  "commands/"
-  "skills/"
-  "workflows/"
-  "profiles/"
-  "templates/"
-  "scripts/"
-  "DEVELOPMENT_FLOW_GUIDE.md"
-  "IMPLEMENTATION_GUIDE.md"
+  "harness/skills/"
+  "harness/workflows/"
+  "harness/templates/"
+  "harness/scripts/"
   "README.md"
 )
 
@@ -191,8 +194,7 @@ echo "📁 [7/13] docs/ normalization regression check..."
 
 # Check root-level references to proposal.md / priority_matrix.md
 DOCS_TARGETS=(
-  "commands/"
-  "skills/"
+  "harness/skills/"
 )
 
 DOCS_ISSUES=0
@@ -223,7 +225,7 @@ echo "🔓 [8/13] bypassPermissions assumption regression check..."
 
 BYPASS_ISSUES=0
 
-SECURITY_TEMPLATE="$PLUGIN_ROOT/templates/claude/settings.security.json.template"
+SECURITY_TEMPLATE="$HARNESS_ROOT/templates/claude/settings.security.json.template"
 if [ -f "$SECURITY_TEMPLATE" ]; then
   if grep -q "disableBypassPermissionsMode" "$SECURITY_TEMPLATE"; then
     echo "  ❌ disableBypassPermissionsMode still present in settings.security.json.template"
@@ -261,7 +263,7 @@ fi
 
 # Check 3: settings.local.json.template must exist and defaultMode must be a documented permission mode
 # NOTE: shipped default keeps bypassPermissions, Auto Mode is treated as a follow-up rollout for the teammate execution path
-LOCAL_TEMPLATE="$PLUGIN_ROOT/templates/claude/settings.local.json.template"
+LOCAL_TEMPLATE="$HARNESS_ROOT/templates/claude/settings.local.json.template"
 if [ -f "$LOCAL_TEMPLATE" ]; then
   if grep -q '"defaultMode"[[:space:]]*:[[:space:]]*"bypassPermissions"' "$LOCAL_TEMPLATE"; then
     mode_val=$(grep '"defaultMode"' "$LOCAL_TEMPLATE" | head -1 | sed 's/.*: *"\([^"]*\)".*/\1/')
@@ -290,7 +292,7 @@ echo "🚫 [9/13] ccp-* skill deprecation regression check..."
 CCP_ISSUES=0
 
 # Check 1: skills must not have name: starting with ccp-
-CCP_NAMES=$(grep -rn "^name: ccp-" "$PLUGIN_ROOT/skills/" 2>/dev/null || true)
+CCP_NAMES=$(grep -rn "^name: ccp-" "$HARNESS_ROOT/skills/" 2>/dev/null || true)
 if [ -n "$CCP_NAMES" ]; then
   echo "  ❌ ccp-* name: still present in skills"
   echo "$CCP_NAMES" | head -3 | sed 's/^/      /'
@@ -300,7 +302,7 @@ else
 fi
 
 # Check 2: workflows must not have skill: starting with ccp-
-CCP_WORKFLOWS=$(grep -rn "skill: ccp-" "$PLUGIN_ROOT/workflows/" 2>/dev/null || true)
+CCP_WORKFLOWS=$(grep -rn "skill: ccp-" "$HARNESS_ROOT/workflows/" 2>/dev/null || true)
 if [ -n "$CCP_WORKFLOWS" ]; then
   echo "  ❌ ccp-* skill: still present in workflows"
   echo "$CCP_WORKFLOWS" | head -3 | sed 's/^/      /'
@@ -310,7 +312,7 @@ else
 fi
 
 # Check 3: ccp-* directories must not remain
-CCP_DIRS=$(find "$PLUGIN_ROOT/skills" -type d -name "ccp-*" 2>/dev/null || true)
+CCP_DIRS=$(find "$HARNESS_ROOT/skills" -type d -name "ccp-*" 2>/dev/null || true)
 if [ -n "$CCP_DIRS" ]; then
   echo "  ❌ ccp-* directories still present"
   echo "$CCP_DIRS" | head -3 | sed 's/^/      /'
@@ -335,34 +337,34 @@ TEMPLATE_ISSUES=0
 
 # Codex template
 for f in "templates/codex/config.toml" "templates/codex/rules/harness.rules" "templates/codex/.codexignore" "templates/codex/AGENTS.md"; do
-  if [ ! -f "$PLUGIN_ROOT/$f" ]; then
-    echo "  ❌ $f not found"
+  if [ ! -f "$HARNESS_ROOT/$f" ]; then
+    echo "  ❌ harness/$f not found"
     TEMPLATE_ISSUES=$((TEMPLATE_ISSUES + 1))
   fi
 done
 
 # OpenCode template
 for f in "templates/opencode/opencode.json" "templates/opencode/AGENTS.md"; do
-  if [ ! -f "$PLUGIN_ROOT/$f" ]; then
-    echo "  ❌ $f not found"
+  if [ ! -f "$HARNESS_ROOT/$f" ]; then
+    echo "  ❌ harness/$f not found"
     TEMPLATE_ISSUES=$((TEMPLATE_ISSUES + 1))
   fi
 done
-if [ ! -d "$PLUGIN_ROOT/templates/opencode/commands" ]; then
-  echo "  ❌ templates/opencode/commands/ not found"
+if [ ! -d "$HARNESS_ROOT/templates/opencode/commands" ]; then
+  echo "  ❌ harness/templates/opencode/commands/ not found"
   TEMPLATE_ISSUES=$((TEMPLATE_ISSUES + 1))
 fi
 
 # Codex-native skill overrides
-if [ ! -d "$PLUGIN_ROOT/templates/codex-skills" ]; then
-  echo "  ❌ templates/codex-skills/ not found"
+if [ ! -d "$HARNESS_ROOT/templates/codex-skills" ]; then
+  echo "  ❌ harness/templates/codex-skills/ not found"
   TEMPLATE_ISSUES=$((TEMPLATE_ISSUES + 1))
 fi
 
 # Setup scripts
 for script in "skills/harness-setup/scripts/setup-codex.sh" "skills/harness-setup/scripts/setup-opencode.sh"; do
-  if [ ! -f "$PLUGIN_ROOT/$script" ]; then
-    echo "  ❌ $script not found"
+  if [ ! -f "$HARNESS_ROOT/$script" ]; then
+    echo "  ❌ harness/$script not found"
     TEMPLATE_ISSUES=$((TEMPLATE_ISSUES + 1))
   fi
 done
@@ -515,8 +517,8 @@ fi
 echo ""
 echo "🎨 [13/13] EN/JA visual sync check..."
 
-VISUAL_EN_DIR="$PLUGIN_ROOT/assets/readme-visuals-en/generated"
-VISUAL_JA_DIR="$PLUGIN_ROOT/assets/readme-visuals-ja/generated"
+VISUAL_EN_DIR="$PLUGIN_ROOT/docs/assets/readme-visuals-en/generated"
+VISUAL_JA_DIR="$PLUGIN_ROOT/docs/assets/readme-visuals-ja/generated"
 VISUAL_ISSUES=0
 
 if [ -d "$VISUAL_EN_DIR" ] && [ -d "$VISUAL_JA_DIR" ]; then

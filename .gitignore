@@ -288,7 +288,7 @@ out/
 
 # Go build artifacts and internal state
 go/harness
-bin/harness-*
+harness/bin/harness-*
 
 # Hook output artifacts (broken directory names from JSON responses)
 {*}

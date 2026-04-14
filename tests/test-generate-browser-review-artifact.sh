@@ -15,9 +15,9 @@ cat > "${TMP_DIR}/Plans.md" <<'EOF'
 EOF
 
 CONTRACT_PATH="${TMP_DIR}/browser-contract.json"
-(cd "${TMP_DIR}" && "${PROJECT_ROOT}/scripts/generate-sprint-contract.sh" "32.2.2" "${TMP_DIR}/Plans.md" "$CONTRACT_PATH" >/dev/null)
+(cd "${TMP_DIR}" && "${PROJECT_ROOT}/harness/scripts/generate-sprint-contract.sh" "32.2.2" "${TMP_DIR}/Plans.md" "$CONTRACT_PATH" >/dev/null)
 EXPLORATORY_CONTRACT_PATH="${TMP_DIR}/browser-exploratory-contract.json"
-(cd "${TMP_DIR}" && "${PROJECT_ROOT}/scripts/generate-sprint-contract.sh" "32.2.5" "${TMP_DIR}/Plans.md" "$EXPLORATORY_CONTRACT_PATH" >/dev/null)
+(cd "${TMP_DIR}" && "${PROJECT_ROOT}/harness/scripts/generate-sprint-contract.sh" "32.2.5" "${TMP_DIR}/Plans.md" "$EXPLORATORY_CONTRACT_PATH" >/dev/null)
 
 ARTIFACT_PATH="${TMP_DIR}/browser-review.json"
 
@@ -33,7 +33,7 @@ EOF
 cp "$CONTRACT_PATH" "${TMP_DIR}/playwright/browser-contract.json"
 jq '.review.route = "playwright"' "${TMP_DIR}/playwright/browser-contract.json" > "${TMP_DIR}/playwright/browser-contract.next.json"
 mv "${TMP_DIR}/playwright/browser-contract.next.json" "${TMP_DIR}/playwright/browser-contract.json"
-(cd "${TMP_DIR}/playwright" && "${PROJECT_ROOT}/scripts/generate-browser-review-artifact.sh" "${TMP_DIR}/playwright/browser-contract.json" "${TMP_DIR}/playwright/browser-review.json" >/dev/null)
+(cd "${TMP_DIR}/playwright" && "${PROJECT_ROOT}/harness/scripts/generate-browser-review-artifact.sh" "${TMP_DIR}/playwright/browser-contract.json" "${TMP_DIR}/playwright/browser-review.json" >/dev/null)
 
 jq -e '
   .route == "playwright" and
@@ -52,7 +52,7 @@ mkdir -p "${TMP_DIR}/agent-browser"
 cp "$EXPLORATORY_CONTRACT_PATH" "${TMP_DIR}/agent-browser/browser-contract.json"
 jq '.review.route = "agent-browser"' "${TMP_DIR}/agent-browser/browser-contract.json" > "${TMP_DIR}/agent-browser/browser-contract.next.json"
 mv "${TMP_DIR}/agent-browser/browser-contract.next.json" "${TMP_DIR}/agent-browser/browser-contract.json"
-(cd "${TMP_DIR}/agent-browser" && PATH="${STUB_BIN}:${PATH}" "${PROJECT_ROOT}/scripts/generate-browser-review-artifact.sh" "${TMP_DIR}/agent-browser/browser-contract.json" "${TMP_DIR}/agent-browser/browser-review.json" >/dev/null)
+(cd "${TMP_DIR}/agent-browser" && PATH="${STUB_BIN}:${PATH}" "${PROJECT_ROOT}/harness/scripts/generate-browser-review-artifact.sh" "${TMP_DIR}/agent-browser/browser-contract.json" "${TMP_DIR}/agent-browser/browser-review.json" >/dev/null)
 
 jq -e '
   .route == "agent-browser" and
@@ -65,7 +65,7 @@ mkdir -p "${TMP_DIR}/fallback"
 cp "$CONTRACT_PATH" "${TMP_DIR}/fallback/browser-contract.json"
 jq '.review.route = "chrome-devtools"' "${TMP_DIR}/fallback/browser-contract.json" > "${TMP_DIR}/fallback/browser-contract.next.json"
 mv "${TMP_DIR}/fallback/browser-contract.next.json" "${TMP_DIR}/fallback/browser-contract.json"
-(cd "${TMP_DIR}/fallback" && HARNESS_BROWSER_REVIEW_DISABLE_PLAYWRIGHT=1 HARNESS_BROWSER_REVIEW_DISABLE_AGENT_BROWSER=1 "${PROJECT_ROOT}/scripts/generate-browser-review-artifact.sh" "${TMP_DIR}/fallback/browser-contract.json" "${TMP_DIR}/fallback/browser-review.json" >/dev/null)
+(cd "${TMP_DIR}/fallback" && HARNESS_BROWSER_REVIEW_DISABLE_PLAYWRIGHT=1 HARNESS_BROWSER_REVIEW_DISABLE_AGENT_BROWSER=1 "${PROJECT_ROOT}/harness/scripts/generate-browser-review-artifact.sh" "${TMP_DIR}/fallback/browser-contract.json" "${TMP_DIR}/fallback/browser-review.json" >/dev/null)
 
 jq -e '
   .route == "chrome-devtools" and
@@ -76,7 +76,7 @@ jq -e '
 cp "$CONTRACT_PATH" "${TMP_DIR}/override-contract.json"
 jq '.review.route = "chrome-devtools"' "${TMP_DIR}/override-contract.json" > "${TMP_DIR}/override-contract.next.json"
 mv "${TMP_DIR}/override-contract.next.json" "${TMP_DIR}/override-contract.json"
-(cd "${TMP_DIR}" && PATH="${STUB_BIN}:${PATH}" "${PROJECT_ROOT}/scripts/generate-browser-review-artifact.sh" "${TMP_DIR}/override-contract.json" "${TMP_DIR}/override-browser-review.json" >/dev/null)
+(cd "${TMP_DIR}" && PATH="${STUB_BIN}:${PATH}" "${PROJECT_ROOT}/harness/scripts/generate-browser-review-artifact.sh" "${TMP_DIR}/override-contract.json" "${TMP_DIR}/override-browser-review.json" >/dev/null)
 
 jq -e '
   .route == "chrome-devtools" and

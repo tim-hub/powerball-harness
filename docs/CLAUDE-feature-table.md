@@ -355,7 +355,7 @@ Considered during UI generation by `harness-ui` skill.
 ### TeammateIdle/TaskCompleted Hook
 
 Hooks that fire when Breezing team members become idle or when tasks complete.
-Processed by `scripts/hook-handlers/teammate-idle.sh` and `task-completed.sh`.
+Processed by `harness/scripts/hook-handlers/teammate-idle.sh` and `task-completed.sh`.
 
 ```json
 "TeammateIdle": [{"hooks": [{"type": "command", "command": "...teammate-idle", "timeout": 10}]}],
@@ -405,7 +405,7 @@ Used for parallel multi-scene generation in `generate-video` skill.
 ### ConfigChange hook
 
 Hook that fires when configuration files (`settings.json`, etc.) are changed.
-Changes are recorded and audited by `scripts/hook-handlers/config-change.sh`.
+Changes are recorded and audited by `harness/scripts/hook-handlers/config-change.sh`.
 
 ### last_assistant_message
 
@@ -439,7 +439,7 @@ claude agents list   # List registered agents
 
 Lifecycle hooks that fire on worktree creation and removal.
 Used for auto-setup and cleanup in `/breezing` parallel workflows.
-Implemented in `scripts/hook-handlers/worktree-create.sh` and `worktree-remove.sh`.
+Implemented in `harness/scripts/hook-handlers/worktree-create.sh` and `worktree-remove.sh`.
 
 ### `claude remote-control` (v2.1.51)
 
@@ -518,7 +518,7 @@ Harness standardized links from `SKILL.md` to `references/*.md` using `${CLAUDE_
 ### InstructionsLoaded hook (v2.1.69)
 
 `InstructionsLoaded` event added in CC 2.1.69. Harness created
-`scripts/hook-handlers/instructions-loaded.sh` for lightweight tracking and pre-verification at instructions load completion.
+`harness/scripts/hook-handlers/instructions-loaded.sh` for lightweight tracking and pre-verification at instructions load completion.
 
 ### `agent_id` / `agent_type` addition (v2.1.69)
 
@@ -1021,7 +1021,7 @@ Customizable status bar displayed at the bottom of Claude Code terminal. Passes 
 - `output_style.name` -- output style name
 
 **Harness usage**:
-- `scripts/statusline-harness.sh` provides Harness-specific status line
+- `harness/scripts/statusline-harness.sh` provides Harness-specific status line
 - Constant display of model name, context usage, session cost, git branch, Harness version
 - ANSI color thresholds for context usage (70% yellow, 90% red)
 

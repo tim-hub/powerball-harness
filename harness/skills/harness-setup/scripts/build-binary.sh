@@ -19,11 +19,17 @@ esac
 
 BINARY_NAME="harness-${OS}-${ARCH}"
 
-# Determine install directory
+# Resolve directories relative to this script's location.
+# Script is at: harness/skills/harness-setup/scripts/build-binary.sh
+# Plugin root (harness/) is 3 levels up; repo root is 4 levels up.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_DIR="${SCRIPT_DIR}/../../../"   # harness/
+REPO_ROOT="${SCRIPT_DIR}/../../../../" # repo root
+
+# Determine install directory (harness/bin/)
 INSTALL_DIR="${CLAUDE_PLUGIN_ROOT:+${CLAUDE_PLUGIN_ROOT}/bin}"
 if [ -z "$INSTALL_DIR" ]; then
-  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-  INSTALL_DIR="${SCRIPT_DIR}/../../../bin"
+  INSTALL_DIR="${PLUGIN_DIR}/bin"
 fi
 mkdir -p "$INSTALL_DIR"
 INSTALL_DIR="$(cd "$INSTALL_DIR" && pwd)"
@@ -36,19 +42,13 @@ if [ -x "$TARGET" ]; then
   exit 0
 fi
 
-# Locate Go source directory
-GO_DIR="${CLAUDE_PLUGIN_ROOT:+${CLAUDE_PLUGIN_ROOT}/go}"
-if [ -z "$GO_DIR" ] || [ ! -d "$GO_DIR" ]; then
-  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-  GO_DIR="${SCRIPT_DIR}/../../../go"
-fi
+# Locate Go source directory (always at repo root /go, not inside harness/)
+GO_DIR="$(cd "${REPO_ROOT}/go" 2>/dev/null && pwd)"
 
 if [ ! -d "$GO_DIR" ]; then
-  echo "[harness] error: Go source directory not found at $GO_DIR" >&2
+  echo "[harness] error: Go source directory not found at ${REPO_ROOT}/go" >&2
   exit 1
 fi
-
-GO_DIR="$(cd "$GO_DIR" && pwd)"
 
 # Check Go is available
 if ! command -v go >/dev/null 2>&1; then
@@ -57,9 +57,10 @@ if ! command -v go >/dev/null 2>&1; then
   exit 1
 fi
 
-# Read version
+# Read version from harness/VERSION
 VERSION="dev"
-VERSION_FILE="${GO_DIR}/../VERSION"
+VERSION_FILE="${CLAUDE_PLUGIN_ROOT:+${CLAUDE_PLUGIN_ROOT}/VERSION}"
+[ -z "$VERSION_FILE" ] && VERSION_FILE="${PLUGIN_DIR}/VERSION"
 if [ -f "$VERSION_FILE" ]; then
   VERSION="$(cat "$VERSION_FILE")"
 fi

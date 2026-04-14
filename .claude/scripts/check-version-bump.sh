@@ -4,7 +4,7 @@
 #
 # Purpose:
 # - Do not require a VERSION bump in normal PRs
-# - Only when VERSION is updated, verify that plugin.json / CHANGELOG release entry are aligned
+# - Only when VERSION is updated, verify that harness.toml / CHANGELOG release entry are aligned
 #
 # Usage:
 # - For PRs: set the GITHUB_BASE_REF environment variable
@@ -71,7 +71,7 @@ semver_gt() {
 echo ""
 echo "🔍 Checking changed files..."
 
-RELEASE_METADATA_FILES="VERSION .claude-plugin/plugin.json CHANGELOG.md"
+RELEASE_METADATA_FILES="harness/VERSION .claude-plugin/marketplace.json CHANGELOG.md"
 if [ -n "$DIFF_TARGET" ]; then
   CHANGED_RELEASE_METADATA=$(git diff --name-only "$BASE" "$DIFF_TARGET" -- $RELEASE_METADATA_FILES 2>/dev/null | grep -v "^$" || true)
 else
@@ -95,8 +95,8 @@ fi
 echo ""
 echo "🔍 Checking version change..."
 
-CURRENT_VERSION=$(cat VERSION 2>/dev/null | tr -d '[:space:]')
-BASE_VERSION=$(git show "$BASE:VERSION" 2>/dev/null | tr -d '[:space:]' || echo "")
+CURRENT_VERSION=$(cat harness/VERSION 2>/dev/null | tr -d '[:space:]')
+BASE_VERSION=$(git show "$BASE:harness/VERSION" 2>/dev/null | tr -d '[:space:]' || echo "")
 
 echo "  Base:    v${BASE_VERSION:-none}"
 echo "  Current: v${CURRENT_VERSION}"
@@ -112,13 +112,13 @@ fi
 if [ "$CURRENT_VERSION" = "$BASE_VERSION" ]; then
   echo "✅ VERSION is unchanged. A version bump is not required for normal PRs / pushes."
 
-  if bash ./scripts/sync-version.sh check >/dev/null 2>&1; then
-    echo "✅ plugin.json also matches VERSION."
+  if bash ./harness/scripts/sync-version.sh check >/dev/null 2>&1; then
+    echo "✅ harness.toml also matches VERSION."
     exit 0
   fi
 
-  echo "❌ VERSION is unchanged but plugin.json does not match."
-  bash ./scripts/sync-version.sh check
+  echo "❌ VERSION is unchanged but harness.toml does not match."
+  bash ./harness/scripts/sync-version.sh check
   exit 1
 fi
 
@@ -133,11 +133,11 @@ echo "✅ Detected VERSION update for release: $BASE_VERSION → $CURRENT_VERSIO
 
 ERRORS=0
 
-if bash ./scripts/sync-version.sh check >/dev/null 2>&1; then
-  echo "✅ plugin.json version also matches."
+if bash ./harness/scripts/sync-version.sh check >/dev/null 2>&1; then
+  echo "✅ harness.toml version also matches."
 else
-  echo "❌ plugin.json version does not match VERSION."
-  bash ./scripts/sync-version.sh check || true
+  echo "❌ harness.toml version does not match VERSION."
+  bash ./harness/scripts/sync-version.sh check || true
   ERRORS=$((ERRORS + 1))
 fi
 
@@ -159,7 +159,7 @@ if [ "$ERRORS" -gt 0 ]; then
   echo ""
   echo "💡 Fix guidelines:"
   echo "  - Do not change VERSION in normal PRs"
-  echo "  - Only update VERSION / plugin.json / CHANGELOG release entry together when cutting a release"
+  echo "  - Only update VERSION / harness.toml / CHANGELOG release entry together when cutting a release"
   exit 1
 fi
 

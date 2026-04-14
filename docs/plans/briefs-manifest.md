@@ -28,7 +28,7 @@ Minimum required content:
 
 ## Skill Manifest
 
-`scripts/generate-skill-manifest.sh` converts `SKILL.md` frontmatter across the repo into stable JSON.
+`harness/scripts/generate-skill-manifest.sh` converts `SKILL.md` frontmatter across the repo into stable JSON.
 
 Use cases:
 
@@ -53,5 +53,5 @@ Output includes:
 ## Example
 
 ```bash
-scripts/generate-skill-manifest.sh --output .claude/state/skill-manifest.json
+harness/scripts/generate-skill-manifest.sh --output .claude/state/skill-manifest.json
 ```
