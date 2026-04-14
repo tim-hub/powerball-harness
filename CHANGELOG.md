@@ -6,6 +6,32 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.1.4] - 2026-04-14
+
+### Theme: CI workflow fix, harness-mem removal, gitignore template update
+
+**Fixes a broken CI workflow after Phase 45 script relocation, removes the `harness-mem` proxy skill that caused a plugin name conflict, and scopes gitignore runtime paths under `.claude/`.**
+
+---
+
+#### 1. Fix stale CI script paths in `.github/workflows/validate-plugin.yml`
+
+**Before**: Phase 45 moved `scripts/ci/check-version-bump.sh` and `scripts/ci/check-consistency.sh` to `.claude/scripts/`, but `validate-plugin.yml` still referenced the old paths. CI was broken on every push.
+
+**After**: Both workflow steps updated to `.claude/scripts/`. `scripts/ci/` added to `deleted-concepts.yaml` so the migration residue scanner catches any future re-introduction of the old paths.
+
+#### 2. Remove `harness-mem` skill and simplify `harness-setup` default
+
+**Before**: `skills/harness-mem/` was a thin proxy to `skills/memory/`. It existed solely so `/harness-mem` resolved, but conflicted with an identically-named skill from another plugin. The `harness-setup` no-args run sequenced through `binary → init → gitignore → harness-mem → cleanup`, making the first-run experience heavyweight and confusing.
+
+**After**: `skills/harness-mem/` (and its codex/opencode mirrors) deleted. `harness-setup` with no args now runs `init` only. The `init` flow itself runs binary download and gitignore setup first, then generates `CLAUDE.md`, `Plans.md`, and `settings.json` — ensuring the binary is available before any hook-dependent steps run.
+
+#### 3. Scope gitignore runtime paths under `.claude/`
+
+**Before**: `templates/gitignore-harness` ignored `logs/`, `settings.local.json`, and `states/` at the project root — too broad, and inconsistent with how Harness actually places runtime files.
+
+**After**: Paths scoped to `.claude/logs/`, `.claude/settings.local.json`, `.claude/states/`. Added `!.claude/agent-memory/` force-track entry so agent memory is never accidentally ignored.
+
 ## [4.1.3] - 2026-04-14
 
 ### Theme: Phase 46 — Skill housekeeping: rename, relocate, and complete missing assets
