@@ -190,7 +190,7 @@ Before submitting:
 2. (Recommended) Enable pre-commit hooks (keep release metadata in sync without auto-bumping):
 
    ```bash
-   ./harness/scripts/install-git-hooks.sh
+   ./.claude/scripts/install-git-hooks.sh
    ```
 
    **Windows users**: Git hooks require [Git for Windows](https://gitforwindows.org/) which includes Git Bash. The hooks run automatically via Git Bash regardless of your shell (PowerShell, CMD, etc.).
