@@ -11,6 +11,25 @@ Last release: v4.2.0 on 2026-04-14 (Phase 49)
 
 ---
 
+## Phase 50: Refocus skills/ on software development — move creative/content skills
+
+Created: 2026-04-15
+
+Goal: Move non-software-development skills (`allow1`, `generate-slide`, `generate-video`) from `skills/` to `.claude/skills/`, move `video-scene-generator.md` agent to `.claude/agents/`, and relocate `skills/routing-rules.md` to `.claude/rules/`. Remove their codex/opencode mirrors and update consistency checks.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 50.1 | Move `skills/allow1` → `.claude/skills/allow1`; remove codex/opencode mirrors | `.claude/skills/allow1/SKILL.md` exists; no mirror dirs remain; consistency check passes | - | cc:TODO |
+| 50.2 | Move `skills/generate-slide` → `.claude/skills/generate-slide`; remove mirrors | `.claude/skills/generate-slide/SKILL.md` exists; no mirror dirs remain | - | cc:TODO |
+| 50.3 | Move `skills/generate-video` → `.claude/skills/generate-video`; remove mirrors | `.claude/skills/generate-video/SKILL.md` exists; no mirror dirs remain | - | cc:TODO |
+| 50.4 | Move `agents/video-scene-generator.md` → `.claude/agents/video-scene-generator.md` | File exists in new location; removed from `agents/` | - | cc:TODO |
+| 50.5 | Move `skills/routing-rules.md` → `.claude/rules/skill-routing-rules.md` | File in `.claude/rules/`; update any references | - | cc:TODO |
+| 50.6 | Update `check-consistency.sh` mirror list — remove moved skills from mirror sync checks | Consistency check runs with 0 errors for moved skills | 50.1–50.3 | cc:TODO |
+| 50.7 | Add moved skills/agents to `deleted-concepts.yaml` residue scan | `check-residue.sh` detects old paths in past commits; 0 detections on HEAD | 50.1–50.5 | cc:TODO |
+| 50.8 | Update CHANGELOG and validate | `validate-plugin.sh` passes; CHANGELOG has [Unreleased] entry | 50.1–50.7 | cc:TODO |
+
+---
+
 ## Phase 49: harness-setup build-from-source + hooks.json SSOT consolidation
 
 Created: 2026-04-14

@@ -6,6 +6,12 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Changed
+
+- Moved `allow1`, `generate-slide`, `generate-video` skills from `skills/` to `.claude/skills/` — keeps `skills/` focused on software development workflow
+- Moved `agents/video-scene-generator.md` to `.claude/agents/` — video scene generation is not a core dev agent
+- Moved `skills/routing-rules.md` to `.claude/rules/skill-routing-rules.md` — it's a reference doc, not a skill
+
 ## [4.2.0] - 2026-04-14
 
 ### Theme: Phase 49 — build-from-source installation, hooks.json SSOT, deny list cleanup

@@ -146,7 +146,8 @@ deleted_concepts:
       - "Plans.md"
       - ".opencode/"  # opencode uses a different runtime
       - "codex/"  # codex uses a different runtime
-      - "skills/generate-video/"  # Video generation skill may use Node.js
+      - "skills/generate-video/"  # Video generation skill may use Node.js (old path, pre-v4.2.1)
+      - ".claude/skills/generate-video/"  # Video generation skill relocated here in v4.2.1
       - "opencode/"
       - ".claude/rules/migration-policy.md"  # Phase 40 historical description (appendix contains old runtime requirements)
 
@@ -174,3 +175,56 @@ deleted_concepts:
       - ".cursor/"  # Cursor IDE local settings
       - "docs/design/"  # UI design documents (old feature design depending on claude-mem)
       - "docs/research/"  # Research documents (includes claude-mem integration research)
+
+  - term: "skills/allow1"
+    replacement: ".claude/skills/allow1"
+    deleted_in: "v4.2.1"
+    reason: "allow1 (image/SVG generation) is not part of the core software development workflow. Relocated to .claude/skills/ to keep skills/ focused on coding tasks."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+
+  - term: "skills/generate-slide"
+    replacement: ".claude/skills/generate-slide"
+    deleted_in: "v4.2.1"
+    reason: "generate-slide (presentation generation) relocated to .claude/skills/. Not part of the core software development workflow."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+
+  - term: "skills/generate-video"
+    replacement: ".claude/skills/generate-video"
+    deleted_in: "v4.2.1"
+    reason: "generate-video (video generation) relocated to .claude/skills/. Not part of the core software development workflow."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/scripts/build-opencode.mjs"  # removed from skipSkills in v4.2.1
+      - ".claude/skills/generate-video/"  # skill itself contains self-referencing paths (internal docs/scripts)
+      - ".claude/agents/video-scene-generator.md"  # uses ../skills/generate-video relative path (resolves correctly)
+
+  - term: "agents/video-scene-generator"
+    replacement: ".claude/agents/video-scene-generator"
+    deleted_in: "v4.2.1"
+    reason: "video-scene-generator agent (Remotion scene generation) relocated to .claude/agents/. Not part of the core software development workflow."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+
+  - term: "skills/routing-rules.md"
+    replacement: ".claude/rules/skill-routing-rules.md"
+    deleted_in: "v4.2.1"
+    reason: "routing-rules.md is a reference document (not a skill). Relocated to .claude/rules/ where rule documents belong."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"

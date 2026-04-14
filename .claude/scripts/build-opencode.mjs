@@ -263,7 +263,6 @@ function copySkills() {
   let copiedCount = 0;
 
   const skipSkills = new Set([
-    'allow1',
     'breezing',
     'claude-codex-upstream-update',
     'zz-review-empty',

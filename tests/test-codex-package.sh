@@ -194,7 +194,6 @@ log_test "Non-breezing Codex skills are CLI-only"
 cli_only_targets=(
   "codex/.codex/skills/harness-work/SKILL.md"
   "codex/.codex/skills/harness-review/SKILL.md"
-  "codex/.codex/skills/routing-rules.md"
 )
 forbidden_cli_terms=(
   "Codex MCP"
