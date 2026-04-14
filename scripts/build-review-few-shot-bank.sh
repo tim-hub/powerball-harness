@@ -36,7 +36,12 @@ jq -s -c '
       ),
       prompt_hint,
       calibration_notes,
-      execution
+      execution,
+      # 新フィールド: 旧レコード（フィールド欠如）は // 0 default で読み出す
+      critical_count: (.critical_count // 0),
+      major_count: (.major_count // 0),
+      # score_delta は新フィールドが存在する場合のみ含める（null は除外しない）
+      score_delta: (if has("score_delta") then .score_delta else null end)
     }))
   | flatten
 ' "$INPUT_FILE" > "$TMP_JSON"
