@@ -27,15 +27,6 @@ deny = [
   "Bash(rm -rf:*)",
   "Bash(rm -fr:*)",
 
-  # --- database CLIs ---
-  "Bash(psql:*)",
-  "Bash(mysql:*)",
-  "Bash(mongod:*)",
-  "Bash(mongo:*)",
-
-  # --- MCP ---
-  "mcp__codex__*",
-
   # --- sensitive file reads ---
   "Read(./.env)",
   "Read(./.env.*)",
@@ -61,25 +52,8 @@ deny = [
   "Bash(> /dev/sd*)",
   "Bash(cat /dev/urandom > *)",
 
-  # --- network listeners / remote exec ---
-  "Bash(* | nc -l*)",
-  "Bash(* | netcat -l*)",
-  "Bash(* | socat *)",
-  "Bash(* | base64 -d | sh*)",
-  "Bash(* | base64 -d | bash*)",
-  "Bash(curl * | sh*)",
-  "Bash(curl * | bash*)",
-  "Bash(wget * | sh*)",
-  "Bash(wget * | bash*)",
-  "Bash(curl * | sudo *)",
-  "Bash(wget * | sudo *)",
-  "Bash(curl -s * | sh*)",
-  "Bash(wget -qO- * | sh*)",
-  "Bash(nc -l*)",
-  "Bash(netcat -l*)",
-  "Bash(socat*)",
-  "Bash(nmap*)",
-  "Bash(masscan*)",
+
+    
 
   # --- account / credential ops ---
   "Bash(passwd*)",
@@ -164,23 +138,6 @@ deny = [
   "Bash(find / -type f -delete*)",
   "Bash(find / -type d -delete*)",
 
-  # --- dangerous docker ---
-  "Bash(docker run --privileged *)",
-  "Bash(docker run --pid=host *)",
-  "Bash(docker run --net=host *)",
-  "Bash(docker run -v /:/host *)",
-  "Bash(docker run -v /etc:/etc *)",
-  "Bash(docker run -v /var/run/docker.sock:/var/run/docker.sock *)",
-  "Bash(docker run --cap-add=ALL *)",
-  "Bash(docker run --security-opt *)",
-
-  # --- git destructive ---
-  "Bash(git push --force origin master*)",
-  "Bash(git push --force origin main*)",
-  "Bash(git push -f origin master*)",
-  "Bash(git push -f origin main*)",
-  "Bash(git reset --hard *)",
-
   # --- cloud metadata exfil ---
   "Bash(curl http://169.254.169.254/*)",
   "Bash(wget http://169.254.169.254/*)",
@@ -202,6 +159,52 @@ ask = [
   "Bash(npx:*)",
   "Bash(bun install:*)",
   "Bash(pnpm install:*)",
+
+  # --- database CLIs ---
+  "Bash(psql:*)",
+  "Bash(mysql:*)",
+  "Bash(mongod:*)",
+  "Bash(mongo:*)",
+
+  # --- MCP ---
+  "mcp__codex__*",
+
+  # --- network listeners / remote exec ---
+  "Bash(* | nc -l*)",
+  "Bash(* | netcat -l*)",
+  "Bash(* | socat *)",
+  "Bash(* | base64 -d | sh*)",
+  "Bash(* | base64 -d | bash*)",
+  "Bash(curl * | sh*)",
+  "Bash(curl * | bash*)",
+  "Bash(wget * | sh*)",
+  "Bash(wget * | bash*)",
+  "Bash(curl * | sudo *)",
+  "Bash(wget * | sudo *)",
+  "Bash(curl -s * | sh*)",
+  "Bash(wget -qO- * | sh*)",
+  "Bash(nc -l*)",
+  "Bash(netcat -l*)",
+  "Bash(socat*)",
+  "Bash(nmap*)",
+  "Bash(masscan*)",
+
+  # --- dangerous docker ---
+  "Bash(docker run --privileged *)",
+  "Bash(docker run --pid=host *)",
+  "Bash(docker run --net=host *)",
+  "Bash(docker run -v /:/host *)",
+  "Bash(docker run -v /etc:/etc *)",
+  "Bash(docker run -v /var/run/docker.sock:/var/run/docker.sock *)",
+  "Bash(docker run --cap-add=ALL *)",
+  "Bash(docker run --security-opt *)",
+
+  # --- git destructive ---
+  "Bash(git push --force origin master*)",
+  "Bash(git push --force origin main*)",
+  "Bash(git push -f origin master*)",
+  "Bash(git push -f origin main*)",
+  "Bash(git reset --hard *)",
 ]
 
 [safety.sandbox]
