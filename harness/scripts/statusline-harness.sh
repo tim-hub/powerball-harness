@@ -66,8 +66,8 @@ BAR_WIDTH=10
 FILLED=$((PCT * BAR_WIDTH / 100))
 EMPTY=$((BAR_WIDTH - FILLED))
 BAR=""
-[ "$FILLED" -gt 0 ] && BAR=$(printf "%${FILLED}s" | tr ' ' '█')
-[ "$EMPTY" -gt 0 ] && BAR="${BAR}$(printf "%${EMPTY}s" | tr ' ' '░')"
+[ "$FILLED" -gt 0 ] && BAR=$(printf "%${FILLED}s" | tr ' ' '█' 2>/dev/null || printf "%${FILLED}s" | tr ' ' '#')
+[ "$EMPTY" -gt 0 ] && BAR="${BAR}$(printf "%${EMPTY}s" | tr ' ' '░' 2>/dev/null || printf "%${EMPTY}s" | tr ' ' '.')"
 
 # Duration formatting
 MINS=$((DURATION_MS / 60000))
