@@ -2,7 +2,7 @@
 name: harness-setup
 description: "Use when initializing a project, setting up CI/Codex/memory config, configuring 2-agent workflow, or running /harness-setup. Do NOT load for: implementation, review, release, or planning."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
-argument-hint: "[init|binary|codex|harness-mem|cleanup|gitignore]"
+argument-hint: "[init|binary|codex|cleanup|gitignore]"
 effort: medium
 ---
 
@@ -12,11 +12,10 @@ effort: medium
 
 | User Input | Subcommand | Behavior |
 |------------|------------|----------|
-| `harness-setup` (no args) | *(all except `codex`)* | Runs `binary` → `init` → `gitignore` → `harness-mem` → `cleanup` in sequence |
+| `harness-setup` (no args) | `init` | Runs `binary` → `gitignore` → project initialization (CLAUDE.md + Plans.md + settings.json) |
 | `harness-setup binary` | `binary` | Check or download/install the platform binary from GitHub releases |
-| `harness-setup init` | `init` | New project initialization (CLAUDE.md + Plans.md + hooks); calls `gitignore` automatically |
+| `harness-setup init` | `init` | New project initialization: binary download → gitignore → CLAUDE.md + Plans.md + settings.json |
 | `harness-setup gitignore` | `gitignore` | Merge harness-managed block into .gitignore (runs `scripts/merge-gitignore.sh`) |
-| `harness-setup harness-mem` | `harness-mem` | harness-mem integration and memory configuration |
 | `harness-setup cleanup` | `cleanup` | Periodic maintenance: delete old logs, compress Plans.md, trim traces |
 | `harness-setup codex` | `codex` | Codex CLI installation and configuration (see `references/codex.md`) |
 
@@ -59,11 +58,12 @@ project/
 >   via a dedicated subcommand (future work).
 
 **Flow**:
-1. Detect project type (Node.js/Python/Go/Rust/Other)
-2. Generate minimal CLAUDE.md
-3. Generate Plans.md template
-4. Generate `.claude/settings.json` (permissions/sandbox/env — safe defaults)
-5. Run the `gitignore` subcommand (idempotent — calls `scripts/merge-gitignore.sh`)
+1. Run the `binary` subcommand (download/install platform binary if not already present)
+2. Run the `gitignore` subcommand (idempotent — calls `scripts/merge-gitignore.sh`)
+3. Detect project type (Node.js/Python/Go/Rust/Other)
+4. Generate minimal CLAUDE.md
+5. Generate Plans.md template
+6. Generate `.claude/settings.json` (permissions/sandbox/env — safe defaults)
 
 ### gitignore — Harness .gitignore Block
 
@@ -80,19 +80,6 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/merge-gitignore.sh path
 The block ignores `.claude/sessions/`, `logs/`, `settings.local.json`, and `states/`,
 while force-tracking `.claude/memory/`, `.claude/output-styles/`, `.claude/rules/`,
 `.claude/scripts/`, `.claude/skills/`, and `.claude/settings.json`.
-
-### harness-mem — Memory Configuration
-
-Configure Unified Harness Memory.
-
-Create agent memory directories and deploy `MEMORY.md` templates for the worker and reviewer agents:
-
-```bash
-mkdir -p .claude/agent-memory/powerball-harness-worker
-mkdir -p .claude/agent-memory/powerball-harness-reviewer
-```
-
-Each `MEMORY.md` should have `## Project Context` and `## Patterns` sections.
 
 ### codex — Codex CLI Configuration
 
