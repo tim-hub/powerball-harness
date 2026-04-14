@@ -225,9 +225,6 @@ gh release create "v$NEW_VERSION" \
 
 - **Fix**: Description
 
----
-
-Generated with [Claude Code](https://claude.com/claude-code)
 EOF
 )"
 ```
