@@ -12,13 +12,13 @@ import (
 // ---------------------------------------------------------------------------
 
 // TestInit_CreatesHarnessToml verifies that "harness init <dir>" writes
-// harness.toml with the expected sections and content.
+// harness/harness.toml with the expected sections and content.
 func TestInit_CreatesHarnessToml(t *testing.T) {
 	dir := t.TempDir()
 
 	runInit([]string{dir})
 
-	tomlPath := filepath.Join(dir, "harness.toml")
+	tomlPath := filepath.Join(dir, "harness", "harness.toml")
 	data, err := os.ReadFile(tomlPath)
 	if err != nil {
 		t.Fatalf("harness.toml was not created: %v", err)
@@ -87,11 +87,15 @@ func TestInit_CreatesClaudePluginDir(t *testing.T) {
 func TestInit_RefusesToOverwrite(t *testing.T) {
 	dir := t.TempDir()
 
-	// Write a sentinel harness.toml that must not be overwritten.
+	// Write a sentinel harness/harness.toml that must not be overwritten.
 	existing := "# existing content\n[project]\nname = \"existing\"\n"
-	tomlPath := filepath.Join(dir, "harness.toml")
+	harnessDir := filepath.Join(dir, "harness")
+	if err := os.MkdirAll(harnessDir, 0o755); err != nil {
+		t.Fatalf("mkdir harness: %v", err)
+	}
+	tomlPath := filepath.Join(harnessDir, "harness.toml")
 	if err := os.WriteFile(tomlPath, []byte(existing), 0o644); err != nil {
-		t.Fatalf("write existing harness.toml: %v", err)
+		t.Fatalf("write existing harness/harness.toml: %v", err)
 	}
 
 	// runInit calls os.Exit on error, so we capture the call via a panic/recover
@@ -101,16 +105,16 @@ func TestInit_RefusesToOverwrite(t *testing.T) {
 	})
 
 	if !exited {
-		t.Error("runInit should have exited when harness.toml already exists")
+		t.Error("runInit should have exited when harness/harness.toml already exists")
 	}
 
 	// Verify that the file was not modified.
 	data, err := os.ReadFile(tomlPath)
 	if err != nil {
-		t.Fatalf("read harness.toml after failed init: %v", err)
+		t.Fatalf("read harness/harness.toml after failed init: %v", err)
 	}
 	if string(data) != existing {
-		t.Error("existing harness.toml was overwritten — must not overwrite")
+		t.Error("existing harness/harness.toml was overwritten — must not overwrite")
 	}
 }
 
@@ -141,9 +145,9 @@ func TestInit_UsesCurrentDirWhenNoArgs(t *testing.T) {
 	// runInit with no arguments must use cwd.
 	runInit(nil)
 
-	tomlPath := filepath.Join(dir, "harness.toml")
+	tomlPath := filepath.Join(dir, "harness", "harness.toml")
 	if _, err := os.Stat(tomlPath); err != nil {
-		t.Errorf("harness.toml not created in cwd: %v", err)
+		t.Errorf("harness/harness.toml not created in cwd: %v", err)
 	}
 }
 
@@ -157,13 +161,13 @@ func TestInit_TemplateIsValidTOML(t *testing.T) {
 	dir := t.TempDir()
 	runInit([]string{dir})
 
-	tomlPath := filepath.Join(dir, "harness.toml")
+	tomlPath := filepath.Join(dir, "harness", "harness.toml")
 
 	// Use the project's own TOML parser to validate the template.
 	// Import config package from the same module.
 	data, err := os.ReadFile(tomlPath)
 	if err != nil {
-		t.Fatalf("read harness.toml: %v", err)
+		t.Fatalf("read harness/harness.toml: %v", err)
 	}
 
 	// The template must be parseable. We rely on the BurntSushi/toml library
@@ -175,18 +179,7 @@ func TestInit_TemplateIsValidTOML(t *testing.T) {
 	// we call runSync which internally calls config.ParseFile to exercise parsing.
 	// A simpler approach: verify the file is non-empty and contains valid structure.
 	if len(data) == 0 {
-		t.Error("harness.toml is empty")
-	}
-
-	// Verify that the template round-trips through sync successfully.
-	// setupProjectDir creates a hooks/hooks.json stub; we do the same.
-	hooksDir := filepath.Join(dir, "hooks")
-	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
-		t.Fatalf("mkdir hooks: %v", err)
-	}
-	minimalHooks := `{"description":"test hooks","hooks":{"PreToolUse":[]}}`
-	if err := os.WriteFile(filepath.Join(hooksDir, "hooks.json"), []byte(minimalHooks), 0o644); err != nil {
-		t.Fatalf("write hooks/hooks.json: %v", err)
+		t.Error("harness/harness.toml is empty")
 	}
 
 	// runSync must succeed: it calls config.ParseFile on the template.

@@ -556,9 +556,9 @@ func runResidueCheck(projectRoot string) int {
 	fmt.Println("Migration Residue Check:")
 	fmt.Println()
 
-	script := filepath.Join(projectRoot, "scripts", "check-residue.sh")
+	script := filepath.Join(projectRoot, "local-scripts", "check-residue.sh")
 	if _, err := os.Stat(script); err != nil {
-		fmt.Fprintf(os.Stderr, "  scanner failed: scripts/check-residue.sh not found at %s\n", script)
+		fmt.Fprintf(os.Stderr, "  scanner failed: local-scripts/check-residue.sh not found at %s\n", script)
 		return 2
 	}
 

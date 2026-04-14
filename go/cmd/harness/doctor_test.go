@@ -13,7 +13,7 @@ import (
 // TestDoctor_Residue
 // ---------------------------------------------------------------------------
 
-// TestDoctor_Residue verifies that runResidueCheck calls scripts/check-residue.sh
+// TestDoctor_Residue verifies that runResidueCheck calls local-scripts/check-residue.sh
 // and returns the correct exit code.
 //
 // This is an integration test that invokes the actual scanner against the
@@ -37,9 +37,9 @@ func TestDoctor_Residue(t *testing.T) {
 	projectRoot := filepath.Join(cwd, "..", "..", "..")
 
 	// Verify the scanner script exists at the expected location.
-	script := filepath.Join(projectRoot, "scripts", "check-residue.sh")
+	script := filepath.Join(projectRoot, "local-scripts", "check-residue.sh")
 	if _, err := os.Stat(script); err != nil {
-		t.Skipf("scripts/check-residue.sh not found at %s — skipping integration test", script)
+		t.Skipf("local-scripts/check-residue.sh not found at %s — skipping integration test", script)
 	}
 
 	exitCode := runResidueCheck(projectRoot)

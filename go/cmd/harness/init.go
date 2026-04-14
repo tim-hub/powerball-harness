@@ -47,10 +47,11 @@ failIfUnavailable = false
 
 // runInit implements the "harness init" subcommand.
 //
-// It writes harness.toml to the project root (first argument, or cwd if none).
-// If harness.toml already exists the command exits with an error to prevent
-// accidental overwrite.  It also ensures the .claude-plugin/ directory exists
-// so that a subsequent "harness sync" has a destination to write into.
+// It writes harness/harness.toml to the project root (first argument, or cwd
+// if none).  If harness/harness.toml already exists the command exits with an
+// error to prevent accidental overwrite.  It also ensures the .claude-plugin/
+// directory exists so that a subsequent "harness sync" has a destination to
+// write into.
 //
 // After writing the template it prints guidance to run "harness sync".
 func runInit(args []string) {
@@ -61,7 +62,9 @@ func runInit(args []string) {
 		os.Exit(1)
 	}
 
-	tomlPath := filepath.Join(projectRoot, "harness.toml")
+	// harness.toml lives inside the harness/ plugin subfolder (Phase 52+).
+	harnessDir := filepath.Join(projectRoot, outputDir)
+	tomlPath := filepath.Join(harnessDir, "harness.toml")
 
 	// Refuse to overwrite an existing harness.toml.
 	if _, err := os.Stat(tomlPath); err == nil {
@@ -69,6 +72,12 @@ func runInit(args []string) {
 		os.Exit(1)
 	} else if !errors.Is(err, os.ErrNotExist) {
 		fmt.Fprintf(os.Stderr, "harness init: stat %s: %v\n", tomlPath, err)
+		os.Exit(1)
+	}
+
+	// Ensure harness/ directory exists.
+	if err := os.MkdirAll(harnessDir, 0o755); err != nil {
+		fmt.Fprintf(os.Stderr, "harness init: mkdir %s: %v\n", harnessDir, err)
 		os.Exit(1)
 	}
 
@@ -91,6 +100,6 @@ func runInit(args []string) {
 	fmt.Println("harness init: done")
 	fmt.Println()
 	fmt.Println("Next steps:")
-	fmt.Println("  1. Edit harness.toml — set [project].name and adjust [safety] rules")
+	fmt.Println("  1. Edit harness/harness.toml — set [project].name and adjust [safety] rules")
 	fmt.Println("  2. Run `harness sync` to generate CC plugin files")
 }
