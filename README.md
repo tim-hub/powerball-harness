@@ -36,7 +36,7 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, with
 ## How It Works
 
 - Use claude memory to support decisions and patterns, and to maintain a session log of what was done and why
-- Use Plans.md a very human readable document spec to drive implementation.
+- Use Plans.md a both human readable and LLM friendly document spec to drive implementation.
 - Use go based engine for hooks to enforce runtime guardrails and autmate tasks.
 - Use `deleted-concepts.yaml` to track and prevent reintroduction of rejected ideas.
 
@@ -155,4 +155,4 @@ Forked from [claude-code-harness](https://github.com/Chachamaru127/claude-code-h
 - Optimise skills descriptions
 - Use English for wider audience and consistency with code/comments
 - No binrary files committed to repo — use setup script to either build from go source or download from GitHub Releases instead
-- Fix [a couple of issues](https://github.com/tim-hub/powerball-harness/blob/master/CHANGELOG.md#403---2026-04-13).
+- Fix [a couple of issues and anti-patterns](https://github.com/tim-hub/powerball-harness/blob/master/CHANGELOG.md#403---2026-04-13).
