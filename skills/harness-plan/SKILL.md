@@ -2,7 +2,7 @@
 name: harness-plan
 description: "Use when creating plans, adding tasks, updating Plans.md, marking tasks done, or checking progress/sync. Do NOT load for: implementation (harness-work), review (harness-review), or release (harness-release)."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "Task"]
-argument-hint: "[create|add|update|sync|sync --no-retro|--ci]"
+argument-hint: "[create|add|update|sync|archive|sync --no-retro|--ci]"
 effort: medium
 model: opus
 ---
@@ -18,14 +18,15 @@ Consolidates the following 3 legacy skills:
 
 ## Quick Reference
 
-| User Input | Subcommand | Action |
-|------------|------------|--------|
+| User Input | Subcommand | Behavior |
+|------------|------------|----------|
 | "create a plan" | `create` | Interactive interview → Plans.md generation |
 | "add a task" | `add` | Add new task to Plans.md |
 | "mark complete" | `update` | Change task marker to cc:done |
 | "where am I?" / "check progress" | `sync` | Compare implementation with Plans.md and sync |
 | `harness-sync` | `sync` | Progress check (equivalent to standalone sync surface) |
 | `harness-plan create` | `create` | Create plan |
+| "archive old phases" / `harness-plan archive` | `archive` | Archive phases in Plans.md to `.claude/memory/archive/`; update `Last archive:` header |
 
 ## Subcommand Details
 
@@ -94,6 +95,22 @@ See [references/sync.md](${CLAUDE_SKILL_DIR}/references/sync.md)
 Automatically runs a retrospective if there is at least one `cc:done` task.
 Analyzes estimation accuracy, blocker cause patterns, and scope changes, then records learnings.
 Can be explicitly skipped with `sync --no-retro`.
+
+### archive — Plans.md Archiving
+
+Moves fully-completed phases out of Plans.md into `.claude/memory/archive/` to keep the active file lean. A phase is eligible when every task in it has a `cc:done` or `pm:confirmed` marker.
+
+**Flow**:
+1. Read Plans.md and identify phases where all tasks are `cc:done` / `pm:confirmed`
+2. Write the completed phases to `.claude/memory/archive/Plans-YYYY-MM-DD-phaseX-Y.md` (using today's date and the range of archived phase numbers)
+3. Remove those phases from Plans.md
+4. Update the `Last archive:` line at the top of Plans.md to record the date and archive filename
+
+**What stays in Plans.md**: 
+- Any phase with at least one task that is `cc:TODO`, `cc:WIP`, or `blocked`.
+- The 10 most recent completed phases, even if they are fully `cc:done` / `pm:confirmed`, to maintain recent history and context.
+
+**Naming convention**: `Plans-YYYY-MM-DD-phaseX-Y.md` where X is the lowest and Y the highest archived phase number. Example: `Plans-2026-04-15-phase35-48.md`.
 
 ### team mode / issue bridge
 
