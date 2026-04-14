@@ -1,7 +1,7 @@
 # Claude Code Harness — Plans.md
 
 Last archive: 2026-04-12 (Phase 25–34 → `.claude/memory/archive/Plans-2026-04-12-phase25-34.md`)
-Last release: v4.1.4 on 2026-04-14 (Phase 47 + Phase 48)
+Last release: v4.2.0 on 2026-04-14 (Phase 49)
 
 ---
 
