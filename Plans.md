@@ -89,7 +89,7 @@ Goal: Create a Makefile at the repo root to surface common dev/CI tasks as simpl
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 53.1 | Create `Makefile` with `validate`, `check`, `test`, `bench`, `build`, `lint` targets | `make validate` runs `tests/validate-plugin.sh`; `make check` runs `local-scripts/check-consistency.sh`; `make test` runs both; `make bench` runs `benchmarks/breezing-bench/run.sh`; `make build` runs Go binary build; `make lint` runs residue + skill-audit checks | - | cc:WIP |
+| 53.1 | Create `Makefile` with `validate`, `check`, `test`, `bench`, `build`, `lint` targets | `make validate` runs `tests/validate-plugin.sh`; `make check` runs `local-scripts/check-consistency.sh`; `make test` runs both; `make bench` runs `benchmarks/breezing-bench/run.sh`; `make build` runs Go binary build; `make lint` runs residue + skill-audit checks | - | cc:Done [a4aee1a] |
 | 53.2 | Add `make` usage to CONTRIBUTING.md Testing section | CONTRIBUTING.md references `make test` as the recommended pre-submit check | 53.1 | cc:TODO |
 
 ---

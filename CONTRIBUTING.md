@@ -123,8 +123,8 @@ Use a version bump only when you are intentionally cutting a release.
 
 ### Version Consistency Checks
 
-- **Local (recommended)**: run `./harness/scripts/sync-version.sh check` before committing
-- **CI (recommended)**: run `./tests/validate-plugin.sh` and `./local-scripts/check-consistency.sh` on PRs
+- **Local (recommended)**: run `make version` (or `./harness/scripts/sync-version.sh check`) before committing
+- **CI (recommended)**: run `make test` (or `./tests/validate-plugin.sh` and `./local-scripts/check-consistency.sh`) on PRs
 
 ## CHANGELOG Rules (Required)
 
@@ -181,12 +181,21 @@ Use the following sections for each version entry:
 
 Before submitting:
 
-1. Validate plugin structure and consistency:
+1. Validate plugin structure and consistency (recommended: use the Makefile):
+
+   ```bash
+   make test        # validate-plugin.sh + check-consistency.sh
+   make lint        # residue scan + skill description audit
+   ```
+
+   Or run the individual scripts directly:
 
    ```bash
    ./tests/validate-plugin.sh
    ./local-scripts/check-consistency.sh
    ```
+
+   Other useful targets: `make build` (Go binary), `make bench` (breezing benchmark), `make version` (VERSION sync check). Run `make` with no arguments to see all targets.
 
 2. (Recommended) Enable pre-commit hooks (keep release metadata in sync without auto-bumping):
 
