@@ -10,12 +10,14 @@ import (
 	"github.com/tim-hub/powerball-harness/go/pkg/config"
 )
 
+// outputDir is the plugin subfolder that receives generated files.
+const outputDir = "harness"
+
 // runSync implements the "harness sync" subcommand.
 //
 // It reads harness.toml from the project root, then generates:
-//   - .claude-plugin/plugin.json   ← [project] section
-//   - .claude-plugin/hooks.json    ← copied from hooks/hooks.json, or skipped if that file is a symlink
-//   - .claude-plugin/settings.json ← [agent] + [env] + [safety.permissions] + [safety.sandbox]
+//   - harness/hooks/hooks.json ← copied from hooks/hooks.json
+//   - harness/settings.json    ← [agent] + [env] + [safety.permissions] + [safety.sandbox]
 //
 // The project root is determined by the first argument (or cwd if omitted).
 // Exit 0 on success, exit 1 on any error.
@@ -37,10 +39,6 @@ func runSync(args []string) {
 
 	// Run each generator; collect errors to report all at once
 	var errs []error
-
-	if err := generatePluginJSON(projectRoot, cfg); err != nil {
-		errs = append(errs, fmt.Errorf("plugin.json: %w", err))
-	}
 
 	if err := syncHooksJSON(projectRoot); err != nil {
 		errs = append(errs, fmt.Errorf("hooks.json sync: %w", err))
@@ -84,97 +82,21 @@ func resolveProjectRoot(args []string) (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// plugin.json
-// ---------------------------------------------------------------------------
-
-// pluginJSON is the schema for .claude-plugin/plugin.json.
-// Fields that are not set in harness.toml are omitted from the output.
-type pluginJSON struct {
-	Name         string      `json:"name,omitempty"`
-	Version      string      `json:"version,omitempty"`
-	Description  string      `json:"description,omitempty"`
-	Author       interface{} `json:"author,omitempty"`
-	Homepage     string      `json:"homepage,omitempty"`
-	Repository   string      `json:"repository,omitempty"`
-	License      string      `json:"license,omitempty"`
-	Keywords     []string    `json:"keywords,omitempty"`
-	// Skills declares the skill discovery roots per CC 2.1.94+.
-	// With ["./"], CC uses each SKILL.md frontmatter `name` field as the
-	// invocation name, allowing directory name and invocation name to differ.
-	Skills       []string    `json:"skills,omitempty"`
-	OutputStyles string      `json:"outputStyles,omitempty"`
-}
-
-func generatePluginJSON(projectRoot string, cfg *config.Config) error {
-	// Author: preserve object form if URL is set, otherwise use string
-	var author interface{}
-	name := cfg.Project.AuthorName()
-	url := cfg.Project.AuthorURL()
-	if name != "" {
-		if url != "" {
-			author = map[string]string{"name": name, "url": url}
-		} else {
-			author = name
-		}
-	}
-
-	p := pluginJSON{
-		Name:         cfg.Project.Name,
-		Version:      cfg.Project.Version,
-		Description:  cfg.Project.Description,
-		Author:       author,
-		Homepage:     cfg.Project.Homepage,
-		Repository:   cfg.Project.Repository,
-		License:      cfg.Project.License,
-		Keywords:     cfg.Project.Keywords,
-		// Always emit ["./"] so CC 2.1.94+ uses frontmatter `name` fields
-		// for skill invocation. This enables short-name aliases like
-		// HAR:plan while keeping directory names unchanged.
-		Skills:       []string{"./"},
-		OutputStyles: cfg.Project.OutputStyles,
-	}
-
-	data, err := marshalPretty(p)
-	if err != nil {
-		return err
-	}
-
-	dest := filepath.Join(projectRoot, ".claude-plugin", "plugin.json")
-	if err := writeFile(dest, data); err != nil {
-		return err
-	}
-
-	fmt.Printf("  wrote %s\n", rel(projectRoot, dest))
-	return nil
-}
-
-// ---------------------------------------------------------------------------
 // hooks.json sync
 // ---------------------------------------------------------------------------
 
-// syncHooksJSON ensures hooks/hooks.json and .claude-plugin/hooks.json are in sync.
-//
-// If hooks/hooks.json is a symlink (the preferred setup, pointing to
-// ../.claude-plugin/hooks.json), the two files are always identical by
-// definition and no copy is needed. Otherwise, hooks/hooks.json is treated as
-// the source and copied to .claude-plugin/hooks.json.
+// syncHooksJSON copies hooks/hooks.json → harness/hooks/hooks.json.
+// os.ReadFile follows symlinks, so this works whether hooks/hooks.json is a
+// real file or a symlink (as set up in Phase 49).
 func syncHooksJSON(projectRoot string) error {
 	src := filepath.Join(projectRoot, "hooks", "hooks.json")
-	dst := filepath.Join(projectRoot, ".claude-plugin", "hooks.json")
-
-	// If hooks/hooks.json is a symlink it points directly to the destination,
-	// so they are always in sync — nothing to do.
-	if fi, err := os.Lstat(src); err == nil && fi.Mode()&os.ModeSymlink != 0 {
-		fmt.Printf("  skipped %s (symlinked to %s)\n", rel(projectRoot, src), rel(projectRoot, dst))
-		return nil
-	}
+	dst := filepath.Join(projectRoot, outputDir, "hooks", "hooks.json")
 
 	data, err := os.ReadFile(src)
 	if err != nil {
 		return fmt.Errorf("read %s: %w", src, err)
 	}
 
-	// Validate that the source is valid JSON before copying
 	if !json.Valid(data) {
 		return fmt.Errorf("%s is not valid JSON", src)
 	}
@@ -191,7 +113,7 @@ func syncHooksJSON(projectRoot string) error {
 // settings.json
 // ---------------------------------------------------------------------------
 
-// settingsJSON mirrors the schema of .claude-plugin/settings.json.
+// settingsJSON mirrors the schema of harness/settings.json.
 // Only non-empty / non-nil fields are included in the output so that
 // a minimal harness.toml produces a minimal settings.json.
 type settingsJSON struct {
@@ -261,7 +183,7 @@ func generateSettingsJSON(projectRoot string, cfg *config.Config) error {
 		return err
 	}
 
-	dest := filepath.Join(projectRoot, ".claude-plugin", "settings.json")
+	dest := filepath.Join(projectRoot, outputDir, "settings.json")
 	if err := writeFile(dest, data); err != nil {
 		return err
 	}
@@ -275,7 +197,7 @@ func generateSettingsJSON(projectRoot string, cfg *config.Config) error {
 // ---------------------------------------------------------------------------
 
 // marshalPretty marshals v to indented JSON with a trailing newline.
-func marshalPretty(v interface{}) ([]byte, error) {
+func marshalPretty(v any) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	enc.SetIndent("", "  ")
