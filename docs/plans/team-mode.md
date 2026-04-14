@@ -11,7 +11,7 @@
 
 ## Conversion Rules
 
-`scripts/plans-issue-bridge.sh` expands each task in Plans.md into the following:
+`harness/scripts/plans-issue-bridge.sh` expands each task in Plans.md into the following:
 
 - tracking issue
   - Parent issue for aggregation
@@ -23,7 +23,7 @@
 ## Example
 
 ```bash
-scripts/plans-issue-bridge.sh --team-mode --plans Plans.md
+harness/scripts/plans-issue-bridge.sh --team-mode --plans Plans.md
 ```
 
 Specifying `--format markdown` switches to a human-readable dry-run.

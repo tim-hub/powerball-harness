@@ -1,6 +1,6 @@
 # Release Preflight
 
-`scripts/release-preflight.sh` is a read-only check to proactively determine "is it safe to release now" before going public.
+`harness/scripts/release-preflight.sh` is a read-only check to proactively determine "is it safe to release now" before going public.
 It assumes vendor-neutrality, so it does not depend on AWS or any specific deployment platform.
 
 ## What It Checks
@@ -9,14 +9,14 @@ It assumes vendor-neutrality, so it does not depend on AWS or any specific deplo
 - Whether `CHANGELOG.md` contains `[Unreleased]`
 - Whether `.env.example` and `.env` are significantly out of sync. For repos without `.env`, it only warns to avoid blocking managed-secrets workflows
 - Whether existing `healthcheck` / `preflight` commands pass
-- Whether residuals like `mockData` / `dummy` / `localhost` / `TODO` / `FIXME` remain in shipped surfaces (`agents/` / `core/` / `hooks/` / `scripts/`)
+- Whether residuals like `mockData` / `dummy` / `localhost` / `TODO` / `FIXME` remain in shipped surfaces (`agents/` / `core/` / `hooks/` / `harness/scripts/`)
 - Whether the latest CI status is passing, when retrievable
 
 ## Usage
 
 ```bash
-scripts/release-preflight.sh
-scripts/release-preflight.sh --root /path/to/other/repo
+harness/scripts/release-preflight.sh
+harness/scripts/release-preflight.sh --root /path/to/other/repo
 ```
 
 ## Environment Variables

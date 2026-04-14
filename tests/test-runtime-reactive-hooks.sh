@@ -2,11 +2,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+HARNESS_DIR="${ROOT_DIR}/harness"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "${TMP_DIR}"' EXIT
 
 mkdir -p "${TMP_DIR}/.claude/state"
-SCRIPT="${ROOT_DIR}/scripts/hook-handlers/runtime-reactive.sh"
+SCRIPT="${HARNESS_DIR}/scripts/hook-handlers/runtime-reactive.sh"
 
 task_output="$(
   printf '%s' '{"hook_event_name":"TaskCreated","session_id":"sess-1","cwd":"'"${TMP_DIR}"'","task_id":"task-7","task_title":"Implement sync"}' \

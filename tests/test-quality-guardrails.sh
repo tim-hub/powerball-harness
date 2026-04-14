@@ -109,54 +109,54 @@ echo ""
 
 # Check existence of test quality rule template
 assert_file_exists \
-  "templates/rules/test-quality.md.template" \
+  "harness/templates/rules/test-quality.md.template" \
   "test-quality.md.template exists"
 
 # Check existence of implementation quality rule template
 assert_file_exists \
-  "templates/rules/implementation-quality.md.template" \
+  "harness/templates/rules/implementation-quality.md.template" \
   "implementation-quality.md.template exists"
 
 # Required content in test-quality.md
 assert_file_contains \
-  "templates/rules/test-quality.md.template" \
+  "harness/templates/rules/test-quality.md.template" \
   "it.skip|test.skip" \
   "test-quality.md contains skip prohibition pattern"
 
 assert_file_contains \
-  "templates/rules/test-quality.md.template" \
+  "harness/templates/rules/test-quality.md.template" \
   "eslint|lint|disable" \
   "test-quality.md contains lint configuration tampering prohibition"
 
 assert_file_contains \
-  "templates/rules/test-quality.md.template" \
+  "harness/templates/rules/test-quality.md.template" \
   "_harness_template" \
   "test-quality.md contains frontmatter metadata"
 
 # Required content in implementation-quality.md
 assert_file_contains \
-  "templates/rules/implementation-quality.md.template" \
+  "harness/templates/rules/implementation-quality.md.template" \
   "ハードコード|hardcode" \
   "implementation-quality.md contains hardcoding prohibition"
 
 assert_file_contains \
-  "templates/rules/implementation-quality.md.template" \
+  "harness/templates/rules/implementation-quality.md.template" \
   "スタブ|stub" \
   "implementation-quality.md contains stub prohibition"
 
 assert_file_contains \
-  "templates/rules/implementation-quality.md.template" \
+  "harness/templates/rules/implementation-quality.md.template" \
   "_harness_template" \
   "implementation-quality.md contains frontmatter metadata"
 
 # Registration in template-registry.json
 assert_json_key_exists \
-  "templates/template-registry.json" \
+  "harness/templates/template-registry.json" \
   '.templates["rules/test-quality.md.template"]' \
   "test-quality.md is registered in template-registry.json"
 
 assert_json_key_exists \
-  "templates/template-registry.json" \
+  "harness/templates/template-registry.json" \
   '.templates["rules/implementation-quality.md.template"]' \
   "implementation-quality.md is registered in template-registry.json"
 
@@ -170,33 +170,33 @@ echo ""
 
 # impl skill quality guardrails
 assert_file_contains \
-  "skills/impl/SKILL.md" \
+  "harness/skills/impl/SKILL.md" \
   "品質ガードレール|Quality Guardrails" \
   "impl/SKILL.md has quality guardrail section"
 
 assert_file_contains \
-  "skills/impl/SKILL.md" \
+  "harness/skills/impl/SKILL.md" \
   "禁止パターン|Prohibited|禁止" \
   "impl/SKILL.md has prohibited patterns defined"
 
 assert_file_contains \
-  "skills/impl/SKILL.md" \
+  "harness/skills/impl/SKILL.md" \
   "purpose-driven|Purpose-Driven|目的駆動" \
   "impl/SKILL.md has Purpose-Driven Implementation principle"
 
 # verify skill quality guardrails
 assert_file_contains \
-  "skills/verify/SKILL.md" \
+  "harness/skills/verify/SKILL.md" \
   "品質ガードレール|Quality Guardrails" \
   "verify/SKILL.md has quality guardrail section"
 
 assert_file_contains \
-  "skills/verify/SKILL.md" \
+  "harness/skills/verify/SKILL.md" \
   "改ざん禁止|Tampering Prohibited|禁止" \
   "verify/SKILL.md has tampering prohibition patterns defined"
 
 assert_file_contains \
-  "skills/verify/SKILL.md" \
+  "harness/skills/verify/SKILL.md" \
   "承認リクエスト|Approval Request" \
   "verify/SKILL.md has approval request format"
 
@@ -210,7 +210,7 @@ echo ""
 
 # harness-init quality rule deployment configuration (after skill migration)
 assert_file_contains \
-  "skills/harness-init/SKILL.md" \
+  "harness/skills/harness-init/SKILL.md" \
   "setup|Setup|Environment" \
   "harness-init contains setup functionality"
 

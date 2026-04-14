@@ -26,7 +26,7 @@ cat > "${TMP_DIR}/runtime-contract.json" <<'EOF'
 EOF
 
 OUTPUT="${TMP_DIR}/runtime-review.json"
-(cd "$TMP_DIR" && "${PROJECT_ROOT}/scripts/run-contract-review-checks.sh" "${TMP_DIR}/runtime-contract.json" "$OUTPUT" >/dev/null)
+(cd "$TMP_DIR" && "${PROJECT_ROOT}/harness/scripts/run-contract-review-checks.sh" "${TMP_DIR}/runtime-contract.json" "$OUTPUT" >/dev/null)
 
 jq -e '
   .reviewer_profile == "runtime" and
@@ -51,7 +51,7 @@ cat > "${TMP_DIR}/static-contract.json" <<'EOF'
 EOF
 
 STATIC_OUTPUT="${TMP_DIR}/static-review.json"
-(cd "$TMP_DIR" && "${PROJECT_ROOT}/scripts/run-contract-review-checks.sh" "${TMP_DIR}/static-contract.json" "$STATIC_OUTPUT" >/dev/null)
+(cd "$TMP_DIR" && "${PROJECT_ROOT}/harness/scripts/run-contract-review-checks.sh" "${TMP_DIR}/static-contract.json" "$STATIC_OUTPUT" >/dev/null)
 
 jq -e '
   .reviewer_profile == "static" and

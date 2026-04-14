@@ -2,10 +2,11 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+HARNESS_DIR="${ROOT_DIR}/harness"
 TMP_HOME="$(mktemp -d)"
 trap 'rm -rf "${TMP_HOME}"' EXIT
 
-SOURCE_VERSION="$(tr -d '[:space:]' < "${ROOT_DIR}/VERSION")"
+SOURCE_VERSION="$(tr -d '[:space:]' < "${HARNESS_DIR}/VERSION")"
 CACHE_DIR="${TMP_HOME}/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness/${SOURCE_VERSION}"
 mkdir -p "${CACHE_DIR}"
 
@@ -13,7 +14,7 @@ mkdir -p "${CACHE_DIR}"
 # as the plugin root correctly resolves the sync source.
 printf 'stale\n' > "${CACHE_DIR}/VERSION"
 
-HOME="${TMP_HOME}" CLAUDE_PLUGIN_ROOT="${ROOT_DIR}" bash "${ROOT_DIR}/scripts/sync-plugin-cache.sh" >/dev/null 2>&1
+HOME="${TMP_HOME}" CLAUDE_PLUGIN_ROOT="${HARNESS_DIR}" bash "${HARNESS_DIR}/scripts/sync-plugin-cache.sh" >/dev/null 2>&1
 
 required_cached_files=(
   "${CACHE_DIR}/scripts/lib/harness-mem-bridge.sh"
@@ -24,8 +25,7 @@ required_cached_files=(
   "${CACHE_DIR}/scripts/hook-handlers/memory-stop.sh"
   "${CACHE_DIR}/scripts/hook-handlers/runtime-reactive.sh"
   "${CACHE_DIR}/hooks/hooks.json"
-  "${CACHE_DIR}/.claude-plugin/hooks.json"
-  "${CACHE_DIR}/.claude-plugin/settings.json"
+  "${CACHE_DIR}/settings.json"
 )
 
 for file in "${required_cached_files[@]}"; do

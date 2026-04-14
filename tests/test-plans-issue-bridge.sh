@@ -23,7 +23,7 @@ cat > "${TMP_DIR}/Plans.md" <<'EOF'
 EOF
 
 JSON_OUTPUT="${TMP_DIR}/bridge.json"
-(cd "$TMP_DIR" && "${PROJECT_ROOT}/scripts/plans-issue-bridge.sh" --plans "${TMP_DIR}/Plans.md" --team-mode --format json --output "${JSON_OUTPUT}" >/dev/null)
+(cd "$TMP_DIR" && "${PROJECT_ROOT}/harness/scripts/plans-issue-bridge.sh" --plans "${TMP_DIR}/Plans.md" --team-mode --format json --output "${JSON_OUTPUT}" >/dev/null)
 
 jq -e '
   .schema_version == "plans-issue-bridge.v1" and
@@ -38,7 +38,7 @@ jq -e '
 ' "${JSON_OUTPUT}" >/dev/null
 
 MARKDOWN_OUTPUT="${TMP_DIR}/bridge.md"
-(cd "$TMP_DIR" && "${PROJECT_ROOT}/scripts/plans-issue-bridge.sh" --plans "${TMP_DIR}/Plans.md" --team-mode --format markdown --output "${MARKDOWN_OUTPUT}" >/dev/null)
+(cd "$TMP_DIR" && "${PROJECT_ROOT}/harness/scripts/plans-issue-bridge.sh" --plans "${TMP_DIR}/Plans.md" --team-mode --format markdown --output "${MARKDOWN_OUTPUT}" >/dev/null)
 
 grep -q "Plans.md issue bridge dry-run" "${MARKDOWN_OUTPUT}"
 grep -q "Team mode: enabled" "${MARKDOWN_OUTPUT}"

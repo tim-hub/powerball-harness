@@ -13,9 +13,10 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-TEMPLATES_DIR="$PLUGIN_ROOT/templates"
+HARNESS_ROOT="$PLUGIN_ROOT/harness"
+TEMPLATES_DIR="$HARNESS_ROOT/templates"
 REGISTRY_FILE="$TEMPLATES_DIR/template-registry.json"
-VERSION_FILE="$PLUGIN_ROOT/VERSION"
+VERSION_FILE="$HARNESS_ROOT/VERSION"
 
 # Color output
 RED='\033[0;31m'
@@ -251,7 +252,7 @@ MDEOF
   rm -f "$old_file"
 
   # Check if template-tracker.sh exists and is executable
-  local tracker_script="$PLUGIN_ROOT/scripts/template-tracker.sh"
+  local tracker_script="$HARNESS_ROOT/scripts/template-tracker.sh"
   if [ -f "$tracker_script" ] && [ -x "$tracker_script" ]; then
     log_pass "Backward compatibility: template-tracker.sh exists and is executable"
   else

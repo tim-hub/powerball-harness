@@ -9,7 +9,8 @@ set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
-SESSION_STATE_SCRIPT="$PLUGIN_ROOT/scripts/session-state.sh"
+HARNESS_ROOT="$PLUGIN_ROOT/harness"
+SESSION_STATE_SCRIPT="$HARNESS_ROOT/scripts/session-state.sh"
 
 # Temporary directory for tests
 TEST_DIR=$(mktemp -d)

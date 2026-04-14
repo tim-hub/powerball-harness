@@ -6,7 +6,7 @@
 ## Development Rules
 
 - **Commits**: Follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:` / `fix:` / `docs:` / `refactor:` / `test:` / `chore:`)
-- **Versioning**: Keep `VERSION` and `.claude-plugin/marketplace.json` in sync. Leave both unchanged in normal PRs; use `./scripts/sync-version.sh bump` only when cutting a release
+- **Versioning**: Keep `harness/VERSION` and `.claude-plugin/marketplace.json` in sync. Leave both unchanged in normal PRs; use `./harness/scripts/sync-version.sh bump` only when cutting a release
 - **CHANGELOG**: Record changes under `[Unreleased]` in Before/After format. Details: [.claude/rules/changelog.md](.claude/rules/changelog.md)
 - **Code style**: Clear names, comments for complex logic, single-responsibility skills/agents
 - **Test tampering**: Absolutely prohibited. Details: [.claude/rules/test-quality.md](.claude/rules/test-quality.md)

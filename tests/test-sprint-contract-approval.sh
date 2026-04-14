@@ -14,21 +14,21 @@ cat > "${TMP_DIR}/Plans.md" <<'EOF'
 EOF
 
 CONTRACT_PATH="${TMP_DIR}/contract.json"
-"${PROJECT_ROOT}/scripts/generate-sprint-contract.sh" "32.1.1" "${TMP_DIR}/Plans.md" "$CONTRACT_PATH" >/dev/null
+"${PROJECT_ROOT}/harness/scripts/generate-sprint-contract.sh" "32.1.1" "${TMP_DIR}/Plans.md" "$CONTRACT_PATH" >/dev/null
 
-if "${PROJECT_ROOT}/scripts/ensure-sprint-contract-ready.sh" "$CONTRACT_PATH" >/dev/null 2>&1; then
+if "${PROJECT_ROOT}/harness/scripts/ensure-sprint-contract-ready.sh" "$CONTRACT_PATH" >/dev/null 2>&1; then
   echo "contract should fail before approval"
   exit 1
 fi
 
-"${PROJECT_ROOT}/scripts/enrich-sprint-contract.sh" "$CONTRACT_PATH" \
+"${PROJECT_ROOT}/harness/scripts/enrich-sprint-contract.sh" "$CONTRACT_PATH" \
   --check "Re-verify DoD from reviewer perspective" \
   --non-goal "UI polish is out of scope this time" \
   --risk "needs-spike" \
   --note "reviewer checked runtime path" \
   --approve >/dev/null
 
-"${PROJECT_ROOT}/scripts/ensure-sprint-contract-ready.sh" "$CONTRACT_PATH" >/dev/null
+"${PROJECT_ROOT}/harness/scripts/ensure-sprint-contract-ready.sh" "$CONTRACT_PATH" >/dev/null
 
 jq -e '
   .review.status == "approved" and

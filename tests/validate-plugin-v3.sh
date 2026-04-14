@@ -11,6 +11,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
+HARNESS_ROOT="$PLUGIN_ROOT/harness"
 
 echo "=========================================="
 echo "Claude Harness v3 — Plugin validation tests"
@@ -67,7 +68,7 @@ V3_SKILLS=(harness-plan harness-work harness-review harness-release harness-setu
 AUX_V3_SKILLS=(harness-sync)
 
 for skill in "${V3_SKILLS[@]}"; do
-  skill_dir="$PLUGIN_ROOT/skills/$skill"
+  skill_dir="$HARNESS_ROOT/skills/$skill"
   skill_md="$skill_dir/SKILL.md"
 
   if [ ! -d "$skill_dir" ]; then
@@ -92,7 +93,7 @@ echo ""
 echo "🧭 [2.5/6] Auxiliary workflow surface check..."
 
 for skill in "${AUX_V3_SKILLS[@]}"; do
-  skill_dir="$PLUGIN_ROOT/skills/$skill"
+  skill_dir="$HARNESS_ROOT/skills/$skill"
   skill_md="$skill_dir/SKILL.md"
 
   if [ ! -d "$skill_dir" ]; then
@@ -130,7 +131,7 @@ for mirror_dir in "${MIRRORS[@]}"; do
   fi
 
   for skill in "${V3_SKILLS[@]}"; do
-    source_dir="$PLUGIN_ROOT/skills/$skill"
+    source_dir="$HARNESS_ROOT/skills/$skill"
     mirror_path="$PLUGIN_ROOT/$mirror_dir/$skill"
 
     if [ ! -d "$mirror_path" ]; then
@@ -151,7 +152,7 @@ for mirror_dir in "${MIRRORS[@]}"; do
   done
 
   for skill in "${AUX_V3_SKILLS[@]}"; do
-    source_dir="$PLUGIN_ROOT/skills/$skill"
+    source_dir="$HARNESS_ROOT/skills/$skill"
     mirror_path="$PLUGIN_ROOT/$mirror_dir/$skill"
 
     if [ ! -d "$mirror_path" ]; then
@@ -181,7 +182,7 @@ echo "🤖 [4/6] 3-agent check..."
 V3_AGENTS=(worker reviewer scaffolder)
 
 for agent in "${V3_AGENTS[@]}"; do
-  agent_file="$PLUGIN_ROOT/agents/$agent.md"
+  agent_file="$HARNESS_ROOT/agents/$agent.md"
   if [ -f "$agent_file" ]; then
     # Check name: field
     if grep -q "^name: $agent$" "$agent_file"; then
@@ -195,7 +196,7 @@ for agent in "${V3_AGENTS[@]}"; do
 done
 
 # team-composition.md
-if [ -f "$PLUGIN_ROOT/agents/team-composition.md" ]; then
+if [ -f "$HARNESS_ROOT/agents/team-composition.md" ]; then
   pass_test "agents/team-composition.md"
 else
   warn_test "agents/team-composition.md (not found)"
@@ -269,7 +270,7 @@ else
   fail_test "docs/hardening-parity.md (not found)"
 fi
 
-if [ -f "$PLUGIN_ROOT/scripts/lib/codex-hardening-contract.txt" ] && grep -q 'HARNESS_HARDENING_CONTRACT_V1' "$PLUGIN_ROOT/scripts/lib/codex-hardening-contract.txt"; then
+if [ -f "$HARNESS_ROOT/scripts/lib/codex-hardening-contract.txt" ] && grep -q 'HARNESS_HARDENING_CONTRACT_V1' "$HARNESS_ROOT/scripts/lib/codex-hardening-contract.txt"; then
   pass_test "scripts/lib/codex-hardening-contract.txt"
 else
   fail_test "scripts/lib/codex-hardening-contract.txt (not found)"
@@ -294,19 +295,19 @@ do
   fi
 done
 
-if grep -q 'codex-hardening-contract.txt' "$PLUGIN_ROOT/scripts/codex/codex-exec-wrapper.sh"; then
+if grep -q 'codex-hardening-contract.txt' "$HARNESS_ROOT/scripts/codex/codex-exec-wrapper.sh"; then
   pass_test "codex-exec-wrapper.sh hardening contract template"
 else
   fail_test "codex-exec-wrapper.sh does not reference the hardening contract template"
 fi
 
-if grep -q 'codex-hardening-contract.txt' "$PLUGIN_ROOT/scripts/codex-worker-engine.sh"; then
+if grep -q 'codex-hardening-contract.txt' "$HARNESS_ROOT/scripts/codex-worker-engine.sh"; then
   pass_test "codex-worker-engine.sh hardening contract template"
 else
   fail_test "codex-worker-engine.sh does not reference the hardening contract template"
 fi
 
-if grep -q 'gate_hardening()' "$PLUGIN_ROOT/scripts/codex-worker-quality-gate.sh"; then
+if grep -q 'gate_hardening()' "$HARNESS_ROOT/scripts/codex-worker-quality-gate.sh"; then
   pass_test "codex-worker-quality-gate.sh hardening gate"
 else
   fail_test "codex-worker-quality-gate.sh has no hardening gate"

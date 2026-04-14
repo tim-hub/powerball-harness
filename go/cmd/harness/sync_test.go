@@ -12,26 +12,19 @@ import (
 // ---------------------------------------------------------------------------
 
 // setupProjectDir creates a temporary project root with:
-//   - harness.toml (provided content)
-//   - hooks/hooks.json (minimal valid JSON, enough to exercise the copy path)
+//   - harness/harness.toml (provided content)
 func setupProjectDir(t *testing.T, tomlContent string) string {
 	t.Helper()
 
 	dir := t.TempDir()
 
-	// Write harness.toml
-	if err := os.WriteFile(filepath.Join(dir, "harness.toml"), []byte(tomlContent), 0o644); err != nil {
-		t.Fatalf("write harness.toml: %v", err)
+	// Write harness/harness.toml
+	harnessDir := filepath.Join(dir, "harness")
+	if err := os.MkdirAll(harnessDir, 0o755); err != nil {
+		t.Fatalf("mkdir harness: %v", err)
 	}
-
-	// Write hooks/hooks.json — minimal but valid JSON
-	hooksDir := filepath.Join(dir, "hooks")
-	if err := os.MkdirAll(hooksDir, 0o755); err != nil {
-		t.Fatalf("mkdir hooks: %v", err)
-	}
-	minimalHooks := `{"description":"test hooks","hooks":{"PreToolUse":[]}}`
-	if err := os.WriteFile(filepath.Join(hooksDir, "hooks.json"), []byte(minimalHooks), 0o644); err != nil {
-		t.Fatalf("write hooks/hooks.json: %v", err)
+	if err := os.WriteFile(filepath.Join(harnessDir, "harness.toml"), []byte(tomlContent), 0o644); err != nil {
+		t.Fatalf("write harness/harness.toml: %v", err)
 	}
 
 	return dir
@@ -163,25 +156,6 @@ func TestSync_GeneratesSettingsJSON(t *testing.T) {
 	}
 	if len(denyReadRaw) != 3 {
 		t.Errorf("sandbox.filesystem.denyRead len = %d, want 3", len(denyReadRaw))
-	}
-}
-
-func TestSync_CopiesHooksJSON(t *testing.T) {
-	dir := setupProjectDir(t, fullTOML)
-	runSync([]string{dir})
-
-	// Source and generated file must exist and have identical content
-	srcData, err := os.ReadFile(filepath.Join(dir, "hooks", "hooks.json"))
-	if err != nil {
-		t.Fatalf("read hooks/hooks.json: %v", err)
-	}
-	dstData, err := os.ReadFile(filepath.Join(dir, "harness", "hooks", "hooks.json"))
-	if err != nil {
-		t.Fatalf("read harness/hooks/hooks.json: %v", err)
-	}
-
-	if string(srcData) != string(dstData) {
-		t.Errorf("hooks.json files differ:\nsrc: %s\ndst: %s", srcData, dstData)
 	}
 }
 

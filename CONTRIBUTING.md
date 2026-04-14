@@ -51,22 +51,29 @@ Past commits without prefixes are not rewritten — the rule applies going forwa
 ```
 powerball-harness/
 ├── .claude-plugin/
-│   ├── plugin.json      # Plugin manifest (optional)
-│   └── marketplace.json # Marketplace config
-├── skills/              # Skills (primary - v2.17.0+)
-├── agents/              # Subagents
-├── hooks/               # Lifecycle hooks
-├── templates/           # Template files
+│   └── marketplace.json # Marketplace config (source: ./harness/)
+├── harness/             # Harness plugin root
+│   ├── skills/          # Skills (primary - v2.17.0+)
+│   ├── agents/          # Subagents
+│   ├── hooks/           # Lifecycle hooks
+│   ├── templates/       # Template files
+│   ├── scripts/         # Shell scripts
+│   ├── output-styles/   # Output style definitions
+│   ├── VERSION          # Plugin version
+│   └── harness.toml     # Plugin TOML config
+├── docs/                # Documentation
+├── go/                  # Go guardrail engine source
+├── tests/               # Validation scripts
 ├── README.md
 ├── LICENSE
 └── CONTRIBUTING.md
 ```
 
-> **Note**: As of v2.17.0, commands have been migrated to skills. Skills are the recommended approach for new functionality.
+> **Note**: As of v2.17.0, commands have been migrated to skills. Skills are the recommended approach for new functionality. As of v4.4.0, all plugin-specific files live under `harness/` to support multi-plugin marketplaces.
 
 ### Adding a New Skill (Recommended)
 
-1. Create `skills/your-skill/SKILL.md` with YAML frontmatter:
+1. Create `harness/skills/your-skill/SKILL.md` with YAML frontmatter:
    ```yaml
    ---
    name: your-skill
@@ -74,12 +81,12 @@ powerball-harness/
    allowed-tools: ["Read", "Write", "Edit", "Bash"]
    ---
    ```
-2. Add supporting files to `skills/your-skill/references/` if needed
+2. Add supporting files to `harness/skills/your-skill/references/` if needed
 3. Update README.md with the new skill
 
 ### Adding a New Agent
 
-1. Create `agents/your-agent.md`
+1. Create `harness/agents/your-agent.md`
 2. Define the agent with YAML frontmatter
 3. Update README.md (recommended)
 
@@ -88,7 +95,7 @@ powerball-harness/
 ## Version Management
 
 Version is defined in two places that must stay in sync:
-- `VERSION` - Source of truth
+- `harness/VERSION` - Source of truth
 - `.claude-plugin/marketplace.json` - Used by plugin system
 
 Normal feature/docs PRs should leave both files unchanged and record user-facing changes in `CHANGELOG.md` under `[Unreleased]`.
@@ -98,24 +105,24 @@ Use a version bump only when you are intentionally cutting a release.
 
 ```bash
 # Check if versions are in sync
-./scripts/sync-version.sh check
+./harness/scripts/sync-version.sh check
 
 # Sync marketplace.json to VERSION
-./scripts/sync-version.sh sync
+./harness/scripts/sync-version.sh sync
 
 # Bump patch version for a release (e.g., 2.0.0 → 2.0.1)
-./scripts/sync-version.sh bump
+./harness/scripts/sync-version.sh bump
 ```
 
 ### Release-only Versioning Policy
 
 - Normal PRs: do not edit `VERSION` or `.claude-plugin/marketplace.json`; add notes under `[Unreleased]`
-- Release work: run `./scripts/sync-version.sh bump`, add a versioned `CHANGELOG.md` entry, then create the tag / GitHub Release
+- Release work: run `./harness/scripts/sync-version.sh bump`, add a versioned `CHANGELOG.md` entry, then create the tag / GitHub Release
 - The repo pre-commit hook only syncs `marketplace.json` to `VERSION` when you intentionally edit release metadata; it does not auto-bump patch versions
 
 ### Version Consistency Checks
 
-- **Local (recommended)**: run `./scripts/sync-version.sh check` before committing
+- **Local (recommended)**: run `./harness/scripts/sync-version.sh check` before committing
 - **CI (recommended)**: run `./tests/validate-plugin.sh` and `./.claude/scripts/check-consistency.sh` on PRs
 
 ## CHANGELOG Rules (Required)
@@ -183,7 +190,7 @@ Before submitting:
 2. (Recommended) Enable pre-commit hooks (keep release metadata in sync without auto-bumping):
 
    ```bash
-   ./scripts/install-git-hooks.sh
+   ./harness/scripts/install-git-hooks.sh
    ```
 
    **Windows users**: Git hooks require [Git for Windows](https://gitforwindows.org/) which includes Git Bash. The hooks run automatically via Git Bash regardless of your shell (PowerShell, CMD, etc.).

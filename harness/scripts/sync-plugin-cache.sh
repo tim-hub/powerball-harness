@@ -40,6 +40,7 @@ sync_file() {
 }
 
 # Critical files to sync to distribution cache
+# (paths are relative to CLAUDE_PLUGIN_ROOT = harness/)
 critical_files=(
   "scripts/lib/harness-mem-bridge.sh"
   "scripts/hook-handlers/memory-bridge.sh"
@@ -50,9 +51,7 @@ critical_files=(
   "scripts/hook-handlers/memory-codex-notify.sh"
   "scripts/hook-handlers/runtime-reactive.sh"
   "hooks/hooks.json"
-  ".claude-plugin/hooks.json"
-  ".claude-plugin/settings.json"
-  ".claude-plugin/plugin.json"
+  "settings.json"
   "VERSION"
 )
 

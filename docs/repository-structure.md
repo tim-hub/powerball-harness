@@ -1,8 +1,13 @@
-- `.claude-plugin/marketplace.json` Plugin manifest
-- `agents/` Sub-agents 
-- `skills/` Skills 
-- `hooks/` Hooks 
-- `scripts/` Shell scripts 
-- `docs/` Documentation 
-- `tests/` Validation
-- `go/` Go guardrail engine (binary downloaded from GitHub Releases; no manual setup needed)
+- `.claude-plugin/marketplace.json` Plugin marketplace manifest
+- `harness/` Harness plugin root (source for Claude Code)
+  - `harness/agents/` Sub-agents
+  - `harness/skills/` Skills
+  - `harness/hooks/` Hooks
+  - `harness/scripts/` Shell scripts
+  - `harness/templates/` Config and rule templates
+  - `harness/output-styles/` Output style definitions
+  - `harness/VERSION` Plugin version
+  - `harness/harness.toml` Plugin TOML config (source for `harness sync`)
+- `docs/` Documentation (including `docs/assets/` for visual assets)
+- `go/` Go guardrail engine (binary built from source via `harness-setup binary`)
+- `tests/` Validation scripts
