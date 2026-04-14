@@ -36,7 +36,7 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, with
 ## How It Works
 
 - Use claude memory to support decisions and patterns, and to maintain a session log of what was done and why
-- Use Plans.md as source of spec to drive implementation.
+- Use Plans.md a very human readable document spec to drive implementation.
 - Use go based engine for hooks to enforce runtime guardrails and autmate tasks.
 - Use `deleted-concepts.yaml` to track and prevent reintroduction of rejected ideas.
 
