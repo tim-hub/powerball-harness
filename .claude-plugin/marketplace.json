@@ -1,6 +1,6 @@
 {
   "name": "powerball-harness-marketplace",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "metadata": {
     "description": "A single-plugin marketplace for distributing and installing powerball-harness"
   },
