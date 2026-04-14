@@ -22,7 +22,7 @@ jobs:
 
       - name: Check release metadata policy
         run: |
-          bash ./scripts/ci/check-version-bump.sh
+          bash ./.claude/scripts/check-version-bump.sh
 
       - name: Install ripgrep
         run: sudo apt-get install -y ripgrep
@@ -33,7 +33,7 @@ jobs:
 
       - name: Check consistency (templates/refs/version/hooks)
         run: |
-          bash ./scripts/ci/check-consistency.sh
+          bash ./.claude/scripts/check-consistency.sh
 
       - name: Validate codex package (multi-agent migration guards)
         run: |

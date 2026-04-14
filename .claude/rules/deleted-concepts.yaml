@@ -46,6 +46,18 @@ deleted_paths:
       - "skills/claude-codex-upstream-update/"  # Upstream update guide (contains historical references)
       - ".claude/rules/migration-policy.md"  # Phase 40 historical description (appendix contains deleted paths)
 
+  - path: "scripts/ci"
+    deleted_in: "v4.1.3"
+    reason: "Phase 45 script reorganization moved CI-only scripts from scripts/ci/ to .claude/scripts/. The directory was emptied and removed."
+    allowlist:
+      - "CHANGELOG.md"
+      - "Plans.md"
+      - ".claude/memory/archive/"
+      - ".claude/worktrees/"
+      - ".claude/state/"
+      - "out/"
+      - "output/"
+
   - path: "core/dist"
     deleted_in: "v4.0.0"
     reason: "TypeScript build artifacts. No longer needed after Go migration"
