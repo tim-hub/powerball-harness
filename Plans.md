@@ -94,6 +94,20 @@ Goal: Create a Makefile at the repo root to surface common dev/CI tasks as simpl
 
 ---
 
+## Phase 54: CI → Makefile — replace direct script calls with make targets
+
+Created: 2026-04-15
+
+Goal: Update `.github/workflows/validate-plugin.yml` to call `make` targets instead of raw script paths. Add missing make targets for CI-only steps (`version-bump`, `codex-test`). Fix stale paths in `compatibility-check.yml`. Do not touch hooks.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 54.1 | Add `version-bump` and `codex-test` targets to Makefile | `make version-bump` runs `local-scripts/check-version-bump.sh`; `make codex-test` runs `tests/test-codex-package.sh` | - | cc:WIP |
+| 54.2 | Update `validate-plugin.yml` to use make targets | Steps use `make version-bump`, `make validate`, `make check`, `make codex-test` instead of `bash ./…` | 54.1 | cc:WIP |
+| 54.3 | Fix stale paths in `compatibility-check.yml` (Phase 52 leftover) | Paths prefixed with `harness/`; workflow triggers updated | - | cc:WIP |
+
+---
+
 ## Future Considerations
 
 (none currently)
