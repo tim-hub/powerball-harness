@@ -2,9 +2,11 @@
 # Verify that structured handoff artifact is shared across pre-compact / post-compact / session start-resume
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TMP_DIR="$(mktemp -d)"
+HARNESS_DIR="${ROOT_DIR}/harness"
+TMP_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"
 trap 'rm -rf "${TMP_DIR}"' EXIT
 
 mkdir -p "${TMP_DIR}/.claude/state"
@@ -14,11 +16,11 @@ git -C "${TMP_DIR}" init -q
 git -C "${TMP_DIR}" config user.name "Harness Test"
 git -C "${TMP_DIR}" config user.email "harness-test@example.com"
 
-cp "${ROOT_DIR}/VERSION" "${TMP_DIR}/VERSION"
-cp "${ROOT_DIR}/scripts/hook-handlers/pre-compact-save.js" "${TMP_DIR}/scripts/hook-handlers/pre-compact-save.js"
-cp "${ROOT_DIR}/scripts/hook-handlers/post-compact.sh" "${TMP_DIR}/scripts/hook-handlers/post-compact.sh"
-cp "${ROOT_DIR}/scripts/session-init.sh" "${TMP_DIR}/scripts/session-init.sh"
-cp "${ROOT_DIR}/scripts/session-resume.sh" "${TMP_DIR}/scripts/session-resume.sh"
+cp "${HARNESS_DIR}/VERSION" "${TMP_DIR}/VERSION"
+cp "${HARNESS_DIR}/scripts/hook-handlers/pre-compact-save.js" "${TMP_DIR}/scripts/hook-handlers/pre-compact-save.js"
+cp "${HARNESS_DIR}/scripts/hook-handlers/post-compact.sh" "${TMP_DIR}/scripts/hook-handlers/post-compact.sh"
+cp "${HARNESS_DIR}/scripts/session-init.sh" "${TMP_DIR}/scripts/session-init.sh"
+cp "${HARNESS_DIR}/scripts/session-resume.sh" "${TMP_DIR}/scripts/session-resume.sh"
 
 cat > "${TMP_DIR}/Plans.md" <<'EOF'
 | Task | Content | DoD | Depends | Status |

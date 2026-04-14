@@ -1,10 +1,9 @@
 #!/bin/bash
 # test-hooks-sync.sh
-# Validates synchronization between hooks/hooks.json and .claude-plugin/hooks.json
-#
-# TDD: Phase 7 test cases
+# Validates hooks.json structure and content (Phase 52+: source at harness/hooks/hooks.json)
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -36,73 +35,39 @@ run_test() {
   fi
 }
 
-# ==================================================
-# Test 1: Do both files exist?
-# ==================================================
-test_both_files_exist() {
-  local hooks_file="$PROJECT_ROOT/hooks/hooks.json"
-  local plugin_hooks_file="$PROJECT_ROOT/.claude-plugin/hooks.json"
+HOOKS_FILE="$PROJECT_ROOT/harness/hooks/hooks.json"
 
-  if [ ! -f "$hooks_file" ]; then
-    echo "    Error: hooks/hooks.json not found"
+# ==================================================
+# Test 1: Does harness/hooks/hooks.json exist?
+# ==================================================
+test_hooks_file_exists() {
+  if [ ! -f "$HOOKS_FILE" ]; then
+    echo "    Error: harness/hooks/hooks.json not found"
     return 1
   fi
-
-  if [ ! -f "$plugin_hooks_file" ]; then
-    echo "    Error: .claude-plugin/hooks.json not found"
-    return 1
-  fi
-
   return 0
 }
 
 # ==================================================
-# Test 2: Are both files identical in content?
-# ==================================================
-test_files_identical() {
-  local hooks_file="$PROJECT_ROOT/hooks/hooks.json"
-  local plugin_hooks_file="$PROJECT_ROOT/.claude-plugin/hooks.json"
-
-  if diff -q "$hooks_file" "$plugin_hooks_file" > /dev/null 2>&1; then
-    return 0
-  else
-    echo "    Error: Files are not identical"
-    echo "    Run: ./scripts/sync-plugin-cache.sh to sync"
-    return 1
-  fi
-}
-
-# ==================================================
-# Test 3: Is the JSON valid?
+# Test 2: Is the JSON valid?
 # ==================================================
 test_valid_json() {
-  local hooks_file="$PROJECT_ROOT/hooks/hooks.json"
-  local plugin_hooks_file="$PROJECT_ROOT/.claude-plugin/hooks.json"
-
-  if ! jq empty "$hooks_file" 2>/dev/null; then
-    echo "    Error: hooks/hooks.json is not valid JSON"
+  if ! jq empty "$HOOKS_FILE" 2>/dev/null; then
+    echo "    Error: harness/hooks/hooks.json is not valid JSON"
     return 1
   fi
-
-  if ! jq empty "$plugin_hooks_file" 2>/dev/null; then
-    echo "    Error: .claude-plugin/hooks.json is not valid JSON"
-    return 1
-  fi
-
   return 0
 }
 
 # ==================================================
-# Test 4: Do required hook events exist?
+# Test 3: Do required hook events exist?
 # ==================================================
 test_required_hook_events() {
-  local hooks_file="$PROJECT_ROOT/hooks/hooks.json"
-
   local required_events=("PreToolUse" "SessionStart" "Stop" "PostToolUse")
   local missing=""
 
   for event in "${required_events[@]}"; do
-    if ! jq -e ".hooks.$event" "$hooks_file" > /dev/null 2>&1; then
+    if ! jq -e ".hooks.$event" "$HOOKS_FILE" > /dev/null 2>&1; then
       missing="${missing}$event, "
     fi
   done
@@ -111,23 +76,18 @@ test_required_hook_events() {
     echo "    Error: Missing required events: ${missing%, }"
     return 1
   fi
-
   return 0
 }
 
 # ==================================================
-# Test 5: Are there no forbidden patterns (improper use of type: "prompt")?
+# Test 4: Are there no forbidden patterns (improper use of type: "prompt")?
 # ==================================================
 test_no_forbidden_prompt_usage() {
-  local hooks_file="$PROJECT_ROOT/hooks/hooks.json"
-
-  # prompt type is forbidden in PreToolUse, PostToolUse, UserPromptSubmit
-  # (security reason - D13)
   local forbidden_events=("PreToolUse" "PostToolUse" "UserPromptSubmit")
   local violations=""
 
   for event in "${forbidden_events[@]}"; do
-    if jq -e ".hooks.$event[]?.hooks[]? | select(.type == \"prompt\")" "$hooks_file" > /dev/null 2>&1; then
+    if jq -e ".hooks.$event[]?.hooks[]? | select(.type == \"prompt\")" "$HOOKS_FILE" > /dev/null 2>&1; then
       violations="${violations}$event, "
     fi
   done
@@ -137,7 +97,22 @@ test_no_forbidden_prompt_usage() {
     echo "    (Stop and SubagentStop are the only valid events for prompt type)"
     return 1
   fi
+  return 0
+}
 
+# ==================================================
+# Test 5: Does marketplace.json point to harness/?
+# ==================================================
+test_marketplace_manifest() {
+  local marketplace_file="$PROJECT_ROOT/.claude-plugin/marketplace.json"
+  if [ ! -f "$marketplace_file" ]; then
+    echo "    Error: .claude-plugin/marketplace.json not found"
+    return 1
+  fi
+  if ! jq -e '.plugins[] | select(.source == "./harness/")' "$marketplace_file" > /dev/null 2>&1; then
+    echo "    Error: marketplace.json should have a plugin with source: ./harness/"
+    return 1
+  fi
   return 0
 }
 
@@ -150,17 +125,16 @@ echo " Hooks sync tests"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-# Check if jq is available
 if ! command -v jq &> /dev/null; then
   echo -e "${RED}Error: jq is required but not installed${NC}"
   exit 1
 fi
 
-run_test "Both hooks.json files exist" test_both_files_exist
-run_test "hooks.json content is identical" test_files_identical
+run_test "harness/hooks/hooks.json exists" test_hooks_file_exists
 run_test "JSON is valid" test_valid_json
 run_test "Required hook events exist" test_required_hook_events
 run_test "No forbidden prompt usage" test_no_forbidden_prompt_usage
+run_test "marketplace.json points to harness/" test_marketplace_manifest
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -171,5 +145,4 @@ echo ""
 if [ "$TESTS_FAILED" -gt 0 ]; then
   exit 1
 fi
-
 exit 0

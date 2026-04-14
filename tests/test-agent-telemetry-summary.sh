@@ -2,17 +2,19 @@
 # Verify that agent telemetry is aggregated by role from statusline / trace / usage
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TMP_DIR="$(mktemp -d)"
+HARNESS_DIR="${ROOT_DIR}/harness"
+TMP_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"
 trap 'rm -rf "${TMP_DIR}"' EXIT
 
 mkdir -p "${TMP_DIR}/.claude/state"
 
-cp "${ROOT_DIR}/scripts/statusline-harness.sh" "${TMP_DIR}/statusline-harness.sh"
-cp "${ROOT_DIR}/scripts/emit-agent-trace.js" "${TMP_DIR}/emit-agent-trace.js"
-cp "${ROOT_DIR}/scripts/record-usage.js" "${TMP_DIR}/record-usage.js"
-cp "${ROOT_DIR}/scripts/generate-agent-telemetry.js" "${TMP_DIR}/generate-agent-telemetry.js"
+cp "${HARNESS_DIR}/scripts/statusline-harness.sh" "${TMP_DIR}/statusline-harness.sh"
+cp "${HARNESS_DIR}/scripts/emit-agent-trace.js" "${TMP_DIR}/emit-agent-trace.js"
+cp "${HARNESS_DIR}/scripts/record-usage.js" "${TMP_DIR}/record-usage.js"
+cp "${HARNESS_DIR}/scripts/generate-agent-telemetry.js" "${TMP_DIR}/generate-agent-telemetry.js"
 
 statusline_input_worker='{"model":{"display_name":"Claude"},"context_window":{"used_percentage":42},"cost":{"total_cost_usd":1.25,"total_duration_ms":9000},"output_style":{"name":"default"},"agent":{"name":"worker"},"worktree":{"name":"worker-wt"}}'
 statusline_input_reviewer='{"model":{"display_name":"Claude"},"context_window":{"used_percentage":61},"cost":{"total_cost_usd":0.75,"total_duration_ms":7000},"output_style":{"name":"default"},"agent":{"name":"reviewer"},"worktree":{"name":"reviewer-wt"}}'

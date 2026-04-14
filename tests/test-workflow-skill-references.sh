@@ -17,6 +17,7 @@
 # - Missing skill → FAIL (test failure)
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 # Argument parsing
 STRICT_MODE=false

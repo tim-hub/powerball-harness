@@ -3,7 +3,7 @@ description: Plans.md task management rules (applied only when editing Plans.md)
 paths:
   - "**/Plans.md"
 _harness_template: "rules/plans-management.md.template"
-_harness_version: "2.5.27"
+_harness_version: "4.3.0"
 ---
 
 # Plans.md Management Rules

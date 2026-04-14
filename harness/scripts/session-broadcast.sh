@@ -108,7 +108,7 @@ main() {
     local msg_count=$(grep -c "^## " "$BROADCAST_FILE" 2>/dev/null || echo "0")
     if [ "$msg_count" -gt "$MAX_MESSAGES" ]; then
       # Retain only the latest MAX_MESSAGES entries
-      local temp_file=$(mktemp)
+      local temp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
       TEMP_FILES+=("$temp_file")
       local skip_count=$((msg_count - MAX_MESSAGES))
       awk -v skip="$skip_count" '

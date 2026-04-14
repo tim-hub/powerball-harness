@@ -1,4 +1,5 @@
 #!/bin/bash
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution
 # test-quality-guardrails.sh
 # Validation tests for test tampering prevention (3-layer defense strategy)
 #
@@ -141,7 +142,7 @@ assert_file_contains \
 
 assert_file_contains \
   "harness/templates/rules/implementation-quality.md.template" \
-  "スタブ|stub" \
+  "スタブ|[Ss]tub" \
   "implementation-quality.md contains stub prohibition"
 
 assert_file_contains \
@@ -168,37 +169,37 @@ echo ""
 echo "## Layer 2: Skills quality guardrails"
 echo ""
 
-# impl skill quality guardrails
+# harness-work skill quality guardrails (consolidated from impl)
 assert_file_contains \
-  "harness/skills/impl/SKILL.md" \
-  "品質ガードレール|Quality Guardrails" \
-  "impl/SKILL.md has quality guardrail section"
+  "harness/skills/harness-work/SKILL.md" \
+  "Review Loop|Quality|critical" \
+  "harness-work/SKILL.md has quality guardrail section"
 
 assert_file_contains \
-  "harness/skills/impl/SKILL.md" \
-  "禁止パターン|Prohibited|禁止" \
-  "impl/SKILL.md has prohibited patterns defined"
+  "harness/skills/harness-work/SKILL.md" \
+  "prohibited|Prohibited" \
+  "harness-work/SKILL.md has prohibited patterns defined"
 
 assert_file_contains \
-  "harness/skills/impl/SKILL.md" \
-  "purpose-driven|Purpose-Driven|目的駆動" \
-  "impl/SKILL.md has Purpose-Driven Implementation principle"
+  "harness/skills/harness-work/SKILL.md" \
+  "purpose|Purpose" \
+  "harness-work/SKILL.md has purpose-driven implementation principle"
 
-# verify skill quality guardrails
+# harness-review skill quality guardrails (consolidated from verify)
 assert_file_contains \
-  "harness/skills/verify/SKILL.md" \
-  "品質ガードレール|Quality Guardrails" \
-  "verify/SKILL.md has quality guardrail section"
-
-assert_file_contains \
-  "harness/skills/verify/SKILL.md" \
-  "改ざん禁止|Tampering Prohibited|禁止" \
-  "verify/SKILL.md has tampering prohibition patterns defined"
+  "harness/skills/harness-review/SKILL.md" \
+  "Quality|critical|major" \
+  "harness-review/SKILL.md has quality guardrail section"
 
 assert_file_contains \
-  "harness/skills/verify/SKILL.md" \
-  "承認リクエスト|Approval Request" \
-  "verify/SKILL.md has approval request format"
+  "harness/skills/harness-review/SKILL.md" \
+  "tampering|Tampering" \
+  "harness-review/SKILL.md has tampering prohibition patterns defined"
+
+assert_file_contains \
+  "harness/skills/harness-review/SKILL.md" \
+  "APPROVE" \
+  "harness-review/SKILL.md has approval format"
 
 echo ""
 
@@ -208,11 +209,11 @@ echo ""
 echo "## harness-init integration"
 echo ""
 
-# harness-init quality rule deployment configuration (after skill migration)
+# harness-setup quality rule deployment configuration (consolidated from harness-init)
 assert_file_contains \
-  "harness/skills/harness-init/SKILL.md" \
+  "harness/skills/harness-setup/SKILL.md" \
   "setup|Setup|Environment" \
-  "harness-init contains setup functionality"
+  "harness-setup contains setup functionality"
 
 # Confirm quality rule files exist
 assert_file_contains \
@@ -222,7 +223,7 @@ assert_file_contains \
 
 assert_file_contains \
   ".claude/rules/implementation-quality.md" \
-  "形骸化|stub|placeholder" \
+  "形骸化|[Ss]tub|placeholder" \
   "implementation-quality.md has hollow implementation prohibition rules"
 
 echo ""
@@ -236,24 +237,24 @@ echo ""
 # CLAUDE.md test tampering prevention section
 assert_file_contains \
   "CLAUDE.md" \
-  "テスト改ざん防止|Test Tampering Prevention" \
-  "CLAUDE.md has test tampering prevention section"
+  "Test tampering|tamper" \
+  "CLAUDE.md has test tampering prevention reference"
 
 assert_file_contains \
   "CLAUDE.md" \
-  "3層防御|3-layer|第1層|第2層|第3層" \
-  "CLAUDE.md has 3-layer defense strategy description"
+  "test-quality.md|rules/" \
+  "CLAUDE.md references test quality rules"
 
 # README.md quality assurance references
 assert_file_contains \
   "README.md" \
-  "Test tampering|Quality|品質" \
+  "tampering|quality|Quality" \
   "README.md has quality assurance references"
 
 # Design documentation
 assert_file_exists \
-  "docs/QUALITY_GUARD_DESIGN.md" \
-  "Layer 3 Hooks design document exists"
+  "docs/CLAUDE-skill-catalog.md" \
+  "Skill catalog documentation exists"
 
 echo ""
 

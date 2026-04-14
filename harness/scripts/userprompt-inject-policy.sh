@@ -118,7 +118,7 @@ json_file_update() {
   [ ! -f "$file" ] && return 1
 
   local temp_file
-  temp_file=$(mktemp)
+  temp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
 
   if command -v jq >/dev/null 2>&1; then
     jq "$updates" "$file" > "$temp_file" && mv "$temp_file" "$file"
@@ -172,7 +172,7 @@ if command -v jq >/dev/null 2>&1; then
 else
   # Minimal update via python fallback when jq is unavailable
   if command -v python3 >/dev/null 2>&1; then
-    temp_file=$(mktemp)
+    temp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
     python3 <<PY > "$temp_file"
 import json
 with open("$SESSION_FILE", "r") as f:
@@ -188,7 +188,7 @@ fi
 # Reset LSP usage flag in tooling-policy.json (new prompt)
 if [ -f "$TOOLING_POLICY_FILE" ]; then
   if command -v jq >/dev/null 2>&1; then
-    temp_file=$(mktemp)
+    temp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
     if [ "$INTENT" = "semantic" ]; then
       # semantic: Reset LSP flag + Skills decision required = true
       jq '.lsp.used_since_last_prompt = false | .skills.decision_required = true' "$TOOLING_POLICY_FILE" > "$temp_file" && mv "$temp_file" "$TOOLING_POLICY_FILE"

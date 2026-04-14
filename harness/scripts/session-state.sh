@@ -287,7 +287,7 @@ if [ -f "$SESSION_FILE" ]; then
     EVENT_ID=$(printf "event-%06d" "$EVENT_SEQ")
 
     # Update session.json
-    tmp_file=$(mktemp)
+    tmp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
     jq --arg state "$TARGET_STATE" \
        --arg updated_at "$TIMESTAMP" \
        --arg event_id "$EVENT_ID" \

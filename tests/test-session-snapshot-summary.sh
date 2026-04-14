@@ -2,9 +2,11 @@
 # Verify that session-init / session-resume include a snapshot summary in additionalContext
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TMP_DIR="$(mktemp -d)"
+HARNESS_DIR="${ROOT_DIR}/harness"
+TMP_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"
 trap 'rm -rf "${TMP_DIR}"' EXIT
 
 mkdir -p "${TMP_DIR}/.claude/state/snapshots"
@@ -12,10 +14,10 @@ mkdir -p "${TMP_DIR}/scripts/lib"
 
 git -C "${TMP_DIR}" init -q
 
-cp "${ROOT_DIR}/VERSION" "${TMP_DIR}/VERSION"
-cp "${ROOT_DIR}/scripts/session-init.sh" "${TMP_DIR}/scripts/session-init.sh"
-cp "${ROOT_DIR}/scripts/session-resume.sh" "${TMP_DIR}/scripts/session-resume.sh"
-cp "${ROOT_DIR}/scripts/lib/progress-snapshot.sh" "${TMP_DIR}/scripts/lib/progress-snapshot.sh"
+cp "${HARNESS_DIR}/VERSION" "${TMP_DIR}/VERSION"
+cp "${HARNESS_DIR}/scripts/session-init.sh" "${TMP_DIR}/scripts/session-init.sh"
+cp "${HARNESS_DIR}/scripts/session-resume.sh" "${TMP_DIR}/scripts/session-resume.sh"
+cp "${HARNESS_DIR}/scripts/lib/progress-snapshot.sh" "${TMP_DIR}/scripts/lib/progress-snapshot.sh"
 
 cat > "${TMP_DIR}/Plans.md" <<'EOF'
 | Task | Description | DoD | Depends | Status |
@@ -57,7 +59,7 @@ echo "${init_output}" | grep -q 'Latest snapshot' || {
   exit 1
 }
 
-echo "${resume_output}" | grep -q 'Delta from last' || {
+echo "${resume_output}" | grep -q 'vs previous' || {
   echo "session-resume output missing delta summary"
   exit 1
 }

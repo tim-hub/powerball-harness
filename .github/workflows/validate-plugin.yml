@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 0
 
       - name: Check release metadata policy
-        run: make version-bump
+        run: make check-version-bump
 
       - name: Install ripgrep
         run: sudo apt-get install -y ripgrep
@@ -32,6 +32,9 @@ jobs:
       - name: Check consistency (templates/refs/version/hooks)
         run: make check
 
+      - name: Test all test scripts
+        run: make test-all
+      
       - name: Validate codex package (multi-agent migration guards)
         run: make codex-test
 

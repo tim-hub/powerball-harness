@@ -3,6 +3,7 @@
 # Test for Stop Hook (type: "command")
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -75,7 +76,7 @@ test_stop_evaluator_hook_exists() {
   local hooks_file="$PROJECT_ROOT/hooks/hooks.json"
   local command
 
-  command=$(jq -r '.hooks.Stop[] | .hooks[]? | select((.command // "") | contains("stop-session-evaluator")) | .command // empty' "$hooks_file" 2>/dev/null | head -n 1)
+  command=$(jq -r '.hooks.Stop[] | .hooks[]? | select((.command // "") | contains("stop-evaluator")) | .command // empty' "$hooks_file" 2>/dev/null | head -n 1)
 
   if [ -z "$command" ]; then
     echo "    Error: stop-session-evaluator hook command not found"
@@ -92,7 +93,7 @@ test_stop_evaluator_timeout() {
   local hooks_file="$PROJECT_ROOT/hooks/hooks.json"
   local timeout
 
-  timeout=$(jq -r '.hooks.Stop[] | .hooks[]? | select((.command // "") | contains("stop-session-evaluator")) | .timeout // 0' "$hooks_file" 2>/dev/null | head -n 1)
+  timeout=$(jq -r '.hooks.Stop[] | .hooks[]? | select((.command // "") | contains("stop-evaluator")) | .timeout // 0' "$hooks_file" 2>/dev/null | head -n 1)
 
   if ! [[ "$timeout" =~ ^[0-9]+$ ]]; then
     echo "    Error: Timeout is not numeric: $timeout"

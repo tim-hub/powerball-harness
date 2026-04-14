@@ -115,7 +115,7 @@ fi
 # Record changes (use jq if available, otherwise skip)
 if command -v jq &> /dev/null; then
   # Add a new change entry
-  TEMP_FILE=$(mktemp 2>/dev/null) || {
+  TEMP_FILE=$(mktemp /tmp/harness-tmp.XXXXXX 2>/dev/null) || {
     # Silently skip on mktemp failure (do not interrupt the PostToolUse hook)
     exit 0
   }
@@ -170,7 +170,7 @@ if [ -f "$WORK_FILE" ] && command -v jq >/dev/null 2>&1; then
 
   # Reset to pending only when status is passed or failed
   if [ "$CURRENT_STATUS" = "passed" ] || [ "$CURRENT_STATUS" = "failed" ]; then
-    TEMP_UW=$(mktemp 2>/dev/null)
+    TEMP_UW=$(mktemp /tmp/harness-tmp.XXXXXX 2>/dev/null)
     if [ -n "$TEMP_UW" ]; then
       if jq '.review_status = "pending"' "$WORK_FILE" > "$TEMP_UW" 2>/dev/null; then
         mv "$TEMP_UW" "$WORK_FILE" 2>/dev/null || rm -f "$TEMP_UW"

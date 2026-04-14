@@ -1,10 +1,12 @@
 #!/bin/bash
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-TMP_DIR="$(mktemp -d)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+TMP_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 fail() {
@@ -77,8 +79,8 @@ test_skill_mentions_preflight() {
 }
 
 test_doc_mentions_overrides() {
-  assert_contains "$PROJECT_ROOT/docs/release-preflight.md" "HARNESS_RELEASE_PROJECT_ROOT"
-  assert_contains "$PROJECT_ROOT/docs/release-preflight.md" "HARNESS_RELEASE_CI_STATUS_CMD"
+  assert_contains "$REPO_ROOT/docs/release-preflight.md" "HARNESS_RELEASE_PROJECT_ROOT"
+  assert_contains "$REPO_ROOT/docs/release-preflight.md" "HARNESS_RELEASE_CI_STATUS_CMD"
 }
 
 test_preflight_pass_and_fail() {

@@ -203,7 +203,7 @@ fi
 
 POST_TOOL_FAILURE="$HARNESS_ROOT/scripts/hook-handlers/post-tool-failure.sh"
 if [ -f "$POST_TOOL_FAILURE" ]; then
-    tmp_dir="$(mktemp -d)"
+    tmp_dir="$(mktemp -d "/tmp/harness-test.XXXXXX")"
     target_file="$tmp_dir/target.txt"
     mkdir -p "$tmp_dir/.claude/state"
     printf 'SAFE\n' > "$target_file"
@@ -307,7 +307,7 @@ else
 fi
 
 echo ""
-echo "7. Claude Code plugin validation (v2.1.77+)"
+echo "8. Claude Code plugin validation (v2.1.77+)"
 echo "----------------------------------------"
 
 # Run only if the claude command is available
@@ -327,7 +327,7 @@ else
 fi
 
 echo ""
-echo "8. Hardening parity validation"
+echo "9. Hardening parity validation"
 echo "----------------------------------------"
 
 HARDENING_DOC="$PLUGIN_ROOT/docs/hardening-parity.md"
@@ -387,7 +387,7 @@ else
 fi
 
 echo ""
-echo "9. Migration residue check"
+echo "10. Migration residue check"
 echo "----------------------------------------"
 
 if bash "$PLUGIN_ROOT/local-scripts/check-residue.sh" > /dev/null 2>&1; then
@@ -397,7 +397,7 @@ else
 fi
 
 echo ""
-echo "10. Skill description format check"
+echo "11. Skill description format check"
 echo "----------------------------------------"
 
 AUDIT_SCRIPT="$PLUGIN_ROOT/local-scripts/audit-skill-descriptions.sh"

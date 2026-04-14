@@ -7,6 +7,7 @@
 # - hooks.json (hook registration)
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -119,7 +120,8 @@ test_hooks_has_commit_cleanup() {
   fi
 
   # Check if commit-cleanup is registered with Bash matcher in PostToolUse
-  if ! jq -e '.hooks.PostToolUse[] | select(.matcher == "Bash") | .hooks[] | select(.command | contains("posttooluse-commit-cleanup"))' "$hooks_file" > /dev/null 2>&1; then
+  # (Phase 52+: command is "harness hook commit-cleanup" via Go binary, not posttooluse-commit-cleanup.sh)
+  if ! jq -e '.hooks.PostToolUse[] | select(.matcher == "Bash") | .hooks[] | select(.command | contains("commit-cleanup"))' "$hooks_file" > /dev/null 2>&1; then
     echo "    Error: commit-cleanup hook not properly registered for Bash in PostToolUse"
     return 1
   fi
@@ -128,13 +130,20 @@ test_hooks_has_commit_cleanup() {
 }
 
 # ==================================================
-# Test 6: Is the same hook also in .claude-plugin/hooks.json?
+# Test 6: Does marketplace.json reference the harness plugin correctly?
+# (Phase 52+: .claude-plugin/ only contains marketplace.json; hooks.json lives in harness/hooks/)
 # ==================================================
 test_plugin_hooks_has_commit_cleanup() {
-  local hooks_file="$PROJECT_ROOT/.claude-plugin/hooks.json"
+  local repo_root="$(cd "$PROJECT_ROOT/.." && pwd)"
+  local marketplace_file="$repo_root/.claude-plugin/marketplace.json"
 
-  if ! grep -q "posttooluse-commit-cleanup" "$hooks_file" 2>/dev/null; then
-    echo "    Error: commit-cleanup hook not registered in .claude-plugin/hooks.json"
+  if [ ! -f "$marketplace_file" ]; then
+    echo "    Error: .claude-plugin/marketplace.json not found"
+    return 1
+  fi
+
+  if ! jq -e '.plugins[] | select(.source == "./harness/")' "$marketplace_file" > /dev/null 2>&1; then
+    echo "    Error: marketplace.json does not reference harness plugin at ./harness/"
     return 1
   fi
 
@@ -189,7 +198,7 @@ run_test "posttooluse-commit-cleanup.sh preserves state on error" test_cleanup_p
 echo ""
 echo "  [Hooks Integration]"
 run_test "hooks.json has commit-cleanup hook registered" test_hooks_has_commit_cleanup
-run_test ".claude-plugin/hooks.json also has commit-cleanup hook" test_plugin_hooks_has_commit_cleanup
+run_test "marketplace.json references harness plugin correctly" test_plugin_hooks_has_commit_cleanup
 
 echo ""
 echo "  [Configuration]"

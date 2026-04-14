@@ -20,7 +20,7 @@ PROJECT_PATH="${1:-.}"
 cd "$PROJECT_PATH"
 
 # Temporary file for JSON output (cleaned up automatically)
-RESULT_FILE=$(mktemp)
+RESULT_FILE=$(mktemp /tmp/harness-tmp.XXXXXX)
 trap 'rm -f "$RESULT_FILE"' EXIT
 
 # ================================

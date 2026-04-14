@@ -75,10 +75,14 @@ check_command_references() {
   done
 }
 
-for cmd in "$PLUGIN_ROOT/commands"/*.md; do
-  check_command_references "$cmd"
-done
-echo "  ✅ Command reference check complete"
+if [ -d "$PLUGIN_ROOT/commands" ]; then
+  for cmd in "$PLUGIN_ROOT/commands"/*.md; do
+    check_command_references "$cmd"
+  done
+  echo "  ✅ Command reference check complete"
+else
+  echo "  ✅ Command reference check skipped (commands/ removed — migrated to skills)"
+fi
 
 # ================================
 # 3. Version number consistency

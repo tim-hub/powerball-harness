@@ -22,7 +22,7 @@ if [ ! -f "$CONTRACT_FILE" ]; then
   exit 3
 fi
 
-TMP_FILE="$(mktemp)"
+TMP_FILE="$(mktemp /tmp/harness-tmp.XXXXXX)"
 trap 'rm -f "$TMP_FILE"' EXIT
 cp "$CONTRACT_FILE" "$TMP_FILE"
 
@@ -30,7 +30,7 @@ append_json_array() {
   local jq_path="$1"
   local payload="$2"
   local tmp_next
-  tmp_next="$(mktemp)"
+  tmp_next="$(mktemp /tmp/harness-tmp.XXXXXX)"
   jq --argjson payload "$payload" "${jq_path} += [\$payload]" "$TMP_FILE" > "$tmp_next"
   mv "$tmp_next" "$TMP_FILE"
 }
@@ -59,18 +59,18 @@ while [ "$#" -gt 0 ]; do
       ;;
     --profile)
       shift
-      tmp_next="$(mktemp)"
+      tmp_next="$(mktemp /tmp/harness-tmp.XXXXXX)"
       jq --arg profile "${1:-static}" '.review.reviewer_profile = $profile' "$TMP_FILE" > "$tmp_next"
       mv "$tmp_next" "$TMP_FILE"
       ;;
     --route)
       shift
-      tmp_next="$(mktemp)"
+      tmp_next="$(mktemp /tmp/harness-tmp.XXXXXX)"
       jq --arg route "${1:-}" '.review.route = $route' "$TMP_FILE" > "$tmp_next"
       mv "$tmp_next" "$TMP_FILE"
       ;;
     --approve)
-      tmp_next="$(mktemp)"
+      tmp_next="$(mktemp /tmp/harness-tmp.XXXXXX)"
       jq --arg approved_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '.review.status = "approved" | .review.approved_at = $approved_at' "$TMP_FILE" > "$tmp_next"
       mv "$tmp_next" "$TMP_FILE"
       ;;

@@ -1,4 +1,5 @@
 #!/bin/bash
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution
 # test-session-state.sh
 # Unit tests for session-state.sh
 #
@@ -13,7 +14,7 @@ HARNESS_ROOT="$PLUGIN_ROOT/harness"
 SESSION_STATE_SCRIPT="$HARNESS_ROOT/scripts/session-state.sh"
 
 # Temporary directory for tests
-TEST_DIR=$(mktemp -d)
+TEST_DIR=$(mktemp -d "/tmp/harness-test.XXXXXX")
 trap "rm -rf $TEST_DIR" EXIT
 
 cd "$TEST_DIR"
