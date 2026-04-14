@@ -7,7 +7,7 @@
 #   Exits 0 if none found, exits 1 if one or more are found.
 #
 # Usage:
-#   bash .claude/scripts/check-residue.sh
+#   bash local-scripts/check-residue.sh
 #
 # Python3 acts as the primary parser; bash is used only as a launcher.
 
@@ -15,7 +15,7 @@ set -euo pipefail
 
 # Determine the repository root (resolved relative to the script location)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 export REPO_ROOT_PY="${REPO_ROOT}"
 
@@ -148,11 +148,11 @@ REPO_ROOT = os.path.normpath(
 # Instead of passing through environment variables, infer from argv[0].
 # However, in a heredoc exec case sys.argv[0] == '-', so resolve from getcwd().
 if not REPO_ROOT:
-    # The script is expected to be called from scripts/. cwd is arbitrary,
+    # The script is expected to be called from local-scripts/. cwd is arbitrary,
     # so use sys.argv if provided, otherwise resolve from cwd.
     REPO_ROOT = os.getcwd()
-    # If cwd is scripts/ or .claude/scripts/, go up to the repo root.
-    if os.path.basename(REPO_ROOT) == "scripts":
+    # If cwd is local-scripts/, go up to the repo root.
+    if os.path.basename(REPO_ROOT) in ("scripts", "local-scripts"):
         REPO_ROOT = os.path.dirname(REPO_ROOT)
 
 YAML_PATH = os.path.join(REPO_ROOT, ".claude/rules/deleted-concepts.yaml")
@@ -285,7 +285,7 @@ for entry in deleted_paths:
         "benchmarks/",
         "tests/validate-plugin-v3.sh",  # v3 compatibility test (intentionally kept)
         ".claude/rules/deleted-concepts.yaml",  # This file itself
-        ".claude/scripts/check-residue.sh",             # The scanner itself
+        "local-scripts/check-residue.sh",             # The scanner itself
     ]
     effective_allowlist = list(set(allowlist + default_allowlist))
 
@@ -329,7 +329,7 @@ for entry in deleted_concepts:
         "output/",          # Diagnostic output and generated artifacts
         "benchmarks/",
         ".claude/rules/deleted-concepts.yaml",  # Exclude this file itself
-        ".claude/scripts/check-residue.sh",             # Exclude the scanner itself
+        "local-scripts/check-residue.sh",             # Exclude the scanner itself
         "tests/validate-plugin-v3.sh",          # v3 compatibility test (intentionally kept)
     ]
     effective_allowlist = list(set(allowlist + default_allowlist))
@@ -370,7 +370,7 @@ h1_allowlist = [
     "output/",
     "benchmarks/",
     ".claude/rules/",  # Historical documents inside rules/
-    ".claude/scripts/check-residue.sh",
+    "local-scripts/check-residue.sh",
     ".claude/rules/deleted-concepts.yaml",
     "tests/validate-plugin-v3.sh",  # v3 compatibility test (intentionally kept)
 ]

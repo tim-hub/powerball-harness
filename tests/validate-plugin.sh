@@ -390,17 +390,17 @@ echo ""
 echo "9. Migration residue check"
 echo "----------------------------------------"
 
-if bash "$PLUGIN_ROOT/.claude/scripts/check-residue.sh" > /dev/null 2>&1; then
-    pass_test "No migration residue detected (.claude/scripts/check-residue.sh clean)"
+if bash "$PLUGIN_ROOT/local-scripts/check-residue.sh" > /dev/null 2>&1; then
+    pass_test "No migration residue detected (local-scripts/check-residue.sh clean)"
 else
-    fail_test "Migration residue found — run 'bash .claude/scripts/check-residue.sh' to see details"
+    fail_test "Migration residue found — run 'bash local-scripts/check-residue.sh' to see details"
 fi
 
 echo ""
 echo "10. Skill description format check"
 echo "----------------------------------------"
 
-AUDIT_SCRIPT="$PLUGIN_ROOT/.claude/scripts/audit-skill-descriptions.sh"
+AUDIT_SCRIPT="$PLUGIN_ROOT/local-scripts/audit-skill-descriptions.sh"
 if [ ! -x "$AUDIT_SCRIPT" ]; then
     # Older branches may not have the audit script — warn instead of fail so CI
     # stays green during rollback or bisect.

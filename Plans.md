@@ -14,7 +14,7 @@ Goal: Restructure the repo from single-plugin (`source: "./"`) to multi-plugin m
 Design decisions (confirmed with Opus agent):
 - `.claude-plugin/` at root keeps ONLY `marketplace.json`; plugin-specific `plugin.json`, `hooks.json`, `settings.json` move to `harness/.claude-plugin/`
 - `.claude/rules/` stays at root (Claude Code reads rules from project root; SSOT for both dev and distribution)
-- `.claude/scripts/` stays at root (dev/CI scripts for this repo)
+- `local-scripts/` stays at root (dev/CI scripts for this repo)
 - `.claude/memory/`, `.claude/settings.json`, `.claude/state/`, `.claude/sessions/`, `.claude/logs/` stay at root (project-level)
 - `.claude/skills/`, `.claude/agents/`, `.claude/output-styles/` stay at root (project-level, not distributed with plugin)
 - `hooks/` directory eliminated — canonical hooks.json is `harness/hooks/hooks.json`

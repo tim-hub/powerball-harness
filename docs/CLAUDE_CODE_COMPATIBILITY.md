@@ -18,7 +18,7 @@ The most recent local verification snapshot for this repository was:
 - `./tests/test-fix-proposal-flow.sh`
 - `./tests/validate-plugin.sh`
 - `./tests/validate-plugin-v3.sh`
-- `./.claude/scripts/check-consistency.sh`
+- `./local-scripts/check-consistency.sh`
 - `cd core && npm test`
 
 This snapshot is a verification reference, not a hard upper bound. If you upgrade Claude Code or Node.js, rerun the commands above before trusting the environment.
@@ -60,7 +60,7 @@ Run this set after updating Claude Code, Node.js, or the plugin itself:
 ```bash
 ./tests/validate-plugin.sh
 ./tests/validate-plugin-v3.sh
-./.claude/scripts/check-consistency.sh
+./local-scripts/check-consistency.sh
 cd core && npm test
 ```
 

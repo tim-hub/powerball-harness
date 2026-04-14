@@ -41,7 +41,7 @@ Point to the sibling skill in parens if helpful: `Do NOT load for: planning (use
 
 ### 5. Length: target ≤ 200 characters, ceiling 300 characters
 
-Hard-enforced by `.claude/scripts/audit-skill-descriptions.sh`: anything > 300 chars fails.
+Hard-enforced by `local-scripts/audit-skill-descriptions.sh`: anything > 300 chars fails.
 
 **Why**: The description field is evaluated on every session. Keeping it tight preserves context budget for everything else. If a description doesn't fit within 300 chars, the summary sentence is the first thing to cut — never the trigger or the exclusions.
 
@@ -116,7 +116,7 @@ When updating an existing SKILL.md to conform:
 2. Rewrite `description` starting with `Use when <trigger>`.
 3. Move any introduction/summary sentence into the SKILL.md body's first paragraph.
 4. Keep exclusions if another skill covers adjacent territory; drop them if the skill is unique.
-5. Run `.claude/scripts/audit-skill-descriptions.sh <skill-dir>` to verify conformance.
+5. Run `local-scripts/audit-skill-descriptions.sh <skill-dir>` to verify conformance.
 
 ## Supersedes
 
@@ -124,6 +124,6 @@ When updating an existing SKILL.md to conform:
 
 ## Related
 
-- `.claude/scripts/audit-skill-descriptions.sh` — automated enforcement (wired into `tests/validate-plugin.sh` Section 10 once Phase 44 rewrites are complete).
+- `local-scripts/audit-skill-descriptions.sh` — automated enforcement (wired into `tests/validate-plugin.sh` Section 10 once Phase 44 rewrites are complete).
 - `.claude/rules/skill-editing.md` — other SKILL.md editing rules (frontmatter fields, file size, `references/` layout).
 - `.claude/rules/skill-quick-reference.md` — Quick Reference table format for multi-subcommand skills.

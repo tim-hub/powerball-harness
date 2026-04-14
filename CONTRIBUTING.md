@@ -123,7 +123,7 @@ Use a version bump only when you are intentionally cutting a release.
 ### Version Consistency Checks
 
 - **Local (recommended)**: run `./harness/scripts/sync-version.sh check` before committing
-- **CI (recommended)**: run `./tests/validate-plugin.sh` and `./.claude/scripts/check-consistency.sh` on PRs
+- **CI (recommended)**: run `./tests/validate-plugin.sh` and `./local-scripts/check-consistency.sh` on PRs
 
 ## CHANGELOG Rules (Required)
 
@@ -184,13 +184,13 @@ Before submitting:
 
    ```bash
    ./tests/validate-plugin.sh
-   ./.claude/scripts/check-consistency.sh
+   ./local-scripts/check-consistency.sh
    ```
 
 2. (Recommended) Enable pre-commit hooks (keep release metadata in sync without auto-bumping):
 
    ```bash
-   ./.claude/scripts/install-git-hooks.sh
+   ./local-scripts/install-git-hooks.sh
    ```
 
    **Windows users**: Git hooks require [Git for Windows](https://gitforwindows.org/) which includes Git Bash. The hooks run automatically via Git Bash regardless of your shell (PowerShell, CMD, etc.).
@@ -204,9 +204,9 @@ Before submitting:
 
 3. Verify commands work as expected (`/help`), and the core loop runs:
 
-   - `/harness-init`
-   - `/plan-with-agent`
-   - `/work`
+   - `/harness-setup`
+   - `/harness-plan`
+   - `/harness-work`
    - `/harness-review`
 
 ## Questions?
