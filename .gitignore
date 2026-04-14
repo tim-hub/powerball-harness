@@ -292,3 +292,24 @@ bin/harness-*
 
 # Hook output artifacts (broken directory names from JSON responses)
 {*}
+
+# ---- Harness managed begin ----
+# Claude Code / Harness runtime files
+.claude/sessions/
+.claude/logs/
+.claude/state/agent-trace.jsonl
+.claude/state/pending-fix-proposals.jsonl
+.claude/worktrees/
+logs/
+settings.local.json
+states/
+out/
+
+# Force-track Harness configuration (do not ignore these)
+!.claude/memory/
+!.claude/output-styles/
+!.claude/rules/
+!.claude/scripts/
+!.claude/skills/
+!.claude/settings.json
+# ---- Harness managed end ----
