@@ -45,7 +45,7 @@ Always output the following **2 variations**.
 - Variation A: **Prioritizes readability, trustworthiness, and data communication** (minimal/corporate)
 - Variation B: **Emphasizes emotion, storytelling, and the aesthetics of whitespace** (editorial/lifestyle)
 
-Both must be in **Japanese YAML**, ready to paste directly into NotebookLM.
+Both must be in **YAML**, ready to paste directly into NotebookLM.
 
 Output format:
 
