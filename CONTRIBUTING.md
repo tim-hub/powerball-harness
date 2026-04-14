@@ -63,6 +63,7 @@ powerball-harness/
 │   └── harness.toml     # Plugin TOML config
 ├── docs/                # Documentation
 ├── go/                  # Go guardrail engine source
+├── local-scripts/       # Repo-local dev/CI scripts (not distributed with plugin)
 ├── tests/               # Validation scripts
 ├── README.md
 ├── LICENSE

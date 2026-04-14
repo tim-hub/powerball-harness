@@ -10,4 +10,5 @@
   - `harness/harness.toml` Plugin TOML config (source for `harness sync`)
 - `docs/` Documentation (including `docs/assets/` for visual assets)
 - `go/` Go guardrail engine (binary built from source via `harness-setup binary`)
+- `local-scripts/` Repo-local dev/CI tool scripts (not distributed with plugin)
 - `tests/` Validation scripts
