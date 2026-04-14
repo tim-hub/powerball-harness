@@ -1422,3 +1422,141 @@ Purpose: 今後の major migration で scanner を正しく運用するための
 | 40.2.1 | `.claude/rules/migration-policy.md` を新規作成。内容: (1) major version migration 時に `.claude/rules/deleted-concepts.yaml` を更新する義務、(2) 更新タイミングは削除 PR と同時 (遅延禁止)、(3) allowlist の運用基準 (歴史記述 CHANGELOG は常に allowlist、Before/After table は文脈で allowlist、docs/archive は常に allowlist)、(4) retroactive validation の実施方法、(5) 今セッション (v4.0.0 → v4.0.1) で検出された 13 件の v3 残骸事例を付録として記録 (なぜこの機能が生まれたかのストーリー付き)、(6) `CLAUDE.md` に migration-policy.md への参照を追加 | ファイルが存在、markdown valid。非専門家にも「なぜ deleted-concepts.yaml が必要か」が 5 分で理解できる。CLAUDE.md に 1 行 reference 追加 | 40.0.1, 40.1.3 | cc:完了 [719c08bd] |
 
 ---
+
+## Phase 41: Long-Running Harness — Anthropic harness-design 記事統合
+
+作成日: 2026-04-14
+目的: Anthropic の記事 "Harness Design for Long-Running AI Agent Applications" (https://www.anthropic.com/engineering/harness-design-long-running-apps) から導出した 6 つの改善軸（B6/B7/B9/B10/B11 + /loop 統合）を実装し、記事が示す 6h+ クラスの自律実行を **同一セッション内での context reset パターン**で実現する
+
+### 背景 (Why this phase exists)
+
+現行 Harness は記事のベンチマーク 12 軸のうち 9 軸をクリアしているが、以下 4 点で弱点がある:
+
+1. **B3 context 管理の checkpoint 頻度不足**: `harness_mem_record_checkpoint` 相当の呼び出しが `scripts/` / `skills/` / `agents/` / `hooks/` で **grep 0 件**。手動・セッション終了時のみで、Phase B 各サイクル後の永続化が未実装
+2. **B7 browser verdict が最終判定に乗らない**: `skills/harness-work/SKILL.md` L250-252 で "browser artifact は参照用に保存するが、review-result の verdict は static のまま" と明記
+3. **B10 反復上限 3 回一律**: `MAX_REVIEWS = 3` が `harness-work` SKILL.md L263 に直書き。UI/design タスクの 5-15 反復に対応できない
+4. **B11 plateau / pivot 機構なし**: 3 回失敗でエスカレーション停止のみ
+
+また、記事の Game Maker (6h) / DAW (3h50m) 相当を実現するには、単一会話の context 膨張を避ける仕組みが必要。**`/loop` コマンド（CC 提供の dynamic mode / 内部 CronCreate backend）と、Claude 側から呼ぶ `ScheduleWakeup` ツール（同じ dynamic mode の pacing 制御）** を活用し、wake-up ごとに fresh context で再入することで、Opus 4.6 / Sonnet 両系統で context anxiety を構造的に回避する。両 API の実制約は 41.0.0 spike で確定させ、計画内の記述を spike 結果に一本化する。
+
+> **記事との対応注記**: Phase 41 は**同一セッション内**での context reset により、記事の 6h 級を **"部分再現"** するもの（3h 程度の連続反復が現実的目標）。ホスト CC プロセスをまたぐ継続は Non-Goals とし Phase 42 以降で別途検討。
+
+### 設計方針（TeamAgent 3 視点合意事項）
+
+以下は plan-critic / scaffolder / architect の 3 エージェント並列議論で合意した非交渉事項:
+
+- **A-β**: `/loop` 統合は `skills/harness-work/SKILL.md` への `--loop` フラグ追加ではなく、**独立スキル `skills/harness-loop/` を新設**。SKILL.md 責務膨張と mirror 同期コストを回避
+- **B-α 改**: auto-checkpoint は Phase B-5 の `git commit` 直後ではなく、**Plans.md 書き換え完了直後**に移動。臨界路を短く保ち、タスク紐付けを確実にする
+- **C-β**: plateau 検知は critical/major 件数のみの単信号ではなく、**iteration 数 ≥ 3 AND 修正対象ファイル集合の Jaccard 類似度 > 0.7** の AND 条件。false positive 耐性を確保
+- **スコープ制限**: Phase 41 は**同一 CC セッション内**での context reset + resume に限定。ホスト CC プロセス終了をまたぐ継続（tmux 常駐前提）は Phase 42 以降に defer
+- **wake-up 回数上限**: default 8 サイクル。`bypassPermissions` 下で destructive action が累積するリスクを制御
+- **permission mode**: /loop 中も現行の `bypassPermissions` を維持。`--auto-mode` との組み合わせは Phase 41 では opt-in のまま
+
+### 優先度マトリクス
+
+| 優先度 | Phase | 内容 | タスク数 | 依存 |
+|--------|-------|------|---------|------|
+| **Required** | 41.0 | Spike + 基盤（harness-mem/CronCreate API 調査 + calibration 拡張 + 新規 scripts 2 本） | 4 | なし |
+| **Required** | 41.1 | /loop 統合（独立 harness-loop スキル + 冪等性ガード） | 2 | 41.0 |
+| **Recommended** | 41.2 | 反復制御（MAX_REVIEWS 可変化 + browser verdict AND 結合） | 2 | 41.0, 41.1 |
+| **Optional** | 41.3 | UI rubric profile 新設 | 1 | 41.2 |
+| **Required** | 41.4 | ドキュメント + mirror 同期 + preflight 拡張 | 3 | 41.1, 41.2 |
+
+合計: **12 タスク**（Required 9 / Recommended 2 / Optional 1）
+
+### 完成基準 (Definition of Done — Phase 41 全体)
+
+| # | 基準 | 検証方法 | 必須/推奨 |
+|---|------|---------|----------|
+| 1 | **同一セッション内で 3 サイクル連続 /loop 実行**: Plans.md の `cc:WIP` → `cc:完了` 状態遷移が grep で整合確認できる | `tests/integration/loop-3cycle.sh` 新設 → 3 タスク連続実行後に Plans.md を grep で検証 | 必須 |
+| 2 | **context compaction 発生後の resume 整合性**: `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50` で閾値を下げて compaction を強制誘発、その後 resume-pack 再読込で直前タスク ID が復元される | `tests/integration/loop-compaction-resume.sh` 新設 | 必須 |
+| 3 | **plateau 検知の golden fixture テスト**: 3 行の calibration レコード（全て非減少 + Jaccard > 0.7）に対して `PIVOT_REQUIRED`、改善した fixture に対して `PIVOT_NOT_REQUIRED`、N<3 に対して `INSUFFICIENT_DATA` | `tests/fixtures/review-calibration/*.jsonl` + unit test | 必須 |
+| 4 | **auto-checkpoint が Plans.md 更新直後に発火**: Phase B-5 末尾で `harness-mem` への checkpoint record が 1 件追加される（spike 41.0.0 で確定した API 経由）。併せて `.claude/state/checkpoint-events.jsonl` にローカル audit ログが 1 行追加される（harness-mem 成功/失敗に関わらず必ず書き込み）| `.claude/state/checkpoint-events.jsonl` の件数が cycle 数と一致（harness-mem 側の記録は 41.0.0 で API 確定後に別途検証） | 必須 |
+| 5 | **wake-up 回数上限の強制**: 9 サイクル目の wake-up で自動停止 + ユーザーエスカレーション | `tests/integration/loop-max-cycles.sh` | 必須 |
+| 6 | **phase-b.lock による race 防止**: 並行 Worker が B-5 実行中は wake-up の checkpoint 呼び出しがブロックされる | `.claude/state/locks/phase-b.lock` の flock テスト | 必須 |
+| 7 | **Plans.md flock**: Lead の wake-up と Worker の Plans.md 書き換えが同時発火してもロストアップデートが発生しない | `tests/integration/loop-plans-concurrent.sh` | 必須 |
+| 8 | **sprint-contract 後方互換**: `max_iterations` / `rubric_target` / `loop_pacing` フィールドがない旧 contract で default fallback（MAX_REVIEWS=3）が動作 | 旧 contract の re-run テスト | 必須 |
+| 9 | **harness-release preflight で Phase 41 スキーマ検証**: `sprint-contract` の新フィールドが schema 違反なら preflight 失敗 | `scripts/release-preflight.sh` に schema validator 追加 | 必須 |
+| 10 | **Go test / validate-plugin / check-consistency / check-residue 全パス**: 既存テスト regressions ゼロ | 通常の CI 一式 | 必須 |
+| 11 | **mirror 同期**: `codex/.codex/skills/harness-loop/` と `opencode/skills/harness-loop/` が `skills/harness-loop/` と完全一致 | `check-consistency.sh` PASS | 必須 |
+| 12 | **試金石: Harness 内部の design-heavy タスクを 3h+ /loop 実行**: `generate-video` スキル UI レビュー相当タスクを 10 反復、browser profile + ui-rubric 組み合わせで完走 | 数値基準: (a) `.claude/state/session-events.jsonl` に完了イベント ≥ 10 件、(b) unexpected abort（exit code ≠ 0）ゼロ、(c) 10 反復全てで Plans.md の `cc:WIP` → `cc:完了` 遷移が grep で整合、(d) 通算実行時間 3h+ を `session-events.jsonl` の timestamp 差分で確認 | 推奨 |
+
+---
+
+### Phase 41.0: Spike + 基盤 [P0]
+
+Purpose: 実装前に 2 つの API（harness-mem checkpoint / `/loop`＋`ScheduleWakeup`）の実在と制約を確認し、plateau 検知の入力源を準備する
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 41.0.0 | **[Spike]** 2 つの API を実環境で確認する。(a) `scripts/harness-mem-client.sh` の実エンドポイント一覧を取得し、checkpoint 相当の操作（`ingest` / `record_event` / `finalize_session` / 新 API のいずれか）を特定、(b) CC が提供する `/loop` コマンドと内部 `ScheduleWakeup` ツールの実制約値（最小/最大 delaySeconds、cron syntax、wake-up ごとの状態継承）を検証、(c) `PreCompact` / `PostCompact` hooks が /loop の wake-up 間で発火するかを実測、(d) 結果を `.claude/memory/decisions.md` に D25「Phase 41 前提の実測結果」として記録 | (a) harness-mem の checkpoint 相当 API が特定されている（またはカスタム実装の必要性が結論付けられている）、(b) `ScheduleWakeup` の [60,3600]s 制約が実測で確認、(c) `/loop <interval>` の最小値が数値で判明、(d) decisions.md に 4 項目全て記録 + 41.0.2 以降のタスクで使う API 名が確定 | - | cc:TODO |
+| 41.0.1 | `scripts/record-review-calibration.sh` L41-67 に新フィールド `critical_count` / `major_count` / `score_delta` を追加。既存レコード（2 件）には影響せず、新規記録からのみ書き込み。`scripts/build-review-few-shot-bank.sh` が新フィールドを読めるよう対応 | 新規 calibration 記録後、jsonl に 3 フィールドが含まれる。旧レコードへの読み出しは `// 0` default で動作。既存 few-shot bank 再生成テストが PASS | 41.0.0 | cc:TODO |
+| 41.0.2 | `scripts/auto-checkpoint.sh` を新設。引数: task_id + commit_hash + sprint_contract_path + review_result_path。内部で 41.0.0 で特定した harness-mem API を呼び出して checkpoint を記録。成功・失敗いずれの経路でも `.claude/state/checkpoint-events.jsonl` に 1 行の audit レコード（`{"type":"checkpoint","status":"ok|failed","task":...,"commit":...,"timestamp":...}`）を必ず追記する（ローカル監査ログ）。harness-mem 失敗時は追加で `.claude/state/session-events.jsonl` にもデグレ出力（失敗を静かに吸収しない）。`.claude/state/locks/phase-b.lock` を flock で取得し同期保護 | (a) 正常系: harness-mem に 1 レコード追加 + checkpoint-events.jsonl に 1 行、(b) 異常系: harness-mem API 不達時に checkpoint-events.jsonl に `status:"failed"` 1 行 + session-events.jsonl に `checkpoint_failed` 1 行、(c) phase-b.lock が既に取得されている場合は timeout 10s 待機後に abort、(d) 単体実行 `bash scripts/auto-checkpoint.sh <task> <hash> <contract> <result>` で全挙動 OK、(e) 10 回連続実行でも lock デッドロックなし | 41.0.1 | cc:TODO |
+| 41.0.3 | `scripts/detect-review-plateau.sh` を新設。入力: `.claude/state/review-calibration.jsonl` + 現在の task_id。ロジック: 同一 task_id の直近 N=3 エントリを抽出し、(a) iteration 数 ≥ 3、かつ (b) 修正対象ファイル集合の Jaccard 類似度 > 0.7 の両方を満たすなら `PIVOT_REQUIRED` を返す。N<3 なら `INSUFFICIENT_DATA`、条件不成立なら `PIVOT_NOT_REQUIRED`。`tests/fixtures/review-calibration/` に 3 種類の golden fixture を配置してテスト可能にする | (a) golden fixture `plateau.jsonl`（3 行全て Jaccard>0.7） → `PIVOT_REQUIRED`、(b) `improved.jsonl`（最終行で major=0） → `PIVOT_NOT_REQUIRED`、(c) `insufficient.jsonl`（2 行）→ `INSUFFICIENT_DATA`。exit code それぞれ 2 / 0 / 1。`bash scripts/detect-review-plateau.sh <task_id>` 単体で動作 | 41.0.1 | cc:TODO |
+
+---
+
+### Phase 41.1: /loop 統合（独立 harness-loop スキル） [P0]
+
+Purpose: `skills/harness-loop/` を新設し、起動責務のみを担う薄いスキルとして実装する。内部で `harness-work` を Agent 呼び出しして既存ロジックを再利用
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 41.1.1 | `skills/harness-loop/SKILL.md` + `skills/harness-loop/references/flow.md` を新設。frontmatter: `name: harness-loop`, `description: "長時間タスクを /loop （CC dynamic mode）と ScheduleWakeup で wake-up 毎に fresh context で再入実行。harness-work を内部で Agent 呼び出し。"`, `allowed-tools: [Read, Edit, Bash, Task, ScheduleWakeup]`, `argument-hint: "[all|N-M] [--max-cycles N] [--pacing worker|ci|plateau|night]"`。wake-up 毎のエントリ手順: (1) `scripts/ensure-sprint-contract-ready.sh` で state 健全性確認、(2) harness-mem resume-pack 再読込、(3) Plans.md の `cc:WIP` / `cc:TODO` 確認（41.1.2 で `plans-watcher.sh` に追加される flock 下で実行）、(4) 1 タスクサイクル実行（`harness-work --breezing` を Agent で spawn）、(5) `scripts/detect-review-plateau.sh` で plateau 判定、(6) PIVOT_REQUIRED なら停止 + エスカレーション、そうでなければ `ScheduleWakeup(delaySeconds, prompt="/loop ...")` で次 wake-up を予約。spike 41.0.0 の結果次第で `/loop` user-facing コマンド + `ScheduleWakeup` internal tool の組み合わせを正式採択する | (a) `/harness-loop all` で起動し wake-up が反復発火、(b) 8 サイクル（default）で自動停止、(c) `--max-cycles 3` で 3 サイクル後に停止、(d) pacing 引数で delaySeconds が 270/270/1200/3600 から選択される、(e) SKILL.md 500 行以下、(f) frontmatter の description に「長時間、ループ、loop、wake-up、autonomous」など検索キーワード含む | 41.0.2, 41.0.3 | cc:TODO |
+| 41.1.2 | harness-loop の冪等性ガードを実装: (a) `.claude/state/locks/loop-session.lock` で同一セッション内の多重起動を防止、(b) wake-up 冒頭で `bash tests/validate-plugin.sh --quick`（既存に `--quick` がなければ新設、最小限の state 整合性のみチェック）を実行、失敗なら loop 停止、(c) `harness-work` Phase B-5 の `git commit` 直後かつ Plans.md 書き換え**直後**に `scripts/auto-checkpoint.sh` を呼ぶ行を追加（既存の Plans.md 更新行の 1 行後に挿入、破壊的改変を避ける）、(d) **PreCompact 抑制は hooks.json の matcher 変更ではなく**、既存 agent hook の prompt 冒頭に `.claude/state/locks/loop-session.lock` の存在チェックを追加し、lock がある場合は WIP 警告を出力せず即 return する方式（現行 matcher は文字列パターンのみで環境変数否定条件を書けないため）、(e) `scripts/plans-watcher.sh` に flock ガードを新規追加（現状 flock なし、wake-up と Worker 並行書き換えのロストアップデート防止。既存挙動は変えず排他のみ強化） | (a) 2 回目の `/harness-loop` 呼び出しで "already running" エラー、(b) Plans.md を意図的に破損 → wake-up で即停止、(c) 3 サイクル実行後 `.claude/state/checkpoint-events.jsonl` に 3 件、(d) `/harness-loop` セッション中に context compaction を誘発しても PreCompact agent hook が WIP 警告を出さない（lock 検出で suppress）、(e) plans-watcher.sh の flock 下で 2 プロセス同時書き込みテストがロストアップデートなし | 41.1.1 | cc:TODO |
+
+---
+
+### Phase 41.2: 反復制御（MAX_REVIEWS + Browser verdict） [P1]
+
+Purpose: 主観/長サイクル評価に備えて反復上限を可変化し、browser reviewer の verdict を最終判定に組み込む
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 41.2.1 | `MAX_REVIEWS = 3` 直書き（`skills/harness-work/SKILL.md` L263 相当）を可変化。sprint-contract の `review.max_iterations`（新フィールド）で上書き可能に。profile ごとの default: `static:3`, `runtime:3`, `browser:5`, `ui-rubric:10`。`scripts/generate-sprint-contract.sh` の `detectProfile()` 関数（L96-104）でデフォルト値を埋め込む。**未定義時の fallback は必ず 3**（旧 contract 互換） | (a) 旧 contract（`max_iterations` なし）で MAX_REVIEWS=3 が適用、(b) `reviewer_profile: browser` で 5、(c) sprint-contract に `max_iterations: 15` を明示指定すると 15 が優先、(d) 15 回到達で自動停止 + ユーザーエスカレーション、(e) `harness-work` SKILL.md の該当擬似コードが更新されている | 41.0.0 | cc:TODO |
+| 41.2.2 | `scripts/run-contract-review-checks.sh` L56-73 の `browser` 分岐を拡張: (a) `browser_runner.sh`（Playwright / agent-browser / chrome-devtools のいずれか既存 detector）を実行して APPROVE/REQUEST_CHANGES を返す、(b) タイムアウト 120s で static verdict にデグレ、(c) `review-result.v1` schema に `browser_verdict` フィールドを追加、(d) `scripts/write-review-result.sh` が `--browser-result` オプションを受け取り、最終 verdict は **static AND browser の AND 結合**（両方 APPROVE なら APPROVE、どちらか REQUEST_CHANGES なら REQUEST_CHANGES、browser が PENDING_BROWSER なら static のみを採用＝既存動作を維持）、(e) `harness-work` SKILL.md L248-256 の擬似コード注記を更新、(f) **回帰テスト**: `tests/unit/browser-verdict-fallback.sh` を新設し、browser=PENDING_BROWSER かつ static=APPROVE の場合に最終 verdict が APPROVE になる（既存の commit guard が `.verdict == "APPROVE"` を参照する前提を崩さない）ことを明示検証 | (a) Playwright が動く環境で browser profile タスクを実行 → browser_verdict が review-result.json に記録、(b) browser runner が 120s で timeout → static にデグレ + log 記録、(c) Playwright 未インストール環境 → PENDING_BROWSER 維持（既存動作）、(d) 既存の static/runtime/security profile タスクに regressions なし、(e) review-result schema v1 のバージョンは据え置き（後方互換フィールド追加のため）、(f) 回帰テスト PASS（commit guard が既存通り動作） | 41.0.2, 41.1.1 | cc:TODO |
+
+---
+
+### Phase 41.3: UI rubric profile [P2]
+
+Purpose: 記事の Frontend Design Loop に倣い、主観品質評価の 4 軸ルーブリックを追加する
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 41.3.1 | `skills/harness-review/references/ui-rubric.md` を新設。構成は `security-profile.md` に倣う。内容: (a) 4 軸 Design Quality / Originality / Craft / Functionality を 0-10 で採点、(b) 各軸に**アンカー例**（0/5/10 の具体的判定基準）を記載、(c) sprint-contract の `review.rubric_target`（新フィールド、例: `{design:7, originality:6, craft:8, functionality:9}`）と照合し、1 軸でも target 未達なら REQUEST_CHANGES、(d) `skills/harness-review/SKILL.md` の決定木（L33-38）に `--ui-rubric` 分岐を追加、(e) `scripts/generate-sprint-contract.sh` の `detectProfile()` に `ui-rubric` 検出パターン追加（タスク内容に「design」「UI」「styling」「aesthetic」「layout」が含まれる場合）、(f) mirror 同期（`codex/.codex/skills/harness-review/references/ui-rubric.md` + `opencode/...`） | (a) `/harness-review --ui-rubric` で 4 軸採点が実行される、(b) sprint-contract に `rubric_target` があれば閾値判定、なければ default threshold=6、(c) 各軸のアンカー例が非専門家にも判定可能な日本語で書かれている、(d) mirror 3 箇所完全一致（`check-consistency.sh` PASS） | 41.2.1 | cc:TODO |
+
+---
+
+### Phase 41.4: ドキュメント + mirror + preflight [P0]
+
+Purpose: Phase 41 の新機能を運用可能にし、リリース時の schema drift を preflight で catch する
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 41.4.1 | `docs/long-running-harness.md` を新規作成。内容: (1) 記事の要約と Harness との対応表（B1-B12 の 12 軸）、(2) /loop + ScheduleWakeup の使い方（cheatsheet）、(3) pacing プリセットの選び方（cache 境界の説明込み）、(4) wake-up 回数上限・lock・冪等性ガードの仕組み、(5) plateau 検知の閾値と golden fixture の配置、(6) **Phase 41 のスコープ明示**（同一セッション内限定、ホスト跨ぎは Phase 42 以降）、(7) 既知の制約（`bypassPermissions` との併用ガイド、Plans.md flock の限界）、(8) `CLAUDE.md` に docs/long-running-harness.md への reference 1 行追加 | ファイル存在、markdown valid、非専門家が「/loop で長時間タスクを実行する方法」を 10 分で理解できる。CLAUDE.md に reference 追加 | 41.1.2 | cc:TODO |
+| 41.4.2 | `tests/integration/` 配下に 4 本のテストを追加: (a) `loop-3cycle.sh` — DoD #1 検証、(b) `loop-compaction-resume.sh` — DoD #2、(c) `loop-max-cycles.sh` — DoD #5、(d) `loop-plans-concurrent.sh` — DoD #7。`tests/validate-plugin.sh` に integration セクションを追加し、これら 4 本を optional category として集計（fail しても既存の required test 集計には影響させない） | (a) 4 本とも単体で PASS、(b) validate-plugin.sh から呼び出しても PASS、(c) 意図的に /loop ロジックを壊すと少なくとも 1 本が FAIL、(d) 実行時間合計 10 分以内 | 41.1.2 | cc:TODO |
+| 41.4.3 | `scripts/release-preflight.sh` に sprint-contract schema validator を追加。`.claude/state/contracts/*.sprint-contract.json` をスキャンし、(a) 新フィールド `max_iterations` / `rubric_target` / `loop_pacing` / `browser_verdict` の型が正しい、(b) `reviewer_profile` が `static|runtime|browser|security|ui-rubric` のいずれか（**security は既存出力のため必ず許容**、ui-rubric は 41.3.1 未実装時も将来互換のため許容）、(c) `max_iterations` が 1-30 の範囲内、を検証。違反があれば preflight 失敗。mirror 同期: `skills/harness-loop/` を `codex/.codex/skills/` と `opencode/skills/` に mirror、`check-consistency.sh` が mirror 完全一致を確認 | (a) 意図的に `max_iterations: 100` を contract に埋め込む → preflight 失敗、(b) 正常な contract で PASS、(c) `reviewer_profile: "security"` の既存 contract で regressions なし（preflight PASS）、(d) `reviewer_profile: "ui-rubric"` の contract も PASS（41.3.1 未実装でも許容）、(e) `codex/.codex/skills/harness-loop/SKILL.md` が `skills/harness-loop/SKILL.md` と完全一致、(f) `check-consistency.sh` 全 PASS | 41.1.1 | cc:TODO |
+
+---
+
+### ロードマップ（着手順）
+
+推奨実行順（依存グラフに基づく）:
+
+1. **Week 1**: 41.0.0（Spike、2-3 日）→ 判明事項を decisions.md に記録
+2. **Week 1-2**: 41.0.1 → 41.0.2 / 41.0.3（並列可）
+3. **Week 2**: 41.1.1 → 41.1.2
+4. **Week 3**: 41.2.1 / 41.2.2（並列可、41.2.1 を先）
+5. **Week 3-4**: 41.3.1（Optional、時間があれば）
+6. **Week 4**: 41.4.1 / 41.4.2 / 41.4.3（並列可）
+7. **Week 4-5**: DoD #12（試金石タスク）を手動セッションで実行、学びを `.claude/memory/patterns.md` に記録
+
+### Non-Goals（Phase 41 でやらないこと）
+
+- ホスト CC プロセス終了をまたぐ /loop 継続（tmux 常駐、systemd daemon 化）→ Phase 42 で検討
+- harness-mem 側への新 MCP エンドポイント追加（41.0.0 spike で既存 API に相当が見つからなかった場合、Phase 42 で別途切り出し）
+- UI rubric の自動採点の LLM 較正ループ（ui-rubric profile の採点ばらつきの calibration 自動化）→ Phase 43 以降
+- `/loop` + `--codex`（Codex CLI モード）の組み合わせ検証 → Phase 42 で別途
+
+---
