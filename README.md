@@ -33,11 +33,20 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, with
 
 ---
 
+## How It Works
+
+- Use claude memory to support decisions and patterns, and to maintain a session log of what was done and why
+- Use Plans.md as source of spec to drive implementation.
+- Use go based engine for hooks to enforce runtime guardrails and autmate tasks.
+- Use `deleted-concepts.yaml` to track and prevent reintroduction of rejected ideas.
+
+
+
 ## The 5 Verb Workflow
 
 | Command | What it does |
 |---------|-------------|
-| `/harness-setup` | Project initialization (creates `CLAUDE.md` and `Plans.md`) |
+| `/harness-setup` | Project initialization (eg, creates `CLAUDE.md` and `Plans.md`) |
 | `/harness-plan` | Ideas → `Plans.md` with acceptance criteria |
 | `/harness-work` | Parallel implementation (auto-detects task count) |
 | `/harness-review` | 4-perspective code review (security, perf, quality, a11y) |
@@ -135,6 +144,13 @@ MIT — [Full License](LICENSE.md)
 
 Forked from [claude-code-harness](https://github.com/Chachamaru127/claude-code-harness) and significantly modified.
 
+### What stayed the same?
+- Harness flow
+- Multi-agent architecture
+- Guardrail go engine and rules
+
+
+### What changed?
 - Repository structure reorganized for clarity and maintainability
 - Optimise skills descriptions
 - Use English for wider audience and consistency with code/comments
