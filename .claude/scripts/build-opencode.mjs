@@ -215,7 +215,7 @@ opencode.ai automatically recognizes skills in the \`.claude/skills/\` directory
 
 | Skill | Description |
 |--------|------|
-| \`notebookLM\` | Document generation (NotebookLM YAML, slides) |
+| \`notebook-lm\` | Document generation (NotebookLM YAML, slides) |
 | \`impl\` | Feature implementation |
 | \`harness-review\` | Code review |
 | \`verify\` | Build verification and error recovery |

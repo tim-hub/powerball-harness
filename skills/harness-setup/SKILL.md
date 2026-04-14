@@ -85,22 +85,14 @@ while force-tracking `.claude/memory/`, `.claude/output-styles/`, `.claude/rules
 
 Configure Unified Harness Memory.
 
+Create agent memory directories and deploy `MEMORY.md` templates for the worker and reviewer agents:
+
 ```bash
-# Create memory directories
 mkdir -p .claude/agent-memory/powerball-harness-worker
 mkdir -p .claude/agent-memory/powerball-harness-reviewer
-
-# Deploy MEMORY.md template
-cat > .claude/agent-memory/powerball-harness-worker/MEMORY.md << 'EOF'
-# Worker Agent Memory
-
-## Project Context
-[Project overview]
-
-## Patterns
-[Learned patterns]
-EOF
 ```
+
+Each `MEMORY.md` should have `## Project Context` and `## Patterns` sections.
 
 ### codex — Codex CLI Configuration
 
