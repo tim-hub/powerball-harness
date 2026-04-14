@@ -6,6 +6,38 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-04-14
+
+### Theme: Phase 49 — build-from-source installation, hooks.json SSOT, deny list cleanup
+
+**Replaces the network-dependent binary download with a local Go build, makes `.claude-plugin/hooks.json` the single source of truth for hook configuration, and removes 42 duplicate entries from the permission deny list.**
+
+---
+
+#### 1. Build harness binary from source instead of downloading
+
+**Before**: `harness-setup binary` ran `download-binary.sh`, which fetched a pre-built binary from a remote URL. This failed silently on air-gapped machines, behind corporate proxies, or whenever the release asset was unavailable.
+
+**After**: `harness-setup binary` now runs `build-binary.sh`, which compiles the binary directly from the Go source already present in the repository using `CGO_ENABLED=0` for a fully static binary. Requires `go` to be installed; produces the correct `harness-<OS>-<ARCH>` binary in `bin/`.
+
+```sh
+# What runs now
+bash scripts/build-binary.sh
+# → CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o bin/harness-darwin-arm64 ./cmd/harness/
+```
+
+#### 2. Consolidate hooks.json to a single SSOT
+
+**Before**: `hooks/hooks.json` and `.claude-plugin/hooks.json` were two separate files with identical content. Any change had to be made in both places. `harness sync` copied one to the other, which would clobber itself if they diverged.
+
+**After**: `hooks/hooks.json` is now a symlink pointing to `../.claude-plugin/hooks.json`. `.claude-plugin/hooks.json` is the single authoritative file. `harness sync` detects the symlink and skips the copy step, printing "skipped (symlinked to …)" instead.
+
+#### 3. Deduplicate and categorize permission deny list
+
+**Before**: `harness.toml` `[safety.permissions]` had 171 deny entries with 42 duplicates (same command in both `Bash(cmd:*)` and glob form, and within category groups).
+
+**After**: 129 entries — zero duplicates — organized under labeled categories (`# --- dangerous system commands ---`, `# --- network ---`, `# --- git destructive ---`, etc.). The umbrella rules (`sudo:*`, `rm -rf:*`) subsume the per-command items they were already covering.
+
 ## [4.1.4] - 2026-04-14
 
 ### Theme: CI workflow fix, harness-mem removal, gitignore template update
