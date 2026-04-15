@@ -74,8 +74,8 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **`CLAUDE_ENV_FILE` SessionStart persistence** | hooks | Persist env vars from SessionStart hooks to subsequent Bash commands |
 | **`PreCompact` hook** | hooks | Pre-compaction state save + WIP task warning (implemented) |
 | **Slack Integration (`@Claude`)** | — | Future support (requires Teams/Enterprise). No Harness implementation |
-| **Analytics Dashboard** | — | Planned (not implemented). PR attribution, metrics, leaderboard for future |
-| **OpenTelemetry Monitoring** | hooks, breezing | Custom JSONL trace output. OTel format conversion only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set (planned) |
+| **Analytics Dashboard** | — | Planned (not implemented). PR attribution, metrics, leaderboard for future (planned — review 2026-07-15) |
+| **OpenTelemetry Monitoring** | hooks, breezing | Custom JSONL trace output. OTel format conversion only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set (planned — review 2026-07-15) |
 | **`/security-review` command** | harness-review | Analyze pending changes for security vulnerabilities (injection, auth, data exposure) |
 | **`/insights` command** | session-memory | Session analysis report: project areas, interaction patterns, friction points |
 | **`/stats` command** | session | Daily usage visualization, session history, streaks, model preferences |
@@ -166,7 +166,7 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **Memory leak fixes (v2.1.50-v2.1.63)** | breezing, work | Improved stability for long team sessions |
 | **`claude agents` CLI (v2.1.50)** | troubleshoot | Agent definition diagnosis and verification |
 | **WorktreeCreate/Remove hook (v2.1.50)** | breezing | Worktree lifecycle auto-setup and cleanup (implemented) |
-| **`claude remote-control` (v2.1.51)** | investigated, future support | External builds and local environment serving |
+| **`claude remote-control` (v2.1.51)** | investigated, future support | External builds and local environment serving (planned — review 2026-07-15) |
 | **`/simplify` (v2.1.63)** | work | Phase 3.5 Auto-Refinement: automatic code refinement after implementation |
 | **`/batch` (v2.1.63)** | breezing | Parallel migration delegation for cross-cutting tasks |
 | **`code-simplifier` plugin** | work | Deep refactoring with `--deep-simplify` |
@@ -184,7 +184,6 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **`/reload-plugins` (v2.1.69)** | all skills | Immediate reflection after skill/hook edits |
 | **`includeGitInstructions: false` (v2.1.69)** | work, breezing | Token reduction for tasks that don't need git instructions |
 | **`git-subdir` plugin source (v2.1.69)** | setup, release | Support plugin source managed from repository subdirectories |
-| **Auto Mode (RP Phase 1)** | breezing, work | CC native feature. Harness only tracks PermissionDenied. Decision logic not implemented. Current default is `bypassPermissions` |
 | **Per-agent hooks (v2.1.69+)** | agents/ | Added `hooks` field to agent definition frontmatter. Worker gets PreToolUse guard, Reviewer gets Stop log |
 | **Agent `isolation: worktree` (v2.1.50+)** | agents/worker | Added `isolation: worktree` to Worker agent definition. Auto worktree isolation for parallel writes |
 | **Compaction image retention (v2.1.70)** | notebook-lm, harness-review | Images retained in summary requests. Improved prompt cache reuse |
@@ -240,7 +239,7 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **`cleanupPeriodDays` setting (v2.1.72+)** | setup | Auto-cleanup period for sub-agent transcripts (default 30 days) |
 | **`/btw` side question (v2.1.72+)** | all skills | Short questions while preserving current context. No tool access, not saved to history. Lightweight alternative to sub-agent |
 | **Plugin CLI commands (v2.1.72+)** | setup | `claude plugin install/uninstall/enable/disable/update` + `--scope` flag. Script automation support |
-| **Remote Control enhancements (v2.1.72+)** | investigated, future support | `/remote-control` (`/rc`) to enable in-session. `--name`, `--sandbox`, `--verbose` flags. `/mobile` for QR code. Auto-reconnection support |
+| **Remote Control enhancements (v2.1.72+)** | investigated, future support | `/remote-control` (`/rc`) to enable in-session. `--name`, `--sandbox`, `--verbose` flags. `/mobile` for QR code. Auto-reconnection support (planned — review 2026-07-15) |
 | **`skills` field in agent frontmatter (v2.1.72+)** | agents/ | Preload skills into sub-agents. Worker gets `harness-work`+`harness-review`, Reviewer gets `harness-review`, Scaffolder gets `harness-setup`+`harness-plan` (implemented) |
 | **`modelOverrides` setting (v2.1.73)** | setup, breezing | Map model picker entries to custom provider model IDs (Bedrock ARNs, etc.) |
 | **`/output-style` deprecation (v2.1.73)** | all skills | Migrated to `/config`. Output style selection moved to config menu |
@@ -253,7 +252,6 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **`/teleport` (`/tp`)** | session | Import cloud sessions to local terminal |
 | **`CLAUDE_CODE_REMOTE` env var** | hooks, session-env-setup | Detect cloud vs local execution. Used for hook conditional branching |
 | **`CLAUDE_ENV_FILE` SessionStart persistence** | hooks, session-env-setup | Persist env vars from SessionStart hooks to subsequent Bash commands |
-| **Slack Integration (`@Claude`)** | — | Future support (requires Teams/Enterprise). No Harness implementation |
 | **Server-managed settings (public beta)** | setup | Server-delivered bulk settings management. For Teams/Enterprise |
 | **Microsoft Foundry** | setup, breezing | Added as new cloud provider |
 | **`PreCompact` hook** | hooks | Pre-compaction state save and WIP task warning (implemented) |

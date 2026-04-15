@@ -15,6 +15,8 @@ Record the **problem, solution, and applicability conditions** so the same decis
 
 ## P1: Declarative rule table pattern #guardrails #rules
 
+> _(Superseded by D9/Go migration — TypeScript core removed in v4 Hokage. See `go/internal/guardrail/` for current Go implementation.)_
+
 ### Problem
 
 - Guardrail rules written as if-else chains make adding new rules, testing, and priority management difficult
@@ -57,6 +59,8 @@ const GUARD_RULES: GuardRule[] = [
 
 ## P2: stdin -> route -> stdout pipeline #hooks #architecture
 
+> _(Superseded by D9/Go migration — TypeScript core removed in v4 Hokage. See `go/internal/guardrail/` for current Go implementation.)_
+
 ### Problem
 
 - Claude Code hooks receive JSON via stdin and return JSON via stdout
@@ -94,6 +98,8 @@ hooks/pre-tool.sh -> stdin -> node core/dist/index.js -> stdout -> Claude Code
 ---
 
 ## P3: Synchronizing test assertions with output language #testing #i18n
+
+> _(Superseded by D9/Go migration — TypeScript core removed in v4 Hokage. See `go/internal/guardrail/` for current Go implementation.)_
 
 ### Problem
 
