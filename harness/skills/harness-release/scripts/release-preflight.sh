@@ -5,12 +5,14 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEFAULT_ROOT="$(cd "$SCRIPT_DIR/../../../" && pwd)"
-PROJECT_ROOT="${HARNESS_RELEASE_PLUGIN_ROOT:-$DEFAULT_ROOT}"
+DEFAULT_ROOT="$(cd "$SCRIPT_DIR/../../../" && pwd)"  # plugin-local: harness plugin root
+PLUGIN_ROOT="${HARNESS_RELEASE_PLUGIN_ROOT:-$DEFAULT_ROOT}"
 
 if [ "${1:-}" = "--help" ]; then
   cat <<'EOF'
-Usage: scripts/release-preflight.sh [--root PATH] [--dry-run]
+Usage: scripts/release-preflight.sh [--root PLUGIN_ROOT] [--dry-run]
+
+  --root PLUGIN_ROOT   Override the plugin root directory (default: three levels up from this script)
 
 Checks:
   - git worktree cleanliness
@@ -29,7 +31,7 @@ while [ "$#" -gt 0 ]; do
         echo "error: --root requires a path" >&2
         exit 2
       fi
-      PROJECT_ROOT="$2"
+      PLUGIN_ROOT="$2"  # plugin-local: override plugin root
       shift 2
       ;;
     --dry-run)
@@ -42,14 +44,14 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if [ ! -d "$PROJECT_ROOT" ]; then
-  echo "error: project root not found: $PROJECT_ROOT" >&2
+if [ ! -d "$PLUGIN_ROOT" ]; then
+  echo "error: plugin root not found: $PLUGIN_ROOT" >&2
   exit 1
 fi
 
-cd "$PROJECT_ROOT"
+cd "$PLUGIN_ROOT"  # plugin-local: operate from plugin root
 
-GIT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$PROJECT_ROOT")"
+GIT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$PLUGIN_ROOT")"  # project-root: user's git repository root
 
 PASS_COUNT=0
 WARN_COUNT=0
@@ -126,7 +128,7 @@ check_git_clean() {
 }
 
 check_changelog() {
-  local changelog="$GIT_ROOT/CHANGELOG.md"
+  local changelog="$GIT_ROOT/CHANGELOG.md"  # project-root: CHANGELOG lives at git repo root
   if [ ! -f "$changelog" ]; then
     fail "CHANGELOG.md not found"
     return
@@ -281,7 +283,7 @@ check_ci_status() {
   fi
 }
 
-printf 'Release preflight: %s\n' "$PROJECT_ROOT"
+printf 'Release preflight: %s\n' "$PLUGIN_ROOT"
 echo "----------------------------------------"
 
 check_git_clean
