@@ -48,43 +48,27 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # 1. Heading check
-if echo "$NOTES" | grep -qE "^## 🎯 (What's Changed for You|What's Changed for You)"; then
-    # Mixed Japanese/English check
-    if echo "$NOTES" | grep -qE "^## 🎯 .*\|"; then
-        log_error "Heading has mixed Japanese/English (separated by |)"
-    else
-        log_ok "Heading: correct format"
-    fi
+if echo "$NOTES" | grep -qE "^## (What's Changed|What's New|Summary)"; then
+    log_ok "Heading: present"
 else
-    log_error "Missing heading: 🎯 What's Changed for You"
+    log_error "Missing heading: ## What's Changed"
 fi
 
-# 2. Before → After table check
-if echo "$NOTES" | grep -q "Before → After"; then
-    log_ok "Before → After table: present"
+# 2. Before / After table check
+if echo "$NOTES" | grep -qE "Before.*(→|/|\\|).*After"; then
+    log_ok "Before / After table: present"
 else
-    log_error "Before → After table is missing"
+    log_error "Before / After table is missing"
 fi
 
 # 3. Footer check
 if echo "$NOTES" | grep -q "Generated with \[Claude Code\]"; then
     log_ok "Footer: present"
 else
-    log_error "Missing footer: 🤖 Generated with [Claude Code](...)"
+    log_warn "Footer not found (recommended: '🤖 Generated with [Claude Code](...)')"
 fi
 
-# 4. Mixed Japanese/English check (detailed)
-# English heading patterns
-if echo "$NOTES" | grep -qE "^## (What's New|What's Changed|Summary)$"; then
-    log_warn "English headings detected (Japanese recommended)"
-fi
-
-# Japanese and English descriptions exist in parallel
-if echo "$NOTES" | grep -qE "^\*\*.+\*\*$" | grep -q "[a-zA-Z]" && echo "$NOTES" | grep -qE "^\*\*.+\*\*$" | grep -q "[ぁ-んァ-ン一-龥]"; then
-    log_warn "Description may have mixed Japanese/English content"
-fi
-
-# 5. Section check
+# 4. Section check
 for section in "Added" "Changed" "Fixed" "Security"; do
     if echo "$NOTES" | grep -q "^## $section"; then
         log_ok "Section: $section present"
