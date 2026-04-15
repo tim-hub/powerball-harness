@@ -54,7 +54,7 @@ harness-go/
 │   │   ├── denied.go            # PermissionDenied: telemetry + retry
 │   │   └── misc.go              # Notification, ConfigChange, Elicitation, StopFailure
 │   │
-│   ├── plans/                   # Plans.md operations + effort scoring
+│   ├── plans/                   # Plans.md operations + effort scoring (not yet implemented)
 │   │   ├── parser.go            # Parse Plans.md tables (5-column format)
 │   │   ├── marker.go            # Status marker read/update
 │   │   └── effort.go            # Task complexity scoring
@@ -113,7 +113,7 @@ harness-go/
 └── go.sum
 ```
 
-**internal packages: 9** (guardrail, session, event, hook, hookhandler, breezing, ci, lifecycle, state). `pkg/` contains hookproto + config.
+**internal packages: 9** (guardrail, session, event, hook, hookhandler, breezing, ci, lifecycle, state). `plans/` is listed in the design but not yet implemented. `pkg/` contains hookproto + config.
 Notification features (OTel span export, broadcast) are consolidated into `hookhandler/`. No separate notify package is created; each handler sends directly.
 Webhook POST is not yet implemented (only config definition exists; planned for future).
 Review (security/dual) is handled entirely by skill-side prompt instructions and is excluded from the Go binary.

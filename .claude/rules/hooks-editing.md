@@ -7,25 +7,16 @@ paths: "**/hooks.json"
 
 Rules applied when editing `hooks.json` files.
 
-## Important: Dual hooks.json Sync (Required)
+## SSOT: harness/hooks/hooks.json
 
-**Two hooks.json files exist and must always be in sync:**
+**`harness/hooks/hooks.json` is the single source of truth for hook configuration.**
 
-```
-hooks/hooks.json           ← Source file (for development)
-.claude-plugin/hooks.json  ← For plugin distribution (sync required)
-```
+There is only one hooks.json file. The old `.claude-plugin/hooks.json` no longer exists.
 
 ### Editing Flow
 
-1. Edit `hooks/hooks.json`
-2. Apply the same changes to `.claude-plugin/hooks.json`
-3. Sync cache with `./scripts/sync-plugin-cache.sh`
-
-```bash
-# Always run after changes
-./scripts/sync-plugin-cache.sh
-```
+1. Edit `harness/hooks/hooks.json`
+2. Run the full validation suite to verify changes: `make validate`
 
 ## Hook Types
 
@@ -363,11 +354,9 @@ Execute only once per session:
 
 ## Prohibited
 
-- Editing only one hooks.json
 - Not instructing `{ok, reason}` schema for prompt type
 - Hooks without timeout
 - Absolute paths other than `${CLAUDE_PLUGIN_ROOT}`
-- Commits without running sync-plugin-cache.sh
 
 ## Related Decisions
 
