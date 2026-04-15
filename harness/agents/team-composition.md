@@ -1,3 +1,8 @@
+---
+name: team-composition
+description: "Reference guide for the Harness 3-agent team — Lead/Worker/Reviewer structure, breezing execution flow, permission settings, and Codex CLI mapping. Loaded by harness-work --breezing mode."
+---
+
 # Team Composition
 
 3-agent composition for Harness.
@@ -8,14 +13,14 @@ Consolidated from 11 agents to 3 agents.
 ```
 Lead (Execute skill's --breezing mode) - orchestration only
   |
-  +-- Worker (claude-code-harness:worker)
+  +-- Worker (powerball-harness:worker)
   |     Implementation + preflight self-check + build verification + commit preparation
   |     * In --codex mode, delegates to Codex via official plugin
   |
-  +-- [Worker #2] (claude-code-harness:worker)
+  +-- [Worker #2] (powerball-harness:worker)
   |     Parallel execution of independent tasks
   |
-  +-- Reviewer (claude-code-harness:reviewer)
+  +-- Reviewer (powerball-harness:reviewer)
         Independent verdict across static / runtime / browser
         REQUEST_CHANGES -> Lead creates fix tasks
 ```
@@ -51,7 +56,7 @@ Lead (Execute skill's --breezing mode) - orchestration only
 
 | Item | Setting |
 |------|------|
-| **subagent_type** | `claude-code-harness:worker` |
+| **subagent_type** | `powerball-harness:worker` |
 | **Model** | sonnet |
 | **Count** | 1-3 (based on number of independent tasks) |
 | **Tools** | Read, Write, Edit, Bash, Grep, Glob |
@@ -63,7 +68,7 @@ Lead (Execute skill's --breezing mode) - orchestration only
 
 | Item | Setting |
 |------|------|
-| **subagent_type** | `claude-code-harness:reviewer` |
+| **subagent_type** | `powerball-harness:reviewer` |
 | **Model** | sonnet |
 | **Count** | 1 |
 | **Tools** | Read, Grep, Glob (default for static profile) |
@@ -87,7 +92,7 @@ and regenerate the few-shot bank.
 
 | Item | Setting |
 |------|------|
-| **subagent_type** | `claude-code-harness:scaffolder` |
+| **subagent_type** | `powerball-harness:scaffolder` |
 | **Model** | sonnet |
 | **Count** | 1 |
 | **Tools** | Read, Write, Edit, Bash, Grep, Glob |
