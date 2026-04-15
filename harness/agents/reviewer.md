@@ -3,7 +3,7 @@ name: reviewer
 description: "Use when rendering APPROVE/REQUEST_CHANGES verdicts against a sprint-contract — static, runtime, or browser profiles. Do NOT load for: implementation (worker)."
 tools: [Read, Grep, Glob]
 disallowedTools: [Write, Edit, Bash, Agent]
-model: sonnet  # needs nuance for critical/major classification; haiku under-flags
+model: opus  # needs nuance for critical/major classification; haiku under-flags
 effort: medium
 maxTurns: 50
 permissionMode: bypassPermissions

@@ -54,6 +54,12 @@ Change history for claude-code-harness.
 
 **After**: Codex CLI details extracted to `harness/agents/references/team-composition-codex.md` (linked). `team-composition.md` is 404 lines. `ci-cd-fixer.md` trimmed to 342 lines by condensing templates and collapsing the auto-detection section to essential steps.
 
+#### 4. Reviewer upgraded to `opus`; `team-composition.md` frontmatter added
+
+**Before**: The `reviewer` agent ran on `sonnet`. Review quality occasionally missed nuance in critical/major classification thresholds. `team-composition.md` lacked YAML frontmatter, causing the plugin loader to silently skip it.
+
+**After**: `reviewer` model set to `opus` — better reasoning reduces false-positive `REQUEST_CHANGES` and missed `APPROVE` calls. `team-composition.md` gains minimal `name` + `description` frontmatter.
+
 ## [4.4.6] - 2026-04-15
 
 ### Theme: SKILL.md quality pass — all 26 skills
