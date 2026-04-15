@@ -56,10 +56,10 @@ Rather than relying solely on LLM impressions, pick up residual candidates in a 
 
 ```bash
 # Diff-based
-AI_RESIDUALS_JSON="$(bash scripts/review-ai-residuals.sh --base-ref "${BASE_REF:-HEAD~1}")"
+AI_RESIDUALS_JSON="$(bash "${CLAUDE_SKILL_DIR}/../../scripts/review-ai-residuals.sh" --base-ref "${BASE_REF:-HEAD~1}")"
 
 # To explicitly specify target files
-bash scripts/review-ai-residuals.sh path/to/file.ts path/to/config.sh
+bash "${CLAUDE_SKILL_DIR}/../../scripts/review-ai-residuals.sh" path/to/file.ts path/to/config.sh
 ```
 
 ### Step 2: Review from 5 Perspectives

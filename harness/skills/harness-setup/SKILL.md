@@ -32,7 +32,7 @@ Requires `go` to be installed on the system.
 Implementation: [`scripts/build-binary.sh`](${CLAUDE_SKILL_DIR}/scripts/build-binary.sh)
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/build-binary.sh"
+bash "${CLAUDE_SKILL_DIR}/scripts/build-binary.sh"
 ```
 
 **When to run**: After fresh plugin install if you see `UserPromptSubmit hook error` messages.
@@ -81,9 +81,9 @@ Merges the harness-managed block into the project's `.gitignore`. Safe to run mu
 Implementation: [`scripts/merge-gitignore.sh`](${CLAUDE_SKILL_DIR}/scripts/merge-gitignore.sh)
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/merge-gitignore.sh"
+bash "${CLAUDE_SKILL_DIR}/scripts/merge-gitignore.sh"
 # Or with an explicit target path:
-bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/merge-gitignore.sh path/to/.gitignore"
+bash "${CLAUDE_SKILL_DIR}/scripts/merge-gitignore.sh path/to/.gitignore"
 ```
 
 The block ignores `.claude/sessions/`, `logs/`, `settings.local.json`, and `states/`,
@@ -104,7 +104,7 @@ Sets up the project for Codex CLI by copying Harness config templates and skills
 5. Overlays `templates/codex-skills/` → `.codex/skills/` (codex-native variants of breezing and harness-work override the generic copies)
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/setup-codex.sh"
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-codex.sh"
 ```
 
 > **Note**: Excluded from the no-args `init` run — requires an external `@openai/codex` install that should be explicit opt-in.
@@ -123,7 +123,7 @@ Sets up the project for OpenCode by copying Harness config templates, commands, 
 5. Copies all skills from plugin `skills/` → `.opencode/skills/` as-is (opencode ignores unknown frontmatter fields)
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/setup-opencode.sh"
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-opencode.sh"
 ```
 
 > **Note**: Excluded from the no-args `init` run — requires OpenCode to be installed explicitly.
@@ -133,8 +133,8 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/setup-opencode.sh"
 Runs both `codex` and `opencode` setup subcommands in sequence.
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/setup-codex.sh"
-bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/setup-opencode.sh"
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-codex.sh"
+bash "${CLAUDE_SKILL_DIR}/scripts/setup-opencode.sh"
 ```
 
 ### Cleanup

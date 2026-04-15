@@ -68,12 +68,12 @@ A mode that delegates all implementation to Codex CLI via the official plugin `c
 
 ```bash
 # Task delegation (writable)
-bash scripts/codex-companion.sh task --write "task content"
+bash "${CLAUDE_SKILL_DIR}/../../scripts/codex-companion.sh" task --write "task content"
 
 # Via stdin (for large prompts)
 CODEX_PROMPT=$(mktemp /tmp/codex-prompt-XXXXXX.md)
 # Write task content
-cat "$CODEX_PROMPT" | bash scripts/codex-companion.sh task --write
+cat "$CODEX_PROMPT" | bash "${CLAUDE_SKILL_DIR}/../../scripts/codex-companion.sh" task --write
 rm -f "$CODEX_PROMPT"
 ```
 
