@@ -6,6 +6,26 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.4.5] - 2026-04-15
+
+### Theme: Fix plugin install error and sync-version.sh template glob
+
+**Resolves "output-styles path not found" on plugin install; sync-version.sh now auto-discovers all templates instead of relying on a hardcoded list.**
+
+---
+
+#### 1. outputStyles path double-prefix in marketplace.json
+
+**Before**: After installing the plugin, `/doctor` reported `output-styles path not found: .../harness/output-styles/`. The `marketplace.json` entry `"outputStyles": "./harness/output-styles/"` was resolved relative to the installed plugin root — which is already the `harness/` directory (set by `"source": "./harness/"`). This produced a double `harness/harness/output-styles/` lookup that never resolves.
+
+**After**: Changed to `"outputStyles": "./output-styles/"`. The path now resolves correctly against the installed plugin root. `harness.toml` already used this correct form; marketplace.json now matches.
+
+#### 2. sync-version.sh hardcoded template list replaced with glob
+
+**Before**: `sync-version.sh` (bump and check) only updated `_harness_version` in 3 hardcoded template files (CLAUDE.md, AGENTS.md, Plans.md). Templates added in v4.4.3 (`rules/quality-gates.md.template` etc.) were silently skipped, requiring manual bumps every release.
+
+**After**: Both the `sync` and `check` commands now use `grep -rl '_harness_version:' harness/templates/` to discover all templates automatically. Any new `.md.template` with a `_harness_version:` field is picked up without code changes.
+
 ## [4.4.4] - 2026-04-15
 
 ### Theme: CI hotfixes — validate-plugin.sh strict-mode regression and missing template frontmatter
@@ -3196,7 +3216,8 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/tim-hub/powerball-harness/releases).
 
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.4.4...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.4.5...HEAD
+[4.4.5]: https://github.com/tim-hub/powerball-harness/compare/v4.4.4...v4.4.5
 [4.4.4]: https://github.com/tim-hub/powerball-harness/compare/v4.4.3...v4.4.4
 [4.4.3]: https://github.com/tim-hub/powerball-harness/compare/v4.4.2...v4.4.3
 [4.4.2]: https://github.com/tim-hub/powerball-harness/compare/v4.4.1...v4.4.2
