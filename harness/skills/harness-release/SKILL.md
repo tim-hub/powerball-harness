@@ -4,7 +4,7 @@ description: "Use when releasing — version bumps, CHANGELOG, git tags, GitHub 
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[patch|minor|major|--dry-run|--announce|--complete]"
 context: fork
-effort: high
+effort: medium
 model: sonnet
 ---
 
@@ -83,7 +83,7 @@ command -v gh &>/dev/null || echo "gh missing: GitHub Release will be skipped"
 command -v jq &>/dev/null || echo "jq missing: required for marketplace.json update"
 
 # 2. vendor-neutral preflight (common to production and dry-run)
-bash scripts/release-preflight.sh
+bash skills/harness-release/scripts/release-preflight.sh
 
 # 3. Plugin structure validation
 bash tests/validate-plugin.sh
@@ -95,7 +95,7 @@ bash local-scripts/check-consistency.sh
 ls -la codex/.codex/skills/
 ```
 
-`scripts/release-preflight.sh` validates the following:
+`skills/harness-release/scripts/release-preflight.sh` validates the following:
 
 - Whether the working tree is clean
 - Whether `CHANGELOG.md` has an `[Unreleased]` section
@@ -289,7 +289,7 @@ Verify the following regressions before release:
 - [ ] **Plugin structure** — `bash tests/validate-plugin.sh` (marketplace.json, skills, hooks, scripts)
 - [ ] **Consistency** — `bash local-scripts/check-consistency.sh` (templates, versions, CHANGELOG)
 - [ ] **Templates** — `test -f templates/codex/config.toml && test -f templates/opencode/opencode.json` (setup templates present)
-- [ ] **Preflight** — `bash scripts/release-preflight.sh` (working tree, CHANGELOG, CI, remnants)
+- [ ] **Preflight** — `bash skills/harness-release/scripts/release-preflight.sh` (working tree, CHANGELOG, CI, remnants)
 - [ ] **Release notes** — `bash scripts/validate-release-notes.sh vX.Y.Z` (GitHub Release format)
 - [ ] **VERSION sync** — `bash scripts/sync-version.sh check` (VERSION matches marketplace.json)
 - [ ] **Guardrails** — R01-R13 in `go/internal/guardrail/rules.go` (Go rule health)
@@ -342,7 +342,6 @@ Completion report to PM after release:
 - `harness-review` -- Perform code review before release
 - `harness-work` -- Implement next tasks after release
 - `harness-plan` -- Create plans for the next version
-- `x-announce` -- Generate X (Twitter) release announcement threads
 - `harness-setup` -- Mirror sync and plugin configuration setup
 
 ## Related Rules
