@@ -54,19 +54,48 @@ if [ "$PROFILE" = "static" ]; then
 fi
 
 if [ "$PROFILE" = "browser" ]; then
+  BROWSER_ARTIFACT_FILE="${STATE_DIR}/${TASK_ID}.browser-review.json"
+  BROWSER_RESULT_FILE="${STATE_DIR}/${TASK_ID}.browser-result.json"
+  browser_artifact="$(
+    "$(dirname "$0")/generate-browser-review-artifact.sh" "$CONTRACT_FILE" "$BROWSER_ARTIFACT_FILE"
+  )"
+  browser_result="$(
+    "$(dirname "$0")/browser-review-runner.sh" "$browser_artifact" "$BROWSER_RESULT_FILE"
+  )"
+  browser_verdict="$(jq -r '.browser_verdict // .verdict // "PENDING_BROWSER"' "$browser_result")"
+  checks_json="$(jq -c '.checks // []' "$browser_artifact")"
+
+  case "$browser_verdict" in
+    APPROVE|REQUEST_CHANGES)
+      verdict="$browser_verdict"
+      ;;
+    *)
+      browser_verdict="PENDING_BROWSER"
+      verdict="PENDING_BROWSER"
+      ;;
+  esac
+
   jq -n \
     --arg profile "$PROFILE" \
     --arg task_id "$TASK_ID" \
     --arg task_title "$TASK_TITLE" \
     --arg generated_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg verdict "$verdict" \
+    --arg browser_verdict "$browser_verdict" \
+    --arg browser_artifact "$browser_artifact" \
+    --arg browser_result "$browser_result" \
+    --argjson checks "$checks_json" \
     '{
       schema_version: "runtime-review.v1",
       generated_at: $generated_at,
       task: { id: $task_id, title: $task_title },
       reviewer_profile: $profile,
-      verdict: "PENDING_BROWSER",
-      note: "browser profile requires a browser-capable evaluator",
-      checks: []
+      verdict: $verdict,
+      browser_verdict: $browser_verdict,
+      browser_artifact_path: $browser_artifact,
+      browser_result_path: $browser_result,
+      note: "browser profile uses the browser review runner; browser_verdict is combined downstream",
+      checks: $checks
     }' > "$OUTPUT_FILE"
   echo "$OUTPUT_FILE"
   exit 0
