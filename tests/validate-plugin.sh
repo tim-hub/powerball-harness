@@ -155,10 +155,10 @@ if [ -d "$HARNESS_ROOT/skills" ]; then
 
     find "$HARNESS_ROOT/skills" -name "SKILL.md" | while read -r skill_file; do
         if grep -q "^description:" "$skill_file"; then
-            ((SKILLS_WITH_DESCRIPTION++))
+            (( ++SKILLS_WITH_DESCRIPTION ))
         fi
         if grep -q "^allowed-tools:" "$skill_file"; then
-            ((SKILLS_WITH_ALLOWED_TOOLS++))
+            (( ++SKILLS_WITH_ALLOWED_TOOLS ))
         fi
     done
 
