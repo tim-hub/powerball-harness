@@ -22,9 +22,6 @@ set -euo pipefail
 VERSION_FILE="harness/VERSION"                                   # project-root
 HARNESS_TOML="harness/harness.toml"                             # project-root
 TEMPLATE_REGISTRY="harness/templates/template-registry.json"    # project-root
-CLAUDE_TEMPLATE="harness/templates/CLAUDE.md.template"          # project-root
-AGENTS_TEMPLATE="harness/templates/AGENTS.md.template"          # project-root
-PLANS_TEMPLATE="harness/templates/Plans.md.template"            # project-root
 
 # Get current canonical version
 get_version() {
@@ -76,16 +73,14 @@ check_version() {
         fi
     fi
 
-    for tmpl in "$CLAUDE_TEMPLATE" "$AGENTS_TEMPLATE" "$PLANS_TEMPLATE"; do
-        if [ -f "$tmpl" ]; then
-            local tmpl_ver=$(get_md_template_version "$tmpl")
-            local tmpl_name=$(basename "$tmpl")
-            if [ "$v" != "$tmpl_ver" ]; then
-                echo "❌ FAIL: $tmpl_name: version mismatch ($tmpl_ver != $v)"
-                ok=false
-            fi
+    while IFS= read -r tmpl; do
+        local tmpl_ver=$(get_md_template_version "$tmpl")
+        local tmpl_name="${tmpl#harness/templates/}"
+        if [ "$v" != "$tmpl_ver" ]; then
+            echo "❌ FAIL: $tmpl_name: version mismatch ($tmpl_ver != $v)"
+            ok=false
         fi
-    done
+    done < <(grep -rl '_harness_version:' harness/templates/ 2>/dev/null | sort)
 
     if [ "$ok" = true ]; then
         echo "✅ Versions match: $v"
@@ -119,18 +114,16 @@ sync_version() {
         fi
     fi
 
-    # *.md.template files — _harness_version field
-    for tmpl in "$CLAUDE_TEMPLATE" "$AGENTS_TEMPLATE" "$PLANS_TEMPLATE"; do
-        if [ -f "$tmpl" ]; then
-            local tmpl_ver=$(get_md_template_version "$tmpl")
-            local tmpl_name=$(basename "$tmpl")
-            if [ "$version" != "$tmpl_ver" ]; then
-                do_sed "s/_harness_version: \"$tmpl_ver\"/_harness_version: \"$version\"/" "$tmpl"
-                echo "✅ Updated $tmpl_name: $tmpl_ver → $version"
-                updated=true
-            fi
+    # *.md.template files — _harness_version field (glob all tracked templates)
+    while IFS= read -r tmpl; do
+        local tmpl_ver=$(get_md_template_version "$tmpl")
+        local tmpl_name="${tmpl#harness/templates/}"
+        if [ "$version" != "$tmpl_ver" ]; then
+            do_sed "s/_harness_version: \"$tmpl_ver\"/_harness_version: \"$version\"/" "$tmpl"
+            echo "✅ Updated $tmpl_name: $tmpl_ver → $version"
+            updated=true
         fi
-    done
+    done < <(grep -rl '_harness_version:' harness/templates/ 2>/dev/null | sort)
 
     if [ "$updated" = false ]; then
         echo "✅ All files already at $version (no changes)"
