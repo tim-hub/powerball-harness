@@ -173,9 +173,9 @@ if [ "$SCAN_MODE" = "files" ] && [ ${#POSITIONAL_FILES[@]} -eq 0 ]; then
   fi
 fi
 
-TMP_FILES="$(mktemp)"
-TMP_OBS="$(mktemp)"
-TMP_DIFF="$(mktemp)"
+TMP_FILES="$(mktemp /tmp/harness-tmp.XXXXXX)"
+TMP_OBS="$(mktemp /tmp/harness-tmp.XXXXXX)"
+TMP_DIFF="$(mktemp /tmp/harness-tmp.XXXXXX)"
 cleanup() {
   rm -f "$TMP_FILES" "$TMP_OBS" "$TMP_DIFF"
 }

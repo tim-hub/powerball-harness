@@ -7,6 +7,7 @@
 #
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 PASSED=0
 FAILED=0

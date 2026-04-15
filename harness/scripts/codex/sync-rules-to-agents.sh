@@ -148,7 +148,7 @@ if [ "$MODE" = "check" ]; then
 fi
 
 # ===== Write converted content to tmp file =====
-NEW_SECTION_FILE="$(mktemp)"
+NEW_SECTION_FILE="$(mktemp /tmp/harness-tmp.XXXXXX)"
 build_rules_section > "$NEW_SECTION_FILE"
 
 # ===== --dry-run mode: preview only =====
@@ -170,7 +170,7 @@ fi
 # If the existing section is present, replace it; otherwise append to the end
 if grep -q "${SECTION_MARKER_START}" "$AGENTS_MD" 2>/dev/null; then
   # Replace existing section (swap content between markers using awk)
-  TMP_FILE="$(mktemp)"
+  TMP_FILE="$(mktemp /tmp/harness-tmp.XXXXXX)"
   awk -v new_file="$NEW_SECTION_FILE" \
     -v start="${SECTION_MARKER_START}" \
     -v end="${SECTION_MARKER_END}" '

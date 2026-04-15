@@ -12,6 +12,7 @@
 # - Path relationship checking
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 # Colors for output
 GREEN='\033[0;32m'

@@ -56,7 +56,7 @@ main() {
 
     if command -v jq >/dev/null 2>&1; then
       local short_id="${current_session:0:12}"
-      local tmp_file=$(mktemp)
+      local tmp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
       TEMP_FILES+=("$tmp_file")
 
       echo "$session_data" | jq \

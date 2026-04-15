@@ -2,12 +2,14 @@
 # Verify that usage tracking hooks do not emit record-usage noise to stdout
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-USERPROMPT_TRACK_SCRIPT="${ROOT_DIR}/scripts/userprompt-track-command.sh"
-USAGE_TRACKER_SCRIPT="${ROOT_DIR}/scripts/usage-tracker.sh"
+HARNESS_DIR="${ROOT_DIR}/harness"
+USERPROMPT_TRACK_SCRIPT="${HARNESS_DIR}/scripts/userprompt-track-command.sh"
+USAGE_TRACKER_SCRIPT="${HARNESS_DIR}/scripts/usage-tracker.sh"
 
-TMP_DIR="$(mktemp -d)"
+TMP_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"
 trap 'rm -rf "${TMP_DIR}"' EXIT
 
 mkdir -p "${TMP_DIR}/.claude/state"

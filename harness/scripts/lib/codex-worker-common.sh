@@ -543,7 +543,7 @@ update_worktree_meta() {
     fi
 
     local tmp_file
-    tmp_file=$(mktemp)
+    tmp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
 
     jq --arg key "$key" --arg value "$value" '.[$key] = $value' "$meta_file" > "$tmp_file"
     mv "$tmp_file" "$meta_file"

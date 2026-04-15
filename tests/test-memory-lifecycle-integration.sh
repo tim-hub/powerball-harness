@@ -3,10 +3,16 @@
 # SessionStart -> SessionStart additionalContext -> UserPromptSubmit -> Stop.
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-HARNESS_ROOT="$(cd "${ROOT_DIR}/../harness-mem" && pwd)"
-TMP_DIR="$(mktemp -d)"
+HARNESS_MEM_DIR="${ROOT_DIR}/../harness-mem"
+if [ ! -d "${HARNESS_MEM_DIR}" ]; then
+  echo "SKIP: harness-mem sibling repo not found at ${HARNESS_MEM_DIR}"
+  exit 0
+fi
+HARNESS_ROOT="$(cd "${HARNESS_MEM_DIR}" && pwd)"
+TMP_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"
 trap 'rm -rf "${TMP_DIR}"' EXIT
 
 CLAUDE_TMP="${TMP_DIR}/claude-code-harness"
@@ -32,6 +38,7 @@ cp "${HARNESS_ROOT}/scripts/hook-handlers/lib/hook-common.sh" "${MEM_TMP}/script
 cat > "${MEM_TMP}/scripts/harness-mem-client.sh" <<EOF
 #!/bin/bash
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 command="\${1:-health}"
 payload=""
 if [ ! -t 0 ]; then
@@ -60,6 +67,7 @@ EOF
 cat > "${MEM_TMP}/scripts/harness-memd" <<'EOF'
 #!/bin/bash
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 exit 0
 EOF
 

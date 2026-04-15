@@ -72,7 +72,7 @@ if [ "$PROFILE" = "browser" ]; then
   exit 0
 fi
 
-TMP_DIR="$(mktemp -d)"
+TMP_DIR="$(mktemp -d /tmp/harness-tmp.XXXXXX)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 CHECKS_FILE="$TMP_DIR/checks.jsonl"
 FAILED=0

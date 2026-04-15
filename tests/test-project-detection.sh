@@ -12,10 +12,11 @@
 # 5. Code files 3-9 → "ambiguous" (few_files)
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-TEST_DIR=$(mktemp -d)
+TEST_DIR=$(mktemp -d "/tmp/harness-test.XXXXXX")
 
 # Color output
 RED='\033[0;31m'

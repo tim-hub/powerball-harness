@@ -77,7 +77,7 @@ append_event() {
     seq=$((seq + 1))
     event_id=$(printf "event-%06d" "$seq")
 
-    tmp_file=$(mktemp)
+    tmp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
     jq --arg state "$event_state" \
        --arg updated_at "$event_time" \
        --arg event_id "$event_id" \
@@ -169,7 +169,7 @@ fork_session() {
   now="$(now_ts)"
 
   if command -v jq >/dev/null 2>&1; then
-    tmp_file=$(mktemp)
+    tmp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
     jq --arg session_id "$new_id" \
        --arg parent_id "$(jq -r '.session_id // ""' "$base_file" 2>/dev/null)" \
        --arg started_at "$now" \

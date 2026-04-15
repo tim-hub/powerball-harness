@@ -16,6 +16,9 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 - D9: 2026-04-13: Migrate guardrail engine from TypeScript to Go native binary #guardrails #go
 - D10: 2026-04-13: Hooks fail-open (exit 0) when platform binary is missing #hooks #ux
 - D11: 2026-04-13: Auto-download platform binary on plugin install via Setup hook #distribution #binary
+- D12: 2026-04-15: Makefile as stable CI interface layer between workflows and script paths #ci #architecture
+- D13: 2026-04-15: MARKETPLACE_NAME and PLUGIN_NAME in cache scripts must match marketplace.json #distribution #cache
+- D14: 2026-04-15: Consistency check sections must be explicitly skipped, never silently no-op #quality #ci
 
 ---
 
@@ -338,3 +341,76 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 ### Review Conditions
 
 - If Claude Code marketplace supports bundling release assets directly
+
+---
+
+## D12: 2026-04-15: Makefile as stable CI interface layer between workflows and script paths #ci #architecture
+
+### Conclusion
+
+- All CI workflow steps call `make <target>` instead of direct script paths (e.g. `make validate` not `bash ./tests/validate-plugin.sh`)
+- The Makefile is the single point of update when script paths change; CI workflows stay untouched
+- Dev-only scripts live in `local-scripts/` (not plugin-distributed); plugin-distributed scripts stay in `harness/scripts/`
+
+### Background
+
+- Phase 52 restructure moved 780+ files into `harness/`. CI steps referencing raw script paths broke silently (wrong paths not caught until CI ran).
+- `local-scripts/` (repo dev tooling) vs `harness/scripts/` (plugin scripts shipped to users) needed a clean separation.
+
+### Rationale
+
+- Indirection via `make` means path changes require one edit (Makefile) not N edits across workflow files
+- The `local-scripts/` vs `harness/scripts/` split makes the distribution boundary visible in directory structure
+
+### Impact / Trade-offs
+
+- Contributors must have `make` installed (standard on macOS/Linux; available via Git for Windows)
+- Adding a new dev script requires a Makefile target, not just a script file
+
+### Review Conditions
+
+- If CI platform moves away from make
+
+---
+
+## D13: 2026-04-15: MARKETPLACE_NAME and PLUGIN_NAME in cache scripts must match marketplace.json #distribution #cache
+
+### Conclusion
+
+- `harness/scripts/sync-plugin-cache.sh` uses `MARKETPLACE_NAME="powerball-harness-marketplace"` and `PLUGIN_NAME="harness"` — matching `.claude-plugin/marketplace.json` top-level `name` and the plugin entry's `name` respectively
+- Cache directory path: `~/.claude/plugins/cache/<MARKETPLACE_NAME>/<PLUGIN_NAME>/<VERSION>/`
+
+### Background
+
+- Script shipped with `MARKETPLACE_NAME="claude-code-harness-marketplace"` and `PLUGIN_NAME="claude-code-harness"` — the old pre-marketplace monolithic names. Step 2 wrote files to a non-existent cache path; script exited 0, making the failure invisible.
+
+### Rationale
+
+- CC derives the cache path from the identifiers in `marketplace.json`. Any mismatch means synced files land where CC never reads.
+- Verified from `~/.claude/plugins/cache/` directory structure at review time.
+
+### Review Conditions
+
+- If CC changes cache directory structure or naming conventions
+
+---
+
+## D14: 2026-04-15: Consistency check sections must be explicitly skipped, never silently no-op #quality #ci
+
+### Conclusion
+
+- Any section of `check-consistency.sh` (or similar gate scripts) that iterates over a path must guard with a directory existence check and print an explicit "skipped" message if the path does not exist
+- A section that prints ✅ regardless of actual state is indistinguishable from a passing check and destroys trust in CI output
+
+### Background
+
+- `check-consistency.sh` [2/13] iterated `for cmd in "$PLUGIN_ROOT/commands"/*.md` — `commands/` was removed in v2.17.0 (migrated to skills). With nullglob off, bash loops once with the unexpanded glob string, `grep` silently finds nothing, section prints ✅. This was undetected until the v4.2.0 → HEAD review.
+
+### Rationale
+
+- Silent no-ops accumulate over time as directories are renamed or deleted. Explicit "skipped" messages surface these drift events and keep the check list honest.
+- Applied fix: `if [ -d "$PLUGIN_ROOT/commands" ]; then ... else echo "skipped (commands/ removed)"; fi`
+
+### Review Conditions
+
+- Pattern should be applied proactively whenever a check section's target path changes

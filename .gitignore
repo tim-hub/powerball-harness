@@ -115,8 +115,6 @@ docs/MOSHI_REMOTE_SETUP.md
 skills/test-*/
 skills/zz-review-*/
 skills/zz-review-symlink
-opencode/skills/test-*/
-codex/.codex/skills/test-*/
 
 # Development skills (private)
 
@@ -124,8 +122,6 @@ codex/.codex/skills/test-*/
 # Harness UI / optional UI integration (distribution excluded)
 /harness-ui/
 /skills/harness-ui/
-/opencode/skills/harness-ui/
-/codex/.codex/skills/harness-ui/
 /scripts/harness-ui-register.sh
 /scripts/test-harness-ui-register.sh
 /templates/mcp/harness-ui.mcp.json.template
@@ -214,8 +210,6 @@ out/
 # Skills - temporary implementation docs
 **/skills/**/IMPLEMENTATION_*.md
 **/skills/**/TASK_*.md
-!codex/.codex/skills/**/IMPLEMENTATION_*.md
-!opencode/skills/**/IMPLEMENTATION_*.md
 
 # OpenCode (local-only)
 .opencode/

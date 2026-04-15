@@ -520,7 +520,7 @@ main() {
 
     # Temporary directory
     local tmp_dir
-    tmp_dir=$(mktemp -d)
+    tmp_dir=$(mktemp -d /tmp/harness-tmp.XXXXXX)
     trap 'rm -rf "$tmp_dir"' EXIT
 
     # Store results

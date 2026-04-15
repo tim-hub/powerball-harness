@@ -11,5 +11,12 @@
         ]
       }
     ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "filesystem": {
+      "allowWrite": ["/tmp", "/private/tmp"]
+    }
   }
 }

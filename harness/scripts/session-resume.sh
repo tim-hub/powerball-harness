@@ -271,7 +271,7 @@ sync_handoff_session_metadata() {
   continuity_plugin_first="$(jq -r '.continuity.plugin_first_workflow // false' "$artifact_path" 2>/dev/null || echo false)"
   continuity_resume_aware="$(jq -r '.continuity.resume_aware_effort_continuity // false' "$artifact_path" 2>/dev/null || echo false)"
 
-  tmp_file="$(mktemp)"
+  tmp_file="$(mktemp /tmp/harness-tmp.XXXXXX)"
   jq \
     --arg artifact_path "$artifact_path" \
     --arg context_reset_summary "$context_reset_summary" \
@@ -316,7 +316,7 @@ if [ -n "$CC_SESSION_ID" ] && [ -f "$SESSION_MAP_FILE" ] && command -v jq >/dev/
       # Update state to initialized and record resume event
       NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
       if command -v jq >/dev/null 2>&1; then
-        tmp_file=$(mktemp)
+        tmp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
         jq --arg state "initialized" \
            --arg resumed_at "$NOW" \
            '.state = $state | .resumed_at = $resumed_at' \
@@ -346,7 +346,7 @@ if [ "$RESTORED" = "false" ]; then
 
     NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
     if command -v jq >/dev/null 2>&1; then
-      tmp_file=$(mktemp)
+      tmp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
       jq --arg state "initialized" \
          --arg resumed_at "$NOW" \
          '.state = $state | .resumed_at = $resumed_at' \
@@ -390,7 +390,7 @@ fi
 if [ -n "$CC_SESSION_ID" ] && [ -n "$RESTORED_SESSION_ID" ]; then
   if command -v jq >/dev/null 2>&1; then
     if [ -f "$SESSION_MAP_FILE" ]; then
-      tmp_file=$(mktemp)
+      tmp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
       jq --arg cc_id "$CC_SESSION_ID" --arg harness_id "$RESTORED_SESSION_ID" \
          '.[$cc_id] = $harness_id' "$SESSION_MAP_FILE" > "$tmp_file" && mv "$tmp_file" "$SESSION_MAP_FILE"
     else

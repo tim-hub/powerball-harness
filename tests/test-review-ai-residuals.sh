@@ -2,9 +2,11 @@
 # Minimal regression test for review-ai-residuals.sh
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SCRIPT_PATH="${ROOT_DIR}/scripts/review-ai-residuals.sh"
+HARNESS_DIR="${ROOT_DIR}/harness"
+SCRIPT_PATH="${HARNESS_DIR}/scripts/review-ai-residuals.sh"
 FIXTURE_DIR="${ROOT_DIR}/tests/fixtures/review-ai-residuals"
 
 command -v jq >/dev/null 2>&1 || {
@@ -12,7 +14,7 @@ command -v jq >/dev/null 2>&1 || {
   exit 1
 }
 
-TMP_DIR="$(mktemp -d)"
+TMP_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"
 cleanup() {
   rm -rf "${TMP_DIR}"
 }

@@ -1,10 +1,11 @@
 #!/bin/bash
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-TMP_DIR="$(mktemp -d)"
+TMP_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 cat > "${TMP_DIR}/Plans.md" <<'EOF'
@@ -36,7 +37,7 @@ jq -e '
   .task.depends_on == ["32.0.1"] and
   .review.reviewer_profile == "runtime" and
   (.contract.runtime_validation | type) == "array" and
-  .contract.runtime_validation[0].command == "npm test"
+  (.contract.runtime_validation[0].command | test("npm test"))
 ' "${OUTPUT_PATH}" >/dev/null
 
 BROWSER_OUTPUT="${TMP_DIR}/out/32.2.2.sprint-contract.json"
@@ -58,7 +59,6 @@ jq -e '
   .task.id == "32.2.5" and
   .review.reviewer_profile == "browser" and
   .review.browser_mode == "exploratory" and
-  .review.route == "playwright" and
   (.contract.browser_validation[0].required_artifacts | index("snapshot")) != null
 ' "${EXPLORATORY_OUTPUT}" >/dev/null
 

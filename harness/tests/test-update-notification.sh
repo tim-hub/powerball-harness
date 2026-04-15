@@ -142,31 +142,31 @@ assert_file_contains \
 echo ""
 
 # ============================================
-# harness-update.md validation
+# harness-release.md validation (harness-update consolidated into harness-release)
 # ============================================
-echo "## harness-update.md"
+echo "## harness-release.md"
 echo ""
 
-# harness-update skill validation (after v2.17.0+ skill migration)
+# harness-release skill validation
 assert_file_contains \
-  "skills/harness-update/SKILL.md" \
+  "skills/harness-release/SKILL.md" \
   "hook|Hook|plugin" \
-  "harness-update has hook-related description"
+  "harness-release has hook-related description"
 
 assert_file_contains \
-  "skills/harness-update/SKILL.md" \
-  "Breaking Changes|breaking-changes|deprecated" \
-  "harness-update has breaking change detection"
+  "skills/harness-release/SKILL.md" \
+  "[Bb]reaking" \
+  "harness-release has breaking change detection"
 
 assert_file_contains \
-  "skills/harness-update/SKILL.md" \
-  "backup|Backup" \
-  "harness-update has backup functionality"
+  "skills/harness-release/SKILL.md" \
+  "validate|Validate|Verify" \
+  "harness-release has validation/verification functionality"
 
 assert_file_contains \
-  "skills/harness-update/SKILL.md" \
-  "verification|Verification|検証" \
-  "harness-update has verification functionality"
+  "skills/harness-release/SKILL.md" \
+  "changelog|CHANGELOG" \
+  "harness-release has changelog management"
 
 echo ""
 

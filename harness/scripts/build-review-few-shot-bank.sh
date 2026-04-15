@@ -17,7 +17,7 @@ if [ ! -f "$INPUT_FILE" ]; then
   exit 3
 fi
 
-TMP_JSON="$(mktemp)"
+TMP_JSON="$(mktemp /tmp/harness-tmp.XXXXXX)"
 trap 'rm -f "$TMP_JSON"' EXIT
 
 jq -s -c '

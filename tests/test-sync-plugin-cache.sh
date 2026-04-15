@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HARNESS_DIR="${ROOT_DIR}/harness"
-TMP_HOME="$(mktemp -d)"
+TMP_HOME="$(mktemp -d "/tmp/harness-cache-test.XXXXXX")"
 trap 'rm -rf "${TMP_HOME}"' EXIT
 
 SOURCE_VERSION="$(tr -d '[:space:]' < "${HARNESS_DIR}/VERSION")"
-CACHE_DIR="${TMP_HOME}/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness/${SOURCE_VERSION}"
+CACHE_DIR="${TMP_HOME}/.claude/plugins/cache/powerball-harness-marketplace/harness/${SOURCE_VERSION}"
 mkdir -p "${CACHE_DIR}"
 
 # Prepare a stale/missing cache and verify that passing CLAUDE_PLUGIN_ROOT

@@ -174,7 +174,7 @@ fi
 if echo "$TOOL_NAME" | grep -iq "lsp"; then
   TOOLING_POLICY_FILE="${STATE_DIR}/tooling-policy.json"
   if [ -f "$TOOLING_POLICY_FILE" ]; then
-    temp_file=$(mktemp)
+    temp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
     if command -v jq >/dev/null 2>&1; then
       jq --arg tool_name "$TOOL_NAME" \
          --argjson prompt_seq "$PROMPT_SEQ" \
@@ -269,7 +269,7 @@ append_session_event() {
     current_state=$(jq -r '.state // "executing"' "$SESSION_FILE" 2>/dev/null)
 
     # Update session.json
-    tmp_file=$(mktemp)
+    tmp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
     jq --arg updated_at "$timestamp" \
        --arg event_id "$event_id" \
        --argjson event_seq "$seq" \
@@ -322,7 +322,7 @@ if [ "$TOOL_NAME" = "Skill" ]; then
     fi
     
     # Add to used array
-    temp_file=$(mktemp)
+    temp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
     jq --arg skill "$SKILL_NAME" \
        --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
        '.used += [$skill] | .last_used = $ts' \

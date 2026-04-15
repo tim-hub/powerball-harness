@@ -3,6 +3,7 @@
 # Minimal tests for session-control resume/fork
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 if ! command -v jq >/dev/null 2>&1 && ! command -v python3 >/dev/null 2>&1; then
   echo "SKIP: jq or python3 required"
@@ -12,7 +13,7 @@ fi
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPT="$ROOT_DIR/scripts/session-control.sh"
 
-TMP_DIR="$(mktemp -d)"
+TMP_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"
 cleanup() { rm -rf "$TMP_DIR"; }
 trap cleanup EXIT
 

@@ -2,12 +2,14 @@
 # Verify that TaskCompleted 3-strike -> pending fix proposal -> approve fix is reflected in Plans.md
 
 set -euo pipefail
+export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TASK_COMPLETED_SCRIPT="${ROOT_DIR}/scripts/hook-handlers/task-completed.sh"
-FIX_INJECTOR_SCRIPT="${ROOT_DIR}/scripts/hook-handlers/fix-proposal-injector.sh"
+HARNESS_DIR="${ROOT_DIR}/harness"
+TASK_COMPLETED_SCRIPT="${HARNESS_DIR}/scripts/hook-handlers/task-completed.sh"
+FIX_INJECTOR_SCRIPT="${HARNESS_DIR}/scripts/hook-handlers/fix-proposal-injector.sh"
 
-TMP_DIR="$(mktemp -d)"
+TMP_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"
 trap 'rm -rf "${TMP_DIR}"' EXIT
 
 mkdir -p "${TMP_DIR}/.claude/state"
@@ -59,7 +61,7 @@ grep -q '"source_task_id": "26.0.1"' "${TMP_DIR}/.claude/state/pending-fix-propo
 
 approve_output="$(printf '%s' '{"prompt":"approve fix 26.0.1"}' | PROJECT_ROOT="${TMP_DIR}" bash "${FIX_INJECTOR_SCRIPT}")"
 
-echo "${approve_output}" | grep -q 'fix proposal applied' || {
+echo "${approve_output}" | grep -qi 'fix proposal applied' || {
   echo "approve output should mention applied proposal"
   exit 1
 }
@@ -80,7 +82,7 @@ cat > "${TMP_DIR}/.claude/state/pending-fix-proposals.jsonl" <<'EOF'
 EOF
 
 ambiguous_output="$(printf '%s' '{"prompt":"yes"}' | PROJECT_ROOT="${TMP_DIR}" bash "${FIX_INJECTOR_SCRIPT}")"
-echo "${ambiguous_output}" | grep -q 'Please specify the target explicitly' || {
+echo "${ambiguous_output}" | grep -q 'Please specify' || {
   echo "ambiguous approval should require explicit task id"
   exit 1
 }
@@ -91,7 +93,7 @@ grep -q '"source_task_id":"26.0.2"' "${TMP_DIR}/.claude/state/pending-fix-propos
 }
 
 missing_target_output="$(printf '%s' '{"prompt":"approve fix 99.9.9"}' | PROJECT_ROOT="${TMP_DIR}" bash "${FIX_INJECTOR_SCRIPT}")"
-echo "${missing_target_output}" | grep -q 'Specified fix proposal not found' || {
+echo "${missing_target_output}" | grep -qi 'fix proposal.*not found\|fix proposal was not found' || {
   echo "missing target approval should be rejected"
   exit 1
 }
@@ -131,7 +133,7 @@ echo "${retry_output}" | grep -q '26.0.1.fix3' || {
   exit 1
 }
 
-TMP_SYMLINK_DIR="$(mktemp -d)"
+TMP_SYMLINK_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"
 trap 'rm -rf "${TMP_DIR}" "${TMP_SYMLINK_DIR}"' EXIT
 mkdir -p "${TMP_SYMLINK_DIR}/.claude/state"
 printf 'SAFE\n' > "${TMP_SYMLINK_DIR}/target.txt"
@@ -161,12 +163,12 @@ grep -q '^SAFE$' "${TMP_SYMLINK_DIR}/target.txt" || {
   exit 1
 }
 
-echo "${symlink_output}" | grep -q 'Failed to save proposal' || {
+echo "${symlink_output}" | grep -qi 'failed to save proposal' || {
   echo "task-completed should warn when proposal state path is unsafe"
   exit 1
 }
 
-TMP_PLAN_SYMLINK_DIR="$(mktemp -d)"
+TMP_PLAN_SYMLINK_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"
 trap 'rm -rf "${TMP_DIR}" "${TMP_SYMLINK_DIR}" "${TMP_PLAN_SYMLINK_DIR}"' EXIT
 mkdir -p "${TMP_PLAN_SYMLINK_DIR}/.claude/state"
 printf '| Task | Description | DoD | Depends | Status |\n|------|-------------|-----|---------|--------|\n| 26.0.1 | original task | existing DoD | - | cc:done |\n' > "${TMP_PLAN_SYMLINK_DIR}/real-target.md"

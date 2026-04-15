@@ -13,7 +13,7 @@ IFS=$'\n\t'
 
 HARNESS_REPO="https://github.com/tim-hub/powerball-harness.git"
 HARNESS_BRANCH="main"
-TEMP_DIR=$(mktemp -d)
+TEMP_DIR=$(mktemp -d /tmp/harness-tmp.XXXXXX)
 PROJECT_DIR=$(pwd)
 CODEX_HOME_DIR="${CODEX_HOME:-$HOME/.codex}"
 TARGET_MODE="user"

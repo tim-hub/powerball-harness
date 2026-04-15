@@ -4,129 +4,129 @@
   "templates": {
     "CLAUDE.md.template": {
       "output": "CLAUDE.md",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Project guidelines",
       "tracked": true
     },
     "AGENTS.md.template": {
       "output": "AGENTS.md",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Agent configuration",
       "tracked": true
     },
     "Plans.md.template": {
       "output": "Plans.md",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Task management",
       "tracked": true
     },
     "rules/workflow.md.template": {
       "output": ".claude/rules/workflow.md",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Workflow rules",
       "tracked": true
     },
     "rules/coding-standards.md.template": {
       "output": ".claude/rules/coding-standards.md",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Coding standards",
       "tracked": true
     },
     "rules/testing.md.template": {
       "output": ".claude/rules/testing.md",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Testing rules",
       "tracked": true
     },
     "rules/plans-management.md.template": {
       "output": ".claude/rules/plans-management.md",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Plans.md management rules",
       "tracked": true
     },
     "rules/ui-debugging-agent-browser.md.template": {
       "output": ".claude/rules/ui-debugging-agent-browser.md",
-      "templateVersion": "2.7.13",
+      "templateVersion": "4.3.0",
       "description": "UI debugging rules (agent-browser preferred)",
       "tracked": true
     },
     "rules/test-quality.md.template": {
       "output": ".claude/rules/test-quality.md",
-      "templateVersion": "2.5.30",
+      "templateVersion": "4.3.0",
       "description": "Test quality protection rules (tampering prevention)",
       "tracked": true
     },
     "rules/implementation-quality.md.template": {
       "output": ".claude/rules/implementation-quality.md",
-      "templateVersion": "2.5.30",
+      "templateVersion": "4.3.0",
       "description": "Implementation quality rules (anti-hollowing)",
       "tracked": true
     },
     "rules/skills-gate.md.template": {
       "output": ".claude/rules/skills-gate.md",
-      "templateVersion": "2.6.0",
+      "templateVersion": "4.3.0",
       "description": "Skills Gate rules (encourage skill usage)",
       "tracked": true,
       "condition": "skills_gate.enabled"
     },
     "rules/memory-integration.md.template": {
       "output": ".claude/rules/memory-integration.md",
-      "templateVersion": "2.6.0",
+      "templateVersion": "4.3.0",
       "description": "Memory Integration rules (Claude-mem integration)",
       "tracked": true,
       "condition": "claude_mem.enabled"
     },
     "memory/decisions.md.template": {
       "output": ".claude/memory/decisions.md",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Decision records",
       "tracked": true
     },
     "memory/patterns.md.template": {
       "output": ".claude/memory/patterns.md",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Reusable patterns",
       "tracked": true
     },
     "memory/session-log.md.template": {
       "output": ".claude/memory/session-log.md",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Session log",
       "tracked": false
     },
     "claude/settings.local.json.template": {
       "output": ".claude/settings.local.json",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Local settings",
       "tracked": true
     },
     "claude/settings.security.json.template": {
       "output": ".claude/settings.json",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Security settings",
       "tracked": true
     },
     "state/skills-policy.json.template": {
       "output": ".claude/state/skills-policy.json",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Skills policy",
       "tracked": false
     },
     "state/skills-config.json.template": {
       "output": ".claude/state/skills-config.json",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Skills configuration",
       "tracked": false
     },
     ".claude-code-harness.config.yaml.template": {
       "output": ".claude-code-harness.config.yaml",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Plugin settings",
       "tracked": true
     },
     ".claude-code-harness-version.template": {
       "output": ".claude-code-harness-version",
-      "templateVersion": "2.5.23",
+      "templateVersion": "4.3.0",
       "description": "Version file",
       "tracked": false
     }

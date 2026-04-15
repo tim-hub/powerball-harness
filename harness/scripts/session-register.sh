@@ -65,7 +65,7 @@ main() {
   trap cleanup_tmp EXIT
 
   # Register/update session
-  tmp_file=$(mktemp)
+  tmp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
   echo "$session_data" | jq \
     --arg id "$session_id" \
     --arg short "$short_id" \
@@ -80,7 +80,7 @@ main() {
 
   # Clean up old sessions (older than 24 hours)
   local cleanup_threshold=$((current_time - 86400))
-  tmp_file=$(mktemp)
+  tmp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
   jq --arg threshold "$cleanup_threshold" \
     'to_entries | map(select(.value.last_seen > ($threshold | tonumber))) | from_entries' \
     "$ACTIVE_FILE" > "$tmp_file" && mv "$tmp_file" "$ACTIVE_FILE"

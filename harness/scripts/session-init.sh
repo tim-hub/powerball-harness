@@ -332,7 +332,7 @@ sync_handoff_session_metadata() {
   continuity_plugin_first="$(jq -r '.continuity.plugin_first_workflow // false' "$artifact_path" 2>/dev/null || echo false)"
   continuity_resume_aware="$(jq -r '.continuity.resume_aware_effort_continuity // false' "$artifact_path" 2>/dev/null || echo false)"
 
-  tmp_file="$(mktemp)"
+  tmp_file="$(mktemp /tmp/harness-tmp.XXXXXX)"
   jq \
     --arg artifact_path "$artifact_path" \
     --arg context_reset_summary "$context_reset_summary" \
@@ -415,7 +415,7 @@ fi
 if [ -n "$CC_SESSION_ID" ] && [ -n "$HARNESS_SESSION_ID" ]; then
   if command -v jq >/dev/null 2>&1; then
     if [ -f "$SESSION_MAP_FILE" ]; then
-      tmp_file=$(mktemp)
+      tmp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
       jq --arg cc_id "$CC_SESSION_ID" --arg harness_id "$HARNESS_SESSION_ID" \
          '.[$cc_id] = $harness_id' "$SESSION_MAP_FILE" > "$tmp_file" && mv "$tmp_file" "$SESSION_MAP_FILE"
     else

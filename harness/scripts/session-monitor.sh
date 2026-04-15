@@ -244,7 +244,7 @@ umask 077
 if [ "$RESUME_MODE" = "true" ] && [ -f "$STATE_FILE" ]; then
   # Update existing session (resume)
   if command -v jq >/dev/null 2>&1; then
-    tmp_file=$(mktemp)
+    tmp_file=$(mktemp /tmp/harness-tmp.XXXXXX)
     jq --arg cwd "$(pwd)" \
        --arg project "$PROJECT_NAME" \
        --arg updated_at "$CURRENT_TIME" \

@@ -77,7 +77,7 @@ run_optional_command() {
   local label="$1"
   local command_text="$2"
   local output_file
-  output_file="$(mktemp)"
+  output_file="$(mktemp /tmp/harness-tmp.XXXXXX)"
 
   if bash -lc "$command_text" >"$output_file" 2>&1; then
     pass "$label"

@@ -2,7 +2,7 @@
 description: Basic rules for the 2-agent workflow
 alwaysApply: true
 _harness_template: "rules/workflow.md.template"
-_harness_version: "2.5.27"
+_harness_version: "4.3.0"
 ---
 
 # 2-Agent Workflow Rules

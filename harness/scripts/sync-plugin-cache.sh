@@ -8,15 +8,20 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+# PLUGIN_ROOT: the harness/ directory (where scripts, hooks, VERSION live)
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+# REPO_ROOT: the repository root (parent of harness/) — required by `harness sync`
+REPO_ROOT="$(cd "$PLUGIN_ROOT/.." && pwd)"
 
 # --- Step 1: Run harness sync (Go binary) ---
+# `harness sync` expects the repo root and appends harness/ itself (outputDir="harness").
+# Passing PLUGIN_ROOT would make it write to harness/harness/ — always use REPO_ROOT here.
 # Best-effort: if the binary is unavailable (e.g. in CI before build), skip
 # and rely on the committed .claude-plugin/* files for Step 2 distribution.
 sync_ok=0
 if command -v harness >/dev/null 2>&1; then
-  harness sync "$PROJECT_ROOT" && sync_ok=1
-elif [ -x "${PROJECT_ROOT}/bin/harness" ] && "${PROJECT_ROOT}/bin/harness" sync "$PROJECT_ROOT" 2>/dev/null; then
+  harness sync "$REPO_ROOT" && sync_ok=1
+elif [ -x "${PLUGIN_ROOT}/bin/harness" ] && "${PLUGIN_ROOT}/bin/harness" sync "$REPO_ROOT" 2>/dev/null; then
   sync_ok=1
 fi
 if [ "$sync_ok" = 0 ]; then
@@ -24,14 +29,15 @@ if [ "$sync_ok" = 0 ]; then
 fi
 
 # --- Step 2: Sync critical files to marketplace cache ---
-PLUGIN_NAME="claude-code-harness"
-MARKETPLACE_NAME="claude-code-harness-marketplace"
-SOURCE_VERSION="$(tr -d '[:space:]' < "${PROJECT_ROOT}/VERSION")"
+# Paths are relative to PLUGIN_ROOT (harness/), not REPO_ROOT.
+PLUGIN_NAME="harness"
+MARKETPLACE_NAME="powerball-harness-marketplace"
+SOURCE_VERSION="$(tr -d '[:space:]' < "${PLUGIN_ROOT}/VERSION")"
 CACHE_DIR="${HOME}/.claude/plugins/cache/${MARKETPLACE_NAME}/${PLUGIN_NAME}/${SOURCE_VERSION}"
 
 sync_file() {
   local rel_path="$1"
-  local src="${PROJECT_ROOT}/${rel_path}"
+  local src="${PLUGIN_ROOT}/${rel_path}"
   local dst="${CACHE_DIR}/${rel_path}"
   if [ -f "$src" ]; then
     mkdir -p "$(dirname "$dst")"
