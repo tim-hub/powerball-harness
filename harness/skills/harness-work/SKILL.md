@@ -268,7 +268,7 @@ A `sprint-contract` is a small contract file that defines "what passes this task
 The default storage location is `.claude/state/contracts/<task-id>.sprint-contract.json`.
 
 ```bash
-scripts/generate-sprint-contract.sh 32.1.1
+"${CLAUDE_SKILL_DIR}/../../scripts/generate-sprint-contract.sh" 32.1.1
 ```
 
 The generated artifact includes:
