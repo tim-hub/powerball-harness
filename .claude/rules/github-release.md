@@ -38,10 +38,6 @@ Formatting rules applied when creating GitHub Release notes.
 
 - **Claude Code vX.X.X+** (recommended)
 - Link: [Documentation](URL)
-
----
-
-Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
 ### Required Elements
@@ -52,7 +48,6 @@ Generated with [Claude Code](https://claude.com/claude-code)
 | **Bold summary** | Yes | One-line value description |
 | `Before / After` table | Yes | User-facing changes |
 | `Added/Changed/Fixed` | When applicable | Detailed changes |
-| Footer | Yes | `Generated with [Claude Code](...)` |
 
 ### Language
 
@@ -97,7 +92,6 @@ CHANGELOG describes each feature concretely using a "Before / After" format:
 ## Prohibited
 
 - No skipping the Before / After (CHANGELOG) or Before / After table (GitHub Release)
-- No skipping the footer (GitHub Release)
 - No technical-only descriptions (user perspective required)
 - No bare change lists without value explanation
 
