@@ -425,6 +425,29 @@ else
 fi
 
 echo ""
+echo "12. Skill path convention check"
+echo "----------------------------------------"
+
+# Flag bare relative script paths in bash code blocks inside SKILL.md files.
+# Anchored paths (${CLAUDE_SKILL_DIR}/..., ${CLAUDE_PLUGIN_ROOT}/...) are fine.
+# Bare paths like `bash skills/foo/scripts/bar.sh` break when CWD differs.
+PATH_VIOLATIONS=""
+while IFS= read -r skill_md; do
+    # Look for bash invocations with bare skill-relative paths
+    bad_lines=$(grep -nE '^\s*bash\s+"?(\./)?skills/' "$skill_md" 2>/dev/null || true)
+    if [ -n "$bad_lines" ]; then
+        PATH_VIOLATIONS="${PATH_VIOLATIONS}${skill_md}:\n${bad_lines}\n"
+    fi
+done < <(find "$HARNESS_ROOT/skills" -name "SKILL.md" 2>/dev/null | sort)
+
+if [ -z "$PATH_VIOLATIONS" ]; then
+    pass_test "No bare relative script paths in bash code blocks"
+else
+    echo -e "${PATH_VIOLATIONS}"
+    fail_test "Bare relative script paths found — use \${CLAUDE_SKILL_DIR}/scripts/ instead"
+fi
+
+echo ""
 echo "=========================================="
 echo "Test Results Summary"
 echo "=========================================="
