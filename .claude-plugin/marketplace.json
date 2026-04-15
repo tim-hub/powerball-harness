@@ -30,7 +30,7 @@
       ],
       "category": "productivity",
       "strict": false,
-      "outputStyles": "./harness/output-styles/"
+      "outputStyles": "./output-styles/"
     }
   ]
 }
