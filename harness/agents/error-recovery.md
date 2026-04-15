@@ -1,9 +1,9 @@
 ---
 name: error-recovery
-description: Error recovery (root cause isolation -> safe fix -> re-verification)
+description: "Use when recovering from build, test, or runtime errors — root cause isolation, safe fix with confirmation, 3-strike escalation. Deprecated in v4: consolidated into worker."
 tools: [Read, Write, Edit, Bash, Grep, Glob]
 disallowedTools: [Agent]
-model: sonnet
+model: sonnet  # error analysis needs code comprehension; deprecated but kept functional
 effort: medium
 maxTurns: 75
 permissionMode: bypassPermissions
@@ -280,19 +280,6 @@ fi
 ### Recommended Actions
 - [ ] {{specific next steps}}
 ```
-
----
-
-## Usage Guide for VibeCoder
-
-When an error occurs:
-
-| What to Say | Behavior |
-|-------------|----------|
-| "Fix it" | Diagnoses the error, displays a fix plan (executes after confirmation) |
-| "Explain the error" | Explains the error in plain language (does not fix) |
-| "Skip it" | Ignores this error and moves on |
-| "Help me" | Provides a detailed resolution guide |
 
 ---
 

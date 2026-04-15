@@ -30,6 +30,30 @@ Change history for claude-code-harness.
 
 **After**: `.githooks/pre-commit` detects staged `go/` files and automatically runs `make build-all`, re-staging all three platform binaries before the commit completes.
 
+### Phase 61: Agent files optimization pass
+
+**All 6 `harness/agents/` files optimized: descriptions now follow skill-description.md format, `model:` fields have rationale comments, `allowed-tools` corrected, and the two longest files trimmed by extracting Codex CLI details to a references file.**
+
+---
+
+#### 1. Description format normalized across all agents
+
+**Before**: All 5 agent definitions used capability-prose descriptions (`"Integrated worker that cycles through..."`, `"Safety-first diagnosis and fix support..."`) that don't start with the required `Use when <trigger>` prefix. Routing inference was less precise.
+
+**After**: All descriptions start with `Use when <trigger>` and stay ≤300 chars, matching `.claude/rules/skill-description.md`. Each includes relevant exclusions (`Do NOT load for: ...`) where applicable.
+
+#### 2. `model:` rationale comments added; `allowed-tools` corrected
+
+**Before**: All agents had `model: sonnet` with no explanation. `ci-cd-fixer.md` listed `tools: [Read, Write, Bash, Grep, Glob]` but its body instructed using the `Edit` tool for TypeScript fixes — an inconsistency.
+
+**After**: Each `model: sonnet` line has an inline comment explaining the choice (e.g. `# balanced capability/cost for implementation; haiku lacks depth for complex tasks`). `ci-cd-fixer.md` now lists `Edit` in its tools.
+
+#### 3. `team-composition.md` and `ci-cd-fixer.md` trimmed
+
+**Before**: `team-composition.md` at 570 lines included a 160-line Codex CLI Environment section and a phased rollout schedule inline. `ci-cd-fixer.md` at 475 lines had verbose report templates and a 50-line auto-detection signal section.
+
+**After**: Codex CLI details extracted to `harness/agents/references/team-composition-codex.md` (linked). `team-composition.md` is 404 lines. `ci-cd-fixer.md` trimmed to 342 lines by condensing templates and collapsing the auto-detection section to essential steps.
+
 ## [4.4.6] - 2026-04-15
 
 ### Theme: SKILL.md quality pass — all 26 skills

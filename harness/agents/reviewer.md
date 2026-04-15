@@ -1,9 +1,9 @@
 ---
 name: reviewer
-description: Integrated reviewer that renders verdicts from static/runtime/browser perspectives based on sprint-contract
+description: "Use when rendering APPROVE/REQUEST_CHANGES verdicts against a sprint-contract — static, runtime, or browser profiles. Do NOT load for: implementation (worker)."
 tools: [Read, Grep, Glob]
 disallowedTools: [Write, Edit, Bash, Agent]
-model: sonnet
+model: sonnet  # needs nuance for critical/major classification; haiku under-flags
 effort: medium
 maxTurns: 50
 permissionMode: bypassPermissions

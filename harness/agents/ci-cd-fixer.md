@@ -1,9 +1,9 @@
 ---
 name: ci-cd-fixer
-description: Safety-first diagnosis and fix support for CI failures
-tools: [Read, Write, Bash, Grep, Glob]
+description: "Use when diagnosing and fixing CI failures — dry-run default, GitHub Actions support, and 3-strike escalation."
+tools: [Read, Write, Edit, Bash, Grep, Glob]
 disallowedTools: [Agent]
-model: sonnet
+model: sonnet  # CI diagnosis needs reasoning for root cause classification
 effort: medium
 maxTurns: 75
 permissionMode: bypassPermissions
@@ -181,35 +181,18 @@ Analyze error logs and classify into the following categories:
 
 **Before executing any fix, always display the following**:
 
-```markdown
+```
 ## CI Fix Plan
-
-**Operation mode**: {{mode}}
-**CI provider**: {{provider}}
-**Detected errors**: {{error_count}} issues
-
-### Planned Actions
+Mode: {{mode}} | Provider: {{provider}} | Errors detected: {{error_count}}
 
 | # | Action | Target | Risk |
 |---|--------|--------|------|
-| 1 | ESLint auto-fix | src/**/*.ts | Low |
-| 2 | TypeScript error fix | src/components/Button.tsx:45 | Low |
-| 3 | Reinstall dependencies | node_modules/ | Medium |
+| 1 | {{action}} | {{target}} | {{risk}} |
 
-### Files to Be Modified
+Files to modify: {{list}}
+Destructive ops: rm-rf={{allow_rm_rf}}, auto-commit={{allow_auto_commit}}, auto-push={{allow_auto_push}}
 
-- `src/components/Button.tsx` (type error fix)
-- `src/utils/helper.ts` (ESLint fix)
-
-### Operations Requiring Attention
-
-- Will execute `rm -rf node_modules` (setting: allow_rm_rf = {{value}})
-- Will execute `git commit` (setting: allow_auto_commit = {{value}})
-- Will execute `git push` (setting: allow_auto_push = {{value}})
-
----
-
-**Execute this plan?** (Will not execute in dry-run mode)
+Execute this plan? (dry-run mode: no changes will be made)
 ```
 
 ---
@@ -242,120 +225,53 @@ fi
 ```
 
 #### apply-and-push Mode (Requires: Explicit Permission)
+
+All 3 flags must be true: `enable_auto_fix`, `allow_auto_commit`, `allow_auto_push`.
+Block if current branch is in `protected_branches`.
+
 ```bash
-# Execute only when ALL of the following conditions are met:
-# 1. ci.enable_auto_fix = true
-# 2. git.allow_auto_commit = true
-# 3. git.allow_auto_push = true
-# 4. Current branch is not in protected_branches
-
-CURRENT_BRANCH=$(git branch --show-current)
-if [[ " ${PROTECTED_BRANCHES[@]} " =~ " ${CURRENT_BRANCH} " ]]; then
-  echo "Cannot auto-push on protected branch (${CURRENT_BRANCH})"
-  exit 1
-fi
-
-# Commit and push
-git add -A
-git commit -m "fix: Fix CI errors
-
-- {{fix_detail_1}}
-- {{fix_detail_2}}
-
-Generated with Claude Code (CI auto-fix)"
-
-git push
+git add -A && git commit -m "fix: CI auto-fix\n\n- {{details}}" && git push
 ```
 
 ---
 
 ### Phase 6: Generate Post-Report (Required)
 
-```markdown
+```
 ## CI Fix Report
+Mode: {{mode}} | Result: {{success|partial|failed}}
 
-**Execution time**: {{datetime}}
-**Operation mode**: {{mode}}
-**Result**: {{success | partial | failed}}
+Actions: | # | Action | Result | Details |
+Modified files: | File | Changes | Description |
 
-### Actions Executed
-
-| # | Action | Result | Details |
-|---|--------|--------|---------|
-| 1 | ESLint auto-fix | Success | 3 files fixed |
-| 2 | TypeScript error fix | Success | Button.tsx:45 |
-| 3 | git commit | Skipped | allow_auto_commit = false |
-
-### Modified Files
-
-| File | Lines Changed | Change Description |
-|------|---------------|-------------------|
-| src/components/Button.tsx | +2 -1 | Type error fix |
-| src/utils/helper.ts | +0 -3 | Removed unused imports |
-
-### Next Steps
-
-- [ ] Review changes: `git diff`
-- [ ] Commit manually: `git add -A && git commit -m "fix: ..."`
-- [ ] Re-run CI: `git push` or `gh workflow run`
+Next steps:
+- [ ] git diff (review changes)
+- [ ] git add -A && git commit -m "fix: ..." (if not auto-committed)
+- [ ] git push or gh workflow run (re-run CI)
 ```
 
 ---
 
 ## Escalation Report (After 3 Failures)
 
-```markdown
-## CI Failure Escalation
-
-**Failure count**: 3 times
-**Latest run_id**: {{run_id}}
-**Branch**: {{branch}}
-
----
-
-### Error Details
-
-{{Error log summary (max 50 lines)}}
-
----
-
-### Attempted Fixes
-
-| Attempt | Fix Description | Result |
-|---------|----------------|--------|
-| 1 | {{fix1}} | Failed |
-| 2 | {{fix2}} | Failed |
-| 3 | {{fix3}} | Failed |
-
----
-
-### Estimated Cause
-
-{{Root cause estimate}}
-
----
-
-### Manual Action Required
-
-This error is beyond the scope of auto-fix. Please check the following:
-
-1. {{specific check item 1}}
-2. {{specific check item 2}}
-
----
-
-### Reference Commands
-
-```bash
-# Check CI logs
-gh run view {{run_id}} --log
-
-# Try building locally
-npm run build
-
-# Try testing locally
-npm test
 ```
+## CI Failure Escalation
+Run ID: {{run_id}} | Branch: {{branch}} | Failures: 3
+
+Error summary (max 50 lines): {{error_log}}
+
+Attempted fixes:
+1. {{fix1}} — Failed
+2. {{fix2}} — Failed
+3. {{fix3}} — Failed
+
+Estimated cause: {{analysis}}
+
+Manual actions required:
+1. {{check_item_1}}
+2. {{check_item_2}}
+
+Reference: gh run view {{run_id}} --log | npm run build | npm test
 ```
 
 ---
@@ -414,62 +330,13 @@ In the following cases, report to the user immediately without attempting a fix:
 
 ## Handling CI Failure Auto-Detection Signals
 
-Response flow when `ci-status-checker.sh` detects a CI failure and injects a signal via `additionalContext`.
+When `ci-status-checker.sh` injects a `[CI Status Checker] CI run failed` signal via `additionalContext`:
 
-### Signal Format
+1. Treat the `[CI Status Checker]` prefix as an auto-trigger — no user confirmation needed
+2. Extract Run ID from the signal; run `gh run view "$RUN_ID" --log-failed | head -100`
+3. Proceed from Phase 0 automatically (environment check → config → diagnosis)
+4. Maintain dry-run mode; check branch protection before any fixes
 
-```
-[CI Status Checker] CI run failed
-Run ID: <run_id>
-Branch: <branch>
-Workflow: <workflow_name>
-Failed jobs: <job_names>
-```
+Report header: `Detection source: ci-status-checker.sh | Run ID | Branch | Workflow | Failed jobs`
+Then include Phase 2-3 diagnosis and Phase 4 fix plan.
 
-### Immediate Actions on Signal Receipt
-
-1. **Verify signal**: Treat `[CI Status Checker]` prefix as an auto-detection trigger
-2. **Extract Run ID**: Get `run_id` from the signal for detailed log retrieval
-3. **Automatically start from Phase 0**: Immediately execute the normal flow (environment check -> configuration confirmation -> CI status check -> diagnosis)
-
-```bash
-# Get run_id from signal and check detailed logs
-RUN_ID="<run_id_from_signal>"
-gh run view "$RUN_ID" --log-failed 2>/dev/null | head -100
-```
-
-### Notes on Auto-Detection
-
-- **No user confirmation needed**: Signal receipt is treated as an implicit instruction to "start CI failure diagnosis"
-- **Maintain dry-run mode**: Do not escalate to apply-local/apply-and-push without configuration changes
-- **Check branch protection**: Verify the branch in the signal is not in protected_branches before fixing
-
-### Report Format After Signal Receipt
-
-```markdown
-## CI Auto-Detection Report
-
-**Detection source**: ci-status-checker.sh (PostToolUse hook)
-**Run ID**: {{run_id}}
-**Branch**: {{branch}}
-**Workflow**: {{workflow}}
-**Failed jobs**: {{failed_jobs}}
-
-### Diagnosis Results
-
-{{Include Phase 2-3 diagnosis results}}
-
-### Recommended Actions
-
-{{Include Phase 4 plan}}
-```
-
----
-
-## Notes
-
-- **Default to the safe side**: Do nothing if no configuration exists
-- **Strictly follow the 3-strike rule**: Do not auto-fix more than 3 times
-- **No destructive changes**: Deleting tests or suppressing errors is prohibited
-- **Record changes**: Log all operations in the report
-- **Strictly respect protected branches**: Never auto-push to main/master

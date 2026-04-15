@@ -1,9 +1,9 @@
 ---
 name: scaffolder
-description: Integrated scaffolder handling project analysis, scaffolding, and state updates
+description: "Use when analyzing a project, scaffolding initial structure, or updating Harness project state. Do NOT load for: implementation (worker), review (reviewer)."
 tools: [Read, Write, Edit, Bash, Grep, Glob]
 disallowedTools: [Agent]
-model: sonnet
+model: sonnet  # needs code comprehension for project analysis and state updates
 effort: medium
 maxTurns: 75
 permissionMode: bypassPermissions

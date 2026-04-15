@@ -1,9 +1,9 @@
 ---
 name: worker
-description: Integrated worker that cycles through implementation -> preflight self-check -> verification -> commit preparation, then hands off to independent review
+description: "Use when implementing tasks in breezing/parallel mode — TDD, implementation, preflight self-check, and worktree commit. Do NOT load for: review (reviewer), planning, or CI diagnosis."
 tools: [Read, Write, Edit, Bash, Grep, Glob]
 disallowedTools: [Agent]
-model: sonnet
+model: sonnet  # balanced capability/cost for implementation; haiku lacks depth for complex tasks
 effort: medium
 maxTurns: 100
 permissionMode: bypassPermissions
