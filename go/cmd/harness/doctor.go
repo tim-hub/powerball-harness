@@ -382,12 +382,6 @@ func classifyCommand(cmd string) string {
 	return "shell"
 }
 
-// mixedWarning reports mixed-mode hook events.
-type mixedWarning struct {
-	event    string
-	path     string // which hooks.json path
-}
-
 // runMigrationCheck reads hooks.json (and the .claude-plugin copy if it exists),
 // classifies each command hook as Go or shell, prints a summary table, and
 // returns true if there are no warnings.

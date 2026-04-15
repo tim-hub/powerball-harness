@@ -492,7 +492,7 @@ var reKVLine = regexp.MustCompile(`^([\w-]+):\s*(.*)$`)
 //   - key: true/false
 func parseFrontmatterKV(raw string) map[string]string {
 	kv := make(map[string]string)
-	for _, line := range strings.Split(raw, "\n") {
+	for line := range strings.SplitSeq(raw, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
@@ -517,11 +517,8 @@ func parseFrontmatterKV(raw string) map[string]string {
 	return kv
 }
 
-// reStringSlice matches a YAML-style inline sequence: ["a", "b"] or ['a', 'b']
-var reSliceItem = regexp.MustCompile(`["']([^"']+)["']`)
-
-// parseStringSlice converts a YAML inline sequence string such as
-// `["Read", "Write", "Edit"]` into a []string.
+// parseStringSlice converts a YAML inline sequence string into a []string.
+// Handles both quoted items `["Read", "Write"]` and bare items `[Read, Write]`.
 func parseStringSlice(raw string) ([]string, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" || raw == "[]" {
@@ -531,14 +528,18 @@ func parseStringSlice(raw string) ([]string, error) {
 		return nil, fmt.Errorf("expected a list starting with '[', got %q", raw)
 	}
 
-	matches := reSliceItem.FindAllStringSubmatch(raw, -1)
-	if matches == nil {
-		return nil, fmt.Errorf("could not parse list items from %q", raw)
+	inner := strings.TrimSuffix(strings.TrimPrefix(raw, "["), "]")
+	parts := strings.Split(inner, ",")
+	result := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		p = strings.Trim(p, `"'`)
+		if p != "" {
+			result = append(result, p)
+		}
 	}
-
-	result := make([]string, 0, len(matches))
-	for _, m := range matches {
-		result = append(result, m[1])
+	if len(result) == 0 {
+		return nil, fmt.Errorf("could not parse list items from %q", raw)
 	}
 	return result, nil
 }
