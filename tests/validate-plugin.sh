@@ -91,11 +91,31 @@ if [ "${QUICK_MODE}" -eq 1 ]; then
     CONTRACT_DIR="${PLUGIN_ROOT}/.claude/state/contracts"
     if [ -d "${CONTRACT_DIR}" ]; then
         contract_error=0
+
+        # jq フォールバック: jq → python3 → skip（macOS 素の環境等で jq 未導入でも誤判定しない）
+        if command -v jq >/dev/null 2>&1; then
+            _JSON_PARSER="jq"
+        elif command -v python3 >/dev/null 2>&1; then
+            _JSON_PARSER="python3"
+        else
+            _JSON_PARSER="skip"
+            echo "⚠ jq も python3 も利用不可のため、contract syntax check をスキップします"
+        fi
+
+        _check_json_syntax() {
+            local file="$1"
+            case "${_JSON_PARSER}" in
+                jq)     jq empty "${file}" 2>/dev/null ;;
+                python3) python3 -c "import json,sys; json.load(open(sys.argv[1]))" "${file}" 2>/dev/null ;;
+                skip)   return 0 ;;
+            esac
+        }
+
         while IFS= read -r contract_file; do
             [ ! -f "${contract_file}" ] && continue
 
             # Syntax check のみ（approval status は wake-up の Step 3 で個別 contract に対して実行される）
-            if ! jq empty "${contract_file}" 2>/dev/null; then
+            if ! _check_json_syntax "${contract_file}"; then
                 echo "✗ 壊れた JSON: $(basename "${contract_file}")"
                 contract_error=$((contract_error + 1))
             fi

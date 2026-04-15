@@ -6,6 +6,11 @@
 # wake-up と Worker の並行書き込みによるロストアップデートを防止する。
 # flock(Linux) → lockf(macOS) → mkdir フォールバックの 3-tier ロックを使用。
 # auto-checkpoint.sh の acquire_lock/release_lock と同じパターン。
+#
+# fail-closed ポリシー (41.1.3):
+# lock 取得失敗時に 3 回 retry（transient race を吸収）し、
+# それでも取得できない場合は exit 11 で fail-closed する（続行しない）。
+# これにより plans-state.json への無保護な read-modify-write を防止する。
 
 set +e  # エラーで停止しない
 
@@ -63,9 +68,25 @@ _plans_release_lock() {
     _PLANS_LOCK_ACQUIRED=0
 }
 
-# ロック取得（失敗しても警告のみ、スクリプトは続行）
-if ! _plans_acquire_lock; then
-    echo "plans-watcher.sh: warning: could not acquire plans.flock (timeout ${PLANS_LOCK_TIMEOUT}s), proceeding without lock" >&2
+# ロック取得（fail-closed: 3 回 retry 後も失敗したら exit 11）
+# transient race 条件を吸収するため 3 回試行する。
+# 全て失敗した場合は plans-state.json への無保護アクセスを避けるため abort する。
+_PLANS_LOCK_MAX_RETRIES=3
+_PLANS_LOCK_GOT=0
+for _retry in 1 2 3; do
+    if _plans_acquire_lock; then
+        _PLANS_LOCK_GOT=1
+        break
+    fi
+    echo "plans-watcher.sh: warning: could not acquire plans.flock (attempt ${_retry}/${_PLANS_LOCK_MAX_RETRIES}, timeout ${PLANS_LOCK_TIMEOUT}s)" >&2
+    if [ "${_retry}" -lt "${_PLANS_LOCK_MAX_RETRIES}" ]; then
+        sleep 1
+    fi
+done
+
+if [ "${_PLANS_LOCK_GOT}" -eq 0 ]; then
+    echo "plans-watcher.sh: ERROR: ${_PLANS_LOCK_MAX_RETRIES} 回試行しても plans.flock 取得失敗、abort（fail-closed）" >&2
+    exit 11
 fi
 
 # スクリプト終了時に必ずロック解放

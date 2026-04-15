@@ -9,8 +9,18 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
+
+// exitFailClosed は lock 取得失敗など fail-closed パスで呼び出す。
+// PostToolUse フック仕様では exit code 非ゼロがフックエラー扱いになる。
+// これにより Plans 更新が静かに drop される「ロストアップデート」を防ぐ。
+// テストから直接呼ばれることはない（モック可能な変数で差し替える）。
+var exitFailClosed = func(msg string) {
+	fmt.Fprintf(os.Stderr, "[plans-watcher] fail-closed exit: %s\n", msg)
+	os.Exit(1)
+}
 
 // plansWatcherInput は plans-watcher.sh に渡される stdin JSON。
 type plansWatcherInput struct {
@@ -26,6 +36,45 @@ type plansWatcherInput struct {
 
 // plansStateFile は前回の状態を保存するファイルのパス。
 const plansStateFile = ".claude/state/plans-state.json"
+
+// plansLockFile は plans-state.json の排他制御に使用する flock ファイルのパス。
+// shell 版 scripts/plans-watcher.sh の 3-tier fallback と意味的に同等。
+const plansLockFile = ".claude/state/locks/plans.flock"
+
+// plansLockMaxRetries は lock 取得の最大リトライ回数。
+const plansLockMaxRetries = 3
+
+// acquirePlansLock は plans-state.json を保護する排他ロックを取得する。
+// macOS / Linux 共に syscall.Flock (LOCK_EX | LOCK_NB) を使用し、
+// リトライ間は 1 秒待機する。取得失敗時は nil, error を返す（fail-closed）。
+func acquirePlansLock(lockPath string) (*os.File, error) {
+	if err := os.MkdirAll(filepath.Dir(lockPath), 0o755); err != nil {
+		return nil, fmt.Errorf("mkdir for plans lock: %w", err)
+	}
+	for attempt := 1; attempt <= plansLockMaxRetries; attempt++ {
+		f, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o644)
+		if err != nil {
+			return nil, fmt.Errorf("open plans lock file: %w", err)
+		}
+		if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err == nil {
+			return f, nil // ロック取得成功
+		}
+		f.Close()
+		if attempt < plansLockMaxRetries {
+			time.Sleep(1 * time.Second)
+		}
+	}
+	return nil, fmt.Errorf("failed to acquire plans lock after %d retries", plansLockMaxRetries)
+}
+
+// releasePlansLock はロックを解放してファイルをクローズする。
+func releasePlansLock(f *os.File) {
+	if f == nil {
+		return
+	}
+	syscall.Flock(int(f.Fd()), syscall.LOCK_UN) //nolint:errcheck
+	f.Close()
+}
 
 // pmNotificationFile は PM 通知ファイルのパス。
 const pmNotificationFile = ".claude/state/pm-notification.md"
@@ -101,19 +150,58 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 		return emptyPostToolOutput(out)
 	}
 
+	// CWD を一つの変数に決定する。
+	// lock path と state file path を同じ CWD から導出することで、
+	// 異なる worktree（CWD A / CWD B）で hook が同時に走っても
+	// 「同じ CWD → 同じ lock + 同じ state」「異なる CWD → 別 lock + 別 state」となり
+	// プロジェクトごとに独立した排他制御が機能する。
+	cwd := input.CWD
+	if cwd == "" {
+		var cwdErr error
+		cwd, cwdErr = os.Getwd()
+		if cwdErr != nil {
+			cwd = ""
+		}
+	}
+
+	// lock path と state file path を同じ cwd から導出する
+	lockPath := plansLockFile
+	stateFilePath := plansStateFile
+	if cwd != "" {
+		lockPath = filepath.Join(cwd, plansLockFile)
+		// plansStateFile は相対パス定数なので cwd と結合して絶対パス化
+		stateFilePath = filepath.Join(cwd, plansStateFile)
+	}
+
+	// plans-state.json の read-modify-write を flock で保護する。
+	// Worker との競合で state を失わないよう fail-closed: lock 取得失敗時は処理を中断。
+	// PostToolUse フック仕様では exit code 非ゼロがフックエラー扱いになる。
+	// emptyPostToolOutput（= 空成功応答）を返すと hook framework は成功と解釈するため、
+	// ロストアップデートが発生する。exitFailClosed で exit code 1 を返すことで
+	// Plans 更新の drop を hook framework に明示的にエラーとして通知する。
+	lockFile, lockErr := acquirePlansLock(lockPath)
+	if lockErr != nil {
+		fmt.Fprintf(os.Stderr, "[plans-watcher] lock acquisition failed (fail-closed): %v\n", lockErr)
+		exitFailClosed("lock acquisition timed out (3 retries exhausted)")
+		// exitFailClosed は通常 os.Exit(1) するが、テスト時にモック差し替えで
+		// 通過する場合に備えて空応答にフォールバックする。
+		return emptyPostToolOutput(out)
+	}
+	defer releasePlansLock(lockFile)
+
 	// 現在の状態を集計
 	current, err := collectPlansState(plansFile)
 	if err != nil {
 		return emptyPostToolOutput(out)
 	}
 
-	// 前回の状態を読み込む
-	prev := loadPrevPlansState()
+	// 前回の状態を読み込む（CWD ベースの絶対パスを使用）
+	prev := loadPrevPlansState(stateFilePath)
 
-	// 状態を保存
-	stateDir := filepath.Dir(plansStateFile)
+	// 状態を保存（CWD ベースの絶対パスを使用）
+	stateDir := filepath.Dir(stateFilePath)
 	if mkErr := os.MkdirAll(stateDir, 0o755); mkErr == nil {
-		savePlansState(current)
+		savePlansState(stateFilePath, current)
 	}
 
 	// 変更の種類を判定
@@ -209,8 +297,9 @@ func collectPlansState(plansFile string) (plansState, error) {
 }
 
 // loadPrevPlansState は前回保存した状態を読み込む。存在しない場合はゼロ値を返す。
-func loadPrevPlansState() plansState {
-	data, err := os.ReadFile(plansStateFile)
+// stateFilePath は絶対パスまたは相対パスを受け付ける。
+func loadPrevPlansState(stateFilePath string) plansState {
+	data, err := os.ReadFile(stateFilePath)
 	if err != nil {
 		return plansState{}
 	}
@@ -222,12 +311,13 @@ func loadPrevPlansState() plansState {
 }
 
 // savePlansState は現在の状態をファイルに保存する。
-func savePlansState(state plansState) {
+// stateFilePath は絶対パスまたは相対パスを受け付ける。
+func savePlansState(stateFilePath string, state plansState) {
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
 		return
 	}
-	os.WriteFile(plansStateFile, append(data, '\n'), 0o644)
+	os.WriteFile(stateFilePath, append(data, '\n'), 0o644) //nolint:errcheck
 }
 
 // buildSummaryMessage は通知サマリ文字列を構築する。

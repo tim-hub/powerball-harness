@@ -186,9 +186,118 @@ Worker が返却した commit に対して Lead がレビューを実行する:
 # diff 取得（worktree 内の commit を対象）
 diff_text=$(git -C "${worker_result.worktreePath}" show "${worker_result.commit}")
 
-# レビュー実行（Codex exec 優先、フォールバックで内部 Reviewer agent）
-bash scripts/codex-companion.sh review --diff "${diff_text}"
-# → review-output.json に verdict が書き込まれる
+# ── (a) Codex companion review: Worker の worktree ディレクトリで実行 ──────────────
+# Lead が main repo dir にいると diff が空になる（無条件 APPROVE の危険）。
+# Worker の worktreePath に cd してから review を呼ぶことで正しい差分を渡す。
+#
+# worktreePath が空 or main repo と同一（worktree isolation が効かない環境）の場合は
+# Lead dir で実行（既存挙動と同等のフォールバック）。
+
+MAIN_REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+WORKER_PATH="${worker_result.worktreePath:-}"
+
+if [ -n "${WORKER_PATH}" ] && [ "${WORKER_PATH}" != "${MAIN_REPO_ROOT}" ]; then
+    # Worker の worktree 内で review を実行 → Worker feature branch の実際の差分を見る
+    ( cd "${WORKER_PATH}" && bash scripts/codex-companion.sh review --base "${BASE_REF}" )
+    REVIEW_EXIT=$?
+    # review-output.json は Worker worktree dir に作られるので絶対パスで管理する
+    REVIEW_OUTPUT_PATH="${WORKER_PATH}/review-output.json"
+else
+    # フォールバック: Lead dir で実行（worktree isolation が効かない環境）
+    bash scripts/codex-companion.sh review --base "${BASE_REF}"
+    REVIEW_EXIT=$?
+    REVIEW_OUTPUT_PATH="$(pwd)/review-output.json"
+fi
+# → REVIEW_OUTPUT_PATH が示すファイルに verdict が書き込まれる
+# 後続はすべて $REVIEW_OUTPUT_PATH を使用すること（相対パス "review-output.json" を直接参照しない）
+
+# ── (b) reviewer_profile 分岐（sprint-contract の review.reviewer_profile を確認）──
+CONTRACT_PATH="${task_contract_path}"  # Step 2/3 で決定された contract パス
+if command -v jq >/dev/null 2>&1; then
+    REVIEWER_PROFILE=$(jq -r '.review.reviewer_profile // "static"' "${CONTRACT_PATH}" 2>/dev/null || echo "static")
+else
+    REVIEWER_PROFILE="static"
+fi
+
+case "${REVIEWER_PROFILE}" in
+    runtime)
+        # runtime 検証コマンドを実行し、verdict を上書きする可能性がある
+        # run-contract-review-checks.sh は Worker の worktree 内で実行する（テスト環境が worktree 内にあるため）
+        # 重要: run-contract-review-checks.sh の stdout は artifact の「ファイルパス」（JSON payload ではない）
+        if [ -n "${WORKER_PATH}" ] && [ "${WORKER_PATH}" != "${MAIN_REPO_ROOT}" ]; then
+            RUNTIME_ARTIFACT_PATH=$(
+                cd "${WORKER_PATH}" && bash scripts/run-contract-review-checks.sh "${CONTRACT_PATH}" 2>/dev/null
+            ) || RUNTIME_ARTIFACT_PATH=""
+        else
+            RUNTIME_ARTIFACT_PATH=$(
+                bash scripts/run-contract-review-checks.sh "${CONTRACT_PATH}" 2>/dev/null
+            ) || RUNTIME_ARTIFACT_PATH=""
+        fi
+
+        # 空（スクリプト失敗）の場合は DOWNGRADE_TO_STATIC 扱い
+        if [ -z "${RUNTIME_ARTIFACT_PATH}" ]; then
+            RUNTIME_ARTIFACT_PATH=""
+            RUNTIME_VERDICT="DOWNGRADE_TO_STATIC"
+        else
+            # 相対パスの場合は WORKER_PATH（または Lead dir）を基点に絶対パス化する
+            if [[ "${RUNTIME_ARTIFACT_PATH}" != /* ]]; then
+                if [ -n "${WORKER_PATH}" ] && [ "${WORKER_PATH}" != "${MAIN_REPO_ROOT}" ]; then
+                    RUNTIME_ARTIFACT_PATH="${WORKER_PATH}/${RUNTIME_ARTIFACT_PATH}"
+                else
+                    RUNTIME_ARTIFACT_PATH="$(pwd)/${RUNTIME_ARTIFACT_PATH}"
+                fi
+            fi
+
+            # artifact ファイルから verdict を読む
+            if command -v jq >/dev/null 2>&1; then
+                RUNTIME_VERDICT=$(jq -r '.verdict // "DOWNGRADE_TO_STATIC"' "${RUNTIME_ARTIFACT_PATH}" 2>/dev/null || echo "DOWNGRADE_TO_STATIC")
+            else
+                RUNTIME_VERDICT=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('verdict','DOWNGRADE_TO_STATIC'))" "${RUNTIME_ARTIFACT_PATH}" 2>/dev/null || echo "DOWNGRADE_TO_STATIC")
+            fi
+        fi
+
+        if [ "${RUNTIME_VERDICT}" = "REQUEST_CHANGES" ]; then
+            # runtime 検証が失敗 → verdict を REQUEST_CHANGES に上書き
+            # write-review-result.sh には runtime artifact を渡す（static review-output.json を使わない）
+            EFFECTIVE_VERDICT="REQUEST_CHANGES"
+            REVIEW_RESULT_INPUT="${RUNTIME_ARTIFACT_PATH}"
+        elif [ "${RUNTIME_VERDICT}" = "DOWNGRADE_TO_STATIC" ]; then
+            # runtime 検証コマンドなし → static verdict をそのまま使う
+            EFFECTIVE_VERDICT=""  # → REVIEW_OUTPUT_PATH から読む
+            REVIEW_RESULT_INPUT="${REVIEW_OUTPUT_PATH}"
+        else
+            EFFECTIVE_VERDICT="${RUNTIME_VERDICT}"
+            REVIEW_RESULT_INPUT="${RUNTIME_ARTIFACT_PATH}"
+        fi
+        ;;
+    browser)
+        # browser reviewer が後続で使う artifact を生成
+        # browser artifact は PENDING_BROWSER scaffold。実際の browser 実行は reviewer agent が担当。
+        # review-result の verdict は static のまま（PENDING_BROWSER ではない）。
+        bash scripts/generate-browser-review-artifact.sh "${CONTRACT_PATH}" 2>/dev/null || true
+        EFFECTIVE_VERDICT=""  # → REVIEW_OUTPUT_PATH から読む（static verdict を使用）
+        REVIEW_RESULT_INPUT="${REVIEW_OUTPUT_PATH}"
+        ;;
+    *)
+        # static（デフォルト）: Codex companion review の verdict をそのまま使う
+        EFFECTIVE_VERDICT=""
+        REVIEW_RESULT_INPUT="${REVIEW_OUTPUT_PATH}"
+        ;;
+esac
+
+# EFFECTIVE_VERDICT が設定されていない場合は REVIEW_OUTPUT_PATH（絶対パス）から読む
+if [ -z "${EFFECTIVE_VERDICT}" ]; then
+    if command -v jq >/dev/null 2>&1; then
+        EFFECTIVE_VERDICT=$(jq -r '.verdict // "REQUEST_CHANGES"' "${REVIEW_OUTPUT_PATH}" 2>/dev/null || echo "REQUEST_CHANGES")
+    else
+        EFFECTIVE_VERDICT=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('verdict','REQUEST_CHANGES'))" "${REVIEW_OUTPUT_PATH}" 2>/dev/null || echo "REQUEST_CHANGES")
+    fi
+fi
+
+# review-result を正規化して保存
+# REVIEW_RESULT_INPUT は runtime REQUEST_CHANGES 時は runtime artifact パス、それ以外は REVIEW_OUTPUT_PATH
+# これにより runtime REQUEST_CHANGES が pretooluse-guard まで正しく伝わる（指摘 4 対応）
+bash scripts/write-review-result.sh "${REVIEW_RESULT_INPUT}" "${worker_result.commit}"
 ```
 
 **verdict 判定**:
@@ -231,11 +340,29 @@ if ! git merge-base --is-ancestor "${latest_commit}" HEAD; then
     git commit -m "${task_title}"
 fi
 
-# Worker が作成した feature branch を削除
+# ── (c) cleanup 順序: worktree remove → branch -D ────────────────────────────────
+# feature branch が worktree に checkout されている状態では
+# `git branch -D` が "branch is checked out at <path>" エラーになる。
+# worktree remove を先に実行することで branch -D が安全に動作する。
+#
+# 順序:
+#   1. cherry-pick → main に取り込み（上記 git commit 済み）
+#   2. worktree remove（feature branch が checked out されていた worktree を削除）
+#   3. branch -D（worktree が remove されたので削除可能になる）
+
+MAIN_REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+WORKER_PATH="${worker_result.worktreePath:-}"
+
+# Step 2: worktree remove
+if [ -n "${WORKER_PATH}" ] && [ "${WORKER_PATH}" != "${MAIN_REPO_ROOT}" ]; then
+    git worktree remove "${WORKER_PATH}" --force 2>/dev/null || true
+fi
+
+# Step 3: branch -D（worktree remove 後なので安全）
 if [ -n "${worker_result.branch}" ] && \
    [ "${worker_result.branch}" != "main" ] && \
    [ "${worker_result.branch}" != "master" ]; then
-    git branch -D "${worker_result.branch}"
+    git branch -D "${worker_result.branch}" 2>/dev/null || true
 fi
 ```
 
