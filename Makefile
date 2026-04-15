@@ -10,11 +10,12 @@
 #   make bench        → run breezing benchmark suite (BENCH_TASK=1 BENCH_ITER=3 by default)
 #   make test-all       → run every tests/test-*.sh (includes test-harness.sh for the harness group)
 #   make test-harness   → run harness-internal tests (harness/tests/test-harness.sh)
-#   make check-version      → check VERSION / harness.toml sync
+#   make check-version      → check VERSION / all metadata files in sync
+#   make sync-version       → sync all metadata files to VERSION
 #   make check-version-bump → release metadata policy check (CI gate)
 #   make codex-test   → multi-agent migration guards (tests/test-codex-package.sh)
 
-.PHONY: help test test-all test-harness validate check lint build bench check-version check-version-bump codex-test
+.PHONY: help test test-all test-harness validate check lint build bench check-version sync-version check-version-bump codex-test
 
 # Default target: show help
 help:
@@ -28,7 +29,8 @@ help:
 	@echo "  make bench         Run breezing benchmark (BENCH_TASK=1 BENCH_ITER=3 by default)"
 	@echo "  make test-all      Run every tests/test-*.sh (test-harness.sh covers harness group)"
 	@echo "  make test-harness  Run harness-internal tests (/tests/test-harness.sh)"
-	@echo "  make check-version       Check VERSION / harness.toml are in sync"
+	@echo "  make check-version       Check VERSION / all metadata files are in sync"
+	@echo "  make sync-version        Sync all metadata files to VERSION"
 	@echo "  make check-version-bump  Release metadata policy check (for CI / pre-release)"
 	@echo "  make codex-test    Multi-agent migration guard tests"
 
@@ -37,10 +39,12 @@ test-all:
 	@passed=0; failed=0; failures=""; \
 	for script in tests/test-*.sh; do \
 		[ -f "$$script" ] || continue; \
-		case "$$script" in \
-			tests/test-agent-telemetry-summary.sh|tests/test-structured-handoff-artifact.sh) \
-				printf "  %-55s" "$$script"; echo "SKIP (known failure)"; continue ;; \
-		esac; \
+		if [ "$$CI" = "true" ]; then \
+			case "$$script" in \
+				tests/test-agent-telemetry-summary.sh|tests/test-structured-handoff-artifact.sh) \
+					printf "  %-55s" "$$script"; echo "SKIP (CI)"; continue ;; \
+			esac; \
+		fi; \
 		printf "  %-55s" "$$script"; \
 		if bash "$$script" >/dev/null 2>&1; then \
 			echo "PASS"; passed=$$((passed + 1)); \
@@ -93,10 +97,15 @@ bench:
 	@echo "▶ Running breezing benchmark (task $(BENCH_TASK), $(BENCH_ITER) iterations)…"
 	bash ./benchmarks/breezing-bench/run.sh --task $(BENCH_TASK) --iterations $(BENCH_ITER) --mode both
 
-# Check VERSION / harness.toml version sync
+# Check VERSION / all metadata files are in sync
 check-version:
 	@echo "▶ Checking version sync…"
-	bash ./harness/scripts/sync-version.sh check
+	bash ./harness/skills/harness-release/scripts/sync-version.sh check
+
+# Sync all metadata files to VERSION (harness.toml, template-registry.json, *.md.template)
+sync-version:
+	@echo "▶ Syncing metadata files to VERSION…"
+	bash ./harness/skills/harness-release/scripts/sync-version.sh sync
 
 # Release metadata policy check (runs in CI on every PR; use locally before release)
 check-version-bump:
