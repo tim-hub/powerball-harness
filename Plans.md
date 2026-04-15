@@ -5,6 +5,43 @@ Last release: v4.3.0 on 2026-04-15 (Phase 50+51)
 
 ---
 
+## Phase 55: Path convention standardization — clear roots for all skills and scripts
+
+Created: 2026-04-15
+
+**Three-tier path convention** (per Opus consultation):
+- **skill-local**: `${CLAUDE_SKILL_DIR}/...` — files inside the skill's own directory
+- **plugin-local**: `${CLAUDE_SKILL_DIR}/../../...` — files elsewhere in the plugin (accepted `../../` since skills are always exactly at `skills/<name>/`, two levels below plugin root)
+- **project-root**: `git rev-parse --show-toplevel` in scripts — never derive user project paths from script location
+
+### Stage 1: Fix harness-release
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 55.1 | Fix `release-preflight.sh` CHANGELOG check — use `GIT_ROOT` (project root), not plugin root | Test passes: CHANGELOG found without env var override | - | cc:done |
+| 55.2 | Update `release-preflight.sh` — derive `PROJECT_ROOT` from `git rev-parse --show-toplevel`, add tier comments to both scripts | `# project-root:` / `# plugin-local:` comments on key paths; tests pass | - | cc:done [50e78cd] |
+| 55.3 | Update `SKILL.md` bash code blocks — replace bare `skills/harness-release/scripts/...` with `${CLAUDE_SKILL_DIR}/scripts/...` | `grep 'bash skills/' SKILL.md` returns 0 results | - | cc:done [6e3ec2c] |
+| 55.4 | Update `SKILL.md` plugin-local links — standardize `${CLAUDE_SKILL_DIR}/../../` form; annotate `local-scripts/` and `validate-release-notes.sh` with `<!-- project-root -->` or `<!-- plugin-local -->` comments | All plugin-level links use consistent `../../` traversal; ownership clear in SKILL.md prose | 55.3 | cc:done [6e3ec2c] |
+
+### Stage 2: Audit and fix all other skills
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 55.5 | Fix `harness-setup` — replace `${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/...` with `${CLAUDE_SKILL_DIR}/scripts/...` | `grep 'CLAUDE_PLUGIN_ROOT' harness/skills/harness-setup/SKILL.md` returns 0 results | 55.3 | cc:done [0125611] |
+| 55.6 | Audit `references/` links across all 28 SKILL.md files — ensure all use `${CLAUDE_SKILL_DIR}` | `grep -r 'references/' harness/skills/*/SKILL.md \| grep -v CLAUDE_SKILL_DIR` returns 0 results | 55.5 | cc:done [0125611] |
+| 55.7 | Audit `scripts/` references across all SKILL.md files — annotate each as skill-local / plugin-local / project-root | `grep -r 'scripts/' harness/skills/*/SKILL.md \| grep -v CLAUDE_SKILL_DIR \| grep -v '^\#'` reviewed and classified | 55.5 | cc:done [0125611] |
+
+### Stage 3: Document and enforce
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 55.8 | Create `.claude/rules/path-conventions.md` — document the three-tier convention with examples | Rule file exists; covers skill-local, plugin-local, project-root with code snippets | 55.6, 55.7 | cc:done [0125611] |
+| 55.9 | Add path lint check to `validate-plugin.sh` — flag bare relative paths in bash code blocks in SKILL.md files | New check section passes on current HEAD | 55.8 | cc:done [0125611] |
+| 55.10 | Run full validation suite (`validate-plugin.sh` + `check-consistency.sh` + `check-residue.sh`) | All pass with 0 failures | 55.9 | cc:done [0125611] |
+| 55.11 | Record changes under `[Unreleased]` in CHANGELOG.md | Entry added | 55.10 | cc:TODO |
+
+---
+
 ## Phase 52: Marketplace restructure — move plugin files to `harness/` subfolder
 
 Created: 2026-04-15

@@ -6,6 +6,50 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Phase 55 — Three-tier path convention standardization
+
+**Establishes a clear three-tier path convention across all skills and scripts, eliminating CWD-dependent bare relative paths and ambiguous plugin-root references.**
+
+---
+
+#### 1. Three-tier path convention for skills and scripts
+
+**Before**: Skills used a mix of bare relative paths (`bash skills/harness-release/scripts/...`, `./scripts/sync-version.sh`), undefined `${CLAUDE_PLUGIN_ROOT}` variables, and inconsistent anchoring. Paths broke silently when Claude's working directory differed from the repo root.
+
+**After**: All paths are anchored to one of three explicit tiers:
+- **skill-local** (`${CLAUDE_SKILL_DIR}/scripts/...`) — files within the skill's own directory
+- **plugin-local** (`${CLAUDE_SKILL_DIR}/../../scripts/...`) — files elsewhere in the harness plugin
+- **project-root** (`git rev-parse --show-toplevel` in scripts, plain names in prose) — files in the user's repo
+
+| Before | After |
+|--------|-------|
+| `bash skills/harness-release/scripts/release-preflight.sh` | `bash "${CLAUDE_SKILL_DIR}/scripts/release-preflight.sh"` |
+| `./scripts/sync-version.sh bump` | `"${CLAUDE_SKILL_DIR}/scripts/sync-version.sh" bump` |
+| `${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.sh` | `${CLAUDE_SKILL_DIR}/../../scripts/codex-companion.sh` |
+| CHANGELOG.md checked at plugin root | CHANGELOG.md checked at `git rev-parse --show-toplevel` |
+
+#### 2. Script relocations for logical ownership
+
+**Before**: `release-preflight.sh` and `sync-version.sh` lived in `harness/scripts/` (shared scripts dir), despite being release-workflow-specific tools.
+
+**After**: Both scripts moved to `harness/skills/harness-release/scripts/` where they belong. References updated across SKILL.md, docs, local-scripts, and CONTRIBUTING.md.
+
+#### 3. CHANGELOG check uses git project root
+
+**Before**: `release-preflight.sh` checked for `CHANGELOG.md` relative to the plugin root (`harness/`), which always failed for the actual user repo changelog. Error message also read `"CHANGELOG.md exists"` when the file was *missing*.
+
+**After**: Script derives `GIT_ROOT=$(git rev-parse --show-toplevel)` and checks `$GIT_ROOT/CHANGELOG.md`. Error message corrected to `"CHANGELOG.md not found"`.
+
+#### 4. Path convention lint check in validate-plugin.sh (section 12)
+
+**Before**: No automated check for bare relative script paths in SKILL.md bash blocks.
+
+**After**: Section 12 in `tests/validate-plugin.sh` greps all SKILL.md files for `bash "?(\./)?skills/` patterns and fails the suite if any are found.
+
+#### 5. Path convention documented in `.claude/rules/path-conventions.md`
+
+New rule file documents the three-tier model with code examples for both SKILL.md and shell scripts, naming conventions for inline comments, and the depth assumption that skills are always two levels below plugin root.
+
 ## [4.4.1] - 2026-04-15
 
 ### Theme: CI stability — skip known failing test scripts
