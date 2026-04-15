@@ -7,6 +7,66 @@ SKILL.md のサマリを補完する実装リファレンス。
 
 ## wake-up 毎のエントリ手順（詳細）
 
+### Step 0: 多重起動防止ロック（冪等性ガード (a)）
+
+```bash
+LOCK_DIR=".claude/state/locks/loop-session.lock.d"
+mkdir -p ".claude/state/locks"
+
+# アトミック作成（既存なら即失敗 — TOCTOU レース回避）
+if ! mkdir "${LOCK_DIR}" 2>/dev/null; then
+    existing=$(cat "${LOCK_DIR}/meta.json" 2>/dev/null || echo '{}')
+    echo "ERROR: harness-loop is already running (lock dir exists: ${LOCK_DIR})" >&2
+    echo "Lock contents: ${existing}" >&2
+    echo "To force-clear, run: rm -rf ${LOCK_DIR}" >&2
+    exit 10
+fi
+
+# lock メタデータを lock ディレクトリ内に書く
+SESSION_ID="${CLAUDE_SESSION_ID:-unknown}"
+ARGS_STR="$*"
+cat > "${LOCK_DIR}/meta.json" <<EOF
+{
+  "pid": $$,
+  "session_id": "${SESSION_ID}",
+  "started_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "args": "${ARGS_STR}"
+}
+EOF
+
+# 終了時（正常・異常問わず）lock を削除
+cleanup_loop_lock() {
+    rm -rf "${LOCK_DIR}" 2>/dev/null || true
+}
+trap cleanup_loop_lock EXIT INT TERM
+```
+
+- `LOCK_DIR` は `.claude/state/locks/loop-session.lock.d`（ディレクトリ）
+- `mkdir` はアトミックなので TOCTOU レースが発生しない（2 プロセスが同時に実行しても一方だけが成功する）
+- lock メタデータは `${LOCK_DIR}/meta.json` に書く: `{"pid": <pid>, "session_id": <session>, "started_at": <ISO8601>, "args": "<args>"}` の JSON
+- 既存 lock がある場合は `already running` エラー（exit 10）で即停止
+- `EXIT` / `INT` / `TERM` いずれでも lock を削除（正常・異常問わず cleanup）
+- `rm -rf` で冪等（2 回削除しても安全）
+
+### Step 0.5: state 整合性チェック（冪等性ガード (b)）
+
+```bash
+# wake-up 冒頭で --quick モードの軽量整合性チェックを実行
+# 失敗した場合はループを即停止する（Plans.md 破損・未初期化環境への保護）
+if bash tests/validate-plugin.sh --quick; then
+    : # OK — 続行
+else
+    echo "harness-loop: state 整合性チェック失敗 — ループを停止します" >&2
+    echo "詳細: bash tests/validate-plugin.sh --quick を実行して確認してください" >&2
+    exit 1
+fi
+```
+
+- `tests/validate-plugin.sh --quick` は軽量で数秒以内に完了する
+- チェック内容: `.claude/state/` の存在 / Plans.md の存在+v2フォーマット / sprint-contract の形式
+- フル validate（39 検証項目）は走らせない
+- Plans.md を意図的に破損した状態でこのチェックが失敗すれば、ループは即停止する
+
 ### Step 1: Plans.md を先に読む
 
 ```bash

@@ -1,8 +1,78 @@
 #!/bin/bash
 # plans-watcher.sh - Plans.md の変更を監視し、PM への通知を生成（互換: cursor:*）
 # PostToolUse フックから呼び出される
+#
+# 冪等性ガード (e): .claude/state/locks/plans.flock を使った排他制御
+# wake-up と Worker の並行書き込みによるロストアップデートを防止する。
+# flock(Linux) → lockf(macOS) → mkdir フォールバックの 3-tier ロックを使用。
+# auto-checkpoint.sh の acquire_lock/release_lock と同じパターン。
 
 set +e  # エラーで停止しない
+
+# ── flock ガード（3-tier fallback）─────────────────────────────────────────────
+PLANS_LOCK_FILE="${PLANS_LOCK_FILE:-.claude/state/locks/plans.flock}"
+PLANS_LOCK_DIR="${PLANS_LOCK_FILE}.dir"
+PLANS_LOCK_TIMEOUT="${PLANS_LOCK_TIMEOUT:-5}"
+_PLANS_LOCK_ACQUIRED=0
+
+_plans_acquire_lock() {
+    mkdir -p "$(dirname "${PLANS_LOCK_FILE}")" 2>/dev/null || true
+
+    if command -v flock >/dev/null 2>&1; then
+        exec 8>"${PLANS_LOCK_FILE}"
+        if flock -w "${PLANS_LOCK_TIMEOUT}" 8 2>/dev/null; then
+            _PLANS_LOCK_ACQUIRED=1
+            return 0
+        else
+            exec 8>&- 2>/dev/null || true
+            return 1
+        fi
+    fi
+
+    if command -v lockf >/dev/null 2>&1; then
+        exec 8>"${PLANS_LOCK_FILE}"
+        if lockf -s -t "${PLANS_LOCK_TIMEOUT}" 8 2>/dev/null; then
+            _PLANS_LOCK_ACQUIRED=2
+            return 0
+        else
+            exec 8>&- 2>/dev/null || true
+            return 1
+        fi
+    fi
+
+    # フォールバック: mkdir による排他制御
+    local waited=0
+    local max_wait=$(( PLANS_LOCK_TIMEOUT * 5 ))
+    while ! mkdir "${PLANS_LOCK_DIR}" 2>/dev/null; do
+        sleep 0.2
+        waited=$(( waited + 1 ))
+        if [ "${waited}" -ge "${max_wait}" ]; then
+            return 1
+        fi
+    done
+    _PLANS_LOCK_ACQUIRED=3
+    return 0
+}
+
+_plans_release_lock() {
+    case "${_PLANS_LOCK_ACQUIRED}" in
+        1) flock -u 8 2>/dev/null || true; exec 8>&- 2>/dev/null || true ;;
+        2) exec 8>&- 2>/dev/null || true ;;
+        3) rmdir "${PLANS_LOCK_DIR}" 2>/dev/null || true ;;
+    esac
+    _PLANS_LOCK_ACQUIRED=0
+}
+
+# ロック取得（失敗しても警告のみ、スクリプトは続行）
+if ! _plans_acquire_lock; then
+    echo "plans-watcher.sh: warning: could not acquire plans.flock (timeout ${PLANS_LOCK_TIMEOUT}s), proceeding without lock" >&2
+fi
+
+# スクリプト終了時に必ずロック解放
+_plans_watcher_cleanup() {
+    _plans_release_lock
+}
+trap _plans_watcher_cleanup EXIT
 
 # 変更されたファイルを取得（stdin JSON優先 / 互換: $1,$2）
 INPUT=""

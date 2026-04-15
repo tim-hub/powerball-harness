@@ -284,6 +284,13 @@ for task in execution_order:
         if worker_result.branch and worker_result.branch not in ["main", "master"]:
             git branch -D {worker_result.branch}
         Plans.md: task.status = "cc:完了 [{hash}]"
+        # auto-checkpoint 記録（冪等性ガード (c)）
+        # Plans.md 書き換え直後に呼ぶ。失敗しても fail-open（|| true）でループを止めない
+        HASH=$(git rev-parse --short HEAD)
+        REVIEW_RESULT_PATH=".claude/state/review-results/${task.number}.review-result.json"
+        bash scripts/auto-checkpoint.sh \
+            "${task.number}" "${HASH}" "${contract_path}" "${REVIEW_RESULT_PATH}" \
+            || true  # fail-open: harness-mem 未起動環境でも継続
     else:
         → ユーザーにエスカレーション
 

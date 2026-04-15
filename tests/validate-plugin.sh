@@ -1,12 +1,124 @@
 #!/bin/bash
 # VibeCoder向けプラグイン検証テスト
 # このスクリプトは、claude-code-harnessが正しく構成されているかを検証します
+#
+# Usage: ./tests/validate-plugin.sh [--quick]
+#   --quick  harness-loop wake-up 用の軽量 state 整合性チェックのみ実行（数秒で完了）
+#            検証内容: .claude/state/ 存在確認 / Plans.md 存在+v2フォーマット / sprint-contract 形式
+#            フル検証（39項目）は走らせない
 
 set -u
 set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# --quick オプション処理
+QUICK_MODE=0
+for arg in "$@"; do
+    if [ "$arg" = "--quick" ]; then
+        QUICK_MODE=1
+    fi
+done
+
+# --quick モード: 軽量 state 整合性チェックのみ
+if [ "${QUICK_MODE}" -eq 1 ]; then
+    echo "=========================================="
+    echo "Claude harness - クイック整合性チェック"
+    echo "=========================================="
+    echo ""
+    QUICK_FAIL=0
+
+    # (1) .claude/state/ ディレクトリの存在
+    if [ -d "${PLUGIN_ROOT}/.claude/state" ]; then
+        echo "✓ .claude/state/ ディレクトリが存在します"
+    else
+        echo "✗ .claude/state/ ディレクトリが見つかりません"
+        QUICK_FAIL=$((QUICK_FAIL + 1))
+    fi
+
+    # (2) Plans.md の存在（plansDirectory 設定を尊重）
+    # config-utils.sh の get_plans_file_path() を利用して SSOT に従ったパスを解決する
+    PLANS_FILE=""
+    if [ -f "${PLUGIN_ROOT}/scripts/config-utils.sh" ]; then
+        # PLUGIN_ROOT を cwd として config-utils.sh をロードし、パスを解決する
+        PLANS_FILE="$(
+            cd "${PLUGIN_ROOT}" && \
+            CONFIG_FILE="${PLUGIN_ROOT}/.claude-code-harness.config.yaml" \
+            source "${PLUGIN_ROOT}/scripts/config-utils.sh" && \
+            get_plans_file_path 2>/dev/null
+        )" || PLANS_FILE=""
+        # get_plans_file_path は存在しない場合もデフォルトパスを返すため、実在確認する
+        if [ -n "${PLANS_FILE}" ] && [ ! -f "${PLUGIN_ROOT}/${PLANS_FILE}" ] && [ ! -f "${PLANS_FILE}" ]; then
+            PLANS_FILE=""
+        fi
+        # 相対パスの場合は PLUGIN_ROOT を前置する
+        if [ -n "${PLANS_FILE}" ] && [ ! -f "${PLANS_FILE}" ] && [ -f "${PLUGIN_ROOT}/${PLANS_FILE}" ]; then
+            PLANS_FILE="${PLUGIN_ROOT}/${PLANS_FILE}"
+        fi
+    fi
+    # フォールバック: config-utils.sh が使えない場合はリポジトリルート直下を確認
+    if [ -z "${PLANS_FILE}" ]; then
+        for f in Plans.md plans.md PLANS.md; do
+            if [ -f "${PLUGIN_ROOT}/${f}" ]; then
+                PLANS_FILE="${PLUGIN_ROOT}/${f}"
+                break
+            fi
+        done
+    fi
+    if [ -n "${PLANS_FILE}" ]; then
+        echo "✓ Plans.md が存在します: ${PLANS_FILE}"
+    else
+        echo "✗ Plans.md が見つかりません"
+        QUICK_FAIL=$((QUICK_FAIL + 1))
+    fi
+
+    # (3) Plans.md の v2 フォーマット確認（DoD / Depends カラムの存在）
+    if [ -n "${PLANS_FILE}" ]; then
+        if grep -q "DoD" "${PLANS_FILE}" && grep -q "Depends" "${PLANS_FILE}"; then
+            echo "✓ Plans.md は v2 フォーマットです（DoD / Depends カラムあり）"
+        else
+            echo "✗ Plans.md が v2 フォーマットではありません（DoD または Depends カラムがありません）"
+            QUICK_FAIL=$((QUICK_FAIL + 1))
+        fi
+    fi
+
+    # (4) sprint-contract が存在する場合、JSON として parse 可能かのみ確認（syntax-only）
+    # --quick は state 破損の検知が目的。approval status チェックは wake-up フロー側
+    # （ensure-sprint-contract-ready.sh）が現タスクの contract に対して個別に行う。
+    # 全 contract を approved ホワイトリストチェックすると、他タスクの draft/pending contract が
+    # あるだけで wake-up が停止してしまう（過剰なスコープ）。
+    CONTRACT_DIR="${PLUGIN_ROOT}/.claude/state/contracts"
+    if [ -d "${CONTRACT_DIR}" ]; then
+        contract_error=0
+        while IFS= read -r contract_file; do
+            [ ! -f "${contract_file}" ] && continue
+
+            # Syntax check のみ（approval status は wake-up の Step 3 で個別 contract に対して実行される）
+            if ! jq empty "${contract_file}" 2>/dev/null; then
+                echo "✗ 壊れた JSON: $(basename "${contract_file}")"
+                contract_error=$((contract_error + 1))
+            fi
+        done < <(find "${CONTRACT_DIR}" -name "*.sprint-contract.json" -type f 2>/dev/null)
+
+        if [ "${contract_error}" -eq 0 ]; then
+            echo "✓ sprint-contract の形式チェックは問題ありません"
+        else
+            QUICK_FAIL=$((QUICK_FAIL + contract_error))
+        fi
+    else
+        echo "✓ sprint-contract ディレクトリは未作成（初回実行）"
+    fi
+
+    echo ""
+    if [ "${QUICK_FAIL}" -eq 0 ]; then
+        echo "✓ クイック整合性チェック: OK"
+        exit 0
+    else
+        echo "✗ クイック整合性チェック: ${QUICK_FAIL} 件の問題があります"
+        exit 1
+    fi
+fi
 
 echo "=========================================="
 echo "Claude harness - プラグイン検証テスト"
