@@ -125,11 +125,11 @@ echo "Current version: $CURRENT"
 
 ### Phase 2: Calculate New Version
 
-`scripts/sync-version.sh` only supports patch bumps. For minor / major, manually edit VERSION:
+`skills/harness-release/scripts/sync-version.sh` only supports patch bumps. For minor / major, manually edit VERSION:
 
 ```bash
 # patch bump (x.y.Z → x.y.(Z+1))
-./scripts/sync-version.sh bump
+./skills/harness-release/scripts/sync-version.sh bump
 
 # minor bump (manual: x.Y.z → x.(Y+1).0)
 CURRENT=$(cat VERSION)
@@ -137,17 +137,17 @@ MAJOR=$(echo "$CURRENT" | cut -d. -f1)
 MINOR=$(echo "$CURRENT" | cut -d. -f2)
 NEW_VERSION="$MAJOR.$((MINOR + 1)).0"
 echo "$NEW_VERSION" > VERSION
-./scripts/sync-version.sh sync
+./skills/harness-release/scripts/sync-version.sh sync
 
 # major bump (manual: X.y.z → (X+1).0.0)
 CURRENT=$(cat VERSION)
 MAJOR=$(echo "$CURRENT" | cut -d. -f1)
 NEW_VERSION="$((MAJOR + 1)).0.0"
 echo "$NEW_VERSION" > VERSION
-./scripts/sync-version.sh sync
+./skills/harness-release/scripts/sync-version.sh sync
 ```
 
-`sync-version.sh sync` applies the `VERSION` value to `.claude-plugin/marketplace.json`.
+`skills/harness-release/scripts/sync-version.sh sync` applies the `VERSION` value to `.claude-plugin/marketplace.json`.
 
 ### Phase 3: CHANGELOG Update
 
@@ -163,10 +163,10 @@ Key requirements:
 ```bash
 # VERSION was already updated in Phase 2
 # Sync marketplace.json
-./scripts/sync-version.sh sync
+./skills/harness-release/scripts/sync-version.sh sync
 
 # Verify sync
-./scripts/sync-version.sh check
+./skills/harness-release/scripts/sync-version.sh check
 ```
 
 ### Phase 5: Verify Codex Symlinks
@@ -295,7 +295,7 @@ Verify the following regressions before release:
 - [ ] **Templates** — `test -f templates/codex/config.toml && test -f templates/opencode/opencode.json` (setup templates present)
 - [ ] **Preflight** — `bash skills/harness-release/scripts/release-preflight.sh` (working tree, CHANGELOG, CI, remnants)
 - [ ] **Release notes** — `bash scripts/validate-release-notes.sh vX.Y.Z` (GitHub Release format)
-- [ ] **VERSION sync** — `bash scripts/sync-version.sh check` (VERSION matches marketplace.json)
+- [ ] **VERSION sync** — `bash skills/harness-release/scripts/sync-version.sh check` (VERSION matches marketplace.json)
 - [ ] **Guardrails** — R01-R13 in `go/internal/guardrail/rules.go` (Go rule health)
 - [ ] **Tag continuity** — `git tag --sort=-version:refname | head -5` (no missing tags)
 - [ ] **Migration residue** — `bash local-scripts/check-residue.sh` (no deleted-concept references)

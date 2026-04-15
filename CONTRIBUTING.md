@@ -106,24 +106,24 @@ Use a version bump only when you are intentionally cutting a release.
 
 ```bash
 # Check if versions are in sync
-./harness/scripts/sync-version.sh check
+./harness/skills/harness-release/scripts/sync-version.sh check
 
 # Sync marketplace.json to VERSION
-./harness/scripts/sync-version.sh sync
+./harness/skills/harness-release/scripts/sync-version.sh sync
 
 # Bump patch version for a release (e.g., 2.0.0 → 2.0.1)
-./harness/scripts/sync-version.sh bump
+./harness/skills/harness-release/scripts/sync-version.sh bump
 ```
 
 ### Release-only Versioning Policy
 
 - Normal PRs: do not edit `VERSION` or `.claude-plugin/marketplace.json`; add notes under `[Unreleased]`
-- Release work: run `./harness/scripts/sync-version.sh bump`, add a versioned `CHANGELOG.md` entry, then create the tag / GitHub Release
+- Release work: run `./harness/skills/harness-release/scripts/sync-version.sh bump`, add a versioned `CHANGELOG.md` entry, then create the tag / GitHub Release
 - The repo pre-commit hook only syncs `marketplace.json` to `VERSION` when you intentionally edit release metadata; it does not auto-bump patch versions
 
 ### Version Consistency Checks
 
-- **Local (recommended)**: run `make check-version` (or `./harness/scripts/sync-version.sh check`) before committing
+- **Local (recommended)**: run `make check-version` (or `./harness/skills/harness-release/scripts/sync-version.sh check`) before committing
 - **CI (recommended)**: run `make test` (or `./tests/validate-plugin.sh` and `./local-scripts/check-consistency.sh`) on PRs
 
 ## CHANGELOG Rules (Required)

@@ -2,9 +2,9 @@
 # sync-version.sh - Sync VERSION / harness.toml release metadata
 #
 # Usage:
-#   ./harness/scripts/sync-version.sh check    # Check for mismatches
-#   ./harness/scripts/sync-version.sh sync     # Sync harness.toml to VERSION
-#   ./harness/scripts/sync-version.sh bump     # Bump patch version for release
+#   ./harness/skills/harness-release/scripts/sync-version.sh check    # Check for mismatches
+#   ./harness/skills/harness-release/scripts/sync-version.sh sync     # Sync harness.toml to VERSION
+#   ./harness/skills/harness-release/scripts/sync-version.sh bump     # Bump patch version for release
 #
 # Version sources (must stay in sync):
 #   harness/VERSION      — canonical source of truth

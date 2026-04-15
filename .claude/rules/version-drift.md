@@ -3,7 +3,7 @@
 ## What to Check
 
 VERSION and the version field in .claude-plugin/plugin.json must always match.
-When a mismatch is detected, suggest running `./scripts/sync-version.sh` (do not run it automatically).
+When a mismatch is detected, suggest running `./harness/skills/harness-release/scripts/sync-version.sh` (do not run it automatically).
 
 ## Feature Table Freshness
 
