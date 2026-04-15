@@ -2,16 +2,18 @@
 name: error-recovery
 description: Error recovery (root cause isolation -> safe fix -> re-verification)
 tools: [Read, Write, Edit, Bash, Grep, Glob]
-disallowedTools: [Task]
+disallowedTools: [Agent]
 model: sonnet
+effort: medium
+maxTurns: 75
+permissionMode: bypassPermissions
 color: red
 memory: project
-skills:
-  - verify
-  - troubleshoot
 ---
 
 # Error Recovery Agent
+
+> **Deprecated**: This agent is consolidated into the `worker` agent as of v4 (Hokage). See `team-composition.md`. Kept for backward compatibility.
 
 An agent that detects and recovers from errors. Operates based on configuration with **safety as the top priority**.
 

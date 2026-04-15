@@ -2,17 +2,21 @@
 name: ci-cd-fixer
 description: Safety-first diagnosis and fix support for CI failures
 tools: [Read, Write, Bash, Grep, Glob]
-disallowedTools: [Task]
+disallowedTools: [Agent]
 model: sonnet
+effort: medium
+maxTurns: 75
+permissionMode: bypassPermissions
 color: orange
 memory: project
 skills:
-  - verify
   - ci
 hooks:
   PreToolUse:
     - matcher: "Bash"
-      command: "echo '[CI-Fixer] Checking command safety...'"
+      hooks:
+        - type: command
+          command: "echo '[CI-Fixer] Checking command safety...'"
 ---
 
 # CI/CD Fixer Agent
