@@ -5,6 +5,82 @@ Last release: v4.3.0 on 2026-04-15 (Phase 50+51)
 
 ---
 
+## Phase 56: Go validator + agent frontmatter fixes
+
+Created: 2026-04-15
+
+Goal: Fix the critical validator bug that rejects all agents, and clean up stale/missing fields in all agent frontmatter files. These are the highest-priority items from the project-wide review.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 56.1 | Add short model aliases (`sonnet`, `opus`, `haiku`) to `validModelNames` in `go/cmd/harness/validate.go` | `harness validate agents` passes on all 6 agent files; Go tests pass | - | cc:Done [4e9303f] |
+| 56.2 | Fix `harness/agents/ci-cd-fixer.md` — remove `verify` from `skills:` (only keep `ci`); change `disallowedTools: [Task]` → `[Agent]`; add `permissionMode: bypassPermissions`, `effort: medium`, `maxTurns: 75`; align hook syntax to nested format matching worker.md | Agent passes `harness validate agents`; no references to non-existent skills | 56.1 | cc:Done [4e9303f] |
+| 56.3 | Fix `harness/agents/error-recovery.md` — remove `skills: [verify, troubleshoot]` (both non-existent); change `disallowedTools: [Task]` → `[Agent]`; add `permissionMode: bypassPermissions`, `effort: medium`, `maxTurns: 75`; add deprecation notice header noting consolidation into `worker` per `team-composition.md` | Agent passes validation; deprecation status clear | 56.1 | cc:Done [4e9303f] |
+| 56.4 | Fix `harness/agents/scaffolder.md` — update `"harness_version": "none | v2 | v3"` → `"none | v2 | v3 | v4"` in the output JSON schema | `grep 'v4' harness/agents/scaffolder.md` returns a match | - | cc:Done [4e9303f] |
+| 56.5 | Rebuild Go binary after validate.go change | `harness/bin/harness-darwin-arm64` updated; `harness validate agents` succeeds end-to-end | 56.1 | cc:Done [4e9303f] |
+
+---
+
+## Phase 57: Documentation drift cleanup
+
+Created: 2026-04-15
+
+Goal: Fix stale references, duplicate rows, and format mismatches across docs, memory, and rules. All items from the project-wide review classified as documentation issues.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 57.1 | Fix `docs/CLAUDE-skill-catalog.md` — remove references to non-existent skills `impl/`, `verify/`, `handoff/`, `maintenance/`, `troubleshoot/` from hierarchy diagram and category table | `grep -E 'impl/\|verify/\|handoff/\|maintenance/\|troubleshoot/' docs/CLAUDE-skill-catalog.md` returns 0 | - | cc:Done [625db0b] |
+| 57.2 | Fix `CONTRIBUTING.md` CHANGELOG format section (lines 131-161) — replace Keep a Changelog style description with actual Before/After narrative format used by the project | CONTRIBUTING.md CHANGELOG section matches `github-release.md` rules | - | cc:Done [625db0b] |
+| 57.3 | Fix `CONTRIBUTING.md` version management section (lines 98-103) — update "two places" to reference `harness/VERSION` + `harness/harness.toml` instead of `marketplace.json` | No mention of `marketplace.json` having a version field | - | cc:Done [625db0b] |
+| 57.4 | Fix `CONTRIBUTING.md` Testing section (lines 212-216) — fix duplicate step number "3." | Sequential step numbering (1, 2, 3, 4) | - | cc:Done [625db0b] |
+| 57.5 | Mark `.claude/memory/patterns.md` P1-P3 as superseded — add `_(superseded by D9/Go migration — see go/internal/guardrail/)_` markers; keep historical content but clearly flag it | P1, P2, P3 each have a superseded marker | - | cc:Done [c174a80] |
+| 57.6 | Deduplicate `docs/CLAUDE-feature-table.md` — remove duplicate Slack Integration row (line ~256) and duplicate Auto Mode row (line ~187); review 3 "planned/future" items and mark with dates or remove | No duplicate rows; planned items either have target dates or are removed | - | cc:Done [c174a80] |
+| 57.7 | Fix `go/DESIGN.md` — remove or annotate `internal/plans/` reference as "not yet implemented" | DESIGN.md accurately reflects actual package structure | - | cc:TODO |
+| 57.8 | Fix `.claude/rules/hooks-editing.md` — remove stale dual-sync `.claude-plugin/hooks.json` requirement; update to reflect current architecture where `harness/hooks/hooks.json` is the SSOT | Rule matches actual file layout | - | cc:TODO |
+| 57.9 | Register orphaned templates in `harness/templates/template-registry.json` or delete orphaned files — `sandbox-settings.json.template`, `rules/quality-gates.md.template`, `rules/security-guidelines.md.template`, `rules/tdd-guidelines.md.template` | Every `.template` file on disk has a registry entry, OR orphaned files are removed | - | cc:TODO |
+
+---
+
+## Phase 58: Script hygiene + settings hardening
+
+Created: 2026-04-15
+
+Goal: Fix shell script path conventions, strict mode, variable naming, and settings.json deny rule inconsistencies. All LOW-severity items from the project-wide review.
+
+### Stage 1: Path convention fixes
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 58.1 | Fix `$0` → `${BASH_SOURCE[0]}` in 3 harness scripts: `harness/scripts/codex/sync-rules-to-agents.sh:15`, `harness/scripts/i18n/set-locale.sh:12`, `harness/scripts/i18n/check-translations.sh:9` | `grep -rn 'dirname "\$0"' harness/scripts/` returns 0 results | - | cc:Done [b4b5ef0] |
+| 58.2 | Fix `$0` → `${BASH_SOURCE[0]}` in `local-scripts/check-consistency.sh:11` | Line 11 uses `${BASH_SOURCE[0]}` | - | cc:Done [b4b5ef0] |
+| 58.3 | Fix misleading variable name in `harness/scripts/codex-setup-local.sh:55` — rename `repo_root` → `plugin_dir` with `# plugin-local:` comment | Variable name matches what it resolves to | - | cc:Done [b4b5ef0] |
+| 58.4 | Fix `harness/scripts/generate-sprint-contract.sh` — add `__dirname` or `git rev-parse` based root resolution instead of `process.cwd()` | Script resolves project root from git, not CWD | - | cc:Done [b4b5ef0] |
+
+### Stage 2: Test script fixes
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 58.5 | Fix `tests/validate-plugin.sh:206` — replace hardcoded `/tmp` with `${TMPDIR:-/tmp}` | No bare `/tmp` in mktemp calls | - | cc:Done [a5b2eb2] |
+| 58.6 | Fix `tests/validate-plugin.sh:5` — add `set -e` to existing `set -u` and `set -o pipefail` | Line 5 reads `set -euo pipefail` | - | cc:Done [a5b2eb2] |
+
+### Stage 3: Settings and skill description fixes
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 58.7 | Fix `harness/settings.json:21` — change `"Bash(* .env)"` to consistent `"Bash(cat .env:*)"` or equivalent `:*` syntax matching other rules | All deny rules use consistent syntax | - | cc:Done [a5b2eb2] |
+| 58.8 | Fix `harness/settings.json:80-82` — move `export PATH=*`, `export LD_LIBRARY_PATH=*`, `export PYTHONPATH=*` from `deny` to `ask` | Three rules moved from deny to ask array | - | cc:Done [a5b2eb2] |
+| 58.9 | Fix `harness/skills/vibecoder-guide/SKILL.md` description — rewrite to describe task shape not user attribute (remove "the user seems non-technical") | Description starts with `Use when ` and describes task shape per skill-description.md Rule 2 | - | cc:Done [a5b2eb2] |
+| 58.10 | Clean up orphaned reference files — either link `harness/skills/harness-setup/references/codex.md` and `harness/skills/workflow-guide/references/commands.md` from their SKILL.md, or delete them | Every file in `references/` is linked from SKILL.md, OR orphaned files removed | - | cc:Done [a5b2eb2] |
+
+### Stage 4: Validation
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 58.11 | Run full validation suite: `validate-plugin.sh` + `check-consistency.sh` + `check-residue.sh` + `harness validate all` | All pass with 0 failures | 56.1-56.5, 57.1-57.9, 58.1-58.10 | cc:TODO |
+| 58.12 | Record all changes under `[Unreleased]` in CHANGELOG.md in Before/After format | CHANGELOG entry added | 58.11 | cc:TODO |
+
+---
+
 ## Phase 55: Path convention standardization — clear roots for all skills and scripts
 
 Created: 2026-04-15
