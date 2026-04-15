@@ -1,6 +1,6 @@
 # Release Preflight
 
-`harness/scripts/release-preflight.sh` is a read-only check to proactively determine "is it safe to release now" before going public.
+`harness/skills/harness-release/scripts/release-preflight.sh` is a read-only check to proactively determine "is it safe to release now" before going public.
 It assumes vendor-neutrality, so it does not depend on AWS or any specific deployment platform.
 
 ## What It Checks
@@ -15,8 +15,8 @@ It assumes vendor-neutrality, so it does not depend on AWS or any specific deplo
 ## Usage
 
 ```bash
-harness/scripts/release-preflight.sh
-harness/scripts/release-preflight.sh --root /path/to/other/repo
+harness/skills/harness-release/scripts/release-preflight.sh
+harness/skills/harness-release/scripts/release-preflight.sh --root /path/to/other/repo
 ```
 
 ## Environment Variables

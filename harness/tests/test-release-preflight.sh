@@ -91,7 +91,7 @@ test_preflight_pass_and_fail() {
   HARNESS_RELEASE_PROJECT_ROOT="$repo" \
   HARNESS_RELEASE_HEALTHCHECK_CMD='true' \
   HARNESS_RELEASE_CI_STATUS_CMD='true' \
-    "$PROJECT_ROOT/scripts/release-preflight.sh" >"$success_output"
+    "$PROJECT_ROOT/skills/harness-release/scripts/release-preflight.sh" >"$success_output"
 
   assert_contains "$success_output" "\\[PASS\\] working tree clean"
   assert_contains "$success_output" "\\[PASS\\] CHANGELOG.md has \\[Unreleased\\]"
@@ -106,7 +106,7 @@ test_preflight_pass_and_fail() {
   if HARNESS_RELEASE_PROJECT_ROOT="$repo" \
     HARNESS_RELEASE_HEALTHCHECK_CMD='true' \
     HARNESS_RELEASE_CI_STATUS_CMD='true' \
-      "$PROJECT_ROOT/scripts/release-preflight.sh" >"$failure_output" 2>&1; then
+      "$PROJECT_ROOT/skills/harness-release/scripts/release-preflight.sh" >"$failure_output" 2>&1; then
     fail "preflight should fail on dirty tree"
   fi
 
@@ -125,7 +125,7 @@ test_preflight_warns_when_env_is_managed_elsewhere() {
   HARNESS_RELEASE_PROJECT_ROOT="$repo" \
   HARNESS_RELEASE_HEALTHCHECK_CMD='true' \
   HARNESS_RELEASE_CI_STATUS_CMD='true' \
-    "$PROJECT_ROOT/scripts/release-preflight.sh" >"$output"
+    "$PROJECT_ROOT/skills/harness-release/scripts/release-preflight.sh" >"$output"
 
   assert_contains "$output" "\\[WARN\\] .env missing for .env.example"
   assert_contains "$output" "\\[PASS\\] healthcheck command"

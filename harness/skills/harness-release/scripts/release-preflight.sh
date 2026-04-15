@@ -49,6 +49,8 @@ fi
 
 cd "$PROJECT_ROOT"
 
+GIT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$PROJECT_ROOT")"
+
 PASS_COUNT=0
 WARN_COUNT=0
 FAIL_COUNT=0
@@ -124,12 +126,13 @@ check_git_clean() {
 }
 
 check_changelog() {
-  if [ ! -f CHANGELOG.md ]; then
-    fail "CHANGELOG.md exists"
+  local changelog="$GIT_ROOT/CHANGELOG.md"
+  if [ ! -f "$changelog" ]; then
+    fail "CHANGELOG.md not found"
     return
   fi
 
-  if grep -q '^\## \[Unreleased\]' CHANGELOG.md; then
+  if grep -q '^\## \[Unreleased\]' "$changelog"; then
     pass "CHANGELOG.md has [Unreleased]"
   else
     fail "CHANGELOG.md has [Unreleased]"
