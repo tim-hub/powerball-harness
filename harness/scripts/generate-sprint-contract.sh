@@ -12,7 +12,7 @@ function usage() {
 const taskId = process.argv[2];
 if (!taskId) usage();
 
-const repoRoot = process.cwd();
+const repoRoot = spawnSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).stdout.trim();
 const plansFile = process.argv[3] ? path.resolve(process.argv[3]) : path.join(repoRoot, 'Plans.md');
 const defaultOut = path.join(repoRoot, '.claude', 'state', 'contracts', `${taskId}.sprint-contract.json`);
 const outputFile = process.argv[4] ? path.resolve(process.argv[4]) : defaultOut;
