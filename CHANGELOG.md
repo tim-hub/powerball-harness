@@ -6,6 +6,42 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Phases 56–58 — Project-wide review fixes (validator, agent frontmatter, docs, script hygiene)
+
+**Fixes 23 issues found in a comprehensive project-wide review: critical Go validator bug, stale agent configs, documentation drift from the v4 Go migration, and shell script hygiene.**
+
+---
+
+#### 1. Go validator now accepts short model aliases and bare list syntax (Phase 56.1, fix(validate))
+
+**Before**: `harness validate agents` rejected all 5 agent files with errors like `model "sonnet" is not a recognized model name` and `could not parse list items from "[Read, Write, Bash]"`. The validator was effectively broken for any real use.
+
+**After**: The `validModelNames` map accepts short aliases (`sonnet`, `opus`, `haiku`) in addition to full IDs. `parseStringSlice` handles both bare items `[Read, Write]` (agent style) and quoted items `["Read", "Write"]` (skill style). `harness validate agents --root harness` now passes all 5 agents cleanly.
+
+#### 2. Agent frontmatter standardized across ci-cd-fixer and error-recovery (Phase 56.2–56.4)
+
+**Before**: `ci-cd-fixer.md` referenced a non-existent `verify` skill, used the old `disallowedTools: [Task]` name (renamed to `Agent` in CC v2.1.63), had inconsistent hook syntax, and was missing `permissionMode`, `effort`, and `maxTurns`. `error-recovery.md` had the same issues plus referenced two non-existent skills (`verify`, `troubleshoot`). `scaffolder.md`'s output schema only listed `v2 | v3` as valid `harness_version` values.
+
+**After**: Both agents have `permissionMode: bypassPermissions`, `effort: medium`, `maxTurns: 75`, correct `disallowedTools: [Agent]`, and no references to non-existent skills. `error-recovery.md` has a deprecation notice clarifying it's consolidated into `worker`. `scaffolder.md` accepts `v4` in the version enum.
+
+#### 3. Documentation drift from v4 Go migration resolved (Phase 57)
+
+**Before**: Multiple docs still described the v3 TypeScript architecture:
+- `docs/CLAUDE-skill-catalog.md` listed 5 skills (`impl/`, `verify/`, `handoff/`, `maintenance/`, `troubleshoot/`) that don't exist
+- `CONTRIBUTING.md` described the wrong CHANGELOG format (Keep a Changelog style vs. actual Before/After narrative), wrong version sources (referenced `marketplace.json` which has had no version field since v4.4.0), and had a duplicate step "3." in the Testing section
+- `.claude/memory/patterns.md` P1–P3 had TypeScript code examples referencing `core/src/` files removed in v4
+- `docs/CLAUDE-feature-table.md` had 2 duplicate rows and open-ended "planned" items with no review dates
+- `go/DESIGN.md` listed `internal/plans/` as an existing package
+- `.claude/rules/hooks-editing.md` required maintaining a `.claude-plugin/hooks.json` that doesn't exist
+
+**After**: All references updated to reflect v4 reality. Skill catalog shows only real skills. CONTRIBUTING.md matches actual project conventions. Patterns P1–P3 marked as superseded with pointers to `go/internal/guardrail/`. Feature table deduplicated; planned items annotated with `(planned — review 2026-07-15)`. DESIGN.md notes `plans/` as not yet implemented. hooks-editing.md updated to name `harness/hooks/hooks.json` as the single SSOT. 4 orphaned templates registered in `template-registry.json`.
+
+#### 4. Shell script hygiene: path conventions, strict mode, settings (Phase 58)
+
+**Before**: 4 scripts used `dirname "$0"` (breaks when sourced — should use `${BASH_SOURCE[0]}`). A variable named `repo_root` in `codex-setup-local.sh` actually resolved to the plugin root. `generate-sprint-contract.sh` used `process.cwd()` for project root resolution. `tests/validate-plugin.sh` hardcoded `/tmp` and was missing `set -e`. `harness/settings.json` had an inconsistent deny rule `"Bash(* .env)"` and aggressively hard-denied `export PATH/LD_LIBRARY_PATH/PYTHONPATH`. `vibecoder-guide/SKILL.md` described a user attribute instead of task shape.
+
+**After**: All 4 scripts use `${BASH_SOURCE[0]}`. `codex-setup-local.sh` variable renamed to `plugin_dir` with `# plugin-local:` comment. `generate-sprint-contract.sh` uses `git rev-parse --show-toplevel`. `validate-plugin.sh` uses `${TMPDIR:-/tmp}` and `set -euo pipefail`. Settings deny rule syntax normalized; `export PATH/LD_LIBRARY_PATH/PYTHONPATH` moved from `deny` to `ask`. `vibecoder-guide` description rewritten to task shape.
+
 ## [4.4.2] - 2026-04-15
 
 ### Theme: Phase 55 — Three-tier path convention standardization + sync-version improvements
