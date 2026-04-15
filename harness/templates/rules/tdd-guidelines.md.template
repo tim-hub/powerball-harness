@@ -2,7 +2,7 @@
 description: TDD guidelines rules (test-first workflow, applicability criteria)
 alwaysApply: false
 _harness_template: "rules/tdd-guidelines.md.template"
-_harness_version: "4.4.3"
+_harness_version: "4.4.4"
 ---
 
 # TDD Guidelines

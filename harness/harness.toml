@@ -3,7 +3,7 @@
 
 [project]
 name = "powerball-harness"
-version = "4.4.3"
+version = "4.4.4"
 description = "Powerball harness - A harness for builders to handle full-cycle contract development."
 homepage = "https://github.com/tim-hub/powerball-harness"
 repository = "https://github.com/tim-hub/powerball-harness"
