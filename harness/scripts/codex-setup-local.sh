@@ -52,8 +52,8 @@ pick_latest_version_dir() {
 }
 
 resolve_plugin_dir() {
-  local repo_root
-  repo_root="$(cd "$SCRIPT_DIR/.." && pwd)"
+  local plugin_dir
+  plugin_dir="$(cd "$SCRIPT_DIR/.." && pwd)"  # plugin-local: harness plugin root (not the user's git repo)
 
   local marketplace_dir="$HOME/.claude/plugins/marketplaces/claude-code-harness-marketplace"
   local cache_root="$HOME/.claude/plugins/cache/claude-code-harness-marketplace/claude-code-harness"
@@ -62,7 +62,7 @@ resolve_plugin_dir() {
 
   local candidates=(
     "${CLAUDE_PLUGIN_ROOT:-}"
-    "$repo_root"
+    "$plugin_dir"
     "$marketplace_dir"
     "$cache_dir"
   )

@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-PLUGIN_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 HARNESS_ROOT="$PLUGIN_ROOT/harness"
 ERRORS=0
 
