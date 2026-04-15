@@ -91,9 +91,9 @@ wake-up
   ※ 詳細は flow.md 参照
   │
   ▼
-[Step 5.6] APPROVE → main に cherry-pick / REQUEST_CHANGES → 修正ループ（最大 3 回）
+[Step 5.6] APPROVE → main に cherry-pick / REQUEST_CHANGES → 修正ループ（contract の max_iterations 回、デフォルト 3）
   APPROVE: git cherry-pick → Plans.md を cc:完了 [{hash}] に更新 → feature branch 削除
-  REQUEST_CHANGES x3 後も否決: エスカレーション
+  REQUEST_CHANGES x MAX_REVIEWS 後も否決: エスカレーション
   ※ 詳細は flow.md 参照
   │
   ▼

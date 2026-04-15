@@ -150,7 +150,7 @@ Breezing モードでもレビューは **Codex exec 優先 → 内部 Reviewer 
 
 - Worker が worktree 内で実装・commit → Lead に結果返却
 - Lead が Codex exec でレビュー（120s タイムアウト、フォールバック: Reviewer agent）
-- REQUEST_CHANGES → Lead が SendMessage で Worker に修正指示、Worker が amend（最大 3 回）
+- REQUEST_CHANGES → Lead が SendMessage で Worker に修正指示、Worker が amend（最大 `MAX_REVIEWS` 回。`MAX_REVIEWS = read_contract(contract_path, ".review.max_iterations") or 3`）
 - APPROVE → **Lead** が main に cherry-pick → Plans.md を `cc:完了 [{hash}]` に更新
 
 ### 完了報告（Phase C — Lead が生成）

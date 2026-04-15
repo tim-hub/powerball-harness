@@ -104,6 +104,36 @@ function detectProfile(task) {
   return 'static';
 }
 
+// profile ごとの default max_iterations
+const PROFILE_MAX_ITERATIONS = {
+  static: 3,
+  runtime: 3,
+  browser: 5,
+  'ui-rubric': 10,
+};
+
+function detectMaxIterations(profile, task) {
+  const profileDefaults = { static: 3, runtime: 3, browser: 5, 'ui-rubric': 10 };
+  const defaultValue = profileDefaults[profile] ?? 3;
+
+  // HTML コメント形式のマーカーのみを受け付ける:
+  //   <!-- max_iterations: 15 -->
+  // Markdown として表示されないため、例示テキストと区別可能（自己参照バグ防止）。
+  // 素のテキスト「max_iterations: 15」は意図的に無視する。
+  const text = `${task.title}\n${task.dod}`;
+  const match = text.match(/<!--\s*max_iterations:\s*(\d+)\s*-->/i);
+  if (match) {
+    const value = parseInt(match[1], 10);
+    if (value >= 1 && value <= 30) {
+      return value;
+    }
+    process.stderr.write(
+      `[warn] max_iterations=${value} out of range (1-30), falling back to default ${defaultValue}\n`
+    );
+  }
+  return defaultValue;
+}
+
 function detectBrowserMode(task) {
   const text = `${task.title} ${task.dod}`.toLowerCase();
   if (/(browser_mode\s*:\s*exploratory|\bexploratory\b|探索モード|探索的)/.test(text)) {
@@ -250,6 +280,7 @@ const browserMode = reviewerProfile === 'browser' ? detectBrowserMode(row) : nul
 const browserRoute = reviewerProfile === 'browser' ? detectBrowserRoute(row, repoRoot, browserMode) : null;
 const runtimeValidation = reviewerProfile === 'runtime' ? pickRuntimeCommands(repoRoot) : [];
 const riskFlags = detectRiskFlags(row);
+const maxIterations = detectMaxIterations(reviewerProfile, row);
 
 const contract = {
   schema_version: 'sprint-contract.v1',
@@ -291,6 +322,7 @@ const contract = {
   review: {
     status: 'draft',
     reviewer_profile: reviewerProfile,
+    max_iterations: maxIterations,
     browser_mode: browserMode,
     route: browserRoute,
     reviewer_notes: [],

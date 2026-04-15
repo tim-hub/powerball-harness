@@ -313,8 +313,10 @@ bash scripts/write-review-result.sh "${REVIEW_RESULT_INPUT}" "${worker_result.co
 review_count = 0
 latest_commit = worker_result.commit
 worker_id = worker_result.agentId
+# sprint-contract が存在するときのみ max_iterations を読む。存在しない場合は 3（後方互換）
+MAX_REVIEWS = read_contract(contract_path, ".review.max_iterations") or 3
 
-while verdict == "REQUEST_CHANGES" and review_count < 3:
+while verdict == "REQUEST_CHANGES" and review_count < MAX_REVIEWS:
     # Worker に修正を指示（SendMessage で再開）
     SendMessage(to=worker_id, message=f"指摘内容: {issues}\n修正して amend してください")
     updated_result = wait_for_response(worker_id)
@@ -323,18 +325,19 @@ while verdict == "REQUEST_CHANGES" and review_count < 3:
     verdict = codex_exec_review(diff_text) or reviewer_agent_review(diff_text)
     review_count += 1
 
-if review_count >= 3 and verdict != "APPROVE":
+if review_count >= MAX_REVIEWS and verdict != "APPROVE":
     # エスカレーション
-    raise PivotRequired(f"3 回修正後も REQUEST_CHANGES: {issues}")
+    raise PivotRequired(f"{MAX_REVIEWS} 回修正後も REQUEST_CHANGES: {issues}")
 ```
 
 ### Step 5.6: APPROVE → main に cherry-pick
 
 ```bash
-# main ブランチに戻る（Worker は feature branch で作業）
-git checkout main
+# trunk ブランチに戻る（Worker は feature branch で作業）
+TRUNK=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||' || echo "main")
+git checkout "${TRUNK}"
 
-# feature branch の commit が main に未マージかを確認（再入防止）
+# feature branch の commit が trunk に未マージかを確認（再入防止）
 if ! git merge-base --is-ancestor "${latest_commit}" HEAD; then
     git cherry-pick --no-commit "${latest_commit}"
     git commit -m "${task_title}"
@@ -361,7 +364,8 @@ fi
 # Step 3: branch -D（worktree remove 後なので安全）
 if [ -n "${worker_result.branch}" ] && \
    [ "${worker_result.branch}" != "main" ] && \
-   [ "${worker_result.branch}" != "master" ]; then
+   [ "${worker_result.branch}" != "master" ] && \
+   [ "${worker_result.branch}" != "${TRUNK}" ]; then
     git branch -D "${worker_result.branch}" 2>/dev/null || true
 fi
 ```

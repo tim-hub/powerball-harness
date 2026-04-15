@@ -1,47 +1,54 @@
 ---
 name: harness-work
-description: "Harness v3 統合実行スキル（Codex ネイティブ版）。Plans.md タスクを1件から全並列チーム実行まで担当。以下で起動: 実装して、実行して、harness-work、全部やって、breezing、チーム実行、parallel。プランニング・レビュー・リリース・セットアップには使わない。"
-description-en: "Unified execution skill for Harness v3 (Codex native). Implements Plans.md tasks from single task to full parallel team runs."
-description-ja: "Harness v3 統合実行スキル（Codex ネイティブ版）。Plans.md タスクを1件から全並列チーム実行まで担当。"
-argument-hint: "[all] [task-number|range] [--parallel N] [--no-commit] [--breezing]"
+description: "HAR:Plans.md タスクを1件から全並列チーム実行まで担当。実装して、実行して、全部やって、breezing、チーム実行、parallel で起動。プランニング・レビュー・リリース・セットアップには使わない。"
+description-en: "HAR: Execute Plans.md tasks from single task to full parallel team run. Trigger: implement, execute, do everything, breezing, team run, parallel. Do NOT load for: planning, review, release, setup."
+description-ja: "HAR:Plans.md タスクを1件から全並列チーム実行まで担当。実装して、実行して、全部やって、breezing、チーム実行、parallel で起動。プランニング・レビュー・リリース・セットアップには使わない。"
+allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task", "Monitor"]
+argument-hint: "[all] [task-number|range] [--codex] [--parallel N] [--no-commit] [--resume id] [--breezing] [--auto-mode]"
 effort: high
 ---
 
-# Harness Work — Codex Native
+# Harness Work
 
-> **この SKILL.md は Codex CLI ネイティブ版です。**
-> Claude Code 版は `skills/harness-work/SKILL.md` を参照してください。
-> サブエージェント API は Codex の `spawn_agent` / `send_input` / `wait_agent` / `close_agent` を使用します。
+Harness の統合実行スキル。
+以下の旧スキルを統合:
 
-Harness v3 の統合実行スキル。
+- `work` — Plans.md タスクの実装（スコープ自動判断）
+- `impl` — 機能実装（タスクベース）
+- `breezing` — チームフル自動実行
+- `parallel-workflows` — 並列ワークフロー最適化
+- `ci` — CI 失敗時の復旧
 
 ## Quick Reference
 
 | ユーザー入力 | モード | 動作 |
 |------------|--------|------|
-| `harness-work` | **solo** | 次の未完了タスクを1件実行 |
-| `harness-work all` | **sequential** | 全未完了タスクを直列実行 |
+| `harness-work` | **auto** | タスク数で自動判定（下記参照） |
+| `harness-work all` | **auto** | 全未完了タスクを自動モードで実行 |
 | `harness-work 3` | solo | タスク3だけ即実行 |
-| `harness-work --parallel 3` | parallel | companion `task` で3並列実行（Bash `&` + `wait`） |
-| `harness-work --breezing` | breezing | `spawn_agent` によるチーム実行（明示時のみ） |
+| `harness-work --parallel 5` | parallel | 5ワーカーで並列実行（強制） |
+| `harness-work --codex` | codex | Codex CLI に委託（明示時のみ） |
+| `harness-work --breezing` | breezing | チーム実行を強制 |
 
-## Execution Mode Selection
+## Execution Mode Auto Selection（フラグなし時の自動判定）
 
-> **重要**: Codex では `spawn_agent` はユーザーが明示的にチーム実行・並列作業を求めた場合にのみ使用する。
-> タスク件数だけを根拠に自動昇格しない。
+明示的なモードフラグ（`--parallel`, `--breezing`, `--codex`）がない場合、
+対象タスク数に応じて最適なモードを自動選択する:
 
-| 条件 | モード | 理由 |
-|------|--------|------|
-| 引数なし / 1件指定 | **Solo** | 直接実装が最速 |
-| `all` / 範囲指定（フラグなし） | **Sequential** | 直列で安全に逐次処理 |
-| `--parallel N` | **Parallel** | companion `task` の Bash 並列（明示時のみ） |
-| `--breezing` | **Breezing** | `spawn_agent` チーム実行（明示時のみ） |
+| 対象タスク数 | 自動選択モード | 理由 |
+|-------------|---------------|------|
+| **1 件** | Solo | オーバーヘッド最小。直接実装が最速 |
+| **2〜3 件** | Parallel（Task tool） | Worker 分離のメリットが出始める閾値 |
+| **4 件以上** | Breezing | Lead 調整 + Worker 並列 + Reviewer 独立の三者分離が効果的 |
 
 ### ルール
 
-1. **明示フラグは常にデフォルトを上書き**する
-2. **`--breezing` と `--parallel` は明示時のみ発動**。件数による自動昇格はしない
-3. `--parallel` と `--breezing` は排他（同時指定不可）
+1. **明示フラグは常にオートモードを上書き**する
+   - `--parallel N` → Parallel モード（タスク数に関係なく）
+   - `--breezing` → Breezing モード（タスク数に関係なく）
+   - `--codex` → Codex モード（タスク数に関係なく）
+2. **`--codex` は明示時のみ発動**。Codex CLI が未インストールの環境があるため、自動選択しない
+3. `--codex` は他モードと組み合わせ可能: `--codex --breezing` → Codex + Breezing
 
 ## オプション
 
@@ -49,11 +56,19 @@ Harness v3 の統合実行スキル。
 |----------|------|----------|
 | `all` | 全未完了タスクを対象 | - |
 | `N` or `N-M` | タスク番号/範囲指定 | - |
-| `--parallel N` | companion `task` Bash 並列数 | - |
+| `--parallel N` | 並列ワーカー数 | auto |
 | `--sequential` | 直列実行強制 | - |
-| `--no-commit` | main への最終コミット抑制（Solo/Sequential のみ。Breezing/Parallel では非対応） | false |
+| `--codex` | Codex CLI で実装委託（明示時のみ、自動選択しない） | false |
+| `--no-commit` | 自動コミット抑制 | false |
+| `--resume <id\|latest>` | 前回セッション再開 | - |
 | `--breezing` | Lead/Worker/Reviewer のチーム実行 | false |
 | `--no-tdd` | TDD フェーズスキップ | false |
+| `--no-simplify` | Auto-Refinement スキップ | false |
+| `--auto-mode` | Auto Mode rollout を明示。親セッションの permission mode が互換な場合のみ採用を検討 | false |
+
+> **Token Optimization (v2.1.69+)**: git 操作を伴わない軽量タスクでは
+> plugin settings の `includeGitInstructions: false` を有効にして
+> プロンプトトークンを削減できる。
 
 ## スコープダイアログ（引数なし時）
 
@@ -61,102 +76,132 @@ Harness v3 の統合実行スキル。
 harness-work
 どこまでやりますか?
 1) 次のタスク: Plans.md の次の未完了タスク → Solo で実行
-2) 全部: 残りのタスクをすべて直列実行
-3) 番号指定: タスク番号を入力（例: 3, 5-7）
+2) 全部（推奨）: 残りのタスクをすべて完了 → タスク数で自動モード選択
+3) 番号指定: タスク番号を入力（例: 3, 5-7）→ 件数で自動モード選択
 ```
 
-引数ありなら即実行（対話スキップ）。
+引数ありなら即実行（対話スキップ）:
+- `harness-work all` → 全タスク、自動モード選択
+- `harness-work 3-6` → 4件なので Breezing 自動選択
+
+## Effort レベル制御（v2.1.68+, v2.1.72 簡素化）
+
+Claude Code v2.1.68 で Opus 4.6 は **medium effort** (`◐`) がデフォルト。
+v2.1.72 で `max` レベルが廃止され、3段階 `low(○)/medium(◐)/high(●)` に簡素化。
+`/effort auto` でデフォルトにリセット可能。
+複雑なタスクには `ultrathink` キーワードで high effort (`●`) を有効化する。
+
+### 多要素スコアリング
+
+タスク着手時に以下のスコアを合算し、**閾値 3 以上**で ultrathink を注入:
+
+| 要素 | 条件 | スコア |
+|------|------|--------|
+| ファイル数 | 変更対象 4 ファイル以上 | +1 |
+| ディレクトリ | core/, guardrails/, security/ を含む | +1 |
+| キーワード | architecture, security, design, migration を含む | +1 |
+| 失敗履歴 | agent memory に同タスクの失敗記録あり | +2 |
+| 明示指定 | PM テンプレートに ultrathink 記載あり | +3（自動採用） |
+
+### 注入方法
+
+スコア ≥ 3 の場合、Worker spawn prompt の冒頭に `ultrathink` を追加。
+breezing モードでも同じロジックが適用される（harness-work が一本化して管理）。
 
 ## 実行モード詳細
 
-### Solo モード
+### Solo モード（1 件時の自動選択）
 
 1. Plans.md を読み込み、対象タスクを特定
    - **Plans.md が存在しない場合**: `harness-plan create --ci` を自動呼び出し → Plans.md を生成して続行
-   - ヘッダーに DoD / Depends カラムがない場合: 停止
+   - ヘッダーに DoD / Depends カラムがない場合: `Plans.md が旧フォーマットです。harness-plan create で再生成してください。` → **停止**
    - **会話に未記載タスクがある場合**: 直前の会話コンテキストから要件を抽出し、Plans.md に `cc:TODO` で自動追記
+     - 抽出ロジック: ユーザー発言からアクション動詞（「〜を追加」「〜を修正」「〜を実装」）を検出
+     - 追記時は v2 フォーマット（Task / 内容 / DoD / Depends / Status）に準拠
+     - 追記後、ユーザーに「Plans.md に以下を追記しました」と表示（5 秒タイムアウト付きプロンプト、デフォルト: 続行）
 1.5. **タスク背景確認**（30 秒）:
-   - タスクの「内容」と「DoD」から目的を 1 行で推論表示
-   - 推論に自信がある場合: そのまま実装に進む
-   - 推論に自信がない場合: ユーザーに 1 問だけ確認
-2. タスクを `cc:WIP` に更新。`TASK_BASE_REF=$(git rev-parse HEAD)` を記録
+   - タスクの「内容」と「DoD」から **目的**（このタスクが解く課題）を 1 行で推論表示
+   - `git grep` / `Glob` で **影響範囲**（変更が及ぶファイル/モジュール）を推論表示
+   - 推論に自信がある場合: そのまま実装に進む（フロー遅延なし）
+   - 推論に自信がない場合: ユーザーに 1 問だけ確認（「この理解で合っていますか？」）
+2. タスクを `cc:WIP` に更新
 3. **TDD フェーズ**（`[skip:tdd]` なし & テストFW存在時）:
    a. テストファイルを先に作成（Red）
    b. 失敗を確認
-4. コードを実装（Green）
-5. `git commit` で自動コミット（`--no-commit` で省略可）
-6. **自動レビューステージ**（「レビューループ」参照）— TASK_BASE_REF..HEAD の差分をレビュー
-7. タスクを `cc:完了 [hash]` に更新
-8. **リッチ完了報告**（「完了報告フォーマット」参照）
-9. **失敗時の自動再計画**（テスト/CI 失敗時のみ）
+4. `scripts/generate-sprint-contract.sh <task-id>` で `sprint-contract.json` を生成
+5. Reviewer 観点の追記を `scripts/enrich-sprint-contract.sh` で加え、`scripts/ensure-sprint-contract-ready.sh` で approved を確認
+6. コードを実装（Green）（Read/Write/Edit/Bash）
+7. `/simplify` で Auto-Refinement（`--no-simplify` で省略可）
+8. **自動レビューステージ**（「レビューループ」参照）:
+   - Codex exec 優先でレビュー実行 → フォールバックで内部 Reviewer agent
+   - `sprint-contract.json` の `reviewer_profile` が `runtime` の場合は `scripts/run-contract-review-checks.sh` を実行
+   - REQUEST_CHANGES の場合: 指摘を元に修正→再レビュー（`MAX_REVIEWS = read_contract(contract_path, ".review.max_iterations") or 3`）
+   - APPROVE で次ステップへ。self-check だけでは完了を確定しない
+9. `scripts/write-review-result.sh` で review artifact を正規化して保存
+10. `git commit` で自動コミット（`--no-commit` で省略可）
+11. タスクを `cc:完了` に更新（commit hash 付与）
+   - `git log --oneline -1` で直近の commit hash（短縮形 7 文字）を取得
+   - Plans.md の Status を `cc:完了 [a1b2c3d]` 形式で更新
+   - commit がない場合（`--no-commit` 時）は hash なしで `cc:完了` のみ
+12. **リッチ完了報告**（「完了報告フォーマット」参照）
+13. **失敗時の自動再計画**（テスト/CI 失敗時のみ）:
+    - テスト実行結果を確認
+    - 失敗した場合: 修正タスク案を state に保存し、承認コマンド経由で Plans.md に追加（「失敗タスクの自動再チケット化」参照）
+    - 成功した場合: 次タスクへ進む
 
-### Sequential モード（`all` 指定時のデフォルト）
+### Parallel モード（2〜3 件時の自動選択 / `--parallel N` で強制）
 
-Plans.md のタスクを依存順に1件ずつ Solo モードで逐次処理する。
-各タスク完了後に Plans.md を更新し、次タスクに進む。
+`[P]` マーク付きタスクを N ワーカーで並列実行。
+`--parallel N` で明示指定した場合は、タスク数に関係なくこのモードを使用。
+同一ファイルへの書き込みが競合する場合は git worktree で分離。
 
-### Parallel モード（`--parallel N` 明示時のみ）
+### Codex モード（`--codex` 明示時のみ）
 
-独立タスクを Bash の `&` + `wait` で並列実行する。
-公式プラグインの companion `task` を使用し、worktree で Worker ごとに分離する。
-
-> **制約**: 同一ファイルを変更する可能性があるタスクは並列化しないこと。
-> `git worktree add` で Worker ごとに作業ディレクトリを分離し、Lead がレビュー後に cherry-pick する。
+公式プラグイン `codex-plugin-cc` の companion 経由で Codex CLI にタスクを委託する。
 
 ```bash
-# Worker ごとに worktree を分離（-b <branch> <path> の順序に注意）
-git worktree add -b worker-a-$$ /tmp/worker-a-$$
-git worktree add -b worker-b-$$ /tmp/worker-b-$$
+# タスク委託（書き込み可能）
+bash scripts/codex-companion.sh task --write "タスク内容"
 
-# タスク A（cd で worktree に cwd を切り替えてから companion を呼ぶ）
-PROMPT_A=$(mktemp /tmp/codex-prompt-XXXXXX.md)
-cat > "$PROMPT_A" << EOF
-タスク A の内容...
+# stdin 経由（大きなプロンプト向け）
+CODEX_PROMPT=$(mktemp /tmp/codex-prompt-XXXXXX.md)
+# タスク内容を書き出し
+cat "$CODEX_PROMPT" | bash scripts/codex-companion.sh task --write
+rm -f "$CODEX_PROMPT"
 
-完了後、以下の JSON を stdout に出力してください:
-{"commit": "<hash>", "files_changed": ["path1", "path2"], "summary": "..."}
-EOF
-(cd /tmp/worker-a-$$ && cat "$PROMPT_A" | bash "${PROJECT_ROOT}/scripts/codex-companion.sh" task --write) > /tmp/out-a-$$.json 2>>/tmp/harness-codex-$$.log &
-
-# タスク B（cd で worktree に cwd を切り替えてから companion を呼ぶ）
-PROMPT_B=$(mktemp /tmp/codex-prompt-XXXXXX.md)
-cat > "$PROMPT_B" << EOF
-タスク B の内容...
-
-完了後、以下の JSON を stdout に出力してください:
-{"commit": "<hash>", "files_changed": ["path1", "path2"], "summary": "..."}
-EOF
-(cd /tmp/worker-b-$$ && cat "$PROMPT_B" | bash "${PROJECT_ROOT}/scripts/codex-companion.sh" task --write) > /tmp/out-b-$$.json 2>>/tmp/harness-codex-$$.log &
-
-wait
-rm -f "$PROMPT_A" "$PROMPT_B"
-
-# Lead が各 Worker の出力 JSON から commit hash を取得し、個別にレビュー → cherry-pick
-# ... レビュー・cherry-pick 処理 ...
-
-# worktree 削除
-git worktree remove /tmp/worker-a-$$
-git worktree remove /tmp/worker-b-$$
+# 前回スレッドの続行
+bash scripts/codex-companion.sh task --resume-last --write "続きをやって"
 ```
 
-### Breezing モード（`--breezing` 明示時のみ）
+companion は App Server Protocol 経由で Codex と通信し、
+Job 管理・thread resume・構造化出力を提供する。
+結果を検証し、品質基準を満たさない場合は自力で修正。
+
+### Breezing モード（4 件以上で自動選択 / `--breezing` で強制）
 
 Lead / Worker / Reviewer の役割分離でチーム実行する。
-Codex の native subagent API を使用する。
+Codex では `spawn_agent`, `wait`, `send_input`, `resume_agent`, `close_agent`
+を使った native subagent orchestration を前提にし、
+古い TeamCreate / TaskCreate ベースの説明を採らない。
 
-> **`--breezing` は明示時のみ**。ユーザーが「チーム実行で」「breezing で」と指示した場合に限り使用する。
+**権限ポリシー**:
+- 現行の shipped default は `bypassPermissions`
+- `--auto-mode` は互換な親セッション向けの opt-in rollout フラグとして扱う
+- `permissions.defaultMode` や agent frontmatter の `permissionMode` には未文書化の `autoMode` 値を書かない
+
+> **CC v2.1.69+**: nested teammates はプラットフォーム側で禁止されるため、
+> Worker/Reviewer プロンプトには冗長な nested 防止文言を追加しない。
 
 ```
 Lead (this agent)
-├── Worker (spawn_agent) — 実装担当
-│   各 Worker は git worktree で分離された作業ディレクトリで動作
-└── Reviewer (companion review --base) — レビュー担当
+├── Worker (task-worker agent) — 実装担当
+└── Reviewer (code-reviewer agent) — レビュー担当
 ```
 
 **Phase A: Pre-delegate（準備）**:
 1. Plans.md を読み込み、対象タスクを特定
 2. 依存グラフを解析し、実行順序を決定（Depends カラム）
-3. 各タスクに対応する git worktree を作成
+3. 各タスクの effort スコアリング（ultrathink 注入判定）
 4. `scripts/generate-sprint-contract.sh` で `sprint-contract.json` を生成
 5. `scripts/enrich-sprint-contract.sh` で Reviewer 観点を加え、`scripts/ensure-sprint-contract-ready.sh` で未承認なら停止
 
@@ -164,96 +209,128 @@ Lead (this agent)
 
 各タスクについて以下を**逐次**実行する（依存順）:
 
+> **API 注記**: 以下は Claude Code の API 構文で記述。
+> Codex 環境では `Agent(...)` → `spawn_agent(...)`, `SendMessage(...)` → `send_input(...)` に読み替え。
+> 詳細は `team-composition.md` の API マッピング表を参照。
+
 ```
 for task in execution_order:
-    # B-0. 作業ディレクトリ分離
-    worktree_path = "/tmp/worker-{task.number}-$$"
-    branch_name = "worker-{task.number}-$$"
-    git worktree add -b {branch_name} {worktree_path}
-    TASK_BASE_REF = git rev-parse HEAD  # このタスク固有の base ref
-
     # B-1. sprint-contract を生成
     contract_path = bash("scripts/generate-sprint-contract.sh {task.number}")
     contract_path = bash("scripts/enrich-sprint-contract.sh {contract_path} --check \"DoD を reviewer 観点で確認\" --approve")
     bash("scripts/ensure-sprint-contract-ready.sh {contract_path}")
 
-    # B-2. Worker spawn（Codex native subagent）
-    Plans.md: task.status = "cc:WIP"
+    # B-2. Worker spawn（フォアグラウンド、worktree 分離）
+    # Agent tool の戻り値に agentId が含まれる — 修正ループで SendMessage に使用
+    Plans.md: task.status = "cc:WIP"  # 着手時に更新（未着手タスクは cc:TODO のまま）
 
-    worker_id = spawn_agent({
-        message: "作業ディレクトリ: {worktree_path} で作業してください。\n\nタスク: {task.内容}\nDoD: {task.DoD}\ncontract_path: {contract_path}\n\n実装してください。完了後 git commit してください。\n\n完了時、以下の JSON を返してください:\n{\"commit\": \"<hash>\", \"files_changed\": [\"path1\"], \"summary\": \"...\"}",
-        fork_context: true
-    })
-    wait_agent({ ids: [worker_id] })
-    # Worker の出力から commit hash, files_changed, summary を取得
+    worker_result = Agent(
+        subagent_type="claude-code-harness:worker",
+        prompt="タスク: {task.内容}\nDoD: {task.DoD}\ncontract_path: {contract_path}\nmode: breezing",
+        isolation="worktree",
+        run_in_background=false  # フォアグラウンドで実行 → Worker 完了まで待機
+    )
+    worker_id = worker_result.agentId  # SendMessage 用に保持
+    # worker_result には {commit, worktreePath, files_changed, summary} が含まれる
 
-    # B-3. Lead がレビュー実行（companion review --base TASK_BASE_REF）
-    # このタスク固有の diff のみをレビュー（TASK_BASE_REF 起点）
-    # 公式プラグインの構造化レビューを使用
-    verdict = companion_review(TASK_BASE_REF)  # static review（詳細は「レビューループ」参照）
+    # B-3. Lead がレビュー実行（Codex exec 優先）
+    diff_text = git("-C", worker_result.worktreePath, "show", worker_result.commit)
+    verdict = codex_exec_review(diff_text) or reviewer_agent_review(diff_text)
     profile = jq(contract_path, ".review.reviewer_profile")
-    browser_mode = jq(contract_path, ".review.browser_mode // \"scripted\"")
     review_input = "review-output.json"
     if profile == "runtime":
-        # worktree 内で runtime checks を実行（Lead の cwd ではなく Worker の成果物に対して）
-        review_input = bash("cd {worktree_path} && scripts/run-contract-review-checks.sh {contract_path}")
+        review_input = bash("cd {worker_result.worktreePath} && scripts/run-contract-review-checks.sh {contract_path}")
         runtime_verdict = jq(review_input, ".verdict")
         if runtime_verdict == "REQUEST_CHANGES":
             verdict = "REQUEST_CHANGES"
         elif runtime_verdict == "DOWNGRADE_TO_STATIC":
-            # runtime 検証コマンドなし → static review 結果にフォールバック
-            review_input = "review-output.json"
+            pass  # runtime 検証コマンドなし → static verdict をそのまま使う
     if profile == "browser":
-        # browser artifact は PENDING_BROWSER scaffold。実際の browser 実行は reviewer agent が後続で担当。
+        # browser artifact は PENDING_BROWSER scaffold を生成。
+        # 実際の browser 実行は reviewer agent が後続で担当する。
         # review-result には static review の verdict を書く（PENDING_BROWSER ではなく）。
         browser_artifact = bash("scripts/generate-browser-review-artifact.sh {contract_path}")
-        # review_input は static review のまま維持
-    # DOWNGRADE_TO_STATIC が review_input に残っていないことを確認
+        # browser artifact は参照用に保存するが、review-result の verdict は static のまま
+    # review_input が DOWNGRADE_TO_STATIC の場合は static review 結果を使う
     if review_input != "review-output.json" and jq(review_input, ".verdict") == "DOWNGRADE_TO_STATIC":
-        review_input = "review-output.json"
-    bash("scripts/write-review-result.sh {review_input} {commit_hash}")
+        review_input = "review-output.json"  # static review の結果にフォールバック
+    bash("scripts/write-review-result.sh {review_input} {latest_commit}")
 
-    # B-4. 修正ループ（REQUEST_CHANGES 時、最大 3 回）
+    # B-4. 修正ループ（REQUEST_CHANGES 時、contract の max_iterations まで）
+    # Worker は完了済みだが close していないので send_input で直接指示可能
     review_count = 0
-    while verdict == "REQUEST_CHANGES" and review_count < 3:
-        # Worker は完了済みだが close していないので send_input で直接指示可能
-        send_input({
-            id: worker_id,
-            message: "指摘内容: {issues}\n修正して git commit --amend してください。修正後 JSON を再出力してください。"
-        })
-        wait_agent({ ids: [worker_id] })
-        # 再レビュー（TASK_BASE_REF 起点の差分）
-        diff_text = git("-C", worktree_path, "diff", TASK_BASE_REF, "HEAD")
-        verdict = codex_exec_review(diff_text)
+    # sprint-contract が存在するときのみ max_iterations を読む。存在しない場合は 3（後方互換）
+    MAX_REVIEWS = read_contract(contract_path, ".review.max_iterations") or 3
+    latest_commit = worker_result.commit
+    while verdict == "REQUEST_CHANGES" and review_count < MAX_REVIEWS:
+        resume_agent(worker_id)
+        send_input(worker_id, "指摘内容: {issues}\n修正して amend してください")
+        # Worker が修正 → amend → 更新された commit hash を返す
+        updated_result = wait_agent(worker_id)
+        latest_commit = updated_result.commit
+        diff_text = git("-C", worker_result.worktreePath, "show", latest_commit)
+        verdict = codex_exec_review(diff_text) or reviewer_agent_review(diff_text)
         review_count++
 
-    close_agent({ id: worker_id })
-
-    # B-5. 結果処理
+    # B-5. APPROVE → trunk に cherry-pick（feature ブランチ経由）
+    # Worker の Branch Guard により trunk HEAD は動かず、commit は feature ブランチ上にある想定
     if verdict == "APPROVE":
-        # worktree の commit を main に cherry-pick
-        commit_hash = git("-C", worktree_path, "rev-parse", "HEAD")
-        git cherry-pick --no-commit {commit_hash}
-        git commit -m "{task.内容}"
-        Plans.md: task.status = "cc:完了 [{short_hash}]"
+        TRUNK=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||' || echo "main")
+        git checkout "$TRUNK"  # safety: 既に trunk なら no-op
+        # feature ブランチの commit が既に trunk にある（Branch Guard 失敗時のフォールバック）か確認
+        if git("merge-base", "--is-ancestor", latest_commit, "HEAD"):
+            pass  # 既に trunk 上 — cherry-pick 不要（再入防止）
+        else:
+            git cherry-pick --no-commit {latest_commit}  # feature branch → trunk
+            git commit -m "{task.内容}"
+        # Worker の worktree を remove してから feature ブランチを削除
+        if worker_result.worktreePath:
+            git worktree remove {worker_result.worktreePath} --force
+        if worker_result.branch and worker_result.branch not in ["main", "master"] and worker_result.branch != TRUNK:
+            git branch -D {worker_result.branch}
+        Plans.md: task.status = "cc:完了 [{hash}]"
+        # auto-checkpoint 記録（冪等性ガード (c)）
+        # Plans.md 書き換え直後に呼ぶ。失敗しても fail-open（|| true）でループを止めない
+        HASH=$(git rev-parse --short HEAD)
+        REVIEW_RESULT_PATH=".claude/state/review-results/${task.number}.review-result.json"
+        bash scripts/auto-checkpoint.sh \
+            "${task.number}" "${HASH}" "${contract_path}" "${REVIEW_RESULT_PATH}" \
+            || true  # fail-open: harness-mem 未起動環境でも継続
     else:
-        → ユーザーにエスカレーション（Plans.md は cc:WIP のまま）
-        # B-5 以降はスキップ、次タスクも停止
+        → ユーザーにエスカレーション
 
-    # B-6. Worktree クリーンアップ
-    git worktree remove {worktree_path}
-    git branch -D {branch_name}
-
-    # B-7. Progress feed
+    # B-6. Progress feed
     print("📊 Progress: Task {completed}/{total} 完了 — {task.内容}")
 ```
 
+### Sprint Contract
+
+`sprint-contract` は「このタスクを何で合格にするか」を機械でも人でも同じ意味で読める形にする小さな契約ファイルです。
+既定の保存先は `.claude/state/contracts/<task-id>.sprint-contract.json` です。
+
+```bash
+scripts/generate-sprint-contract.sh 32.1.1
+```
+
+生成物には次を含めます。
+
+- `checks`: DoD を分解した確認項目
+- `non_goals`: 今回やらないこと
+- `runtime_validation`: test, lint, typecheck などの検証コマンド
+- `browser_validation`: browser reviewer が残すべき UI フロー検証項目
+- `browser_mode`: `scripted` または `exploratory`
+- `route`: browser reviewer が `playwright` / `agent-browser` / `chrome-devtools` のどれを使うか
+- `risk_flags`: `needs-spike`, `security-sensitive`, `ux-regression` など
+- `reviewer_profile`: `static`, `runtime`, `browser`
+
 **Phase C: Post-delegate（統合・報告）**:
 1. 全タスクの commit log を集計
-2. **リッチ完了報告** を出力
+2. **リッチ完了報告**（「完了報告フォーマット」の Breezing テンプレート）を出力
 3. Plans.md の最終確認（全タスク cc:完了 になっているか）
 
 ## CI 失敗時の対応
+
+CI が失敗した場合:
 
 1. ログを確認してエラーを特定
 2. 修正を実施
@@ -262,54 +339,45 @@ for task in execution_order:
 
 ## 失敗タスクの自動再チケット化
 
-タスク完了後にテスト/CI が失敗した場合、修正タスク案を自動生成し、承認後に Plans.md へ反映する。
+タスク完了後にテスト/CI が失敗した場合、修正タスク案を自動生成し、承認後に Plans.md へ反映する:
+
+### トリガー条件
 
 | 条件 | アクション |
 |------|----------|
-| `cc:完了` 後にテスト失敗 | 修正タスク案を提示し、承認を待つ |
-| CI 失敗（3回未満） | 修正を実施 |
+| `cc:完了` 後にテスト失敗 | 修正タスク案を state に保存し、承認を待つ |
+| CI 失敗（3回未満） | 修正を実施し、失敗カウントをインクリメント |
 | CI 失敗（3回目） | 修正タスク案を提示 + エスカレーション |
+
+### 修正タスクの自動生成
+
+1. 失敗原因を分類（syntax_error / import_error / type_error / assertion_error / timeout / runtime_error）
+2. `.claude/state/pending-fix-proposals.jsonl` に修正タスク案を保存:
+   - 番号: 元タスク番号 + `.fix` サフィックス（例: `26.1.fix`）
+   - 内容: `fix: [元タスク名] - [失敗原因カテゴリ]`
+   - DoD: テスト/CI が通ること
+   - Depends: 元タスク番号
+3. ユーザーが `approve fix <task_id>` を送ると Plans.md に `cc:TODO` で追加
+4. `reject fix <task_id>` で提案を破棄。pending が1件だけのときは `yes` / `no` でも応答可能
 
 ## レビューループ
 
-実装完了後に自動実行される品質検証ステージ。
-**全モード共通**（Solo / Sequential / Parallel / Breezing）で統一的に適用される。
+実装完了後（ステップ 5 の後）に自動実行される品質検証ステージ。
+**全モード共通**（Solo / Parallel / Breezing）で統一的に適用される。
+Parallel モードでは各 Worker が step 10（外部レビュー受付）として同じループを実行する。
 
-### レビュー実行（公式プラグイン companion 経由）
+### レビュー実行の優先順位
 
-公式プラグイン `codex-plugin-cc` の companion review を使用する。
-構造化出力（`review-output.schema.json` 準拠）で verdict を取得する。
-
-> **差分の起点**: 各タスク固有の `TASK_BASE_REF`（タスク着手時の HEAD）を使う。
-> 累積差分ではなく、そのタスクの変更のみをレビュー対象にする。
-
-```bash
-# タスク開始時に base ref を記録（cc:WIP 更新前に実行）
-TASK_BASE_REF=$(git rev-parse HEAD)
-
-# ... 実装完了後 ...
-
-# 公式プラグインの構造化レビューを実行
-bash scripts/codex-companion.sh review --base "${TASK_BASE_REF}"
-REVIEW_EXIT=$?
+```
+1. Codex exec（優先）
+   ↓ codex コマンドが存在しない or タイムアウト（120s）
+2. 内部 Reviewer agent（フォールバック）
 ```
 
-**verdict マッピング**（公式プラグイン → Harness 形式）:
-
-| 公式 plugin | Harness | verdict 影響 |
-|---|---|---|
-| `approve` | `APPROVE` | - |
-| `needs-attention` | `REQUEST_CHANGES` | - |
-| `findings[].severity: critical` | `critical_issues[]` | 1件でも → REQUEST_CHANGES |
-| `findings[].severity: high` | `major_issues[]` | 1件でも → REQUEST_CHANGES |
-| `findings[].severity: medium/low` | `recommendations[]` | verdict に影響しない |
-
-companion review の出力から verdict を判定する:
-- `verdict` が `approve` → `APPROVE`
-- `verdict` が `needs-attention` → `REQUEST_CHANGES`
-- `findings` に `critical` / `high` severity がある → `REQUEST_CHANGES`
-
 ### APPROVE / REQUEST_CHANGES の判定基準
+
+レビュアーには以下の閾値基準を渡し、**この基準のみ**で verdict を判定させる。
+基準外の改善提案は `recommendations` として返すが、verdict には影響しない。
 
 | 重要度 | 定義 | verdict への影響 |
 |--------|------|-----------------|
@@ -319,105 +387,156 @@ companion review の出力から verdict を判定する:
 | **recommendation** | ベストプラクティス提案、将来の改善案 | verdict に影響しない |
 
 > **重要**: minor / recommendation のみの場合は **必ず APPROVE** を返すこと。
+> 「あったほうが良い改善」は REQUEST_CHANGES の理由にならない。
+
+### Codex exec レビュー（公式プラグイン経由）
+
+タスク開始時の HEAD を `BASE_REF` として保持し、その ref との差分をレビュー対象にする。
+公式プラグイン `codex-plugin-cc` の companion review を使用する。
+
+```bash
+# タスク開始時に base ref を記録（Step 2 の cc:WIP 更新前に実行）
+BASE_REF=$(git rev-parse HEAD)
+
+# ... 実装完了後 ...
+
+# 公式プラグインの構造化レビューを実行
+bash scripts/codex-companion.sh review --base "${BASE_REF}"
+REVIEW_EXIT=$?
+```
+
+**verdict マッピング**（公式プラグイン → Harness 形式）:
+
+公式プラグインは `review-output.schema.json` 準拠の構造化出力を返す。
+Harness の verdict 形式への変換ルール:
+
+| 公式 plugin | Harness | verdict 影響 |
+|---|---|---|
+| `approve` | `APPROVE` | - |
+| `needs-attention` | `REQUEST_CHANGES` | - |
+| `findings[].severity: critical` | `critical_issues[]` | 1件でも → REQUEST_CHANGES |
+| `findings[].severity: high` | `major_issues[]` | 1件でも → REQUEST_CHANGES |
+| `findings[].severity: medium/low` | `recommendations[]` | verdict に影響しない |
+
+AI Residuals スキャンは引き続き `scripts/review-ai-residuals.sh` で実行し、
+companion review の結果と合わせて最終 verdict を判定する。
+
+```bash
+# AI Residuals スキャン（companion review と並行実行可能）
+AI_RESIDUALS_JSON="$(bash scripts/review-ai-residuals.sh --base-ref "${BASE_REF}" 2>/dev/null || echo '{"tool":"review-ai-residuals","scan_mode":"diff","base_ref":null,"files_scanned":[],"summary":{"verdict":"APPROVE","major":0,"minor":0,"recommendation":0,"total":0},"observations":[]}')"
+```
+
+### 内部 Reviewer agent フォールバック
+
+Codex exec が使えない場合（`command -v codex` が失敗、または exit code ≠ 0）:
+
+```
+Agent tool: subagent_type="reviewer"
+prompt: "以下の変更をレビューしてください。判定基準: critical/major → REQUEST_CHANGES、minor/recommendation のみ → APPROVE。diff: {git diff ${BASE_REF}}"
+```
+
+Reviewer agent は Read-only（Write/Edit/Bash 無効）で安全にレビューを実行する。
 
 ### 修正ループ（REQUEST_CHANGES 時）
 
 ```
 review_count = 0
-MAX_REVIEWS = 3
+# sprint-contract が存在するときのみ max_iterations を読む。存在しない場合は 3（後方互換）
+contract_path = get_sprint_contract_path()  # 例: .claude/state/contracts/<task-id>.sprint-contract.json
+MAX_REVIEWS = read_contract(contract_path, ".review.max_iterations") or 3
 
 while verdict == "REQUEST_CHANGES" and review_count < MAX_REVIEWS:
     1. レビュー指摘を解析（critical / major のみ対象）
     2. 各指摘に対して修正を実装
-    3. git commit --amend
-    4. 再度 companion review でレビューを実行（TASK_BASE_REF 起点）
+    3. 再度レビューを実行（同じ判定基準・同じ優先順位）
     review_count++
 
 if review_count >= MAX_REVIEWS and verdict != "APPROVE":
     → ユーザーにエスカレーション
-    → 「3 回修正しましたが以下の critical/major 指摘が残っています」+ 指摘一覧を表示
+    → 「MAX_REVIEWS 回修正しましたが以下の critical/major 指摘が残っています」+ 指摘一覧を表示
     → ユーザー判断を待つ（続行 / 中断）
 ```
 
 ### Breezing モードでの適用
 
-1. Worker が worktree 内で実装・commit → `wait_agent` で完了待ち
-2. Lead が companion review でレビュー（TASK_BASE_REF 起点）
-3. REQUEST_CHANGES → `send_input` で Worker に修正指示 → Worker が amend
-4. 修正後、再レビュー（最大 3 回）
-5. `close_agent` で Worker を終了
-6. APPROVE → Lead が main に cherry-pick → Plans.md を `cc:完了 [{hash}]` に更新
+Breezing モードでは **Lead** がレビューループを実行する（上記 Phase B 参照）:
 
-### Worker の出力契約
-
-Worker プロンプトには、完了時に以下の JSON を返すことを明示する:
-
-```json
-{
-  "commit": "a1b2c3d",
-  "files_changed": ["src/foo.ts", "tests/foo.test.ts"],
-  "summary": "foo モジュールに bar 機能を追加"
-}
-```
-
-Lead はこの JSON を解析して commit hash とファイル一覧を取得する。
-Worker が JSON を返さなかった場合は `git log --oneline -1` で直近 commit を取得する。
+1. Worker が worktree 内で実装・commit → Lead に結果返却
+2. Lead が Codex exec でレビュー（優先）/ Reviewer agent（フォールバック）
+3. REQUEST_CHANGES → Lead が `resume_agent` + `send_input` で Worker に修正指示 → Worker が amend
+4. 修正後、再レビュー（`MAX_REVIEWS = read_contract(contract_path, ".review.max_iterations") or 3` 回まで）
+5. APPROVE → Lead が trunk（デフォルトブランチ）に cherry-pick → Plans.md を `cc:完了 [{hash}]` に更新
 
 ## 完了報告フォーマット
 
-タスク完了時に自動出力される視覚的サマリ。
+タスク完了時（`cc:完了` + commit 後）に自動出力される視覚的サマリ。
+非専門家にも変更内容と影響が伝わることを目的とする。
 
-### Solo テンプレート
+### テンプレート
 
 ```
 ┌─────────────────────────────────────────────┐
 │  ✓ Task {N} 完了: {タスク名}                    │
 ├─────────────────────────────────────────────┤
+│                                              │
 │  ■ 何をしたか                                 │
 │    • {変更内容 1}                              │
 │    • {変更内容 2}                              │
+│                                              │
 │  ■ 何が変わるか                                │
 │    Before: {旧動作}                            │
 │    After:  {新動作}                            │
+│                                              │
 │  ■ 変更ファイル ({N} files)                    │
 │    {ファイルパス 1}                             │
+│    {ファイルパス 2}                             │
+│                                              │
 │  ■ 残りの課題                                  │
-│    Plans.md に {M} 件の未完了タスクあり          │
+│    • Task {X} ({status}): {内容}  ← Plans.md  │
+│    • Task {Y} ({status}): {内容}  ← Plans.md  │
+│    （Plans.md に {M} 件の未完了タスクあり）       │
+│                                              │
 │  commit: {hash} | review: {APPROVE}           │
 └─────────────────────────────────────────────┘
 ```
 
-### Breezing テンプレート
+### 生成ルール
+
+1. **何をしたか**: `git diff --stat HEAD~1` と commit message から自動抽出。技術用語は最小限にし、動詞で始める
+2. **何が変わるか**: タスクの「内容」と「DoD」から Before/After を推論。ユーザー体験の変化を重視
+3. **変更ファイル**: `git diff --name-only HEAD~1` から取得。5 ファイル超は省略して件数表示
+4. **残りの課題**: Plans.md の `cc:TODO` / `cc:WIP` タスクを一覧表示。Plans.md に記載済みかどうかを明示
+5. **review**: レビュー結果（APPROVE / REQUEST_CHANGES → APPROVE）を表示
+
+### Parallel モードでの報告
+
+- **1 タスク**（`--parallel` 強制時）: Solo テンプレートを使用
+- **複数タスク**: Breezing 集約テンプレートを使用（下記参照）
+
+### Breezing モードでの報告
+
+全タスク完了後にまとめて出力。各タスクは簡略版（何をしたか + commit hash のみ）で一覧し、
+最後に全体サマリ（合計変更ファイル数 + 残り課題）を出力する:
 
 ```
 ┌─────────────────────────────────────────────┐
 │  ✓ Breezing 完了: {N}/{M} タスク             │
 ├─────────────────────────────────────────────┤
+│                                              │
 │  1. ✓ {タスク名 1}            [{hash1}]      │
 │  2. ✓ {タスク名 2}            [{hash2}]      │
+│  3. ✓ {タスク名 3}            [{hash3}]      │
+│                                              │
 │  ■ 全体の変更                                 │
 │    {N} files changed, {A} insertions(+),     │
 │    {D} deletions(-)                          │
+│                                              │
 │  ■ 残りの課題                                  │
 │    Plans.md に {K} 件の未完了タスクあり         │
+│    • Task {X}: {内容}                         │
+│                                              │
 └─────────────────────────────────────────────┘
 ```
-
-## Claude Code 版との差分
-
-| 項目 | Claude Code 版 | Codex ネイティブ版（本ファイル） |
-|------|---------------|-------------------------------|
-| Worker spawn | `Agent(subagent_type="worker")` | `spawn_agent({message, fork_context})` |
-| 完了待ち | `Agent` の戻り値 | `wait_agent({ids: [id]})` |
-| 修正指示 | `SendMessage(to: agentId)` | `send_input({id, message})` |
-| Worker 終了 | 自動（Agent tool 戻り値） | `close_agent({id})` で明示終了 |
-| Worktree 分離 | `isolation="worktree"` 自動管理 | `git worktree add` で手動分離 |
-| 権限 | `bypassPermissions` | companion `task --write` / `spawn_agent`: セッション権限継承 |
-| レビュー | Codex exec → Reviewer agent fallback | companion `review --base` （構造化出力） |
-| verdict 取得 | Agent 応答を解析 | companion review の verdict フィールド（approve/needs-attention） |
-| モード自動昇格 | タスク数で自動判定 | 明示フラグのみ（自動昇格しない） |
-| Effort 制御 | `ultrathink` + `/effort` | `model_reasoning_effort` in config.toml |
-| Auto-Refinement | `/simplify` | なし |
 
 ## 関連スキル
 
