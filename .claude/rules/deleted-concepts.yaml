@@ -44,6 +44,7 @@ deleted_paths:
       - "output/"
       - "docs/social/"  # v3 時代の SNS 投稿（歴史記録）
       - "skills/claude-codex-upstream-update/"  # 上流更新ガイド（歴史参照を含む）
+      - "codex/.codex/skills/claude-codex-upstream-update/"  # Codex 用ミラー
       - ".claude/rules/migration-policy.md"  # Phase 40 歴史記述（事例付録に削除済みパスを含む）
 
   - path: "core/dist"
