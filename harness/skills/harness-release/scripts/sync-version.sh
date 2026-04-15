@@ -15,8 +15,8 @@
 
 set -euo pipefail
 
-VERSION_FILE="harness/VERSION"
-HARNESS_TOML="harness/harness.toml"
+VERSION_FILE="harness/VERSION"      # project-root: relative to repo root where script is called from
+HARNESS_TOML="harness/harness.toml" # project-root: relative to repo root
 
 # Get current version
 get_version() {
