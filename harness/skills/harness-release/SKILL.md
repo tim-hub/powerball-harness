@@ -13,14 +13,18 @@ model: sonnet
 ## Quick Reference
 
 ```bash
-/release          # Interactive (confirms version type)
-/release patch    # Patch version bump (bug fixes)
-/release minor    # Minor version bump (new features)
-/release major    # Major version bump (breaking changes)
-/release --dry-run   # Preview only (no execution)
-/release --announce  # Also post X (Twitter) announcement
-/release --complete  # Release completion marking (finishing after tagging)
+/harness-release          # Interactive (confirms version type)
+/harness-release patch    # Patch version bump (bug fixes)
+/harness-release minor    # Minor version bump (new features)
+/harness-release major    # Major version bump (breaking changes)
+/harness-release --dry-run     # Preview only (no execution)
+/harness-release --announce    # Also post X (Twitter) announcement
+/harness-release --complete    # Release completion marking (finishing after tagging)
 ```
+
+Key paths:
+- Preflight script: `skills/harness-release/scripts/release-preflight.sh`
+- Override plugin root: `HARNESS_RELEASE_PLUGIN_ROOT=/path/to/repo`
 
 ## Release-only policy
 
@@ -106,7 +110,7 @@ ls -la codex/.codex/skills/
 
 Adjustable per repository via environment variables:
 
-- `HARNESS_RELEASE_PROJECT_ROOT`
+- `HARNESS_RELEASE_PLUGIN_ROOT`
 - `HARNESS_RELEASE_HEALTHCHECK_CMD`
 - `HARNESS_RELEASE_CI_STATUS_CMD`
 
