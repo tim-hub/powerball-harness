@@ -38,7 +38,7 @@ Created: 2026-04-15
 | 55.8 | Create `.claude/rules/path-conventions.md` — document the three-tier convention with examples | Rule file exists; covers skill-local, plugin-local, project-root with code snippets | 55.6, 55.7 | cc:done [0125611] |
 | 55.9 | Add path lint check to `validate-plugin.sh` — flag bare relative paths in bash code blocks in SKILL.md files | New check section passes on current HEAD | 55.8 | cc:done [0125611] |
 | 55.10 | Run full validation suite (`validate-plugin.sh` + `check-consistency.sh` + `check-residue.sh`) | All pass with 0 failures | 55.9 | cc:done [0125611] |
-| 55.11 | Record changes under `[Unreleased]` in CHANGELOG.md | Entry added | 55.10 | cc:TODO |
+| 55.11 | Record changes under `[Unreleased]` in CHANGELOG.md | Entry added | 55.10 | cc:done [7b0fc70] |
 
 ---
 
