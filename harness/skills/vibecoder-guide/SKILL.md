@@ -7,21 +7,9 @@ user-invocable: false
 
 # VibeCoder Guide Skill
 
-A skill that guides VibeCoders (non-technical users) through development using only natural language.
-Automatically responds to questions like "What should I do?" or "What's next?"
+Guides non-technical users (VibeCoders) through development using only natural language. Responds to general orientation questions ("What should I do?", "What's next?", "Help") with context-aware suggestions about what to work on next.
 
----
-
-## Trigger Phrases
-
-This skill is automatically triggered by the following phrases:
-
-- "What should I do?", "What can I do?"
-- "What should I do next?", "What's next?"
-- "What's possible?", "What should I work on?"
-- "I'm stuck", "I don't understand", "Help"
-- "Show me how to use this"
-- "what should I do?", "what's next?", "help"
+> **Distinction from `session-init`**: This skill provides general orientation and onboarding guidance for users unfamiliar with the harness workflow. Use `session-init` when explicitly starting a new work session (e.g., beginning a day's work with a known plan).
 
 ---
 

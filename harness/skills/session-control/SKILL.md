@@ -17,6 +17,6 @@ Switches session state based on the `--resume` / `--fork` flags of /work.
 
 ## Execution Steps
 
-1. Verify variables passed from the workflow
-2. Execute `scripts/session-control.sh` with the appropriate arguments
-3. Confirm updates to `session.json` and `session.events.jsonl`
+1. Verify variables passed from the workflow (`resume_session_id`, `resume_latest`, `fork_session_id`, `fork_reason`)
+2. Execute `${CLAUDE_SKILL_DIR}/../../scripts/session-control.sh` with the appropriate arguments (see [references/session-control.md](${CLAUDE_SKILL_DIR}/references/session-control.md) for argument logic)
+3. Confirm updates to `.claude/state/session.json` and `.claude/state/session.events.jsonl`

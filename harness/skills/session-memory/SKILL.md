@@ -1,6 +1,6 @@
 ---
 name: session-memory
-description: "Use when recalling prior sessions, continuing past work, referencing earlier decisions, or persisting cross-session context. Do NOT load for: implementation, reviews, ad-hoc notes, or in-session logging."
+description: "Use when recalling prior sessions, past work, continue from before, continuing past work, referencing earlier decisions, or persisting cross-session context. Do NOT load for: implementation, reviews, ad-hoc notes, or in-session logging."
 allowed-tools: ["Read", "Write", "Edit"]
 user-invocable: false
 ---
@@ -12,23 +12,12 @@ Records and references past work, decisions, and learned patterns.
 
 ---
 
-## Trigger Phrases
-
-This skill is automatically triggered by the following phrases:
-
-- "What did we do last time?", "Continue from last time"
-- "Show me the history", "Past work"
-- "Tell me about this project"
-- "what did we do last time?", "continue from before"
-
----
-
 ## Overview
 
 This skill saves work history to `.claude/memory/` and enables
 knowledge continuity across sessions.
 
-It also clarifies where important information should be stored (details: `docs/MEMORY_POLICY.md`).
+**Memory storage policy**: `decisions.md` and `patterns.md` are recommended for Git sharing (project-wide SSOT). `session-log.md`, `context.json`, and `.claude/state/` are recommended to keep local (not committed) as they are prone to noise and bloat.
 
 ---
 
@@ -254,7 +243,7 @@ It coexists with the Harness memory system as a **3-layer architecture**:
 - Leave everyday learning to Layer 1 (do not disable)
 - Be cautious of concurrent writes when using Agent Teams
 
-Details: [D22: 3-Layer Memory Architecture](../../.claude/memory/decisions.md#d22-3-layer-memory-architecture)
+Details: `.claude/memory/decisions.md` — entry D22: 3-Layer Memory Architecture (project-root)
 
 ---
 
@@ -262,5 +251,5 @@ Details: [D22: 3-Layer Memory Architecture](../../.claude/memory/decisions.md#d2
 
 - **Auto-save**: Recommended to use `hooks/Stop` to auto-append summaries to `session-log.md` at session end (manual operation is fine if not set up)
 - **Privacy**: Do not record confidential information
-- **Git policy**: `decisions.md`/`patterns.md` are recommended for sharing; `session-log.md`/`context.json`/`.claude/state/` are recommended to keep local (details: `docs/MEMORY_POLICY.md`)
+- **Git policy**: `decisions.md`/`patterns.md` are recommended for sharing; `session-log.md`/`context.json`/`.claude/state/` are recommended to keep local
 - **Capacity management**: When logs grow large, recommend "clean up session log"

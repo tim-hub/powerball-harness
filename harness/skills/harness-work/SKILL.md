@@ -19,8 +19,8 @@ Consolidates the following legacy skills:
 
 ## Quick Reference
 
-| User Input | Mode | Behavior |
-|------------|------|----------|
+| User Input | Subcommand | Behavior |
+|------------|------------|----------|
 | `harness-work` | **auto** | Auto-selects based on task count (see below) |
 | `harness-work all` | **auto** | Executes all incomplete tasks in auto mode |
 | `harness-work 3` | solo | Immediately executes task 3 only |
@@ -126,16 +126,16 @@ The same logic applies in breezing mode (managed centrally by harness-work).
 3. **TDD Phase** (when `[skip:tdd]` is absent & test framework exists):
    a. Create test file first (Red)
    b. Confirm failure
-4. Generate `sprint-contract.json` with `scripts/generate-sprint-contract.sh <task-id>`
-5. Add Reviewer perspective with `scripts/enrich-sprint-contract.sh` and confirm approved status with `scripts/ensure-sprint-contract-ready.sh`
+4. Generate `sprint-contract.json` with `"${CLAUDE_SKILL_DIR}/../../scripts/generate-sprint-contract.sh" <task-id>`
+5. Add Reviewer perspective with `"${CLAUDE_SKILL_DIR}/../../scripts/enrich-sprint-contract.sh"` and confirm approved status with `"${CLAUDE_SKILL_DIR}/../../scripts/ensure-sprint-contract-ready.sh"`
 6. Implement code (Green) (Read/Write/Edit/Bash)
 7. Auto-Refinement with `/simplify` (skip with `--no-simplify`)
 8. **Auto Review Stage** (see "Review Loop"):
    - Execute review with Codex exec priority → fallback to internal Reviewer agent
-   - If `sprint-contract.json`'s `reviewer_profile` is `runtime`, execute `scripts/run-contract-review-checks.sh`
+   - If `sprint-contract.json`'s `reviewer_profile` is `runtime`, execute `"${CLAUDE_SKILL_DIR}/../../scripts/run-contract-review-checks.sh"`
    - On REQUEST_CHANGES: fix based on feedback → re-review (up to 3 times)
    - Proceed to next step on APPROVE. Self-check alone does not confirm completion
-9. Normalize and save review artifact with `scripts/write-review-result.sh`
+9. Normalize and save review artifact with `"${CLAUDE_SKILL_DIR}/../../scripts/write-review-result.sh"`
 10. Auto-commit with `git commit` (skip with `--no-commit`)
 11. Update task to `cc:Done` (with commit hash)
    - Get the latest commit hash (abbreviated 7 chars) with `git log --oneline -1`
@@ -182,8 +182,8 @@ Lead (this agent)
 1. Read Plans.md and identify target tasks
 2. Analyze the dependency graph and determine execution order (Depends column)
 3. Effort scoring for each task (ultrathink injection decision)
-4. Generate `sprint-contract.json` with `scripts/generate-sprint-contract.sh`
-5. Add Reviewer perspective with `scripts/enrich-sprint-contract.sh` and stop if unapproved with `scripts/ensure-sprint-contract-ready.sh`
+4. Generate `sprint-contract.json` with `"${CLAUDE_SKILL_DIR}/../../scripts/generate-sprint-contract.sh"`
+5. Add Reviewer perspective with `"${CLAUDE_SKILL_DIR}/../../scripts/enrich-sprint-contract.sh"` and stop if unapproved with `"${CLAUDE_SKILL_DIR}/../../scripts/ensure-sprint-contract-ready.sh"`
 
 **Phase B: Delegate (Worker spawn → review → cherry-pick)**:
 
@@ -196,9 +196,9 @@ Execute the following **sequentially** for each task (in dependency order):
 ```
 for task in execution_order:
     # B-1. Generate sprint-contract
-    contract_path = bash("scripts/generate-sprint-contract.sh {task.number}")
-    contract_path = bash("scripts/enrich-sprint-contract.sh {contract_path} --check \"Verify DoD from reviewer perspective\" --approve")
-    bash("scripts/ensure-sprint-contract-ready.sh {contract_path}")
+    contract_path = bash("${CLAUDE_SKILL_DIR}/../../scripts/generate-sprint-contract.sh {task.number}")  # pseudocode — plugin-local
+    contract_path = bash("${CLAUDE_SKILL_DIR}/../../scripts/enrich-sprint-contract.sh {contract_path} --check \"Verify DoD from reviewer perspective\" --approve")  # pseudocode — plugin-local
+    bash("${CLAUDE_SKILL_DIR}/../../scripts/ensure-sprint-contract-ready.sh {contract_path}")  # pseudocode — plugin-local
 
     # B-2. Worker spawn (foreground, worktree isolation)
     # Agent tool return value contains agentId — used for SendMessage in fix loop
@@ -219,7 +219,7 @@ for task in execution_order:
     profile = jq(contract_path, ".review.reviewer_profile")
     review_input = "review-output.json"
     if profile == "runtime":
-        review_input = bash("cd {worker_result.worktreePath} && scripts/run-contract-review-checks.sh {contract_path}")
+        review_input = bash("cd {worker_result.worktreePath} && ${CLAUDE_SKILL_DIR}/../../scripts/run-contract-review-checks.sh {contract_path}")  # pseudocode — plugin-local
         runtime_verdict = jq(review_input, ".verdict")
         if runtime_verdict == "REQUEST_CHANGES":
             verdict = "REQUEST_CHANGES"
@@ -229,12 +229,12 @@ for task in execution_order:
         # browser artifact generates a PENDING_BROWSER scaffold.
         # Actual browser execution is handled by the reviewer agent in a subsequent step.
         # Write the static review verdict to review-result (not PENDING_BROWSER).
-        browser_artifact = bash("scripts/generate-browser-review-artifact.sh {contract_path}")
+        browser_artifact = bash("${CLAUDE_SKILL_DIR}/../../scripts/generate-browser-review-artifact.sh {contract_path}")  # pseudocode — plugin-local
         # browser artifact is saved for reference, but review-result verdict remains static
     # If review_input is DOWNGRADE_TO_STATIC, use the static review result
     if review_input != "review-output.json" and jq(review_input, ".verdict") == "DOWNGRADE_TO_STATIC":
         review_input = "review-output.json"  # Fall back to static review result
-    bash("scripts/write-review-result.sh {review_input} {latest_commit}")
+    bash("${CLAUDE_SKILL_DIR}/../../scripts/write-review-result.sh {review_input} {latest_commit}")  # pseudocode — plugin-local
 
     # B-4. Fix loop (on REQUEST_CHANGES, up to 3 times)
     # Worker has completed in foreground, but can be resumed via SendMessage

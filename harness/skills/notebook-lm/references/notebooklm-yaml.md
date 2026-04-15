@@ -10,14 +10,6 @@ A skill for controlling design direction via YAML in NotebookLM's slide generati
 
 ---
 
-## Trigger Phrases
-
-- "I want to create NotebookLM slides with a nice design"
-- "Create a YAML for presentations"
-- "Show me 2 slide design proposals"
-
----
-
 ## Interview Items
 
 1. Purpose (internal sharing / sales / recruiting / investor-facing)

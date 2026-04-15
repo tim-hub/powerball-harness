@@ -13,12 +13,12 @@ Standalone version of the former `sync-status` and `harness-plan sync` subcomman
 
 ## Quick Reference
 
-| User Input | Behavior |
-|------------|----------|
-| `harness-sync` | Progress sync + retrospective (ON by default) |
-| `harness-sync --no-retro` | Progress sync only (skip retrospective) |
-| `harness-sync --snapshot` | Save snapshot (point-in-time progress record) |
-| "Where am I?" / "Check progress" | Same as above |
+| User Input | Subcommand | Behavior |
+|------------|------------|----------|
+| `harness-sync` | (default) | Progress sync + retrospective (ON by default) |
+| `harness-sync --no-retro` | `--no-retro` | Progress sync only (skip retrospective) |
+| `harness-sync --snapshot` | `--snapshot` | Save snapshot (point-in-time progress record) |
+| "Where am I?" / "Check progress" | (default) | Same as default sync |
 
 ## Options
 

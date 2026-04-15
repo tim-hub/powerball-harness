@@ -10,15 +10,6 @@ A skill for diagnosing whether the environment is correctly set up before using 
 
 ---
 
-## Trigger Phrases
-
-- "Check if this environment works"
-- "What's missing?"
-- "Diagnose the environment"
-- "Tell me available features"
-
----
-
 ## Check Items
 
 ### Required Tools
@@ -32,7 +23,6 @@ A skill for diagnosing whether the environment is correctly set up before using 
 
 ### Workflow Files
 - Existence of `Plans.md`
-- Existence of `AGENTS.md`
 - Existence of `CLAUDE.md`
 
 ---
@@ -52,6 +42,6 @@ A skill for diagnosing whether the environment is correctly set up before using 
 ✅ .claude/settings.json
 
 ### Available Features
-✅ /work, /plan-with-agent, /sync-status
+✅ harness-work, harness-plan, harness-sync
 ⚠️ CI auto-fix (gh required)
 ```

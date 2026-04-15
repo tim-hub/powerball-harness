@@ -10,15 +10,6 @@ A skill for automating deployment to Vercel/Netlify.
 
 ---
 
-## Trigger Phrases
-
-- "Set up deployment"
-- "I want to deploy to Vercel"
-- "I want to deploy to Netlify"
-- "Set up the production environment"
-
----
-
 ## Features
 
 - Vercel/Netlify project creation guide

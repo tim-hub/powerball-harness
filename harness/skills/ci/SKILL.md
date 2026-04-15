@@ -9,24 +9,16 @@ argument-hint: "[analyze|fix|run]"
 
 # CI/CD Skills
 
-A collection of skills for resolving CI/CD pipeline issues.
-
----
-
-## Trigger Conditions
-
-- "CI is failing", "GitHub Actions failed"
-- "Build error", "Tests aren't passing"
-- "Fix the pipeline"
+A collection of skills for resolving CI/CD pipeline issues — failure analysis, test fixes, and pipeline repair using structured git log and sub-agent delegation.
 
 ---
 
 ## Feature Details
 
-| Feature | Details | Trigger |
-|---------|--------|---------|
-| **Failure Analysis** | See [references/analyzing-failures.md](${CLAUDE_SKILL_DIR}/references/analyzing-failures.md) | "Check the logs", "Investigate the cause" |
-| **Test Fixes** | See [references/fixing-tests.md](${CLAUDE_SKILL_DIR}/references/fixing-tests.md) | "Fix the tests", "Suggest a fix" |
+| Feature | Details |
+|---------|--------|
+| **Failure Analysis** | See [references/analyzing-failures.md](${CLAUDE_SKILL_DIR}/references/analyzing-failures.md) |
+| **Test Fixes** | See [references/fixing-tests.md](${CLAUDE_SKILL_DIR}/references/fixing-tests.md) |
 
 ---
 

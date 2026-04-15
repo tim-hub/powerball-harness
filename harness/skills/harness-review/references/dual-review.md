@@ -4,7 +4,7 @@ Run Claude Reviewer and Codex Reviewer in parallel to improve review quality thr
 
 ## Prerequisites
 
-- Codex CLI must be installed (verify with `scripts/codex-companion.sh setup --json`)
+- Codex CLI must be installed (verify with `"${CLAUDE_SKILL_DIR}/../../scripts/codex-companion.sh" setup --json`)
 - If Codex is unavailable, falls back to Claude-only review
 
 ## Execution Flow
@@ -12,16 +12,16 @@ Run Claude Reviewer and Codex Reviewer in parallel to improve review quality thr
 1. Check Codex availability
 
    ```bash
-   CODEX_AVAILABLE="$(bash scripts/codex-companion.sh setup --json 2>/dev/null | jq -r '.ready // false')"
+   CODEX_AVAILABLE="$(bash "${CLAUDE_SKILL_DIR}/../../scripts/codex-companion.sh" setup --json 2>/dev/null | jq -r '.ready // false')"
    ```
 
 2. Launch Claude Reviewer via the Task tool (standard review flow)
 
-3. If Codex is available, launch `scripts/codex-companion.sh review` in parallel
+3. If Codex is available, launch `"${CLAUDE_SKILL_DIR}/../../scripts/codex-companion.sh" review` in parallel
 
    ```bash
    # If BASE_REF is provided, specify --base. Use --json for structured output
-   bash scripts/codex-companion.sh review --base "${BASE_REF:-HEAD~1}" --json
+   bash "${CLAUDE_SKILL_DIR}/../../scripts/codex-companion.sh" review --base "${BASE_REF:-HEAD~1}" --json
    ```
 
 4. Wait for both results

@@ -10,15 +10,6 @@ A skill for implementing payment features using Stripe.
 
 ---
 
-## Trigger Phrases
-
-- "I want to add payments"
-- "Set up Stripe"
-- "Implement subscriptions"
-- "Add one-time payments"
-
----
-
 ## Features
 
 - Subscriptions (monthly/annual)

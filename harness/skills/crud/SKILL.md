@@ -12,7 +12,7 @@ Auto-generates CRUD functionality for specified entities (tables) at **productio
 
 ## Quick Reference
 
-- "**Create CRUD for task management**" → `/crud tasks`
+- "**Create CRUD for task management**" → `crud tasks`
 - "**Want search and pagination too**" → Includes all together
 - "**Include permissions (who can view/edit)**" → Sets up authorization/rules together
 

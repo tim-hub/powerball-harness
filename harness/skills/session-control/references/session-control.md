@@ -26,8 +26,8 @@ Workflow variables:
 
 ### 2) Run Script
 ```bash
-./scripts/session-control.sh --resume <id|latest>
-./scripts/session-control.sh --fork <id|current> --reason "<text>"
+bash "${CLAUDE_SKILL_DIR}/../../scripts/session-control.sh" --resume <id|latest>
+bash "${CLAUDE_SKILL_DIR}/../../scripts/session-control.sh" --fork <id|current> --reason "<text>"
 ```
 
 ## Expected Results

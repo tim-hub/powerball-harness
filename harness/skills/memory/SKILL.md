@@ -32,11 +32,9 @@ SSOT (Single Source of Truth) and cross-tool memory management for Harness.
 2. Read the appropriate reference file from "Quick Reference" above
 3. Execute according to its contents
 
-
-
 ## Shared References
 
 - [Unified Harness Memory (shared DB through harness_mem_* MCP)](${CLAUDE_SKILL_DIR}/references/harness-mem-mcp.md)
 
-- Relationship with Claude Code Auto Memory (D22): Harness SSOT (Layer 2) coexists with Claude Code's auto memory (Layer 1). Auto memory records general learnings passively; SSOT explicitly curates project-specific decisions. Use `memory sync` when a Layer 1 observation has become important enough to preserve across sessions and contributors. 
-  - Details: [D22: 3-Layer Memory Architecture](../../.claude/memory/decisions.md#d22-3-layer-memory-architecture)
+- Relationship with Claude Code Auto Memory (D22): Harness SSOT (Layer 2) coexists with Claude Code's auto memory (Layer 1). Auto memory records general learnings passively; SSOT explicitly curates project-specific decisions. Use `memory sync` when a Layer 1 observation has become important enough to preserve across sessions and contributors.
+  - Details: see `decisions.md` in the project's `.claude/memory/` directory (project-root), entry D22: 3-Layer Memory Architecture.

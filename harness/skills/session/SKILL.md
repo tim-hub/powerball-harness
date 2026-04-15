@@ -7,16 +7,16 @@ argument-hint: "[list|inbox|broadcast \"message\"]"
 
 # Session Skill (Unified)
 
-Consolidates all session-related functionality into one skill.
+Consolidates all session-related functionality into one skill: listing sessions, inbox checks, and cross-session broadcasting.
 
-## Usage
+## Quick Reference
 
-```bash
-/session              # Show available options
-/session list         # Show active sessions
-/session inbox        # Check incoming messages
-/session broadcast "message"  # Send message to all sessions
-```
+| User Input | Subcommand | Behavior |
+|------------|------------|----------|
+| `/session list` | `list` | Show all active Claude Code sessions in the current project |
+| `/session inbox` | `inbox` | Check for incoming messages from other sessions |
+| `/session broadcast "message"` | `broadcast` | Send a message to all active sessions |
+| `/session` (no args) | _(none)_ | Show available subcommands and usage |
 
 ## Subcommands
 
@@ -60,10 +60,11 @@ Sends a message to all active sessions.
 
 | Feature | Description | Reference |
 |---------|-------------|-----------|
-| **Initialization** | Start new session, load context | See [../session-init/SKILL.md](../session-init/SKILL.md) |
-| **Memory** | Persist learnings across sessions | See [../session-memory/SKILL.md](../session-memory/SKILL.md) |
-| **State Control** | Resume/fork session based on flags | See [references/session-control.md](${CLAUDE_SKILL_DIR}/references/session-control.md) |
-| **Communication** | Cross-session messaging | See [../session-state/SKILL.md](../session-state/SKILL.md) |
+| **Initialization** | Start new session, load context | See `session-init` skill |
+| **Memory** | Persist learnings across sessions | See `session-memory` skill |
+| **State Control** | Resume/fork session based on flags | See `references/session-control.md` |
+| **State Transitions** | Session state machine details | See `references/state-transition.md` |
+| **Communication** | Cross-session messaging | See `session-state` skill |
 
 ---
 
@@ -77,7 +78,7 @@ Since Claude Code 2.1.49, memory usage on session resume has been **reduced by 6
 |----------|---------------------|
 | **Normal implementation** | Resume with `--resume` every 1-2 hours |
 | **Large-scale refactoring** | Split sessions by feature unit, use `--resume` for each |
-| **Parallel tasks** | Run in parallel with `/work all`, use `--resume` midway for long sessions |
+| **Parallel tasks** | Run in parallel with `harness-work --parallel`, use `--resume` midway for long sessions |
 | **Memory warning** | Resume immediately with `--resume` (faster than before) |
 
 ### Auto-generated Session Names (CC 2.1.41+)
@@ -115,8 +116,8 @@ claude --resume "Add tests"
 
 ## When to Use
 
-- Session initialization (`/harness-init`)
-- Session resume/fork (`/work --resume`, `/work --fork`)
+- Session initialization (use the `session-init` skill)
+- Session resume/fork (`harness-work --resume`, `harness-work --fork`)
 - Memory persistence (automatic)
 - Cross-session communication (`/session broadcast`)
 
@@ -125,7 +126,7 @@ claude --resume "Add tests"
 ### 1. Session Initialization
 
 ```
-/harness-init
+session-init skill
     ↓
 ├── Load project context
 ├── Initialize session.json
@@ -133,16 +134,16 @@ claude --resume "Add tests"
 └── Display session status
 ```
 
-### 2. Session Control (from /work)
+### 2. Session Control (from harness-work)
 
 ```
-/work --resume
+harness-work --resume
     ↓
 ├── Check session.json exists
 ├── Load session state
 └── Continue from last checkpoint
 
-/work --fork
+harness-work --fork
     ↓
 ├── Create new session branch
 ├── Copy relevant context

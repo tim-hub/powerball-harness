@@ -52,7 +52,7 @@ git diff ${BASE_REF:-HEAD~1} -- ${CHANGED_FILES}
 
 ### Step 1.5: Static Scan for AI Residuals
 
-Rather than relying solely on LLM impressions, pick up residual candidates in a reproducible way. `scripts/review-ai-residuals.sh` returns stable JSON, which is used as review evidence.
+Rather than relying solely on LLM impressions, pick up residual candidates in a reproducible way. `"${CLAUDE_SKILL_DIR}/../../scripts/review-ai-residuals.sh"` returns stable JSON, which is used as review evidence.
 
 ```bash
 # Diff-based
@@ -74,7 +74,7 @@ bash "${CLAUDE_SKILL_DIR}/../../scripts/review-ai-residuals.sh" path/to/file.ts 
 
 ### Step 2.2: AI Residuals Severity Classification Table
 
-For `AI Residuals`, first check the JSON from `scripts/review-ai-residuals.sh`, then make the final judgment of "is this truly a shipping risk?" from the diff context.
+For `AI Residuals`, first check the JSON from `"${CLAUDE_SKILL_DIR}/../../scripts/review-ai-residuals.sh"`, then make the final judgment of "is this truly a shipping risk?" from the diff context.
 
 | Severity | Representative Examples | Classification Rationale |
 |----------|------------------------|--------------------------|
@@ -126,16 +126,16 @@ Classify each finding by the following severity levels and determine the verdict
 }
 ```
 
-For browser reviews, `scripts/generate-browser-review-artifact.sh` determines `browser_mode` and route / required artifacts, then `scripts/write-review-result.sh` normalizes and saves to `.claude/state/review-result.json`.
+For browser reviews, `"${CLAUDE_SKILL_DIR}/../../scripts/generate-browser-review-artifact.sh"` determines `browser_mode` and route / required artifacts, then `"${CLAUDE_SKILL_DIR}/../../scripts/write-review-result.sh"` normalizes and saves to `.claude/state/review-result.json`.
 This file serves as the shared input for the commit guard and downstream flows.
-Review results with `calibration` are appended to `.claude/state/review-calibration.jsonl` via `scripts/record-review-calibration.sh`, and the few-shot bank is updated via `scripts/build-review-few-shot-bank.sh`.
+Review results with `calibration` are appended to `.claude/state/review-calibration.jsonl` via `"${CLAUDE_SKILL_DIR}/../../scripts/record-review-calibration.sh"`, and the few-shot bank is updated via `"${CLAUDE_SKILL_DIR}/../../scripts/build-review-few-shot-bank.sh"`.
 
 ### Step 3.5: Codex Parallel Review with --dual Flag
 
 When the `--dual` flag is specified, run a Codex review in parallel with the Claude review in Step 3, then merge the results.
 
-1. Check Codex availability (`scripts/codex-companion.sh setup --json`)
-2. If available, launch `scripts/codex-companion.sh review --base "${BASE_REF:-HEAD~1}"`
+1. Check Codex availability (`"${CLAUDE_SKILL_DIR}/../../scripts/codex-companion.sh" setup --json`)
+2. If available, launch `"${CLAUDE_SKILL_DIR}/../../scripts/codex-companion.sh" review --base "${BASE_REF:-HEAD~1}"`
 3. Integrate both verdicts using the Verdict Merge Rules
 4. Add a `dual_review` field to the final review result
 

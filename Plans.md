@@ -5,6 +5,25 @@ Last release: v4.3.0 on 2026-04-15 (Phase 50+51)
 
 ---
 
+## Phase 59: SKILL.md quality pass — all 26 skills
+
+Created: 2026-04-15
+
+Goal: Systematic review and optimization of every skill under `harness/skills/`. Fix Quick Reference table format, anchor all script/reference paths to the correct tier (`${CLAUDE_SKILL_DIR}`), remove dead references, clean up deprecated slash commands, and remove redundant `## Trigger Phrases` sections. Executed as 7 rounds of parallel subagent pairs.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 59.1 | Fix Quick Reference table format — convert bash code blocks or wrong column headers to 3-column `User Input \| Subcommand \| Behavior` in `breezing`, `harness-sync`, `harness-release`, `writing-changelog`, `harness-work` | `grep -r '\| Mode \|' harness/skills/` returns 0 hits | - | cc:done |
+| 59.2 | Add missing Quick Reference tables to `session` (3 tokens) and `notebook-lm` (2 tokens) where `argument-hint` had multiple pipe-separated subcommands but no table existed | Both skills have 3-column Quick Reference near top of SKILL.md | - | cc:done |
+| 59.3 | Fix `${CLAUDE_SKILL_DIR}` path anchoring — replace bare `scripts/foo.sh` / `python3 scripts/foo.py` with skill-local or plugin-local anchored paths in `gogcli-ops` (4 paths), `session-control` (SKILL.md + reference file), `session-state` (reference file), `harness-review` (SKILL.md + `dual-review.md`), `harness-work` (SKILL.md + `codex-work.md`), `memory` | `grep -r 'bash scripts/' harness/skills/` returns 0 prose hits | - | cc:done |
+| 59.4 | Remove dead file references: `docs/SESSION_ORCHESTRATION.md` (session-state), `docs/MEMORY_POLICY.md` (session-memory), `AGENTS.md` (deploy/health-checking.md), broken `${CLAUDE_SKILL_DIR}/../../docs/release-preflight.md` (harness-release) | No SKILL.md references non-existent docs/ files | - | cc:done |
+| 59.5 | Remove `## Trigger Phrases` and `## Trigger Conditions` sections from SKILL.md and reference files (redundant with `description:` frontmatter) — affected: `session-init`, `session-memory`, `vibecoder-guide`, `agent-browser`, `ci`, and 5 reference files in `auth/` and `deploy/` | `grep -r '## Trigger Phrases' harness/skills/` returns 0 hits | - | cc:done |
+| 59.6 | Update legacy slash commands to current skill invocation patterns in `workflow-guide` (6 commands), `session-init` (3 commands), `session` (2 commands), and `workflow-guide/examples/typical-workflow.md` | `grep -r '/harness-init\|/plan-with-agent\|/handoff-to-' harness/skills/` returns 0 hits | - | cc:done |
+| 59.7 | Structural fixes: move Quick Reference from line 99 → top in `agent-browser`; remove non-standard `Trigger` column from `ci` Feature Details table; fix `harness-plan` sync row wording; expand truncated Step 1 in `session-control`; add vibecoder-guide/session-init distinction note | Each fix individually verified post-edit | - | cc:done |
+| 59.8 | Delete `principles/references/vibecoder-guide.md` — content duplicated the standalone `vibecoder-guide` skill | File deleted; `principles` SKILL.md has no dangling reference | - | cc:done |
+
+---
+
 ## Phase 56: Go validator + agent frontmatter fixes
 
 Created: 2026-04-15

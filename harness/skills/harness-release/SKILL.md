@@ -12,15 +12,15 @@ model: sonnet
 
 ## Quick Reference
 
-```bash
-/harness-release          # Interactive (confirms version type)
-/harness-release patch    # Patch version bump (bug fixes)
-/harness-release minor    # Minor version bump (new features)
-/harness-release major    # Major version bump (breaking changes)
-/harness-release --dry-run     # Preview only (no execution)
-/harness-release --announce    # Also post X (Twitter) announcement
-/harness-release --complete    # Release completion marking (finishing after tagging)
-```
+| User Input | Subcommand | Behavior |
+|------------|------------|----------|
+| `harness-release` | _(interactive)_ | Confirm version type then run full release flow |
+| `harness-release patch` | `patch` | Patch version bump (bug fixes, x.y.Z+1) |
+| `harness-release minor` | `minor` | Minor version bump (new features, x.Y+1.0) |
+| `harness-release major` | `major` | Major version bump (breaking changes, X+1.0.0) |
+| `harness-release --dry-run` | `--dry-run` | Preview all phases without writing or publishing |
+| `harness-release --announce` | `--announce` | Full release flow + post X (Twitter) announcement |
+| `harness-release --complete` | `--complete` | Release completion marking only (Phase 9) |
 
 Key paths:
 - Preflight script: `${CLAUDE_SKILL_DIR}/scripts/release-preflight.sh`
@@ -114,7 +114,7 @@ Adjustable per repository via environment variables:
 - `HARNESS_RELEASE_HEALTHCHECK_CMD`
 - `HARNESS_RELEASE_CI_STATUS_CMD`
 
-Details: [docs/release-preflight.md](${CLAUDE_SKILL_DIR}/../../docs/release-preflight.md)
+Details: `docs/release-preflight.md` (project-root)
 
 ### Phase 1: Get Current Version
 

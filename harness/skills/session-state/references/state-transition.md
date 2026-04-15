@@ -47,19 +47,19 @@ Workflow variables:
 ## Execution
 
 ```bash
-./scripts/session-state.sh --state <state> --event <event> [--data <json>]
+bash "${CLAUDE_SKILL_DIR}/../../scripts/session-state.sh" --state <state> --event <event> [--data <json>]
 ```
 
 ### Example: Transition to executing state
 
 ```bash
-./scripts/session-state.sh --state executing --event work.start
+bash "${CLAUDE_SKILL_DIR}/../../scripts/session-state.sh" --state executing --event work.start
 ```
 
 ### Example: Escalation (with data)
 
 ```bash
-./scripts/session-state.sh --state escalated --event escalation.requested \
+bash "${CLAUDE_SKILL_DIR}/../../scripts/session-state.sh" --state escalated --event escalation.requested \
   --data '{"reason":"Build failed 3 times","retry_count":3}'
 ```
 
