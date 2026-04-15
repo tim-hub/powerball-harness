@@ -6,9 +6,11 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
-### Theme: Phase 55 — Three-tier path convention standardization
+## [4.4.2] - 2026-04-15
 
-**Establishes a clear three-tier path convention across all skills and scripts, eliminating CWD-dependent bare relative paths and ambiguous plugin-root references.**
+### Theme: Phase 55 — Three-tier path convention standardization + sync-version improvements
+
+**Establishes a clear three-tier path convention across all skills and scripts, extends version sync to cover all template files, and eliminates CWD-dependent bare relative paths.**
 
 ---
 
@@ -40,15 +42,28 @@ Change history for claude-code-harness.
 
 **After**: Script derives `GIT_ROOT=$(git rev-parse --show-toplevel)` and checks `$GIT_ROOT/CHANGELOG.md`. Error message corrected to `"CHANGELOG.md not found"`.
 
-#### 4. Path convention lint check in validate-plugin.sh (section 12)
+#### 4. sync-version.sh extended to cover all template files
+
+**Before**: `sync-version.sh` only synced `harness/VERSION` → `harness/harness.toml`. Template files (`template-registry.json`, `CLAUDE.md.template`, `AGENTS.md.template`, `Plans.md.template`) drifted silently after each release.
+
+**After**: `sync-version.sh sync` and `sync-version.sh bump` now update all 6 version sources atomically. `make sync-version` added as a convenience target. `make check-version` path fixed to match the script's new location.
+
+| Before | After |
+|--------|-------|
+| 4 template files stayed at old version | All 6 version sources updated together |
+| `make check-version` pointed to old path | Path corrected to `harness/skills/harness-release/scripts/` |
+
+#### 5. Path convention lint check in validate-plugin.sh (section 12)
 
 **Before**: No automated check for bare relative script paths in SKILL.md bash blocks.
 
-**After**: Section 12 in `tests/validate-plugin.sh` greps all SKILL.md files for `bash "?(\./)?skills/` patterns and fails the suite if any are found.
+**After**: Section 12 in `tests/validate-plugin.sh` greps all SKILL.md files for `bash "?(\./)?skills/` patterns and fails the suite if any are found. `.claude/rules/path-conventions.md` documents the three-tier model for future contributors.
 
-#### 5. Path convention documented in `.claude/rules/path-conventions.md`
+#### 6. CI-only test skip in `make test-all`
 
-New rule file documents the three-tier model with code examples for both SKILL.md and shell scripts, naming conventions for inline comments, and the depth assumption that skills are always two levels below plugin root.
+**Before**: Two known-failing scripts (`test-agent-telemetry-summary.sh`, `test-structured-handoff-artifact.sh`) were unconditionally skipped in `make test-all`, hiding them from local runs.
+
+**After**: The skip only activates when `CI=true`. Local runs always execute all scripts. The CI workflow now sets `CI: "true"` explicitly at the job level.
 
 ## [4.4.1] - 2026-04-15
 
