@@ -6,6 +6,26 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.4.4] - 2026-04-15
+
+### Theme: CI hotfixes — validate-plugin.sh strict-mode regression and missing template frontmatter
+
+**Two CI failures introduced by v4.4.3 fixes: `set -e` exposed a latent post-increment bug, and newly registered templates were missing required frontmatter.**
+
+---
+
+#### 1. validate-plugin.sh post-increment crash under set -e
+
+**Before**: After v4.4.3 added `set -euo pipefail` to `tests/validate-plugin.sh`, the CI job failed immediately after printing "26 skills defined". The culprit was `((SKILLS_WITH_DESCRIPTION++))` — in bash, a post-increment expression evaluates to the *old* value, so when the counter is 0, `((0))` exits with code 1, which `set -e` treats as a fatal error.
+
+**After**: Changed `((var++))` to `((++var))` (pre-increment). The expression now evaluates to the new value, which is always ≥ 1 after the first increment. The script runs cleanly end-to-end.
+
+#### 2. Missing frontmatter on three newly registered rules templates
+
+**Before**: v4.4.3 registered `rules/quality-gates.md.template`, `rules/security-guidelines.md.template`, and `rules/tdd-guidelines.md.template` in `template-registry.json` with `tracked: true`, but the files themselves had no YAML frontmatter. `test-frontmatter-integration.sh` Test 7 requires all `tracked: true` `.md.template` files to carry `_harness_template:` and `_harness_version:` fields, so CI failed.
+
+**After**: Added proper YAML frontmatter to all three files.
+
 ## [4.4.3] - 2026-04-15
 
 ### Theme: Phases 56–58 — Project-wide review fixes (validator, agent frontmatter, docs, script hygiene)
@@ -3176,7 +3196,8 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/tim-hub/powerball-harness/releases).
 
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.4.3...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.4.4...HEAD
+[4.4.4]: https://github.com/tim-hub/powerball-harness/compare/v4.4.3...v4.4.4
 [4.4.3]: https://github.com/tim-hub/powerball-harness/compare/v4.4.2...v4.4.3
 [4.4.2]: https://github.com/tim-hub/powerball-harness/compare/v4.4.1...v4.4.2
 [4.4.1]: https://github.com/tim-hub/powerball-harness/compare/v4.4.0...v4.4.1
