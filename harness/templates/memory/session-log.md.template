@@ -1,6 +1,6 @@
 ---
 _harness_template: "memory/session-log.md.template"
-_harness_version: "4.4.6"
+_harness_version: "4.5.0"
 ---
 
 # Session Log
