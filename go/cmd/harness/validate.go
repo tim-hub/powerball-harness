@@ -64,6 +64,9 @@ var validModelNames = map[string]bool{
 	"claude-3-5-haiku":   true,
 	"claude-3-opus":      true,
 	"opusplan":           true,
+	"sonnet":             true,
+	"opus":               true,
+	"haiku":              true,
 }
 
 // validEffortValues is the set of accepted effort strings.

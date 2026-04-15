@@ -101,7 +101,7 @@ Specify subagent_type="scaffolder" in the Task tool
   "mode": "analyze | scaffold | update-state",
   "project_type": "node | python | go | rust | other",
   "framework": "next | express | fastapi | gin | etc",
-  "harness_version": "none | v2 | v3",
+  "harness_version": "none | v2 | v3 | v4",
   "files_created": ["List of generated files (scaffold mode)"],
   "plans_updates": ["Plans.md update details (update-state mode)"],
   "memory_updates": ["Content to append to memory"]
