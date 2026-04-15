@@ -6,6 +6,44 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.4.6] - 2026-04-15
+
+### Theme: SKILL.md quality pass — all 26 skills
+
+**Fixes Quick Reference table format, anchors all script paths to `${CLAUDE_SKILL_DIR}`, removes dead references, and updates deprecated slash commands across every skill.**
+
+---
+
+#### 1. Quick Reference table format standardized
+
+**Before**: Several skills used bash code blocks or 2-column tables in their Quick Reference sections instead of the required 3-column `User Input | Subcommand | Behavior` format. `harness-work` used `Mode` as the middle column header. Two skills (`session`, `notebook-lm`) had no Quick Reference at all despite having multi-token `argument-hint` values.
+
+**After**: All Quick Reference sections now use the 3-column format with the correct `Subcommand` header. `breezing`, `harness-sync`, `harness-release`, `writing-changelog`, and `harness-work` converted; `session` and `notebook-lm` had tables added.
+
+#### 2. Script paths anchored to `${CLAUDE_SKILL_DIR}`
+
+**Before**: Several skills referenced scripts with bare relative paths like `bash scripts/foo.sh` or `python3 scripts/gog_parse_url.py`. These paths depend on the shell's current working directory at runtime, causing silent failures when Claude's working directory differs from the skill's directory.
+
+**After**: All script references anchored to the correct tier — skill-local (`"${CLAUDE_SKILL_DIR}/scripts/..."`) or plugin-level (`"${CLAUDE_SKILL_DIR}/../../scripts/..."`). Affected: `gogcli-ops`, `session-control`, `session-state`, `harness-review` (SKILL.md + `dual-review.md`), `harness-work` (SKILL.md + `codex-work.md`), `memory`.
+
+#### 3. Dead references removed
+
+**Before**: Several skills referenced documentation files that do not exist: `docs/SESSION_ORCHESTRATION.md`, `docs/MEMORY_POLICY.md`, `AGENTS.md` in deploy health-checking, and a broken `${CLAUDE_SKILL_DIR}/../../docs/release-preflight.md` path (resolves to non-existent `harness/docs/`). `principles/references/vibecoder-guide.md` duplicated the standalone `vibecoder-guide` skill.
+
+**After**: Dead references removed and replaced with inline prose or correct `(project-root)` annotations. Redundant `vibecoder-guide.md` reference file deleted.
+
+#### 4. Deprecated slash commands updated
+
+**Before**: `workflow-guide`, `session-init`, `session`, `deploy`, `memory`, and `principles` contained legacy slash commands (`/harness-init`, `/plan-with-agent`, `/work`, `/handoff-to-cursor`, `/sync-status`, etc.) from the pre-skills era.
+
+**After**: All updated to current skill invocations: `harness-setup init`, `harness-plan`, `harness-work`, `cc-cursor-cc`, `harness-sync`, etc.
+
+#### 5. Redundant `## Trigger Phrases` sections removed
+
+**Before**: 11 files contained `## Trigger Phrases` sections listing user-quoted phrases — redundant with the `description:` frontmatter, which is the SSOT for skill auto-loading.
+
+**After**: All `## Trigger Phrases` and `## Trigger Conditions` sections removed. Routing signal consolidated in each skill's `description:` field.
+
 ## [4.4.5] - 2026-04-15
 
 ### Theme: Fix plugin install error and sync-version.sh template glob
