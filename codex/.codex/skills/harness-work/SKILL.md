@@ -270,11 +270,27 @@ for task in execution_order:
         verdict = codex_exec_review(diff_text) or reviewer_agent_review(diff_text)
         review_count++
 
-    # B-5. APPROVE → main に cherry-pick
+    # B-5. APPROVE → main に cherry-pick（feature ブランチ経由）
+    # Worker の Branch Guard により main HEAD は動かず、commit は feature ブランチ上にある想定
     if verdict == "APPROVE":
-        git cherry-pick --no-commit {latest_commit}  # worktree → main
-        git commit -m "{task.内容}"
+        git checkout main  # safety: 既に main なら no-op
+        # feature ブランチの commit が既に main にある（Branch Guard 失敗時のフォールバック）か確認
+        if git("merge-base", "--is-ancestor", latest_commit, "HEAD"):
+            pass  # 既に main 上 — cherry-pick 不要（再入防止）
+        else:
+            git cherry-pick --no-commit {latest_commit}  # feature branch → main
+            git commit -m "{task.内容}"
+        # Worker が作成した feature ブランチを削除
+        if worker_result.branch and worker_result.branch not in ["main", "master"]:
+            git branch -D {worker_result.branch}
         Plans.md: task.status = "cc:完了 [{hash}]"
+        # auto-checkpoint 記録（冪等性ガード (c)）
+        # Plans.md 書き換え直後に呼ぶ。失敗しても fail-open（|| true）でループを止めない
+        HASH=$(git rev-parse --short HEAD)
+        REVIEW_RESULT_PATH=".claude/state/review-results/${task.number}.review-result.json"
+        bash scripts/auto-checkpoint.sh \
+            "${task.number}" "${HASH}" "${contract_path}" "${REVIEW_RESULT_PATH}" \
+            || true  # fail-open: harness-mem 未起動環境でも継続
     else:
         → ユーザーにエスカレーション
 
