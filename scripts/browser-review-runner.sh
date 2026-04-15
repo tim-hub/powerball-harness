@@ -40,7 +40,7 @@ rm -f "$OUTPUT_FILE"
 TIMEOUT_SECONDS="${HARNESS_BROWSER_REVIEW_TIMEOUT_SECONDS:-120}"
 COMMAND="${HARNESS_BROWSER_REVIEW_COMMAND:-}"
 RUNNER_STATUS="unavailable"
-NOTE="browser review command is not configured"
+NOTE=""
 COMMAND_OUTPUT=""
 BROWSER_VERDICT=""
 
@@ -103,6 +103,75 @@ EOF_JSON
   printf '%s' "$source" | grep -Eo 'APPROVE|REQUEST_CHANGES|PENDING_BROWSER' | head -1 || true
 }
 
+default_command_for_route() {
+  case "$ROUTE" in
+    playwright)
+      if [ -f package.json ] && command -v npm >/dev/null 2>&1 && jq -e '
+        ((.scripts["test:e2e"]? // "") != "") or
+        ((.devDependencies.playwright? // "") != "") or
+        ((.devDependencies["@playwright/test"]? // "") != "") or
+        ((.dependencies.playwright? // "") != "") or
+        ((.dependencies["@playwright/test"]? // "") != "")
+      ' package.json >/dev/null 2>&1; then
+        printf '%s' "$(command -v npm) run test:e2e"
+        return 0
+      fi
+
+      if command -v playwright >/dev/null 2>&1; then
+        printf '%s' "$(command -v playwright) test"
+        return 0
+      fi
+
+      if command -v npx >/dev/null 2>&1; then
+        printf '%s' "$(command -v npx) playwright test"
+        return 0
+      fi
+
+      return 1
+      ;;
+    agent-browser)
+      if command -v agent-browser >/dev/null 2>&1; then
+        printf '%s' "$(command -v agent-browser)"
+        return 0
+      fi
+
+      return 1
+      ;;
+    chrome-devtools)
+      return 1
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+unavailable_note_for_route() {
+  case "$ROUTE" in
+    playwright)
+      printf '%s' "route=playwright but no executable default was found (need package.json test:e2e, playwright, or npx)"
+      ;;
+    agent-browser)
+      printf '%s' "route=agent-browser but agent-browser is not available on PATH"
+      ;;
+    chrome-devtools)
+      printf '%s' "route=chrome-devtools has no shell-executable default; use HARNESS_BROWSER_REVIEW_COMMAND or connected Chrome tooling"
+      ;;
+    *)
+      printf '%s' "route=$ROUTE has no known shell-executable default"
+      ;;
+  esac
+}
+
+if [ -n "$COMMAND" ]; then
+  :
+else
+  COMMAND="$(default_command_for_route || true)"
+  if [ -z "$COMMAND" ]; then
+    NOTE="$(unavailable_note_for_route)"
+  fi
+fi
+
 if [ -n "$COMMAND" ]; then
   export BROWSER_REVIEW_ARTIFACT="$ARTIFACT_FILE"
   export BROWSER_REVIEW_RESULT_FILE="$OUTPUT_FILE"
@@ -129,11 +198,11 @@ if [ -n "$COMMAND" ]; then
     if [ -s "$OUTPUT_FILE" ] && jq -e . "$OUTPUT_FILE" >/dev/null 2>&1; then
       COMMAND_OUTPUT="$(cat "$OUTPUT_FILE")"
     fi
-    BROWSER_VERDICT="$(parse_verdict "$COMMAND_OUTPUT")"
-    if [ -n "$BROWSER_VERDICT" ]; then
-      RUNNER_STATUS="ok"
-      NOTE="browser review command completed"
-    else
+      BROWSER_VERDICT="$(parse_verdict "$COMMAND_OUTPUT")"
+      if [ -n "$BROWSER_VERDICT" ]; then
+        RUNNER_STATUS="ok"
+        NOTE="browser review command completed"
+      else
       RUNNER_STATUS="failed"
       NOTE="browser review command did not return a recognizable verdict"
     fi
@@ -142,6 +211,10 @@ fi
 
 if [ -z "$BROWSER_VERDICT" ]; then
   BROWSER_VERDICT="PENDING_BROWSER"
+fi
+
+if [ -z "$NOTE" ]; then
+  NOTE="$(unavailable_note_for_route)"
 fi
 
 jq -n \
