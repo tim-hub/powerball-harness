@@ -18,7 +18,7 @@
       "Read(**/.aws/**)",
       "Read(**/.ssh/**)",
       "Read(**/.npmrc)",
-      "Bash(* .env)",
+      "Bash(cat .env:*)",
       "Bash(dd if=/dev/zero of=/dev/*)",
       "Bash(dd if=/dev/random of=/dev/*)",
       "Bash(mkfs*)",
@@ -77,9 +77,6 @@
       "Bash(chmod 777 /usr/*)",
       "Bash(chown -R * /*)",
       "Bash(pkexec *)",
-      "Bash(export PATH=*)",
-      "Bash(export LD_LIBRARY_PATH=*)",
-      "Bash(export PYTHONPATH=*)",
       "Bash(nsenter *)",
       "Bash(systemctl mask *)",
       "Bash(systemctl disable *)",
@@ -151,7 +148,10 @@
       "Bash(git push --force origin main*)",
       "Bash(git push -f origin master*)",
       "Bash(git push -f origin main*)",
-      "Bash(git reset --hard *)"
+      "Bash(git reset --hard *)",
+      "Bash(export PATH=*)",
+      "Bash(export LD_LIBRARY_PATH=*)",
+      "Bash(export PYTHONPATH=*)"
     ]
   },
   "sandbox": {

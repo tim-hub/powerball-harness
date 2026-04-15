@@ -1,6 +1,6 @@
 ---
 name: vibecoder-guide
-description: "Use when the user seems non-technical, asks 'what next?' or 'how does this work?', or needs step-by-step guidance in plain language. Do NOT load for: experienced direct implementation requests, reviews, or debugging."
+description: "Use when providing plain-language workflow guidance, explaining what to do next, or helping someone unfamiliar with the harness development cycle get started. Do NOT load for: implementation, reviews, or debugging."
 allowed-tools: ["Read"]
 user-invocable: false
 ---

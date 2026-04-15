@@ -93,6 +93,7 @@ while force-tracking `.claude/memory/`, `.claude/output-styles/`, `.claude/rules
 ### codex — Codex CLI Setup
 
 Sets up the project for Codex CLI by copying Harness config templates and skills.
+See [Codex CLI Setup Reference](${CLAUDE_SKILL_DIR}/references/codex.md) for full file layout and troubleshooting.
 
 **Prerequisites**: Codex CLI installed (`npm install -g @openai/codex`)
 
