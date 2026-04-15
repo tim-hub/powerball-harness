@@ -129,6 +129,34 @@
       "templateVersion": "4.4.2",
       "description": "Version file",
       "tracked": false
+    },
+    "sandbox-settings.json.template": {
+      "output": ".claude/settings.sandbox.json",
+      "templateVersion": "4.4.2",
+      "description": "Sandbox settings (optional security hardening template)",
+      "tracked": true,
+      "condition": "sandbox.enabled"
+    },
+    "rules/quality-gates.md.template": {
+      "output": ".claude/rules/quality-gates.md",
+      "templateVersion": "4.4.2",
+      "description": "Quality gates rules (TDD, security, coverage, a11y, performance triggers)",
+      "tracked": true,
+      "condition": "quality_gates.enabled"
+    },
+    "rules/security-guidelines.md.template": {
+      "output": ".claude/rules/security-guidelines.md",
+      "templateVersion": "4.4.2",
+      "description": "Security guidelines rules (OWASP Top 10 checklist, path pattern detection)",
+      "tracked": true,
+      "condition": "security_guidelines.enabled"
+    },
+    "rules/tdd-guidelines.md.template": {
+      "output": ".claude/rules/tdd-guidelines.md",
+      "templateVersion": "4.4.2",
+      "description": "TDD guidelines rules (test-first workflow, applicability criteria)",
+      "tracked": true,
+      "condition": "tdd_guidelines.enabled"
     }
   }
 }
