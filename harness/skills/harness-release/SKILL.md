@@ -23,7 +23,7 @@ model: sonnet
 ```
 
 Key paths:
-- Preflight script: `skills/harness-release/scripts/release-preflight.sh`
+- Preflight script: `${CLAUDE_SKILL_DIR}/scripts/release-preflight.sh`
 - Override plugin root: `HARNESS_RELEASE_PLUGIN_ROOT=/path/to/repo`
 
 ## Release-only policy
@@ -87,19 +87,19 @@ command -v gh &>/dev/null || echo "gh missing: GitHub Release will be skipped"
 command -v jq &>/dev/null || echo "jq missing: required for marketplace.json update"
 
 # 2. vendor-neutral preflight (common to production and dry-run)
-bash skills/harness-release/scripts/release-preflight.sh
+bash "${CLAUDE_SKILL_DIR}/scripts/release-preflight.sh"
 
 # 3. Plugin structure validation
 bash tests/validate-plugin.sh
 
-# 4. Consistency check
+# 4. Consistency check (repo-root dev-only script)
 bash local-scripts/check-consistency.sh
 
 # 5. Verify codex symlinks
 ls -la codex/.codex/skills/
 ```
 
-`skills/harness-release/scripts/release-preflight.sh` validates the following:
+`${CLAUDE_SKILL_DIR}/scripts/release-preflight.sh` validates the following:
 
 - Whether the working tree is clean
 - Whether `CHANGELOG.md` has an `[Unreleased]` section
@@ -125,11 +125,11 @@ echo "Current version: $CURRENT"
 
 ### Phase 2: Calculate New Version
 
-`skills/harness-release/scripts/sync-version.sh` only supports patch bumps. For minor / major, manually edit VERSION:
+`${CLAUDE_SKILL_DIR}/scripts/sync-version.sh` only supports patch bumps. For minor / major, manually edit VERSION:
 
 ```bash
 # patch bump (x.y.Z → x.y.(Z+1))
-./skills/harness-release/scripts/sync-version.sh bump
+"${CLAUDE_SKILL_DIR}/scripts/sync-version.sh" bump
 
 # minor bump (manual: x.Y.z → x.(Y+1).0)
 CURRENT=$(cat VERSION)
@@ -137,17 +137,17 @@ MAJOR=$(echo "$CURRENT" | cut -d. -f1)
 MINOR=$(echo "$CURRENT" | cut -d. -f2)
 NEW_VERSION="$MAJOR.$((MINOR + 1)).0"
 echo "$NEW_VERSION" > VERSION
-./skills/harness-release/scripts/sync-version.sh sync
+"${CLAUDE_SKILL_DIR}/scripts/sync-version.sh" sync
 
 # major bump (manual: X.y.z → (X+1).0.0)
 CURRENT=$(cat VERSION)
 MAJOR=$(echo "$CURRENT" | cut -d. -f1)
 NEW_VERSION="$((MAJOR + 1)).0.0"
 echo "$NEW_VERSION" > VERSION
-./skills/harness-release/scripts/sync-version.sh sync
+"${CLAUDE_SKILL_DIR}/scripts/sync-version.sh" sync
 ```
 
-`skills/harness-release/scripts/sync-version.sh sync` applies the `VERSION` value to `.claude-plugin/marketplace.json`.
+`${CLAUDE_SKILL_DIR}/scripts/sync-version.sh sync` applies the `VERSION` value to `.claude-plugin/marketplace.json`.
 
 ### Phase 3: CHANGELOG Update
 
@@ -163,10 +163,10 @@ Key requirements:
 ```bash
 # VERSION was already updated in Phase 2
 # Sync marketplace.json
-./skills/harness-release/scripts/sync-version.sh sync
+"${CLAUDE_SKILL_DIR}/scripts/sync-version.sh" sync
 
 # Verify sync
-./skills/harness-release/scripts/sync-version.sh check
+"${CLAUDE_SKILL_DIR}/scripts/sync-version.sh" check
 ```
 
 ### Phase 5: Verify Codex Symlinks
@@ -238,10 +238,10 @@ GitHub Release Notes rules:
 - Required: `## What's Changed`, bold summary, Before / After table, footer
 - Detailed format: See `.claude/rules/github-release.md`
 
-Release notes validation:
+Release notes validation (plugin-level script):
 
 ```bash
-./scripts/validate-release-notes.sh "v$NEW_VERSION"
+"${CLAUDE_SKILL_DIR}/../../scripts/validate-release-notes.sh" "v$NEW_VERSION"
 ```
 
 ### Phase 9: Release Completion Marking
@@ -291,14 +291,14 @@ Executes only Phase 9. Verifies that the GitHub Release was not missed, then cre
 Verify the following regressions before release:
 
 - [ ] **Plugin structure** — `bash tests/validate-plugin.sh` (marketplace.json, skills, hooks, scripts)
-- [ ] **Consistency** — `bash local-scripts/check-consistency.sh` (templates, versions, CHANGELOG)
+- [ ] **Consistency** — `bash local-scripts/check-consistency.sh` (repo-root `local-scripts/`; templates, versions, CHANGELOG)
 - [ ] **Templates** — `test -f templates/codex/config.toml && test -f templates/opencode/opencode.json` (setup templates present)
-- [ ] **Preflight** — `bash skills/harness-release/scripts/release-preflight.sh` (working tree, CHANGELOG, CI, remnants)
-- [ ] **Release notes** — `bash scripts/validate-release-notes.sh vX.Y.Z` (GitHub Release format)
-- [ ] **VERSION sync** — `bash skills/harness-release/scripts/sync-version.sh check` (VERSION matches marketplace.json)
+- [ ] **Preflight** — `bash "${CLAUDE_SKILL_DIR}/scripts/release-preflight.sh"` (working tree, CHANGELOG, CI, remnants)
+- [ ] **Release notes** — `bash "${CLAUDE_SKILL_DIR}/../../scripts/validate-release-notes.sh" vX.Y.Z` (plugin-level; GitHub Release format)
+- [ ] **VERSION sync** — `bash "${CLAUDE_SKILL_DIR}/scripts/sync-version.sh" check` (VERSION matches marketplace.json)
 - [ ] **Guardrails** — R01-R13 in `go/internal/guardrail/rules.go` (Go rule health)
 - [ ] **Tag continuity** — `git tag --sort=-version:refname | head -5` (no missing tags)
-- [ ] **Migration residue** — `bash local-scripts/check-residue.sh` (no deleted-concept references)
+- [ ] **Migration residue** — `bash local-scripts/check-residue.sh` (repo-root `local-scripts/`; no deleted-concept references)
 
 ## CI Safety Net
 
