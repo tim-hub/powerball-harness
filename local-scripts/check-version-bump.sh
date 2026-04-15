@@ -112,13 +112,13 @@ fi
 if [ "$CURRENT_VERSION" = "$BASE_VERSION" ]; then
   echo "✅ VERSION is unchanged. A version bump is not required for normal PRs / pushes."
 
-  if bash ./harness/scripts/sync-version.sh check >/dev/null 2>&1; then
+  if bash ./harness/skills/harness-release/scripts/sync-version.sh check >/dev/null 2>&1; then
     echo "✅ harness.toml also matches VERSION."
     exit 0
   fi
 
   echo "❌ VERSION is unchanged but harness.toml does not match."
-  bash ./harness/scripts/sync-version.sh check
+  bash ./harness/skills/harness-release/scripts/sync-version.sh check
   exit 1
 fi
 
@@ -133,11 +133,11 @@ echo "✅ Detected VERSION update for release: $BASE_VERSION → $CURRENT_VERSIO
 
 ERRORS=0
 
-if bash ./harness/scripts/sync-version.sh check >/dev/null 2>&1; then
+if bash ./harness/skills/harness-release/scripts/sync-version.sh check >/dev/null 2>&1; then
   echo "✅ harness.toml version also matches."
 else
   echo "❌ harness.toml version does not match VERSION."
-  bash ./harness/scripts/sync-version.sh check || true
+  bash ./harness/skills/harness-release/scripts/sync-version.sh check || true
   ERRORS=$((ERRORS + 1))
 fi
 
