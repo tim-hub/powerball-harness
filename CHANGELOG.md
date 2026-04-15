@@ -6,6 +6,8 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.4.3] - 2026-04-15
+
 ### Theme: Phases 56–58 — Project-wide review fixes (validator, agent frontmatter, docs, script hygiene)
 
 **Fixes 23 issues found in a comprehensive project-wide review: critical Go validator bug, stale agent configs, documentation drift from the v4 Go migration, and shell script hygiene.**
@@ -3174,7 +3176,8 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/tim-hub/powerball-harness/releases).
 
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.4.2...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.4.3...HEAD
+[4.4.3]: https://github.com/tim-hub/powerball-harness/compare/v4.4.2...v4.4.3
 [4.4.2]: https://github.com/tim-hub/powerball-harness/compare/v4.4.1...v4.4.2
 [4.4.1]: https://github.com/tim-hub/powerball-harness/compare/v4.4.0...v4.4.1
 [4.4.0]: https://github.com/tim-hub/powerball-harness/compare/v3.17.4...v4.4.0
