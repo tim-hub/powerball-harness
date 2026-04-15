@@ -10,15 +10,6 @@ A skill for integrating Google Analytics or Vercel Analytics.
 
 ---
 
-## Trigger Phrases
-
-- "Add access analytics"
-- "Set up Google Analytics"
-- "Add Vercel Analytics"
-- "I want to track page views"
-
----
-
 ## Features
 
 - Page view tracking

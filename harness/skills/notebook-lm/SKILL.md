@@ -7,7 +7,14 @@ argument-hint: "[yaml|slides]"
 
 # NotebookLM Skill
 
-A collection of skills responsible for document generation.
+Generates NotebookLM YAML and structured slide content from project documents.
+
+## Quick Reference
+
+| User Input | Subcommand | Behavior |
+|------------|------------|----------|
+| `notebook-lm yaml` or "Convert docs to NotebookLM" | `yaml` | Generates NotebookLM YAML (see `references/notebooklm-yaml.md`) |
+| `notebook-lm slides` or "Create slide content" | `slides` | Generates structured slide YAML (see `references/notebooklm-slides.md`) |
 
 ## Feature Details
 
@@ -24,7 +31,7 @@ A collection of skills responsible for document generation.
 
 ---
 
-## 🔧 PDF Page Range Reading (Claude Code 2.1.49+)
+## PDF Page Range Reading (Claude Code 2.1.49+)
 
 A feature for efficiently handling large PDFs.
 

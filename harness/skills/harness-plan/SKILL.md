@@ -24,7 +24,7 @@ Consolidates the following 3 legacy skills:
 | "add a task" | `add` | Add new task to Plans.md |
 | "mark complete" | `update` | Change task marker to cc:done |
 | "where am I?" / "check progress" | `sync` | Compare implementation with Plans.md and sync |
-| `harness-sync` | `sync` | Progress check (equivalent to standalone sync surface) |
+| `harness-plan sync` / "sync status" | `sync` | Progress check via harness-plan's embedded sync subcommand |
 | `harness-plan create` | `create` | Create plan |
 | "archive old phases" / `harness-plan archive` | `archive` | Archive phases in Plans.md to `.claude/memory/archive/`; update `Last archive:` header |
 

@@ -27,7 +27,7 @@ Actual flow of the 2-agent workflow.
 
 ```bash
 # Run in Claude Code
-/work
+harness-work
 ```
 
 **Claude Code's work**:
@@ -35,7 +35,7 @@ Actual flow of the 2-agent workflow.
 2. Detect `pm:requested` task
 3. Update marker to `cc:WIP`
 4. Begin implementation
-5. Quality review with `/harness-review`
+5. Quality review with `harness-review`
 6. If issues found, fix and re-review (loop, max 3 times)
 7. Review OK -> Auto-commit
 
@@ -57,13 +57,13 @@ Actual flow of the 2-agent workflow.
 
 ### Phase 3: Claude Code Reports Completion (2-Agent only)
 
-After Review OK and Auto-commit complete, in 2-Agent mode run `/handoff-to-cursor` to report to the PM.
+After Review OK and Auto-commit complete, in 2-Agent mode run `cc-cursor-cc` to report to the PM.
 
-> **In Solo mode, handoff is not needed** -- Review OK -> Auto-commit completes /work.
+> **In Solo mode, handoff is not needed** -- Review OK -> Auto-commit completes `harness-work`.
 
 ```bash
 # Run in Claude Code (2-Agent mode only)
-/handoff-to-cursor
+cc-cursor-cc
 ```
 
 **Generated report**:
@@ -123,13 +123,13 @@ All tests passed (12/12)
 
 ### Claude Code's Response
 
-1. Start with `/work`
+1. Start with `harness-work`
 2. Investigate error logs
 3. Identify cause and fix
 4. Add tests
-5. Review with `/harness-review` (fix and re-review if issues found)
+5. Review with `harness-review` (fix and re-review if issues found)
 6. Review OK -> Auto-commit
-7. Report completion with `/handoff-to-cursor` (2-Agent only; skip in Solo)
+7. Report completion with `cc-cursor-cc` (2-Agent only; skip in Solo)
 
 ---
 
@@ -182,7 +182,7 @@ Type definitions for the external library may be outdated
 - [ ] Add tests: utility functions `cc:TODO`
 ```
 
-### When /work Is Executed
+### When `harness-work` Is Executed
 
 Claude Code determines if parallel execution is possible:
 - Independent tasks -> Parallel execution

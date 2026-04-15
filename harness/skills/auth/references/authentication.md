@@ -10,16 +10,6 @@ A skill for implementing authentication features using Clerk or Supabase Auth.
 
 ---
 
-## Trigger Phrases
-
-- "Add login functionality"
-- "Add authentication"
-- "Implement auth with Clerk"
-- "Set up Supabase Auth"
-- "Add Google login"
-
----
-
 ## Features
 
 - Sign up / Login

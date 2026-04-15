@@ -71,7 +71,7 @@ To ensure understanding even without technical knowledge:
 ### Collaboration with PM (Cursor)
 
 - **Share state via Plans.md**: Maintain as a single source of truth
-- **Use `/handoff-to-cursor` for completion reports**: Follow the format
+- **Use `cc-cursor-cc` for completion reports**: Follow the format
 - **Stay within scope**: Get confirmation before working outside the requested scope
 
 ---

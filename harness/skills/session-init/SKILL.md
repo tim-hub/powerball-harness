@@ -1,6 +1,6 @@
 ---
 name: session-init
-description: "Use when starting a new session — pre-work status check, environment readiness verification, or Plans.md overview. Do NOT load for: mid-session implementation, reviews, or ongoing tasks."
+description: "Use when starting a new session — start session, start work, check the status, pre-work status check, environment readiness verification, or Plans.md overview. Do NOT load for: mid-session implementation, reviews, or ongoing tasks."
 allowed-tools: ["Read", "Write", "Bash"]
 user-invocable: false
 ---
@@ -8,22 +8,6 @@ user-invocable: false
 # Session Init Skill
 
 A skill for verifying the environment and understanding the current task status at session start.
-
----
-
-## Trigger Phrases
-
-This skill is triggered by the following phrases:
-
-- "Start session"
-- "Start work"
-- "Start today's work"
-- "Check the status"
-- "What should I do?"
-- "start session"
-- "what should I work on?"
-
----
 
 ## Overview
 
@@ -161,16 +145,15 @@ At session start, present the following information concisely:
 
 ---
 
-## Related Commands
+## Related Skills
 
-- `/work` - Execute tasks (supports parallel execution)
-- `/sync-status` - Progress summary for Plans.md
-- `/maintenance` - Auto-cleanup of files
-
----
+- `harness-work` - Execute tasks (supports parallel execution)
+- `harness-sync` - Progress summary for Plans.md
+- `harness-setup` - Initialize a new project (when Plans.md doesn't exist)
 
 ## Notes
 
 - **Always check AGENTS.md**: Understand role assignments before starting work
-- **If Plans.md doesn't exist**: Suggest `/harness-init`
+- **If Plans.md doesn't exist**: Suggest running `harness-setup`
 - **If previous work was interrupted**: Confirm whether to continue
+- **"What should I do?" overlap**: This skill handles session-start context loading. For open-ended guidance on how to work, `vibecoder-guide` may be more appropriate.

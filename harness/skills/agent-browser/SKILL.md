@@ -11,26 +11,62 @@ argument-hint: "[url] [--headless]"
 
 A skill for browser automation. Uses the agent-browser CLI to perform UI debugging, verification, and automated operations.
 
----
-
-## Trigger Phrases
-
-This skill is automatically triggered by the following phrases:
-
-- "open the page", "check the URL"
-- "click on", "type into", "fill the form"
-- "take a screenshot"
-- "check the UI", "test the screen"
-- "open this page", "click on", "fill the form", "screenshot"
-
----
-
 ## Feature Details
 
 | Feature | Details |
 |---------|--------|
 | **Browser Automation** | See [references/browser-automation.md](${CLAUDE_SKILL_DIR}/references/browser-automation.md) |
 | **AI Snapshot Workflow** | See [references/ai-snapshot-workflow.md](${CLAUDE_SKILL_DIR}/references/ai-snapshot-workflow.md) |
+
+## Quick Reference
+
+### Basic Operations
+
+| Command | Description |
+|---------|-------------|
+| `open <url>` | Open a URL |
+| `snapshot -i -c` | AI-friendly snapshot |
+| `click @e1` | Click an element |
+| `fill @e1 "text"` | Fill a form field |
+| `type @e1 "text"` | Type text |
+| `press Enter` | Press a key |
+| `screenshot [path]` | Take a screenshot |
+| `close` | Close the browser |
+
+### Navigation
+
+| Command | Description |
+|---------|-------------|
+| `back` | Go back |
+| `forward` | Go forward |
+| `reload` | Reload |
+
+### Information Retrieval
+
+| Command | Description |
+|---------|-------------|
+| `get text @e1` | Get text |
+| `get html @e1` | Get HTML |
+| `get url` | Current URL |
+| `get title` | Page title |
+
+### Waiting
+
+| Command | Description |
+|---------|-------------|
+| `wait @e1` | Wait for an element |
+| `wait 1000` | Wait 1 second |
+
+### Debugging
+
+| Command | Description |
+|---------|-------------|
+| `--headed` | Show the browser |
+| `console` | Console logs |
+| `errors` | Page errors |
+| `highlight @e1` | Highlight an element |
+
+---
 
 ## Execution Steps
 
@@ -93,56 +129,6 @@ agent-browser get url
 # Take a screenshot
 agent-browser screenshot result.png
 ```
-
----
-
-## Quick Reference
-
-### Basic Operations
-
-| Command | Description |
-|---------|-------------|
-| `open <url>` | Open a URL |
-| `snapshot -i -c` | AI-friendly snapshot |
-| `click @e1` | Click an element |
-| `fill @e1 "text"` | Fill a form field |
-| `type @e1 "text"` | Type text |
-| `press Enter` | Press a key |
-| `screenshot [path]` | Take a screenshot |
-| `close` | Close the browser |
-
-### Navigation
-
-| Command | Description |
-|---------|-------------|
-| `back` | Go back |
-| `forward` | Go forward |
-| `reload` | Reload |
-
-### Information Retrieval
-
-| Command | Description |
-|---------|-------------|
-| `get text @e1` | Get text |
-| `get html @e1` | Get HTML |
-| `get url` | Current URL |
-| `get title` | Page title |
-
-### Waiting
-
-| Command | Description |
-|---------|-------------|
-| `wait @e1` | Wait for an element |
-| `wait 1000` | Wait 1 second |
-
-### Debugging
-
-| Command | Description |
-|---------|-------------|
-| `--headed` | Show the browser |
-| `console` | Console logs |
-| `errors` | Page errors |
-| `highlight @e1` | Highlight an element |
 
 ---
 

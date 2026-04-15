@@ -51,9 +51,9 @@ pm:requested -> cc:WIP -> cc:done -> pm:confirmed
 
 ### 3. Handoff Routes Addition
 
-- PM->Impl: `/handoff-to-impl-claude` (for PM Claude)
-- Impl->PM: `/handoff-to-pm-claude`
-- Cursor workflow: `/handoff-to-claude`, `/handoff-to-cursor`
+- PM->Impl: use `harness-work` to implement tasks
+- Impl->PM: use `harness-review` for review handoff
+- Cursor workflow: use `cc-cursor-cc` skill for Claude↔Cursor handoffs
 
 ### 4. Notification File Description
 

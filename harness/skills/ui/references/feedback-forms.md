@@ -11,15 +11,6 @@ First check the applicability conditions in `../ui-skills.md` and `../frontend-d
 
 ---
 
-## Trigger Phrases
-
-- "Add a feedback feature"
-- "I want to collect user feedback"
-- "Create a bug report form"
-- "Add a contact form"
-
----
-
 ## Features
 
 - Feedback form

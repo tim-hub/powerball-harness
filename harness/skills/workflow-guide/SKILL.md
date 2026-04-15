@@ -1,6 +1,6 @@
 ---
 name: workflow-guide
-description: "Use when asked how the 2-agent workflow operates — Cursor ↔ Claude Code roles, handoffs, or process flow. Do NOT load for: implementation, executing handoffs (cc-cursor-cc), or workflow config setup."
+description: "Use when asked how the 2-agent workflow operates — Cursor ↔ Claude Code roles, codex and opencode roles, handoffs, or process flow. Do NOT load for: implementation, executing handoffs (cc-cursor-cc), or workflow config setup."
 allowed-tools: ["Read"]
 user-invocable: false
 ---
@@ -8,19 +8,6 @@ user-invocable: false
 # Workflow Guide Skill
 
 A skill that provides guidance on the Cursor ↔ Claude Code 2-agent workflow.
-
----
-
-## Trigger Phrases
-
-This skill is triggered by the following phrases:
-
-- "Tell me about the workflow"
-- "How do I collaborate with Cursor?"
-- "Explain the work process"
-- "How should I proceed?"
-- "how does the workflow work?"
-- "explain 2-agent workflow"
 
 ---
 
@@ -45,7 +32,7 @@ This skill explains the role assignments and collaboration methods between Curso
 ┌─────────────────────────────────────────────────────────┐
 │                    Cursor (PM)                          │
 │  - Add tasks to Plans.md                               │
-│  - Request work from Claude Code (/handoff-to-claude)  │
+│  - Request work from Claude Code (cc-cursor-cc)        │
 │  - Review completion reports                           │
 │  - Decide on production deploys                        │
 └─────────────────────┬───────────────────────────────────┘
@@ -53,10 +40,10 @@ This skill explains the role assignments and collaboration methods between Curso
                       ▼
 ┌─────────────────────────────────────────────────────────┐
 │                  Claude Code (Worker)                   │
-│  - Execute tasks with /work (supports parallel)        │
+│  - Execute tasks with harness-work (supports parallel) │
 │  - Implement -> Test -> Commit                         │
 │  - Auto-fix on CI failure (up to 3 times)              │
-│  - Report completion with /handoff-to-cursor           │
+│  - Report completion with cc-cursor-cc                 │
 └─────────────────────┬───────────────────────────────────┘
                       │ Completion report
                       ▼
@@ -93,31 +80,31 @@ pm:requesting -> cc:WIP -> cc:done -> pm:confirmed
 
 ---
 
-## Key Commands
+## Key Skills
 
 ### Claude Code Side
 
-| Command | Purpose |
-|---------|---------|
-| `/harness-init` | Project setup |
-| `/plan-with-agent` | Planning and task breakdown |
-| `/work` | Task execution (supports parallel) |
-| `/handoff-to-cursor` | Completion report (to Cursor PM) |
-| `/sync-status` | Status check |
+| Skill | Purpose |
+|-------|---------|
+| `harness-setup init` | Project setup |
+| `harness-plan` | Planning and task breakdown |
+| `harness-work` | Task execution (supports parallel) |
+| `cc-cursor-cc` | Completion report (to Cursor PM) or task handoff |
+| `harness-sync` | Status check |
 
 ### Skills (Auto-triggered in Conversation)
 
 | Skill | Trigger Example |
 |-------|----------------|
-| `handoff-to-pm` | "Report completion to PM" |
-| `handoff-to-impl` | "Hand off to the implementer" |
+| `cc-cursor-cc` | "Report completion to PM" |
+| `harness-review` | "Review this code" |
 
 ### Cursor Side (Reference)
 
-| Command | Purpose |
-|---------|---------|
-| `/handoff-to-claude` | Request task from Claude Code |
-| `/review-cc-work` | Review completion reports |
+| Skill | Purpose |
+|-------|---------|
+| `cc-cursor-cc` | Request task from Claude Code |
+| `harness-review` | Review completion reports |
 
 ---
 
@@ -147,7 +134,7 @@ Perform production deploys manually and carefully.
 
 ### Q: What if the task is unclear?
 
-A: Ask Cursor for clarification, or use `/sync-status` to organize the current status.
+A: Ask Cursor for clarification, or use `harness-sync` to organize the current status.
 
 ### Q: What if CI keeps failing?
 
@@ -160,3 +147,4 @@ A: After 3+ failures, stop auto-fixing and escalate to Cursor.
 - AGENTS.md - Detailed role assignments
 - CLAUDE.md - Claude Code specific settings
 - Plans.md - Task management file
+- [Typical workflow examples](${CLAUDE_SKILL_DIR}/examples/typical-workflow.md)

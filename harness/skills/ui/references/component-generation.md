@@ -11,16 +11,6 @@ First check the applicability conditions in `../ui-skills.md` and `../frontend-d
 
 ---
 
-## Trigger Phrases
-
-- "Create a hero section"
-- "Create a pricing table"
-- "Create a footer"
-- "Create a contact form"
-- "Generate a UI component"
-
----
-
 ## Features
 
 - Automatic installation of shadcn/ui components

@@ -14,11 +14,11 @@ Standardize gogcli usage: verify auth, resolve IDs from URLs, default to read-on
 ## Quick start
 - Confirm gogcli is available: `gog --version`
 - List accounts and pick one explicitly if more than one: `gog auth list`
-- Resolve URL to ID with `python3 scripts/gog_parse_url.py "<url-or-id>"`
+- Resolve URL to ID with `python3 "${CLAUDE_SKILL_DIR}/scripts/gog_parse_url.py" "<url-or-id>"`
 - Run a read-only metadata command first (Drive/Sheets/Docs/Slides)
 
 ## Workflow decision tree
-1. Identify target type: `sheet | doc | slide | file | folder | id | unknown` via `scripts/gog_parse_url.py`.
+1. Identify target type: `sheet | doc | slide | file | folder | id | unknown` via `"${CLAUDE_SKILL_DIR}/scripts/gog_parse_url.py"`. # skill-local
 2. Choose the smallest read-only command to confirm access:
    - Sheets: `gog sheets metadata <spreadsheetId>`
    - Docs: `gog docs info <docId>`
@@ -36,7 +36,7 @@ Standardize gogcli usage: verify auth, resolve IDs from URLs, default to read-on
 
 ### Resolve IDs from URLs
 - Parse a URL or ID:
-  - `python3 scripts/gog_parse_url.py "<url-or-id>"`
+  - `python3 "${CLAUDE_SKILL_DIR}/scripts/gog_parse_url.py" "<url-or-id>"` # skill-local
 - If output type is `unknown`, ask for a direct ID or a different URL.
 
 ### Drive (files/folders)
@@ -72,4 +72,4 @@ Standardize gogcli usage: verify auth, resolve IDs from URLs, default to read-on
 
 ## Resources
 - See `${CLAUDE_SKILL_DIR}/references/gogcli-cheatsheet.md` for a compact command list.
-- Use `scripts/gog_parse_url.py` to normalize URLs into IDs before running commands.
+- Use `"${CLAUDE_SKILL_DIR}/scripts/gog_parse_url.py"` to normalize URLs into IDs before running commands. # skill-local

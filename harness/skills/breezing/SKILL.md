@@ -12,15 +12,16 @@ user-invocable: true
 
 ## Quick Reference
 
-```bash
-breezing                        # Ask for scope before executing
-breezing all                    # Complete all tasks in Plans.md
-breezing 3-6                    # Complete tasks 3 through 6
-breezing --codex all            # Complete all tasks via Codex CLI
-breezing --parallel 2 all       # Complete all tasks with 2 parallel workers
-breezing --no-discuss all       # Complete all tasks, skipping planning discussion
-breezing --auto-mode all        # Try Auto Mode rollout on a compatible parent session
-```
+| User Input | Subcommand | Behavior |
+|------------|------------|----------|
+| `breezing` | _(none)_ | Ask for scope before executing |
+| `breezing all` | `all` | Complete all tasks in Plans.md |
+| `breezing 3-6` | `N-M` | Complete tasks 3 through 6 |
+| `breezing --codex all` | `--codex` | Complete all tasks via Codex CLI |
+| `breezing --parallel 2 all` | `--parallel N` | Complete all tasks with 2 parallel workers |
+| `breezing --no-commit all` | `--no-commit` | Complete all tasks, suppress automatic commits |
+| `breezing --no-discuss all` | `--no-discuss` | Complete all tasks, skipping planning discussion |
+| `breezing --auto-mode all` | `--auto-mode` | Try Auto Mode rollout on a compatible parent session |
 
 ## Options
 

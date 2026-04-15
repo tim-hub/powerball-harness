@@ -9,13 +9,13 @@ argument-hint: "[unreleased|release|github-release]"
 
 CHANGELOG entries in this project use a **detailed Before/After format** — each change explains what the user experienced before and what they get after, with concrete examples.
 
-## When to Use Each Mode
+## Quick Reference
 
-| User Says | Mode | Action |
-|-----------|------|--------|
-| Finished a feature / fixed a bug | `unreleased` | Append to `## [Unreleased]` section |
-| Cutting a release | `release` | Finalize `[Unreleased]` into a versioned section |
-| Writing GitHub Release notes | `github-release` | Write English release notes for `gh release create` |
+| User Input | Subcommand | Behavior |
+|------------|------------|----------|
+| "Finished a feature / fixed a bug" | `unreleased` | Append to `## [Unreleased]` section |
+| "Cutting a release" | `release` | Finalize `[Unreleased]` into a versioned section |
+| "Writing GitHub Release notes" | `github-release` | Write English release notes for `gh release create` |
 
 ## CHANGELOG Entry Format
 
