@@ -21,7 +21,7 @@ harness/skills/harness-release/scripts/release-preflight.sh --root /path/to/othe
 
 ## Environment Variables
 
-- `HARNESS_RELEASE_PROJECT_ROOT`: Root path when checking a different repo
+- `HARNESS_RELEASE_PLUGIN_ROOT`: Root path when checking a different repo
 - `HARNESS_RELEASE_HEALTHCHECK_CMD`: Custom healthcheck command for repo-specific checks
 - `HARNESS_RELEASE_CI_STATUS_CMD`: Command to override CI status retrieval
 
