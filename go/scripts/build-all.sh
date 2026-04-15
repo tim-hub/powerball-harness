@@ -9,9 +9,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 REPO_ROOT="$(cd "${GO_DIR}/.." && pwd)"
 
-VERSION=$(cat "${REPO_ROOT}/VERSION" 2>/dev/null || echo "dev")
+VERSION=$(cat "${REPO_ROOT}/harness/VERSION" 2>/dev/null || cat "${REPO_ROOT}/VERSION" 2>/dev/null || echo "dev")
 LDFLAGS="-s -w -X main.version=${VERSION}"
-OUTDIR="${REPO_ROOT}/bin"
+OUTDIR="${REPO_ROOT}/harness/bin"
 mkdir -p "${OUTDIR}"
 
 platforms=(

@@ -6,7 +6,8 @@
 #   make validate     → full plugin validation (tests/validate-plugin.sh)
 #   make check        → consistency check (local-scripts/check-consistency.sh)
 #   make lint         → migration residue + skill description audit
-#   make build        → build Go guardrail binary for current platform
+#   make build        → build Go guardrail binary for current platform (into harness/bin/)
+#   make build-all    → cross-compile for darwin-arm64, darwin-amd64, linux-amd64
 #   make bench        → run breezing benchmark suite (BENCH_TASK=1 BENCH_ITER=3 by default)
 #   make test-all       → run every tests/test-*.sh (includes test-harness.sh for the harness group)
 #   make test-harness   → run harness-internal tests (harness/tests/test-harness.sh)
@@ -15,7 +16,7 @@
 #   make check-version-bump → release metadata policy check (CI gate)
 #   make codex-test   → multi-agent migration guards (tests/test-codex-package.sh)
 
-.PHONY: help test test-all test-harness validate check lint build bench check-version sync-version check-version-bump codex-test
+.PHONY: help test test-all test-harness validate check lint build build-all bench check-version sync-version check-version-bump codex-test
 
 # Default target: show help
 help:
@@ -25,7 +26,8 @@ help:
 	@echo "  make validate      Full plugin validation (tests/validate-plugin.sh)"
 	@echo "  make check         Consistency check (local-scripts/check-consistency.sh)"
 	@echo "  make lint          Residue scan + skill description audit"
-	@echo "  make build         Build Go guardrail binary for current platform"
+	@echo "  make build         Build Go binary for current platform (into harness/bin/)"
+	@echo "  make build-all     Cross-compile for darwin-arm64, darwin-amd64, linux-amd64"
 	@echo "  make bench         Run breezing benchmark (BENCH_TASK=1 BENCH_ITER=3 by default)"
 	@echo "  make test-all      Run every tests/test-*.sh (test-harness.sh covers harness group)"
 	@echo "  make test-harness  Run harness-internal tests (/tests/test-harness.sh)"
@@ -85,10 +87,15 @@ lint:
 	@echo "▶ Running audit-skill-descriptions.sh…"
 	bash ./local-scripts/audit-skill-descriptions.sh
 
-# Build the Go guardrail binary for the current platform
+# Build the Go guardrail binary for the current platform (into harness/bin/)
 build:
-	@echo "▶ Building harness binary…"
-	bash ./harness/skills/harness-setup/scripts/build-binary.sh
+	@echo "▶ Building harness binary for current platform…"
+	bash ./local-scripts/build-binary.sh
+
+# Cross-compile for all supported platforms (darwin-arm64, darwin-amd64, linux-amd64)
+build-all:
+	@echo "▶ Building harness binaries for all platforms…"
+	cd go && bash scripts/build-all.sh
 
 # Run breezing benchmark — override defaults with: make bench BENCH_TASK=2 BENCH_ITER=5
 BENCH_TASK ?= 1

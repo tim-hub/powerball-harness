@@ -5,6 +5,46 @@ Last release: v4.3.0 on 2026-04-15 (Phase 50+51)
 
 ---
 
+## Phase 61: Agent files optimization pass — `harness/agents/`
+
+Created: 2026-04-15
+
+Goal: Optimize the 6 files under `harness/agents/` for frontmatter hygiene, token efficiency, wording clarity, and step logic. Use `/skill-creator` and `/skill-development` best-practice patterns as reference for description format and structure; apply agent-specific rules (frontmatter fields, model selection, tool allow-lists) from `plugin-dev:agent-development`. No behavioral changes — what each agent does stays the same; only how it is described and structured changes.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 61.1 | Audit all 6 agent files — record for each: line count, frontmatter completeness (description, model, allowed-tools, maxTurns, effort), description length and prefix, body section names, any duplicated content, and step-logic issues (unreachable steps, redundant retries, missing exit conditions) | Short audit table with one row per agent and a concrete issue list for each | - | cc:TODO |
+| 61.2 | Normalize `description:` on all 6 agents: must start with `Use when <trigger>`, stay ≤300 chars, and not repeat capability prose that belongs in the body opening paragraph (mirrors `.claude/rules/skill-description.md`) | `awk -F'"' '/^description:/{print $2}' harness/agents/*.md` — all descriptions start with `Use when ` and are ≤300 chars | 61.1 | cc:TODO |
+| 61.3 | Tighten step lists in `ci-cd-fixer.md` (475 lines) and `error-recovery.md` (348 lines) — merge duplicate guidance, remove redundant retry prose already implied by `maxTurns`, and cut steps that simply restate prior steps with different wording | Both files ≤ 350 lines; no content loss verified by re-reading the trimmed section against the original | 61.1 | cc:TODO |
+| 61.4 | Reduce `team-composition.md` (570 lines) by moving reference tables (long agent capability matrices, example invocation blocks) into `harness/agents/references/team-composition-tables.md` and linking from the main file | Main file ≤ 400 lines; moved tables accessible via link; file passes `validate-plugin.sh` | 61.1 | cc:TODO |
+| 61.5 | Audit and correct `allowed-tools` on every agent: remove tools the agent never invokes, add tools it does invoke but hasn't listed (e.g. `Grep`/`Glob` for search-heavy agents, `Bash` for script runners) | Each agent's `allowed-tools` list matches the set of tools actually called out in its body steps; no stale or missing entries | 61.1 | cc:TODO |
+| 61.6 | Confirm or set `model:` on every agent: `haiku` for narrow high-frequency tasks, `sonnet` for main implementation work, `opus` only where the agent explicitly needs deep reasoning. Add a one-line rationale comment next to each choice | Every agent has an explicit `model:` field; rationale is in a comment or the audit note | 61.1 | cc:TODO |
+| 61.7 | Remove `## Trigger Phrases`, `## When to Use`, and similar sections that duplicate the frontmatter description (Phase 59.5 applied the same cleanup to skills) | `grep -l '## Trigger Phrases\|## When to Use' harness/agents/*.md` returns 0 files | 61.1 | cc:TODO |
+| 61.8 | Validate: `./tests/validate-plugin.sh` and `./local-scripts/check-consistency.sh` both pass; add CHANGELOG [Unreleased] entry under Changed describing the optimization pass in Before/After format | Both scripts pass; CHANGELOG entry present | 61.2–61.7 | cc:TODO |
+
+---
+
+## Phase 60: Commit prebuilt binaries, move build tooling, add go-change hook
+
+Created: 2026-04-15
+
+Goal: Ship `harness-darwin-arm64`, `harness-darwin-amd64`, `harness-linux-amd64` in-repo under `harness/bin/` (already permitted for plugins). Move `build-binary.sh` from the skill's `scripts/` folder to `local-scripts/` where it belongs alongside other dev helpers. Add a `build-all` target to the root Makefile that cross-compiles all three platforms into `harness/bin/`. Extend `.githooks/pre-commit` to auto-rebuild the current-platform binary when staged files include changes under `go/`. Remove the `binary` subcommand from `harness-setup` entirely — it is a dev concern, not a setup concern.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 60.1 | Cross-compile the two missing binaries (`harness-darwin-amd64`, `harness-linux-amd64`) alongside the existing `harness-darwin-arm64` using `go/scripts/build-all.sh`; confirm `VERSION` is embedded in each | All three files exist under `harness/bin/`, are executable, and each reports the correct version via `--version` | - | cc:done |
+| 60.2 | Remove `harness/bin/harness-*` from `.gitignore` (currently line 285) so all three binaries become tracked | `grep 'harness/bin/harness-' .gitignore` returns no matches | - | cc:done |
+| 60.3 | Stage all three binaries: `git add harness/bin/harness-darwin-arm64 harness/bin/harness-darwin-amd64 harness/bin/harness-linux-amd64` | `git status` shows all three binaries as tracked/staged; each <20 MB | 60.1, 60.2 | cc:done |
+| 60.4 | Move `harness/skills/harness-setup/scripts/build-binary.sh` → `local-scripts/build-binary.sh`; update header comment to reflect its new dev-helper-only role | File exists at `local-scripts/build-binary.sh`; no longer present at `harness/skills/harness-setup/scripts/`; `grep -rn 'build-binary' harness/skills/` returns 0 hits | - | cc:done |
+| 60.5 | Add `build` and `build-all` targets to the root `Makefile` that call `local-scripts/build-binary.sh` (current platform) and `go/scripts/build-all.sh` (all three platforms) respectively, both outputting to `harness/bin/`; retire the current `make build` that pointed at the old skill-scripts path | `make build` rebuilds `harness/bin/harness-<current-platform>`; `make build-all` rebuilds all three; both use `harness/bin/` as output dir | 60.4 | cc:done |
+| 60.6 | Extend `.githooks/pre-commit` to detect staged changes under `go/`: if any `go/` file is staged, run `make build-all` to rebuild all platform binaries and re-stage them automatically | Committing after editing a `.go` file causes the pre-commit hook to rebuild and restage all `harness/bin/harness-*` binaries before the commit completes | - | cc:done |
+| 60.7 | Remove the `binary` subcommand from `harness-setup/SKILL.md` completely: drop it from the Quick Reference table, `argument-hint`, and the `### binary — Platform Binary Build` section; remove the `binary` step from the `init` flow | No `binary` keyword in `harness-setup/SKILL.md`; `init` flow starts directly at step "Detect project type" | 60.4 | cc:done |
+| 60.8 | Audit remaining references to `build-binary\|harness-setup binary` across `harness/`, `.claude-plugin/`, `hooks/` and fix any that still point to the old skill-scripts location | `grep -rn 'build-binary\|harness-setup binary' harness/ .claude-plugin/ hooks/` returns 0 hits | 60.4–60.7 | cc:done |
+| 60.9 | Update `deleted-concepts.yaml`: add the old skill-scripts path `harness/skills/harness-setup/scripts/build-binary.sh` so residue scans catch any re-introduction; confirm `check-residue.sh` reports 0 on HEAD | `check-residue.sh` passes; entry present in `deleted-concepts.yaml` | 60.4 | cc:done |
+| 60.10 | Validate: run `./tests/validate-plugin.sh` and `./local-scripts/check-consistency.sh`; add CHANGELOG [Unreleased] entry covering (a) binaries shipped prebuilt, (b) `binary` subcommand removed from setup, (c) `make build` / `make build-all` available for contributors, (d) pre-commit hook auto-rebuilds on go/ changes | Both scripts pass; CHANGELOG entry present with Before/After format | 60.1–60.9 | cc:done |
+
+---
+
 ## Phase 59: SKILL.md quality pass — all 26 skills
 
 Created: 2026-04-15

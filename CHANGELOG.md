@@ -6,6 +6,30 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Phase 60: Prebuilt binaries + build tooling overhaul
+
+**Prebuilt platform binaries now ship in `harness/bin/`. Fresh installs no longer require Go. `make build-all` cross-compiles all platforms. The pre-commit hook auto-rebuilds binaries when `go/` files change.**
+
+---
+
+#### 1. Prebuilt binaries committed to `harness/bin/`
+
+**Before**: Fresh plugin installs required Go to be installed. `/harness-setup init` ran a `binary` build step that compiled the harness binary from Go source — failing silently if Go was absent, and adding setup time for every new user.
+
+**After**: All three platform binaries (`harness-darwin-arm64`, `harness-darwin-amd64`, `harness-linux-amd64`) ship prebuilt in `harness/bin/`. No Go toolchain needed for fresh installs. The `binary` subcommand has been removed from `harness-setup` entirely.
+
+#### 2. Build tooling moved to `local-scripts/`
+
+**Before**: `build-binary.sh` lived inside `harness/skills/harness-setup/scripts/` — mixing a contributor dev tool with user-facing setup scripts. The root Makefile `build` target pointed to this skill-scripts path.
+
+**After**: `build-binary.sh` moved to `local-scripts/build-binary.sh` alongside other dev helpers. `make build` now calls `local-scripts/build-binary.sh`. New `make build-all` target cross-compiles all three platforms into `harness/bin/` via `go/scripts/build-all.sh`.
+
+#### 3. Pre-commit hook auto-rebuilds on `go/` changes
+
+**Before**: Contributors changing Go source had to manually rebuild the binary and stage it — easy to forget, leading to stale binaries in-repo.
+
+**After**: `.githooks/pre-commit` detects staged `go/` files and automatically runs `make build-all`, re-staging all three platform binaries before the commit completes.
+
 ## [4.4.6] - 2026-04-15
 
 ### Theme: SKILL.md quality pass — all 26 skills

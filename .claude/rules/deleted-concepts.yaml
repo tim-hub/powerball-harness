@@ -289,3 +289,14 @@ deleted_concepts:
   # We do NOT add a deleted_concept entry for "codex/.codex/" because many scripts
   # legitimately reference .codex/skills/ in USER project directories (not our repo's
   # deleted root codex/ directory). A scan term would cause too many false positives.
+
+  - term: "skills/harness-setup/scripts/build-binary.sh"
+    replacement: "local-scripts/build-binary.sh (contributor rebuild helper)"
+    deleted_in: "v4.5.0"
+    reason: "Phase 60: build-binary.sh moved from skill scripts to local-scripts/. Prebuilt binaries now ship in harness/bin/; no build step needed at setup time."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - "local-scripts/build-binary.sh"  # new location of the same script

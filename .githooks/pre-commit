@@ -4,10 +4,11 @@
 #
 # Purpose:
 # - Keep VERSION and .claude-plugin/marketplace.json in sync when release metadata is edited.
+# - Auto-rebuild the current-platform harness binary when go/ source files are staged.
 # - Never auto-bump versions for ordinary code/docs commits.
 #
 # Install:
-#   ./scripts/install-git-hooks.sh
+#   ./local-scripts/install-git-hooks.sh
 #
 
 set -euo pipefail
@@ -19,29 +20,37 @@ fi
 
 cd "$ROOT"
 
-METADATA_FILES=(VERSION .claude-plugin/marketplace.json)
+# --- Section 1: Release metadata sync ---
+# Keep VERSION and marketplace.json in sync when either is staged.
+
+METADATA_FILES=(harness/VERSION .claude-plugin/marketplace.json)
 CHANGED_METADATA="$(git diff --cached --name-only -- "${METADATA_FILES[@]}" 2>/dev/null | grep -v '^$' || true)"
 
-if [ -z "$CHANGED_METADATA" ]; then
-  exit 0
+if [ -n "$CHANGED_METADATA" ]; then
+  if [ -f "./harness/skills/harness-release/scripts/sync-version.sh" ]; then
+    if ! bash ./harness/skills/harness-release/scripts/sync-version.sh check >/dev/null 2>&1; then
+      echo "[pre-commit] Release metadata mismatch detected."
+      echo "             harness/VERSION is the source of truth; syncing marketplace.json to match."
+      bash ./harness/skills/harness-release/scripts/sync-version.sh sync
+      git add harness/VERSION .claude-plugin/marketplace.json 2>/dev/null || true
+      SYNCED_VERSION="$(tr -d '[:space:]' < harness/VERSION)"
+      echo "[pre-commit] Version metadata synced to $SYNCED_VERSION"
+    fi
+  fi
 fi
 
-if [ ! -f "./scripts/sync-version.sh" ]; then
-  exit 0
+# --- Section 2: Auto-rebuild harness binary on go/ changes ---
+# If any Go source file is staged, rebuild the current-platform binary and re-stage it.
+
+CHANGED_GO="$(git diff --cached --name-only 2>/dev/null | grep '^go/' || true)"
+if [ -n "$CHANGED_GO" ]; then
+  echo "[pre-commit] go/ changes detected — rebuilding all platform binaries…"
+  if make build-all >/dev/null 2>&1; then
+    git add harness/bin/harness-darwin-arm64 harness/bin/harness-darwin-amd64 harness/bin/harness-linux-amd64 2>/dev/null || true
+    echo "[pre-commit] harness/bin/ binaries rebuilt and re-staged"
+  else
+    echo "[pre-commit] WARNING: binary rebuild failed (go not installed?), continuing without rebuild"
+  fi
 fi
-
-if bash ./scripts/sync-version.sh check >/dev/null 2>&1; then
-  exit 0
-fi
-
-echo "[pre-commit] Release metadata mismatch detected."
-echo "             VERSION is the source of truth; syncing marketplace.json to match."
-
-bash ./scripts/sync-version.sh sync
-
-git add VERSION .claude-plugin/marketplace.json 2>/dev/null || true
-
-SYNCED_VERSION="$(tr -d '[:space:]' < VERSION)"
-echo "[pre-commit] Version metadata synced to $SYNCED_VERSION"
 
 exit 0

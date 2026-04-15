@@ -2,7 +2,7 @@
 name: harness-setup
 description: "Use when initializing a project, setting up CI/Codex/memory config, configuring 2-agent workflow, or running /harness-setup. Do NOT load for: implementation, review, release, or planning."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
-argument-hint: "[init|binary|codex|opencode|duo|cleanup|gitignore]"
+argument-hint: "[init|codex|opencode|duo|cleanup|gitignore]"
 effort: medium
 ---
 
@@ -12,9 +12,8 @@ effort: medium
 
 | User Input | Subcommand | Behavior |
 |------------|------------|----------|
-| `harness-setup` (no args) | `init` | Runs `binary` → `gitignore` → project initialization (CLAUDE.md + Plans.md + settings.json) |
-| `harness-setup binary` | `binary` | Check or build/install the platform binary from Go source |
-| `harness-setup init` | `init` | New project initialization: binary build → gitignore → CLAUDE.md + Plans.md + settings.json |
+| `harness-setup` (no args) | `init` | Runs `gitignore` → project initialization (CLAUDE.md + Plans.md + settings.json) |
+| `harness-setup init` | `init` | New project initialization: gitignore → CLAUDE.md + Plans.md + settings.json |
 | `harness-setup gitignore` | `gitignore` | Merge harness-managed block into .gitignore (runs `scripts/merge-gitignore.sh`) |
 | `harness-setup cleanup` | `cleanup` | Periodic maintenance: delete old logs, compress Plans.md, trim traces |
 | `harness-setup codex` | `codex` | Set up Codex CLI: copy config, rules, and skills to project `.codex/` |
@@ -22,20 +21,6 @@ effort: medium
 | `harness-setup duo` | `duo` | Set up both Codex and OpenCode in one step |
 
 ## Subcommand Details
-
-### binary — Platform Binary Build
-
-Builds the `harness-<os>-<arch>` binary from Go source and installs it into `$CLAUDE_PLUGIN_ROOT/bin/`.
-Run this first if hooks are silently passing through (binary not yet installed).
-Requires `go` to be installed on the system.
-
-Implementation: [`scripts/build-binary.sh`](${CLAUDE_SKILL_DIR}/scripts/build-binary.sh)
-
-```bash
-bash "${CLAUDE_SKILL_DIR}/scripts/build-binary.sh"
-```
-
-**When to run**: After fresh plugin install if you see `UserPromptSubmit hook error` messages.
 
 ### init — Project Initialization
 
@@ -67,12 +52,11 @@ project/
 >   via a dedicated subcommand (future work).
 
 **Flow**:
-1. Run the `binary` subcommand (download/install platform binary if not already present)
-2. Run the `gitignore` subcommand (idempotent — calls `scripts/merge-gitignore.sh`)
-3. Detect project type (Node.js/Python/Go/Rust/Other)
-4. Generate minimal CLAUDE.md
-5. Generate Plans.md template
-6. Generate `.claude/settings.json` (permissions/sandbox/env — safe defaults)
+1. Run the `gitignore` subcommand (idempotent — calls `scripts/merge-gitignore.sh`)
+2. Detect project type (Node.js/Python/Go/Rust/Other)
+3. Generate minimal CLAUDE.md
+4. Generate Plans.md template
+5. Generate `.claude/settings.json` (permissions/sandbox/env — safe defaults)
 
 ### gitignore — Harness .gitignore Block
 
