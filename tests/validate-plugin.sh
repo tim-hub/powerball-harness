@@ -2,8 +2,7 @@
 # Plugin validation test for VibeCoder
 # This script verifies that claude-code-harness is correctly configured
 
-set -u
-set -o pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -203,7 +202,7 @@ fi
 
 POST_TOOL_FAILURE="$HARNESS_ROOT/scripts/hook-handlers/post-tool-failure.sh"
 if [ -f "$POST_TOOL_FAILURE" ]; then
-    tmp_dir="$(mktemp -d "/tmp/harness-test.XXXXXX")"
+    tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/harness-test.XXXXXX")"
     target_file="$tmp_dir/target.txt"
     mkdir -p "$tmp_dir/.claude/state"
     printf 'SAFE\n' > "$target_file"
