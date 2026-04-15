@@ -27,19 +27,14 @@ Skills are organized in a hierarchy of **parent skills (categories)** and **chil
 
 ```
 harness/skills/
-├── impl/                  # Implementation (feature additions, test creation)
 ├── harness-review/        # Review (quality, security, performance)
-├── verify/                # Verification (build, error recovery, fix application)
 ├── setup/                 # Integrated setup (project init, tool config, 2-Agent, harness-mem, Codex CLI, rule localization)
 ├── memory/                # Memory management (SSOT, decisions.md, patterns.md, SSOT promotion, memory search)
-├── troubleshoot/          # Diagnosis and repair (errors, CI failures)
 ├── principles/            # Principles and guidelines (VibeCoder, diff editing)
 ├── auth/                  # Authentication and payments (Clerk, Supabase, Stripe)
 ├── deploy/                # Deployment (Vercel, Netlify, analytics)
 ├── ui/                    # UI (components, feedback)
-├── handoff/               # Workflow (handoffs, auto-fix)
-├── notebook-lm/           # Documentation (NotebookLM, YAML)
-└── maintenance/           # Maintenance (cleanup)
+└── notebook-lm/           # Documentation (NotebookLM, YAML)
 ```
 
 **Usage:**
@@ -53,19 +48,14 @@ harness/skills/
 |---------|------|-----------|
 | work | Task implementation (auto-scope detection, --codex support) | "implement", "do it all", "/work" |
 | breezing | Full auto-run with Agent Teams (--codex support) | "run with team", "breezing" |
-| impl | Implementation, feature additions, test creation | "implement this", "add feature", "write code" |
 | harness-review | Code review, quality checks | "review this", "security", "performance" |
-| verify | Build verification, error recovery | "build", "error recovery", "verify" |
 | setup | Integrated setup hub (project init, tool config, 2-Agent, harness-mem, Codex CLI, rule localization) | "setup", "CLAUDE.md", "initialize", "CI setup", "2-Agent", "Cursor config", "harness-mem", "codex-setup" |
 | memory | SSOT management, memory search, SSOT promotion, Cursor-linked memory | "SSOT", "decisions.md", "merge", "SSOT promotion", "memory search", "harness-mem" |
 | principles | Development principles, guidelines | "principles", "VibeCoder", "safety" |
 | auth | Authentication, payment features | "login", "Clerk", "Stripe", "payments" |
 | deploy | Deployment, analytics | "deploy", "Vercel", "GA" |
 | ui | UI component generation | "component", "hero", "form" |
-| handoff | Handoffs, auto-fix | "handoff", "report to PM", "auto-fix" |
 | notebook-lm | Document generation | "document", "NotebookLM", "slides" |
-| troubleshoot | Diagnosis and repair (including CI failures) | "not working", "error", "CI failed" |
-| maintenance | File organization | "organize", "cleanup" |
 
 ## Development Skills (Private)
 

@@ -95,11 +95,12 @@ powerball-harness/
 
 ## Version Management
 
-Version is defined in two places that must stay in sync:
-- `harness/VERSION` - Source of truth
-- `.claude-plugin/marketplace.json` - Used by plugin system
+Version is defined in three places that must stay in sync:
+- `harness/VERSION` — Primary source of truth
+- `harness/harness.toml` — The `[project] version` field
+- `harness/templates/template-registry.json` — The `templateVersion` field (updated by `sync-version.sh`)
 
-Normal feature/docs PRs should leave both files unchanged and record user-facing changes in `CHANGELOG.md` under `[Unreleased]`.
+Normal feature/docs PRs should leave all three files unchanged and record user-facing changes in `CHANGELOG.md` under `[Unreleased]`.
 Use a version bump only when you are intentionally cutting a release.
 
 ### Version Scripts
@@ -117,7 +118,7 @@ Use a version bump only when you are intentionally cutting a release.
 
 ### Release-only Versioning Policy
 
-- Normal PRs: do not edit `VERSION` or `.claude-plugin/marketplace.json`; add notes under `[Unreleased]`
+- Normal PRs: do not edit `VERSION`, `harness.toml`, or `template-registry.json`; add notes under `[Unreleased]`
 - Release work: run `./harness/skills/harness-release/scripts/sync-version.sh bump`, add a versioned `CHANGELOG.md` entry, then create the tag / GitHub Release
 - The repo pre-commit hook only syncs `marketplace.json` to `VERSION` when you intentionally edit release metadata; it does not auto-bump patch versions
 
@@ -128,50 +129,39 @@ Use a version bump only when you are intentionally cutting a release.
 
 ## CHANGELOG Rules (Required)
 
-**Follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format**
+**Uses a narrative Before/After format** (see `.claude/rules/github-release.md` for full details).
 
-Use the following sections for each version entry:
+Each version entry uses themed sections with narrative descriptions, not bare change lists:
 
 ```markdown
 ## [X.Y.Z] - YYYY-MM-DD
 
-### Added
-- New features
+### Theme: [One-line summary of the overall change]
 
-### Changed
-- Changes to existing functionality
+**[Value to the user in 1-2 sentences]**
 
-### Deprecated
-- Features soon to be removed
+---
 
-### Removed
-- Removed features
+#### 1. [Feature Name]
 
-### Fixed
-- Bug fixes
+**Before**: [Previous behavior. Concretely describe the inconvenience the user experienced.]
 
-### Security
-- Security-related fixes
+**After**: [New behavior. What is resolved + concrete examples.]
 
-#### Before/After (for major changes only)
+```Example output or command examples```
 
-| Before | After |
-|--------|-------|
-| Previous state | New state |
+#### 2. [Next Feature Name]
+
+**Before**: ...
+**After**: ...
 ```
 
-**Section guidelines**:
-
-| Section | When to use |
-|---------|-------------|
-| Added | When adding completely new functionality |
-| Changed | When changing behavior or UX of existing features |
-| Deprecated | When announcing features slated for future removal |
-| Removed | When removing features or commands |
-| Fixed | When fixing bugs or issues |
-| Security | When making security-related fixes |
-
-**Before/After table**: Only add when there is a significant experience change (command deprecation/consolidation, workflow changes, breaking changes). Omit for minor fixes.
+**Writing rules**:
+- Give each feature its own `#### N. Feature Name` section
+- "Before" should describe the problem (use the pattern "users had to...")
+- "After" should give a concrete picture of the solution (include command/output examples)
+- Longer entries are encouraged — readability is the top priority
+- Bare change lists (`- Added X`, `- Fixed Y`) without Before/After context are prohibited
 
 **Version comparison links**: Add to the end of CHANGELOG.md in the format `[X.Y.Z]: https://github.com/.../compare/vPREV...vX.Y.Z`
 
@@ -212,7 +202,7 @@ Before submitting:
    claude --plugin-dir /path/to/powerball-harness
    ```
 
-3. Verify commands work as expected (`/help`), and the core loop runs:
+4. Verify commands work as expected (`/help`), and the core loop runs:
 
    - `/harness-setup`
    - `/harness-plan`
