@@ -4,7 +4,7 @@ set -euo pipefail
 export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TMP_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -73,13 +73,13 @@ EOF
 }
 
 test_skill_mentions_preflight() {
-  assert_contains "$PROJECT_ROOT/skills/harness-release/SKILL.md" "release-preflight.sh"
-  assert_contains "$PROJECT_ROOT/skills/harness-release/SKILL.md" "HARNESS_RELEASE_HEALTHCHECK_CMD"
-  assert_contains "$PROJECT_ROOT/skills/harness-release/SKILL.md" "dry-run"
+  assert_contains "$PLUGIN_ROOT/skills/harness-release/SKILL.md" "release-preflight.sh"
+  assert_contains "$PLUGIN_ROOT/skills/harness-release/SKILL.md" "HARNESS_RELEASE_HEALTHCHECK_CMD"
+  assert_contains "$PLUGIN_ROOT/skills/harness-release/SKILL.md" "dry-run"
 }
 
 test_doc_mentions_overrides() {
-  assert_contains "$REPO_ROOT/docs/release-preflight.md" "HARNESS_RELEASE_PROJECT_ROOT"
+  assert_contains "$REPO_ROOT/docs/release-preflight.md" "HARNESS_RELEASE_PLUGIN_ROOT"
   assert_contains "$REPO_ROOT/docs/release-preflight.md" "HARNESS_RELEASE_CI_STATUS_CMD"
 }
 
@@ -88,10 +88,10 @@ test_preflight_pass_and_fail() {
   setup_repo "$repo"
 
   local success_output="$TMP_DIR/success.txt"
-  HARNESS_RELEASE_PROJECT_ROOT="$repo" \
+  HARNESS_RELEASE_PLUGIN_ROOT="$repo" \
   HARNESS_RELEASE_HEALTHCHECK_CMD='true' \
   HARNESS_RELEASE_CI_STATUS_CMD='true' \
-    "$PROJECT_ROOT/skills/harness-release/scripts/release-preflight.sh" >"$success_output"
+    "$PLUGIN_ROOT/skills/harness-release/scripts/release-preflight.sh" >"$success_output"
 
   assert_contains "$success_output" "\\[PASS\\] working tree clean"
   assert_contains "$success_output" "\\[PASS\\] CHANGELOG.md has \\[Unreleased\\]"
@@ -103,10 +103,10 @@ test_preflight_pass_and_fail() {
 
   printf 'BROKEN\n' >> "$repo/scripts/app.sh"
   local failure_output="$TMP_DIR/failure.txt"
-  if HARNESS_RELEASE_PROJECT_ROOT="$repo" \
+  if HARNESS_RELEASE_PLUGIN_ROOT="$repo" \
     HARNESS_RELEASE_HEALTHCHECK_CMD='true' \
     HARNESS_RELEASE_CI_STATUS_CMD='true' \
-      "$PROJECT_ROOT/skills/harness-release/scripts/release-preflight.sh" >"$failure_output" 2>&1; then
+      "$PLUGIN_ROOT/skills/harness-release/scripts/release-preflight.sh" >"$failure_output" 2>&1; then
     fail "preflight should fail on dirty tree"
   fi
 
@@ -122,10 +122,10 @@ test_preflight_warns_when_env_is_managed_elsewhere() {
   git -C "$repo" commit -qm "remove local env"
 
   local output="$TMP_DIR/managed-secrets.txt"
-  HARNESS_RELEASE_PROJECT_ROOT="$repo" \
+  HARNESS_RELEASE_PLUGIN_ROOT="$repo" \
   HARNESS_RELEASE_HEALTHCHECK_CMD='true' \
   HARNESS_RELEASE_CI_STATUS_CMD='true' \
-    "$PROJECT_ROOT/skills/harness-release/scripts/release-preflight.sh" >"$output"
+    "$PLUGIN_ROOT/skills/harness-release/scripts/release-preflight.sh" >"$output"
 
   assert_contains "$output" "\\[WARN\\] .env missing for .env.example"
   assert_contains "$output" "\\[PASS\\] healthcheck command"
