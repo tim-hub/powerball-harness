@@ -51,6 +51,47 @@ See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md)
 7. Plans.md 生成（`cc:TODO` マーカー付き）
 8. 次のアクション案内
 
+### create 完了時のセッション起動案内（必須）
+
+`create` が終わったら、説明だけで終わらせず、**新しいセッションの起動コマンド** と
+**起動後にそのまま入れる最初の指示プロンプト** をセットで案内する。
+
+優先順位は次の通り:
+
+1. 未完了タスクが 1 件だけ、または最初の 1 件だけ始めるのが自然
+   - 起動コマンド: `claude`
+   - 最初の入力: `/harness-work <task番号>`
+2. 依存の薄いタスクが複数あり、まとめて進めるのが自然
+   - 起動コマンド: `claude`
+   - 最初の入力: `/breezing all`
+   - 代替: `/harness-work all`
+3. 長時間実行や再入が前提
+   - 起動コマンド: `bash scripts/claude-longrun.sh`
+   - 最初の入力: `/harness-loop all`
+   - 代替: `/breezing all`
+
+最低でも次の 3 行を含める:
+
+- `新しいセッションの起動コマンド:`
+- `起動後の最初の入力:`
+- `向いている場面:`
+
+例:
+
+```text
+新しいセッションの起動コマンド: claude
+起動後の最初の入力: /breezing all
+向いている場面: Phase 1 の task が複数あり、まとめて進めるほうが自然なため
+```
+
+長時間系を勧める場合は、Claude Code セッション起動コマンドも併記する:
+
+```text
+新しいセッションの起動コマンド: bash scripts/claude-longrun.sh
+起動後の最初の入力: /harness-loop all
+向いている場面: 5 分を超える待機や resume をまたぐ長時間タスクのため
+```
+
 **CI モード** (`--ci`):
 ヒアリングなし。既存の Plans.md をそのまま利用してタスク分解のみ行う。
 
