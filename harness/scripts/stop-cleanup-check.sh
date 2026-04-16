@@ -21,14 +21,14 @@ if [ -f "Plans.md" ]; then
   if [ "$COMPLETED_TASKS" -ge 10 ]; then
     RECOMMEND_CLEANUP="true"
     REASON="completed_tasks >= 10"
-    MESSAGE="Cleanup recommended: ${COMPLETED_TASKS} completed tasks found (say 'organize' to launch the maintenance skill)"
+    MESSAGE="Cleanup recommended: ${COMPLETED_TASKS} completed tasks found (run /harness-plan archive to archive completed phases)"
   fi
 
   # Condition 2: Plans.md exceeds 200 lines
   if [ "$PLANS_LINES" -gt 200 ]; then
     RECOMMEND_CLEANUP="true"
     REASON="Plans.md > 200 lines"
-    MESSAGE="Cleanup recommended: Plans.md has grown to ${PLANS_LINES} lines (say 'organize' to launch the maintenance skill)"
+    MESSAGE="Cleanup recommended: Plans.md has grown to ${PLANS_LINES} lines (run /harness-plan archive to archive completed phases)"
   fi
 fi
 
@@ -38,7 +38,7 @@ if [ -f ".claude/memory/session-log.md" ]; then
   if [ "$SESSION_LOG_LINES" -gt 500 ]; then
     RECOMMEND_CLEANUP="true"
     REASON="session-log.md > 500 lines"
-    MESSAGE="Cleanup recommended: session-log.md has grown to ${SESSION_LOG_LINES} lines (say 'organize' to launch the maintenance skill)"
+    MESSAGE="Cleanup recommended: session-log.md has grown to ${SESSION_LOG_LINES} lines (consider splitting it by month manually)"
   fi
 fi
 
