@@ -131,6 +131,7 @@ Project files (`Plans.md`, `CLAUDE.md`, SSOT files) remain unchanged.
 - [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md)
 - [Guardrail Rules](docs/hardening-parity.md)
 - [Work All Evidence](docs/evidence/work-all.md)
+- [Advisor Strategy](docs/advisor-strategy.md)
 
 > Want to know more about how powerball-harness works under the hood? See **[harness/README.md](harness/README.md)** — full workflow diagrams, skill catalog, agent roles, and the hook event map.
 
