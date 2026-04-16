@@ -10,6 +10,7 @@ set -euo pipefail
 
 # スクリプトディレクトリ
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_UTILS="${SCRIPT_DIR}/config-utils.sh"
 
 # 共通ライブラリ読み込み
 # shellcheck source=lib/codex-worker-common.sh
@@ -40,6 +41,21 @@ DRY_RUN=false
 PROJECT_ROOT=""
 AGENTS_HASH=""
 CONTRACT_TEMPLATE="$SCRIPT_DIR/lib/codex-hardening-contract.txt"
+
+prepare_advisor_state_support() {
+    if [[ ! -f "$CONFIG_UTILS" ]]; then
+        return 0
+    fi
+
+    # shellcheck source=scripts/config-utils.sh
+    CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml"
+    source "$CONFIG_UTILS"
+
+    if declare -F ensure_advisor_state_files >/dev/null 2>&1; then
+        ensure_advisor_state_files >/dev/null
+        log_info "advisor state ready: $(get_advisor_state_dir)"
+    fi
+}
 
 # 使用方法
 usage() {
@@ -331,6 +347,9 @@ main() {
 
     log_step "1. プロジェクトルート検出"
     detect_project_root
+
+    log_step "1.5. advisor state 初期化"
+    prepare_advisor_state_support
 
     log_step "2. 依存コマンドチェック"
     check_dependencies

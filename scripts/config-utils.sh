@@ -7,6 +7,60 @@
 
 # 設定ファイルのデフォルトパス
 CONFIG_FILE="${CONFIG_FILE:-.claude-code-harness.config.yaml}"
+PROJECT_ROOT="${PROJECT_ROOT:-$(pwd)}"
+
+yaml_get_value() {
+  local query="$1"
+  local file="${2:-$CONFIG_FILE}"
+  local value=""
+
+  if [ ! -f "$file" ]; then
+    return 0
+  fi
+
+  if command -v yq >/dev/null 2>&1; then
+    value="$(yq -r "${query} // empty" "$file" 2>/dev/null || true)"
+  fi
+
+  if [ -z "$value" ] && command -v python3 >/dev/null 2>&1; then
+    value="$(python3 - "$file" "$query" <<'PY' 2>/dev/null
+import sys
+
+try:
+    import yaml
+except ImportError:
+    raise SystemExit(0)
+
+path = sys.argv[2].strip()
+if path.startswith("."):
+    path = path[1:]
+if path.startswith("."):
+    path = path[1:]
+keys = [part for part in path.split(".") if part]
+
+with open(sys.argv[1], "r", encoding="utf-8") as fh:
+    data = yaml.safe_load(fh) or {}
+
+value = data
+for key in keys:
+    if isinstance(value, dict) and key in value:
+        value = value[key]
+    else:
+        value = None
+        break
+
+if value is None:
+    raise SystemExit(0)
+if isinstance(value, bool):
+    print("true" if value else "false")
+else:
+    print(value)
+PY
+)"
+  fi
+
+  printf '%s\n' "$value"
+}
 
 # plansDirectory の検証（セキュリティ）
 # 絶対パス、親ディレクトリ参照、symlink脱出を拒否
@@ -57,30 +111,7 @@ get_plans_directory() {
   fi
 
   local value=""
-
-  # yq が利用可能な場合
-  if command -v yq >/dev/null 2>&1; then
-    value=$(yq -r '.plansDirectory // empty' "$CONFIG_FILE" 2>/dev/null)
-  fi
-
-  # yq で取得できなかった場合、Python を試行
-  if [ -z "$value" ] && command -v python3 >/dev/null 2>&1; then
-    # Python で YAML パース（pyyaml がない場合は空を返す）
-    value=$(python3 - "$CONFIG_FILE" <<'PY' 2>/dev/null
-import sys
-try:
-    import yaml
-    with open(sys.argv[1]) as f:
-        data = yaml.safe_load(f) or {}
-    print(data.get('plansDirectory', ''))
-except ImportError:
-    # pyyaml not installed - return empty to trigger grep fallback
-    pass
-except:
-    pass
-PY
-)
-  fi
+  value="$(yaml_get_value '.plansDirectory' "$CONFIG_FILE")"
 
   # yq/Python で取得できなかった場合、grep + sed でフォールバック
   if [ -z "$value" ]; then
@@ -119,4 +150,92 @@ plans_file_exists() {
   local plans_path
   plans_path=$(get_plans_file_path)
   [ -f "$plans_path" ]
+}
+
+normalize_boolean() {
+  local value="$1"
+  local default="$2"
+  case "${value}" in
+    true|TRUE|True|yes|YES|Yes|on|ON|On|1) echo "true" ;;
+    false|FALSE|False|no|NO|No|off|OFF|Off|0) echo "false" ;;
+    *) echo "$default" ;;
+  esac
+}
+
+normalize_integer() {
+  local value="$1"
+  local default="$2"
+  case "${value}" in
+    ''|*[!0-9]*) echo "$default" ;;
+    *) echo "$value" ;;
+  esac
+}
+
+advisor_config_value() {
+  local key="$1"
+  local default="$2"
+  local value=""
+  value="$(yaml_get_value ".advisor.${key}" "$CONFIG_FILE")"
+  if [ -z "$value" ]; then
+    printf '%s\n' "$default"
+    return 0
+  fi
+  printf '%s\n' "$value"
+}
+
+get_advisor_enabled() {
+  normalize_boolean "$(advisor_config_value "enabled" "true")" "true"
+}
+
+get_advisor_mode() {
+  advisor_config_value "mode" "on-demand"
+}
+
+get_advisor_max_consults_per_task() {
+  normalize_integer "$(advisor_config_value "max_consults_per_task" "3")" "3"
+}
+
+get_advisor_retry_threshold() {
+  normalize_integer "$(advisor_config_value "retry_threshold" "2")" "2"
+}
+
+get_advisor_consult_before_user_escalation() {
+  normalize_boolean "$(advisor_config_value "consult_before_user_escalation" "true")" "true"
+}
+
+get_advisor_claude_model() {
+  advisor_config_value "claude_model" "opus"
+}
+
+get_advisor_codex_model() {
+  advisor_config_value "codex_model" "gpt-5.4"
+}
+
+get_advisor_state_dir() {
+  printf '%s\n' "${PROJECT_ROOT}/.claude/state/advisor"
+}
+
+get_advisor_history_file() {
+  printf '%s/history.jsonl\n' "$(get_advisor_state_dir)"
+}
+
+get_advisor_last_request_file() {
+  printf '%s/last-request.json\n' "$(get_advisor_state_dir)"
+}
+
+get_advisor_last_response_file() {
+  printf '%s/last-response.json\n' "$(get_advisor_state_dir)"
+}
+
+ensure_advisor_state_files() {
+  local state_dir history_file request_file response_file
+  state_dir="$(get_advisor_state_dir)"
+  history_file="$(get_advisor_history_file)"
+  request_file="$(get_advisor_last_request_file)"
+  response_file="$(get_advisor_last_response_file)"
+
+  mkdir -p "${state_dir}"
+  [ -f "${history_file}" ] || : > "${history_file}"
+  [ -f "${request_file}" ] || printf '{}\n' > "${request_file}"
+  [ -f "${response_file}" ] || printf '{}\n' > "${response_file}"
 }

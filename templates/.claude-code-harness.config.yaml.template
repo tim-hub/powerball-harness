@@ -8,6 +8,16 @@
 # 例: ".claude/memory" にすると SSOT と統一配置
 plansDirectory: "."
 
+advisor:
+  # Executor が必要なときだけ相談役を呼ぶ
+  enabled: true
+  mode: on-demand
+  max_consults_per_task: 3
+  retry_threshold: 2
+  consult_before_user_escalation: true
+  claude_model: opus
+  codex_model: gpt-5.4
+
 cleanup:
   plans:
     archive_after_days: 7
@@ -83,5 +93,4 @@ hooks:
   post_tool_use:
     - matcher: "Edit|Write"
       script: "~/.claude/scripts/auto-cleanup-hook.sh"
-
 

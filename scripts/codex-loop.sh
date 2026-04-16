@@ -23,6 +23,7 @@ CURRENT_JOB_JSON="${LOOP_STATE_DIR}/current-job.json"
 PROMPTS_DIR="${LOOP_STATE_DIR}/prompts"
 RESULTS_DIR="${LOOP_STATE_DIR}/results"
 TASK_JOBS_DIR="${LOOP_STATE_DIR}/jobs"
+CONFIG_UTILS="${PROJECT_ROOT}/scripts/config-utils.sh"
 
 COMPANION="${CODEX_LOOP_COMPANION:-${PROJECT_ROOT}/scripts/codex-companion.sh}"
 VALIDATE_SCRIPT="${CODEX_LOOP_VALIDATE_SCRIPT:-${PROJECT_ROOT}/tests/validate-plugin.sh}"
@@ -37,6 +38,12 @@ NODE_BIN="${NODE_BIN:-node}"
 GENERATE_CONTRACT_SCRIPT="${CODEX_LOOP_GENERATE_CONTRACT_SCRIPT:-${PROJECT_ROOT}/scripts/generate-sprint-contract.js}"
 
 POLL_INTERVAL_SEC="${CODEX_LOOP_POLL_INTERVAL_SEC:-5}"
+
+if [ -f "${CONFIG_UTILS}" ]; then
+  # shellcheck source=scripts/config-utils.sh
+  CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml"
+  source "${CONFIG_UTILS}"
+fi
 
 usage() {
   cat <<'EOF'
@@ -57,6 +64,9 @@ timestamp_utc() {
 ensure_dirs() {
   mkdir -p "${LOOP_STATE_DIR}" "${LOCKS_DIR}" "${PROMPTS_DIR}" "${RESULTS_DIR}"
   mkdir -p "${TASK_JOBS_DIR}"
+  if declare -F ensure_advisor_state_files >/dev/null 2>&1; then
+    ensure_advisor_state_files
+  fi
 }
 
 log_line() {

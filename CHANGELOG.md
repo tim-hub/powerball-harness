@@ -6,6 +6,10 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Added
+
+- Advisor consult 用の設定項目（有効化、mode、相談回数上限、retry threshold、モデル指定）を `.claude-code-harness.config.yaml` / template から読めるようにし、loop / work が使う `.claude/state/advisor/` の state ファイルを自動初期化する helper と回帰テストを追加
+
 ## [4.1.0] - 2026-04-16
 
 ### Added
