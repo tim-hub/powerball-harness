@@ -112,7 +112,6 @@ opencode/skills/test-*/
 codex/.codex/skills/test-*/
 
 # 開発用スキル（非公開）
-skills/allow1/
 skills/claude-codex-upstream-update/
 skills/x-article/
 skills/x-announce/
