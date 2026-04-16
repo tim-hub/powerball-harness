@@ -5,6 +5,20 @@ Last release: v4.5.1 on 2026-04-16 (docs + hook removal + settings hardening)
 
 ---
 
+## Phase 66: Simplify release tooling — CHANGELOG links, version sync scope
+
+Created: 2026-04-16
+
+Goal: Remove unnecessary coupling between the plugin version and template `_harness_version` fields. Templates are scaffolded once into user projects and should allow backward compatibility — they don't need to track every plugin patch. Also simplify CHANGELOG by replacing the bottom-of-file reference-link block with inline links at each release header.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 66.1 | Replace CHANGELOG reference-link block with inline links. Remove the ~80 `[X.Y.Z]: https://...` lines at the bottom of `CHANGELOG.md`; convert each `## [X.Y.Z] - DATE` heading to `## [X.Y.Z](https://github.com/tim-hub/powerball-harness/compare/vPREV...vX.Y.Z) - DATE` with an inline URL. Update `[Unreleased]` the same way | `grep -c '^\[.*\]: https://github.com' CHANGELOG.md` returns 0; every `## [X.Y.Z]` heading is a clickable inline link; CI "compare link missing" check passes or is removed | - | cc:Done |
+| 66.2 | Remove template version syncing from `sync-version.sh`. The `sync` and `bump` subcommands currently update `_harness_version` in all `harness/templates/*.template` files and `template-registry.json`. Remove that loop — only sync `harness/VERSION`, `harness/harness.toml`, and `.claude-plugin/marketplace.json` | `bash harness/skills/harness-release/scripts/sync-version.sh bump` only modifies VERSION, harness.toml, and marketplace.json; `grep -rl '_harness_version.*4\.5' harness/templates/` still shows the old version (unchanged) | - | cc:Done |
+| 66.3 | Narrow version consistency check in `local-scripts/check-consistency.sh` and `tests/validate-plugin.sh`. Remove checks that compare `_harness_version` in templates or `template-registry.json` against `VERSION`. Only validate: VERSION == harness.toml version == marketplace.json plugin version | Version drift between templates and VERSION no longer fails `check-consistency.sh` or `validate-plugin.sh`; drift between VERSION / harness.toml / marketplace.json still fails | 66.2 | cc:TODO |
+
+---
+
 ## Phase 65: harness-sync workflow reorder
 
 Created: 2026-04-16
