@@ -6,6 +6,12 @@ Change history for claude-code-harness.
 
 ## [Unreleased](https://github.com/tim-hub/powerball-harness/compare/v4.5.1...HEAD)
 
+#### Baseline: Guardrail Engine Performance Benchmarks (Phase 62)
+
+**Before**: No benchmark baseline existed for `go/internal/guardrail/` — optimization work in Phases 62–64 had no reference point for before/after comparison.
+
+**After**: `benchmarks/phase62-baseline.json` records pre-tool and post-tool median latency on darwin-arm64. Future optimization PRs reference this file for improvement percentages.
+
 ## [4.5.1](https://github.com/tim-hub/powerball-harness/compare/v4.5.0...v4.5.1) - 2026-04-16
 
 ### Theme: Hook cost reduction, security hardening, architecture documentation
