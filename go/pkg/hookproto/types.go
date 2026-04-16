@@ -73,7 +73,7 @@ type PreToolOutput struct {
 
 // PostToolHookSpecific is the inner hookSpecificOutput for PostToolUse events.
 type PostToolHookSpecific struct {
-	HookEventName    string `json:"hookEventName"`
+	HookEventName     string `json:"hookEventName"`
 	AdditionalContext string `json:"additionalContext,omitempty"`
 }
 

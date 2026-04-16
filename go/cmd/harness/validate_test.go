@@ -262,6 +262,21 @@ effort: ultra
 	}
 }
 
+func TestValidateSkills_XHighEffort(t *testing.T) {
+	dir := t.TempDir()
+	writeSkillFile(t, dir, "xhigh-skill", `---
+name: xhigh-skill
+description: "Skill with xhigh effort."
+effort: xhigh
+---
+`)
+
+	errs, _ := validateSkillsDir(filepath.Join(dir, "skills"))
+	if len(errs) != 0 {
+		t.Errorf("expected no errors for xhigh skill effort, got: %v", errs)
+	}
+}
+
 func TestValidateSkills_InvalidContext(t *testing.T) {
 	dir := t.TempDir()
 	writeSkillFile(t, dir, "bad-context", `---
@@ -379,6 +394,20 @@ effort: extreme
 	errs, _ := validateAgentsDir(filepath.Join(dir, "agents"))
 	if !containsError(errs, "effort") {
 		t.Errorf("expected effort error, got: %v", errs)
+	}
+}
+
+func TestValidateAgents_XHighEffort(t *testing.T) {
+	dir := t.TempDir()
+	writeAgentFile(t, dir, "xhigh-agent", `---
+name: xhigh-agent
+effort: xhigh
+---
+`)
+
+	errs, _ := validateAgentsDir(filepath.Join(dir, "agents"))
+	if len(errs) != 0 {
+		t.Errorf("expected no errors for xhigh agent effort, got: %v", errs)
 	}
 }
 

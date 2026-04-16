@@ -1,6 +1,7 @@
 package guardrail
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -91,5 +92,32 @@ func TestPostTool_CIConfigTampering(t *testing.T) {
 	result := EvaluatePostTool(input)
 	if !strings.Contains(result.SystemMessage, "テスト改ざん") {
 		t.Errorf("expected CI tampering warning, got: %s", result.SystemMessage)
+	}
+}
+
+func TestPostToolOutput_JSONUsesAdditionalContext(t *testing.T) {
+	out := hookproto.PostToolOutput{
+		HookSpecificOutput: hookproto.PostToolHookSpecific{
+			HookEventName:     "PostToolUse",
+			AdditionalContext: "警告: 機密ファイルの読み取りです",
+		},
+	}
+
+	data, err := json.Marshal(out)
+	if err != nil {
+		t.Fatalf("marshal post-tool output: %v", err)
+	}
+
+	var decoded map[string]interface{}
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("unmarshal post-tool output: %v", err)
+	}
+
+	hookOut := decoded["hookSpecificOutput"].(map[string]interface{})
+	if hookOut["hookEventName"] != "PostToolUse" {
+		t.Errorf("expected PostToolUse hookEventName, got %v", hookOut["hookEventName"])
+	}
+	if hookOut["additionalContext"] != "警告: 機密ファイルの読み取りです" {
+		t.Errorf("expected additionalContext to be preserved, got %v", hookOut["additionalContext"])
 	}
 }
