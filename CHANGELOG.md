@@ -6,85 +6,41 @@ Change history for claude-code-harness.
 
 ## [Unreleased](https://github.com/tim-hub/powerball-harness/compare/v4.5.2...HEAD)
 
-## [4.5.2](https://github.com/tim-hub/powerball-harness/compare/v4.5.1...v4.5.2) - 2026-04-17
+### Phase 62: Advisor Strategy — read-only consultation agent + harness-loop skill
 
-### Theme: Guardrail performance, drift detection, and memory hygiene
+**Workers can now consult a read-only Advisor (Opus) at decision blockers instead of immediately escalating to the user.**
 
-**Cuts guardrail latency up to 77%, adds pre-implementation drift detection, and replaces stale maintenance references with actionable skill commands.**
+#### 1. Advisor Agent (`harness/agents/advisor.md`)
 
----
+**Before**: Workers had no structured escalation path between "keep retrying" and "ask the user". Repeated failures or risky tasks were either retried blindly or bubbled up to the user without a structured analysis step.
 
-#### Plans Drift Check on `harness-work` Entry (Phase 65.1)
+**After**: The Advisor agent (Opus, read-only tools) accepts a consultation request and returns exactly one of three decisions: `PLAN` (replan the approach), `CORRECTION` (apply this specific fix), or `STOP` (escalate to Reviewer). Workers consult at three trigger points: high-risk preflight, repeated-failure gate, and plateau detection.
 
-**Before**: Stale Plans.md markers (e.g. a task marked `cc:TODO` when it was already committed) were only caught after implementation and review finished.
+#### 2. harness-loop skill (`harness/skills/harness-loop/`)
 
-**After**: `harness-work` now runs `harness/scripts/plans-drift-check.sh` before mode selection. If stale markers are detected the user sees a drift summary and must confirm before implementation starts. Zero behavioral change when Plans.md is already in sync.
+**Before**: Long-running autonomous execution required the user to manually re-invoke harness-work after each task or failure.
 
-#### Fix Stale `/maintenance` References in Hook Warning Messages
+**After**: `harness-loop --until-done` iterates Plans.md tasks continuously, consulting the Advisor at trigger points and exiting cleanly on STOP or convergence. Templates added for codex-skills and opencode.
 
-**Before**: Hook warnings for oversized `session-log.md` and `Plans.md` referenced `/maintenance` — a deprecated slash command removed in v4.1.0.
+#### 3. `--advisor` / `--no-advisor` flags in breezing and harness-work
 
-**After**: Plans.md warnings now say `/harness-plan archive`; session-log.md warnings now say `/harness-plan session-log`.
+**Before**: No way to opt into structured consultation during breezing or work execution.
 
-#### `harness-plan session-log` — Session Log Month Archiving
+**After**: Both `breezing` and `harness-work` accept `--advisor` (enable) and `--no-advisor` (bypass, escalate directly to user).
 
-**Before**: When `session-log.md` exceeded 500 lines, hook warnings said "consider splitting it by month manually" with no concrete path to follow.
+#### 4. Go advisor trigger (`go/internal/hookhandler/advisor_trigger.go`)
 
-**After**: `harness-plan session-log` groups sessions by calendar month, moves past-month blocks to `.claude/memory/session-log-YYYY-MM.md`, rewrites the active file with only current-month sessions and an updated Index, then commits. Hook warnings now point directly to `/harness-plan session-log`.
+**Before**: No programmatic detection of advisor trigger conditions from hook events.
 
-#### Guardrail Engine Optimizations — Phase 62 (62.2 / 62.3 / 62.4)
+**After**: `ShouldConsultAdvisor()` detects retry threshold breaches with duplicate suppression via JSONL failure log. `NormalizeErrorSig()` canonicalizes error signatures for reliable deduplication.
 
-**Before**: `go/internal/guardrail/` called `filepath.EvalSymlinks` on every Write/Edit protected-path check (even for the same file edited repeatedly), ran `normalizeCommand` with a regex allocation on every Bash command, and ran 12 security regex patterns against every file's content regardless of whether the file could plausibly contain secrets.
+#### 5. Symlink fix (`harness/bin/harness`)
 
-**After**: Three targeted optimizations cut guardrail latency significantly on the M4 Pro benchmark:
+**Before**: `harness --version` failed when the binary was on PATH via a symlink — `dirname "$0"` resolved to the symlink's directory, not the real binary location.
 
-| Path | Baseline | Optimized | Δ |
-|------|----------|-----------|---|
-| Pre-tool (per hook invocation) | 5,969 ns | 4,740 ns | **−21%** |
-| Post-tool non-test file | 19,085 ns | 4,356 ns | **−77%** (0 allocs) |
-| Post-tool test file | 80,437 ns | 40,616 ns | **−50%** (0 allocs) |
+**After**: The shim uses `readlink -f` (Linux) / `realpath` (macOS) to resolve the real script path before `dirname`, so symlink-installed invocations work correctly.
 
-- **62.2** — `isProtectedPath` now caches `filepath.EvalSymlinks` results in a bounded 256-entry FIFO map. Repeated writes to the same file resolve symlinks exactly once per session.
-- **62.3** — `getChangedContent` called once and reused for both tampering and security checks. Security scanning gated by a 20-string `hasSuspiciousContent` pre-screen; most source files skip 12 regexes entirely.
-- **62.4** — `normalizeCommand` fast-path returns the original string (zero allocation) when no tabs, newlines, or double-spaces are present — the common case for well-formatted commands.
-
-#### Baseline: Guardrail Engine Performance Benchmarks (Phase 62)
-
-**Before**: No benchmark baseline existed for `go/internal/guardrail/` — optimization work in Phases 62–64 had no reference point for before/after comparison.
-
-**After**: `benchmarks/phase62-baseline.json` records pre-tool and post-tool median latency on darwin-arm64. Future optimization PRs reference this file for improvement percentages.
-
-## [4.5.1](https://github.com/tim-hub/powerball-harness/compare/v4.5.0...v4.5.1) - 2026-04-16
-
-### Theme: Hook cost reduction, security hardening, architecture documentation
-
-**Removes an expensive LLM hook from the pre-tool hot path; tightens the deny rule list; adds three Mermaid diagram READMEs that document the hook chain, full workflow, and Go guardrail engine.**
-
----
-
-#### 1. Remove PreToolUse Secret-Scanning Agent Hook
-
-**Before**: A Haiku-based agent hook fired on every PreToolUse `Write|Edit` event, reviewing code for hardcoded secrets and security vulnerabilities. At 30 s timeout and model invocation overhead, this added significant latency to every edit — even trivial whitespace changes.
-
-**After**: The agent hook is removed. Secret detection is already handled by the Go guardrail engine (R02, R03, R09 rules) and the post-tool security pattern scanner. Same coverage; no LLM invocation on the pre-tool fast path.
-
-#### 2. Harden `settings.json` Deny Rules
-
-**Before**: `.env` read blocking used `Bash(cat .env:*)`, which only caught `cat`; other read commands slipped through. `export PATH=*`, `export LD_LIBRARY_PATH=*`, and `export PYTHONPATH=*` were not in the deny list, allowing environment-variable injection.
-
-**After**: Deny pattern widened to `Bash(* .env)` to block any command targeting `.env`; three `export` path patterns added to the deny list; `git reset --hard *` entry moved to the correct deny section.
-
-#### 3. Architecture Diagram READMEs
-
-**Before**: Understanding the hook event flow, the skill/agent workflow, or the Go guardrail engine internals required reading source code directly — no visual overview existed.
-
-**After**: Three new Mermaid diagram READMEs:
-
-- **`harness/hooks/README.md`** — LR flowchart of all 22 hook event types → shell shims → Go binary → handler scripts; implementation pattern table (command / agent / prompt).
-- **`harness/README.md`** — Full lifecycle diagram (Setup → Plan → Work → Review → Release); execution mode decision tree; Breezing fix-loop sequence diagram; memory architecture layers; skill catalog (23 skills) and agent roles table.
-- **`go/README.md`** — End-to-end guardrail flow; rule engine iterator; R01–R13 rules grouped by tool type; post-tool tampering + security scan pipeline; permission handler safe-command allowlist; state resolution (env → SQLite → defaults); fail-safe design.
-
-## [4.5.0](https://github.com/tim-hub/powerball-harness/compare/v4.4.5...v4.5.0) - 2026-04-15
+## [4.5.0] - 2026-04-15
 
 ### Theme: Prebuilt binaries, agent optimization pass, reviewer upgrade to Opus
 
