@@ -167,6 +167,32 @@ When the same cause fails 3 times:
 2. Summarize the failure log, attempted fixes, and remaining issues
 3. Escalate to Lead agent
 
+## Advisor Consultation
+
+When enabled in config (`advisor.enabled: true`), consult the Advisor agent before escalating to the user.
+
+### Trigger Conditions
+
+| Trigger | Condition | reason_code |
+|---------|-----------|-------------|
+| High-risk preflight | Task has `<!-- advisor:required -->` marker | `high_risk_preflight` |
+| Repeated failure | Same error signature on ≥ `retry_threshold` retries | `repeated_failure` |
+| Plateau | Task restarted without new commits (stall detected) | `plateau_before_escalation` |
+
+### Consultation Flow
+
+1. Check `advisor.enabled` in `harness/.claude-code-harness.config.yaml`
+2. If enabled, invoke `powerball-harness:advisor` subagent with: `task_id`, `reason_code`, normalized `error_signature`, `retry_count`
+3. Parse response `decision` field:
+   - **`PLAN`** — adopt the `suggested_approach` and replan; continue execution
+   - **`CORRECTION`** — apply the provided fix directly; continue execution
+   - **`STOP`** — escalate to reviewer/user immediately; do not retry
+4. Record the consultation in `.claude/state/advisor/history.jsonl`
+
+### Opt-out
+
+Pass `--no-advisor` to skip consultation and escalate directly to user (useful for debugging).
+
 ## Output
 
 ```json
