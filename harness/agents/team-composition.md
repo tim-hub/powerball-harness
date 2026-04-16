@@ -1,21 +1,24 @@
 ---
 name: team-composition
-description: "Reference guide for the Harness 3-agent team — Lead/Worker/Reviewer structure, breezing execution flow, permission settings, and Codex CLI mapping. Loaded by harness-work --breezing mode."
+description: "Reference guide for the Harness 4-agent team — Lead/Worker/Reviewer/Advisor structure, breezing execution flow, permission settings, and Codex CLI mapping. Loaded by harness-work --breezing mode."
 ---
 
 # Team Composition
 
-3-agent composition for Harness.
-Consolidated from 11 agents to 3 agents.
+4-agent composition for Harness.
+Consolidated from 11 agents to 3 agents, with Advisor added as a lateral consultation role.
 
 ## Team Structure Diagram
 
 ```
 Lead (Execute skill's --breezing mode) - orchestration only
   |
-  +-- Worker (powerball-harness:worker)
-  |     Implementation + preflight self-check + build verification + commit preparation
-  |     * In --codex mode, delegates to Codex via official plugin
+  +-- Worker (powerball-harness:worker)  ──consults──>  Advisor (powerball-harness:advisor)
+  |     Implementation + preflight                       Read-only, opus model
+  |     self-check + build verification                  Returns PLAN | CORRECTION | STOP
+  |     + commit preparation                             Invoked on-demand by Worker
+  |     * In --codex mode, delegates
+  |       to Codex via official plugin
   |
   +-- [Worker #2] (powerball-harness:worker)
   |     Parallel execution of independent tasks
@@ -40,6 +43,7 @@ Lead (Execute skill's --breezing mode) - orchestration only
 | project-state-updater | scaffolder |
 | ci-cd-fixer | worker (CI recovery included) |
 | video-scene-generator | extensions/generate-video (separate) |
+| advisor (new in v4.5) | advisor |
 
 ## Role Definitions
 
@@ -63,6 +67,18 @@ Lead (Execute skill's --breezing mode) - orchestration only
 | **Prohibited** | Task (recursion prevention) |
 | **Responsibilities** | Implementation -> preflight self-check -> CI verification -> worktree commit (does not reflect to main in Breezing mode) |
 | **Error recovery** | Up to 3 times. Escalation after 3 failures |
+
+### Advisor
+
+| Item | Setting |
+|------|------|
+| **subagent_type** | `powerball-harness:advisor` |
+| **Model** | opus |
+| **Tools** | Read, Grep, Glob only (read-only) |
+| **Prohibited** | Write, Edit, Bash, Task, Agent |
+| **Authority** | Guidance only — cannot execute, cannot replace Reviewer verdict |
+| **Invocation** | On-demand by Worker (not spawned by Lead) — used when blocked, before high-risk operations, or after repeated failures |
+| **Returns** | `PLAN` (replan approach) / `CORRECTION` (local targeted fix) / `STOP` (escalate to Reviewer) |
 
 ### Reviewer
 
