@@ -55,6 +55,13 @@ if [ -z "${CWD}" ]; then
   exit 0
 fi
 
+# Guard: reject cwd that looks like JSON (CC worktree isolation bug — hook output
+# fed back as cwd field, which would cause mkdir to create a JSON-named folder)
+if [[ "${CWD}" == "{"* ]]; then
+  echo '{"decision":"approve","reason":"WorktreeCreate: skipped (invalid JSON cwd)"}'
+  exit 0
+fi
+
 # === Ensure .claude/state/ directory exists within the worktree ===
 WORKTREE_STATE_DIR="${CWD}/.claude/state"
 mkdir -p "${WORKTREE_STATE_DIR}" 2>/dev/null || true
