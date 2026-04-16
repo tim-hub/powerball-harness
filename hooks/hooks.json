@@ -222,6 +222,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" pre-compact",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook pre-compact-save",
             "timeout": 30
           },
