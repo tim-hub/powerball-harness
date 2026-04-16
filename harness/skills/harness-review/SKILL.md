@@ -2,7 +2,7 @@
 name: harness-review
 description: "Use when reviewing code, plans, or scope — pre-merge quality gate, security audit, PR examination, or second-opinion runs. Do NOT load for: implementation (harness-work), planning, or release."
 allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task"]
-argument-hint: "[code|plan|scope] [--dual] [--security]"
+argument-hint: "[code|plan|scope] [--dual] [--security] [--ui-rubric]"
 context: fork
 effort: high
 model: opus
@@ -22,6 +22,7 @@ model: opus
 | `harness-review scope` | `scope` | Force scope analysis |
 | `harness-review --dual` | `code` (auto) + Codex parallel | Claude + Codex dual review |
 | `harness-review --security` | Security Review | OWASP Top 10 dedicated security review (read-only) |
+| `harness-review --ui-rubric` | UI Rubric Review | 4-axis design quality scoring (Design Quality, Originality, Craft, Functionality) |
 
 ## Options
 
@@ -29,6 +30,7 @@ model: opus
 |--------|---------|-------------|
 | `--dual` | none | Run Claude Reviewer and Codex Reviewer in parallel and merge verdicts. Auto-fallback when Codex is unavailable. Details: [`${CLAUDE_SKILL_DIR}/references/dual-review.md`](${CLAUDE_SKILL_DIR}/references/dual-review.md) |
 | `--security` | none | Execute OWASP Top 10-based security-only review. Read-only (no Write/Edit/Bash writes). Details: [`${CLAUDE_SKILL_DIR}/references/security-profile.md`](${CLAUDE_SKILL_DIR}/references/security-profile.md) |
+| `--ui-rubric` | none | Score UI changes on 4 axes (Design Quality, Originality, Craft, Functionality) using a 0–10 rubric. Details: [`${CLAUDE_SKILL_DIR}/references/ui-rubric.md`](${CLAUDE_SKILL_DIR}/references/ui-rubric.md) |
 | `--no-commit` | none | Disable auto-commit on APPROVE |
 
 ## Review Type Auto-Detection
@@ -40,6 +42,30 @@ model: opus
 | After task addition | **Scope Review** | Scope-creep, Priority, Feasibility, Impact |
 
 ## Code Review Flow
+
+### Step 0: Reviewer Mode Auto-Detection (Browser vs Static)
+
+Before collecting the diff, determine whether to use the browser reviewer or static reviewer:
+
+```
+Does the change include UI files (.tsx, .jsx, .vue, .css, .html)?
+├─ No  → Static reviewer (proceed to Step 1)
+└─ Yes → Does the sprint-contract specify reviewer_profile: "browser"?
+    ├─ Yes → Browser reviewer (launch browser-review-runner.sh)
+    └─ No  → Is this a visual/design change (layout, color, spacing)?
+        ├─ Yes → Browser reviewer recommended (confirm with user if --ui-rubric not set)
+        └─ No  → Static reviewer (proceed to Step 1)
+```
+
+**Browser reviewer path** (when `reviewer_profile: "browser"` or UI change detected):
+```bash
+bash "${CLAUDE_SKILL_DIR}/../../scripts/browser-review-runner.sh" --contract "${CONTRACT_PATH}"
+```
+
+The browser reviewer captures screenshots, verifies interaction flows, and outputs findings conforming to the Step 3 JSON schema. Build the few-shot bank after browser review:
+```bash
+bash "${CLAUDE_SKILL_DIR}/../../scripts/build-review-few-shot-bank.sh"
+```
 
 ### Step 1: Collect Change Diff
 
@@ -164,6 +190,30 @@ Choosing between standard Code Review and `--security`:
 | Depth | Security is overview-level | Comprehensive coverage of auth, authorization, encryption, dependencies |
 | Tool restrictions | None | Read / Grep / Glob / read-only Bash only |
 | Use case | Pre-merge comprehensive check | Security-focused audit, additional pre-release verification |
+
+### Step 3.7: UI Rubric Scoring with --ui-rubric Flag
+
+When the `--ui-rubric` flag is specified, run the 4-axis design quality scoring flow **in addition to** the standard review.
+
+1. Load the UI rubric definition:
+   ```
+   Read: ${CLAUDE_SKILL_DIR}/references/ui-rubric.md
+   ```
+2. Score each axis on a 0–10 scale based on the diff and any browser screenshots available
+3. Add a `ui_rubric` field to the final review result:
+
+```json
+{
+  "ui_rubric": {
+    "design_quality": { "score": 8, "observations": ["Strong visual hierarchy", "Consistent spacing"] },
+    "originality":    { "score": 6, "observations": ["Functional but template-like layout"] },
+    "craft":          { "score": 9, "observations": ["Pixel-perfect implementation", "Smooth transitions"] },
+    "functionality":  { "score": 7, "observations": ["All happy paths covered", "Missing empty state"] }
+  }
+}
+```
+
+4. UI rubric scores are informational — they do **not** affect the APPROVE/REQUEST_CHANGES verdict unless a `functionality` score of 3 or below is detected (indicates broken features).
 
 ### Step 4: Commit Decision
 

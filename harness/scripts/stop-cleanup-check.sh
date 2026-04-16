@@ -38,7 +38,7 @@ if [ -f ".claude/memory/session-log.md" ]; then
   if [ "$SESSION_LOG_LINES" -gt 500 ]; then
     RECOMMEND_CLEANUP="true"
     REASON="session-log.md > 500 lines"
-    MESSAGE="Cleanup recommended: session-log.md has grown to ${SESSION_LOG_LINES} lines (run /harness-plan session-log to archive older months)"
+    MESSAGE="Cleanup recommended: session-log.md has grown to ${SESSION_LOG_LINES} lines (run /maintenance --prune-logs to prune older months)"
   fi
 fi
 
