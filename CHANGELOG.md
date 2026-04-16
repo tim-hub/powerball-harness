@@ -4,7 +4,27 @@ Change history for claude-code-harness.
 
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
-## [Unreleased](https://github.com/tim-hub/powerball-harness/compare/v4.5.1...HEAD)
+## [Unreleased](https://github.com/tim-hub/powerball-harness/compare/v4.5.2...HEAD)
+
+## [4.5.2](https://github.com/tim-hub/powerball-harness/compare/v4.5.1...v4.5.2) - 2026-04-17
+
+### Theme: Guardrail performance, drift detection, and memory hygiene
+
+**Cuts guardrail latency up to 77%, adds pre-implementation drift detection, and replaces stale maintenance references with actionable skill commands.**
+
+---
+
+#### Plans Drift Check on `harness-work` Entry (Phase 65.1)
+
+**Before**: Stale Plans.md markers (e.g. a task marked `cc:TODO` when it was already committed) were only caught after implementation and review finished.
+
+**After**: `harness-work` now runs `harness/scripts/plans-drift-check.sh` before mode selection. If stale markers are detected the user sees a drift summary and must confirm before implementation starts. Zero behavioral change when Plans.md is already in sync.
+
+#### Fix Stale `/maintenance` References in Hook Warning Messages
+
+**Before**: Hook warnings for oversized `session-log.md` and `Plans.md` referenced `/maintenance` — a deprecated slash command removed in v4.1.0.
+
+**After**: Plans.md warnings now say `/harness-plan archive`; session-log.md warnings now say `/harness-plan session-log`.
 
 #### `harness-plan session-log` — Session Log Month Archiving
 

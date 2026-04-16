@@ -2,7 +2,7 @@
 description: Quality gates rules (TDD, security, coverage, a11y, performance triggers)
 alwaysApply: false
 _harness_template: "rules/quality-gates.md.template"
-_harness_version: "4.5.1"
+_harness_version: "4.5.2"
 ---
 
 # Quality Gates
