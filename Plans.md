@@ -1,6 +1,6 @@
 # Powerball Harness — Plans.md
 
-Last archive: 2026-04-16 (Phase 52 → `.claude/memory/archive/Plans-2026-04-16-phase52.md`)
+Last archive: 2026-04-16 (Phase 53-54 → `.claude/memory/archive/Plans-2026-04-16-phase53-54.md`)
 Last release: v4.5.1 on 2026-04-16 (docs + hook removal + settings hardening)
 
 ---
@@ -70,7 +70,7 @@ Goal: Cut wallclock time in breezing and parallel work modes by parallelizing re
 |------|-------------|-----|---------|--------|
 | 64.1 | Parallelize reviewer invocations in `harness-work --parallel` mode. Today 2–3 workers run concurrently but feed into a single reviewer that processes verdicts one at a time. Reviewer is read-only (no Write/Edit/Bash in allowed-tools), so multiple reviewer instances can run concurrently without state conflict. Spawn one reviewer per completed worker | Review phase wallclock for 2 concurrent tasks ≤ `max(single-review-time) + 10s overhead`, measured against Phase 62 baseline; verdict outcomes identical on a fixed test scenario before vs after | Phase 62 | cc:TODO |
 | 64.2 | Parallelize sprint-contract generation in BREEZING Phase A (`skills/harness-work` Lead orchestration). Today Lead generates sprint contracts for each task sequentially before spawning workers. Contracts are independent of each other; generate them concurrently and spawn workers against already-ready contracts | BREEZING Phase A duration for a 5-task run ≤ `max(per-task contract time) + 10s overhead` vs Phase 62 baseline `sum(per-task contract time)`; worker spawn order unchanged; contract content byte-identical to sequential version on a fixed fixture | Phase 62 | cc:TODO |
-| 64.3 | Validate: `./tests/validate-plugin.sh` and `./local-scripts/check-consistency.sh` pass; re-run review-phase and BREEZING Phase A metrics and record deltas in `benchmarks/phase64-results.json`; add CHANGELOG `[Unreleased]` entry in Before/After format for the orchestration layer | Both scripts pass; results file exists with `{baseline_ms, optimized_ms, improvement_pct}` for both metrics; CHANGELOG entry present | 64.1–64.2 | cc:TODO |
+| 64.3 | Validate: `make validate` and `make check` pass; re-run review-phase and BREEZING Phase A metrics and record deltas in `benchmarks/phase64-results.json`; add CHANGELOG `[Unreleased]` entry in Before/After format for the orchestration layer | Both scripts pass; results file exists with `{baseline_ms, optimized_ms, improvement_pct}` for both metrics; CHANGELOG entry present | 64.1–64.2 | cc:TODO |
 
 ---
 
@@ -85,7 +85,7 @@ Goal: Reduce subprocess count and serial latency in the shell hook chain (`harne
 | 63.1 | Consolidate `hook memory-bridge` invocations. Today it fires separately in PreToolUse, PostToolUse, SessionStart, and Stop — 3–4 subprocess spawns per session. Replace with a single entry point that accepts a `--mode={pre,post,start,stop,user-prompt}` flag and dispatch internally | `grep -c '"command".*memory-bridge' harness/hooks/hooks.json` shows one handler per event but all point to the same underlying binary/script; total memory-bridge subprocess spawns per hook event is ≤ 1 vs Phase 62 baseline | Phase 62 | cc:TODO |
 | 63.2 | Make `POST_BATCH` (the 8 Write/Edit/Task hooks: emit-trace, auto-cleanup, track-changes, auto-test, quality-pack, plans-watcher, tdd-check, auto-broadcast) a concurrent fan-out in the Go binary (`bin/harness hook post-tool`). Today 7 of the 8 run serially in shell. Update `internal/hook/post_tool.go` to launch them as goroutines, await all, and merge output | PostToolUse batch wallclock on a representative Write/Edit drops to ≤ 40% of Phase 62 baseline; no hook output is lost or reordered; `go test -race ./internal/hook/...` passes | Phase 62 | cc:TODO |
 | 63.3 | Parallelize PreToolUse independent hooks on `Write\|Edit`: `inbox-check`, secrets-scanning agent, and `browser-guide` (where applicable) have no dependencies on each other. Run them concurrently from a single dispatcher entry | Total PreToolUse wallclock on a Write ≤ `max(individual hook time) + 20ms overhead`, not the sum; verified against Phase 62 baseline | Phase 62 | cc:TODO |
-| 63.4 | Validate: `./tests/validate-plugin.sh` and `./local-scripts/check-consistency.sh` pass; re-run PostToolUse batch and PreToolUse metrics and record deltas in `benchmarks/phase63-results.json`; add CHANGELOG `[Unreleased]` entry in Before/After format for the hooks layer | Both scripts pass; results file exists with `{baseline_ms, optimized_ms, improvement_pct}` for both metrics; CHANGELOG entry present | 63.1–63.3 | cc:TODO |
+| 63.4 | Validate: `make validate` and `make check` pass; re-run PostToolUse batch and PreToolUse metrics and record deltas in `benchmarks/phase63-results.json`; add CHANGELOG `[Unreleased]` entry in Before/After format for the hooks layer | Both scripts pass; results file exists with `{baseline_ms, optimized_ms, improvement_pct}` for both metrics; CHANGELOG entry present | 63.1–63.3 | cc:TODO |
 
 ---
 
@@ -274,33 +274,6 @@ Created: 2026-04-15
 | 55.9 | Add path lint check to `validate-plugin.sh` — flag bare relative paths in bash code blocks in SKILL.md files | New check section passes on current HEAD | 55.8 | cc:done [0125611] |
 | 55.10 | Run full validation suite (`validate-plugin.sh` + `check-consistency.sh` + `check-residue.sh`) | All pass with 0 failures | 55.9 | cc:done [0125611] |
 | 55.11 | Record changes under `[Unreleased]` in CHANGELOG.md | Entry added | 55.10 | cc:done [7b0fc70] |
-
----
-
-## Phase 53: Add Makefile for local development
-
-Created: 2026-04-15
-
-Goal: Create a Makefile at the repo root to surface common dev/CI tasks as simple `make` targets. Includes validation, consistency checks, benchmark runs, and Go build.
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 53.1 | Create `Makefile` with `validate`, `check`, `test`, `bench`, `build`, `lint` targets | `make validate` runs `tests/validate-plugin.sh`; `make check` runs `local-scripts/check-consistency.sh`; `make test` runs both; `make bench` runs `benchmarks/breezing-bench/run.sh`; `make build` runs Go binary build; `make lint` runs residue + skill-audit checks | - | cc:Done [a4aee1a] |
-| 53.2 | Add `make` usage to CONTRIBUTING.md Testing section | CONTRIBUTING.md references `make test` as the recommended pre-submit check | 53.1 | cc:Done [990c129] |
-
----
-
-## Phase 54: CI → Makefile — replace direct script calls with make targets
-
-Created: 2026-04-15
-
-Goal: Update `.github/workflows/validate-plugin.yml` to call `make` targets instead of raw script paths. Add missing make targets for CI-only steps (`version-bump`, `codex-test`). Fix stale paths in `compatibility-check.yml`. Do not touch hooks.
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 54.1 | Add `version-bump` and `codex-test` targets to Makefile | `make version-bump` runs `local-scripts/check-version-bump.sh`; `make codex-test` runs `tests/test-codex-package.sh` | - | cc:Done [fa981b1] |
-| 54.2 | Update `validate-plugin.yml` to use make targets | Steps use `make version-bump`, `make validate`, `make check`, `make codex-test` instead of `bash ./…` | 54.1 | cc:Done [fa981b1] |
-| 54.3 | Fix stale paths in `compatibility-check.yml` (Phase 52 leftover) | Paths prefixed with `harness/`; workflow triggers updated | - | cc:Done [fa981b1] |
 
 ---
 
