@@ -2,7 +2,7 @@
 description: Security guidelines rules (OWASP Top 10 checklist, path pattern detection)
 alwaysApply: false
 _harness_template: "rules/security-guidelines.md.template"
-_harness_version: "4.5.0"
+_harness_version: "4.5.1"
 ---
 
 # Security Guidelines

@@ -3,7 +3,7 @@ description: Skills Gate rules - encourage skill usage before code editing
 paths:
   - "**/*.{ts,tsx,js,jsx,py,rb,go,rs,java,kt,swift,c,cpp,h,hpp,cs,php}"
 _harness_template: "rules/skills-gate.md.template"
-_harness_version: "4.5.0"
+_harness_version: "4.5.1"
 _harness_condition: "skills_gate.enabled"
 ---
 

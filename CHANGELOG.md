@@ -6,6 +6,36 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.5.1] - 2026-04-16
+
+### Theme: Hook cost reduction, security hardening, architecture documentation
+
+**Removes an expensive LLM hook from the pre-tool hot path; tightens the deny rule list; adds three Mermaid diagram READMEs that document the hook chain, full workflow, and Go guardrail engine.**
+
+---
+
+#### 1. Remove PreToolUse Secret-Scanning Agent Hook
+
+**Before**: A Haiku-based agent hook fired on every PreToolUse `Write|Edit` event, reviewing code for hardcoded secrets and security vulnerabilities. At 30 s timeout and model invocation overhead, this added significant latency to every edit — even trivial whitespace changes.
+
+**After**: The agent hook is removed. Secret detection is already handled by the Go guardrail engine (R02, R03, R09 rules) and the post-tool security pattern scanner. Same coverage; no LLM invocation on the pre-tool fast path.
+
+#### 2. Harden `settings.json` Deny Rules
+
+**Before**: `.env` read blocking used `Bash(cat .env:*)`, which only caught `cat`; other read commands slipped through. `export PATH=*`, `export LD_LIBRARY_PATH=*`, and `export PYTHONPATH=*` were not in the deny list, allowing environment-variable injection.
+
+**After**: Deny pattern widened to `Bash(* .env)` to block any command targeting `.env`; three `export` path patterns added to the deny list; `git reset --hard *` entry moved to the correct deny section.
+
+#### 3. Architecture Diagram READMEs
+
+**Before**: Understanding the hook event flow, the skill/agent workflow, or the Go guardrail engine internals required reading source code directly — no visual overview existed.
+
+**After**: Three new Mermaid diagram READMEs:
+
+- **`harness/hooks/README.md`** — LR flowchart of all 22 hook event types → shell shims → Go binary → handler scripts; implementation pattern table (command / agent / prompt).
+- **`harness/README.md`** — Full lifecycle diagram (Setup → Plan → Work → Review → Release); execution mode decision tree; Breezing fix-loop sequence diagram; memory architecture layers; skill catalog (23 skills) and agent roles table.
+- **`go/README.md`** — End-to-end guardrail flow; rule engine iterator; R01–R13 rules grouped by tool type; post-tool tampering + security scan pipeline; permission handler safe-command allowlist; state resolution (env → SQLite → defaults); fail-safe design.
+
 ## [4.5.0] - 2026-04-15
 
 ### Theme: Prebuilt binaries, agent optimization pass, reviewer upgrade to Opus

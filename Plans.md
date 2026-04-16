@@ -1,7 +1,64 @@
 # Powerball Harness — Plans.md
 
-Last archive: 2026-04-15 (Phase 35–48 → `.claude/memory/archive/Plans-2026-04-15-phase35-48.md`)
+Last archive: 2026-04-16 (Phase 49–51 → `.claude/memory/archive/Plans-2026-04-16-phase49-51.md`)
 Last release: v4.5.0 on 2026-04-15 (Phase 60+61)
+
+---
+
+## Phase 65: harness-sync workflow reorder
+
+Created: 2026-04-16
+
+Goal: Catch stale Plans.md markers before implementation starts, not after review ends. This is a workflow-flow change (not a latency optimization), so it lives in its own phase rather than with the perf work.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 65.1 | Reorder `harness-sync` to run before `harness-work` (not after review). Today sync/drift-check happens post-review, which means stale Plans.md markers are only caught after implementation. Add an entry-point drift check in `harness-work` that runs a lightweight sync pass before mode selection; full sync still runs at session boundaries | `harness-work` invocation on a Plans.md with stale markers (e.g. cc:TODO for a task that's already committed) prints a drift summary and exits non-zero when ≥ 1 stale marker is detected, prompting the user to confirm before implementation starts; zero behavioral change when Plans.md is already in sync | - | cc:TODO |
+
+---
+
+## Phase 64: Agent orchestration optimizations
+
+Created: 2026-04-16
+
+Goal: Cut wallclock time in breezing and parallel work modes by parallelizing reviewer invocations and sprint-contract generation. Depends on Phase 62 baseline numbers for before/after comparison.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 64.1 | Parallelize reviewer invocations in `harness-work --parallel` mode. Today 2–3 workers run concurrently but feed into a single reviewer that processes verdicts one at a time. Reviewer is read-only (no Write/Edit/Bash in allowed-tools), so multiple reviewer instances can run concurrently without state conflict. Spawn one reviewer per completed worker | Review phase wallclock for 2 concurrent tasks ≤ `max(single-review-time) + 10s overhead`, measured against Phase 62 baseline; verdict outcomes identical on a fixed test scenario before vs after | Phase 62 | cc:TODO |
+| 64.2 | Parallelize sprint-contract generation in BREEZING Phase A (`skills/harness-work` Lead orchestration). Today Lead generates sprint contracts for each task sequentially before spawning workers. Contracts are independent of each other; generate them concurrently and spawn workers against already-ready contracts | BREEZING Phase A duration for a 5-task run ≤ `max(per-task contract time) + 10s overhead` vs Phase 62 baseline `sum(per-task contract time)`; worker spawn order unchanged; contract content byte-identical to sequential version on a fixed fixture | Phase 62 | cc:TODO |
+| 64.3 | Validate: `./tests/validate-plugin.sh` and `./local-scripts/check-consistency.sh` pass; re-run review-phase and BREEZING Phase A metrics and record deltas in `benchmarks/phase64-results.json`; add CHANGELOG `[Unreleased]` entry in Before/After format for the orchestration layer | Both scripts pass; results file exists with `{baseline_ms, optimized_ms, improvement_pct}` for both metrics; CHANGELOG entry present | 64.1–64.2 | cc:TODO |
+
+---
+
+## Phase 63: Hook chain optimizations
+
+Created: 2026-04-16
+
+Goal: Reduce subprocess count and serial latency in the shell hook chain (`harness/hooks/`, `harness/scripts/`, `go/internal/hook/`). Depends on Phase 62 baseline numbers for before/after comparison.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 63.1 | Consolidate `hook memory-bridge` invocations. Today it fires separately in PreToolUse, PostToolUse, SessionStart, and Stop — 3–4 subprocess spawns per session. Replace with a single entry point that accepts a `--mode={pre,post,start,stop,user-prompt}` flag and dispatch internally | `grep -c '"command".*memory-bridge' harness/hooks/hooks.json` shows one handler per event but all point to the same underlying binary/script; total memory-bridge subprocess spawns per hook event is ≤ 1 vs Phase 62 baseline | Phase 62 | cc:TODO |
+| 63.2 | Make `POST_BATCH` (the 8 Write/Edit/Task hooks: emit-trace, auto-cleanup, track-changes, auto-test, quality-pack, plans-watcher, tdd-check, auto-broadcast) a concurrent fan-out in the Go binary (`bin/harness hook post-tool`). Today 7 of the 8 run serially in shell. Update `internal/hook/post_tool.go` to launch them as goroutines, await all, and merge output | PostToolUse batch wallclock on a representative Write/Edit drops to ≤ 40% of Phase 62 baseline; no hook output is lost or reordered; `go test -race ./internal/hook/...` passes | Phase 62 | cc:TODO |
+| 63.3 | Parallelize PreToolUse independent hooks on `Write\|Edit`: `inbox-check`, secrets-scanning agent, and `browser-guide` (where applicable) have no dependencies on each other. Run them concurrently from a single dispatcher entry | Total PreToolUse wallclock on a Write ≤ `max(individual hook time) + 20ms overhead`, not the sum; verified against Phase 62 baseline | Phase 62 | cc:TODO |
+| 63.4 | Validate: `./tests/validate-plugin.sh` and `./local-scripts/check-consistency.sh` pass; re-run PostToolUse batch and PreToolUse metrics and record deltas in `benchmarks/phase63-results.json`; add CHANGELOG `[Unreleased]` entry in Before/After format for the hooks layer | Both scripts pass; results file exists with `{baseline_ms, optimized_ms, improvement_pct}` for both metrics; CHANGELOG entry present | 63.1–63.3 | cc:TODO |
+
+---
+
+## Phase 62: Go guardrail engine optimizations
+
+Created: 2026-04-16
+
+Goal: Cut latency in `go/internal/guardrail/` — the fast path that runs on every pre-tool and post-tool invocation. All three changes are purely additive (cache, gate, fast-path) with zero change to allow/deny/ask decisions or rule logic. Baseline captured here is shared by Phases 63 and 64.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 62.1 | Capture baseline benchmarks for all five metrics (pre-tool median, PostToolUse batch wallclock, SessionStart→first prompt, BREEZING Phase A for 5 tasks, post-tool tampering+security scan on a non-test file). Store raw numbers in `benchmarks/phase62-baseline.json` | File exists with all five metrics recorded as `{baseline_ms, sample_count, platform}`; results reproducible across 3 consecutive runs within ±10% | - | cc:TODO |
+| 62.2 | Add a per-session resolved-path cache to `internal/guardrail/helpers.go::isProtectedPath`. `filepath.EvalSymlinks` currently stats the filesystem on every Write/Edit protected-path check, even for paths already resolved earlier in the same session. Cache `{inputPath → resolvedPath}` in a bounded map (max 256 entries, evict oldest on overflow) | Repeated Write/Edit on the same file in a session calls `EvalSymlinks` exactly once; cache hit ratio ≥ 80% on a 50-edit workflow benchmark; map never exceeds 256 entries; no change in deny/allow decisions on the existing rule test suite | 62.1 | cc:TODO |
+| 62.3 | Split `detectTampering` (T01–T12) and `detectSecurityRisks` by file type in `internal/guardrail/post_tool.go`. Tampering patterns are only meaningful on test and CI-config files; today all 12 tampering regexes run on every Write/Edit regardless of file path. Add an early path-based gate that skips the tampering scan for non-test files | Post-tool latency on a non-test file drops ≥ 40% vs 62.1 baseline; tampering still detected on test files (`*_test.*`, `test_*`, `*.spec.*`, `.github/workflows/*.yml`, etc.) with no regression in existing post_tool test suite | 62.1 | cc:TODO |
+| 62.4 | Add a fast-path to `internal/guardrail/helpers.go::normalizeCommand`. Today it runs unconditionally on every Bash command before regex matching, allocating a new string even when the command is already normalized. Add `if !strings.ContainsAny(cmd, "\t\r\n") && !strings.Contains(cmd, "  ") { return cmd }` before the allocation | Benchmark shows zero allocations and early return for simple single-spaced commands; normalize still correctly collapses whitespace when present; all existing rule tests pass unchanged | 62.1 | cc:TODO |
+| 62.5 | Validate: `go test -race ./...` passes; re-run pre-tool and post-tool metrics from 62.1 and record deltas in `benchmarks/phase62-results.json`; add CHANGELOG `[Unreleased]` entry in Before/After format for the guardrail layer | All tests pass; results file exists with `{baseline_ms, optimized_ms, improvement_pct}` for pre-tool and post-tool metrics; CHANGELOG entry present | 62.2–62.4 | cc:TODO |
 
 ---
 
@@ -285,69 +342,3 @@ Goal: Update `.github/workflows/validate-plugin.yml` to call `make` targets inst
 (none currently)
 
 ---
-
-## Phase 51: Eliminate mirror directories — setup-time copy replaces build-time sync
-
-Created: 2026-04-15
-
-Goal: Delete `codex/`, `opencode/`, and `skills-codex/` directories. Move their config/templates to `templates/codex/` and `templates/opencode/`. Replace the mirror sync machinery with `harness-setup codex`, `harness-setup opencode`, and `harness-setup duo` subcommands that copy skills from the plugin's `skills/` to the user's project at setup time.
-
-Design decisions (confirmed with opus agent):
-- Codex: patch `disable-model-invocation: true` into SKILL.md frontmatter at copy time
-- OpenCode: copy skills as-is (no frontmatter stripping — opencode ignores unknown fields)
-- `skills-codex/`: move to `templates/codex-skills/` as codex-native skill overrides (breezing, harness-work); overlaid on top of skills/ copies during codex setup
-- AGENTS.md: static template pointing to CLAUDE.md + agent role table (not generated)
-- CI: replace mirror sync checks with template existence + setup idempotency tests
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 51.1 | Create `templates/codex/` with `config.toml`, `rules/harness.rules`, `.codexignore`, `AGENTS.md`, `README.md` from `codex/` | Files exist in `templates/codex/`; content matches originals | - | cc:done |
-| 51.2 | Move opencode config to `templates/opencode/`: add `opencode.json`, `AGENTS.md`, `README.md`; commands already exist there | `templates/opencode/` has all config + commands | - | cc:done |
-| 51.3 | Delete `codex/` directory | `codex/` no longer exists; git rm clean | 51.1 | cc:done |
-| 51.4 | Delete `opencode/` directory | `opencode/` no longer exists | 51.2 | cc:done |
-| 51.5 | Move `skills-codex/` → `templates/codex-skills/` (codex-native skill overrides: breezing, harness-work) | `templates/codex-skills/` exists with same content; `skills-codex/` removed | - | cc:done |
-| 51.6 | Implement `harness-setup codex` subcommand in SKILL.md | Checks codex installed; copies `templates/codex/*` → `.codex/`; copies `skills/` → `.codex/skills/` with `disable-model-invocation: true` patch; then overlays `templates/codex-skills/` → `.codex/skills/` (overrides same-name skills with codex-native variants) | 51.1, 51.3, 51.5 | cc:done |
-| 51.7 | Implement `harness-setup opencode` subcommand in SKILL.md | Checks opencode installed; copies `templates/opencode/*` → `.opencode/`; copies `skills/` → `.opencode/skills/` as-is | 51.2, 51.4 | cc:done |
-| 51.8 | Implement `harness-setup duo` subcommand | Runs both codex + opencode setup | 51.6, 51.7 | cc:done |
-| 51.9 | Remove mirror sync scripts: `sync-skill-mirrors.mjs`, `build-opencode.mjs`, `sync-skills.mjs`, `validate-opencode.mjs` | Scripts deleted; no remaining references | 51.3, 51.4 | cc:done |
-| 51.10 | Remove mirror sync CI: update `compatibility-check.yml`, `check-consistency.sh` mirror section, `validate-plugin.sh` opencode refs | CI passes without mirror checks | 51.9 | cc:done |
-| 51.11 | Add template existence check to `validate-plugin.sh` | `templates/codex/config.toml` and `templates/opencode/opencode.json` verified in CI | 51.10 | cc:done |
-| 51.12 | Add `codex/`, `opencode/`, `skills-codex/` to `deleted-concepts.yaml` | `check-residue.sh` 0 detections on HEAD | 51.3–51.5 | cc:done |
-| 51.13 | Update `tests/test-codex-package.sh` — remove refs to deleted paths | Test passes; no references to `codex/.codex/skills/` | 51.3 | cc:done |
-| 51.14 | Update CHANGELOG [Unreleased] and run full validation | `validate-plugin.sh` + `check-consistency.sh` + `check-residue.sh` all pass | 51.1–51.13 | cc:done |
-
----
-
-## Phase 50: Refocus skills/ on software development — move creative/content skills
-
-Created: 2026-04-15
-
-Goal: Move non-software-development skills (`allow1`, `generate-slide`, `generate-video`) from `skills/` to `.claude/skills/`, move `video-scene-generator.md` agent to `.claude/agents/`, and relocate `skills/routing-rules.md` to `.claude/rules/`. Remove their codex/opencode mirrors and update consistency checks.
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 50.1 | Move `skills/allow1` → `.claude/skills/allow1`; remove codex/opencode mirrors | `.claude/skills/allow1/SKILL.md` exists; no mirror dirs remain; consistency check passes | - | cc:done [1a2fa24] |
-| 50.2 | Move `skills/generate-slide` → `.claude/skills/generate-slide`; remove mirrors | `.claude/skills/generate-slide/SKILL.md` exists; no mirror dirs remain | - | cc:done [1a2fa24] |
-| 50.3 | Move `skills/generate-video` → `.claude/skills/generate-video`; remove mirrors | `.claude/skills/generate-video/SKILL.md` exists; no mirror dirs remain | - | cc:done [1a2fa24] |
-| 50.4 | Move `agents/video-scene-generator.md` → `.claude/agents/video-scene-generator.md` | File exists in new location; removed from `agents/` | - | cc:done [1a2fa24] |
-| 50.5 | Move `skills/routing-rules.md` → `.claude/rules/skill-routing-rules.md` | File in `.claude/rules/`; update any references | - | cc:done [1a2fa24] |
-| 50.6 | Update `build-opencode.mjs` skipSkills; confirm consistency check passes | 0 mirror check errors | 50.1–50.3 | cc:done [1a2fa24] |
-| 50.7 | Add moved skills/agents to `deleted-concepts.yaml` residue scan | `check-residue.sh` 0 detections on HEAD | 50.1–50.5 | cc:done [1a2fa24] |
-| 50.8 | Update CHANGELOG and validate | CHANGELOG has [Unreleased] entry; 0 residue violations | 50.1–50.7 | cc:done [1a2fa24] |
-
----
-
-## Phase 49: harness-setup build-from-source + hooks.json SSOT consolidation
-
-Created: 2026-04-14
-
-Goal: Replace the network-dependent binary download with a local Go build, deduplicate the deny list in harness.toml, and make `.claude-plugin/hooks.json` the single source of truth by symlinking `hooks/hooks.json` to it.
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 49.1 | Replace `download-binary.sh` with `build-binary.sh` that compiles from Go source for current platform | `build-binary.sh` exists; script builds and installs correct arch binary; SKILL.md and hooks.json updated | - | cc:done [569bf3b] |
-| 49.2 | Deduplicate `harness.toml` deny list — remove 42 redundant entries subsumed by umbrella rules (`sudo:*`, `rm -rf:*`, `git reset --hard *`, `*bitcoin*`) | No duplicate entries; `python3` duplicate check returns "none" | - | cc:done [bdd816b] |
-| 49.3 | Symlink `hooks/hooks.json` → `../.claude-plugin/hooks.json`; update `syncHooksJSON` in `sync.go` to detect symlink and skip copy | `ls -la hooks/hooks.json` shows symlink; `harness sync` prints "skipped (symlinked)"; all sync tests pass | 49.2 | cc:done [108441b] |
-
----
-
