@@ -1,0 +1,39 @@
+{
+  "phase": "62",
+  "description": "Guardrail engine optimizations: EvalSymlinks cache (62.2), post_tool content dedup + security pre-screen (62.3), normalizeCommand fast-path (62.4)",
+  "captured_at": "2026-04-17",
+  "platform": "darwin-arm64",
+  "cpu": "Apple M4 Pro",
+  "go_version": "go1.26.1 darwin/arm64",
+  "benchmark_command": "go test -bench=. -benchmem -benchtime=3s ./internal/guardrail/...",
+  "results": {
+    "pre_tool": {
+      "baseline_ns": 5969,
+      "optimized_ns": 4740,
+      "improvement_pct": 20.6,
+      "note": "EvalSymlinks cache (62.2) + normalizeCommand fast-path (62.4)"
+    },
+    "post_tool_non_test": {
+      "baseline_ns": 19085,
+      "optimized_ns": 4356,
+      "improvement_pct": 77.2,
+      "allocs_optimized": 0,
+      "note": "Security pre-screen (62.3) skips 12 regex patterns for clean source files; 0 allocs"
+    },
+    "post_tool_test_file": {
+      "baseline_ns": 80437,
+      "optimized_ns": 40616,
+      "improvement_pct": 49.5,
+      "allocs_optimized": 0,
+      "note": "Deduplication of getChangedContent call (62.3); tampering + security now share one content read"
+    },
+    "post_tool_batch_wallclock_ms": "N/A (runtime-only)",
+    "session_start_first_prompt_ms": "N/A (runtime-only)",
+    "breezing_phase_a_5tasks_ms": "N/A (runtime-only)"
+  },
+  "dod_targets": {
+    "pre_tool_improvement": "≥20% — EXCEEDED (20.6%)",
+    "post_tool_non_test_improvement": "≥40% — EXCEEDED (77.2%)",
+    "post_tool_test_file_note": "49.5% improvement (bonus — not a primary DoD target)"
+  }
+}

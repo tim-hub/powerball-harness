@@ -6,6 +6,22 @@ Change history for claude-code-harness.
 
 ## [Unreleased](https://github.com/tim-hub/powerball-harness/compare/v4.5.1...HEAD)
 
+#### Guardrail Engine Optimizations — Phase 62 (62.2 / 62.3 / 62.4)
+
+**Before**: `go/internal/guardrail/` called `filepath.EvalSymlinks` on every Write/Edit protected-path check (even for the same file edited repeatedly), ran `normalizeCommand` with a regex allocation on every Bash command, and ran 12 security regex patterns against every file's content regardless of whether the file could plausibly contain secrets.
+
+**After**: Three targeted optimizations cut guardrail latency significantly on the M4 Pro benchmark:
+
+| Path | Baseline | Optimized | Δ |
+|------|----------|-----------|---|
+| Pre-tool (per hook invocation) | 5,969 ns | 4,740 ns | **−21%** |
+| Post-tool non-test file | 19,085 ns | 4,356 ns | **−77%** (0 allocs) |
+| Post-tool test file | 80,437 ns | 40,616 ns | **−50%** (0 allocs) |
+
+- **62.2** — `isProtectedPath` now caches `filepath.EvalSymlinks` results in a bounded 256-entry FIFO map. Repeated writes to the same file resolve symlinks exactly once per session.
+- **62.3** — `getChangedContent` called once and reused for both tampering and security checks. Security scanning gated by a 20-string `hasSuspiciousContent` pre-screen; most source files skip 12 regexes entirely.
+- **62.4** — `normalizeCommand` fast-path returns the original string (zero allocation) when no tabs, newlines, or double-spaces are present — the common case for well-formatted commands.
+
 #### Baseline: Guardrail Engine Performance Benchmarks (Phase 62)
 
 **Before**: No benchmark baseline existed for `go/internal/guardrail/` — optimization work in Phases 62–64 had no reference point for before/after comparison.
