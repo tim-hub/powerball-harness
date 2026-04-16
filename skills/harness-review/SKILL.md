@@ -20,11 +20,16 @@ Harness の統合レビュースキル。
 - `verify` — ビルド検証・エラー復旧・レビュー修正適用
 - `troubleshoot` — エラー・障害の診断と修復
 
+> **Literal slash note (CC 2.1.108+ / 2.1.110+)**:
+> built-in slash command は Skill tool から発見できる。
+> `disable-model-invocation: true` な skill でも mid-message の `/<skill>` 呼び出しが通るので、
+> `/harness-review` `/review` `/security-review` `/ultrareview` は slash 付きのまま扱う。
+
 ---
 
 ## 🚀 Step 0: 動作モード決定 (必ず最初に読む)
 
-> **あなたは今この瞬間からレビュアーとして動作します。** 以下の決定木に従って**自動的にレビューを開始**してください。「タスクが不明確」「追加の指示を待つ」で停止してはいけません。bare 呼び出し (`/HAR:review` 引数なし) の場合でも git 状態から対象を自動検出して Code Review を開始します。
+> **あなたは今この瞬間からレビュアーとして動作します。** 以下の決定木に従って**自動的にレビューを開始**してください。「タスクが不明確」「追加の指示を待つ」で停止してはいけません。bare 呼び出し (`/harness-review` 引数なし) の場合でも git 状態から対象を自動検出して Code Review を開始します。
 
 ### 決定木
 
@@ -41,7 +46,7 @@ Harness の統合レビュースキル。
 
 ### Bare 呼び出し時の default フロー
 
-引数無しで `/HAR:review` が呼ばれた場合、以下を順番に実行して**必ず Code Review を自動開始**してください:
+引数無しで `/harness-review` が呼ばれた場合、以下を順番に実行して**必ず Code Review を自動開始**してください:
 
 #### Step 0.1: git 状態から base ref を自動決定
 
@@ -144,15 +149,16 @@ echo "Auto-detected review type: ${REVIEW_TYPE}"
 
 | ユーザー入力 | サブコマンド | 動作 |
 |------------|------------|------|
-| "レビューして" / "review" | `code`（自動） | コードレビュー（直近の変更） |
+| "レビューして" / `/harness-review` / `/review` | `code`（自動） | コードレビュー（直近の変更） |
 | "`harness-plan` 実行後" | `plan`（自動） | 計画レビュー |
 | "スコープ確認" | `scope`（自動） | スコープ分析 |
-| `harness-review code` | `code` | コードレビュー強制 |
-| `harness-review plan` | `plan` | 計画レビュー強制 |
-| `harness-review scope` | `scope` | スコープ分析強制 |
-| `harness-review --dual` | `code`（自動） + Codex 並行 | Claude + Codex dual review |
-| `harness-review --security` | Security Review | OWASP Top 10 専用セキュリティレビュー（read-only） |
-| `harness-review --ui-rubric` | UI Rubric Review | デザイン品質の 4 軸採点レビュー |
+| `/harness-review code` | `code` | コードレビュー強制 |
+| `/harness-review plan` | `plan` | 計画レビュー強制 |
+| `/harness-review scope` | `scope` | スコープ分析強制 |
+| `/harness-review --dual` | `code`（自動） + Codex 並行 | Claude + Codex dual review |
+| `/harness-review --security` | Security Review | OWASP Top 10 専用セキュリティレビュー（read-only） |
+| `/harness-review --ui-rubric` | UI Rubric Review | デザイン品質の 4 軸採点レビュー |
+| `/ultrareview` | built-in slash | クラウド並列の広域レビュー。明示要求時だけ追加で使う |
 
 ## オプション
 

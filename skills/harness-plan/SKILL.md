@@ -21,12 +21,17 @@ Harness の統合プランニングスキル。
 
 | ユーザー入力 | サブコマンド | 動作 |
 |------------|------------|------|
-| "計画を作って" / "create a plan" | `create` | 対話型ヒアリング → Plans.md 生成 |
-| "タスクを追加して" / "add a task" | `add` | Plans.md に新タスク追加 |
-| "完了にして" / "mark complete" | `update` | タスクマーカーを cc:完了 に変更 |
-| "今どこ？" / "check progress" | `sync` | 実装とPlans.mdを照合・同期 |
-| `harness-sync` | `sync` | 進捗確認（独立 sync surface と同等） |
-| `harness-plan create` | `create` | 計画作成 |
+| "計画を作って" / `/harness-plan create` | `create` | 対話型ヒアリング → Plans.md 生成 |
+| "タスクを追加して" / `/harness-plan add` | `add` | Plans.md に新タスク追加 |
+| "完了にして" / `/harness-plan update` | `update` | タスクマーカーを cc:完了 に変更 |
+| "今どこ？" / `/harness-plan sync` | `sync` | 実装とPlans.mdを照合・同期 |
+| `/harness-sync` | `sync` | 進捗確認（独立 sync surface と同等） |
+| `/harness-plan create` | `create` | 計画作成 |
+
+## Literal companion commands（CC 2.1.108+）
+
+- `/recap`: 久しぶりに戻った時に要約を取り直してから `sync` へ入る
+- `/undo`: `/rewind` の別名。直前の plan 更新を即座に戻したい時にそのまま使う
 
 ## サブコマンド詳細
 
@@ -54,7 +59,7 @@ See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md)
 Plans.md に新しいタスクを追加する。
 
 ```
-harness-plan add タスク名: 詳細説明 [--phase フェーズ番号]
+/harness-plan add タスク名: 詳細説明 [--phase フェーズ番号]
 ```
 
 タスクは `cc:TODO` マーカーで追加される。
@@ -64,7 +69,7 @@ harness-plan add タスク名: 詳細説明 [--phase フェーズ番号]
 タスクのステータスマーカーを変更する。
 
 ```
-harness-plan update [タスク名|タスク番号] [WIP|完了|blocked]
+/harness-plan update [タスク名|タスク番号] [WIP|完了|blocked]
 ```
 
 マーカー対応表:

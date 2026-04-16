@@ -14,6 +14,10 @@ argument-hint: "[all|N-M] [--max-cycles N] [--pacing worker|ci|plateau|night]"
 各 wake-up で `harness-work --breezing` を Agent 経由で呼び出し、
 1 サイクル = 1 タスク完結の再入可能ループを構成する。
 
+> **Long-session helpers (CC 2.1.108+)**:
+> 人が戻ってきたら `/recap` で要約を取り直してから `/harness-loop status` を見る。
+> 長めの離席や再入が多い運用では `ENABLE_PROMPT_CACHING_1H=1` を優先する。
+
 ## Quick Reference
 
 | 入力 | 動作 |
@@ -22,6 +26,8 @@ argument-hint: "[all|N-M] [--max-cycles N] [--pacing worker|ci|plateau|night]"
 | `/harness-loop all --max-cycles 3` | 3 サイクルで停止 |
 | `/harness-loop 41.1-41.3 --pacing ci` | タスク範囲を CI pacing で実行 |
 | `/harness-loop all --pacing night` | 深夜バッチ（3600s 間隔） |
+| `/harness-loop status` | 進行中ランナーの状態確認 |
+| `/harness-loop stop` | 進行中ランナーの停止要求 |
 
 ## オプション
 
