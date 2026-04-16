@@ -6,6 +6,14 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.5.0] - 2026-04-15
+
+### Theme: Prebuilt binaries, agent optimization pass, reviewer upgrade to Opus
+
+**Binaries now ship in `harness/bin/` so installs never need Go. All 6 agent files optimized (descriptions, tool lists, size). Reviewer upgraded to Opus for sharper critical/major classification.**
+
+---
+
 ### Phase 60: Prebuilt binaries + build tooling overhaul
 
 **Prebuilt platform binaries now ship in `harness/bin/`. Fresh installs no longer require Go. `make build-all` cross-compiles all platforms. The pre-commit hook auto-rebuilds binaries when `go/` files change.**

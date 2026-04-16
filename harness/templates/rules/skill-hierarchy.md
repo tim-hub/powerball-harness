@@ -1,6 +1,6 @@
 ---
 _harness_template: rules/skill-hierarchy.md
-_harness_version: "4.4.6"
+_harness_version: "4.5.0"
 ---
 
 # Skill Hierarchy Guidelines
