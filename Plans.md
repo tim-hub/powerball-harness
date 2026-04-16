@@ -30,76 +30,76 @@
 
 ---
 
-### Phase 37.1: Trivial ハンドラ (10個) [cc:TODO]
+### Phase 37.1: Trivial ハンドラ (10個) [cc:完了]
 
 難易度: 低 / 各 ~50-100行 / ファイルI/O + JSON出力のみ
 
 | Task | ハンドラ | 元ファイル | 行数 | 内容 | Status |
 |------|---------|-----------|------|------|--------|
-| 37.1.1 | pretooluse-inbox-check | scripts/pretooluse-inbox-check.sh | 82 | 他セッションからの未読メッセージチェック (5分スロットル) | cc:TODO |
-| 37.1.2 | pretooluse-browser-guide | scripts/pretooluse-browser-guide.sh | 84 | agent-browser CLI 検出 + MCP ブラウザツール推奨 | cc:TODO |
-| 37.1.3 | memory-bridge | scripts/hook-handlers/memory-bridge.sh + 4サブハンドラ | 55 | harness-mem MCP ブリッジディスパッチャ (session-start/user-prompt/post-tool/stop) | cc:TODO |
-| 37.1.4 | worktree-create | scripts/hook-handlers/worktree-create.sh | 93 | .claude/state/ 作成 + worktree-info.json 記録 | cc:TODO |
-| 37.1.5 | worktree-remove | scripts/hook-handlers/worktree-remove.sh | 73 | tmp ファイル削除 + worktree-info.json 削除 | cc:TODO |
-| 37.1.6 | posttooluse-commit-cleanup | scripts/posttooluse-commit-cleanup.sh | 50 | git commit 検出 → review-approved.json 削除 | cc:TODO |
-| 37.1.7 | posttooluse-clear-pending | scripts/posttooluse-clear-pending.sh | 28 | pending-skills/*.pending 削除 (スキル完了シグナル) | cc:TODO |
-| 37.1.8 | session-auto-broadcast | scripts/session-auto-broadcast.sh | 103 | src/api/, types/, schema 変更時のチームメイト通知 | cc:TODO |
-| 37.1.9 | config-change | scripts/hook-handlers/config-change.sh | 92 | ConfigChange → breezing-timeline.jsonl 記録 | cc:TODO |
-| 37.1.10 | instructions-loaded | scripts/hook-handlers/instructions-loaded.sh | 86 | InstructionsLoaded → jsonl ログ + hooks.json 存在検証 | cc:TODO |
+| 37.1.1 | pretooluse-inbox-check | scripts/pretooluse-inbox-check.sh | 82 | 他セッションからの未読メッセージチェック (5分スロットル) | cc:完了 |
+| 37.1.2 | pretooluse-browser-guide | scripts/pretooluse-browser-guide.sh | 84 | agent-browser CLI 検出 + MCP ブラウザツール推奨 | cc:完了 |
+| 37.1.3 | memory-bridge | scripts/hook-handlers/memory-bridge.sh + 4サブハンドラ | 55 | harness-mem MCP ブリッジディスパッチャ (session-start/user-prompt/post-tool/stop) | cc:完了 |
+| 37.1.4 | worktree-create | scripts/hook-handlers/worktree-create.sh | 93 | .claude/state/ 作成 + worktree-info.json 記録 | cc:完了 |
+| 37.1.5 | worktree-remove | scripts/hook-handlers/worktree-remove.sh | 73 | tmp ファイル削除 + worktree-info.json 削除 | cc:完了 |
+| 37.1.6 | posttooluse-commit-cleanup | scripts/posttooluse-commit-cleanup.sh | 50 | git commit 検出 → review-approved.json 削除 | cc:完了 |
+| 37.1.7 | posttooluse-clear-pending | scripts/posttooluse-clear-pending.sh | 28 | pending-skills/*.pending 削除 (スキル完了シグナル) | cc:完了 |
+| 37.1.8 | session-auto-broadcast | scripts/session-auto-broadcast.sh | 103 | src/api/, types/, schema 変更時のチームメイト通知 | cc:完了 |
+| 37.1.9 | config-change | scripts/hook-handlers/config-change.sh | 92 | ConfigChange → breezing-timeline.jsonl 記録 | cc:完了 |
+| 37.1.10 | instructions-loaded | scripts/hook-handlers/instructions-loaded.sh | 86 | InstructionsLoaded → jsonl ログ + hooks.json 存在検証 | cc:完了 |
 
 ---
 
-### Phase 37.2: Medium ハンドラ (12個) [cc:TODO]
+### Phase 37.2: Medium ハンドラ (12個) [cc:完了]
 
 難易度: 中 / 各 ~100-350行 / JSONL管理・状態追跡・条件分岐
 
 | Task | ハンドラ | 元ファイル | 行数 | 内容 | Status |
 |------|---------|-----------|------|------|--------|
-| 37.2.1 | setup-hook | scripts/setup-hook.sh | 188 | プラグインキャッシュ同期 + .claude/state 初期化 + テンプレート検証 | cc:TODO |
-| 37.2.2 | runtime-reactive | scripts/hook-handlers/runtime-reactive.sh | 168 | FileChanged/CwdChanged/TaskCreated → コンテキスト注入 | cc:TODO |
-| 37.2.3 | teammate-idle | scripts/hook-handlers/teammate-idle.sh | 186 | チームメンバー idle 記録 + continue:false 停止シグナル | cc:TODO |
-| 37.2.4 | userprompt-track-command | scripts/userprompt-track-command.sh | 107 | /slash コマンド検出 + usage 記録 + pending-skills マーカー | cc:TODO |
-| 37.2.5 | breezing-signal-injector | scripts/hook-handlers/breezing-signal-injector.sh | 183 | breezing-signals.jsonl → systemMessage 注入 + consumed マーク | cc:TODO |
-| 37.2.6 | ci-status-checker | scripts/hook-handlers/ci-status-checker.sh | 192 | git push/gh pr 検出 → CI ステータス非同期チェック | cc:TODO |
-| 37.2.7 | usage-tracker | scripts/usage-tracker.sh | 108 | Skill/Task ツール使用追跡 | cc:TODO |
-| 37.2.8 | todo-sync | scripts/todo-sync.sh | 118 | TodoWrite → Plans.md マーカー同期 (pending→cc:TODO等) | cc:TODO |
-| 37.2.9 | auto-cleanup-hook | scripts/auto-cleanup-hook.sh | 118 | Write/Edit 後のファイルサイズ警告 (>10KB) | cc:TODO |
-| 37.2.10 | track-changes | scripts/track-changes.sh | 185 | ファイル変更記録 + 2時間 dedup + パス正規化 | cc:TODO |
-| 37.2.11 | plans-watcher | scripts/plans-watcher.sh | 201 | Plans.md 変更検出 + WIP/TODO/done マーカーサマリ注入 | cc:TODO |
-| 37.2.12 | tdd-order-check | scripts/tdd-order-check.sh | 115 | 実装ファイル先行編集の警告 (TDD 順序強制) | cc:TODO |
+| 37.2.1 | setup-hook | scripts/setup-hook.sh | 188 | プラグインキャッシュ同期 + .claude/state 初期化 + テンプレート検証 | cc:完了 |
+| 37.2.2 | runtime-reactive | scripts/hook-handlers/runtime-reactive.sh | 168 | FileChanged/CwdChanged/TaskCreated → コンテキスト注入 | cc:完了 |
+| 37.2.3 | teammate-idle | scripts/hook-handlers/teammate-idle.sh | 186 | チームメンバー idle 記録 + continue:false 停止シグナル | cc:完了 |
+| 37.2.4 | userprompt-track-command | scripts/userprompt-track-command.sh | 107 | /slash コマンド検出 + usage 記録 + pending-skills マーカー | cc:完了 |
+| 37.2.5 | breezing-signal-injector | scripts/hook-handlers/breezing-signal-injector.sh | 183 | breezing-signals.jsonl → systemMessage 注入 + consumed マーク | cc:完了 |
+| 37.2.6 | ci-status-checker | scripts/hook-handlers/ci-status-checker.sh | 192 | git push/gh pr 検出 → CI ステータス非同期チェック | cc:完了 |
+| 37.2.7 | usage-tracker | scripts/usage-tracker.sh | 108 | Skill/Task ツール使用追跡 | cc:完了 |
+| 37.2.8 | todo-sync | scripts/todo-sync.sh | 118 | TodoWrite → Plans.md マーカー同期 (pending→cc:TODO等) | cc:完了 |
+| 37.2.9 | auto-cleanup-hook | scripts/auto-cleanup-hook.sh | 118 | Write/Edit 後のファイルサイズ警告 (>10KB) | cc:完了 |
+| 37.2.10 | track-changes | scripts/track-changes.sh | 185 | ファイル変更記録 + 2時間 dedup + パス正規化 | cc:完了 |
+| 37.2.11 | plans-watcher | scripts/plans-watcher.sh | 201 | Plans.md 変更検出 + WIP/TODO/done マーカーサマリ注入 | cc:完了 |
+| 37.2.12 | tdd-order-check | scripts/tdd-order-check.sh | 115 | 実装ファイル先行編集の警告 (TDD 順序強制) | cc:完了 |
 
 ---
 
-### Phase 37.3: Medium ハンドラ — 既存 Go 補完 (7個) [cc:TODO]
+### Phase 37.3: Medium ハンドラ — 既存 Go 補完 (7個) [cc:完了]
 
 Go binary に既にルーティングがあるが、hooks.json がまだ bash を呼んでいるもの
 
 | Task | ハンドラ | 元ファイル | 行数 | 内容 | Status |
 |------|---------|-----------|------|------|--------|
-| 37.3.1 | elicitation-handler | scripts/hook-handlers/elicitation-handler.sh | 139 | MCP Elicitation → ログ + Breezing 時自動スキップ | cc:TODO |
-| 37.3.2 | elicitation-result | scripts/hook-handlers/elicitation-result.sh | 123 | ElicitationResult → jsonl ログ | cc:TODO |
-| 37.3.3 | stop-session-evaluator | scripts/hook-handlers/stop-session-evaluator.sh | 106 | Stop → セッション状態評価 + session.json 更新 | cc:TODO |
-| 37.3.4 | stop-failure | scripts/hook-handlers/stop-failure.sh | 178 | StopFailure → API エラーログ (rate limit, auth) | cc:TODO |
-| 37.3.5 | notification-handler | scripts/hook-handlers/notification-handler.sh | 166 | Notification → notification-events.jsonl 記録 | cc:TODO |
-| 37.3.6 | permission-denied-handler | scripts/hook-handlers/permission-denied-handler.sh | 197 | PermissionDenied → denial ログ + Breezing Lead 通知 | cc:TODO |
-| 37.3.7 | posttooluse-quality-pack | scripts/posttooluse-quality-pack.sh | 190 | Write/Edit 後の品質チェック (Prettier, tsc, console.log 検出) | cc:TODO |
+| 37.3.1 | elicitation-handler | scripts/hook-handlers/elicitation-handler.sh | 139 | MCP Elicitation → ログ + Breezing 時自動スキップ | cc:完了 |
+| 37.3.2 | elicitation-result | scripts/hook-handlers/elicitation-result.sh | 123 | ElicitationResult → jsonl ログ | cc:完了 |
+| 37.3.3 | stop-session-evaluator | scripts/hook-handlers/stop-session-evaluator.sh | 106 | Stop → セッション状態評価 + session.json 更新 | cc:完了 |
+| 37.3.4 | stop-failure | scripts/hook-handlers/stop-failure.sh | 178 | StopFailure → API エラーログ (rate limit, auth) | cc:完了 |
+| 37.3.5 | notification-handler | scripts/hook-handlers/notification-handler.sh | 166 | Notification → notification-events.jsonl 記録 | cc:完了 |
+| 37.3.6 | permission-denied-handler | scripts/hook-handlers/permission-denied-handler.sh | 197 | PermissionDenied → denial ログ + Breezing Lead 通知 | cc:完了 |
+| 37.3.7 | posttooluse-quality-pack | scripts/posttooluse-quality-pack.sh | 190 | Write/Edit 後の品質チェック (Prettier, tsc, console.log 検出) | cc:完了 |
 
 ---
 
-### Phase 37.4: Hard ハンドラ (8個) [cc:TODO]
+### Phase 37.4: Hard ハンドラ (8個) [cc:完了]
 
 難易度: 高 / 各 ~300-900行 / 状態機械・プロセス制御・Node.js 移植
 
 | Task | ハンドラ | 元ファイル | 行数 | 内容 | Status |
 |------|---------|-----------|------|------|--------|
-| 37.4.1 | userprompt-inject-policy | scripts/userprompt-inject-policy.sh | 351 | メモリ resume コンテキスト注入 + セマフォロック + RESUME_MAX_BYTES 制限 | cc:TODO |
-| 37.4.2 | fix-proposal-injector | scripts/hook-handlers/fix-proposal-injector.sh | 338 | pending-fix-proposals.jsonl → 提案表示 + 承認/却下 → Plans.md 同期 | cc:TODO |
-| 37.4.3 | posttooluse-log-toolname | scripts/posttooluse-log-toolname.sh | 333 | ツール使用ログ + LSP 追跡 + セッションイベントログ (500行ローテーション) + flock | cc:TODO |
-| 37.4.4 | auto-test-runner | scripts/auto-test-runner.sh | 326 | ソースファイル変更検出 → テスト自動実行 (async) + Vitest/Jest/pytest 自動判定 | cc:TODO |
-| 37.4.5 | task-completed | scripts/hook-handlers/task-completed.sh | 911 | タスク完了記録 + fix proposal 生成 + Breezing タイムライン + Plans.md 同期 (最大) | cc:TODO |
-| 37.4.6 | **pre-compact-save.js** ⚡ | scripts/hook-handlers/pre-compact-save.js | 783 | **Node.js** — handoff-artifact.json + precompact-snapshot.json 生成 + Git 情報収集 | cc:TODO |
-| 37.4.7 | **emit-agent-trace.js** ⚡ | scripts/emit-agent-trace.js | 808 | **Node.js** — agent-trace.jsonl 記録 + OpenTelemetry span + 10MB/3世代ローテーション | cc:TODO |
-| 37.4.8 | post-compact (拡張) | scripts/hook-handlers/post-compact.sh | 380 | PostCompact 拡張 — WIP コンテキスト + handoff artifact 再注入 (現 Go 版の補完) | cc:TODO |
+| 37.4.1 | userprompt-inject-policy | scripts/userprompt-inject-policy.sh | 351 | メモリ resume コンテキスト注入 + セマフォロック + RESUME_MAX_BYTES 制限 | cc:完了 |
+| 37.4.2 | fix-proposal-injector | scripts/hook-handlers/fix-proposal-injector.sh | 338 | pending-fix-proposals.jsonl → 提案表示 + 承認/却下 → Plans.md 同期 | cc:完了 |
+| 37.4.3 | posttooluse-log-toolname | scripts/posttooluse-log-toolname.sh | 333 | ツール使用ログ + LSP 追跡 + セッションイベントログ (500行ローテーション) + flock | cc:完了 |
+| 37.4.4 | auto-test-runner | scripts/auto-test-runner.sh | 326 | ソースファイル変更検出 → テスト自動実行 (async) + Vitest/Jest/pytest 自動判定 | cc:完了 |
+| 37.4.5 | task-completed | scripts/hook-handlers/task-completed.sh | 911 | タスク完了記録 + fix proposal 生成 + Breezing タイムライン + Plans.md 同期 (最大) | cc:完了 |
+| 37.4.6 | **pre-compact-save.js** ⚡ | scripts/hook-handlers/pre-compact-save.js | 783 | **Node.js** — handoff-artifact.json + precompact-snapshot.json 生成 + Git 情報収集 | cc:完了 |
+| 37.4.7 | **emit-agent-trace.js** ⚡ | scripts/emit-agent-trace.js | 808 | **Node.js** — agent-trace.jsonl 記録 + OpenTelemetry span + 10MB/3世代ローテーション | cc:完了 |
+| 37.4.8 | post-compact (拡張) | scripts/hook-handlers/post-compact.sh | 380 | PostCompact 拡張 — WIP コンテキスト + handoff artifact 再注入 (現 Go 版の補完) | cc:完了 |
 
 ⚡ = Node.js 依存。これら 2 ファイルの移植で Node.js ゼロ達成。
 
