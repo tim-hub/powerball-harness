@@ -184,9 +184,8 @@ fi
 ```bash
 NEW_VERSION=$(cat VERSION)
 
-# Staging (explicitly specify target files)
-git add VERSION .claude-plugin/marketplace.json CHANGELOG.md
-git add .
+# Stage only the files a release commit should touch
+git add harness/VERSION harness/harness.toml CHANGELOG.md
 
 git commit -m "chore: release v$NEW_VERSION"
 git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
@@ -286,13 +285,13 @@ Executes only Phase 9. Verifies that the GitHub Release was not missed, then cre
 
 Verify the following regressions before release:
 
-- [ ] **Plugin structure** — `bash ${CLAUDE_SKILL_DIR}/../../tests/validate-plugin.sh` (marketplace.json, skills, hooks, scripts)
+- [ ] **Plugin structure** — `bash tests/validate-plugin.sh` (marketplace.json, skills, hooks, scripts)
 - [ ] **Consistency** — `bash "${CLAUDE_SKILL_DIR}/scripts/check-consistency.sh"` (templates, versions, CHANGELOG)
 - [ ] **Templates** — `test -f ${CLAUDE_SKILL_DIR}/../../templates/codex/config.toml && test -f ${CLAUDE_SKILL_DIR}/../../templates/opencode/opencode.json` (setup templates present)
 - [ ] **Preflight** — `bash "${CLAUDE_SKILL_DIR}/scripts/release-preflight.sh"` (working tree, CHANGELOG, CI, remnants)
 - [ ] **Release notes** — `bash "${CLAUDE_SKILL_DIR}/scripts/validate-release-notes.sh" vX.Y.Z` (GitHub Release format)
 - [ ] **VERSION sync** — `bash "${CLAUDE_SKILL_DIR}/scripts/sync-version.sh" check` (VERSION matches marketplace.json)
-- [ ] **Guardrails** — R01-R13 in `${CLAUDE_SKILL_DIR}/../../go/internal/guardrail/rules.go` (Go rule health)
+- [ ] **Guardrails** — R01-R13 in `go/internal/guardrail/rules.go` (Go rule health)
 - [ ] **Tag continuity** — `git tag --sort=-version:refname | head -5` (no missing tags)
 - [ ] **Migration residue** — `bash "${CLAUDE_SKILL_DIR}/scripts/check-residue.sh"` (no deleted-concept references)
 
