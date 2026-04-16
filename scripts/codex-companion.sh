@@ -22,6 +22,70 @@
 
 set -euo pipefail
 
+should_use_structured_task_exec() {
+  [ "${1:-}" = "task" ] || return 1
+  shift || true
+  for arg in "$@"; do
+    case "$arg" in
+      --output-schema|--output-schema=*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+run_structured_task_exec() {
+  local passthrough=()
+  local saw_write=0
+  local saw_sandbox=0
+  local current=""
+
+  shift || true # drop "task"
+  while [ $# -gt 0 ]; do
+    current="$1"
+    case "$current" in
+      --background|--resume-last|--resume|--fresh|--prompt-file)
+        echo "ERROR: structured task mode does not support ${current}" >&2
+        exit 2
+        ;;
+      --write)
+        saw_write=1
+        passthrough+=(--sandbox workspace-write)
+        shift
+        ;;
+      --sandbox|-s|--full-auto|--dangerously-bypass-approvals-and-sandbox)
+        saw_sandbox=1
+        passthrough+=("${current}")
+        shift
+        if [ "${current}" = "--sandbox" ] || [ "${current}" = "-s" ]; then
+          passthrough+=("${1:-}")
+          shift || true
+        fi
+        ;;
+      *)
+        passthrough+=("${current}")
+        shift
+        if [ "${current}" = "--model" ] || [ "${current}" = "-m" ] || \
+           [ "${current}" = "--effort" ] || [ "${current}" = "--output-schema" ] || \
+           [ "${current}" = "-o" ] || [ "${current}" = "--output-last-message" ] || \
+           [ "${current}" = "-c" ] || [ "${current}" = "--config" ] || \
+           [ "${current}" = "-C" ] || [ "${current}" = "--cd" ] || \
+           [ "${current}" = "--add-dir" ] || [ "${current}" = "-i" ] || \
+           [ "${current}" = "--image" ] || [ "${current}" = "--color" ] || \
+           [ "${current}" = "--local-provider" ]; then
+          passthrough+=("${1:-}")
+          shift || true
+        fi
+        ;;
+    esac
+  done
+
+  if [ "${saw_write}" -eq 0 ] && [ "${saw_sandbox}" -eq 0 ]; then
+    passthrough+=(--sandbox read-only)
+  fi
+
+  exec codex exec "${passthrough[@]}"
+}
+
 # 公式プラグインの companion を検索
 # Claude/Codex どちらの plugin ディレクトリでも見つかるようにし、
 # cache と marketplace 配下の両方を対象にする。
@@ -52,6 +116,11 @@ fi
 # task サブコマンドの場合、タスク説明から effort を計算して --effort フラグで渡す。
 # calculate-effort.sh が存在しない場合は CODEX_EFFORT 環境変数（デフォルト: medium）を使う。
 SUBCOMMAND="${1:-}"
+if should_use_structured_task_exec "$@"; then
+  STRUCTURED_TASK_EXEC=1
+else
+  STRUCTURED_TASK_EXEC=0
+fi
 if [ "$SUBCOMMAND" = "task" ]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   EFFORT_SCRIPT="${SCRIPT_DIR}/calculate-effort.sh"
@@ -113,7 +182,11 @@ if [ "$SUBCOMMAND" = "task" ]; then
         if [ -n "$STDIN_CONTENT" ]; then
           COMPUTED_EFFORT=$(echo "$STDIN_CONTENT" | bash "$EFFORT_SCRIPT" 2>/dev/null || true)
           # stdin を再セットアップ（here-string 経由で companion に渡す）
-          exec node "$COMPANION" "$@" --effort "${COMPUTED_EFFORT:-medium}" <<< "$STDIN_CONTENT"
+          if [ "${STRUCTURED_TASK_EXEC}" -eq 1 ]; then
+            run_structured_task_exec "$@" --effort "${COMPUTED_EFFORT:-medium}" <<< "$STDIN_CONTENT"
+          else
+            exec node "$COMPANION" "$@" --effort "${COMPUTED_EFFORT:-medium}" <<< "$STDIN_CONTENT"
+          fi
         fi
         # stdin が空の場合（</dev/null 等）はフォールスルーして通常フローへ
       fi
@@ -130,8 +203,16 @@ if [ "$SUBCOMMAND" = "task" ]; then
       *) COMPUTED_EFFORT="medium" ;;
     esac
 
-    exec node "$COMPANION" "$@" --effort "$COMPUTED_EFFORT"
+    if [ "${STRUCTURED_TASK_EXEC}" -eq 1 ]; then
+      run_structured_task_exec "$@" --effort "$COMPUTED_EFFORT"
+    else
+      exec node "$COMPANION" "$@" --effort "$COMPUTED_EFFORT"
+    fi
   fi
+fi
+
+if [ "${STRUCTURED_TASK_EXEC}" -eq 1 ]; then
+  run_structured_task_exec "$@"
 fi
 
 exec node "$COMPANION" "$@"

@@ -146,6 +146,33 @@ fresh context での wake-up 直後は前サイクルのメモリが失われて
 > **注意**: resume pack 再読込は Step 3（contract readiness チェック）の後に実行すること。
 > スキップすると前サイクルの成果物を重複実装するリスクがある。
 
+### Step 4.5: Advisor consult（必要時のみ）
+
+loop は executor 主導で進め、advisor は必要な時だけ呼ぶ。
+相談するタイミングは次の 3 つに固定する。
+
+1. 高リスク task の初回実行前
+2. 同じ原因の失敗が 2 回続いた後
+3. `PIVOT_REQUIRED` による停止直前
+
+```bash
+TRIGGER_HASH="${task_id}:${reason_code}:$(normalize_error_signature "${summary_or_risk}")"
+
+if ! advisor_trigger_seen "${TRIGGER_HASH}"; then
+    RESPONSE_FILE=$(
+        bash scripts/run-advisor-consultation.sh \
+          --request-file ".claude/state/codex-loop/${task_id}.${reason_code}.advisor-request.json" \
+          --response-file ".claude/state/codex-loop/${task_id}.${reason_code}.advisor-response.json"
+    )
+    DECISION=$(jq -r '.decision' "${RESPONSE_FILE}")
+fi
+```
+
+- `PLAN` / `CORRECTION` は次の executor prompt 先頭に advice を入れて再実行
+- `STOP` は loop を止め、`run.json` の `last_decision`, `last_trigger`, `last_model` に記録
+- 同じ `trigger_hash` は 1 回だけ相談する
+- task ごとの相談回数は最大 3 回
+
 ### Step 5: 1 タスクサイクル実行
 
 Agent tool 経由で `claude-code-harness:worker` を spawn する:
@@ -174,6 +201,9 @@ Worker は `mode: breezing` で動作するため:
 - feature branch 上に commit するだけで main には触らない
 - `worktreePath` に変更内容が格納される
 - Lead（harness-loop）が Step 5.5/5.6 でレビュー → cherry-pick を担当する
+
+> **Codex loop 実装差分**: Codex 版は `scripts/codex-loop.sh` が background task を起動し、
+> advisor が返した guidance を次回 prompt に prepend して同じ task を再実行する。
 
 > **実装上の注意**: `Bash("harness-work --breezing")` でも代替可能だが、
 > Agent tool 経由の方がコンテキスト分離が明確でデバッグしやすい。
@@ -390,7 +420,7 @@ PLATEAU_EXIT=$?
 |-----------|------|----------|
 | `0` | `PIVOT_NOT_REQUIRED` | 続行 |
 | `1` | `INSUFFICIENT_DATA` | 続行（データ不足） |
-| `2` | `PIVOT_REQUIRED` | **ループ停止** + エスカレーション |
+| `2` | `PIVOT_REQUIRED` | advisor を 1 回だけ挟む。`STOP` か相談枠切れのときだけ **ループ停止** + エスカレーション |
 
 **PIVOT_REQUIRED 時のエスカレーションメッセージ**:
 

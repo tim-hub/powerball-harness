@@ -166,6 +166,19 @@ Harness creates `Plans.md` with clear acceptance criteria.
 
 Each worker implements, runs a preflight self-check, and waits for an independent review verdict before completion.
 
+### Advisor Strategy
+
+Harness is starting to adopt an advisor-style execution flow.
+In plain terms, the executor keeps moving, and only asks for help when the decision is genuinely hard.
+
+- High-risk tasks can trigger one preflight consultation
+- Repeated failures can trigger a corrective consultation
+- Plateau detection can trigger one last consultation before escalation
+- Final approval still belongs to the reviewer, not the advisor
+
+The first rollout is in `harness-loop`, because long-running execution benefits most from "ask only when needed."
+Details: [docs/advisor-strategy.md](docs/advisor-strategy.md)
+
 <p align="center">
   <img src="assets/readme-visuals-en/parallel-workers.svg" alt="Parallel workers" width="640">
 </p>

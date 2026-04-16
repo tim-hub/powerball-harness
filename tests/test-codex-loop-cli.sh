@@ -21,6 +21,17 @@ fail() {
   FAIL_COUNT=$((FAIL_COUNT + 1))
 }
 
+cleanup_tmp() {
+  local path="$1"
+  local attempt=0
+  while [ "${attempt}" -lt 10 ]; do
+    rm -rf "${path}" 2>/dev/null && return 0
+    sleep 0.2
+    attempt=$((attempt + 1))
+  done
+  rm -rf "${path}"
+}
+
 setup_fake_tools() {
   local workdir="$1"
   local mode="$2"
@@ -33,10 +44,19 @@ task_id="$1"
 state_dir="${PROJECT_ROOT}/.claude/state/contracts"
 mkdir -p "${state_dir}"
 path="${state_dir}/${task_id}.sprint-contract.json"
+advisor_json='{"enabled":false,"mode":"on-demand","max_consults":3,"retry_threshold":2,"pre_escalation_consult":true,"triggers":[],"model_policy":{"claude_default":"opus","codex_default":"gpt-5.4"}}'
+if [ "${FAKE_ADVISOR_MODE:-off}" = "preflight" ]; then
+  advisor_json='{"enabled":true,"mode":"on-demand","max_consults":3,"retry_threshold":2,"pre_escalation_consult":true,"triggers":["security-sensitive"],"model_policy":{"claude_default":"opus","codex_default":"gpt-5.4"}}'
+elif [ "${FAKE_ADVISOR_MODE:-off}" = "retry" ]; then
+  advisor_json='{"enabled":true,"mode":"on-demand","max_consults":3,"retry_threshold":2,"pre_escalation_consult":true,"triggers":[],"model_policy":{"claude_default":"opus","codex_default":"gpt-5.4"}}'
+elif [ "${FAKE_ADVISOR_MODE:-off}" = "plateau" ]; then
+  advisor_json='{"enabled":true,"mode":"on-demand","max_consults":3,"retry_threshold":2,"pre_escalation_consult":true,"triggers":[],"model_policy":{"claude_default":"opus","codex_default":"gpt-5.4"}}'
+fi
 cat > "${path}" <<JSON
 {
   "task": { "id": "${task_id}", "title": "Task ${task_id}" },
-  "review": { "status": "draft", "reviewer_profile": "static" }
+  "review": { "status": "draft", "reviewer_profile": "static" },
+  "advisor": ${advisor_json}
 }
 JSON
 echo "${path}"
@@ -85,6 +105,13 @@ EOF
   cat > "${workdir}/bin/fake-plateau.sh" <<'EOF'
 #!/bin/bash
 set -euo pipefail
+if [ "${FAKE_PLATEAU_MODE:-normal}" = "pivot" ]; then
+  echo "STATUS: PIVOT_REQUIRED"
+  echo "ENTRIES: 3"
+  echo "JACCARD_AVG: 0.9500"
+  echo "REASON: plateau detected"
+  exit 2
+fi
 echo "STATUS: PIVOT_NOT_REQUIRED"
 echo "ENTRIES: 3"
 echo "JACCARD_AVG: 0.1000"
@@ -108,6 +135,49 @@ EOF
 #!/bin/bash
 set -euo pipefail
 echo '{"ok":true,"items":[]}'
+EOF
+
+  cat > "${workdir}/bin/fake-advisor.sh" <<'EOF'
+#!/bin/bash
+set -euo pipefail
+request_file=""
+response_file=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --request-file)
+      request_file="${2:-}"
+      shift 2
+      ;;
+    --response-file)
+      response_file="${2:-}"
+      shift 2
+      ;;
+    --model|--timeout-sec)
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+[ -n "${request_file}" ] || exit 2
+[ -n "${response_file}" ] || exit 2
+decision="${FAKE_ADVISOR_DECISION:-PLAN}"
+stop_reason="null"
+if [ "${decision}" = "STOP" ]; then
+  stop_reason='"advisor-stop"'
+fi
+cat > "${response_file}" <<JSON
+{
+  "schema_version": "advisor-response.v1",
+  "decision": "${decision}",
+  "summary": "advisor ${decision}",
+  "executor_instructions": ["follow advisor ${decision}"],
+  "confidence": 0.9,
+  "stop_reason": ${stop_reason}
+}
+JSON
+cat "${response_file}"
 EOF
 
   cat > "${workdir}/bin/fake-companion.sh" <<EOF
@@ -174,7 +244,7 @@ case "\${cmd}" in
     if [ -f "\${COUNTER_FILE}" ]; then
       count="\$(cat "\${COUNTER_FILE}")"
     fi
-    if [ "\${MODE}" = "complete" ]; then
+    if [ "\${MODE}" = "complete" ] || [ "\${MODE}" = "advisor-preflight" ]; then
       if [ "\${count}" = "0" ]; then
         write_job "running"
         printf '1' > "\${COUNTER_FILE}"
@@ -185,6 +255,9 @@ case "\${cmd}" in
         printf '2' > "\${COUNTER_FILE}"
         printf '{"workspaceRoot":"%s","job":{"id":"fake-job-1","status":"completed","phase":"done","title":"Codex Task"}}\n' "\${PROJECT_ROOT}"
       fi
+    elif [ "\${MODE}" = "retry" ]; then
+      write_job "completed"
+      printf '{"workspaceRoot":"%s","job":{"id":"fake-job-1","status":"completed","phase":"done","title":"Codex Task"}}\n' "\${PROJECT_ROOT}"
     else
       if [ -f "\${STATE_DIR}/cancelled" ]; then
         write_job "cancelled"
@@ -200,7 +273,11 @@ case "\${cmd}" in
     if [ -f "\${STATE_DIR}/cancelled" ]; then
       status="cancelled"
     fi
-    printf '{"job":{"id":"fake-job-1","status":"%s","title":"Codex Task"},"storedJob":{"status":"%s","result":{"rawOutput":"RESULT: %s\\nsummary"}}}\n' "\${status}" "\${status}" "\$( [ "\${status}" = "completed" ] && echo APPROVED || echo BLOCKED )"
+    if [ "\${MODE}" = "retry" ] && [ "\${status}" = "completed" ]; then
+      printf '{"job":{"id":"fake-job-1","status":"completed","title":"Codex Task"},"storedJob":{"status":"completed","result":{"rawOutput":"RESULT: BLOCKED\\nsummary"}}}\n'
+    else
+      printf '{"job":{"id":"fake-job-1","status":"%s","title":"Codex Task"},"storedJob":{"status":"%s","result":{"rawOutput":"RESULT: %s\\nsummary"}}}\n' "\${status}" "\${status}" "\$( [ "\${status}" = "completed" ] && echo APPROVED || echo BLOCKED )"
+    fi
     ;;
   cancel)
     touch "\${STATE_DIR}/cancelled"
@@ -266,6 +343,7 @@ run_completion_case() {
   setup_fake_tools "${tmp}" "complete"
 
   PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
   CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
   CODEX_LOOP_VALIDATE_SCRIPT="${tmp}/bin/fake-validate.sh" \
   CODEX_LOOP_ENRICH_CONTRACT_SCRIPT="${tmp}/bin/fake-enrich-contract.sh" \
@@ -297,7 +375,7 @@ run_completion_case() {
     fail "completion case: checkpoint was not executed"
   fi
 
-  rm -rf "${tmp}"
+  cleanup_tmp "${tmp}"
 }
 
 run_stop_case() {
@@ -309,6 +387,7 @@ run_stop_case() {
   setup_fake_tools "${tmp}" "stall"
 
   PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
   CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
   CODEX_LOOP_VALIDATE_SCRIPT="${tmp}/bin/fake-validate.sh" \
   CODEX_LOOP_ENRICH_CONTRACT_SCRIPT="${tmp}/bin/fake-enrich-contract.sh" \
@@ -324,6 +403,7 @@ run_stop_case() {
 
   sleep 1
   PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
   CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
   bash "${LOOP_SCRIPT}" stop >/dev/null
 
@@ -339,11 +419,160 @@ run_stop_case() {
     fail "stop case: cancel was not sent to companion"
   fi
 
-  rm -rf "${tmp}"
+  cleanup_tmp "${tmp}"
+}
+
+run_advisor_preflight_case() {
+  local tmp
+  tmp="$(mktemp -d)"
+  local repo="${tmp}/repo"
+  mkdir -p "${repo}"
+  setup_repo "${repo}"
+  setup_fake_tools "${tmp}" "advisor-preflight"
+
+  PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
+  CODEX_LOOP_ADVISOR_SCRIPT="${tmp}/bin/fake-advisor.sh" \
+  CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+  CODEX_LOOP_VALIDATE_SCRIPT="${tmp}/bin/fake-validate.sh" \
+  CODEX_LOOP_ENRICH_CONTRACT_SCRIPT="${tmp}/bin/fake-enrich-contract.sh" \
+  CODEX_LOOP_ENSURE_CONTRACT_SCRIPT="${tmp}/bin/fake-ensure-contract.sh" \
+  CODEX_LOOP_RUNTIME_REVIEW_SCRIPT="${tmp}/bin/fake-runtime-review.sh" \
+  CODEX_LOOP_WRITE_REVIEW_RESULT_SCRIPT="${tmp}/bin/fake-write-review-result.sh" \
+  CODEX_LOOP_PLATEAU_SCRIPT="${tmp}/bin/fake-plateau.sh" \
+  CODEX_LOOP_CHECKPOINT_SCRIPT="${tmp}/bin/fake-checkpoint.sh" \
+  CODEX_LOOP_MEM_CLIENT="${tmp}/bin/fake-mem.sh" \
+  CODEX_LOOP_GENERATE_CONTRACT_SCRIPT="${tmp}/bin/fake-generate-contract.sh" \
+  CODEX_LOOP_POLL_INTERVAL_SEC=1 \
+  FAKE_ADVISOR_MODE=preflight \
+  FAKE_ADVISOR_DECISION=PLAN \
+  bash "${LOOP_SCRIPT}" start all --max-cycles 1 --pacing worker >/dev/null
+
+  poll_for_status "${repo}/.claude/state/codex-loop/run.json" "completed" || fail "advisor preflight: run did not finish"
+  jq -e '.consultations == 1 and .last_decision == "PLAN" and (.last_trigger | contains("high-risk-preflight")) and .last_model == "gpt-5.4"' \
+    "${repo}/.claude/state/codex-loop/run.json" >/dev/null \
+    && pass "advisor preflight: status JSON records consultation" \
+    || fail "advisor preflight: status JSON missing advisor fields"
+
+  cleanup_tmp "${tmp}"
+}
+
+run_advisor_duplicate_case() {
+  local tmp
+  tmp="$(mktemp -d)"
+  local repo="${tmp}/repo"
+  mkdir -p "${repo}"
+  setup_repo "${repo}"
+  setup_fake_tools "${tmp}" "retry"
+
+  set +e
+  PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
+  CODEX_LOOP_ADVISOR_SCRIPT="${tmp}/bin/fake-advisor.sh" \
+  CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+  CODEX_LOOP_VALIDATE_SCRIPT="${tmp}/bin/fake-validate.sh" \
+  CODEX_LOOP_ENRICH_CONTRACT_SCRIPT="${tmp}/bin/fake-enrich-contract.sh" \
+  CODEX_LOOP_ENSURE_CONTRACT_SCRIPT="${tmp}/bin/fake-ensure-contract.sh" \
+  CODEX_LOOP_RUNTIME_REVIEW_SCRIPT="${tmp}/bin/fake-runtime-review.sh" \
+  CODEX_LOOP_WRITE_REVIEW_RESULT_SCRIPT="${tmp}/bin/fake-write-review-result.sh" \
+  CODEX_LOOP_PLATEAU_SCRIPT="${tmp}/bin/fake-plateau.sh" \
+  CODEX_LOOP_CHECKPOINT_SCRIPT="${tmp}/bin/fake-checkpoint.sh" \
+  CODEX_LOOP_MEM_CLIENT="${tmp}/bin/fake-mem.sh" \
+  CODEX_LOOP_GENERATE_CONTRACT_SCRIPT="${tmp}/bin/fake-generate-contract.sh" \
+  CODEX_LOOP_POLL_INTERVAL_SEC=1 \
+  FAKE_ADVISOR_MODE=retry \
+  FAKE_ADVISOR_DECISION=PLAN \
+  bash "${LOOP_SCRIPT}" start all --max-cycles 1 --pacing worker >/dev/null
+  set -e
+
+  poll_for_status "${repo}/.claude/state/codex-loop/run.json" "failed" || fail "advisor duplicate: run should fail after retries"
+  jq -e '.consultations == 1 and (.last_trigger | contains("retry-threshold"))' \
+    "${repo}/.claude/state/codex-loop/run.json" >/dev/null \
+    && pass "advisor duplicate: duplicate trigger suppressed" \
+    || fail "advisor duplicate: duplicate suppression failed"
+
+  cleanup_tmp "${tmp}"
+}
+
+run_advisor_stop_case() {
+  local tmp
+  tmp="$(mktemp -d)"
+  local repo="${tmp}/repo"
+  mkdir -p "${repo}"
+  setup_repo "${repo}"
+  setup_fake_tools "${tmp}" "complete"
+
+  set +e
+  PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
+  CODEX_LOOP_ADVISOR_SCRIPT="${tmp}/bin/fake-advisor.sh" \
+  CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+  CODEX_LOOP_VALIDATE_SCRIPT="${tmp}/bin/fake-validate.sh" \
+  CODEX_LOOP_ENRICH_CONTRACT_SCRIPT="${tmp}/bin/fake-enrich-contract.sh" \
+  CODEX_LOOP_ENSURE_CONTRACT_SCRIPT="${tmp}/bin/fake-ensure-contract.sh" \
+  CODEX_LOOP_RUNTIME_REVIEW_SCRIPT="${tmp}/bin/fake-runtime-review.sh" \
+  CODEX_LOOP_WRITE_REVIEW_RESULT_SCRIPT="${tmp}/bin/fake-write-review-result.sh" \
+  CODEX_LOOP_PLATEAU_SCRIPT="${tmp}/bin/fake-plateau.sh" \
+  CODEX_LOOP_CHECKPOINT_SCRIPT="${tmp}/bin/fake-checkpoint.sh" \
+  CODEX_LOOP_MEM_CLIENT="${tmp}/bin/fake-mem.sh" \
+  CODEX_LOOP_GENERATE_CONTRACT_SCRIPT="${tmp}/bin/fake-generate-contract.sh" \
+  CODEX_LOOP_POLL_INTERVAL_SEC=1 \
+  FAKE_ADVISOR_MODE=preflight \
+  FAKE_ADVISOR_DECISION=STOP \
+  bash "${LOOP_SCRIPT}" start all --max-cycles 1 --pacing worker >/dev/null
+  set -e
+
+  poll_for_status "${repo}/.claude/state/codex-loop/run.json" "failed" || fail "advisor stop: run should fail"
+  jq -e '.consultations == 1 and .last_decision == "STOP" and (.last_trigger | contains("high-risk-preflight"))' \
+    "${repo}/.claude/state/codex-loop/run.json" >/dev/null \
+    && pass "advisor stop: STOP decision recorded" \
+    || fail "advisor stop: STOP decision missing"
+
+  cleanup_tmp "${tmp}"
+}
+
+run_plateau_advisor_case() {
+  local tmp
+  tmp="$(mktemp -d)"
+  local repo="${tmp}/repo"
+  mkdir -p "${repo}"
+  setup_repo "${repo}"
+  setup_fake_tools "${tmp}" "complete"
+
+  PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
+  CODEX_LOOP_ADVISOR_SCRIPT="${tmp}/bin/fake-advisor.sh" \
+  CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+  CODEX_LOOP_VALIDATE_SCRIPT="${tmp}/bin/fake-validate.sh" \
+  CODEX_LOOP_ENRICH_CONTRACT_SCRIPT="${tmp}/bin/fake-enrich-contract.sh" \
+  CODEX_LOOP_ENSURE_CONTRACT_SCRIPT="${tmp}/bin/fake-ensure-contract.sh" \
+  CODEX_LOOP_RUNTIME_REVIEW_SCRIPT="${tmp}/bin/fake-runtime-review.sh" \
+  CODEX_LOOP_WRITE_REVIEW_RESULT_SCRIPT="${tmp}/bin/fake-write-review-result.sh" \
+  CODEX_LOOP_PLATEAU_SCRIPT="${tmp}/bin/fake-plateau.sh" \
+  CODEX_LOOP_CHECKPOINT_SCRIPT="${tmp}/bin/fake-checkpoint.sh" \
+  CODEX_LOOP_MEM_CLIENT="${tmp}/bin/fake-mem.sh" \
+  CODEX_LOOP_GENERATE_CONTRACT_SCRIPT="${tmp}/bin/fake-generate-contract.sh" \
+  CODEX_LOOP_POLL_INTERVAL_SEC=1 \
+  FAKE_ADVISOR_MODE=plateau \
+  FAKE_ADVISOR_DECISION=PLAN \
+  FAKE_PLATEAU_MODE=pivot \
+  bash "${LOOP_SCRIPT}" start all --max-cycles 1 --pacing worker >/dev/null
+
+  poll_for_status "${repo}/.claude/state/codex-loop/run.json" "completed" || fail "plateau advisor: run should complete"
+  jq -e '.consultations == 1 and .last_decision == "PLAN" and (.last_trigger | contains("plateau-pre-escalation"))' \
+    "${repo}/.claude/state/codex-loop/run.json" >/dev/null \
+    && pass "plateau advisor: plateau consult recorded" \
+    || fail "plateau advisor: plateau consult missing"
+
+  cleanup_tmp "${tmp}"
 }
 
 run_completion_case
 run_stop_case
+run_advisor_preflight_case
+run_advisor_duplicate_case
+run_advisor_stop_case
+run_plateau_advisor_case
 
 echo "passed=${PASS_COUNT} failed=${FAIL_COUNT}"
 [ "${FAIL_COUNT}" -eq 0 ]

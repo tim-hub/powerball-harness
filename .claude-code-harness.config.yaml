@@ -20,6 +20,21 @@ breezing:
   # State file path
   state_file: .claude/state/breezing-active.json
 
+advisor:
+  # Enable advisor consultation for loop / work / breezing flows
+  enabled: true
+  # Consultation mode: on-demand keeps the executor in the lead
+  mode: on-demand
+  # Hard cap to avoid infinite consultation loops on one task
+  max_consults_per_task: 3
+  # Consult after the same failure pattern repeats this many times
+  retry_threshold: 2
+  # Ask advisor once before escalating plateau/user-stop decisions
+  consult_before_user_escalation: true
+  # Default model mapping by runtime
+  claude_model: opus
+  codex_model: gpt-5.4
+
 # Cleanup thresholds
 cleanup:
   plans:

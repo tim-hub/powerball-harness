@@ -28,12 +28,13 @@ type sprintTaskRow struct {
 }
 
 type sprintContractDoc struct {
-	SchemaVersion string               `json:"schema_version"`
-	GeneratedAt   string               `json:"generated_at"`
-	Source        sprintContractSource `json:"source"`
-	Task          sprintContractTask   `json:"task"`
-	Contract      sprintContractBody   `json:"contract"`
-	Review        sprintContractReview `json:"review"`
+	SchemaVersion string                `json:"schema_version"`
+	GeneratedAt   string                `json:"generated_at"`
+	Source        sprintContractSource  `json:"source"`
+	Task          sprintContractTask    `json:"task"`
+	Contract      sprintContractBody    `json:"contract"`
+	Advisor       sprintContractAdvisor `json:"advisor"`
+	Review        sprintContractReview  `json:"review"`
 }
 
 type sprintContractSource struct {
@@ -55,6 +56,21 @@ type sprintContractBody struct {
 	RuntimeValidation []sprintValidation `json:"runtime_validation"`
 	BrowserValidation []sprintValidation `json:"browser_validation"`
 	RiskFlags         []string           `json:"risk_flags"`
+}
+
+type sprintContractAdvisor struct {
+	Enabled              bool                     `json:"enabled"`
+	Mode                 string                   `json:"mode"`
+	MaxConsults          int                      `json:"max_consults"`
+	RetryThreshold       int                      `json:"retry_threshold"`
+	PreEscalationConsult bool                     `json:"pre_escalation_consult"`
+	Triggers             []string                 `json:"triggers"`
+	ModelPolicy          sprintAdvisorModelPolicy `json:"model_policy"`
+}
+
+type sprintAdvisorModelPolicy struct {
+	ClaudeDefault string `json:"claude_default"`
+	CodexDefault  string `json:"codex_default"`
 }
 
 type sprintCheck struct {
@@ -105,6 +121,7 @@ var (
 	securitySensitiveRe = regexp.MustCompile(`(?i)security|auth|permission|secret|guardrail|セキュリティ|権限`)
 	stateMigrationRe    = regexp.MustCompile(`(?i)migration|schema|state|resume|session|artifact|マイグレーション|セッション|再開`)
 	uxRegressionRe      = regexp.MustCompile(`(?i)browser|ui|layout|responsive|playwright|chrome|画面|レイアウト`)
+	advisorRequiredRe   = regexp.MustCompile(`(?is)<!--\s*advisor:required\s*-->`)
 )
 
 var profileMaxIterations = map[string]int{
@@ -119,6 +136,18 @@ var defaultUIRubricTarget = &uiRubricTarget{
 	Originality:   6,
 	Craft:         6,
 	Functionality: 6,
+}
+
+var defaultSprintAdvisor = sprintContractAdvisor{
+	Enabled:              true,
+	Mode:                 "on-demand",
+	MaxConsults:          3,
+	RetryThreshold:       2,
+	PreEscalationConsult: true,
+	ModelPolicy: sprintAdvisorModelPolicy{
+		ClaudeDefault: "opus",
+		CodexDefault:  "gpt-5.4",
+	},
 }
 
 // Generate は指定タスクの sprint-contract を生成して返す。
@@ -156,6 +185,7 @@ func (g *SprintContractGenerator) Generate(taskID string) (*sprintContractDoc, e
 	maxIterations := detectSprintMaxIterations(reviewerProfile, row)
 	runtimeValidation := pickRuntimeCommands(projectRoot)
 	riskFlags := detectSprintRiskFlags(row)
+	advisor := buildSprintAdvisor(row, riskFlags)
 
 	var browserMode *string
 	var route *string
@@ -225,6 +255,7 @@ func (g *SprintContractGenerator) Generate(taskID string) (*sprintContractDoc, e
 			BrowserValidation: browserValidation,
 			RiskFlags:         riskFlags,
 		},
+		Advisor: advisor,
 		Review: sprintContractReview{
 			Status:          "draft",
 			ReviewerProfile: reviewerProfile,
@@ -433,6 +464,33 @@ func detectSprintRiskFlags(task *sprintTaskRow) []string {
 		unique = append(unique, flag)
 	}
 	return unique
+}
+
+func buildSprintAdvisor(task *sprintTaskRow, riskFlags []string) sprintContractAdvisor {
+	advisor := defaultSprintAdvisor
+	advisor.Triggers = detectSprintAdvisorTriggers(task, riskFlags)
+	return advisor
+}
+
+func detectSprintAdvisorTriggers(task *sprintTaskRow, riskFlags []string) []string {
+	riskSet := make(map[string]struct{}, len(riskFlags))
+	for _, flag := range riskFlags {
+		riskSet[flag] = struct{}{}
+	}
+
+	orderedTriggers := []string{}
+	for _, candidate := range []string{"needs-spike", "security-sensitive", "state-migration"} {
+		if _, ok := riskSet[candidate]; ok {
+			orderedTriggers = append(orderedTriggers, candidate)
+		}
+	}
+
+	text := fmt.Sprintf("%s\n%s", task.Title, task.DoD)
+	if advisorRequiredRe.MatchString(text) {
+		orderedTriggers = append(orderedTriggers, "<!-- advisor:required -->")
+	}
+
+	return orderedTriggers
 }
 
 func detectSprintBrowserRoute(task *sprintTaskRow, root, browserMode string) *string {

@@ -1,6 +1,6 @@
 #!/bin/bash
 # test-harness-loop-flow.sh
-# harness-loop flow.md の contract_path / reviewer_profile 分岐の回帰テスト
+# harness-loop flow.md の contract_path / reviewer_profile / advisor 導線の回帰テスト
 
 set -euo pipefail
 
@@ -27,5 +27,17 @@ grep -q 'REVIEWER_PROFILE=$(jq -r '\''\.review\.reviewer_profile // "static"'\''
 
 grep -q 'generate-browser-review-artifact.sh "${CONTRACT_PATH}"' "${FLOW_FILE}" \
   || fail "browser profile 分岐が CONTRACT_PATH を使っていません"
+
+grep -q '### Step 4.5: Advisor consult（必要時のみ）' "${FLOW_FILE}" \
+  || fail "advisor consult ステップがありません"
+
+grep -q 'bash scripts/run-advisor-consultation.sh \\' "${FLOW_FILE}" \
+  || fail "advisor consultation wrapper の呼び出しがありません"
+
+grep -q 'PLAN` / `CORRECTION` は次の executor prompt 先頭に advice を入れて再実行' "${FLOW_FILE}" \
+  || fail "PLAN / CORRECTION の説明がありません"
+
+grep -q '同じ `trigger_hash` は 1 回だけ相談する' "${FLOW_FILE}" \
+  || fail "trigger_hash による重複抑止の説明がありません"
 
 echo "test-harness-loop-flow: ok"

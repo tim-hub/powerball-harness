@@ -44,6 +44,7 @@ breezing --auto-mode all        # 互換な親セッションで Auto Mode rollo
 2. **チーム実行モードを強制** — Lead → Worker spawn → Reviewer spawn の三者分離
 3. **Lead は delegate 専念** — コードを直接書かない
 4. **Auto Mode は opt-in 扱い** — `--auto-mode` は互換な親セッションでの rollout 用フラグとして受け付ける
+5. **Advisor は必要時のみ** — Worker が `advisor-request.v1` を返した時だけ Lead が advisor を呼ぶ
 
 ### `harness-work` との違い
 
@@ -60,6 +61,7 @@ breezing --auto-mode all        # 互換な親セッションで Auto Mode rollo
 |------|-----------|------|------|
 | Lead | (self) | - | 調整・指揮・タスク分配 |
 | Worker ×N | `claude-code-harness:worker` | `bypassPermissions`（現行） / Auto Mode（follow-up）* | 実装 |
+| Advisor | `claude-code-harness:advisor` | 読み取り専用 | 方針助言 (`PLAN` / `CORRECTION` / `STOP`) |
 | Reviewer | `claude-code-harness:reviewer` | `bypassPermissions`（現行） / Auto Mode（follow-up）* | 独立レビュー |
 
 > *親セッションまたは frontmatter が `bypassPermissions` の場合はそちらが優先される。配布テンプレートは現在も `bypassPermissions` を使うため、Auto Mode は follow-up の rollout 対象であり、既定挙動ではない。
@@ -88,9 +90,27 @@ breezing [scope] [--codex] [--parallel N] [--no-discuss] [--auto-mode]
     │
 Phase 0: Planning Discussion (--no-discuss でスキップ)
 Phase A: Pre-delegate（チーム初期化）
-Phase B: Delegate（Worker 実装 + Reviewer レビュー）
+Phase B: Delegate（Worker 実装 + 必要時 Advisor + Reviewer レビュー）
 Phase C: Post-delegate（統合検証 + Plans.md 更新 + commit）
 ```
+
+## Advisor Protocol
+
+Worker は generic な subagent を増やさない。
+迷った時は構造化 JSON で相談要求だけ返し、Lead が advisor を呼ぶ。
+
+1. Worker → `advisor-request.v1`
+2. Lead → Advisor
+3. Advisor → `advisor-response.v1`
+4. Lead → 同じ Worker に advice を返して続行
+5. Reviewer は最後の成果物だけを見る
+
+相談条件は loop / solo とそろえる。
+
+- 高リスク task（`needs-spike` / `security-sensitive` / `state-migration`）の初回実行前
+- 同じ原因の失敗が 2 回続いた後
+- plateau により `PIVOT_REQUIRED` を返す直前
+- 同じ `trigger_hash` は 1 回だけ。task ごとの相談回数は最大 3 回
 
 ### Progress Feed（Phase B 中の進捗通知）
 

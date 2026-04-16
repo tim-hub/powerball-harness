@@ -40,6 +40,18 @@ func TestSprintContractGenerator_RuntimeContract(t *testing.T) {
 	if len(doc.Contract.RuntimeValidation) == 0 || doc.Contract.RuntimeValidation[0].Command != "CI=true npm test" {
 		t.Fatalf("unexpected runtime validation: %+v", doc.Contract.RuntimeValidation)
 	}
+	if !doc.Advisor.Enabled || doc.Advisor.Mode != "on-demand" {
+		t.Fatalf("unexpected advisor defaults: %+v", doc.Advisor)
+	}
+	if doc.Advisor.MaxConsults != 3 || doc.Advisor.RetryThreshold != 2 || !doc.Advisor.PreEscalationConsult {
+		t.Fatalf("unexpected advisor thresholds: %+v", doc.Advisor)
+	}
+	if doc.Advisor.ModelPolicy.ClaudeDefault != "opus" || doc.Advisor.ModelPolicy.CodexDefault != "gpt-5.4" {
+		t.Fatalf("unexpected advisor model policy: %+v", doc.Advisor.ModelPolicy)
+	}
+	if len(doc.Advisor.Triggers) != 0 {
+		t.Fatalf("expected no advisor triggers, got %+v", doc.Advisor.Triggers)
+	}
 }
 
 func TestSprintContractGenerator_UIRubricDefaults(t *testing.T) {
@@ -125,6 +137,33 @@ func TestSprintContractGenerator_BrowserRouteRules(t *testing.T) {
 	}
 	if exploratory.Review.Route != nil {
 		t.Fatalf("expected exploratory route=nil, got %+v", exploratory.Review.Route)
+	}
+}
+
+func TestSprintContractGenerator_AdvisorTriggers(t *testing.T) {
+	dir := t.TempDir()
+	plansPath := filepath.Join(dir, "Plans.md")
+	if err := os.WriteFile(plansPath, []byte(`| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 43.1.1 | [needs-spike] security migration contract | state migration の guard を確認する <!-- advisor:required --> | - | cc:TODO |
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	g := &SprintContractGenerator{ProjectRoot: dir, PlansFile: plansPath}
+	doc, err := g.Generate("43.1.1")
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+
+	expected := []string{"needs-spike", "security-sensitive", "state-migration", "<!-- advisor:required -->"}
+	if len(doc.Advisor.Triggers) != len(expected) {
+		t.Fatalf("unexpected advisor triggers length: got=%v want=%v", doc.Advisor.Triggers, expected)
+	}
+	for i, trigger := range expected {
+		if doc.Advisor.Triggers[i] != trigger {
+			t.Fatalf("unexpected advisor trigger order: got=%v want=%v", doc.Advisor.Triggers, expected)
+		}
 	}
 }
 

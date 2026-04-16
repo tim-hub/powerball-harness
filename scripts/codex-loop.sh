@@ -22,6 +22,8 @@ RUNNER_LOG="${LOOP_STATE_DIR}/runner.log"
 CURRENT_JOB_JSON="${LOOP_STATE_DIR}/current-job.json"
 PROMPTS_DIR="${LOOP_STATE_DIR}/prompts"
 RESULTS_DIR="${LOOP_STATE_DIR}/results"
+TASK_JOBS_DIR="${LOOP_STATE_DIR}/jobs"
+CONFIG_UTILS="${SCRIPT_DIR}/config-utils.sh"
 
 COMPANION="${CODEX_LOOP_COMPANION:-${PROJECT_ROOT}/scripts/codex-companion.sh}"
 VALIDATE_SCRIPT="${CODEX_LOOP_VALIDATE_SCRIPT:-${PROJECT_ROOT}/tests/validate-plugin.sh}"
@@ -37,6 +39,12 @@ GENERATE_CONTRACT_SCRIPT="${CODEX_LOOP_GENERATE_CONTRACT_SCRIPT:-${PROJECT_ROOT}
 
 POLL_INTERVAL_SEC="${CODEX_LOOP_POLL_INTERVAL_SEC:-5}"
 
+if [ -f "${CONFIG_UTILS}" ]; then
+  # shellcheck source=scripts/config-utils.sh
+  CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml"
+  source "${CONFIG_UTILS}"
+fi
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -45,6 +53,7 @@ Usage:
   scripts/codex-loop.sh stop
   scripts/codex-loop.sh run --run-id <id>
   scripts/codex-loop.sh run-cycle --run-id <id> --task-id <id> --cycle <n>
+  scripts/codex-loop.sh local-task-worker --job-id <id>
 EOF
 }
 
@@ -54,6 +63,10 @@ timestamp_utc() {
 
 ensure_dirs() {
   mkdir -p "${LOOP_STATE_DIR}" "${LOCKS_DIR}" "${PROMPTS_DIR}" "${RESULTS_DIR}"
+  mkdir -p "${TASK_JOBS_DIR}"
+  if declare -F ensure_advisor_state_files >/dev/null 2>&1; then
+    ensure_advisor_state_files
+  fi
 }
 
 log_line() {
@@ -345,22 +358,377 @@ stop_requested() {
 
 companion_status_json() {
   local job_id="$1"
-  (cd "${PROJECT_ROOT}" && "${COMPANION}" status "${job_id}" --json)
+  if [ "${CODEX_LOOP_TASK_DRIVER:-local}" = "companion" ]; then
+    bash "${COMPANION}" status "${job_id}" --json
+    return 0
+  fi
+  local_task_status_json "${job_id}"
 }
 
 companion_result_json() {
   local job_id="$1"
-  (cd "${PROJECT_ROOT}" && "${COMPANION}" result "${job_id}" --json)
+  if [ "${CODEX_LOOP_TASK_DRIVER:-local}" = "companion" ]; then
+    bash "${COMPANION}" result "${job_id}" --json
+    return 0
+  fi
+  local_task_result_json "${job_id}"
 }
 
 companion_cancel_json() {
   local job_id="$1"
-  (cd "${PROJECT_ROOT}" && "${COMPANION}" cancel "${job_id}" --json)
+  if [ "${CODEX_LOOP_TASK_DRIVER:-local}" = "companion" ]; then
+    bash "${COMPANION}" cancel "${job_id}" --json
+    return 0
+  fi
+  local_task_cancel_json "${job_id}"
 }
 
 start_background_task() {
   local prompt_file="$1"
-  (cd "${PROJECT_ROOT}" && "${COMPANION}" task --background --json --write --prompt-file "${prompt_file}")
+  if [ "${CODEX_LOOP_TASK_DRIVER:-local}" = "companion" ]; then
+    bash "${COMPANION}" task --background --write --json --prompt-file "${prompt_file}"
+    return 0
+  fi
+  local_task_start_json "${prompt_file}"
+}
+
+local_task_job_file() {
+  printf '%s\n' "${TASK_JOBS_DIR}/$1.json"
+}
+
+local_task_log_file() {
+  printf '%s\n' "${TASK_JOBS_DIR}/$1.log"
+}
+
+local_task_output_file() {
+  printf '%s\n' "${TASK_JOBS_DIR}/$1.out"
+}
+
+local_task_summary() {
+  local prompt_file="$1"
+  python_json "${prompt_file}" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+if not path.exists():
+    print("Codex loop task")
+    raise SystemExit(0)
+
+for raw_line in path.read_text(encoding="utf-8").splitlines():
+    line = raw_line.strip()
+    if line:
+        print(line[:120])
+        raise SystemExit(0)
+
+print("Codex loop task")
+PY
+}
+
+local_task_write_record() {
+  local job_file="$1"
+  local payload_json="$2"
+  printf '%s\n' "${payload_json}" > "${job_file}"
+}
+
+local_task_mark_crashed_if_needed() {
+  local job_id="$1"
+  local job_file
+  job_file="$(local_task_job_file "${job_id}")"
+  [ -f "${job_file}" ] || return 0
+
+  python_json "${job_file}" <<'PY'
+import json
+import os
+import signal
+import sys
+
+job_file = sys.argv[1]
+with open(job_file, "r", encoding="utf-8") as fh:
+    job = json.load(fh)
+
+if job.get("status") not in {"queued", "running"}:
+    raise SystemExit(0)
+
+pid = job.get("pid")
+if not pid:
+    job["status"] = "failed"
+    job["phase"] = "failed"
+    job["errorMessage"] = "Loop worker terminated before recording a pid."
+else:
+    try:
+        os.kill(int(pid), 0)
+        raise SystemExit(0)
+    except OSError:
+        job["status"] = "failed"
+        job["phase"] = "failed"
+        job["pid"] = None
+        job["errorMessage"] = "Loop worker process exited unexpectedly."
+
+with open(job_file, "w", encoding="utf-8") as fh:
+    json.dump(job, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+}
+
+local_task_start_json() {
+  local prompt_file="$1"
+  local job_id="task-$(date +%Y%m%d%H%M%S)-$$"
+  local job_file log_file output_file summary
+  job_file="$(local_task_job_file "${job_id}")"
+  log_file="$(local_task_log_file "${job_id}")"
+  output_file="$(local_task_output_file "${job_id}")"
+  summary="$(local_task_summary "${prompt_file}")"
+
+  : > "${log_file}"
+  : > "${output_file}"
+  append_jsonl "${log_file}" "[local-task] queued"
+
+  local_task_write_record "${job_file}" "$(cat <<EOF
+{
+  "id": $(json_escape "${job_id}"),
+  "status": "queued",
+  "phase": "queued",
+  "title": "Codex Task",
+  "summary": $(json_escape "${summary}"),
+  "workspaceRoot": $(json_escape "${PROJECT_ROOT}"),
+  "jobClass": "task",
+  "write": true,
+  "logFile": $(json_escape "${log_file}"),
+  "request": {
+    "cwd": $(json_escape "${PROJECT_ROOT}"),
+    "promptFile": $(json_escape "${prompt_file}")
+  }
+}
+EOF
+)"
+
+  nohup bash "$0" local-task-worker --job-id "${job_id}" >/dev/null 2>&1 &
+  local worker_pid=$!
+
+  python_json "${job_file}" "${worker_pid}" <<'PY'
+import json
+import sys
+
+job_file = sys.argv[1]
+pid = int(sys.argv[2])
+with open(job_file, "r", encoding="utf-8") as fh:
+    job = json.load(fh)
+job["pid"] = pid
+with open(job_file, "w", encoding="utf-8") as fh:
+    json.dump(job, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+
+  python_json "${job_id}" "${log_file}" "${summary}" <<'PY'
+import json
+import sys
+
+job_id, log_file, summary = sys.argv[1:4]
+print(json.dumps({
+    "jobId": job_id,
+    "status": "queued",
+    "title": "Codex Task",
+    "summary": summary,
+    "logFile": log_file,
+}, ensure_ascii=False))
+PY
+}
+
+local_task_status_json() {
+  local job_id="$1"
+  local job_file
+  job_file="$(local_task_job_file "${job_id}")"
+  [ -f "${job_file}" ] || {
+    printf '{"job":{"id":%s,"status":"missing","phase":"missing"}}\n' "$(json_escape "${job_id}")"
+    return 0
+  }
+
+  local_task_mark_crashed_if_needed "${job_id}"
+  python_json "${job_file}" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as fh:
+    job = json.load(fh)
+print(json.dumps({"job": job}, ensure_ascii=False))
+PY
+}
+
+local_task_result_json() {
+  local job_id="$1"
+  local job_file
+  job_file="$(local_task_job_file "${job_id}")"
+  [ -f "${job_file}" ] || {
+    printf '{"storedJob":{"id":%s,"status":"missing","phase":"missing"}}\n' "$(json_escape "${job_id}")"
+    return 0
+  }
+
+  local_task_mark_crashed_if_needed "${job_id}"
+  python_json "${job_file}" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as fh:
+    job = json.load(fh)
+print(json.dumps({"storedJob": job}, ensure_ascii=False))
+PY
+}
+
+local_task_cancel_json() {
+  local job_id="$1"
+  local job_file
+  job_file="$(local_task_job_file "${job_id}")"
+  [ -f "${job_file}" ] || {
+    printf '{"jobId":%s,"cancelled":false,"reason":"missing"}\n' "$(json_escape "${job_id}")"
+    return 0
+  }
+
+  python_json "${job_file}" <<'PY'
+import json
+import os
+import signal
+import sys
+
+job_file = sys.argv[1]
+with open(job_file, "r", encoding="utf-8") as fh:
+    job = json.load(fh)
+
+pid = job.get("pid")
+cancelled = False
+reason = "not-running"
+if pid:
+    try:
+        os.kill(int(pid), signal.SIGTERM)
+        cancelled = True
+        reason = "signal_sent"
+    except OSError:
+        reason = "already-exited"
+
+job["status"] = "cancelled"
+job["phase"] = "cancelled"
+job["pid"] = None
+with open(job_file, "w", encoding="utf-8") as fh:
+    json.dump(job, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+
+print(json.dumps({
+    "jobId": job.get("id"),
+    "cancelled": cancelled,
+    "reason": reason,
+}, ensure_ascii=False))
+PY
+}
+
+run_local_task_worker() {
+  local job_id=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --job-id)
+        job_id="${2:-}"
+        shift 2
+        ;;
+      *)
+        echo "Unknown option: $1" >&2
+        exit 2
+        ;;
+    esac
+  done
+  [ -n "${job_id}" ] || {
+    echo "local-task-worker requires --job-id" >&2
+    exit 2
+  }
+
+  local job_file log_file output_file
+  job_file="$(local_task_job_file "${job_id}")"
+  [ -f "${job_file}" ] || {
+    echo "job file not found: ${job_id}" >&2
+    exit 1
+  }
+  log_file="$(local_task_log_file "${job_id}")"
+  output_file="$(local_task_output_file "${job_id}")"
+
+  local prompt_file
+  prompt_file="$(json_get_file "${job_file}" "request.promptFile" "")"
+  [ -f "${prompt_file}" ] || {
+    local_task_write_record "${job_file}" "$(cat <<EOF
+{
+  "id": $(json_escape "${job_id}"),
+  "status": "failed",
+  "phase": "failed",
+  "title": "Codex Task",
+  "summary": "Missing prompt file",
+  "workspaceRoot": $(json_escape "${PROJECT_ROOT}"),
+  "jobClass": "task",
+  "write": true,
+  "logFile": $(json_escape "${log_file}"),
+  "errorMessage": "Prompt file missing: ${prompt_file}"
+}
+EOF
+)"
+    exit 1
+  }
+
+  python_json "${job_file}" "$$" <<'PY'
+import json
+import sys
+from datetime import datetime, timezone
+
+job_file = sys.argv[1]
+pid = int(sys.argv[2])
+with open(job_file, "r", encoding="utf-8") as fh:
+    job = json.load(fh)
+job["status"] = "running"
+job["phase"] = "running"
+job["pid"] = pid
+job["startedAt"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+with open(job_file, "w", encoding="utf-8") as fh:
+    json.dump(job, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+
+  printf '[%s] local task worker started: %s\n' "$(timestamp_utc)" "${job_id}" >> "${log_file}"
+
+  local exit_code=0
+  if ! cat "${prompt_file}" | codex exec - --dangerously-bypass-approvals-and-sandbox > "${output_file}" 2>> "${log_file}"; then
+    exit_code=$?
+  fi
+
+  python_json "${job_file}" "${output_file}" "${exit_code}" <<'PY'
+import json
+import pathlib
+import sys
+from datetime import datetime, timezone
+
+job_file = pathlib.Path(sys.argv[1])
+output_file = pathlib.Path(sys.argv[2])
+exit_code = int(sys.argv[3])
+
+with job_file.open("r", encoding="utf-8") as fh:
+    job = json.load(fh)
+
+raw_output = output_file.read_text(encoding="utf-8") if output_file.exists() else ""
+job["status"] = "completed" if exit_code == 0 else "failed"
+job["phase"] = "done" if exit_code == 0 else "failed"
+job["pid"] = None
+job["completedAt"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+job["result"] = {
+    "status": exit_code,
+    "rawOutput": raw_output,
+    "touchedFiles": [],
+    "reasoningSummary": [],
+}
+job["rendered"] = raw_output
+if exit_code != 0:
+    job["errorMessage"] = f"codex exec exited with status {exit_code}"
+
+with job_file.open("w", encoding="utf-8") as fh:
+    json.dump(job, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+
+  printf '[%s] local task worker finished: %s (exit=%s)\n' "$(timestamp_utc)" "${job_id}" "${exit_code}" >> "${log_file}"
+  return "${exit_code}"
 }
 
 resume_pack_best_effort() {
@@ -412,15 +780,252 @@ run_checkpoint() {
   (cd "${PROJECT_ROOT}" && "${CHECKPOINT_SCRIPT}" "$1" "$2" "$3" "$4")
 }
 
+advisor_script_path() {
+  printf '%s\n' "${CODEX_LOOP_ADVISOR_SCRIPT:-${PROJECT_ROOT}/scripts/run-advisor-consultation.sh}"
+}
+
+advisor_enabled_globally() {
+  if [ ! -f "${CONFIG_UTILS}" ]; then
+    printf 'true\n'
+    return 0
+  fi
+  # shellcheck disable=SC1090
+  PROJECT_ROOT="${PROJECT_ROOT}" CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml" source "${CONFIG_UTILS}"
+  get_advisor_enabled
+}
+
+advisor_retry_threshold() {
+  if [ ! -f "${CONFIG_UTILS}" ]; then
+    printf '2\n'
+    return 0
+  fi
+  # shellcheck disable=SC1090
+  PROJECT_ROOT="${PROJECT_ROOT}" CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml" source "${CONFIG_UTILS}"
+  get_advisor_retry_threshold
+}
+
+advisor_max_consults_per_task() {
+  if [ ! -f "${CONFIG_UTILS}" ]; then
+    printf '3\n'
+    return 0
+  fi
+  # shellcheck disable=SC1090
+  PROJECT_ROOT="${PROJECT_ROOT}" CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml" source "${CONFIG_UTILS}"
+  get_advisor_max_consults_per_task
+}
+
+advisor_consult_before_user_escalation() {
+  if [ ! -f "${CONFIG_UTILS}" ]; then
+    printf 'true\n'
+    return 0
+  fi
+  # shellcheck disable=SC1090
+  PROJECT_ROOT="${PROJECT_ROOT}" CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml" source "${CONFIG_UTILS}"
+  get_advisor_consult_before_user_escalation
+}
+
+advisor_model_name() {
+  if [ ! -f "${CONFIG_UTILS}" ]; then
+    printf 'gpt-5.4\n'
+    return 0
+  fi
+  # shellcheck disable=SC1090
+  PROJECT_ROOT="${PROJECT_ROOT}" CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml" source "${CONFIG_UTILS}"
+  get_advisor_codex_model
+}
+
+contract_advisor_enabled() {
+  local contract_path="$1"
+  local global_enabled
+  global_enabled="$(advisor_enabled_globally)"
+  if [ "${global_enabled}" != "true" ]; then
+    printf 'false\n'
+    return 0
+  fi
+  json_get_file "${contract_path}" "advisor.enabled" "false"
+}
+
+contract_high_risk_summary() {
+  local contract_path="$1"
+  python_json "${contract_path}" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+
+triggers = data.get("advisor", {}).get("triggers", []) or []
+high_risk = [value for value in triggers if value in {"needs-spike", "security-sensitive", "state-migration"}]
+print(",".join(high_risk))
+PY
+}
+
+normalize_error_signature() {
+  local text="$1"
+  python_json "${text}" <<'PY'
+import re
+import sys
+
+normalized = re.sub(r"[^a-z0-9]+", "-", sys.argv[1].lower()).strip("-")
+print(normalized[:80] or "none")
+PY
+}
+
+advisor_trigger_seen() {
+  local trigger_hash="$1"
+  python_json "${RUN_JSON}" "${trigger_hash}" <<'PY'
+import json
+import os
+import sys
+
+path = sys.argv[1]
+target = sys.argv[2]
+if not os.path.exists(path):
+    raise SystemExit(1)
+
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+
+hashes = data.get("consulted_trigger_hashes", []) or []
+raise SystemExit(0 if target in hashes else 1)
+PY
+}
+
+advisor_task_consult_count() {
+  local task_id="$1"
+  python_json "${RUN_JSON}" "${task_id}" <<'PY'
+import json
+import os
+import sys
+
+path = sys.argv[1]
+task_id = sys.argv[2]
+if not os.path.exists(path):
+    print(0)
+    raise SystemExit(0)
+
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+
+counts = data.get("task_consultations", {}) or {}
+print(counts.get(task_id, 0))
+PY
+}
+
+record_advisor_consultation() {
+  local task_id="$1"
+  local trigger_hash="$2"
+  local decision="$3"
+  local model="$4"
+  python_json "${RUN_JSON}" "${task_id}" "${trigger_hash}" "${decision}" "${model}" <<'PY'
+import json
+import os
+import sys
+
+path, task_id, trigger_hash, decision, model = sys.argv[1:6]
+data = {}
+if os.path.exists(path):
+    with open(path, "r", encoding="utf-8") as fh:
+        data = json.load(fh)
+
+data["consultations"] = int(data.get("consultations", 0)) + 1
+data["last_decision"] = decision
+data["last_trigger"] = trigger_hash
+data["last_model"] = model
+
+hashes = data.setdefault("consulted_trigger_hashes", [])
+if trigger_hash not in hashes:
+    hashes.append(trigger_hash)
+
+task_counts = data.setdefault("task_consultations", {})
+task_counts[task_id] = int(task_counts.get(task_id, 0)) + 1
+
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+}
+
+render_advisor_guidance() {
+  local response_file="$1"
+  python_json "${response_file}" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as fh:
+    payload = json.load(fh)
+
+lines = []
+summary = payload.get("summary")
+if summary:
+    lines.append(f"Advisor summary: {summary}")
+for item in payload.get("executor_instructions", []) or []:
+    lines.append(f"- {item}")
+
+print("\n".join(lines))
+PY
+}
+
+consult_advisor() {
+  local task_id="$1"
+  local reason_code="$2"
+  local trigger_hash="$3"
+  local question="$4"
+  local attempt="$5"
+  local last_error="$6"
+  local context_summary="$7"
+
+  local request_file response_file model
+  model="$(advisor_model_name)"
+  request_file="${RESULTS_DIR}/${task_id}.${reason_code}.advisor-request.json"
+  response_file="${RESULTS_DIR}/${task_id}.${reason_code}.advisor-response.json"
+
+  python_json "${request_file}" "${task_id}" "${reason_code}" "${trigger_hash}" "${question}" "${attempt}" "${last_error}" "${context_summary}" <<'PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+task_id, reason_code, trigger_hash, question, attempt, last_error, context_summary = sys.argv[2:9]
+context_items = [item for item in context_summary.split("||") if item]
+payload = {
+    "schema_version": "advisor-request.v1",
+    "task_id": task_id,
+    "reason_code": reason_code,
+    "trigger_hash": trigger_hash,
+    "question": question,
+    "attempt": int(attempt),
+    "last_error": last_error,
+    "context_summary": context_items,
+}
+path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+PY
+
+  bash "$(advisor_script_path)" \
+    --request-file "${request_file}" \
+    --response-file "${response_file}" \
+    --model "${model}" >> "${RUNNER_LOG}" 2>&1
+
+  local decision
+  decision="$(json_get_file "${response_file}" "decision" "")"
+  record_advisor_consultation "${task_id}" "${trigger_hash}" "${decision}" "${model}"
+  printf '%s\n' "${response_file}"
+}
+
 create_cycle_prompt() {
   local task_id="$1"
   local contract_path="$2"
   local result_file="$3"
+  local advisor_guidance="${4:-}"
   cat > "${result_file}" <<EOF
 You are running one Codex loop cycle inside ${PROJECT_ROOT}.
 
 Target task: ${task_id}
 Sprint contract: ${contract_path}
+
+${advisor_guidance:+Advisor guidance for this attempt:
+${advisor_guidance}
+}
 
 Do exactly one task cycle.
 1. Read Plans.md and the sprint contract.
@@ -537,33 +1142,64 @@ perform_cycle() {
   review_input_file="${RESULTS_DIR}/${run_id}-cycle-${cycle_number}.review-input.json"
   review_result_file="${RESULTS_DIR}/${run_id}-cycle-${cycle_number}.review-result.json"
 
-  create_cycle_prompt "${task_id}" "${contract_path}" "${prompt_file}"
+  local advisor_active advisor_guidance high_risk_summary
+  advisor_active="$(contract_advisor_enabled "${contract_path}")"
+  advisor_guidance=""
+  high_risk_summary="$(contract_high_risk_summary "${contract_path}")"
 
-  local pre_head=""
-  pre_head="$(cd "${PROJECT_ROOT}" && git rev-parse --short HEAD 2>/dev/null || true)"
+  if [ "${advisor_active}" = "true" ] && [ -n "${high_risk_summary}" ]; then
+    local preflight_hash preflight_response preflight_decision preflight_count
+    preflight_hash="${task_id}:high-risk-preflight:$(normalize_error_signature "${high_risk_summary}")"
+    preflight_count="$(advisor_task_consult_count "${task_id}")"
+    if ! advisor_trigger_seen "${preflight_hash}" && [ "${preflight_count}" -lt "$(advisor_max_consults_per_task)" ]; then
+      preflight_response="$(consult_advisor "${task_id}" "high-risk-preflight" "${preflight_hash}" "高リスク task の初回実行前。どの観点を先に固めるべきか。" 1 "${high_risk_summary}" "task=${task_id}||risk_triggers=${high_risk_summary}||cycle=${cycle_number}")" || return 21
+      preflight_decision="$(json_get_file "${preflight_response}" "decision" "")"
+      advisor_guidance="$(render_advisor_guidance "${preflight_response}")"
+      if [ "${preflight_decision}" = "STOP" ]; then
+        log_line "advisor stop before execution for ${task_id}"
+        return 21
+      fi
+    fi
+  fi
 
-  local task_launch_json
-  task_launch_json="$(start_background_task "${prompt_file}")"
-  local job_id job_log
-  job_id="$(python_json "${task_launch_json}" <<'PY'
+  local retry_threshold max_consults attempt_limit
+  retry_threshold="$(advisor_retry_threshold)"
+  max_consults="$(advisor_max_consults_per_task)"
+  attempt_limit=$((retry_threshold + 1))
+
+  local task_attempt=1 failure_count=0 failure_signature=""
+  local job_id="" job_log="" job_status="" job_phase="" summary=""
+  local post_head="" static_verdict="REQUEST_CHANGES" runtime_verdict="REQUEST_CHANGES" final_verdict="REQUEST_CHANGES"
+  local checkpoint_status="skipped" plateau_exit=1
+
+  while [ "${task_attempt}" -le "${attempt_limit}" ]; do
+    create_cycle_prompt "${task_id}" "${contract_path}" "${prompt_file}" "${advisor_guidance}"
+
+    local pre_head=""
+    pre_head="$(cd "${PROJECT_ROOT}" && git rev-parse --short HEAD 2>/dev/null || true)"
+
+    local task_launch_json
+    task_launch_json="$(start_background_task "${prompt_file}")"
+    job_id="$(python_json "${task_launch_json}" <<'PY'
 import json, sys
 print(json.loads(sys.argv[1]).get("jobId", ""))
 PY
 )"
-  job_log="$(python_json "${task_launch_json}" <<'PY'
+    job_log="$(python_json "${task_launch_json}" <<'PY'
 import json, sys
 print(json.loads(sys.argv[1]).get("logFile", ""))
 PY
 )"
-  [ -n "${job_id}" ] || {
-    log_line "cycle ${cycle_number} missing job id"
-    return 21
-  }
+    [ -n "${job_id}" ] || {
+      log_line "cycle ${cycle_number} missing job id"
+      return 21
+    }
 
-  write_current_job_state "$(cat <<EOF
+    write_current_job_state "$(cat <<EOF
 {
   "run_id": $(json_escape "${run_id}"),
   "cycle": ${cycle_number},
+  "attempt": ${task_attempt},
   "task_id": $(json_escape "${task_id}"),
   "job_id": $(json_escape "${job_id}"),
   "log_file": $(json_escape "${job_log}"),
@@ -573,7 +1209,7 @@ PY
 }
 EOF
 )"
-  run_state_patch "$(cat <<EOF
+    run_state_patch "$(cat <<EOF
 {
   "status": "running",
   "updated_at": $(json_escape "$(timestamp_utc)"),
@@ -587,13 +1223,13 @@ EOF
 EOF
 )"
 
-  local stop_cancelled=0
-  local status_json job_status job_phase
-  while true; do
-    status_json="$(companion_status_json "${job_id}" 2>/dev/null || true)"
-    local status_payload="${status_json}"
-    [ -n "${status_payload}" ] || status_payload='{}'
-    job_status="$(python_json "${status_payload}" <<'PY'
+    local stop_cancelled=0
+    local status_json
+    while true; do
+      status_json="$(companion_status_json "${job_id}" 2>/dev/null || true)"
+      local status_payload="${status_json}"
+      [ -n "${status_payload}" ] || status_payload='{}'
+      job_status="$(python_json "${status_payload}" <<'PY'
 import json, sys
 try:
     payload = json.loads(sys.argv[1]) if sys.argv[1] else {}
@@ -603,7 +1239,7 @@ job = payload.get("job", {})
 print(job.get("status", "unknown"))
 PY
 )"
-    job_phase="$(python_json "${status_payload}" <<'PY'
+      job_phase="$(python_json "${status_payload}" <<'PY'
 import json, sys
 try:
     payload = json.loads(sys.argv[1]) if sys.argv[1] else {}
@@ -614,7 +1250,7 @@ print(job.get("phase", "unknown"))
 PY
 )"
 
-    run_state_patch "$(cat <<EOF
+      run_state_patch "$(cat <<EOF
 {
   "updated_at": $(json_escape "$(timestamp_utc)"),
   "current_job_status": $(json_escape "${job_status}"),
@@ -623,23 +1259,23 @@ PY
 EOF
 )"
 
-    if stop_requested && [ "${stop_cancelled}" -eq 0 ] && { [ "${job_status}" = "queued" ] || [ "${job_status}" = "running" ]; }; then
-      log_line "stop requested: cancelling ${job_id}"
-      companion_cancel_json "${job_id}" >> "${RUNNER_LOG}" 2>&1 || true
-      stop_cancelled=1
-    fi
+      if stop_requested && [ "${stop_cancelled}" -eq 0 ] && { [ "${job_status}" = "queued" ] || [ "${job_status}" = "running" ]; }; then
+        log_line "stop requested: cancelling ${job_id}"
+        companion_cancel_json "${job_id}" >> "${RUNNER_LOG}" 2>&1 || true
+        stop_cancelled=1
+      fi
 
-    if [ "${job_status}" != "queued" ] && [ "${job_status}" != "running" ]; then
-      break
-    fi
-    sleep "${POLL_INTERVAL_SEC}"
-  done
+      if [ "${job_status}" != "queued" ] && [ "${job_status}" != "running" ]; then
+        break
+      fi
+      sleep "${POLL_INTERVAL_SEC}"
+    done
 
-  local result_json summary
-  result_json="$(companion_result_json "${job_id}" 2>/dev/null || true)"
-  local result_payload="${result_json}"
-  [ -n "${result_payload}" ] || result_payload='{}'
-  summary="$(python_json "${result_payload}" <<'PY'
+    local result_json result_payload
+    result_json="$(companion_result_json "${job_id}" 2>/dev/null || true)"
+    result_payload="${result_json}"
+    [ -n "${result_payload}" ] || result_payload='{}'
+    summary="$(python_json "${result_payload}" <<'PY'
 import json, sys
 try:
     payload = json.loads(sys.argv[1]) if sys.argv[1] else {}
@@ -657,31 +1293,69 @@ else:
 PY
 )"
 
-  local post_head static_verdict task_status
-  post_head="$(cd "${PROJECT_ROOT}" && git rev-parse --short HEAD 2>/dev/null || true)"
-  task_status="$(task_status_value "$(plans_file_path)" "${task_id}" 2>/dev/null || true)"
+    post_head="$(cd "${PROJECT_ROOT}" && git rev-parse --short HEAD 2>/dev/null || true)"
+    local task_status
+    task_status="$(task_status_value "$(plans_file_path)" "${task_id}" 2>/dev/null || true)"
 
-  static_verdict="REQUEST_CHANGES"
-  if [ -n "${post_head}" ] && [ "${post_head}" != "${pre_head}" ] && printf '%s' "${task_status}" | grep -q 'cc:完了'; then
-    static_verdict="APPROVE"
-  fi
+    static_verdict="REQUEST_CHANGES"
+    if [ -n "${post_head}" ] && [ "${post_head}" != "${pre_head}" ] && printf '%s' "${task_status}" | grep -q 'cc:完了'; then
+      static_verdict="APPROVE"
+    fi
 
-  local runtime_verdict="${static_verdict}"
-  if run_runtime_review "${contract_path}" "${runtime_review_file}" >> "${RUNNER_LOG}" 2>&1; then
-    runtime_verdict="$(json_get_file "${runtime_review_file}" "verdict" "${static_verdict}")"
-  fi
+    runtime_verdict="${static_verdict}"
+    if run_runtime_review "${contract_path}" "${runtime_review_file}" >> "${RUNNER_LOG}" 2>&1; then
+      runtime_verdict="$(json_get_file "${runtime_review_file}" "verdict" "${static_verdict}")"
+    fi
 
-  local final_verdict="${static_verdict}"
-  if [ "${runtime_verdict}" = "REQUEST_CHANGES" ]; then
-    final_verdict="REQUEST_CHANGES"
-  elif [ "${runtime_verdict}" = "APPROVE" ] && [ "${static_verdict}" = "APPROVE" ]; then
-    final_verdict="APPROVE"
-  fi
+    final_verdict="${static_verdict}"
+    if [ "${runtime_verdict}" = "REQUEST_CHANGES" ]; then
+      final_verdict="REQUEST_CHANGES"
+    elif [ "${runtime_verdict}" = "APPROVE" ] && [ "${static_verdict}" = "APPROVE" ]; then
+      final_verdict="APPROVE"
+    fi
 
-  build_review_input "${review_input_file}" "${final_verdict}" "${reviewer_profile}" "${task_id}" "${task_title}" "${summary}"
-  write_review_result "${review_input_file}" "${post_head}" "${review_result_file}" >> "${RUNNER_LOG}" 2>&1 || true
+    build_review_input "${review_input_file}" "${final_verdict}" "${reviewer_profile}" "${task_id}" "${task_title}" "${summary}"
+    write_review_result "${review_input_file}" "${post_head}" "${review_result_file}" >> "${RUNNER_LOG}" 2>&1 || true
 
-  local checkpoint_status="skipped"
+    if [ "${final_verdict}" = "APPROVE" ]; then
+      break
+    fi
+
+    local current_signature
+    current_signature="$(normalize_error_signature "${summary}")"
+    if [ "${current_signature}" = "${failure_signature}" ]; then
+      failure_count=$((failure_count + 1))
+    else
+      failure_signature="${current_signature}"
+      failure_count=1
+    fi
+
+    if [ "${task_attempt}" -lt "${retry_threshold}" ]; then
+      task_attempt=$((task_attempt + 1))
+      advisor_guidance=""
+      continue
+    fi
+
+    if [ "${advisor_active}" = "true" ] && [ "${failure_count}" -ge "${retry_threshold}" ]; then
+      local retry_hash retry_response retry_decision retry_count
+      retry_hash="${task_id}:retry-threshold:${failure_signature}"
+      retry_count="$(advisor_task_consult_count "${task_id}")"
+      if ! advisor_trigger_seen "${retry_hash}" && [ "${retry_count}" -lt "${max_consults}" ]; then
+        retry_response="$(consult_advisor "${task_id}" "retry-threshold" "${retry_hash}" "同じ原因の失敗が繰り返された。次は何を変えるべきか。" "${task_attempt}" "${summary}" "task=${task_id}||attempt=${task_attempt}||signature=${failure_signature}")" || return 21
+        retry_decision="$(json_get_file "${retry_response}" "decision" "")"
+        advisor_guidance="$(render_advisor_guidance "${retry_response}")"
+        if [ "${retry_decision}" = "STOP" ]; then
+          break
+        fi
+        if [ "${task_attempt}" -lt "${attempt_limit}" ]; then
+          task_attempt=$((task_attempt + 1))
+          continue
+        fi
+      fi
+    fi
+    break
+  done
+
   if [ -n "${post_head}" ] && [ "${final_verdict}" = "APPROVE" ] && [ -f "${review_result_file}" ]; then
     if run_checkpoint "${task_id}" "${post_head}" "${contract_path}" "${review_result_file}" >> "${RUNNER_LOG}" 2>&1; then
       checkpoint_status="ok"
@@ -690,15 +1364,27 @@ PY
     fi
   fi
 
-  local plateau_exit=1
   if run_plateau_check "${task_id}" >> "${RUNNER_LOG}" 2>&1; then
     plateau_exit=0
   else
     plateau_exit=$?
   fi
 
+  if [ "${plateau_exit}" -eq 2 ] && [ "${advisor_active}" = "true" ] && [ "$(advisor_consult_before_user_escalation)" = "true" ]; then
+    local plateau_hash plateau_response plateau_decision plateau_count
+    plateau_hash="${task_id}:plateau-pre-escalation:$(normalize_error_signature "${summary}")"
+    plateau_count="$(advisor_task_consult_count "${task_id}")"
+    if ! advisor_trigger_seen "${plateau_hash}" && [ "${plateau_count}" -lt "${max_consults}" ]; then
+      plateau_response="$(consult_advisor "${task_id}" "plateau-pre-escalation" "${plateau_hash}" "plateau により停止候補。もう一度進めるべきか止めるべきか。" "${task_attempt}" "${summary}" "task=${task_id}||phase=plateau||verdict=${final_verdict}")" || return 22
+      plateau_decision="$(json_get_file "${plateau_response}" "decision" "")"
+      if [ "${plateau_decision}" != "STOP" ]; then
+        plateau_exit=0
+      fi
+    fi
+  fi
+
   append_jsonl "${CYCLES_JSONL}" "$(cat <<EOF
-{"run_id":$(json_escape "${run_id}"),"cycle":${cycle_number},"task_id":$(json_escape "${task_id}"),"job_id":$(json_escape "${job_id}"),"job_status":$(json_escape "${job_status}"),"reviewer_profile":$(json_escape "${reviewer_profile}"),"verdict":$(json_escape "${final_verdict}"),"static_verdict":$(json_escape "${static_verdict}"),"runtime_verdict":$(json_escape "${runtime_verdict}"),"commit_hash":$( [ -n "${post_head}" ] && json_escape "${post_head}" || printf 'null' ),"summary":$(json_escape "${summary}"),"checkpoint":$(json_escape "${checkpoint_status}"),"started_at":$(json_escape "${cycle_started_at}"),"finished_at":$(json_escape "$(timestamp_utc)")}
+{"run_id":$(json_escape "${run_id}"),"cycle":${cycle_number},"task_id":$(json_escape "${task_id}"),"job_id":$(json_escape "${job_id}"),"job_status":$(json_escape "${job_status}"),"reviewer_profile":$(json_escape "${reviewer_profile}"),"verdict":$(json_escape "${final_verdict}"),"static_verdict":$(json_escape "${static_verdict}"),"runtime_verdict":$(json_escape "${runtime_verdict}"),"commit_hash":$( [ -n "${post_head}" ] && json_escape "${post_head}" || printf 'null' ),"summary":$(json_escape "${summary}"),"checkpoint":$(json_escape "${checkpoint_status}"),"attempts":${task_attempt},"consultations":$(json_get_file "${RUN_JSON}" "consultations" "0"),"started_at":$(json_escape "${cycle_started_at}"),"finished_at":$(json_escape "$(timestamp_utc)")}
 EOF
 )"
 
@@ -781,6 +1467,12 @@ cmd_start() {
   "pacing": "$(printf '%s' "${pacing}")",
   "delay_seconds": ${delay_seconds},
   "cycle_count": 0,
+  "consultations": 0,
+  "last_decision": null,
+  "last_trigger": null,
+  "last_model": null,
+  "consulted_trigger_hashes": [],
+  "task_consultations": {},
   "status": "starting",
   "started_at": "$(timestamp_utc)",
   "updated_at": "$(timestamp_utc)",
@@ -1059,6 +1751,10 @@ case "${subcommand}" in
   run-cycle)
     shift
     cmd_run_cycle "$@"
+    ;;
+  local-task-worker)
+    shift
+    run_local_task_worker "$@"
     ;;
   ""|-h|--help|help)
     usage

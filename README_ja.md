@@ -164,6 +164,21 @@ Harness が明確な受入条件付きの `Plans.md` を作成。
 
 各ワーカーが実装、セルフレビュー、報告を行う。
 
+### Advisor Strategy（相談役つき実行）
+
+Harness は、少しずつ Advisor Strategy を取り入れています。
+これは、**実行役がふだんは自走し、本当に難しい場面だけ相談役を呼ぶ**進め方です。
+
+- 高リスク task では、最初に 1 回だけ相談することがある
+- 同じ原因の失敗が続いたら、次の打ち手を相談する
+- plateau 検知では、止める前に最後の 1 回だけ相談する
+- 最終的な合否判定は、これまで通り Reviewer が持つ
+
+最初の導入先は `harness-loop` です。
+長時間実行でいちばん効果が出やすく、相談履歴も追いやすいためです。
+
+詳しくは [docs/advisor-strategy.md](docs/advisor-strategy.md) を参照してください。
+
 <p align="center">
   <img src="assets/readme-visuals-ja/parallel-workers.svg" alt="並列ワーカー" width="640">
 </p>

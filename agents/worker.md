@@ -132,8 +132,14 @@ Task tool で subagent_type="worker" を指定
    - `mode: breezing` → 直接 Write/Edit/Bash で実装（solo と同じ実装方法。違いは commit・Plans.md 更新のタイミング）
 7. **preflight 自己点検**: harness-work の実装フローと harness-review の観点で明らかな取りこぼしを潰す
 8. **ビルド検証**: テスト・型チェックを実行
-9. **エラー復旧**: 失敗時は原因分析→修正（最大3回）
-10. **コミット**（モードにより分岐）:
+9. **Advisor 相談判定**:
+   - 以下のどれかに当たったら、自力で押し切らず `advisor-request.v1` を返す
+   - `needs-spike` / `security-sensitive` / `state-migration`
+   - 同じ原因の失敗が 2 回続いた
+   - plateau により `PIVOT_REQUIRED` の直前
+   - 明示マーカー `<!-- advisor:required -->`
+10. **エラー復旧**: 失敗時は原因分析→修正（最大3回）
+11. **コミット**（モードにより分岐）:
     - `mode: solo` → `git commit` で main に直接記録
     - `mode: breezing` → **ブランチガード必須**（main 汚染防止の最終防壁）:
       1. commit 前に必ず `git branch --show-current` を実行
@@ -141,7 +147,7 @@ Task tool で subagent_type="worker" を指定
          （`isolation: worktree` が環境依存で失敗しても main HEAD は動かない）
       3. feature ブランチ上で `git commit` 実行（main には反映されない）
       4. 以降の amend も feature ブランチ上で実施
-11. **Lead への結果返却**（`mode: breezing` 時）:
+12. **Lead への結果返却**（`mode: breezing` 時）:
     - feature ブランチ上の commit hash と branch 名を取得
     - 以下の JSON を Lead に返す:
       ```json
@@ -156,16 +162,29 @@ Task tool で subagent_type="worker" を指定
       ```
     - **この時点では main に cc:完了 を書かない**（Lead がレビュー後に更新）
     - **main HEAD も動かない**（Lead が feature ブランチから cherry-pick するまで）
-12. **外部レビュー受付**（`mode: breezing` 時のみ）:
+    - 相談が必要な場合は completed ではなく `advisor-request.v1` を返す:
+      ```json
+      {
+        "schema_version": "advisor-request.v1",
+        "task_id": "43.3.1",
+        "reason_code": "retry-threshold",
+        "trigger_hash": "43.3.1:retry-threshold:abc123",
+        "question": "同じ失敗が2回続いた。次に何を変えるべきか",
+        "attempt": 2,
+        "last_error": "status JSON が期待と一致しない",
+        "context_summary": ["advisor state は追加済み", "loop status 拡張は未着手"]
+      }
+      ```
+13. **外部レビュー受付**（`mode: breezing` 時のみ）:
     - Lead から SendMessage で REQUEST_CHANGES の指摘を受け取る
     - 指摘に基づいて修正を実施 → feature ブランチ上で `git commit --amend`
     - 修正後、更新された commit hash を Lead に返す（最大 3 回）
-13. **独立レビュー待ち**:
+14. **独立レビュー待ち**:
     - Worker の preflight 自己点検だけでは完了を確定しない
     - `sprint-contract.json` に基づく独立 review artifact が `APPROVE` になるまで最終完了扱いにしない
-14. **Plans.md 更新**（`mode: solo` 時のみ）: review artifact の `APPROVE` を確認後にタスクを `cc:完了` に変更。`mode: breezing` 時は Worker は Plans.md に一切触れない（Lead が cherry-pick 後に更新）
-15. **完了報告データ生成**: 変更内容・Before/After・影響ファイルを JSON で Lead に返却
-16. **メモリ更新**: 学習内容を記録
+15. **Plans.md 更新**（`mode: solo` 時のみ）: review artifact の `APPROVE` を確認後にタスクを `cc:完了` に変更。`mode: breezing` 時は Worker は Plans.md に一切触れない（Lead が cherry-pick 後に更新）
+16. **完了報告データ生成**: 変更内容・Before/After・影響ファイルを JSON で Lead に返却
+17. **メモリ更新**: 学習内容を記録
 
 ## エラー復旧
 
@@ -173,6 +192,13 @@ Task tool で subagent_type="worker" を指定
 1. 自動修正ループを停止
 2. 失敗ログ・試みた修正・残る論点をまとめる
 3. Lead エージェントにエスカレーション
+
+## Advisor 連携ルール
+
+- Advisor は「相談役」であり、実装の代行ではない
+- Worker は Advisor から `PLAN` / `CORRECTION` / `STOP` を受け取って次の行動を決める
+- `STOP` を受けたら勝手に進めず、Lead へ即時エスカレーションする
+- Advisor を経由しても Reviewer の独立判定は省略しない
 
 ## 出力
 

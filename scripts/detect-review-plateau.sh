@@ -64,14 +64,14 @@ ENTRIES_JSON="$(jq -c --arg tid "$TASK_ID" \
   'select(.task.id == $tid)' \
   "$CALIBRATION_FILE" 2>/dev/null | tail -3)"
 
-ENTRY_COUNT="$(echo "$ENTRIES_JSON" | grep -c '"schema_version"' 2>/dev/null || echo 0)"
+ENTRY_COUNT="$(printf '%s\n' "$ENTRIES_JSON" | jq -s 'length' 2>/dev/null || printf '0')"
 
 # 全件数も取得（件数チェックは全件で行う）
 ALL_ENTRIES_JSON="$(jq -c --arg tid "$TASK_ID" \
   'select(.task.id == $tid)' \
   "$CALIBRATION_FILE" 2>/dev/null)"
 
-TOTAL_COUNT="$(echo "$ALL_ENTRIES_JSON" | grep -c '"schema_version"' 2>/dev/null || echo 0)"
+TOTAL_COUNT="$(printf '%s\n' "$ALL_ENTRIES_JSON" | jq -s 'length' 2>/dev/null || printf '0')"
 
 # --- N < 3: INSUFFICIENT_DATA ---
 if [ "$TOTAL_COUNT" -lt 3 ]; then
