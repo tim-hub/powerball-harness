@@ -38,6 +38,36 @@ var securityPatterns = []securityPattern{
 		Pattern: regexp.MustCompile(`(?i)(?:password|passwd|secret|api_key|apikey)\s*=\s*["'][^"']{8,}["']`),
 		Message: "Hardcoded sensitive information detected (password/API key)",
 	},
+	// Anthropic API keys (sk-ant-...)
+	{
+		Pattern: regexp.MustCompile(`sk-ant-[a-zA-Z0-9\-]{20,}`),
+		Message: "Hardcoded Anthropic API key detected (sk-ant-...)",
+	},
+	// OpenAI API keys (sk-... but not sk-ant-)
+	{
+		Pattern: regexp.MustCompile(`\bsk-[a-zA-Z0-9]{20,}\b`),
+		Message: "Hardcoded OpenAI/generic API key detected (sk-...)",
+	},
+	// AWS access keys
+	{
+		Pattern: regexp.MustCompile(`AKIA[0-9A-Z]{16}`),
+		Message: "Hardcoded AWS access key detected (AKIA...)",
+	},
+	// GitHub personal access tokens (classic and fine-grained)
+	{
+		Pattern: regexp.MustCompile(`gh[pousre]_[A-Za-z0-9_]{36,}`),
+		Message: "Hardcoded GitHub token detected (ghp_/gho_/ghu_/ghs_/ghr_/ghe_...)",
+	},
+	// Stripe keys
+	{
+		Pattern: regexp.MustCompile(`[rs]k_live_[a-zA-Z0-9]{20,}`),
+		Message: "Hardcoded Stripe live key detected (sk_live_/rk_live_...)",
+	},
+	// JWT tokens (header.payload format — both parts base64url encoded)
+	{
+		Pattern: regexp.MustCompile(`eyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}`),
+		Message: "Hardcoded JWT token detected (eyJ...eyJ...)",
+	},
 }
 
 func detectSecurityRisks(content string) []string {
