@@ -6,6 +6,40 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Phase 62: Advisor Strategy — read-only consultation agent + harness-loop skill
+
+**Workers can now consult a read-only Advisor (Opus) at decision blockers instead of immediately escalating to the user.**
+
+#### 1. Advisor Agent (`harness/agents/advisor.md`)
+
+**Before**: Workers had no structured escalation path between "keep retrying" and "ask the user". Repeated failures or risky tasks were either retried blindly or bubbled up to the user without a structured analysis step.
+
+**After**: The Advisor agent (Opus, read-only tools) accepts a consultation request and returns exactly one of three decisions: `PLAN` (replan the approach), `CORRECTION` (apply this specific fix), or `STOP` (escalate to Reviewer). Workers consult at three trigger points: high-risk preflight, repeated-failure gate, and plateau detection.
+
+#### 2. harness-loop skill (`harness/skills/harness-loop/`)
+
+**Before**: Long-running autonomous execution required the user to manually re-invoke harness-work after each task or failure.
+
+**After**: `harness-loop --until-done` iterates Plans.md tasks continuously, consulting the Advisor at trigger points and exiting cleanly on STOP or convergence. Templates added for codex-skills and opencode.
+
+#### 3. `--advisor` / `--no-advisor` flags in breezing and harness-work
+
+**Before**: No way to opt into structured consultation during breezing or work execution.
+
+**After**: Both `breezing` and `harness-work` accept `--advisor` (enable) and `--no-advisor` (bypass, escalate directly to user).
+
+#### 4. Go advisor trigger (`go/internal/hookhandler/advisor_trigger.go`)
+
+**Before**: No programmatic detection of advisor trigger conditions from hook events.
+
+**After**: `ShouldConsultAdvisor()` detects retry threshold breaches with duplicate suppression via JSONL failure log. `NormalizeErrorSig()` canonicalizes error signatures for reliable deduplication.
+
+#### 5. Symlink fix (`harness/bin/harness`)
+
+**Before**: `harness --version` failed when the binary was on PATH via a symlink — `dirname "$0"` resolved to the symlink's directory, not the real binary location.
+
+**After**: The shim uses `readlink -f` (Linux) / `realpath` (macOS) to resolve the real script path before `dirname`, so symlink-installed invocations work correctly.
+
 ## [4.5.0] - 2026-04-15
 
 ### Theme: Prebuilt binaries, agent optimization pass, reviewer upgrade to Opus
