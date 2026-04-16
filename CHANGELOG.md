@@ -4,9 +4,9 @@ Change history for claude-code-harness.
 
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
-## [Unreleased]
+## [Unreleased](https://github.com/tim-hub/powerball-harness/compare/v4.5.1...HEAD)
 
-## [4.5.1] - 2026-04-16
+## [4.5.1](https://github.com/tim-hub/powerball-harness/compare/v4.5.0...v4.5.1) - 2026-04-16
 
 ### Theme: Hook cost reduction, security hardening, architecture documentation
 
@@ -36,7 +36,7 @@ Change history for claude-code-harness.
 - **`harness/README.md`** — Full lifecycle diagram (Setup → Plan → Work → Review → Release); execution mode decision tree; Breezing fix-loop sequence diagram; memory architecture layers; skill catalog (23 skills) and agent roles table.
 - **`go/README.md`** — End-to-end guardrail flow; rule engine iterator; R01–R13 rules grouped by tool type; post-tool tampering + security scan pipeline; permission handler safe-command allowlist; state resolution (env → SQLite → defaults); fail-safe design.
 
-## [4.5.0] - 2026-04-15
+## [4.5.0](https://github.com/tim-hub/powerball-harness/compare/v4.4.5...v4.5.0) - 2026-04-15
 
 ### Theme: Prebuilt binaries, agent optimization pass, reviewer upgrade to Opus
 
@@ -136,7 +136,7 @@ Change history for claude-code-harness.
 
 **After**: All `## Trigger Phrases` and `## Trigger Conditions` sections removed. Routing signal consolidated in each skill's `description:` field.
 
-## [4.4.5] - 2026-04-15
+## [4.4.5](https://github.com/tim-hub/powerball-harness/compare/v4.4.4...v4.4.5) - 2026-04-15
 
 ### Theme: Fix plugin install error and sync-version.sh template glob
 
@@ -156,7 +156,7 @@ Change history for claude-code-harness.
 
 **After**: Both the `sync` and `check` commands now use `grep -rl '_harness_version:' harness/templates/` to discover all templates automatically. Any new `.md.template` with a `_harness_version:` field is picked up without code changes.
 
-## [4.4.4] - 2026-04-15
+## [4.4.4](https://github.com/tim-hub/powerball-harness/compare/v4.4.3...v4.4.4) - 2026-04-15
 
 ### Theme: CI hotfixes — validate-plugin.sh strict-mode regression and missing template frontmatter
 
@@ -176,7 +176,7 @@ Change history for claude-code-harness.
 
 **After**: Added proper YAML frontmatter to all three files.
 
-## [4.4.3] - 2026-04-15
+## [4.4.3](https://github.com/tim-hub/powerball-harness/compare/v4.4.2...v4.4.3) - 2026-04-15
 
 ### Theme: Phases 56–58 — Project-wide review fixes (validator, agent frontmatter, docs, script hygiene)
 
@@ -214,7 +214,7 @@ Change history for claude-code-harness.
 
 **After**: All 4 scripts use `${BASH_SOURCE[0]}`. `codex-setup-local.sh` variable renamed to `plugin_dir` with `# plugin-local:` comment. `generate-sprint-contract.sh` uses `git rev-parse --show-toplevel`. `validate-plugin.sh` uses `${TMPDIR:-/tmp}` and `set -euo pipefail`. Settings deny rule syntax normalized; `export PATH/LD_LIBRARY_PATH/PYTHONPATH` moved from `deny` to `ask`. `vibecoder-guide` description rewritten to task shape.
 
-## [4.4.2] - 2026-04-15
+## [4.4.2](https://github.com/tim-hub/powerball-harness/compare/v4.4.1...v4.4.2) - 2026-04-15
 
 ### Theme: Phase 55 — Three-tier path convention standardization + sync-version improvements
 
@@ -273,7 +273,7 @@ Change history for claude-code-harness.
 
 **After**: The skip only activates when `CI=true`. Local runs always execute all scripts. The CI workflow now sets `CI: "true"` explicitly at the job level.
 
-## [4.4.1] - 2026-04-15
+## [4.4.1](https://github.com/tim-hub/powerball-harness/compare/v4.4.0...v4.4.1) - 2026-04-15
 
 ### Theme: CI stability — skip known failing test scripts
 
@@ -292,7 +292,7 @@ Change history for claude-code-harness.
 | `make test-all` fails on two scripts | `make test-all` skips them with `SKIP (known failure)` |
 | CI blocked for unrelated changes | CI passes; skip is visible in output |
 
-## [4.4.0] - 2026-04-15
+## [4.4.0](https://github.com/tim-hub/powerball-harness/compare/v3.17.4...v4.4.0) - 2026-04-15
 
 ### Theme: Phase 52-54 — Marketplace restructure, Makefile CI layer, test suite hardening
 
@@ -755,7 +755,7 @@ All guardrail rules ported to Go with full test coverage:
 
 <!-- Local v3.17.x entries below -->
 
-## [3.17.4] - 2026-04-12
+## [3.17.4](https://github.com/tim-hub/powerball-harness/compare/v3.17.3...v3.17.4) - 2026-04-12
 
 ### Theme: Automated changelog generation skill
 
@@ -769,7 +769,7 @@ All guardrail rules ported to Go with full test coverage:
 
 **After**: Running `/update-changelog` (or triggering it after a version bump in `marketplace.json`) automatically gathers commits between the old and new version, categorizes them, and writes a properly formatted CHANGELOG entry. The skill lives at `.claude/skills/update-changelog/` as a project-local skill.
 
-## [3.17.3] - 2026-04-12
+## [3.17.3](https://github.com/tim-hub/powerball-harness/compare/v3.17.2...v3.17.3) - 2026-04-12
 
 ### Theme: Repository rebrand + v3 directory consolidation
 
@@ -797,7 +797,7 @@ All guardrail rules ported to Go with full test coverage:
 
 ---
 
-## [3.17.2] - 2026-04-11
+## [3.17.2](https://github.com/tim-hub/powerball-harness/compare/v3.17.1...v3.17.2) - 2026-04-11
 
 ### Theme: Full English translation + OSS readiness
 
@@ -823,7 +823,7 @@ All guardrail rules ported to Go with full test coverage:
 
 **After**: Removed redundant `plugin.json`. `marketplace.json` is the single source for plugin metadata.
 
-## [3.17.1] - 2026-04-06
+## [3.17.1](https://github.com/tim-hub/powerball-harness/compare/v3.17.0...v3.17.1) - 2026-04-06
 
 ### Theme: harness-mem integration fix (emergency patch)
 
@@ -839,7 +839,7 @@ For users who installed via marketplace, the repository exists at `~/.harness-me
 **After**: Added the standard installation path `~/.harness-mem/runtime/harness-mem` as the highest priority in the search order.
 When resuming a session with `/resume`, the previous work context (WIP tasks, recently edited files) is now properly restored.
 
-## [3.17.0] - 2026-04-04
+## [3.17.0](https://github.com/tim-hub/powerball-harness/compare/v3.16.0...v3.17.0) - 2026-04-04
 
 ### Theme: Feature Table consistency recovery + upstream integration + Claude/Codex parity enhancement
 
@@ -951,7 +951,7 @@ Corrected descriptions in the Feature Table that could be misread as "implemente
 
 Includes regression checklist, explicit non-NPM distribution, i18n support, mirror sync flow, SemVer criteria integration, and detailed `--dry-run` / `--complete` / `--announce` modes.
 
-## [3.16.0] - 2026-04-01
+## [3.16.0](https://github.com/tim-hub/powerball-harness/compare/v3.15.0...v3.16.0) - 2026-04-01
 
 ### Theme: Long-running harness hardening + team/release planning surfaces
 
@@ -976,7 +976,7 @@ Includes regression checklist, explicit non-NPM distribution, i18n support, mirr
 | `/harness-release --dry-run` had person-dependent pre-publication checks with no unified view of repo healthcheck or CI status | Vendor-neutral preflight script checks working tree, CHANGELOG, env parity, healthcheck, CI, and shipped surface residuals together |
 | No machine-readable pipeline for UI/API task briefs or skill surface listings, requiring manual creation each time for comparison/audit/auto-docs | Added design brief / contract brief rules and skill-manifest.v1 generation for lightweight reusable auxiliary materials and manifests |
 
-## [3.15.0] - 2026-03-28
+## [3.15.0](https://github.com/tim-hub/powerball-harness/compare/v3.14.0...v3.15.0) - 2026-03-28
 
 ### Theme: Claude 2.1.80-2.1.86 integration + Codex/OpenCode mirror alignment
 
@@ -1369,7 +1369,7 @@ Added 21 new features/fixes to the Feature Table with documentation on how Harne
 
 **After**: Added to both the CLAUDE.md summary table and docs/CLAUDE-feature-table.md detail section. Useful for identifying causes of frequent compaction in long Breezing sessions.
 
-## [3.10.3] - 2026-03-14
+## [3.10.3](https://github.com/tim-hub/powerball-harness/compare/v3.10.2...v3.10.3) - 2026-03-14
 
 ### Changed
 
@@ -1457,7 +1457,7 @@ Integrated Claude Code 2.1.76 new features into Harness. Updated Feature Table v
 
 ---
 
-## [3.10.2] - 2026-03-12
+## [3.10.2](https://github.com/tim-hub/powerball-harness/compare/v3.10.1...v3.10.2) - 2026-03-12
 
 ### Theme: TaskCompleted finalize hardening + Claude Code 2.1.74 docs/README alignment
 
@@ -1490,7 +1490,7 @@ Integrated Claude Code 2.1.76 new features into Harness. Updated Feature Table v
 **After**: Aligned `VERSION`, `.claude-plugin/plugin.json`, English/Japanese README version badges, and CHANGELOG compare links to `3.10.2`, making it ready for publication as a patch release.
 
 ---
-## [3.10.1] - 2026-03-12
+## [3.10.1](https://github.com/tim-hub/powerball-harness/compare/v3.10.0...v3.10.1) - 2026-03-12
 
 ### Theme: Claude Code official documentation deep integration -- 12 features added + Auto Mode rollout cleanup + SubagentStart/Stop matcher enhancement
 
@@ -1536,7 +1536,7 @@ Integrated Claude Code 2.1.76 new features into Harness. Updated Feature Table v
 
 ---
 
-## [3.10.0] - 2026-03-11
+## [3.10.0](https://github.com/tim-hub/powerball-harness/compare/v3.9.0...v3.10.0) - 2026-03-11
 
 ### Theme: Integration of 10 Claude Code documentation features + Status Line implementation
 
@@ -1600,7 +1600,7 @@ Added the following to `docs/CLAUDE-feature-table.md` and `CLAUDE.md` summary:
 
 ---
 
-## [3.9.0] - 2026-03-11
+## [3.9.0](https://github.com/tim-hub/powerball-harness/compare/v3.7.2...v3.9.0) - 2026-03-11
 
 ### Theme: Output Styles integration + Agent definition enhancement + Agent Teams official best practices alignment
 
@@ -1752,7 +1752,7 @@ Detail sections also added to `docs/CLAUDE-feature-table.md`.
 
 ---
 
-## [3.7.2] - 2026-03-10
+## [3.7.2](https://github.com/tim-hub/powerball-harness/compare/v3.7.1...v3.7.2) - 2026-03-10
 
 ### Fixed
 - **Hook stdout purity**: `session-init` and usage tracking hooks now discard telemetry output so hook consumers receive the JSON payload only.
@@ -1763,7 +1763,7 @@ Detail sections also added to `docs/CLAUDE-feature-table.md`.
 
 ---
 
-## [3.7.1] - 2026-03-09
+## [3.7.1](https://github.com/tim-hub/powerball-harness/compare/v3.7.0...v3.7.1) - 2026-03-09
 
 ### Theme: Team execution safety improvements
 
@@ -1800,7 +1800,7 @@ Detail sections also added to `docs/CLAUDE-feature-table.md`.
 
 ---
 
-## [3.7.0] - 2026-03-08
+## [3.7.0](https://github.com/tim-hub/powerball-harness/compare/v3.6.0...v3.7.0) - 2026-03-08
 
 ### Theme: Transition to state-centric architecture
 
@@ -1926,7 +1926,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [3.5.0] - 2026-03-07
+## [3.5.0](https://github.com/tim-hub/powerball-harness/compare/v3.4.2...v3.5.0) - 2026-03-07
 
 ### What's Changed for You
 
@@ -1963,7 +1963,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [3.4.2] - 2026-03-06
+## [3.4.2](https://github.com/tim-hub/powerball-harness/compare/v3.4.1...v3.4.2) - 2026-03-06
 
 ### What's Changed for You
 
@@ -1989,7 +1989,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [3.4.1] - 2026-03-06
+## [3.4.1](https://github.com/tim-hub/powerball-harness/compare/v3.4.0...v3.4.1) - 2026-03-06
 
 ### What's Changed for You
 
@@ -2007,7 +2007,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [3.4.0] - 2026-03-06
+## [3.4.0](https://github.com/tim-hub/powerball-harness/compare/v3.3.1...v3.4.0) - 2026-03-06
 
 ### What's Changed for You
 
@@ -2037,7 +2037,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [3.3.1] - 2026-03-05
+## [3.3.1](https://github.com/tim-hub/powerball-harness/compare/v3.3.0...v3.3.1) - 2026-03-05
 
 ### What's Changed for You
 
@@ -2063,7 +2063,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [3.3.0] - 2026-03-05
+## [3.3.0](https://github.com/tim-hub/powerball-harness/compare/v3.2.0...v3.3.0) - 2026-03-05
 
 ### What's Changed for You
 
@@ -2220,7 +2220,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.26.1] - 2026-03-02
+## [2.26.1](https://github.com/tim-hub/powerball-harness/compare/v2.26.0...v2.26.1) - 2026-03-02
 
 ### Added
 
@@ -2230,7 +2230,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 - **review-loop.md APPROVE flow inconsistency**: Phase 3.5 Auto-Refinement step was missing from the APPROVE judgment table, causing inconsistency with SKILL.md and execution-flow.md
 
-## [2.26.0] - 2026-03-02
+## [2.26.0](https://github.com/tim-hub/powerball-harness/compare/v2.25.0...v2.26.0) - 2026-03-02
 
 ### What's Changed for You
 
@@ -2258,7 +2258,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 - **`troubleshoot` skill**: Added `/clear` cache reset to CC v2.1.63+ diagnostics
 - **`work-active.json` schema**: Added `simplify_mode: "default" | "deep" | "skip"` field
 
-## [2.25.0] - 2026-02-24
+## [2.25.0](https://github.com/tim-hub/powerball-harness/compare/v2.24.0...v2.25.0) - 2026-02-24
 
 ### What's Changed for You
 
@@ -2287,7 +2287,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.24.0] - 2026-02-24
+## [2.24.0](https://github.com/tim-hub/powerball-harness/compare/v2.23.6...v2.24.0) - 2026-02-24
 
 ### What's Changed for You
 
@@ -2315,7 +2315,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.23.6] - 2026-02-24
+## [2.23.6](https://github.com/tim-hub/powerball-harness/compare/v2.23.5...v2.23.6) - 2026-02-24
 
 ### Added
 
@@ -2336,7 +2336,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.23.5] - 2026-02-23
+## [2.23.5](https://github.com/tim-hub/powerball-harness/compare/v2.23.3...v2.23.5) - 2026-02-23
 
 ### What's Changed for You
 
@@ -2375,7 +2375,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.23.3] - 2026-02-22
+## [2.23.3](https://github.com/tim-hub/powerball-harness/compare/v2.23.2...v2.23.3) - 2026-02-22
 
 ### What's Changed for You
 
@@ -2407,7 +2407,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.23.2] - 2026-02-22
+## [2.23.2](https://github.com/tim-hub/powerball-harness/compare/v2.23.1...v2.23.2) - 2026-02-22
 
 ### What's Changed for You
 
@@ -2429,7 +2429,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.23.1] - 2026-02-22
+## [2.23.1](https://github.com/tim-hub/powerball-harness/compare/v2.23.0...v2.23.1) - 2026-02-22
 
 ### What's Changed for You
 
@@ -2455,7 +2455,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.23.0] - 2026-02-21
+## [2.23.0](https://github.com/tim-hub/powerball-harness/compare/v2.22.0...v2.23.0) - 2026-02-21
 
 ### What's Changed for You
 
@@ -2481,7 +2481,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.22.0] - 2026-02-21
+## [2.22.0](https://github.com/tim-hub/powerball-harness/compare/v2.21.0...v2.22.0) - 2026-02-21
 
 ### What's Changed for You
 
@@ -2533,7 +2533,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.21.0] - 2026-02-20
+## [2.21.0](https://github.com/tim-hub/powerball-harness/compare/v2.20.13...v2.21.0) - 2026-02-20
 
 ### What's Changed for You
 
@@ -2572,7 +2572,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.20.13] - 2026-02-19
+## [2.20.13](https://github.com/tim-hub/powerball-harness/compare/v2.20.11...v2.20.13) - 2026-02-19
 
 ### What's Changed
 
@@ -2597,7 +2597,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 - Fixed inconsistent review routing by making `--claude` mode explicitly require Claude reviewer routing in both `work` and `breezing`.
 
 ---
-## [2.20.11] - 2026-02-19
+## [2.20.11](https://github.com/tim-hub/powerball-harness/compare/v2.20.10...v2.20.11) - 2026-02-19
 
 ### Changed
 
@@ -2612,7 +2612,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.20.10] - 2026-02-18
+## [2.20.10](https://github.com/tim-hub/powerball-harness/compare/v2.20.9...v2.20.10) - 2026-02-18
 
 ### What's Changed
 
@@ -2634,7 +2634,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 - Synced release-related references and command docs to avoid setup drift between README, setup skill references, and Codex distribution docs.
 
 ---
-## [2.20.9] - 2026-02-15
+## [2.20.9](https://github.com/tim-hub/powerball-harness/compare/v2.20.8...v2.20.9) - 2026-02-15
 
 ### What's Changed for You
 
@@ -2650,7 +2650,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 - Documentation consistency cleanup for Codex review-mode references.
 
 ---
-## [2.20.8] - 2026-02-14
+## [2.20.8](https://github.com/tim-hub/powerball-harness/compare/v2.20.7...v2.20.8) - 2026-02-14
 
 ### Changed
 
@@ -2662,7 +2662,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 - **Troubleshoot `claude auth` commands**: Added CC 2.1.41+ `claude auth login/status/logout` to diagnostic table
 
 ---
-## [2.20.7] - 2026-02-14
+## [2.20.7](https://github.com/tim-hub/powerball-harness/compare/v2.20.6...v2.20.7) - 2026-02-14
 
 ### Fixed
 
@@ -2672,7 +2672,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
   - Both `hooks/hooks.json` and `.claude-plugin/hooks.json` updated in sync
 
 ---
-## [2.20.6] - 2026-02-14
+## [2.20.6](https://github.com/tim-hub/powerball-harness/compare/v2.20.5...v2.20.6) - 2026-02-14
 
 ### Fixed
 
@@ -2683,7 +2683,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
   - Added `test-hook-event-names.sh` test (hookEventName consistency regression test)
 
 ---
-## [2.20.5] - 2026-02-12
+## [2.20.5](https://github.com/tim-hub/powerball-harness/compare/v2.20.4...v2.20.5) - 2026-02-12
 
 ### Fixed
 
@@ -2696,7 +2696,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.20.4] - 2026-02-11
+## [2.20.4](https://github.com/tim-hub/powerball-harness/compare/v2.20.3...v2.20.4) - 2026-02-11
 
 ### Fixed
 
@@ -2713,7 +2713,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.20.3] - 2026-02-10
+## [2.20.3](https://github.com/tim-hub/powerball-harness/compare/v2.20.2...v2.20.3) - 2026-02-10
 
 ### Fixed
 
@@ -2729,7 +2729,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.20.2] - 2026-02-10
+## [2.20.2](https://github.com/tim-hub/powerball-harness/compare/v2.20.1...v2.20.2) - 2026-02-10
 
 ### Added
 
@@ -2748,7 +2748,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.20.1] - 2026-02-10
+## [2.20.1](https://github.com/tim-hub/powerball-harness/compare/v2.20.0...v2.20.1) - 2026-02-10
 
 ### Fixed
 
@@ -2761,7 +2761,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.20.0] - 2026-02-08
+## [2.20.0](https://github.com/tim-hub/powerball-harness/compare/v2.19.0...v2.20.0) - 2026-02-08
 
 ### What's Changed for You
 
@@ -2814,7 +2814,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.19.0] - 2026-02-08
+## [2.19.0](https://github.com/tim-hub/powerball-harness/compare/v2.18.11...v2.19.0) - 2026-02-08
 
 ### What's Changed for You
 
@@ -2847,7 +2847,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.18.11] - 2026-02-06
+## [2.18.11](https://github.com/tim-hub/powerball-harness/compare/v2.18.10...v2.18.11) - 2026-02-06
 
 ### What's Changed for You
 
@@ -2884,7 +2884,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.18.10] - 2026-02-06
+## [2.18.10](https://github.com/tim-hub/powerball-harness/compare/v2.18.7...v2.18.10) - 2026-02-06
 
 ### Added
 
@@ -2895,7 +2895,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.18.7] - 2026-02-05
+## [2.18.7](https://github.com/tim-hub/powerball-harness/compare/v2.18.6...v2.18.7) - 2026-02-05
 
 ### Changed
 
@@ -2903,7 +2903,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.18.6] - 2026-02-05
+## [2.18.6](https://github.com/tim-hub/powerball-harness/compare/v2.18.5...v2.18.6) - 2026-02-05
 
 ### Fixed
 
@@ -2916,7 +2916,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.18.5] - 2026-02-05
+## [2.18.5](https://github.com/tim-hub/powerball-harness/compare/v2.18.4...v2.18.5) - 2026-02-05
 
 ### Added
 
@@ -2927,7 +2927,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.18.4] - 2026-02-04
+## [2.18.4](https://github.com/tim-hub/powerball-harness/compare/v2.18.2...v2.18.4) - 2026-02-04
 
 ### Added
 
@@ -2937,7 +2937,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.18.2] - 2026-02-04
+## [2.18.2](https://github.com/tim-hub/powerball-harness/compare/v2.18.1...v2.18.2) - 2026-02-04
 
 ### Added
 
@@ -2952,7 +2952,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.18.1] - 2026-02-04
+## [2.18.1](https://github.com/tim-hub/powerball-harness/compare/v2.18.0...v2.18.1) - 2026-02-04
 
 ### Added
 
@@ -2968,7 +2968,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.18.0] - 2026-02-04
+## [2.18.0](https://github.com/tim-hub/powerball-harness/compare/v2.17.10...v2.18.0) - 2026-02-04
 
 ### Added
 
@@ -2984,7 +2984,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.17.10] - 2026-02-04
+## [2.17.10](https://github.com/tim-hub/powerball-harness/compare/v2.17.9...v2.17.10) - 2026-02-04
 
 ### Added
 
@@ -2999,7 +2999,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.17.9] - 2026-02-04
+## [2.17.9](https://github.com/tim-hub/powerball-harness/compare/v2.17.8...v2.17.9) - 2026-02-04
 
 ### Changed
 
@@ -3010,7 +3010,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.17.8] - 2026-02-04
+## [2.17.8](https://github.com/tim-hub/powerball-harness/compare/v2.17.6...v2.17.8) - 2026-02-04
 
 ### Fixed
 
@@ -3019,7 +3019,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.17.6] - 2026-02-04
+## [2.17.6](https://github.com/tim-hub/powerball-harness/compare/v2.17.3...v2.17.6) - 2026-02-04
 
 ### What's Changed for You
 
@@ -3054,7 +3054,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.17.3] - 2026-02-03
+## [2.17.3](https://github.com/tim-hub/powerball-harness/compare/v2.17.2...v2.17.3) - 2026-02-03
 
 ### What's Changed for You
 
@@ -3092,7 +3092,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.17.2] - 2026-02-03
+## [2.17.2](https://github.com/tim-hub/powerball-harness/compare/v2.17.1...v2.17.2) - 2026-02-03
 
 ### What's Changed for You
 
@@ -3115,7 +3115,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.17.1] - 2026-02-03
+## [2.17.1](https://github.com/tim-hub/powerball-harness/compare/v2.17.0...v2.17.1) - 2026-02-03
 
 ### Added
 
@@ -3139,7 +3139,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.17.0] - 2026-02-03
+## [2.17.0](https://github.com/tim-hub/powerball-harness/compare/v2.16.21...v2.17.0) - 2026-02-03
 
 ### Added
 
@@ -3166,7 +3166,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.16.21] - 2026-02-03
+## [2.16.21](https://github.com/tim-hub/powerball-harness/compare/v2.16.20...v2.16.21) - 2026-02-03
 
 ### Changed
 
@@ -3178,7 +3178,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.16.20] - 2026-02-03
+## [2.16.20](https://github.com/tim-hub/powerball-harness/compare/v2.16.19...v2.16.20) - 2026-02-03
 
 ### Changed
 
@@ -3187,7 +3187,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.16.19] - 2026-02-03
+## [2.16.19](https://github.com/tim-hub/powerball-harness/compare/v2.16.17...v2.16.19) - 2026-02-03
 
 ### Fixed
 
@@ -3195,7 +3195,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.16.17] - 2026-02-03
+## [2.16.17](https://github.com/tim-hub/powerball-harness/compare/v2.16.14...v2.16.17) - 2026-02-03
 
 ### What's Changed for You
 
@@ -3217,7 +3217,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.16.14] - 2026-02-02
+## [2.16.14](https://github.com/tim-hub/powerball-harness/compare/v2.16.11...v2.16.14) - 2026-02-02
 
 ### What's Changed for You
 
@@ -3230,7 +3230,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.16.11] - 2026-02-02
+## [2.16.11](https://github.com/tim-hub/powerball-harness/compare/v2.16.5...v2.16.11) - 2026-02-02
 
 ### What's Changed for You
 
@@ -3249,7 +3249,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.16.5] - 2026-01-31
+## [2.16.5](https://github.com/tim-hub/powerball-harness/compare/v2.16.0...v2.16.5) - 2026-01-31
 
 ### What's Changed for You
 
@@ -3263,7 +3263,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.16.0] - 2026-01-31
+## [2.16.0](https://github.com/tim-hub/powerball-harness/compare/v2.15.0...v2.16.0) - 2026-01-31
 
 ### What's Changed for You
 
@@ -3276,7 +3276,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.15.0] - 2026-01-26
+## [2.15.0](https://github.com/tim-hub/powerball-harness/compare/v2.14.0...v2.15.0) - 2026-01-26
 
 ### What's Changed for You
 
@@ -3289,7 +3289,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.14.0] - 2026-01-16
+## [2.14.0](https://github.com/tim-hub/powerball-harness/compare/v2.13.0...v2.14.0) - 2026-01-16
 
 ### What's Changed for You
 
@@ -3302,7 +3302,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.13.0] - 2026-01-14
+## [2.13.0](https://github.com/tim-hub/powerball-harness/compare/v2.12.0...v2.13.0) - 2026-01-14
 
 ### What's Changed for You
 
@@ -3315,7 +3315,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.12.0] - 2026-01-10
+## [2.12.0](https://github.com/tim-hub/powerball-harness/compare/v2.11.0...v2.12.0) - 2026-01-10
 
 ### Added
 
@@ -3324,7 +3324,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.11.0] - 2026-01-08
+## [2.11.0](https://github.com/tim-hub/powerball-harness/compare/v2.10.0...v2.11.0) - 2026-01-08
 
 ### Added
 
@@ -3333,7 +3333,7 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 ---
 
-## [2.10.0] - 2026-01-04
+## [2.10.0](https://github.com/tim-hub/powerball-harness/compare/v2.9.24...v2.10.0) - 2026-01-04
 
 ### Added
 
@@ -3346,90 +3346,3 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/tim-hub/powerball-harness/releases).
 
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.5.1...HEAD
-[4.5.1]: https://github.com/tim-hub/powerball-harness/compare/v4.5.0...v4.5.1
-[4.5.0]: https://github.com/tim-hub/powerball-harness/compare/v4.4.5...v4.5.0
-[4.4.5]: https://github.com/tim-hub/powerball-harness/compare/v4.4.4...v4.4.5
-[4.4.4]: https://github.com/tim-hub/powerball-harness/compare/v4.4.3...v4.4.4
-[4.4.3]: https://github.com/tim-hub/powerball-harness/compare/v4.4.2...v4.4.3
-[4.4.2]: https://github.com/tim-hub/powerball-harness/compare/v4.4.1...v4.4.2
-[4.4.1]: https://github.com/tim-hub/powerball-harness/compare/v4.4.0...v4.4.1
-[4.4.0]: https://github.com/tim-hub/powerball-harness/compare/v3.17.4...v4.4.0
-[3.17.4]: https://github.com/tim-hub/powerball-harness/compare/v3.17.3...v3.17.4
-[3.17.3]: https://github.com/tim-hub/powerball-harness/compare/v3.17.2...v3.17.3
-[3.17.2]: https://github.com/tim-hub/powerball-harness/compare/v3.17.1...v3.17.2
-[3.17.1]: https://github.com/tim-hub/powerball-harness/compare/v3.17.0...v3.17.1
-[3.17.0]: https://github.com/tim-hub/powerball-harness/compare/v3.16.0...v3.17.0
-[3.16.0]: https://github.com/tim-hub/powerball-harness/compare/v3.15.0...v3.16.0
-[3.15.0]: https://github.com/tim-hub/powerball-harness/compare/v3.14.0...v3.15.0
-[3.10.3]: https://github.com/tim-hub/powerball-harness/compare/v3.10.2...v3.10.3
-[3.10.2]: https://github.com/tim-hub/powerball-harness/compare/v3.10.1...v3.10.2
-[3.10.1]: https://github.com/tim-hub/powerball-harness/compare/v3.10.0...v3.10.1
-[3.10.0]: https://github.com/tim-hub/powerball-harness/compare/v3.9.0...v3.10.0
-[3.9.0]: https://github.com/tim-hub/powerball-harness/compare/v3.7.2...v3.9.0
-[3.7.2]: https://github.com/tim-hub/powerball-harness/compare/v3.7.1...v3.7.2
-[3.7.1]: https://github.com/tim-hub/powerball-harness/compare/v3.7.0...v3.7.1
-[3.7.0]: https://github.com/tim-hub/powerball-harness/compare/v3.6.0...v3.7.0
-[3.4.1]: https://github.com/tim-hub/powerball-harness/compare/v3.4.0...v3.4.1
-[3.4.2]: https://github.com/tim-hub/powerball-harness/compare/v3.4.1...v3.4.2
-[3.5.0]: https://github.com/tim-hub/powerball-harness/compare/v3.4.2...v3.5.0
-[3.4.0]: https://github.com/tim-hub/powerball-harness/compare/v3.3.1...v3.4.0
-[3.3.1]: https://github.com/tim-hub/powerball-harness/compare/v3.3.0...v3.3.1
-[3.3.0]: https://github.com/tim-hub/powerball-harness/compare/v3.2.0...v3.3.0
-[2.26.1]: https://github.com/tim-hub/powerball-harness/compare/v2.26.0...v2.26.1
-[2.26.0]: https://github.com/tim-hub/powerball-harness/compare/v2.25.0...v2.26.0
-[2.25.0]: https://github.com/tim-hub/powerball-harness/compare/v2.24.0...v2.25.0
-[2.24.0]: https://github.com/tim-hub/powerball-harness/compare/v2.23.6...v2.24.0
-[2.23.6]: https://github.com/tim-hub/powerball-harness/compare/v2.23.5...v2.23.6
-[2.23.5]: https://github.com/tim-hub/powerball-harness/compare/v2.23.3...v2.23.5
-[2.23.3]: https://github.com/tim-hub/powerball-harness/compare/v2.23.2...v2.23.3
-[2.23.2]: https://github.com/tim-hub/powerball-harness/compare/v2.23.1...v2.23.2
-[2.23.1]: https://github.com/tim-hub/powerball-harness/compare/v2.23.0...v2.23.1
-[2.23.0]: https://github.com/tim-hub/powerball-harness/compare/v2.22.0...v2.23.0
-[2.22.0]: https://github.com/tim-hub/powerball-harness/compare/v2.21.0...v2.22.0
-[2.21.0]: https://github.com/tim-hub/powerball-harness/compare/v2.20.13...v2.21.0
-[2.20.13]: https://github.com/tim-hub/powerball-harness/compare/v2.20.11...v2.20.13
-[2.20.11]: https://github.com/tim-hub/powerball-harness/compare/v2.20.10...v2.20.11
-[2.20.10]: https://github.com/tim-hub/powerball-harness/compare/v2.20.9...v2.20.10
-[2.20.9]: https://github.com/tim-hub/powerball-harness/compare/v2.20.8...v2.20.9
-[2.20.8]: https://github.com/tim-hub/powerball-harness/compare/v2.20.7...v2.20.8
-[2.20.7]: https://github.com/tim-hub/powerball-harness/compare/v2.20.6...v2.20.7
-[2.20.6]: https://github.com/tim-hub/powerball-harness/compare/v2.20.5...v2.20.6
-[2.20.5]: https://github.com/tim-hub/powerball-harness/compare/v2.20.4...v2.20.5
-[2.20.4]: https://github.com/tim-hub/powerball-harness/compare/v2.20.3...v2.20.4
-[2.20.3]: https://github.com/tim-hub/powerball-harness/compare/v2.20.2...v2.20.3
-[2.20.2]: https://github.com/tim-hub/powerball-harness/compare/v2.20.1...v2.20.2
-[2.20.1]: https://github.com/tim-hub/powerball-harness/compare/v2.20.0...v2.20.1
-[2.20.0]: https://github.com/tim-hub/powerball-harness/compare/v2.19.0...v2.20.0
-[2.19.0]: https://github.com/tim-hub/powerball-harness/compare/v2.18.11...v2.19.0
-[2.18.11]: https://github.com/tim-hub/powerball-harness/compare/v2.18.10...v2.18.11
-[2.18.10]: https://github.com/tim-hub/powerball-harness/compare/v2.18.7...v2.18.10
-[2.18.7]: https://github.com/tim-hub/powerball-harness/compare/v2.18.6...v2.18.7
-[2.18.6]: https://github.com/tim-hub/powerball-harness/compare/v2.18.5...v2.18.6
-[2.18.5]: https://github.com/tim-hub/powerball-harness/compare/v2.18.4...v2.18.5
-[2.18.4]: https://github.com/tim-hub/powerball-harness/compare/v2.18.2...v2.18.4
-[2.18.2]: https://github.com/tim-hub/powerball-harness/compare/v2.18.1...v2.18.2
-[2.18.1]: https://github.com/tim-hub/powerball-harness/compare/v2.18.0...v2.18.1
-[2.18.0]: https://github.com/tim-hub/powerball-harness/compare/v2.17.10...v2.18.0
-[2.17.10]: https://github.com/tim-hub/powerball-harness/compare/v2.17.9...v2.17.10
-[2.17.9]: https://github.com/tim-hub/powerball-harness/compare/v2.17.8...v2.17.9
-[2.17.8]: https://github.com/tim-hub/powerball-harness/compare/v2.17.6...v2.17.8
-[2.17.6]: https://github.com/tim-hub/powerball-harness/compare/v2.17.3...v2.17.6
-[2.17.3]: https://github.com/tim-hub/powerball-harness/compare/v2.17.2...v2.17.3
-[2.17.2]: https://github.com/tim-hub/powerball-harness/compare/v2.17.1...v2.17.2
-[2.17.1]: https://github.com/tim-hub/powerball-harness/compare/v2.17.0...v2.17.1
-[2.17.0]: https://github.com/tim-hub/powerball-harness/compare/v2.16.21...v2.17.0
-[2.16.21]: https://github.com/tim-hub/powerball-harness/compare/v2.16.20...v2.16.21
-[2.16.20]: https://github.com/tim-hub/powerball-harness/compare/v2.16.19...v2.16.20
-[2.16.19]: https://github.com/tim-hub/powerball-harness/compare/v2.16.17...v2.16.19
-[2.16.17]: https://github.com/tim-hub/powerball-harness/compare/v2.16.14...v2.16.17
-[2.16.14]: https://github.com/tim-hub/powerball-harness/compare/v2.16.11...v2.16.14
-[2.16.11]: https://github.com/tim-hub/powerball-harness/compare/v2.16.5...v2.16.11
-[2.16.5]: https://github.com/tim-hub/powerball-harness/compare/v2.16.0...v2.16.5
-[2.16.0]: https://github.com/tim-hub/powerball-harness/compare/v2.15.0...v2.16.0
-[2.15.0]: https://github.com/tim-hub/powerball-harness/compare/v2.14.0...v2.15.0
-[2.14.0]: https://github.com/tim-hub/powerball-harness/compare/v2.13.0...v2.14.0
-[2.13.0]: https://github.com/tim-hub/powerball-harness/compare/v2.12.0...v2.13.0
-[2.12.0]: https://github.com/tim-hub/powerball-harness/compare/v2.11.0...v2.12.0
-[2.11.0]: https://github.com/tim-hub/powerball-harness/compare/v2.10.0...v2.11.0
-[2.10.0]: https://github.com/tim-hub/powerball-harness/compare/v2.9.24...v2.10.0
