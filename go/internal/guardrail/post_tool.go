@@ -80,6 +80,35 @@ func detectSecurityRisks(content string) []string {
 	return warnings
 }
 
+// hasSuspiciousContent performs cheap string pre-screening before running
+// expensive regex patterns. Returns false if no pattern can possibly match,
+// allowing detectSecurityRisks to be skipped entirely for clean files.
+// This function is a superset of what the regexes can match — it must never
+// return false when a pattern would match. False positives are acceptable;
+// false negatives are not.
+func hasSuspiciousContent(content string) bool {
+	return strings.Contains(content, "process.env.") ||
+		strings.Contains(content, "eval(") ||
+		strings.Contains(content, "exec(") ||
+		strings.Contains(content, "innerHTML") ||
+		strings.Contains(content, "password") ||
+		strings.Contains(content, "passwd") ||
+		strings.Contains(content, "secret") ||
+		strings.Contains(content, "api_key") ||
+		strings.Contains(content, "apikey") ||
+		strings.Contains(content, "sk-ant-") ||
+		strings.Contains(content, "sk-") ||
+		strings.Contains(content, "AKIA") ||
+		strings.Contains(content, "ghp_") ||
+		strings.Contains(content, "gho_") ||
+		strings.Contains(content, "ghu_") ||
+		strings.Contains(content, "ghs_") ||
+		strings.Contains(content, "ghr_") ||
+		strings.Contains(content, "ghe_") ||
+		strings.Contains(content, "_live_") ||
+		strings.Contains(content, "eyJ")
+}
+
 // ---------------------------------------------------------------------------
 // EvaluatePostTool — PostToolUse hook entry point
 // ---------------------------------------------------------------------------
@@ -93,36 +122,36 @@ func EvaluatePostTool(input hookproto.HookInput) hookproto.HookResult {
 
 	var systemMessages []string
 
-	// Tampering detection
 	filePath, _ := getStringField(input.ToolInput, "file_path")
-	if filePath != "" {
+
+	// Read content once — reused for both tampering and security checks
+	content := getChangedContent(input.ToolInput)
+
+	// Tampering detection — only for test and CI/config files
+	if filePath != "" && content != "" {
 		isTest := isTestFile(filePath)
 		isConfig := isConfigFile(filePath)
 
 		if isTest || isConfig {
-			content := getChangedContent(input.ToolInput)
-			if content != "" {
-				warnings := detectTampering(content, isTest)
-				if len(warnings) > 0 {
-					fileType := "test file"
-					if !isTest {
-						fileType = "CI/config file"
-					}
-					var lines []string
-					for _, w := range warnings {
-						lines = append(lines, fmt.Sprintf("- [%s] %s\n  Detected at: %s", w.PatternID, w.Description, w.MatchedText))
-					}
-					msg := fmt.Sprintf("[v4] Test tampering warning\n\nSuspicious pattern detected in %s `%s`:\n\n%s\n\n[Please verify]\nCheck that this change does not intentionally disable tests or lower implementation quality.\nIf tampering is determined, revert the change.",
-						fileType, filePath, strings.Join(lines, "\n"))
-					systemMessages = append(systemMessages, msg)
+			warnings := detectTampering(content, isTest)
+			if len(warnings) > 0 {
+				fileType := "test file"
+				if !isTest {
+					fileType = "CI/config file"
 				}
+				var lines []string
+				for _, w := range warnings {
+					lines = append(lines, fmt.Sprintf("- [%s] %s\n  Detected at: %s", w.PatternID, w.Description, w.MatchedText))
+				}
+				msg := fmt.Sprintf("[v4] Test tampering warning\n\nSuspicious pattern detected in %s `%s`:\n\n%s\n\n[Please verify]\nCheck that this change does not intentionally disable tests or lower implementation quality.\nIf tampering is determined, revert the change.",
+					fileType, filePath, strings.Join(lines, "\n"))
+				systemMessages = append(systemMessages, msg)
 			}
 		}
 	}
 
-	// Security risk detection
-	content := getChangedContent(input.ToolInput)
-	if content != "" {
+	// Security risk detection — all files, pre-screened for efficiency
+	if content != "" && hasSuspiciousContent(content) {
 		secWarnings := detectSecurityRisks(content)
 		if len(secWarnings) > 0 {
 			var lines []string
