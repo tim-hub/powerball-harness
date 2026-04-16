@@ -2,7 +2,7 @@
 name: harness-work
 description: "Use when implementing, executing, or running Plans.md tasks — single task, parallel workers, or full team/breezing run. Accepts specific task numbers or ranges. Do NOT load for: planning, review, release, or setup."
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
-argument-hint: "[all] [task-number|range] [--codex] [--parallel N] [--no-commit] [--resume id] [--breezing] [--auto-mode]"
+argument-hint: "[all] [task-number|range] [--codex] [--parallel N] [--no-commit] [--resume id] [--breezing] [--auto-mode] [--advisor] [--no-advisor]"
 effort: high
 ---
 
@@ -63,6 +63,8 @@ the optimal mode is automatically selected based on the number of target tasks:
 | `--no-tdd` | Skip TDD phase | false |
 | `--no-simplify` | Skip Auto-Refinement | false |
 | `--auto-mode` | Explicitly enable Auto Mode rollout. Only considered when the parent session's permission mode is compatible | false |
+| `--advisor` | Enable advisor consultation (overrides config) | from config |
+| `--no-advisor` | Disable advisor consultation | false |
 
 > **Token Optimization (v2.1.69+)**: For lightweight tasks that don't involve git operations,
 > enable `includeGitInstructions: false` in plugin settings to
@@ -122,6 +124,11 @@ The same logic applies in breezing mode (managed centrally by harness-work).
    - Use `git grep` / `Glob` to infer and display the **impact scope** (files/modules affected by changes)
    - If confident in the inference: proceed directly to implementation (no flow delay)
    - If not confident: ask the user one question only ("Is this understanding correct?")
+1.6. **Advisor Preflight** (when `advisor.enabled` or `--advisor`):
+   - If task has `<!-- advisor:required -->` marker: consult `powerball-harness:advisor` with `reason_code: high_risk_preflight`
+   - On `PLAN`: proceed with suggested approach
+   - On `CORRECTION`: apply correction before starting
+   - On `STOP`: escalate to user immediately
 2. Update task to `cc:WIP`
 3. **TDD Phase** (when `[skip:tdd]` is absent & test framework exists):
    a. Create test file first (Red)
