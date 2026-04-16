@@ -7,7 +7,7 @@
 #   Exits 0 if none found, exits 1 if one or more are found.
 #
 # Usage:
-#   bash local-scripts/check-residue.sh
+#   bash harness/skills/harness-release/scripts/check-residue.sh
 #
 # Python3 acts as the primary parser; bash is used only as a launcher.
 
@@ -15,7 +15,7 @@ set -euo pipefail
 
 # Determine the repository root (resolved relative to the script location)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"  # project-root: repo root
 
 export REPO_ROOT_PY="${REPO_ROOT}"
 
@@ -285,7 +285,7 @@ for entry in deleted_paths:
         "benchmarks/",
         "tests/validate-plugin-v3.sh",  # v3 compatibility test (intentionally kept)
         ".claude/rules/deleted-concepts.yaml",  # This file itself
-        "local-scripts/check-residue.sh",             # The scanner itself
+        "harness/skills/harness-release/scripts/check-residue.sh",  # The scanner itself
     ]
     effective_allowlist = list(set(allowlist + default_allowlist))
 
@@ -370,7 +370,7 @@ h1_allowlist = [
     "output/",
     "benchmarks/",
     ".claude/rules/",  # Historical documents inside rules/
-    "local-scripts/check-residue.sh",
+    "harness/skills/harness-release/scripts/check-residue.sh",
     ".claude/rules/deleted-concepts.yaml",
     "tests/validate-plugin-v3.sh",  # v3 compatibility test (intentionally kept)
 ]

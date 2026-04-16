@@ -56,7 +56,7 @@ and confirm that residues are detected as expected**:
 
 ```bash
 git checkout <past-commit>
-bash local-scripts/check-residue.sh
+bash harness/skills/harness-release/scripts/check-residue.sh
 # → Expected number of detections (1 or more)
 git checkout -
 ```
@@ -117,7 +117,7 @@ is required. Phase 40 was born to embed that perspective into the Harness verifi
 ## Related Files
 
 - `.claude/rules/deleted-concepts.yaml` — SSOT catalog of deleted paths/concepts
-- `local-scripts/check-residue.sh` — Scanner implementation (keep false positives immediately at 0)
+- `harness/skills/harness-release/scripts/check-residue.sh` — Scanner implementation (keep false positives immediately at 0)
 - `go/cmd/harness/doctor.go` — `bin/harness doctor --residue` flag
 - `tests/validate-plugin.sh` — Section 9: Migration residue check (CI gate)
 - `skills/harness-release/SKILL.md` — Phase 0 preflight step 2 (release gate)

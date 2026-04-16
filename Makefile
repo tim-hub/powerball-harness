@@ -24,7 +24,7 @@ help:
 	@echo ""
 	@echo "  make test          Run validate + check (recommended before commit)"
 	@echo "  make validate      Full plugin validation (tests/validate-plugin.sh)"
-	@echo "  make check         Consistency check (local-scripts/check-consistency.sh)"
+	@echo "  make check         Consistency check (harness/skills/harness-release/scripts/check-consistency.sh)"
 	@echo "  make lint          Residue scan + skill description audit"
 	@echo "  make build         Build Go binary for current platform (into harness/bin/)"
 	@echo "  make build-all     Cross-compile for darwin-arm64, darwin-amd64, linux-amd64"
@@ -77,12 +77,12 @@ validate:
 # Consistency check: templates, versions, skill references, docs
 check:
 	@echo "▶ Running check-consistency.sh…"
-	bash ./local-scripts/check-consistency.sh
+	bash ./harness/skills/harness-release/scripts/check-consistency.sh
 
 # Lint: migration residue scan + skill description format audit
 lint:
 	@echo "▶ Running check-residue.sh…"
-	bash ./local-scripts/check-residue.sh
+	bash ./harness/skills/harness-release/scripts/check-residue.sh
 	@echo ""
 	@echo "▶ Running audit-skill-descriptions.sh…"
 	bash ./local-scripts/audit-skill-descriptions.sh
