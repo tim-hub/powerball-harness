@@ -1,251 +1,193 @@
 ---
 name: breezing
-description: "Use when running breezing or full team-mode execution in Codex — alias for harness-work with team orchestration."
-description-en: "Team execution mode (Codex native) — backward-compatible alias for harness-work with team orchestration using Codex native subagent API."
-argument-hint: "[all|N-M|--max-workers N|--no-discuss]"
+description: "Use when running the full team/breezing flow end-to-end — all tasks with parallel workers. Do NOT load for: single-task implementation, planning, review, release, or setup."
+allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Task", "WebSearch"]
+argument-hint: "[all|N-M|--codex|--parallel N|--no-commit|--no-discuss|--auto-mode|--advisor|--no-advisor]"
 user-invocable: true
-effort: high
 ---
 
-# Breezing — Team Execution Mode (Codex Native)
+# Breezing — Team Execution Mode
 
-> **This SKILL.md is the Codex CLI native version.**
-> For the Claude Code version, see `skills/breezing/SKILL.md`.
-> Subagent APIs use Codex's `spawn_agent` / `send_input` / `wait_agent` / `close_agent`.
-
-**Backward-compatible alias**: Runs `harness-work --breezing` in team execution mode.
+> **Backward-compatible alias**: Runs `harness-work` in team execution mode.
 
 ## Quick Reference
 
-```bash
-breezing                        # Ask for scope then execute
-breezing all                    # Run all Plans.md tasks to completion
-breezing 3-6                    # Run tasks 3-6 to completion
-breezing --max-workers 2 all     # Limit simultaneous spawns of independent tasks to 2
-breezing --no-discuss all       # Skip planning discussion and run all tasks to completion
-```
+| User Input | Subcommand | Behavior |
+|------------|------------|----------|
+| `breezing` | _(none)_ | Ask for scope before executing |
+| `breezing all` | `all` | Complete all tasks in Plans.md |
+| `breezing 3-6` | `N-M` | Complete tasks 3 through 6 |
+| `breezing --codex all` | `--codex` | Complete all tasks via Codex CLI |
+| `breezing --parallel 2 all` | `--parallel N` | Complete all tasks with 2 parallel workers |
+| `breezing --no-commit all` | `--no-commit` | Complete all tasks, suppress automatic commits |
+| `breezing --no-discuss all` | `--no-discuss` | Complete all tasks, skipping planning discussion |
+| `breezing --auto-mode all` | `--auto-mode` | Try Auto Mode rollout on a compatible parent session |
 
 ## Options
 
 | Option | Description | Default |
 |--------|-------------|---------|
 | `all` | Target all incomplete tasks | - |
-| `N` or `N-M` | Task number / range specification | - |
-| `--max-workers N` | Max simultaneous spawn count for independent tasks (breezing-specific option) | 1 (sequential) |
-| `--no-commit` | Not supported (Breezing requires Worker temporary commits and Lead cherry-picks) | - |
+| `N` or `N-M` | Task number/range specification | - |
+| `--codex` | Delegate implementation to Codex CLI | false |
+| `--parallel N` | Number of parallel Implementers | auto |
+| `--no-commit` | Suppress automatic commits | false |
 | `--no-discuss` | Skip planning discussion | false |
+| `--auto-mode` | Explicitly opt in to Auto Mode rollout. Only considered when the parent session's permission mode is compatible | false |
+| `--advisor` | Enable advisor consultation at risk/failure trigger points | from config |
+| `--no-advisor` | Disable advisor; escalate directly to user | false |
 
 ## Execution
 
-**This skill delegates to `harness-work --breezing`.** Execute with the following settings:
+**This skill delegates to `harness-work`.** Run `harness-work` with the following settings:
 
-1. **Pass arguments to `harness-work --breezing`** (`--max-workers N` is interpreted as a breezing-specific option, distinct from `harness-work`'s `--parallel`)
-2. **Force team execution mode** — Three-party separation: Lead → Worker spawn → companion review Reviewer
-3. **Lead focuses on delegation** — Does not write code directly
+1. **Pass arguments directly to `harness-work`**
+2. **Force team execution mode** — Three-way separation: Lead → Worker spawn → Reviewer spawn
+3. **Lead focuses on delegation only** — Does not write code directly
+4. **Auto Mode is opt-in** — `--auto-mode` is accepted as a rollout flag for compatible parent sessions
 
 ### Differences from `harness-work`
 
-| Feature | `harness-work` | `breezing` (this skill) |
-|------|-----------------|------------------------|
-| Default mode | Solo / Sequential | **Breezing (team execution)** |
-| Parallelism | companion `task` Bash parallel | **Subagent delegation via `spawn_agent`** |
-| Lead role | Coordination + implementation | **Delegate (coordination only)** |
-| Review | Lead self-review | **Independent review via companion review** |
+| Aspect | `harness-work` | `breezing` (this skill) |
+|--------|-----------------|------------------------|
+| Parallelization | Automatic splitting based on need | **Lead/Worker/Reviewer role separation** |
+| Lead's role | Coordination + implementation | **Delegation only (coordination focused)** |
+| Review | Lead self-review | **Independent Reviewer** |
 | Default scope | Next task | **All tasks** |
 
-### Team Composition (Codex Native)
+### Team Composition
 
-| Role | Execution method | Permissions | Responsibility |
-|------|---------|------|------|
-| Lead | (self) | Current session inherited | Coordination, direction, task distribution, cherry-pick |
-| Worker ×N | `spawn_agent({message, fork_context})` | Session permissions inherited | Implementation (git worktree isolated) |
-| Reviewer | companion `review --base` | read-only | Independent review |
+| Role | Agent Type | Mode | Responsibility |
+|------|-----------|------|----------------|
+| Lead | (self) | - | Coordination, command, task distribution |
+| Worker xN | `claude-code-harness:worker` | `bypassPermissions` (current) / Auto Mode (follow-up)* | Implementation |
+| Reviewer | `claude-code-harness:reviewer` | `bypassPermissions` (current) / Auto Mode (follow-up)* | Independent review |
+
+> *If the parent session or frontmatter specifies `bypassPermissions`, that takes precedence. The distributed template currently uses `bypassPermissions`, so Auto Mode is a follow-up rollout target and not the default behavior.
+
+## Advisor Integration
+
+When `advisor.enabled: true` in config (or `--advisor` flag), the Lead checks for advisor consultation at two points:
+- **Pre-spawn**: tasks marked `<!-- advisor:required -->` trigger a preflight consultation before Worker spawn
+- **Post-STOP**: if a Worker signals STOP, Lead consults the Advisor before escalating to the user
+
+Use `--no-advisor` to bypass and escalate directly.
+
+### Codex Mode (`--codex`)
+
+A mode that delegates all implementation to Codex CLI via the official plugin `codex-plugin-cc`:
+
+```bash
+# Task delegation (writable)
+bash "${CLAUDE_SKILL_DIR}/../../scripts/codex-companion.sh" task --write "task content"
+
+# Via stdin (for large prompts)
+CODEX_PROMPT=$(mktemp /tmp/codex-prompt-XXXXXX.md)
+# Write task content
+cat "$CODEX_PROMPT" | bash "${CLAUDE_SKILL_DIR}/../../scripts/codex-companion.sh" task --write
+rm -f "$CODEX_PROMPT"
+```
 
 ## Flow Summary
 
 ```
-breezing [scope] [--max-workers N] [--no-discuss]
+breezing [scope] [--codex] [--parallel N] [--no-discuss] [--auto-mode]
     │
-    ↓ Load harness-work --breezing
+    ↓ Load harness-work with team mode
     │
 Phase 0: Planning Discussion (skipped with --no-discuss)
-Phase A: Pre-delegate (team initialization + worktree preparation)
-Phase B: Delegate (Worker implementation + companion review)
+Phase A: Pre-delegate (team initialization)
+Phase B: Delegate (Worker implementation + Reviewer review)
 Phase C: Post-delegate (integration verification + Plans.md update + commit)
 ```
+
+### Progress Feed (progress notifications during Phase B)
+
+The Lead outputs progress in the following format each time a Worker completes a task:
+
+```
+📊 Progress: Task {completed}/{total} done — "{task_subject}"
+```
+
+**Example output**:
+```
+📊 Progress: Task 1/5 done — "Add failure re-ticketing to harness-work"
+📊 Progress: Task 2/5 done — "Add --snapshot to harness-sync"
+📊 Progress: Task 3/5 done — "Add progress feed to breezing"
+```
+
+> **Design intent**: Breezing often involves long-running execution.
+> This allows users to see "how far along things are" at a glance when checking the terminal.
+> The task-completed.sh hook outputs equivalent information via systemMessage, complementing the Lead's output.
+
+### Review Policy (unified across all modes)
+
+Even in Breezing mode, reviews follow the unified policy of **Codex exec first → internal Reviewer fallback**.
+See the "Review Loop" section of `harness-work` for details.
+
+- Worker implements and commits within the worktree → returns results to Lead
+- Lead reviews via Codex exec (120s timeout, fallback: Reviewer agent)
+- REQUEST_CHANGES → Lead sends fix instructions to Worker via SendMessage, Worker amends (up to 3 times)
+- APPROVE → **Lead** cherry-picks to main → updates Plans.md to `cc:done [{hash}]`
+
+### Completion Report (Phase C — generated by Lead)
+
+After all tasks are complete, the **Lead** generates a rich completion report with the following steps:
+
+1. Collect all cherry-pick commits with `git log --oneline {base_ref}..HEAD`
+2. Get the overall change scope with `git diff --stat {base_ref}..HEAD`
+3. Extract remaining `cc:TODO` / `cc:WIP` tasks from Plans.md
+4. Output according to the Breezing template in `harness-work`'s "Completion Report Format"
+
+> **The Lead generates this report**, not Workers or hooks. The Lead reads git + Plans.md during Phase C to produce it.
 
 ### Phase 0: Planning Discussion (structured 3-question check)
 
 Before executing all tasks, verify plan health with the following 3 questions.
-All skipped when `--no-discuss` is specified.
+All are skipped when `--no-discuss` is specified.
 
 **Q1. Scope confirmation**:
-> "Will execute {{N}} tasks. Is the scope appropriate?"
+> "Executing {{N}} tasks. Is the scope appropriate?"
+
+If too many, suggest narrowing by priority (Required > Recommended > Optional).
 
 **Q2. Dependency confirmation** (only when Plans.md has a Depends column):
 > "Task {{X}} depends on {{Y}}. Is the execution order correct?"
 
-**Q3. Risk flags** (only when there are `[needs-spike]` tasks):
-> "Task {{Z}} is [needs-spike]. Do you want to spike first?"
+Read the Depends column and display the dependency chain. Error if circular dependencies exist.
 
-### Phase A: Pre-delegate
+**Q3. Risk flag** (only when `[needs-spike]` tasks exist):
+> "Task {{Z}} is [needs-spike]. Should we spike it first?"
 
-1. Load Plans.md and identify target tasks
-2. Analyze dependency graph and determine execution order
-3. Create git worktree for each task
+If there are incomplete `[needs-spike]` tasks, confirm whether to run the spike first.
 
-### Phase B: Delegate (Codex Native Subagent Orchestration)
+If all 3 questions pass, proceed to Phase A (designed to complete in 30 seconds total).
 
-```
-for task in execution_order:
-    # B-0. Isolate work directory
-    worktree_path = "/tmp/worker-{task.number}-$$"
-    branch_name = "worker-{task.number}-$$"
-    git worktree add -b {branch_name} {worktree_path}
-    TASK_BASE_REF = git rev-parse HEAD
+### Task Assignment Based on Dependency Graph
 
-    # B-1. Generate sprint-contract
-    contract_path = bash("scripts/generate-sprint-contract.sh {task.number}")
-    contract_path = bash("scripts/enrich-sprint-contract.sh {contract_path} --check \"Verify DoD from reviewer perspective\" --approve")
-    bash("scripts/ensure-sprint-contract-ready.sh {contract_path}")
+When Plans.md has a Depends column (v2 format), tasks are executed following the dependency graph:
 
-    # B-2. Worker spawn
-    Plans.md: task.status = "cc:WIP"
+1. Execute **tasks with Depends set to `-`** first. If multiple independent tasks exist, they can be spawned in parallel
+2. After each Worker completes, Lead reviews → cherry-picks (see harness-work Phase B)
+3. Once a dependency source task is cherry-picked to main, execute tasks that depended on it next
+4. Repeat until all tasks are complete
 
-    worker_id = spawn_agent({
-        message: "Work in directory: {worktree_path}.\n\nTask: {task.content}\nDoD: {task.DoD}\ncontract_path: {contract_path}\n\nPlease implement. When done, git commit.\n\nWhen complete, return the following JSON:\n{\"commit\": \"<hash>\", \"files_changed\": [...], \"summary\": \"...\"}",
-        fork_context: true
-    })
-    wait_agent({ ids: [worker_id] })
+> **Note**: The "Worker complete → review → cherry-pick" cycle for each task is sequential.
+> Only the Worker spawn portion of independent tasks (Depends is `-`) can be parallelized.
 
-    # B-3. Lead runs review (from TASK_BASE_REF)
-    # Use official plugin companion review (see harness-work "Review Loop"):
-    #   bash scripts/codex-companion.sh review --base {TASK_BASE_REF}
-    #   → verdict mapping: approve→APPROVE, needs-attention→REQUEST_CHANGES
-    VERDICT = review_task(worktree_path, TASK_BASE_REF)  # static review (see harness-work)
-    PROFILE = jq(contract_path, ".review.reviewer_profile")
-    BROWSER_MODE = jq(contract_path, ".review.browser_mode // \"scripted\"")
-    REVIEW_INPUT = "review-output.json"
-    if PROFILE == "runtime":
-        # Run runtime checks inside worktree
-        REVIEW_INPUT = bash("cd {worktree_path} && scripts/run-contract-review-checks.sh {contract_path}")
-        RUNTIME_VERDICT = jq(REVIEW_INPUT, ".verdict")
-        if RUNTIME_VERDICT == "REQUEST_CHANGES":
-            VERDICT = "REQUEST_CHANGES"
-        elif RUNTIME_VERDICT == "DOWNGRADE_TO_STATIC":
-            REVIEW_INPUT = "review-output.json"  # fall back to static review
-    if PROFILE == "browser":
-        # browser artifact is PENDING_BROWSER scaffold. reviewer agent runs it later.
-        BROWSER_ARTIFACT = bash("scripts/generate-browser-review-artifact.sh {contract_path}")
-        # REVIEW_INPUT stays as static review
-    if REVIEW_INPUT != "review-output.json" and jq(REVIEW_INPUT, ".verdict") == "DOWNGRADE_TO_STATIC":
-        REVIEW_INPUT = "review-output.json"
-    bash("scripts/write-review-result.sh {REVIEW_INPUT} {commit_hash}")
+## Codex Native Orchestration
 
-    # B-4. Fix loop (on REQUEST_CHANGES, max 3 times)
-    review_count = 0
-    while VERDICT == "REQUEST_CHANGES" and review_count < 3:
-        send_input({
-            id: worker_id,
-            message: "Issues found: {issues}\nFix them and run git commit --amend. Output JSON again after fixing."
-        })
-        wait_agent({ ids: [worker_id] })
-        VERDICT = review_task(worktree_path, TASK_BASE_REF)
-        review_count++
+Codex uses native subagents.
+Key control surfaces are `spawn_agent`, `wait`, `send_input`, `resume_agent`, `close_agent`.
 
-    # B-5. Terminate Worker
-    close_agent({ id: worker_id })
-
-    # B-6. Result handling
-    if VERDICT == "APPROVE":
-        commit_hash = git("-C", worktree_path, "rev-parse", "HEAD")
-        git cherry-pick --no-commit {commit_hash}
-        git commit -m "{task.content}"
-        Plans.md: task.status = "cc:Done [{short_hash}]"
-    else:
-        → Escalate to user (Plans.md stays as cc:WIP)
-        → Stop subsequent tasks as well
-
-    # B-7. Worktree cleanup
-    git worktree remove {worktree_path}
-    git branch -D {branch_name}
-
-    # B-8. Progress feed
-    print("📊 Progress: Task {completed}/{total} done — {task.content}")
-```
-
-### Parallel spawn for independent tasks (when `--max-workers N` is specified)
-
-When there are multiple tasks with no dependencies, control simultaneous spawn count with `--max-workers N`:
-
-> **`wait_agent` semantics**: `wait_agent({ids: [a, b]})` returns the first one that completes (not all completions).
-> Therefore, to wait for all Workers to complete, call `wait_agent` individually in a loop.
-
-```
-# Spawn independent tasks A, B in parallel (each with isolated worktree)
-worker_a = spawn_agent({ message: "Work in directory: /tmp/worker-a-$$ ...", fork_context: true })
-worker_b = spawn_agent({ message: "Work in directory: /tmp/worker-b-$$ ...", fork_context: true })
-
-# Wait for each Worker individually → review → cherry-pick (sequential)
-# wait_agent returns the first one, so remaining Workers are still running
-for worker_id in [worker_a, worker_b]:
-    wait_agent({ ids: [worker_id] })    # Wait for this Worker to complete
-    VERDICT = review_task(worktree_path, TASK_BASE_REF)  # see harness-work
-    # Fix loop (if needed)...
-    close_agent({ id: worker_id })
-    if VERDICT == "APPROVE":
-        cherry-pick → update Plans.md
-```
-
-> **Constraint**: Only tasks with Depends set to `-` (independent tasks) can be parallelized.
-> Review → cherry-pick runs sequentially (to avoid write conflicts on main).
-
-### Worker Output Contract
-
-The Worker prompt must explicitly specify that the following JSON is returned on completion:
-
-```json
-{
-  "commit": "a1b2c3d",
-  "files_changed": ["src/foo.ts", "tests/foo.test.ts"],
-  "summary": "Add bar feature to foo module"
-}
-```
-
-Lead parses this JSON to get the commit hash and file list.
-
-### Progress Feed (progress notifications during Phase B)
-
-```
-📊 Progress: Task 1/5 done — "Add auto re-ticketing to harness-work"
-📊 Progress: Task 2/5 done — "Add --snapshot to harness-sync"
-```
-
-### Completion Report (Phase C)
-
-After all tasks complete, Lead generates a rich completion report with the following steps:
-
-1. Collect all cherry-pick commits with `git log --oneline {session_base_ref}..HEAD`
-2. Get overall change volume with `git diff --stat {session_base_ref}..HEAD`
-3. Extract remaining tasks from Plans.md
-4. Output following the Breezing template
-
-## Differences from Claude Code Version
-
-| Item | Claude Code version | Codex native version (this file) |
-|------|---------------|-------------------------------|
-| Worker spawn | `Agent(subagent_type="worker", isolation="worktree")` | `spawn_agent({message, fork_context})` + `git worktree add` |
-| Wait for completion | `Agent` return value | `wait_agent({ids: [id]})` |
-| Fix instruction | `SendMessage(to: agentId, message: "...")` | `send_input({id, message})` |
-| Worker termination | Automatic | `close_agent({id})` |
-| Review | Codex exec → Reviewer agent fallback | companion `review --base` (structured output) |
-| Permissions | `bypassPermissions` + hooks | companion `task --write` / `spawn_agent`: inherits session permissions |
-| Agent Teams | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` env var | Codex native (standard feature) |
-| Worktree | `isolation="worktree"` auto-managed | `git worktree add/remove` manual management |
-| Mode promotion | Auto for 4+ tasks | Only with explicit `--breezing` |
+> **Claude Code vs Codex communication API** (SSOT: API mapping table in `team-composition.md`):
+> - Claude Code: `SendMessage(to: agentId, message: "...")` to send fix instructions to Workers
+> - Codex: `resume_agent(agent_id)` to resume Workers → `send_input(agent_id, "...")` to send instructions
+>
+> Pseudo-code in harness-work is written in Claude Code syntax. Translate to the above when running in a Codex environment.
 
 ## Related Skills
 
-- `harness-work` — From single task to team execution (main)
-- `harness-sync` — Progress sync
-- `harness-review` — Code review
+- `harness-work` — From single tasks to team execution (core)
+- `harness-sync` — Progress synchronization
+- `harness-review` — Code review (auto-triggered within breezing)

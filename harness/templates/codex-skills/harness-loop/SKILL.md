@@ -1,134 +1,220 @@
 ---
 name: harness-loop
-description: "Use when running long-running Plans.md tasks in a Codex-native background loop — one cycle at a time, with status/stop controls. Do NOT load for: one-shot implementation (harness-work), review (harness-review), release (harness-release)."
-description-en: "Use when running long-running Plans.md tasks in a Codex-native background loop — one cycle at a time, with status/stop controls. Do NOT load for: one-shot implementation (harness-work), review (harness-review), release (harness-release)."
-allowed-tools: ["Read", "Bash"]
-argument-hint: "[all|N-M] [--max-cycles N] [--pacing worker|ci|plateau|night]"
-disable-model-invocation: true
+description: "Use when running Plans.md tasks in a long-running autonomous loop with ScheduleWakeup (fresh context per wake-up, sprint-contract flow, plateau detection, flock guard). Do NOT load for: single-task work (harness-work), planning, review, release."
+allowed-tools: ["Read", "Edit", "Bash", "Task", "ScheduleWakeup", "mcp__harness__harness_mem_resume_pack", "mcp__harness__harness_mem_record_checkpoint"]
+argument-hint: "[all|N-M] [--max-cycles N] [--pacing worker|ci|plateau|night] [--advisor|--no-advisor]"
 ---
 
-# Harness Loop — Codex Native
+# Harness Loop
 
-The Codex version of `harness-loop` starts a **real background runner** rather than a simulated loop.
+Meta-skill that combines `/loop` (CC dynamic mode) with `ScheduleWakeup` to re-enter long-running tasks with a **fresh context on every wake-up**.
 
-## In One Line
-
-`$harness-loop` is the entry point for starting a "task supervisor" that continuously finds the next incomplete task, delegates it to Codex, checks the result, and advances to the next one — running in the background.
-
-## Analogy
-
-Instead of a person watching over every step, imagine a supervisor running in the background that repeats: "find the next task → hand it to Codex → check the result → move on."
+Each wake-up calls `harness-work --breezing` via the Agent tool, forming a re-entrant loop of 1 cycle = 1 task completion.
 
 ## Quick Reference
 
 | Input | Behavior |
 |-------|----------|
-| `$harness-loop all` | Start long-running loop for all incomplete tasks |
-| `$harness-loop 41.1-41.4` | Start with a narrowed task range |
-| `$harness-loop all --max-cycles 3` | Stop after maximum 3 cycles |
-| `$harness-loop all --pacing night` | Use longer wait between cycles |
-| `$harness-loop status` | Check current execution status |
-| `$harness-loop stop` | Stop the running job and request loop termination |
+| `/harness-loop all` | Loop all incomplete tasks (default: max 8 cycles) |
+| `/harness-loop all --max-cycles 3` | Stop after 3 cycles |
+| `/harness-loop 41.1-41.3 --pacing ci` | Execute task range with CI pacing |
+| `/harness-loop all --pacing night` | Overnight batch (3600s interval) |
+| `/harness-loop --no-advisor` | Disable advisor consultation at all trigger points |
 
-## Execution Commands
+## Options
 
-### Start
+| Option | Description | Default |
+|--------|-------------|---------|
+| `all` | Target all incomplete tasks | - |
+| `N-M` | Task number range | - |
+| `--max-cycles N` | Maximum cycle count | `8` |
+| `--pacing <mode>` | Wake-up interval mode | `worker` (270s) |
+| `--advisor` | Enable advisor consultation (default) | enabled |
+| `--no-advisor` | Disable advisor consultation at all trigger points | - |
 
-```bash
-harness codex-loop start all
+### Pacing Values
+
+| pacing | delaySeconds | Use case |
+|--------|-------------|----------|
+| `worker` | 270 | Immediately after Worker completion (within 5 min cache warm) |
+| `ci` | 270 | Waiting for short CI jobs |
+| `plateau` | 1200 | 20 min (retry interval after plateau detection) |
+| `night` | 3600 | Long overnight batch |
+
+> **Constraint**: `ScheduleWakeup`'s `delaySeconds` is clamped to **[60, 3600]** at runtime.
+> All pacing values are within this range. When specifying values directly, always use 60–3600.
+
+## Launch Flow (per wake-up entry)
+
+Full details: [`${CLAUDE_SKILL_DIR}/references/flow.md`](${CLAUDE_SKILL_DIR}/references/flow.md)
+
+```
+wake-up
+  │
+  ▼
+[Step 0] Flock-based concurrency guard
+  Prevent concurrent loop instances via lock directory
+  │
+  ▼
+[Step 0.5] State consistency check
+  bash tests/validate-plugin.sh --quick
+  │
+  ▼
+[Step 1] Read Plans.md first
+  Identify the leading cc:WIP / cc:TODO task (get task_id)
+  No incomplete tasks → loop ends (normal completion)
+  │
+  ▼
+[Step 2] Check sprint-contract existence & generate
+  Check .claude/state/contracts/${task_id}.sprint-contract.json
+  If absent: node harness/scripts/generate-sprint-contract.js ${task_id}
+  On first generation: bash harness/scripts/enrich-sprint-contract.sh <contract-path> \
+    --check "auto-approve (harness-loop — confirm DoD from reviewer perspective)" \
+    --approve  ← draft → approved
+  (Existing contracts already approved — skip)
+  │
+  ▼
+[Step 3] Contract readiness check
+  bash harness/scripts/ensure-sprint-contract-ready.sh <contract-path>
+  │
+  ▼
+[Step 4] Resume pack reload
+  harness-mem resume-pack (context re-injection)
+  │
+  ▼
+[Step 5] Execute 1 task cycle
+  worker_result = Agent(
+      subagent_type="claude-code-harness:worker",
+      prompt="Task: ${task_id}\nDoD: <extracted from Plans.md>\ncontract_path: ${CONTRACT_PATH}\nmode: breezing",
+      isolation="worktree",
+      run_in_background=false
+  )
+  # worker_result: { commit, branch, worktreePath, files_changed, summary }
+  │
+  ▼
+[Step 5.5] Lead review execution
+  diff_text = git show worker_result.commit
+  verdict = codex_exec_review(diff_text) or reviewer_agent_review(diff_text)
+  See flow.md for details
+  │
+  ▼
+[Step 5.6] APPROVE → cherry-pick to main / REQUEST_CHANGES → fix loop (max_iterations from contract, default 3)
+  APPROVE: git cherry-pick → update Plans.md to cc:Done [{hash}] → delete feature branch
+  REQUEST_CHANGES x MAX_REVIEWS still rejected: escalation
+  See flow.md for details
+  │
+  ▼
+[Step 6] Plateau detection
+  bash harness/scripts/detect-review-plateau.sh ${current_task_id}
+  │
+  ├── PIVOT_REQUIRED (exit 2)   → loop stop + user escalation (advisor called if enabled)
+  ├── INSUFFICIENT_DATA (exit 1) → continue
+  └── PIVOT_NOT_REQUIRED (exit 0) → continue
+  │
+  ▼
+[Step 7] Cycle count check
+  │
+  ├── cycles >= max_cycles → loop stop (limit reached)
+  │
+  ▼
+[Step 8] Record checkpoint
+  harness_mem_record_checkpoint(
+      session_id, title, content=cycle result summary
+  )
+  │
+  ▼
+[Step 9] Schedule next wake-up
+  ScheduleWakeup(
+      delaySeconds=<pacing value>,
+      prompt="/harness-loop <same args>",
+      reason="Cycle {N}/{max} complete — proceeding to next task"
+  )
 ```
 
-With range:
+## Cycle Stop Conditions
 
-```bash
-harness codex-loop start 41.1-41.4 --max-cycles 5 --pacing worker
+| Condition | Stop Type | Response |
+|-----------|-----------|----------|
+| `cycles >= max_cycles` | Normal stop (limit reached) | Report to user |
+| `PIVOT_REQUIRED` (exit 2) | Abnormal stop (escalation) | Ask user for decision |
+| No incomplete tasks | Normal stop (all complete) | Output completion report |
+
+With `--max-cycles 3`, stops after 3 completed cycles.
+Default (`--max-cycles 8`) stops after 8 cycles.
+
+## /loop Integration
+
+This skill is used in combination with CC's `/loop` (dynamic mode).
+
+When `/loop` is enabled, CC continues autonomous re-entry, scheduling the next wake-up via `ScheduleWakeup` at the end of each cycle.
+
+`/loop` sentinel: `<<autonomous-loop-dynamic>>`
+
+Each wake-up starts with a **fresh context**, preventing context contamination from the previous cycle.
+Reload via `harness-mem resume-pack` is required (Step 4).
+
+## Checkpoint Schema
+
+```json
+{
+  "session_id": "<session ID>",
+  "title": "harness-loop cycle {N}/{max}: {task name}",
+  "content": "1-line summary of cycle_result + commit hash"
+}
 ```
 
-### Status
+## Advisor Integration
 
+When advisor consultation is enabled (default: on, disable with `--no-advisor`), the loop pauses and calls `run-advisor-consultation.sh` at three trigger points. On a `STOP` response the loop exits immediately with a summary.
+
+### Trigger Point 1: Pre-task Risk Check
+
+**Trigger**: Before starting any task annotated with `<!-- advisor:required -->` in Plans.md.
+
+**Reason code**: `high_risk_preflight`
+
+**Script call**:
 ```bash
-harness codex-loop status
-harness codex-loop status --json
+bash harness/scripts/run-advisor-consultation.sh \
+  --reason-code high_risk_preflight \
+  --task-id "${task_id}"
 ```
 
-### Stop
+**Behavior**: The Advisor reviews the task description, DoD, and current repo state. Returns `PLAN` to proceed or `STOP` to exit with explanation.
 
+### Trigger Point 2: Post-plateau (PIVOT_REQUIRED)
+
+**Trigger**: When `detect-review-plateau.sh` returns exit 2 (`PIVOT_REQUIRED`).
+
+**Reason code**: `plateau_before_escalation`
+
+**Script call**:
 ```bash
-harness codex-loop stop
+bash harness/scripts/run-advisor-consultation.sh \
+  --reason-code plateau_before_escalation \
+  --task-id "${task_id}"
 ```
 
-## How It Works
+**Behavior**: The Advisor receives plateau details. Returns `PLAN` (retry with different approach) or `STOP` (escalate to user).
 
-1. Write execution state to `.claude/state/codex-loop/`
-2. Find the next `cc:TODO` / `cc:WIP` task from Plans.md
-3. Prepare using existing Harness assets such as `generate-sprint-contract.js`
-4. Start Codex's actual work via `harness/scripts/codex-companion.sh task --background --write ...`
-5. After job completion, perform review / checkpoint / plateau detection
-6. If target tasks remain, wait and proceed to the next cycle
+### Trigger Point 3: Pre-escalation
 
-## Advisor Trigger Points
+**Trigger**: Before surfacing any STOP/failure condition to the user.
 
-When advisor consultation is enabled (default), the loop calls `run-advisor-consultation.sh` at three trigger points:
+**Reason code**: `pre_user_escalation`
 
-1. **Pre-task**: When a task has `<!-- advisor:required -->` marker — calls with `reason_code=high_risk_preflight`
-2. **Post-plateau**: When plateau is detected (`PIVOT_REQUIRED`) — calls with `reason_code=plateau_before_escalation`
-3. **Pre-escalation**: Before surfacing any failure to the user — calls with `reason_code=pre_user_escalation`
-
-Use `--no-advisor` to disable all advisor consultations.
-
-## Pacing
-
-| Value | Use case | Wait (seconds) |
-|-------|----------|---------------|
-| `worker` | Normal development loop | 270 |
-| `ci` | When you want shorter intervals | 270 |
-| `plateau` | Retry when hitting a plateau | 1200 |
-| `night` | Long overnight run | 3600 |
-
-## State Files
-
-- `.claude/state/codex-loop/run.json`
-- `.claude/state/codex-loop/cycles.jsonl`
-- `.claude/state/codex-loop/runner.log`
-- `.claude/state/codex-loop/current-job.json`
-- `.claude/state/locks/codex-loop.lock.d`
-
-## Important Notes
-
-- This **actually runs in the background**. It does not just return an explanation.
-- Two instances cannot run simultaneously. Returns `already running` if one is active.
-- Rather than skipping failed tasks, the loop stops at the failure point and records the reason.
-- `status` and `runner.log` make it easy to see where the loop is currently stuck.
-
-## Example
-
-"I want to automatically run the remaining tasks in Phase 41 throughout today":
-
+**Script call**:
 ```bash
-harness codex-loop start 41.1-41.4 --max-cycles 8 --pacing worker
+bash harness/scripts/run-advisor-consultation.sh \
+  --reason-code pre_user_escalation \
+  --task-id "${task_id}"
 ```
 
-Check progress midway:
-
-```bash
-harness codex-loop status
-```
-
-Stop when done for the night:
-
-```bash
-harness codex-loop stop
-```
-
-## Why This Form
-
-Codex cannot use the same wake-up mechanism as Claude's `/loop` directly.
-Instead, by using **Codex companion's background jobs** as the foundation and having
-Harness manage state and re-entry control, long-running tasks support "stop," "resume,"
-and "check current state" naturally.
+**Behavior**: Final check before user involvement. Advisor may provide a resolution path or confirm escalation is necessary.
 
 ## Related Skills
 
-- `$harness-work` — Single-task implementation used by each cycle
-- `$harness-plan` — Plan tasks targeted by the loop
-- `$harness-review` — Review individual tasks
+- `harness-work` — Task implementation skill executed each cycle
+- `harness-plan` — Plan tasks targeted by the loop
+- `harness-review` — Review individual tasks
+- `session-control` — Session state management

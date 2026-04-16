@@ -19,6 +19,7 @@ Checks:
   - CHANGELOG.md / [Unreleased]
   - env parity / healthcheck
   - runtime residual scan
+  - sprint-contract schema
   - CI status when available
 EOF
   exit 0
@@ -240,6 +241,122 @@ check_runtime_residuals() {
   fi
 }
 
+check_sprint_contract_schema() {
+  local contract_dir="${GIT_ROOT}/.claude/state/contracts"  # project-root: sprint contracts
+
+  if [ ! -d "$contract_dir" ]; then
+    warn "sprint-contract schema scan skipped"
+    return
+  fi
+
+  local contract_files=()
+  local file
+  while IFS= read -r file; do
+    contract_files+=("$file")
+  done < <(find "$contract_dir" -type f -name '*.sprint-contract.json' | sort)
+
+  if [ "${#contract_files[@]}" -eq 0 ]; then
+    warn "sprint-contract schema scan skipped"
+    return
+  fi
+
+  local output_file
+  output_file="$(mktemp /tmp/harness-tmp.XXXXXX)"
+
+  if node - "${contract_files[@]}" >"$output_file" 2>&1 <<'NODE'
+const fs = require('fs');
+
+const files = process.argv.slice(2);
+const allowedProfiles = new Set(['static', 'runtime', 'browser', 'security', 'ui-rubric']);
+const allowedLoopPacing = new Set(['worker', 'ci', 'plateau', 'night']);
+const allowedBrowserVerdicts = new Set([
+  'APPROVE',
+  'REQUEST_CHANGES',
+  'PENDING_BROWSER',
+  'SKIPPED',
+  'DOWNGRADE_TO_STATIC',
+]);
+
+let hasErrors = false;
+
+function report(file, issues) {
+  if (issues.length === 0) {
+    return;
+  }
+
+  hasErrors = true;
+  console.log(file);
+  for (const issue of issues) {
+    console.log(`  - ${issue}`);
+  }
+}
+
+for (const file of files) {
+  let contract;
+  try {
+    contract = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (error) {
+    report(file, [`invalid JSON: ${error.message}`]);
+    continue;
+  }
+
+  const review = contract.review || {};
+  const issues = [];
+
+  if (!allowedProfiles.has(review.reviewer_profile)) {
+    issues.push(
+      `review.reviewer_profile must be one of ${Array.from(allowedProfiles).join('|')}; got ${JSON.stringify(review.reviewer_profile)}`
+    );
+  }
+
+  if (review.max_iterations !== undefined) {
+    if (!Number.isInteger(review.max_iterations) || review.max_iterations < 1 || review.max_iterations > 30) {
+      issues.push(`review.max_iterations must be an integer between 1 and 30; got ${JSON.stringify(review.max_iterations)}`);
+    }
+  }
+
+  if (review.rubric_target !== undefined) {
+    const target = review.rubric_target;
+    if (target === null || Array.isArray(target) || typeof target !== 'object') {
+      issues.push('review.rubric_target must be an object');
+    } else {
+      for (const [key, value] of Object.entries(target)) {
+        if (typeof value !== 'number' || Number.isNaN(value)) {
+          issues.push(`review.rubric_target.${key} must be numeric; got ${JSON.stringify(value)}`);
+        }
+      }
+    }
+  }
+
+  if (review.loop_pacing !== undefined) {
+    if (typeof review.loop_pacing !== 'string' || !allowedLoopPacing.has(review.loop_pacing)) {
+      issues.push(`review.loop_pacing must be one of ${Array.from(allowedLoopPacing).join('|')}; got ${JSON.stringify(review.loop_pacing)}`);
+    }
+  }
+
+  if (review.browser_verdict !== undefined) {
+    if (typeof review.browser_verdict !== 'string' || !allowedBrowserVerdicts.has(review.browser_verdict)) {
+      issues.push(
+        `review.browser_verdict must be one of ${Array.from(allowedBrowserVerdicts).join('|')}; got ${JSON.stringify(review.browser_verdict)}`
+      );
+    }
+  }
+
+  report(file, issues);
+}
+
+process.exit(hasErrors ? 1 : 0);
+NODE
+  then
+    pass "sprint-contract schema (${#contract_files[@]} files)"
+  else
+    fail "sprint-contract schema"
+    sed 's/^/  /' "$output_file"
+  fi
+
+  rm -f "$output_file"
+}
+
 check_ci_status() {
   if [ -n "${HARNESS_RELEASE_CI_STATUS_CMD:-}" ]; then
     run_optional_command "CI status" "$HARNESS_RELEASE_CI_STATUS_CMD"
@@ -290,6 +407,7 @@ check_git_clean
 check_changelog
 check_env_and_healthcheck
 check_runtime_residuals
+check_sprint_contract_schema
 check_ci_status
 
 echo "----------------------------------------"
