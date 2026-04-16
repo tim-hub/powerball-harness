@@ -64,8 +64,8 @@ Created: 2026-04-16
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 62.18 | Run full validation: `./tests/validate-plugin.sh`, `./local-scripts/check-consistency.sh`, `./local-scripts/check-residue.sh`, `./local-scripts/audit-skill-descriptions.sh harness/skills/harness-loop`, `harness validate agents`, `go test ./go/internal/hookhandler/...` | All pass with 0 failures | 62.1–62.17 | cc:WIP |
-| 62.19 | Add `[Unreleased]` CHANGELOG entry covering: (a) new advisor agent and 4-agent model, (b) harness-loop skill, (c) breezing/harness-work advisor flags, (d) advisor trigger hook in Go engine, (e) symlink fix. Use Before/After format per `.claude/rules/github-release.md` | CHANGELOG entry present under `[Unreleased]` with Before/After sections | 62.18 | cc:TODO |
+| 62.18 | Run full validation: `./tests/validate-plugin.sh`, `./local-scripts/check-consistency.sh`, `./local-scripts/check-residue.sh`, `./local-scripts/audit-skill-descriptions.sh harness/skills/harness-loop`, `harness validate agents`, `go test ./go/internal/hookhandler/...` | All pass with 0 failures | 62.1–62.17 | cc:Done [b1a3fbe] |
+| 62.19 | Add `[Unreleased]` CHANGELOG entry covering: (a) new advisor agent and 4-agent model, (b) harness-loop skill, (c) breezing/harness-work advisor flags, (d) advisor trigger hook in Go engine, (e) symlink fix. Use Before/After format per `.claude/rules/github-release.md` | CHANGELOG entry present under `[Unreleased]` with Before/After sections | 62.18 | cc:Done [20a7933] |
 
 ---
 
