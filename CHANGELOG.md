@@ -4,9 +4,13 @@ Change history for claude-code-harness.
 
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
-## [Unreleased](https://github.com/tim-hub/powerball-harness/compare/v4.6.0...HEAD)
+<!-- compare links -->
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.6.0...HEAD
+[4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
-## [4.6.0](https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0) - 2026-04-17
+## [Unreleased]
+
+## [4.6.0] - 2026-04-17
 
 ### Theme: Autonomous loop runtime, concurrent hook fan-out, and Advisor consultation agent
 
