@@ -2,7 +2,7 @@
 name: harness-plan
 description: "Use when creating plans, adding tasks, updating Plans.md, marking tasks done, or checking progress/sync. Do NOT load for: implementation (harness-work), review (harness-review), or release (harness-release)."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "Task"]
-argument-hint: "[create|add|update|sync|archive|sync --no-retro|--ci]"
+argument-hint: "[create|add|update|sync|archive|session-log|sync --no-retro|--ci]"
 effort: medium
 model: opus
 ---
@@ -27,6 +27,7 @@ Consolidates the following 3 legacy skills:
 | `harness-plan sync` / "sync status" | `sync` | Progress check via harness-plan's embedded sync subcommand |
 | `harness-plan create` | `create` | Create plan |
 | "archive old phases" / `harness-plan archive` | `archive` | Archive phases in Plans.md to `.claude/memory/archive/`; update `Last archive:` header |
+| "session log too big" / `harness-plan session-log` | `session-log` | Split session-log.md by month; move older months to `.claude/memory/session-log-YYYY-MM.md` |
 
 ## Subcommand Details
 
@@ -111,6 +112,26 @@ Moves fully-completed phases out of Plans.md into `.claude/memory/archive/` to k
 - The 10 most recent completed phases, even if they are fully `cc:done` / `pm:confirmed`, to maintain recent history and context.
 
 **Naming convention**: `Plans-YYYY-MM-DD-phaseX-Y.md` where X is the lowest and Y the highest archived phase number. Example: `Plans-2026-04-15-phase35-48.md`.
+
+### session-log — Split session-log.md by Month
+
+Moves sessions from past months out of `.claude/memory/session-log.md` into per-month archive files, keeping the active file lean.
+
+**Flow**:
+1. Read `.claude/memory/session-log.md`
+2. Parse each `## Session: YYYY-MM-DDTHH:MM:SSZ` header; group all content blocks by `YYYY-MM`
+3. Identify months older than the current month — these are candidates for archiving
+4. For each older month: write its session blocks (including their `---` separators) to `.claude/memory/session-log-YYYY-MM.md`
+5. Rewrite session-log.md keeping only: the file header (first 10 lines up to and including `---`), the current month's sessions, and an updated `## Index` section with links to each archived file
+6. Commit the changes
+
+**What stays in session-log.md**:
+- The file header and Index section
+- All sessions from the current calendar month
+
+**Archive naming**: `session-log-YYYY-MM.md` — e.g. `session-log-2026-03.md` for March 2026.
+
+**When nothing to archive** (all sessions are current month): report "session-log.md is already current — nothing to archive" and exit without modifying any files.
 
 ### team mode / issue bridge
 

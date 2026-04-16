@@ -94,7 +94,7 @@ if [[ "$FILE_PATH" == *"session-log.md"* ]]; then
   if [ -f "$FILE_PATH" ]; then
     lines=$(wc -l < "$FILE_PATH" | tr -d ' ')
     if [ "$lines" -gt "$SESSION_LOG_MAX_LINES" ]; then
-      FEEDBACK="⚠️ session-log.md has ${lines} lines (limit: ${SESSION_LOG_MAX_LINES}). Consider splitting it by month manually."
+      FEEDBACK="⚠️ session-log.md has ${lines} lines (limit: ${SESSION_LOG_MAX_LINES}). Run /harness-plan session-log to archive older months."
     fi
   fi
 fi

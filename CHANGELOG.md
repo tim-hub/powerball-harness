@@ -6,6 +6,12 @@ Change history for claude-code-harness.
 
 ## [Unreleased](https://github.com/tim-hub/powerball-harness/compare/v4.5.1...HEAD)
 
+#### `harness-plan session-log` — Session Log Month Archiving
+
+**Before**: When `session-log.md` exceeded 500 lines, hook warnings said "consider splitting it by month manually" with no concrete path to follow.
+
+**After**: `harness-plan session-log` groups sessions by calendar month, moves past-month blocks to `.claude/memory/session-log-YYYY-MM.md`, rewrites the active file with only current-month sessions and an updated Index, then commits. Hook warnings now point directly to `/harness-plan session-log`.
+
 #### Guardrail Engine Optimizations — Phase 62 (62.2 / 62.3 / 62.4)
 
 **Before**: `go/internal/guardrail/` called `filepath.EvalSymlinks` on every Write/Edit protected-path check (even for the same file edited repeatedly), ran `normalizeCommand` with a regex allocation on every Bash command, and ran 12 security regex patterns against every file's content regardless of whether the file could plausibly contain secrets.
