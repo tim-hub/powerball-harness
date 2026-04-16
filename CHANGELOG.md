@@ -6,6 +6,10 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Fixed
+
+- `harness codex-loop` が sibling install から helper script を正しく見つけられない問題を修正し、resume 時に古い `cycle_error` 状態が残ったまま再開されるケースと、同じ run への二重再入で state が混線するケースを防止
+
 ## [4.1.1] - 2026-04-16
 
 ### Added

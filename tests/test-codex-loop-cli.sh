@@ -311,6 +311,17 @@ EOF
   git -C "${repo}" commit -m "initial" >/dev/null 2>&1
 }
 
+setup_cross_repo_cli() {
+  local install_root="$1"
+  mkdir -p "${install_root}/bin"
+  cp -R "${REPO_ROOT}/scripts" "${install_root}/scripts"
+  cp "${REPO_ROOT}/bin/harness" "${install_root}/bin/harness"
+  (
+    cd "${REPO_ROOT}/go" && \
+    go build -o "${install_root}/bin/harness-$(go env GOOS)-$(go env GOARCH)" ./cmd/harness
+  )
+}
+
 poll_for_status() {
   local run_json="$1"
   local expected="$2"
@@ -418,6 +429,104 @@ run_stop_case() {
   else
     fail "stop case: cancel was not sent to companion"
   fi
+
+  cleanup_tmp "${tmp}"
+}
+
+run_cross_repo_case() {
+  local tmp
+  tmp="$(mktemp -d)"
+  local repo="${tmp}/repo"
+  local install_root="${tmp}/install"
+  mkdir -p "${repo}"
+  setup_repo "${repo}"
+  setup_fake_tools "${tmp}" "complete"
+  setup_cross_repo_cli "${install_root}"
+
+  (
+    cd "${repo}" && \
+    CODEX_LOOP_TASK_DRIVER=companion \
+    CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+    CODEX_LOOP_CHECKPOINT_SCRIPT="${tmp}/bin/fake-checkpoint.sh" \
+    CODEX_LOOP_POLL_INTERVAL_SEC=1 \
+    "${install_root}/bin/harness" codex-loop start all --max-cycles 1 --pacing worker >/dev/null
+  )
+
+  if poll_for_status "${repo}/.claude/state/codex-loop/run.json" "completed"; then
+    pass "cross-repo case: harness codex-loop completed from sibling repo"
+  else
+    fail "cross-repo case: harness codex-loop did not complete from sibling repo"
+  fi
+
+  if grep -q 'cc:完了' "${repo}/Plans.md"; then
+    pass "cross-repo case: target repo Plans.md updated"
+  else
+    fail "cross-repo case: target repo Plans.md was not updated"
+  fi
+
+  cleanup_tmp "${tmp}"
+}
+
+run_state_corrupt_case() {
+  local tmp
+  tmp="$(mktemp -d)"
+  local repo="${tmp}/repo"
+  mkdir -p "${repo}/.claude/state/codex-loop"
+  cat > "${repo}/.claude/state/codex-loop/run.json" <<'EOF'
+{ invalid json
+EOF
+
+  local output
+  output="$(PROJECT_ROOT="${repo}" bash "${LOOP_SCRIPT}" status --json)"
+
+  if echo "${output}" | jq -e '.status == "state_corrupt" and .run == null and .current_job == null' >/dev/null; then
+    pass "state corrupt case: status --json reports state_corrupt"
+  else
+    fail "state corrupt case: status --json did not report state_corrupt"
+  fi
+
+  cleanup_tmp "${tmp}"
+}
+
+run_start_reset_case() {
+  local tmp
+  tmp="$(mktemp -d)"
+  local repo="${tmp}/repo"
+  mkdir -p "${repo}"
+  setup_repo "${repo}"
+  setup_fake_tools "${tmp}" "stall"
+  mkdir -p "${repo}/.claude/state/codex-loop"
+  cat > "${repo}/.claude/state/codex-loop/current-job.json" <<'EOF'
+{"id":"stale-job","status":"running"}
+EOF
+
+  PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
+  CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+  CODEX_LOOP_VALIDATE_SCRIPT="${tmp}/bin/fake-validate.sh" \
+  CODEX_LOOP_ENRICH_CONTRACT_SCRIPT="${tmp}/bin/fake-enrich-contract.sh" \
+  CODEX_LOOP_ENSURE_CONTRACT_SCRIPT="${tmp}/bin/fake-ensure-contract.sh" \
+  CODEX_LOOP_RUNTIME_REVIEW_SCRIPT="${tmp}/bin/fake-runtime-review.sh" \
+  CODEX_LOOP_WRITE_REVIEW_RESULT_SCRIPT="${tmp}/bin/fake-write-review-result.sh" \
+  CODEX_LOOP_PLATEAU_SCRIPT="${tmp}/bin/fake-plateau.sh" \
+  CODEX_LOOP_CHECKPOINT_SCRIPT="${tmp}/bin/fake-checkpoint.sh" \
+  CODEX_LOOP_MEM_CLIENT="${tmp}/bin/fake-mem.sh" \
+  CODEX_LOOP_GENERATE_CONTRACT_SCRIPT="${tmp}/bin/fake-generate-contract.sh" \
+  CODEX_LOOP_POLL_INTERVAL_SEC=1 \
+  bash "${LOOP_SCRIPT}" start all --max-cycles 1 --pacing worker >/dev/null
+
+  sleep 1
+  if [ ! -f "${repo}/.claude/state/codex-loop/current-job.json" ] || ! grep -q 'stale-job' "${repo}/.claude/state/codex-loop/current-job.json"; then
+    pass "start reset case: stale current-job.json cleared on start"
+  else
+    fail "start reset case: stale current-job.json was not cleared on start"
+  fi
+
+  PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
+  CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+  bash "${LOOP_SCRIPT}" stop >/dev/null
+  poll_for_status "${repo}/.claude/state/codex-loop/run.json" "stopped" || true
 
   cleanup_tmp "${tmp}"
 }
@@ -567,12 +676,146 @@ run_plateau_advisor_case() {
   cleanup_tmp "${tmp}"
 }
 
+run_resume_clears_terminal_fields_case() {
+  local tmp
+  tmp="$(mktemp -d)"
+  local repo="${tmp}/repo"
+  mkdir -p "${repo}"
+  setup_repo "${repo}"
+  setup_fake_tools "${tmp}" "stall"
+  mkdir -p "${repo}/.claude/state/codex-loop"
+
+  cat > "${repo}/.claude/state/codex-loop/run.json" <<EOF
+{
+  "schema_version": "codex-loop-run.v1",
+  "run_id": "resume-run-1",
+  "selection": "all",
+  "max_cycles": 2,
+  "pacing": "worker",
+  "delay_seconds": 270,
+  "cycle_count": 0,
+  "status": "failed",
+  "started_at": "2026-04-17T00:00:00Z",
+  "updated_at": "2026-04-17T00:00:00Z",
+  "finished_at": "2026-04-17T00:01:00Z",
+  "exit_reason": "cycle_error",
+  "error_message": "old failure",
+  "stop_requested_at": "2026-04-17T00:00:30Z",
+  "project_root": "${repo}",
+  "plans_file": "${repo}/Plans.md"
+}
+EOF
+
+  PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
+  CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+  CODEX_LOOP_VALIDATE_SCRIPT="${tmp}/bin/fake-validate.sh" \
+  CODEX_LOOP_ENRICH_CONTRACT_SCRIPT="${tmp}/bin/fake-enrich-contract.sh" \
+  CODEX_LOOP_ENSURE_CONTRACT_SCRIPT="${tmp}/bin/fake-ensure-contract.sh" \
+  CODEX_LOOP_RUNTIME_REVIEW_SCRIPT="${tmp}/bin/fake-runtime-review.sh" \
+  CODEX_LOOP_WRITE_REVIEW_RESULT_SCRIPT="${tmp}/bin/fake-write-review-result.sh" \
+  CODEX_LOOP_PLATEAU_SCRIPT="${tmp}/bin/fake-plateau.sh" \
+  CODEX_LOOP_CHECKPOINT_SCRIPT="${tmp}/bin/fake-checkpoint.sh" \
+  CODEX_LOOP_MEM_CLIENT="${tmp}/bin/fake-mem.sh" \
+  CODEX_LOOP_GENERATE_CONTRACT_SCRIPT="${tmp}/bin/fake-generate-contract.sh" \
+  CODEX_LOOP_POLL_INTERVAL_SEC=1 \
+  bash "${LOOP_SCRIPT}" run --run-id resume-run-1 >/dev/null 2>&1 &
+
+  if poll_for_status "${repo}/.claude/state/codex-loop/run.json" "running"; then
+    pass "resume clear case: resumed run entered running state"
+  else
+    fail "resume clear case: resumed run did not enter running state"
+  fi
+
+  jq -e '.exit_reason == null and .finished_at == null and .error_message == null and .stop_requested_at == null' \
+    "${repo}/.claude/state/codex-loop/run.json" >/dev/null \
+    && pass "resume clear case: stale terminal fields cleared" \
+    || fail "resume clear case: stale terminal fields still present"
+
+  PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
+  CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+  bash "${LOOP_SCRIPT}" stop >/dev/null
+  poll_for_status "${repo}/.claude/state/codex-loop/run.json" "stopped" || true
+
+  cleanup_tmp "${tmp}"
+}
+
+run_reentry_guard_case() {
+  local tmp
+  tmp="$(mktemp -d)"
+  local repo="${tmp}/repo"
+  mkdir -p "${repo}"
+  setup_repo "${repo}"
+  setup_fake_tools "${tmp}" "stall"
+
+  PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
+  CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+  CODEX_LOOP_VALIDATE_SCRIPT="${tmp}/bin/fake-validate.sh" \
+  CODEX_LOOP_ENRICH_CONTRACT_SCRIPT="${tmp}/bin/fake-enrich-contract.sh" \
+  CODEX_LOOP_ENSURE_CONTRACT_SCRIPT="${tmp}/bin/fake-ensure-contract.sh" \
+  CODEX_LOOP_RUNTIME_REVIEW_SCRIPT="${tmp}/bin/fake-runtime-review.sh" \
+  CODEX_LOOP_WRITE_REVIEW_RESULT_SCRIPT="${tmp}/bin/fake-write-review-result.sh" \
+  CODEX_LOOP_PLATEAU_SCRIPT="${tmp}/bin/fake-plateau.sh" \
+  CODEX_LOOP_CHECKPOINT_SCRIPT="${tmp}/bin/fake-checkpoint.sh" \
+  CODEX_LOOP_MEM_CLIENT="${tmp}/bin/fake-mem.sh" \
+  CODEX_LOOP_GENERATE_CONTRACT_SCRIPT="${tmp}/bin/fake-generate-contract.sh" \
+  CODEX_LOOP_POLL_INTERVAL_SEC=1 \
+  bash "${LOOP_SCRIPT}" start all --max-cycles 2 --pacing worker >/dev/null
+
+  poll_for_status "${repo}/.claude/state/codex-loop/run.json" "running" || true
+  local run_id
+  run_id="$(jq -r '.run_id' "${repo}/.claude/state/codex-loop/run.json")"
+
+  local output=""
+  local status=0
+  set +e
+  output="$(
+    PROJECT_ROOT="${repo}" \
+    CODEX_LOOP_TASK_DRIVER=companion \
+    CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+    CODEX_LOOP_VALIDATE_SCRIPT="${tmp}/bin/fake-validate.sh" \
+    CODEX_LOOP_ENRICH_CONTRACT_SCRIPT="${tmp}/bin/fake-enrich-contract.sh" \
+    CODEX_LOOP_ENSURE_CONTRACT_SCRIPT="${tmp}/bin/fake-ensure-contract.sh" \
+    CODEX_LOOP_RUNTIME_REVIEW_SCRIPT="${tmp}/bin/fake-runtime-review.sh" \
+    CODEX_LOOP_WRITE_REVIEW_RESULT_SCRIPT="${tmp}/bin/fake-write-review-result.sh" \
+    CODEX_LOOP_PLATEAU_SCRIPT="${tmp}/bin/fake-plateau.sh" \
+    CODEX_LOOP_CHECKPOINT_SCRIPT="${tmp}/bin/fake-checkpoint.sh" \
+    CODEX_LOOP_MEM_CLIENT="${tmp}/bin/fake-mem.sh" \
+    CODEX_LOOP_GENERATE_CONTRACT_SCRIPT="${tmp}/bin/fake-generate-contract.sh" \
+    CODEX_LOOP_POLL_INTERVAL_SEC=1 \
+    bash "${LOOP_SCRIPT}" run --run-id "${run_id}" 2>&1
+  )"
+  status=$?
+  set -e
+
+  if [ "${status}" -ne 0 ] && printf '%s' "${output}" | grep -q 'already running'; then
+    pass "reentry guard case: second run invocation refused"
+  else
+    fail "reentry guard case: second run invocation was not refused"
+  fi
+
+  PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
+  CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+  bash "${LOOP_SCRIPT}" stop >/dev/null
+  poll_for_status "${repo}/.claude/state/codex-loop/run.json" "stopped" || true
+
+  cleanup_tmp "${tmp}"
+}
+
 run_completion_case
 run_stop_case
+run_cross_repo_case
+run_state_corrupt_case
+run_start_reset_case
 run_advisor_preflight_case
 run_advisor_duplicate_case
 run_advisor_stop_case
 run_plateau_advisor_case
+run_resume_clears_terminal_fields_case
+run_reentry_guard_case
 
 echo "passed=${PASS_COUNT} failed=${FAIL_COUNT}"
 [ "${FAIL_COUNT}" -eq 0 ]
