@@ -5,6 +5,35 @@ Last release: v4.5.1 on 2026-04-16 (docs + hook removal + settings hardening)
 
 ---
 
+## Phase 68: Go guardrail — structured secret detection in post-tool pipeline
+
+Created: 2026-04-16
+
+Goal: Enhance the existing `securityPatterns` in `go/internal/guardrail/post_tool.go` to detect structured secret formats written via Write/Edit tools. Currently only catches `password = "..."` style assignments. Add regex patterns for JWT tokens, API key prefixes (`sk-`, `sk-ant-`, `AKIA*`, `ghp_*`, etc.), and other common secret formats. Advisory warnings (post-tool), not blocking.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 68.1 | Add structured secret regex patterns to `securityPatterns` in `post_tool.go`: JWT (`eyJ[A-Za-z0-9_-]{20,}\.eyJ`), Anthropic keys (`sk-ant-[a-zA-Z0-9-]{20,}`), OpenAI keys (`sk-[a-zA-Z0-9]{20,}`), AWS access keys (`AKIA[0-9A-Z]{16}`), GitHub tokens (`gh[pousr]_[A-Za-z0-9_]{36,}`), Stripe keys (`[sr]k_live_[a-zA-Z0-9]{20,}`), generic long base64 secrets (`['"][A-Za-z0-9+/=]{40,}['"]` near `key\|secret\|token` context) | `go test ./internal/guardrail/...` passes; each pattern fires a warning on matching content | - | cc:TODO |
+| 68.2 | Add test cases for each new pattern in `post_tool_test.go` — positive matches and negative cases (e.g. normal base64 images should not trigger) | All new patterns have ≥ 1 positive and ≥ 1 negative test; `go test -run TestPostTool` passes | 68.1 | cc:TODO |
+
+---
+
+## Phase 67: harness-release skill cleanup — conditional codex, remove announce, consolidate scripts
+
+Created: 2026-04-16
+
+Goal: Clean up the harness-release skill: gate Codex symlink check on codex availability, remove the --announce subcommand (unused), and consolidate release-related scripts into the skill's own scripts/ folder for better cohesion.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 67.1 | Update SKILL.md: Phase 5 (Verify Codex Symlinks) — wrap in `command -v codex` guard so it only runs when Codex CLI is installed; Phase 10 (--announce) — remove entirely from subcommands table, argument-hint, Quick Reference, --dry-run section, and Phase 10 body | SKILL.md no longer references `--announce`; Phase 5 code block includes `if command -v codex` guard | - | cc:TODO |
+| 67.2 | Move `local-scripts/check-consistency.sh` → `harness/skills/harness-release/scripts/check-consistency.sh`. Update all references: Makefile, CONTRIBUTING.md, CLAUDE.md, harness-release SKILL.md, `harness/scripts/generate-sprint-contract.sh` | `make check` calls the new path; old path removed; `bash harness/skills/harness-release/scripts/check-consistency.sh` passes | - | cc:TODO |
+| 67.3 | Move `local-scripts/check-residue.sh` → `harness/skills/harness-release/scripts/check-residue.sh`. Update all references: Makefile, `tests/validate-plugin.sh`, `.claude/rules/migration-policy.md`, `.claude/rules/deleted-concepts.yaml`, harness-release SKILL.md | `make residue` calls the new path; old path removed; `bash harness/skills/harness-release/scripts/check-residue.sh` passes | - | cc:TODO |
+| 67.4 | Move `harness/scripts/validate-release-notes.sh` → `harness/skills/harness-release/scripts/validate-release-notes.sh`. Update reference in harness-release SKILL.md (currently uses `${CLAUDE_SKILL_DIR}/../../scripts/validate-release-notes.sh`) | SKILL.md uses `${CLAUDE_SKILL_DIR}/scripts/validate-release-notes.sh`; old location removed | - | cc:TODO |
+| 67.5 | Update `docs/repository-structure.md` to reflect the 3 script moves and verify `check-consistency.sh` still passes after all moves | `bash harness/skills/harness-release/scripts/check-consistency.sh` exits 0; `docs/repository-structure.md` matches actual layout | 67.2, 67.3, 67.4 | cc:TODO |
+
+---
+
 ## Phase 66: Simplify release tooling — CHANGELOG links, version sync scope
 
 Created: 2026-04-16
