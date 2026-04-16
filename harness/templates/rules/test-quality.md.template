@@ -8,7 +8,7 @@ paths:
   - ".husky/**"
   - ".github/workflows/**"
 _harness_template: "rules/test-quality.md.template"
-_harness_version: "4.5.0"
+_harness_version: "4.5.1"
 ---
 
 # Test Quality Protection Rules

@@ -2,7 +2,7 @@
 description: Prefer agent-browser (if installed) for UI debugging and verification
 alwaysApply: true
 _harness_template: "rules/ui-debugging-agent-browser.md.template"
-_harness_version: "4.5.0"
+_harness_version: "4.5.1"
 ---
 
 # UI Debugging Rule (Prefer Agent Browser)

@@ -101,6 +101,8 @@ powerball-harness/
 └── scripts/    # Helper scripts
 ```
 
+> Deep dive into the guardrail engine — rules R01–R13, pre/post-tool pipelines, fail-safe design: **[go/README.md](go/README.md)**
+
 ---
 
 ## Troubleshooting
@@ -129,6 +131,8 @@ Project files (`Plans.md`, `CLAUDE.md`, SSOT files) remain unchanged.
 - [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md)
 - [Guardrail Rules](docs/hardening-parity.md)
 - [Work All Evidence](docs/evidence/work-all.md)
+
+> Want to know more about how powerball-harness works under the hood? See **[harness/README.md](harness/README.md)** — full workflow diagrams, skill catalog, agent roles, and the hook event map.
 
 ---
 
