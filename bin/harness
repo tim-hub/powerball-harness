@@ -6,13 +6,25 @@
 # Never print JSON here — we don't know which hook/command is being
 # called and emitting the wrong schema breaks the hook protocol.
 
+SCRIPT_PATH="$0"
+while [ -L "$SCRIPT_PATH" ]; do
+  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+  LINK_TARGET="$(readlink "$SCRIPT_PATH")"
+  case "$LINK_TARGET" in
+    /*) SCRIPT_PATH="$LINK_TARGET" ;;
+    *) SCRIPT_PATH="${SCRIPT_DIR}/${LINK_TARGET}" ;;
+  esac
+done
+
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+
 OS="$(uname -s | tr A-Z a-z)"
 ARCH="$(uname -m)"
 case "$ARCH" in
   x86_64)  ARCH="amd64" ;;
   aarch64) ARCH="arm64" ;;
 esac
-BINARY="$(dirname "$0")/harness-${OS}-${ARCH}"
+BINARY="${SCRIPT_DIR}/harness-${OS}-${ARCH}"
 if [ -x "$BINARY" ]; then
   exec "$BINARY" "$@"
 fi
