@@ -6,7 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 )
 
 func TestHandlePlansWatcher_NoInput(t *testing.T) {
@@ -145,6 +147,51 @@ func TestHandlePlansWatcher_NewTaskDetected(t *testing.T) {
 	}
 	if !strings.Contains(string(data), "New tasks") {
 		t.Errorf("pm-notification.md should contain 'New tasks', got: %s", string(data))
+	}
+}
+
+// TestHandlePlansWatcher_NotificationUsesInputCWD verifies that when input.CWD is set,
+// the PM notification file is written under that directory rather than the process CWD.
+func TestHandlePlansWatcher_NotificationUsesInputCWD(t *testing.T) {
+	projectDir := t.TempDir()
+	hookCWD := t.TempDir()
+
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(hookCWD); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	plansContent := "| Task 1 | TaskA | DoD | - | pm:pending |\n"
+	plansPath := filepath.Join(projectDir, "Plans.md")
+	if err := os.WriteFile(plansPath, []byte(plansContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	stateDir := filepath.Join(projectDir, ".claude", "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	prevState := `{"timestamp":"2026-01-01T00:00:00Z","pm_pending":0,"cc_todo":0,"cc_wip":0,"cc_done":0,"pm_confirmed":0}`
+	if err := os.WriteFile(filepath.Join(stateDir, "plans-state.json"), []byte(prevState), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	inputJSON := `{"tool_name":"Edit","cwd":"` + projectDir + `","tool_input":{"file_path":"Plans.md"}}`
+	var out bytes.Buffer
+	if err := HandlePlansWatcher(strings.NewReader(inputJSON), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	pmPath := filepath.Join(projectDir, pmNotificationFile)
+	if _, statErr := os.Stat(pmPath); statErr != nil {
+		t.Fatalf("expected pm notification under input.CWD, got error: %v", statErr)
+	}
+	if _, statErr := os.Stat(filepath.Join(hookCWD, pmNotificationFile)); statErr == nil {
+		t.Fatalf("pm notification should not be written under process cwd")
 	}
 }
 
@@ -556,4 +603,275 @@ func TestHandlePlansWatcher_CWDFromInput(t *testing.T) {
 	if out.Len() == 0 {
 		t.Error("expected non-empty output when input.CWD points to project with Plans.md")
 	}
+}
+
+// TestAcquirePlansLock_BasicLock verifies that a lock can be acquired and released successfully.
+func TestAcquirePlansLock_BasicLock(t *testing.T) {
+	tmpDir := t.TempDir()
+	lockPath := filepath.Join(tmpDir, "locks", "plans.flock")
+
+	// first acquisition should succeed
+	lock, err := acquirePlansLock(lockPath)
+	if err != nil {
+		t.Fatalf("expected lock acquisition to succeed, got: %v", err)
+	}
+	if lock == nil {
+		t.Fatal("expected non-nil lock handle")
+	}
+
+	// lock file should exist after acquisition
+	if _, statErr := os.Stat(lockPath); statErr != nil {
+		t.Errorf("lock file should exist after acquisition: %v", statErr)
+	}
+
+	// release should not panic
+	releasePlansLock(lock)
+}
+
+func TestAcquirePlansLock_FallsBackToMkdir(t *testing.T) {
+	tmpDir := t.TempDir()
+	lockPath := filepath.Join(tmpDir, "locks", "plans.flock")
+
+	origFlockCall := flockCall
+	origSleepCall := sleepCall
+	flockCall = func(fd int, how int) error {
+		return syscall.ENOTSUP
+	}
+	sleepCall = func(time.Duration) {}
+	defer func() {
+		flockCall = origFlockCall
+		sleepCall = origSleepCall
+	}()
+
+	lock, err := acquirePlansLock(lockPath)
+	if err != nil {
+		t.Fatalf("expected mkdir fallback lock acquisition to succeed, got: %v", err)
+	}
+	if lock.mode != "mkdir" {
+		t.Fatalf("expected mkdir fallback mode, got %q", lock.mode)
+	}
+
+	lockDir := lockPath + plansLockDirSuffix
+	if _, statErr := os.Stat(lockDir); statErr != nil {
+		t.Fatalf("expected mkdir fallback lock dir %s to exist: %v", lockDir, statErr)
+	}
+
+	releasePlansLock(lock)
+
+	if _, statErr := os.Stat(lockDir); !os.IsNotExist(statErr) {
+		t.Fatalf("expected mkdir fallback lock dir to be removed, got: %v", statErr)
+	}
+}
+
+// TestHandlePlansWatcher_LockExhaustionFailsClosed verifies that when lock acquisition
+// fails after 3 retries, HandlePlansWatcher signals fail-closed (calls exitFailClosed).
+// exitFailClosed is mocked to avoid os.Exit(1) while still asserting the call was made.
+func TestHandlePlansWatcher_LockExhaustionFailsClosed(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	// create Plans.md
+	plansContent := "| Task 1 | A | DoD | - | pm:pending |\n"
+	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	// create lock directory and a 000-permission lock file to force open failure
+	if err := os.MkdirAll(".claude/state/locks", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lockPath := filepath.Join(tmpDir, plansLockFile)
+	if err := os.WriteFile(lockPath, []byte{}, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		os.Chmod(lockPath, 0o644) //nolint:errcheck
+	})
+
+	// skip when running as root (0o000 mode has no effect on root)
+	if os.Getuid() == 0 {
+		t.Skip("skipping fail-closed test: running as root (0o000 mode has no effect)")
+	}
+
+	// mock exitFailClosed to avoid os.Exit(1)
+	failClosedCalled := false
+	origExitFailClosed := exitFailClosed
+	exitFailClosed = func(msg string) {
+		failClosedCalled = true
+		// do not call os.Exit(1) — allow test to continue
+	}
+	defer func() { exitFailClosed = origExitFailClosed }()
+
+	input := `{"tool_name":"Edit","tool_input":{"file_path":"Plans.md"}}`
+	var out bytes.Buffer
+	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("HandlePlansWatcher should not return error even on lock failure: %v", err)
+	}
+
+	// fail-closed: exitFailClosed must have been called
+	if !failClosedCalled {
+		t.Error("expected exitFailClosed to be called on lock exhaustion, but it was not")
+	}
+
+	var result postToolOutput
+	if jsonErr := json.Unmarshal(out.Bytes(), &result); jsonErr != nil {
+		t.Fatalf("invalid JSON output: %v, raw: %s", jsonErr, out.String())
+	}
+
+	// when os.Exit is mocked away, the fallback empty response is returned
+	if result.HookSpecificOutput.AdditionalContext != "" {
+		t.Errorf("expected empty context on lock failure (fail-closed fallback), got %q",
+			result.HookSpecificOutput.AdditionalContext)
+	}
+}
+
+// TestHandlePlansWatcher_LockAndStateUseSameCWD verifies that the lock path and state file path
+// are derived from the same CWD.
+// Calling the hook with different input.CWD values must produce paths rooted at input.CWD,
+// ensuring that CWD A's lock does not protect CWD B's state (which would allow data races).
+func TestHandlePlansWatcher_LockAndStateUseSameCWD(t *testing.T) {
+	// project A directory
+	projectA := t.TempDir()
+	// project B directory (different CWD)
+	projectB := t.TempDir()
+
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// set process CWD to projectB; input.CWD will point to projectA
+	if err := os.Chdir(projectB); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	// create Plans.md and state directory in projectA
+	plansContent := "| Task 1 | A | DoD | - | pm:pending |\n"
+	if err := os.WriteFile(filepath.Join(projectA, "Plans.md"), []byte(plansContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(projectA, ".claude", "state"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	prevState := `{"timestamp":"2026-01-01T00:00:00Z","pm_pending":0,"cc_todo":0,"cc_wip":0,"cc_done":0,"pm_confirmed":0}`
+	if err := os.WriteFile(
+		filepath.Join(projectA, ".claude", "state", "plans-state.json"),
+		[]byte(prevState), 0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// call hook with input.CWD = projectA
+	inputJSON := `{"tool_name":"Edit","cwd":"` + projectA + `","tool_input":{"file_path":"Plans.md"}}`
+	var out bytes.Buffer
+	if err := HandlePlansWatcher(strings.NewReader(inputJSON), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// lock file should be under projectA (not projectB)
+	expectedLockPath := filepath.Join(projectA, plansLockFile)
+	if _, statErr := os.Stat(expectedLockPath); statErr != nil {
+		t.Errorf("lock file should be created under projectA (%s), but not found: %v",
+			expectedLockPath, statErr)
+	}
+
+	// state file should be under projectA (not projectB)
+	expectedStatePath := filepath.Join(projectA, plansStateFile)
+	if _, statErr := os.Stat(expectedStatePath); statErr != nil {
+		t.Errorf("state file should be saved under projectA (%s), but not found: %v",
+			expectedStatePath, statErr)
+	}
+
+	// projectB should have neither lock nor state file
+	unexpectedLockPath := filepath.Join(projectB, plansLockFile)
+	if _, statErr := os.Stat(unexpectedLockPath); statErr == nil {
+		t.Errorf("lock file should NOT be created under projectB (%s)", unexpectedLockPath)
+	}
+	unexpectedStatePath := filepath.Join(projectB, plansStateFile)
+	if _, statErr := os.Stat(unexpectedStatePath); statErr == nil {
+		t.Errorf("state file should NOT be created under projectB (%s)", unexpectedStatePath)
+	}
+}
+
+// TestAcquirePlansLock_FailClosed verifies that HandlePlansWatcher behaves fail-closed
+// when lock acquisition fails.
+// Note: flock is re-entrant within the same process, so lock contention only occurs between
+// two separate processes. This test forces open failure via 000 permissions to exercise the
+// fail-closed path without needing a second process.
+// NOTE: TestHandlePlansWatcher_LockExhaustionFailsClosed provides equivalent coverage;
+// this test focuses on the acquirePlansLock unit behavior.
+func TestAcquirePlansLock_FailClosed(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	// create Plans.md
+	plansContent := "| Task 1 | A | DoD | - | pm:pending |\n"
+	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	// create lock directory and a 000-permission lock file to force open failure
+	if err := os.MkdirAll(".claude/state/locks", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lockPath := filepath.Join(tmpDir, plansLockFile)
+	if err := os.WriteFile(lockPath, []byte{}, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		os.Chmod(lockPath, 0o644) //nolint:errcheck
+	})
+
+	// skip when running as root (0o000 mode has no effect on root)
+	if os.Getuid() == 0 {
+		t.Skip("skipping fail-closed test: running as root (0o000 mode has no effect)")
+	}
+
+	// mock exitFailClosed to avoid os.Exit(1)
+	origExitFailClosed := exitFailClosed
+	exitFailClosed = func(msg string) { /* no-op for test */ }
+	defer func() { exitFailClosed = origExitFailClosed }()
+
+	input := `{"tool_name":"Edit","tool_input":{"file_path":"Plans.md"}}`
+	var out bytes.Buffer
+	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("HandlePlansWatcher should not return error even on lock failure: %v", err)
+	}
+
+	var result postToolOutput
+	if jsonErr := json.Unmarshal(out.Bytes(), &result); jsonErr != nil {
+		t.Fatalf("invalid JSON output: %v, raw: %s", jsonErr, out.String())
+	}
+
+	// fail-closed fallback: empty AdditionalContext (no notification) on lock failure
+	if result.HookSpecificOutput.AdditionalContext != "" {
+		t.Errorf("expected empty context on lock failure (fail-closed), got %q",
+			result.HookSpecificOutput.AdditionalContext)
+	}
+}
+
+// TestReleasePlansLock_Nil verifies that releasePlansLock does not panic when called with nil.
+func TestReleasePlansLock_Nil(t *testing.T) {
+	// should not panic
+	releasePlansLock(nil)
 }
