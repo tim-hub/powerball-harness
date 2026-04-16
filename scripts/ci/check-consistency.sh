@@ -343,7 +343,7 @@ MIRROR_ISSUES=0
 # SSOT: skills/ → ミラー先: codex/.codex/skills/, opencode/skills/
 # NOTE: mirror 側には disable-model-invocation: true が追加されている（自動発動抑制）
 #       この差異は意図的なため、比較時に除外する
-HARNESS_SKILLS="harness-plan harness-work harness-review harness-release harness-setup harness-sync"
+HARNESS_SKILLS="harness-plan harness-work harness-review harness-release harness-setup harness-sync harness-loop"
 
 # mirror 比較用ヘルパー: disable-model-invocation 行を除外してファイル単位で diff
 # mirror 固有の設定（自動発動抑制）は意図的な差異のため許容する

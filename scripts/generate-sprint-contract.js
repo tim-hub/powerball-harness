@@ -5,7 +5,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 function usage() {
-  console.error('Usage: scripts/generate-sprint-contract.sh <task-id> [plans-file] [output-file]');
+  console.error('Usage: scripts/generate-sprint-contract.js <task-id> [plans-file] [output-file]');
   process.exit(1);
 }
 
@@ -95,6 +95,14 @@ function toList(value) {
 
 function detectProfile(task) {
   const text = `${task.title} ${task.dod}`.toLowerCase();
+  const hasUiRubricHints = (
+    /\bui-rubric\b|\bdesign\b|styling|aesthetic|visual polish|design-heavy|design quality|originality|craft|functionality|デザイン|見た目品質|意匠|質感|デザイン品質/.test(text) ||
+    (/\bui\b/.test(text) && /(design|styling|aesthetic|layout|visual|polish|デザイン|見た目)/.test(text)) ||
+    (/\blayout\b/.test(text) && /(design|styling|aesthetic|visual|polish|デザイン|見た目)/.test(text))
+  );
+  if (hasUiRubricHints) {
+    return 'ui-rubric';
+  }
   if (/(browser|chrome|playwright|\bui\b|layout|responsive|スクリーンショット|画面|web アプリ|webアプリ)/.test(text)) {
     return 'browser';
   }
@@ -111,6 +119,13 @@ const PROFILE_MAX_ITERATIONS = {
   browser: 5,
   'ui-rubric': 10,
 };
+
+const DEFAULT_UI_RUBRIC_TARGET = Object.freeze({
+  design: 6,
+  originality: 6,
+  craft: 6,
+  functionality: 6,
+});
 
 function detectMaxIterations(profile, task) {
   const profileDefaults = { static: 3, runtime: 3, browser: 5, 'ui-rubric': 10 };
@@ -281,6 +296,9 @@ const browserRoute = reviewerProfile === 'browser' ? detectBrowserRoute(row, rep
 const runtimeValidation = reviewerProfile === 'runtime' ? pickRuntimeCommands(repoRoot) : [];
 const riskFlags = detectRiskFlags(row);
 const maxIterations = detectMaxIterations(reviewerProfile, row);
+const rubricTarget = reviewerProfile === 'ui-rubric'
+  ? { ...DEFAULT_UI_RUBRIC_TARGET }
+  : null;
 
 const contract = {
   schema_version: 'sprint-contract.v1',
@@ -323,6 +341,7 @@ const contract = {
     status: 'draft',
     reviewer_profile: reviewerProfile,
     max_iterations: maxIterations,
+    ...(rubricTarget ? { rubric_target: rubricTarget } : {}),
     browser_mode: browserMode,
     route: browserRoute,
     reviewer_notes: [],

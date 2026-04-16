@@ -6,7 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 )
 
 func TestHandlePlansWatcher_NoInput(t *testing.T) {
@@ -146,6 +148,49 @@ func TestHandlePlansWatcher_NewTaskDetected(t *testing.T) {
 	}
 	if !strings.Contains(string(data), "新規タスク") {
 		t.Errorf("pm-notification.md should contain '新規タスク', got: %s", string(data))
+	}
+}
+
+func TestHandlePlansWatcher_NotificationUsesInputCWD(t *testing.T) {
+	projectDir := t.TempDir()
+	hookCWD := t.TempDir()
+
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(hookCWD); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	plansContent := "| Task 1 | 実装A | DoD | - | pm:依頼中 |\n"
+	plansPath := filepath.Join(projectDir, "Plans.md")
+	if err := os.WriteFile(plansPath, []byte(plansContent), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	stateDir := filepath.Join(projectDir, ".claude", "state")
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	prevState := `{"timestamp":"2026-01-01T00:00:00Z","pm_pending":0,"cc_todo":0,"cc_wip":0,"cc_done":0,"pm_confirmed":0}`
+	if err := os.WriteFile(filepath.Join(stateDir, "plans-state.json"), []byte(prevState), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	inputJSON := `{"tool_name":"Edit","cwd":"` + projectDir + `","tool_input":{"file_path":"Plans.md"}}`
+	var out bytes.Buffer
+	if err := HandlePlansWatcher(strings.NewReader(inputJSON), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	pmPath := filepath.Join(projectDir, pmNotificationFile)
+	if _, statErr := os.Stat(pmPath); statErr != nil {
+		t.Fatalf("expected pm notification under input.CWD, got error: %v", statErr)
+	}
+	if _, statErr := os.Stat(filepath.Join(hookCWD, pmNotificationFile)); statErr == nil {
+		t.Fatalf("pm notification should not be written under process cwd")
 	}
 }
 
@@ -568,12 +613,12 @@ func TestAcquirePlansLock_BasicLock(t *testing.T) {
 	lockPath := filepath.Join(tmpDir, "locks", "plans.flock")
 
 	// 1 回目: ロック取得成功
-	f, err := acquirePlansLock(lockPath)
+	lock, err := acquirePlansLock(lockPath)
 	if err != nil {
 		t.Fatalf("expected lock acquisition to succeed, got: %v", err)
 	}
-	if f == nil {
-		t.Fatal("expected non-nil file handle")
+	if lock == nil {
+		t.Fatal("expected non-nil lock handle")
 	}
 
 	// lock ファイルが作成されていること
@@ -582,7 +627,42 @@ func TestAcquirePlansLock_BasicLock(t *testing.T) {
 	}
 
 	// 解放（panic しないこと）
-	releasePlansLock(f)
+	releasePlansLock(lock)
+}
+
+func TestAcquirePlansLock_FallsBackToMkdir(t *testing.T) {
+	tmpDir := t.TempDir()
+	lockPath := filepath.Join(tmpDir, "locks", "plans.flock")
+
+	origFlockCall := flockCall
+	origSleepCall := sleepCall
+	flockCall = func(fd int, how int) error {
+		return syscall.ENOTSUP
+	}
+	sleepCall = func(time.Duration) {}
+	defer func() {
+		flockCall = origFlockCall
+		sleepCall = origSleepCall
+	}()
+
+	lock, err := acquirePlansLock(lockPath)
+	if err != nil {
+		t.Fatalf("expected mkdir fallback lock acquisition to succeed, got: %v", err)
+	}
+	if lock.mode != "mkdir" {
+		t.Fatalf("expected mkdir fallback mode, got %q", lock.mode)
+	}
+
+	lockDir := lockPath + plansLockDirSuffix
+	if _, statErr := os.Stat(lockDir); statErr != nil {
+		t.Fatalf("expected mkdir fallback lock dir %s to exist: %v", lockDir, statErr)
+	}
+
+	releasePlansLock(lock)
+
+	if _, statErr := os.Stat(lockDir); !os.IsNotExist(statErr) {
+		t.Fatalf("expected mkdir fallback lock dir to be removed, got: %v", statErr)
+	}
 }
 
 // TestHandlePlansWatcher_LockExhaustionFailsClosed は lock 取得が 3 retry で

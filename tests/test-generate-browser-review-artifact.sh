@@ -15,9 +15,9 @@ cat > "${TMP_DIR}/Plans.md" <<'EOF'
 EOF
 
 CONTRACT_PATH="${TMP_DIR}/browser-contract.json"
-(cd "${TMP_DIR}" && "${PROJECT_ROOT}/scripts/generate-sprint-contract.sh" "32.2.2" "${TMP_DIR}/Plans.md" "$CONTRACT_PATH" >/dev/null)
+(cd "${TMP_DIR}" && node "${PROJECT_ROOT}/scripts/generate-sprint-contract.js" "32.2.2" "${TMP_DIR}/Plans.md" "$CONTRACT_PATH" >/dev/null)
 EXPLORATORY_CONTRACT_PATH="${TMP_DIR}/browser-exploratory-contract.json"
-(cd "${TMP_DIR}" && "${PROJECT_ROOT}/scripts/generate-sprint-contract.sh" "32.2.5" "${TMP_DIR}/Plans.md" "$EXPLORATORY_CONTRACT_PATH" >/dev/null)
+(cd "${TMP_DIR}" && node "${PROJECT_ROOT}/scripts/generate-sprint-contract.js" "32.2.5" "${TMP_DIR}/Plans.md" "$EXPLORATORY_CONTRACT_PATH" >/dev/null)
 
 ARTIFACT_PATH="${TMP_DIR}/browser-review.json"
 

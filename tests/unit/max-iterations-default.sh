@@ -5,7 +5,7 @@
 # Usage: ./tests/unit/max-iterations-default.sh
 #
 # 設計方針（Finding 4 対応後）:
-#   generate-sprint-contract.sh の detectMaxIterations() は HTML コメントマーカーのみを受け付ける。
+#   generate-sprint-contract.js の detectMaxIterations() は HTML コメントマーカーのみを受け付ける。
 #   記法: <!-- max_iterations: 15 -->（Markdown として表示されないため例示テキストと区別可能）
 #   素のテキスト「max_iterations: 15」は意図的に無視する（自己参照バグ防止）。
 #   範囲ガード: 1-30 の範囲外は profile default にフォールバック + stderr 警告。
@@ -46,27 +46,27 @@ EOF
 
 echo "=== Case (i): contract なし相当（static profile）→ max_iterations=3 ==="
 OUT_I="${TMP_DIR}/out-i.json"
-(cd "${TMP_DIR}" && "${PROJECT_ROOT}/scripts/generate-sprint-contract.sh" "T-static" "${TMP_DIR}/Plans.md" "${OUT_I}" >/dev/null)
+(cd "${TMP_DIR}" && node "${PROJECT_ROOT}/scripts/generate-sprint-contract.js" "T-static" "${TMP_DIR}/Plans.md" "${OUT_I}" >/dev/null)
 ACTUAL_I="$(jq -r '.review.max_iterations' "${OUT_I}")"
 check "static profile → 3" "3" "${ACTUAL_I}"
 
 echo "=== Case (ii): browser profile → max_iterations=5 ==="
 OUT_II="${TMP_DIR}/out-ii.json"
 (cd "${TMP_DIR}" && HARNESS_BROWSER_REVIEW_DISABLE_PLAYWRIGHT=1 \
-  "${PROJECT_ROOT}/scripts/generate-sprint-contract.sh" "T-browser" "${TMP_DIR}/Plans.md" "${OUT_II}" >/dev/null)
+  node "${PROJECT_ROOT}/scripts/generate-sprint-contract.js" "T-browser" "${TMP_DIR}/Plans.md" "${OUT_II}" >/dev/null)
 ACTUAL_II="$(jq -r '.review.max_iterations' "${OUT_II}")"
 check "browser profile → 5" "5" "${ACTUAL_II}"
 
 echo "=== Case (iii): HTML コメント <!-- max_iterations: 15 --> → 15（明示指定） ==="
 OUT_III="${TMP_DIR}/out-iii.json"
-(cd "${TMP_DIR}" && "${PROJECT_ROOT}/scripts/generate-sprint-contract.sh" "T-html-comment" "${TMP_DIR}/Plans.md" "${OUT_III}" >/dev/null)
+(cd "${TMP_DIR}" && node "${PROJECT_ROOT}/scripts/generate-sprint-contract.js" "T-html-comment" "${TMP_DIR}/Plans.md" "${OUT_III}" >/dev/null)
 ACTUAL_III="$(jq -r '.review.max_iterations' "${OUT_III}")"
 check "HTML コメントマーカーで max_iterations=15 の明示指定" "15" "${ACTUAL_III}"
 
 echo "=== Case (iv): HTML コメント <!-- max_iterations: 100 --> は範囲外 → profile default にフォールバック + stderr 警告 ==="
 OUT_IV="${TMP_DIR}/out-iv.json"
 STDERR_IV="${TMP_DIR}/stderr-iv.txt"
-(cd "${TMP_DIR}" && "${PROJECT_ROOT}/scripts/generate-sprint-contract.sh" "T-out-of-range" "${TMP_DIR}/Plans.md" "${OUT_IV}" 2>"${STDERR_IV}" >/dev/null)
+(cd "${TMP_DIR}" && node "${PROJECT_ROOT}/scripts/generate-sprint-contract.js" "T-out-of-range" "${TMP_DIR}/Plans.md" "${OUT_IV}" 2>"${STDERR_IV}" >/dev/null)
 ACTUAL_IV="$(jq -r '.review.max_iterations' "${OUT_IV}")"
 check "範囲外 max_iterations=100 → profile default の 3" "3" "${ACTUAL_IV}"
 # stderr に警告が出力されているか確認
@@ -80,7 +80,7 @@ fi
 
 echo "=== Case (v): 素のテキスト「max_iterations: 15」（HTML コメントなし）→ profile default のまま ==="
 OUT_V="${TMP_DIR}/out-v.json"
-(cd "${TMP_DIR}" && "${PROJECT_ROOT}/scripts/generate-sprint-contract.sh" "T-plain-text" "${TMP_DIR}/Plans.md" "${OUT_V}" >/dev/null)
+(cd "${TMP_DIR}" && node "${PROJECT_ROOT}/scripts/generate-sprint-contract.js" "T-plain-text" "${TMP_DIR}/Plans.md" "${OUT_V}" >/dev/null)
 ACTUAL_V="$(jq -r '.review.max_iterations' "${OUT_V}")"
 check "素のテキスト max_iterations: 15 は無視 → profile default の 3" "3" "${ACTUAL_V}"
 

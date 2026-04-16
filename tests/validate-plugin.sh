@@ -581,6 +581,79 @@ else
 fi
 
 echo ""
+echo "10. Optional integration tests"
+echo "----------------------------------------"
+
+INTEGRATION_PASS_COUNT=0
+INTEGRATION_FAIL_COUNT=0
+INTEGRATION_WARN_COUNT=0
+
+integration_pass_test() {
+    echo -e "${GREEN}✓${NC} $1"
+    INTEGRATION_PASS_COUNT=$((INTEGRATION_PASS_COUNT + 1))
+}
+
+integration_fail_test() {
+    echo -e "${YELLOW}⚠${NC} $1"
+    INTEGRATION_FAIL_COUNT=$((INTEGRATION_FAIL_COUNT + 1))
+}
+
+integration_warn_test() {
+    echo -e "${YELLOW}⚠${NC} $1"
+    INTEGRATION_WARN_COUNT=$((INTEGRATION_WARN_COUNT + 1))
+}
+
+INTEGRATION_TESTS=(
+    "$PLUGIN_ROOT/tests/integration/loop-3cycle.sh"
+    "$PLUGIN_ROOT/tests/integration/loop-compaction-resume.sh"
+    "$PLUGIN_ROOT/tests/integration/loop-max-cycles.sh"
+    "$PLUGIN_ROOT/tests/integration/loop-plans-concurrent.sh"
+)
+
+INTEGRATION_TMP_DIR="$(mktemp -d)"
+INTEGRATION_PIDS=()
+INTEGRATION_NAMES=()
+INTEGRATION_LOGS=()
+
+for integration_test in "${INTEGRATION_TESTS[@]}"; do
+    if [ ! -f "$integration_test" ]; then
+        integration_warn_test "optional integration test が見つかりません: $(basename "$integration_test")"
+        continue
+    fi
+
+    if [ ! -x "$integration_test" ]; then
+        integration_warn_test "optional integration test に実行権限がありません: $(basename "$integration_test")"
+        continue
+    fi
+
+    integration_log_file="${INTEGRATION_TMP_DIR}/$(basename "$integration_test").log"
+    bash "$integration_test" >"$integration_log_file" 2>&1 &
+    INTEGRATION_PIDS+=("$!")
+    INTEGRATION_NAMES+=("$(basename "$integration_test")")
+    INTEGRATION_LOGS+=("$integration_log_file")
+done
+
+for i in "${!INTEGRATION_PIDS[@]}"; do
+    if wait "${INTEGRATION_PIDS[$i]}"; then
+        integration_pass_test "integration: ${INTEGRATION_NAMES[$i]}"
+    else
+        integration_fail_test "integration: ${INTEGRATION_NAMES[$i]}"
+        if [ -f "${INTEGRATION_LOGS[$i]}" ]; then
+            sed -n '1,160p' "${INTEGRATION_LOGS[$i]}"
+        fi
+    fi
+done
+
+rm -rf "$INTEGRATION_TMP_DIR" 2>/dev/null || true
+
+echo ""
+echo "Optional integration summary"
+echo "----------------------------------------"
+echo "合格: ${INTEGRATION_PASS_COUNT}"
+echo "失敗: ${INTEGRATION_FAIL_COUNT}"
+echo "警告: ${INTEGRATION_WARN_COUNT}"
+
+echo ""
 echo "=========================================="
 echo "テスト結果サマリー"
 echo "=========================================="

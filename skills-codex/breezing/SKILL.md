@@ -106,7 +106,7 @@ for task in execution_order:
     TASK_BASE_REF = git rev-parse HEAD
 
     # B-1. sprint-contract を生成
-    contract_path = bash("scripts/generate-sprint-contract.sh {task.number}")
+    contract_path = bash("node scripts/generate-sprint-contract.js {task.number}")
     contract_path = bash("scripts/enrich-sprint-contract.sh {contract_path} --check \"DoD を reviewer 観点で確認\" --approve")
     bash("scripts/ensure-sprint-contract-ready.sh {contract_path}")
 
