@@ -41,7 +41,7 @@ breezing --no-discuss all       # 計画議論スキップで全タスク完走
 **このスキルは `harness-work --breezing` に委譲します。** 以下の設定で実行してください:
 
 1. **引数を `harness-work --breezing` に渡す**（`--max-workers N` は breezing 固有オプションとして解釈し、`harness-work` の `--parallel` とは別概念）
-2. **チーム実行モードを強制** — Lead → Worker spawn → companion review Reviewer の三者分離
+2. **チーム実行モードを強制** — Lead → Worker spawn → 必要時 Advisor → companion review Reviewer の四者分離
 3. **Lead は delegate 専念** — コードを直接書かない
 
 ### `harness-work` との違い
@@ -60,6 +60,7 @@ breezing --no-discuss all       # 計画議論スキップで全タスク完走
 |------|---------|------|------|
 | Lead | (self) | 現セッション継承 | 調整・指揮・タスク分配・cherry-pick |
 | Worker ×N | `spawn_agent({message, fork_context})` | セッション権限継承 | 実装（git worktree 分離） |
+| Advisor | `claude-code-harness:advisor` | 読み取り専用 | 方針助言 (`PLAN` / `CORRECTION` / `STOP`) |
 | Reviewer | companion `review --base` | read-only | 独立レビュー |
 
 ## Flow Summary
@@ -71,9 +72,27 @@ breezing [scope] [--max-workers N] [--no-discuss]
     │
 Phase 0: Planning Discussion (--no-discuss でスキップ)
 Phase A: Pre-delegate（チーム初期化 + worktree 準備）
-Phase B: Delegate（Worker 実装 + companion review レビュー）
+Phase B: Delegate（Worker 実装 + 必要時 Advisor + companion review レビュー）
 Phase C: Post-delegate（統合検証 + Plans.md 更新 + commit）
 ```
+
+## Advisor Protocol
+
+Worker は generic な subagent を増やさない。
+迷った時は構造化 JSON で相談要求だけ返し、Lead が advisor を呼ぶ。
+
+1. Worker → `advisor-request.v1`
+2. Lead → Advisor
+3. Advisor → `advisor-response.v1`
+4. Lead → 同じ Worker に advice を返して続行
+5. Reviewer は最後の成果物だけを見る
+
+相談条件は loop / solo とそろえる。
+
+- 高リスク task（`needs-spike` / `security-sensitive` / `state-migration`）の初回実行前
+- 同じ原因の失敗が 2 回続いた後
+- plateau により `PIVOT_REQUIRED` を返す直前
+- 同じ `trigger_hash` は 1 回だけ。task ごとの相談回数は最大 3 回
 
 ### Phase 0: Planning Discussion（構造化 3 問チェック）
 
@@ -119,7 +138,22 @@ for task in execution_order:
     })
     wait_agent({ ids: [worker_id] })
 
-    # B-3. Lead がレビュー実行（TASK_BASE_REF 起点）
+    # B-3. Worker が advice request を返した時だけ、Lead が Advisor を呼ぶ
+    if worker_result.type == "advisor-request.v1":
+        advisor_id = spawn_agent({
+            agent_type: "default",
+            message: worker_result.request_json,
+            fork_context: true
+        })
+        advisor_result = wait_agent({ targets: [advisor_id] })
+        close_agent({ target: advisor_id })
+        send_input({
+            target: worker_id,
+            message: "advisor-response.v1: {advisor_result}"
+        })
+        worker_result = wait_agent({ targets: [worker_id] })
+
+    # B-4. Lead がレビュー実行（TASK_BASE_REF 起点）
     # 公式プラグイン companion review を使用（harness-work の「レビューループ」参照）:
     #   bash scripts/codex-companion.sh review --base {TASK_BASE_REF}
     #   → verdict マッピング: approve→APPROVE, needs-attention→REQUEST_CHANGES
@@ -143,7 +177,7 @@ for task in execution_order:
         REVIEW_INPUT = "review-output.json"
     bash("scripts/write-review-result.sh {REVIEW_INPUT} {commit_hash}")
 
-    # B-4. 修正ループ（REQUEST_CHANGES 時、contract の max_iterations まで）
+    # B-5. 修正ループ（REQUEST_CHANGES 時、contract の max_iterations まで）
     review_count = 0
     # sprint-contract が存在するときのみ max_iterations を読む。存在しない場合は 3（後方互換）
     MAX_REVIEWS = read_contract(contract_path, ".review.max_iterations") or 3
@@ -156,10 +190,10 @@ for task in execution_order:
         VERDICT = review_task(worktree_path, TASK_BASE_REF)
         review_count++
 
-    # B-5. Worker 終了
+    # B-6. Worker 終了
     close_agent({ id: worker_id })
 
-    # B-6. 結果処理
+    # B-7. 結果処理
     if VERDICT == "APPROVE":
         commit_hash = git("-C", worktree_path, "rev-parse", "HEAD")
         git cherry-pick --no-commit {commit_hash}
@@ -169,11 +203,11 @@ for task in execution_order:
         → ユーザーにエスカレーション（Plans.md は cc:WIP のまま）
         → 後続タスクも停止
 
-    # B-7. Worktree クリーンアップ
+    # B-8. Worktree クリーンアップ
     git worktree remove {worktree_path}
     git branch -D {branch_name}
 
-    # B-8. Progress feed
+    # B-9. Progress feed
     print("📊 Progress: Task {completed}/{total} 完了 — {task.内容}")
 ```
 

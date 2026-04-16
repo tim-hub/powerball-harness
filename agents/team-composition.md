@@ -1,7 +1,7 @@
 # Team Composition
 
-Harness の3エージェント構成。
-11エージェント → 3エージェントに統合。
+Harness の4エージェント構成。
+11エージェント → 4エージェントに統合。
 
 ## Team 構成図
 
@@ -11,6 +11,10 @@ Lead (Execute スキルの --breezing モード) ─ 指揮のみ
   ├── Worker (claude-code-harness:worker)
   │     実装 + preflight自己点検 + ビルド検証 + コミット準備
   │     ※ --codex 時は公式プラグイン経由で Codex に委託
+  │
+  ├── Advisor (claude-code-harness:advisor)
+  │     executor が迷った時だけ呼ぶ相談役
+  │     PLAN / CORRECTION / STOP の JSON だけ返す
   │
   ├── [Worker #2] (claude-code-harness:worker)
   │     独立タスクを並列実行
@@ -57,7 +61,20 @@ Lead (Execute スキルの --breezing モード) ─ 指揮のみ
 | **ツール** | Read, Write, Edit, Bash, Grep, Glob |
 | **禁止** | Task（再帰防止） |
 | **責務** | 実装 → preflight自己点検 → CI検証 → worktree 内 commit（Breezing 時は main に反映しない） |
+| **Advisor 連携** | 難所では `advisor-request.v1` を構造化で返し、Lead 経由で助言を受ける |
 | **エラー復旧** | 最大3回。3回失敗でエスカレーション |
+
+### Advisor
+
+| 項目 | 設定 |
+|------|------|
+| **subagent_type** | `claude-code-harness:advisor` |
+| **モデル** | opus |
+| **数** | 0〜1（必要時のみ） |
+| **ツール** | 読み取りのみ。実運用ではツール不使用が前提 |
+| **禁止** | Write, Edit, Bash, Agent, ユーザー向け出力 |
+| **責務** | `advisor-request.v1` を受けて `advisor-response.v1` を返す |
+| **decision** | `PLAN` / `CORRECTION` / `STOP` |
 
 ### Reviewer
 
@@ -70,6 +87,7 @@ Lead (Execute スキルの --breezing モード) ─ 指揮のみ
 | **禁止** | Write, Edit, Task |
 | **責務** | `sprint-contract` を基準に static/runtime/browser の verdict を返す |
 | **判定** | APPROVE / REQUEST_CHANGES |
+| **Advisor との関係** | advisor は品質判定をしない。最終 verdict は Reviewer が持つ |
 
 ### Quality Language
 
@@ -78,6 +96,7 @@ Lead (Execute スキルの --breezing モード) ─ 指揮のみ
 - Worker: 「検証可能で、あとから直しやすい変更にする」
 - Reviewer: 「証拠のない懸念は上げず、重大な問題だけ止める」
 - Lead: 「スコープを守りつつ、レビューで学べる形に残す」
+- Advisor: 「手は動かさず、次の一手だけを明確にする」
 
 レビューで drift や見逃しが見つかったら、`review-calibration.jsonl` に
 `false_positive`, `false_negative`, `missed_bug`, `overstrict_rule` のいずれかで記録し、
@@ -103,19 +122,25 @@ Phase B: タスクごとに逐次実行（依存順）
     B-1. Worker spawn (mode: breezing, isolation: worktree)
          Worker: 実装 → preflight自己点検 → worktree 内 commit → Lead に結果返却
     ↓
-    B-2. Lead がレビュー実行
+    B-2. Worker が相談要求を返した場合のみ Advisor 実行
+         Worker -> advisor-request.v1
+         Lead が Advisor を呼ぶ
+         Advisor -> advisor-response.v1
+         Lead が同じ Worker に助言を返して継続
+    ↓
+    B-3. Lead がレビュー実行
          sprint-contract の `reviewer_profile` を選択
          static: Codex exec / Reviewer agent
          runtime: contract の `runtime_validation` を実行
          browser: browser-capable evaluator に委譲
          閾値基準: critical/major → REQUEST_CHANGES、minor のみ → APPROVE
     ↓
-    B-3. REQUEST_CHANGES の場合: 修正ループ（最大 3 回）
+    B-4. REQUEST_CHANGES の場合: 修正ループ（最大 3 回）
          Lead → SendMessage(to: worker_id) で指摘送信
          Worker: 修正 → git commit --amend → 更新 hash を返却
          Lead: 再レビュー
     ↓
-    B-4. APPROVE → Lead が main に cherry-pick
+    B-5. APPROVE → Lead が main に cherry-pick
          git cherry-pick --no-commit {worktree_commit}
          git commit -m "{task description}"
          Plans.md: cc:完了 [{hash}]
@@ -161,7 +186,8 @@ Harness 側は冗長な防止文言を最小化し、以下の運用に統一す
 
 1. Lead のみが teammate を spawn する
 2. Worker/Reviewer プロンプトでは「実装/レビュー責務」に集中させる
-3. nested 防止は hooks 追加ではなく公式ガードに委ねる（運用を簡素化）
+3. Worker が相談したい時は generic spawn をせず、`advisor-request.v1` を返す
+4. nested 防止は hooks 追加ではなく公式ガードに委ねる（運用を簡素化）
 
 ## 権限設定（bypassPermissions / permissionMode）
 

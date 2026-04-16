@@ -75,6 +75,15 @@ wake-up
   harness-mem resume-pack（コンテキスト再注入）
   │
   ▼
+[Step 4.5] Advisor consult（必要時のみ）
+  高リスク task の初回実行前 / 同じ原因の 2 回目失敗後 / plateau 直前で
+  `advisor-request.v1` を組み立てて相談する
+  │
+  ├── PLAN        → 次回 executor prompt に advice を prepend
+  ├── CORRECTION  → 局所修正の指示として再実行
+  └── STOP        → その場で loop を停止し、理由を残す
+  │
+  ▼
 [Step 5] 1 タスクサイクル実行
   worker_result = Agent(
       subagent_type="claude-code-harness:worker",  # worker エージェント（harness-work ではない）
@@ -158,6 +167,23 @@ default（`--max-cycles 8`）時は 8 サイクルで停止する。
   "content": "cycle_result の 1 行サマリ + commit hash"
 }
 ```
+
+## Advisor Strategy
+
+この skill の主役は executor で、advisor は必要な時だけ呼ぶ。
+たとえると、担当者が普段は自走し、難所だけベテランに相談する形。
+
+相談条件は固定で、自然言語の「自信が低い」判定は使わない。
+
+| 条件 | 相談するか |
+|------|-----------|
+| `needs-spike` / `security-sensitive` / `state-migration` | する |
+| `<!-- advisor:required -->` | する |
+| 同じ原因の 2 回目失敗 | する |
+| plateau で停止する直前 | する |
+
+同じ trigger は 1 回しか相談しない。
+その判定には `trigger_hash = task_id + reason_code + normalized_error_signature` を使う。
 
 ## 関連スキル
 

@@ -44,6 +44,10 @@ Harness の統合レビュアーエージェント。
 **Read-mostly エージェント**: この reviewer 定義は static review を主担当とし、
 runtime / browser は独立 review runner と共通 artifact 契約を共有する。
 
+Advisor は別ロールであり、Reviewer の代替ではない。
+Advisor が `PLAN` や `CORRECTION` を返しても、最終的な `APPROVE / REQUEST_CHANGES` は
+Reviewer または review runner が判定する。
+
 ---
 
 ## 永続メモリの活用
@@ -151,6 +155,13 @@ Task tool で subagent_type="reviewer" を指定
 
 - **APPROVE**: 重大な問題がない（minor のみ許容）
 - **REQUEST_CHANGES**: critical または major の問題がある
+
+## Advisor との境界
+
+- Reviewer は品質判定を担当する
+- Advisor は実装方針の助言だけを返す
+- Reviewer は advisor の提案内容そのものではなく、最終成果物をレビューする
+- `STOP` が出たかどうかは loop / Lead が処理し、Reviewer は停止制御を担わない
 
 セキュリティ脆弱性は minor でも REQUEST_CHANGES を出す。
 

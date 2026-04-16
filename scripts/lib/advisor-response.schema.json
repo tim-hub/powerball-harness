@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "advisor-response.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision",
+    "summary",
+    "executor_instructions",
+    "confidence",
+    "stop_reason"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "advisor-response.v1"
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["PLAN", "CORRECTION", "STOP"]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "executor_instructions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "stop_reason": {
+      "type": ["string", "null"]
+    }
+  }
+}

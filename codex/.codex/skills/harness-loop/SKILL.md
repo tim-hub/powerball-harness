@@ -68,8 +68,9 @@ harness codex-loop stop
 2. Plans.md から次の `cc:TODO` / `cc:WIP` を見つける
 3. `generate-sprint-contract.js` など既存の Harness 資産で準備する
 4. `scripts/codex-companion.sh task --background --write ...` で Codex の実作業を開始する
-5. ジョブ完了後に review / checkpoint / plateau 判定を行う
-6. まだ対象タスクが残っていれば、待機後に次サイクルへ進む
+5. 高リスク task / 2 回目失敗 / plateau 直前では advisor consult を挟む
+6. ジョブ完了後に review / checkpoint / plateau 判定を行う
+7. まだ対象タスクが残っていれば、待機後に次サイクルへ進む
 
 ## pacing
 
@@ -86,7 +87,32 @@ harness codex-loop stop
 - `.claude/state/codex-loop/cycles.jsonl`
 - `.claude/state/codex-loop/runner.log`
 - `.claude/state/codex-loop/current-job.json`
+- `.claude/state/advisor/history.jsonl`
+- `.claude/state/advisor/last-request.json`
+- `.claude/state/advisor/last-response.json`
 - `.claude/state/locks/codex-loop.lock.d`
+
+## Advisor Consult
+
+Advisor は「代わりに実装する役」ではなく、「次の一手だけ返す相談役」。
+loop では次の 3 箇所でだけ呼ぶ。
+
+| タイミング | reason_code | 何をするか |
+|-----------|-------------|-----------|
+| 高リスク task の初回実行前 | `high-risk-preflight` | 先に固める観点を聞く |
+| 同じ原因の 2 回目失敗後 | `retry-threshold` | 方針変更か局所修正かを聞く |
+| plateau による停止直前 | `plateau-pre-escalation` | 本当に止めるべきかを聞く |
+
+decision は 3 種だけ。
+
+| decision | loop の扱い |
+|----------|-------------|
+| `PLAN` | advice を次の executor prompt 先頭に足して再実行 |
+| `CORRECTION` | 局所修正の指示として再実行 |
+| `STOP` | loop を停止し、理由を state と runner.log に残す |
+
+同じ trigger は `trigger_hash = task_id + reason_code + normalized_error_signature` で 1 回だけ相談する。
+相談回数は task ごとに最大 3 回で、それ以上はユーザー判断に上げる。
 
 ## 注意点
 
