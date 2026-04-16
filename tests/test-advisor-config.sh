@@ -3,7 +3,7 @@
 set -euo pipefail
 export TMPDIR=/tmp  # Force /tmp for sandboxed execution (sandbox blocks /var/folders)
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CONFIG="${PROJECT_ROOT}/harness/.claude-code-harness.config.yaml"
 TMP_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"

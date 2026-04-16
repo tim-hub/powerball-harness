@@ -81,7 +81,7 @@ if [ ! -f "$CONFIG" ]; then
   exit 2
 fi
 
-ADVISOR_ENABLED=$(grep 'enabled:' "$CONFIG" | awk '{print $2}' | head -1)
+ADVISOR_ENABLED=$(awk '/^advisor:/{f=1; next} f && /^[^ ]/{f=0} f && /enabled:/{print $2}' "$CONFIG" | head -1)
 MAX_CONSULTS=$(grep 'max_consults_per_task:' "$CONFIG" | awk '{print $2}')
 
 # ---------------------------------------------------------------------------
@@ -146,7 +146,7 @@ Advisor subagent invocation:
     prompt = "$(cat "${REQUEST_FILE}")"
   )
 
-Consult ${CONSULT_COUNT+1} of ${MAX_CONSULTS} for this task.
+Consult $((CONSULT_COUNT + 1)) of ${MAX_CONSULTS} for this task.
 ==================================================
 
 EOF
