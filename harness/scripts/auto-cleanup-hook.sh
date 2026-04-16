@@ -62,7 +62,7 @@ if [[ "$FILE_PATH" == *"Plans.md"* ]] || [[ "$FILE_PATH" == *"plans.md"* ]]; the
   if [ -f "$FILE_PATH" ]; then
     lines=$(wc -l < "$FILE_PATH" | tr -d ' ')
     if [ "$lines" -gt "$PLANS_MAX_LINES" ]; then
-      FEEDBACK="⚠️ Plans.md is ${lines} lines (limit: ${PLANS_MAX_LINES} lines). It is recommended to archive old tasks with /maintenance."
+      FEEDBACK="⚠️ Plans.md has ${lines} lines (limit: ${PLANS_MAX_LINES}). It is recommended to archive old tasks with /harness-plan archive."
     fi
 
     # SSOT sync check when Plans.md cleanup (archive move) is detected
@@ -94,7 +94,7 @@ if [[ "$FILE_PATH" == *"session-log.md"* ]]; then
   if [ -f "$FILE_PATH" ]; then
     lines=$(wc -l < "$FILE_PATH" | tr -d ' ')
     if [ "$lines" -gt "$SESSION_LOG_MAX_LINES" ]; then
-      FEEDBACK="⚠️ session-log.md is ${lines} lines (limit: ${SESSION_LOG_MAX_LINES} lines). It is recommended to split it by month with /maintenance."
+      FEEDBACK="⚠️ session-log.md has ${lines} lines (limit: ${SESSION_LOG_MAX_LINES}). Consider splitting it by month manually."
     fi
   fi
 fi
