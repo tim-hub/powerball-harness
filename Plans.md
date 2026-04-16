@@ -5,6 +5,70 @@ Last release: v4.5.0 on 2026-04-15 (Phase 60+61)
 
 ---
 
+## Phase 62: Advisor Strategy — read-only consultation agent + harness-loop skill
+
+Created: 2026-04-16
+
+**Goal**: Implement the Advisor Strategy introduced in upstream v4.1.1. Add a read-only `advisor` agent that executors (Worker, breezing Lead) can consult when they hit decision blockers — high-risk tasks, repeated failures from the same root cause, or plateau before user escalation. The advisor returns a structured `PLAN | CORRECTION | STOP` decision; it never writes code or invokes tools. Add `harness-loop` as a new skill for long-running autonomous execution loops that consult the advisor at its three trigger points. Adapt all paths to our `harness/` directory layout (v4.5.0).
+
+**Reference**: upstream Chachamaru127/claude-code-harness PR #83 (v4.1.1). Do NOT cherry-pick — implement independently from scratch using the upstream as a feature specification.
+
+### Stage 1: Config + advisor agent
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 62.1 | Add `advisor:` config block to `harness/.claude-code-harness.config.yaml` — fields: `enabled: true`, `mode: on-demand`, `max_consults_per_task: 3`, `retry_threshold: 2`, `consult_before_user_escalation: true`, `model_defaults.claude: opus` | `grep 'advisor:' harness/.claude-code-harness.config.yaml` returns a match; file is valid YAML | - | cc:Done [5f4ab76] |
+| 62.2 | Create `harness/agents/advisor.md` — new read-only consultation agent. Frontmatter: `model: opus`, `allowed-tools: [Read, Grep, Glob]` only (no Write/Edit/Bash/Task). Body: role definition (read-only, no execution authority), response schema `advisor-response.v1` with three decision types (`PLAN` = replan approach, `CORRECTION` = apply local fix, `STOP` = escalate to reviewer), trigger inputs (risk flags, error signatures, plateau count), duplicate-suppression via `task_id + reason_code + error_sig` hash, state location `.claude/state/advisor/`. Description: `Use when consulting on blocked tasks, high-risk preflight, or repeated-failure patterns — returns PLAN/CORRECTION/STOP. Do NOT load for: implementation, review, planning.` | Agent file exists; `harness validate agents` passes; description ≤300 chars and starts with `Use when` | 62.1 | cc:Done [837cb1a] |
+
+### Stage 2: Team composition + existing agent updates
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 62.3 | Update `harness/agents/team-composition.md` — expand from 3-agent to 4-agent model. Add Advisor as a "consult-only" lateral role between Worker and Reviewer in the team diagram. Update Role Definitions table with Advisor row (model: opus, tools: read-only, authority: guidance only). Update legacy-agent-mapping table to note advisor is new. Keep description ≤300 chars. | Diagram shows 4 roles; `grep 'Advisor' harness/agents/team-composition.md` ≥ 3 matches | 62.2 | cc:Done [d2062e0] |
+| 62.4 | Update `harness/agents/worker.md` — add "Advisor Consultation" section describing the 3 trigger conditions (high-risk task marker `<!-- advisor:required -->`, same-cause failure ≥ `retry_threshold`, plateau before user escalation) and the consultation flow: read advisor config → invoke `powerball-harness:advisor` subagent → parse `PLAN/CORRECTION/STOP` → act accordingly. Add `--no-advisor` opt-out flag reference. | `grep 'advisor' harness/agents/worker.md` ≥ 5 matches; file passes validation | 62.2 | cc:Done [cdfebb1] |
+| 62.5 | Update `harness/agents/reviewer.md` — add a short "Advisor vs Reviewer" boundary note: advisor gives mid-task guidance without final authority; reviewer gives final APPROVE/REQUEST_CHANGES verdict after implementation. Advisor cannot bypass the reviewer gate. | Note present in reviewer.md; no behavior changes to review flow | 62.2 | cc:Done [95bbdd0] |
+
+### Stage 3: harness-loop skill (new)
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 62.6 | Create `harness/skills/harness-loop/SKILL.md` — new long-running autonomous loop skill. Frontmatter: `name: harness-loop`, `allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Task]`, `argument-hint: "[N-iterations|--until-done|--advisor|--no-advisor]"`. Body: loop execution model (iterate over Plans.md tasks in sequence), 3 advisor trigger points (pre-task risk check, post-failure retry gate, plateau detection), loop exit conditions (`cc:done` on all tasks, `--until-done` convergence, STOP from advisor), state file `.claude/state/loop-active.json`. Description ≤300 chars starting with `Use when`. | Skill dir + SKILL.md exist; `grep '^description:' harness/skills/harness-loop/SKILL.md` ≤300 chars and starts `"Use when`; `./local-scripts/audit-skill-descriptions.sh harness/skills/harness-loop` passes | 62.2 | cc:Done [8035338] |
+| 62.7 | Add harness-loop to `harness/templates/codex-skills/harness-loop/SKILL.md` — codex-native variant adds `disable-model-invocation: true` frontmatter and strips interactive prompts (advisor flow becomes non-interactive: auto-accept CORRECTION, escalate STOP to codex-loop exit) | File exists at `harness/templates/codex-skills/harness-loop/SKILL.md`; contains `disable-model-invocation: true` | 62.6 | cc:Done [42713f1] |
+| 62.8 | Add harness-loop to `harness/templates/opencode/skills/harness-loop/SKILL.md` — plain copy of 62.6 (opencode ignores unknown frontmatter fields) | File exists; content matches 62.6 | 62.6 | cc:Done [b9d8340] |
+
+### Stage 4: Update existing skills for advisor integration
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 62.9 | Update `harness/skills/breezing/SKILL.md` — add `--advisor` / `--no-advisor` to Options table and argument-hint. Add "Advisor Integration" section: breezing Lead checks advisor config before spawning Workers for tasks tagged `<!-- advisor:required -->`; on Worker STOP signal, Lead invokes advisor before user escalation. Keep breezing as a thin alias to harness-work — only add the advisor hooks at the coordination layer. | `grep '\-\-advisor' harness/skills/breezing/SKILL.md` ≥ 2 matches; `validate-plugin.sh` passes | 62.4 | cc:Done [972690d] |
+| 62.10 | Update `harness/skills/harness-work/SKILL.md` — add `--advisor` / `--no-advisor` flags to Options table and argument-hint. Add a short "Advisor Consultation" paragraph in the Execution section: when `--advisor` is active (or advisor.enabled in config), consult advisor at the 3 trigger points before escalating to user. | `grep '\-\-advisor' harness/skills/harness-work/SKILL.md` ≥ 2 matches | 62.4 | cc:Done [43d1a33] |
+
+### Stage 5: Scripts + Go engine
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 62.11 | Create `harness/scripts/run-advisor-consultation.sh` — wrapper script that: (1) reads advisor config via `harness/.claude-code-harness.config.yaml`, (2) checks `enabled` flag and `max_consults_per_task` counter in `.claude/state/advisor/history.jsonl`, (3) writes `last-request.json` to `.claude/state/advisor/`, (4) outputs a structured prompt block for Claude to invoke the advisor subagent, (5) reads `last-response.json` and returns the `PLAN|CORRECTION|STOP` value. Uses `${BASH_SOURCE[0]}` for path resolution. | Script exists; `bash harness/scripts/run-advisor-consultation.sh --help` exits 0; `BASH_SOURCE` pattern used (not `$0`) | 62.1, 62.2 | cc:Done [ad1a2b0] |
+| 62.12 | Add `go/internal/hookhandler/advisor_trigger.go` — new hook handler that detects advisor trigger conditions from hook events: (a) reads task markers for `<!-- advisor:required -->`, (b) tracks consecutive failure signatures in `.claude/state/advisor/failure-log.jsonl`, (c) increments plateau counter when task restarts without new commits. Exposes `ShouldConsultAdvisor(taskID, retryCount, errorSig string) bool`. Add corresponding `advisor_trigger_test.go`. | Both files exist; `go test ./go/internal/hookhandler/...` passes; new function exported correctly | 62.2 | cc:Done [9db1c5e] |
+
+### Stage 6: Tests + docs + fixes
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 62.13 | Create `tests/test-advisor-protocol.sh` — verify: (a) advisor agent file has read-only `allowed-tools` (no Write/Edit/Bash/Task), (b) response schema contains PLAN/CORRECTION/STOP, (c) `run-advisor-consultation.sh` respects `max_consults_per_task` by counting `.claude/state/advisor/history.jsonl` entries, (d) STOP triggers user escalation path in mock invocation | `bash tests/test-advisor-protocol.sh` exits 0 | 62.2, 62.11 | cc:Done [5fed08d] |
+| 62.14 | Create `tests/test-advisor-config.sh` — verify: (a) `advisor.enabled: false` in config disables consultation (script exits early with "advisor disabled"), (b) `retry_threshold` is read correctly, (c) `max_consults_per_task` ceiling is enforced, (d) config block is valid YAML and parses without error | `bash tests/test-advisor-config.sh` exits 0 | 62.1, 62.11 | cc:Done [c389189] |
+| 62.15 | Create `docs/advisor-strategy.md` — strategy documentation covering: trigger conditions (with examples), decision type definitions (PLAN/CORRECTION/STOP), advisor vs reviewer authority boundary, duplicate-suppression mechanism, configuration reference (all `advisor:` fields), integration diagram showing 4-agent model, harness-loop interaction | File exists; linked from README.md | 62.2, 62.6 | cc:Done [64dbb30] |
+| 62.16 | Update `README.md` — add "Advisor Strategy" section (after Agent Team section) describing what the advisor does, when it triggers, and linking to `docs/advisor-strategy.md` | `grep 'Advisor Strategy' README.md` returns a match | 62.15 | cc:Done [0a6b143] |
+| 62.17 | Fix `harness/bin/harness` symlink resolution — update the shim script to use `readlink -f` (macOS: `realpath` fallback) so PATH-installed invocations resolve correctly regardless of symlink depth | `harness --version` works when `harness/bin/` is on PATH via symlink at `~/.local/bin/harness` | - | cc:Done [a91bb91] |
+
+### Stage 7: Validation
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 62.18 | Run full validation: `./tests/validate-plugin.sh`, `./local-scripts/check-consistency.sh`, `./local-scripts/check-residue.sh`, `./local-scripts/audit-skill-descriptions.sh harness/skills/harness-loop`, `harness validate agents`, `go test ./go/internal/hookhandler/...` | All pass with 0 failures | 62.1–62.17 | cc:WIP |
+| 62.19 | Add `[Unreleased]` CHANGELOG entry covering: (a) new advisor agent and 4-agent model, (b) harness-loop skill, (c) breezing/harness-work advisor flags, (d) advisor trigger hook in Go engine, (e) symlink fix. Use Before/After format per `.claude/rules/github-release.md` | CHANGELOG entry present under `[Unreleased]` with Before/After sections | 62.18 | cc:TODO |
+
+---
+
 ## Phase 61: Agent files optimization pass — `harness/agents/`
 
 Created: 2026-04-15
