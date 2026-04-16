@@ -30,3 +30,13 @@ cleanup:
     max_lines: 500
   claude_md:
     max_lines: 100
+
+# Advisor settings (Opus consultation strategy)
+advisor:
+  enabled: true
+  mode: on-demand
+  max_consults_per_task: 3
+  retry_threshold: 2
+  consult_before_user_escalation: true
+  model_defaults:
+    claude: opus

@@ -5,7 +5,8 @@ case "$ARCH" in
   x86_64)  ARCH="amd64" ;;
   aarch64) ARCH="arm64" ;;
 esac
-BINARY="$(dirname "$0")/harness-${OS}-${ARCH}"
+SELF="$(readlink -f "$0" 2>/dev/null || realpath "$0" 2>/dev/null || echo "$0")"
+BINARY="$(dirname "$SELF")/harness-${OS}-${ARCH}"
 if [ -x "$BINARY" ]; then
   exec "$BINARY" "$@"
 else

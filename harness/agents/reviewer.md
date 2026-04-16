@@ -46,6 +46,15 @@ while runtime / browser share a common artifact contract with independent review
 
 ---
 
+## Advisor vs Reviewer Boundary
+
+The Advisor gives mid-task guidance to the Worker during execution — it does NOT produce a final verdict.
+The Reviewer's APPROVE / REQUEST_CHANGES verdict is the only gate that determines whether work is accepted.
+An Advisor `STOP` decision means "escalate to the Reviewer", not "auto-reject".
+The Reviewer evaluates the final implementation independently, regardless of any Advisor consultations that occurred.
+
+---
+
 ## Using Persistent Memory
 
 ### Before Starting Review
