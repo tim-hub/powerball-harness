@@ -2,7 +2,7 @@
 name: harness-release
 description: "Use when releasing — version bumps, CHANGELOG, git tags, GitHub Releases, or /harness-release. Do NOT load for: implementation (harness-work), review (harness-review), planning (harness-plan), or setup."
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
-argument-hint: "[patch|minor|major|--dry-run|--announce|--complete]"
+argument-hint: "[patch|minor|major|--dry-run|--complete]"
 context: fork
 effort: medium
 model: sonnet
@@ -14,12 +14,11 @@ model: sonnet
 
 | User Input | Subcommand | Behavior |
 |------------|------------|----------|
-| `harness-release` | _(interactive)_ | Confirm version type then run full release flow |
+| `harness-release` |  | Patch as default version to bump |
 | `harness-release patch` | `patch` | Patch version bump (bug fixes, x.y.Z+1) |
 | `harness-release minor` | `minor` | Minor version bump (new features, x.Y+1.0) |
 | `harness-release major` | `major` | Major version bump (breaking changes, X+1.0.0) |
 | `harness-release --dry-run` | `--dry-run` | Preview all phases without writing or publishing |
-| `harness-release --announce` | `--announce` | Full release flow + post X (Twitter) announcement |
 | `harness-release --complete` | `--complete` | Release completion marking only (Phase 9) |
 
 Key paths:
@@ -92,8 +91,8 @@ bash "${CLAUDE_SKILL_DIR}/scripts/release-preflight.sh"
 # 3. Plugin structure validation
 bash tests/validate-plugin.sh
 
-# 4. Consistency check (repo-root dev-only script)
-bash local-scripts/check-consistency.sh
+# 4. Consistency check
+bash "${CLAUDE_SKILL_DIR}/scripts/check-consistency.sh"
 
 # 5. Verify codex symlinks
 ls -la codex/.codex/skills/
@@ -172,8 +171,12 @@ Key requirements:
 ### Phase 5: Verify Codex Symlinks
 
 ```bash
-# Verify codex symlinks resolve correctly
-ls -la codex/.codex/skills/
+# Only run when Codex CLI is installed
+if command -v codex &>/dev/null; then
+  ls -la codex/.codex/skills/
+else
+  echo "  (Codex CLI not installed — symlink check skipped)"
+fi
 ```
 
 ### Phase 6: Commit & Tag
@@ -183,7 +186,7 @@ NEW_VERSION=$(cat VERSION)
 
 # Staging (explicitly specify target files)
 git add VERSION .claude-plugin/marketplace.json CHANGELOG.md
-git add skills/ codex/.codex/skills/
+git add .
 
 git commit -m "chore: release v$NEW_VERSION"
 git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
@@ -241,7 +244,7 @@ GitHub Release Notes rules:
 Release notes validation (plugin-level script):
 
 ```bash
-"${CLAUDE_SKILL_DIR}/../../scripts/validate-release-notes.sh" "v$NEW_VERSION"
+"${CLAUDE_SKILL_DIR}/scripts/validate-release-notes.sh" "v$NEW_VERSION"
 ```
 
 ### Phase 9: Release Completion Marking
@@ -253,17 +256,6 @@ git push origin main
 
 This empty commit serves as an explicit marker that "all release work is complete."
 
-### Phase 10: Announcement (`--announce` only)
-
-Invokes the `/x-announce` skill to generate an announcement thread for X (Twitter):
-
-```
-Skill: x-announce
-Args: v$NEW_VERSION
-```
-
-Outputs 5 post texts + 5 Gemini images in a single pass.
-
 ## `--dry-run` Mode
 
 `--dry-run` executes the following without making actual changes:
@@ -274,7 +266,7 @@ Outputs 5 post texts + 5 Gemini images in a single pass.
 4. Display GitHub Release Notes draft (without creating)
 5. Display mirror sync diff (without writing)
 
-Skipped items: VERSION/marketplace.json writes, git commit/tag/push, GitHub Release creation, announcements
+Skipped items: VERSION/marketplace.json writes, git commit/tag/push, GitHub Release creation
 
 ## `--complete` Mode
 
@@ -286,23 +278,25 @@ Performs only the "release completion" marking after tag creation:
 
 Executes only Phase 9. Verifies that the GitHub Release was not missed, then creates the completion commit.
 
+---
+
+# Additional Guidelines
+
 ## Regression Checklist
 
 Verify the following regressions before release:
 
-- [ ] **Plugin structure** — `bash tests/validate-plugin.sh` (marketplace.json, skills, hooks, scripts)
-- [ ] **Consistency** — `bash local-scripts/check-consistency.sh` (repo-root `local-scripts/`; templates, versions, CHANGELOG)
-- [ ] **Templates** — `test -f templates/codex/config.toml && test -f templates/opencode/opencode.json` (setup templates present)
+- [ ] **Plugin structure** — `bash ${CLAUDE_SKILL_DIR}/../../tests/validate-plugin.sh` (marketplace.json, skills, hooks, scripts)
+- [ ] **Consistency** — `bash "${CLAUDE_SKILL_DIR}/scripts/check-consistency.sh"` (templates, versions, CHANGELOG)
+- [ ] **Templates** — `test -f ${CLAUDE_SKILL_DIR}/../../templates/codex/config.toml && test -f ${CLAUDE_SKILL_DIR}/../../templates/opencode/opencode.json` (setup templates present)
 - [ ] **Preflight** — `bash "${CLAUDE_SKILL_DIR}/scripts/release-preflight.sh"` (working tree, CHANGELOG, CI, remnants)
-- [ ] **Release notes** — `bash "${CLAUDE_SKILL_DIR}/../../scripts/validate-release-notes.sh" vX.Y.Z` (plugin-level; GitHub Release format)
+- [ ] **Release notes** — `bash "${CLAUDE_SKILL_DIR}/scripts/validate-release-notes.sh" vX.Y.Z` (GitHub Release format)
 - [ ] **VERSION sync** — `bash "${CLAUDE_SKILL_DIR}/scripts/sync-version.sh" check` (VERSION matches marketplace.json)
-- [ ] **Guardrails** — R01-R13 in `go/internal/guardrail/rules.go` (Go rule health)
+- [ ] **Guardrails** — R01-R13 in `${CLAUDE_SKILL_DIR}/../../go/internal/guardrail/rules.go` (Go rule health)
 - [ ] **Tag continuity** — `git tag --sort=-version:refname | head -5` (no missing tags)
-- [ ] **Migration residue** — `bash local-scripts/check-residue.sh` (repo-root `local-scripts/`; no deleted-concept references)
+- [ ] **Migration residue** — `bash "${CLAUDE_SKILL_DIR}/scripts/check-residue.sh"` (no deleted-concept references)
 
 ## CI Safety Net
-
-`.github/workflows/release.yml` runs automatically on tag push:
 
 1. Detects `v*` tag push
 2. Checks if a GitHub Release with the same name already exists

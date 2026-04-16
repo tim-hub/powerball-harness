@@ -389,10 +389,10 @@ echo ""
 echo "10. Migration residue check"
 echo "----------------------------------------"
 
-if bash "$PLUGIN_ROOT/local-scripts/check-residue.sh" > /dev/null 2>&1; then
-    pass_test "No migration residue detected (local-scripts/check-residue.sh clean)"
+if bash "$PLUGIN_ROOT/harness/skills/harness-release/scripts/check-residue.sh" > /dev/null 2>&1; then
+    pass_test "No migration residue detected (harness/skills/harness-release/scripts/check-residue.sh clean)"
 else
-    fail_test "Migration residue found — run 'bash local-scripts/check-residue.sh' to see details"
+    fail_test "Migration residue found — run 'bash harness/skills/harness-release/scripts/check-residue.sh' to see details"
 fi
 
 echo ""
