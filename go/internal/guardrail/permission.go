@@ -240,7 +240,7 @@ func makePermissionAllow() *hookproto.PermissionOutput {
 	return &hookproto.PermissionOutput{
 		HookSpecificOutput: hookproto.PermissionHookSpecific{
 			HookEventName: "PermissionRequest",
-			Decision: hookproto.PermissionDecisionBehavior{
+			Decision: hookproto.PermissionDecision{
 				Behavior: "allow",
 			},
 		},
