@@ -78,7 +78,7 @@ check_skill() {
     return 1
   fi
 
-  if ! diff -qr "$src" "$dst" >/dev/null; then
+  if ! diff -qr --exclude='.DS_Store' --exclude='.claude' "$src" "$dst" >/dev/null; then
     echo "drift $mirror_root/$skill" >&2
     return 1
   fi
