@@ -4,7 +4,15 @@ Change history for claude-code-harness.
 
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
-## [Unreleased](https://github.com/tim-hub/powerball-harness/compare/v4.5.2...HEAD)
+## [Unreleased](https://github.com/tim-hub/powerball-harness/compare/v4.6.0...HEAD)
+
+## [4.6.0](https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0) - 2026-04-17
+
+### Theme: Autonomous loop runtime, concurrent hook fan-out, and Advisor consultation agent
+
+**harness-loop graduates to a full cycle runtime; PostToolUse drops from 9 subprocess forks to 2 via concurrent Go fan-out; Workers gain a read-only Opus Advisor at decision blockers; reviewer and sprint-contract phases run in parallel.**
+
+---
 
 ### Phase 63: Hook chain optimizations — memory-bridge mode dispatch, POST_BATCH goroutine fan-out, PreToolUse fan-out
 
@@ -136,7 +144,109 @@ Each axis is scored 1–5. `--ui-rubric` is a standalone flag; it does not chang
 
 **After**: The shim uses `readlink -f` (Linux) / `realpath` (macOS) to resolve the real script path before `dirname`, so symlink-installed invocations work correctly.
 
-## [4.5.0] - 2026-04-15
+### Phase 70: Go code quality — struct-field dependency injection, hook ordering comment, go.work
+
+**Three non-blocking code-review observations addressed: plans_watcher is now `t.Parallel()`-safe, hook response priority is explicit, and gopls resolves Go imports from the repo root.**
+
+---
+
+#### 1. Struct-Field Dependency Injection in `plans_watcher.go` (70.1)
+
+**Before**: `flockCall`, `sleepCall`, and `exitFailClosed` were package-level `var` function variables. Tests swapped them via global mutation — a pattern that silently races under `t.Parallel()`.
+
+**After**: The three vars are replaced by `plansWatcherDeps` struct fields on a new `plansWatcher` type. `HandlePlansWatcher` stays a thin public wrapper (signature unchanged for `post_batch.go`); all logic runs in `(*plansWatcher).handle()`. Tests construct `&plansWatcher{deps: ...}` per-instance instead of mutating globals — fully `t.Parallel()`-safe.
+
+#### 2. Hook Ordering Comment in `post_batch.go` (70.2)
+
+**Before**: `postBatchHooks()` returned an ordered slice of 8 concurrent handlers, but nothing documented that slice position determines which handler's output CC receives. A future contributor inserting a hook at the wrong position would silently change the response without any warning.
+
+**After**: A doc comment on `postBatchHooks()` explicitly states the "first non-empty JSON wins" merge strategy and explains that output-producing hooks (plans-watcher, quality-pack) must precede side-effect-only hooks (emit-trace, auto-cleanup).
+
+#### 3. `go.work` at Repo Root (70.3)
+
+**Before**: The Go module lives at `go/go.mod`, not the repo root. gopls started from the repo root reported spurious "not in GOPATH" / "missing module" errors on imports — even though `go build ./...` from `go/` compiled cleanly.
+
+**After**: `go.work` at the repo root declares `use ./go`, giving gopls a workspace anchor that resolves imports correctly regardless of editor start directory. No build behavior changes — `go.work` is a tooling hint only.
+
+## [4.5.2](https://github.com/tim-hub/powerball-harness/compare/v4.5.1...v4.5.2) - 2026-04-17
+
+### Theme: Guardrail performance, drift detection, and memory hygiene
+
+**Cuts guardrail latency up to 77%, adds pre-implementation drift detection, and replaces stale maintenance references with actionable skill commands.**
+
+---
+
+#### Plans Drift Check on `harness-work` Entry (Phase 65.1)
+
+**Before**: Stale Plans.md markers (e.g. a task marked `cc:TODO` when it was already committed) were only caught after implementation and review finished.
+
+**After**: `harness-work` now runs `harness/scripts/plans-drift-check.sh` before mode selection. If stale markers are detected the user sees a drift summary and must confirm before implementation starts. Zero behavioral change when Plans.md is already in sync.
+
+#### Fix Stale `/maintenance` References in Hook Warning Messages
+
+**Before**: Hook warnings for oversized `session-log.md` and `Plans.md` referenced `/maintenance` — a deprecated slash command removed in v4.1.0.
+
+**After**: Plans.md warnings now say `/harness-plan archive`; session-log.md warnings now say `/harness-plan session-log`.
+
+#### `harness-plan session-log` — Session Log Month Archiving
+
+**Before**: When `session-log.md` exceeded 500 lines, hook warnings said "consider splitting it by month manually" with no concrete path to follow.
+
+**After**: `harness-plan session-log` groups sessions by calendar month, moves past-month blocks to `.claude/memory/session-log-YYYY-MM.md`, rewrites the active file with only current-month sessions and an updated Index, then commits. Hook warnings now point directly to `/harness-plan session-log`.
+
+#### Guardrail Engine Optimizations — Phase 62 (62.2 / 62.3 / 62.4)
+
+**Before**: `go/internal/guardrail/` called `filepath.EvalSymlinks` on every Write/Edit protected-path check (even for the same file edited repeatedly), ran `normalizeCommand` with a regex allocation on every Bash command, and ran 12 security regex patterns against every file's content regardless of whether the file could plausibly contain secrets.
+
+**After**: Three targeted optimizations cut guardrail latency significantly on the M4 Pro benchmark:
+
+| Path | Baseline | Optimized | Δ |
+|------|----------|-----------|---|
+| Pre-tool (per hook invocation) | 5,969 ns | 4,740 ns | **−21%** |
+| Post-tool non-test file | 19,085 ns | 4,356 ns | **−77%** (0 allocs) |
+| Post-tool test file | 80,437 ns | 40,616 ns | **−50%** (0 allocs) |
+
+- **62.2** — `isProtectedPath` now caches `filepath.EvalSymlinks` results in a bounded 256-entry FIFO map. Repeated writes to the same file resolve symlinks exactly once per session.
+- **62.3** — `getChangedContent` called once and reused for both tampering and security checks. Security scanning gated by a 20-string `hasSuspiciousContent` pre-screen; most source files skip 12 regexes entirely.
+- **62.4** — `normalizeCommand` fast-path returns the original string (zero allocation) when no tabs, newlines, or double-spaces are present — the common case for well-formatted commands.
+
+#### Baseline: Guardrail Engine Performance Benchmarks (Phase 62)
+
+**Before**: No benchmark baseline existed for `go/internal/guardrail/` — optimization work in Phases 62–64 had no reference point for before/after comparison.
+
+**After**: `benchmarks/phase62-baseline.json` records pre-tool and post-tool median latency on darwin-arm64. Future optimization PRs reference this file for improvement percentages.
+
+## [4.5.1](https://github.com/tim-hub/powerball-harness/compare/v4.5.0...v4.5.1) - 2026-04-16
+
+### Theme: Hook cost reduction, security hardening, architecture documentation
+
+**Removes an expensive LLM hook from the pre-tool hot path; tightens the deny rule list; adds three Mermaid diagram READMEs that document the hook chain, full workflow, and Go guardrail engine.**
+
+---
+
+#### 1. Remove PreToolUse Secret-Scanning Agent Hook
+
+**Before**: A Haiku-based agent hook fired on every PreToolUse `Write|Edit` event, reviewing code for hardcoded secrets and security vulnerabilities. At 30 s timeout and model invocation overhead, this added significant latency to every edit — even trivial whitespace changes.
+
+**After**: The agent hook is removed. Secret detection is already handled by the Go guardrail engine (R02, R03, R09 rules) and the post-tool security pattern scanner. Same coverage; no LLM invocation on the pre-tool fast path.
+
+#### 2. Harden `settings.json` Deny Rules
+
+**Before**: `.env` read blocking used `Bash(cat .env:*)`, which only caught `cat`; other read commands slipped through. `export PATH=*`, `export LD_LIBRARY_PATH=*`, and `export PYTHONPATH=*` were not in the deny list, allowing environment-variable injection.
+
+**After**: Deny pattern widened to `Bash(* .env)` to block any command targeting `.env`; three `export` path patterns added to the deny list; `git reset --hard *` entry moved to the correct deny section.
+
+#### 3. Architecture Diagram READMEs
+
+**Before**: Understanding the hook event flow, the skill/agent workflow, or the Go guardrail engine internals required reading source code directly — no visual overview existed.
+
+**After**: Three new Mermaid diagram READMEs:
+
+- **`harness/hooks/README.md`** — LR flowchart of all 22 hook event types → shell shims → Go binary → handler scripts; implementation pattern table (command / agent / prompt).
+- **`harness/README.md`** — Full lifecycle diagram (Setup → Plan → Work → Review → Release); execution mode decision tree; Breezing fix-loop sequence diagram; memory architecture layers; skill catalog (23 skills) and agent roles table.
+- **`go/README.md`** — End-to-end guardrail flow; rule engine iterator; R01–R13 rules grouped by tool type; post-tool tampering + security scan pipeline; permission handler safe-command allowlist; state resolution (env → SQLite → defaults); fail-safe design.
+
+## [4.5.0](https://github.com/tim-hub/powerball-harness/compare/v4.4.5...v4.5.0) - 2026-04-15
 
 ### Theme: Prebuilt binaries, agent optimization pass, reviewer upgrade to Opus
 
