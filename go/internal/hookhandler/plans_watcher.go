@@ -14,13 +14,29 @@ import (
 	"time"
 )
 
-// exitFailClosed is called on the fail-closed path (e.g. lock acquisition failure).
-// Per the PostToolUse hook spec, a non-zero exit code signals a hook error.
-// This prevents "lost updates" where Plans.md changes are silently dropped.
-// Tests swap this variable to avoid os.Exit(1).
-var exitFailClosed = func(msg string) {
-	fmt.Fprintf(os.Stderr, "[plans-watcher] fail-closed exit: %s\n", msg)
-	os.Exit(1)
+// plansWatcherDeps holds injectable dependencies so tests can substitute
+// syscall.Flock, time.Sleep, and os.Exit without touching package-level state.
+// This eliminates the global-mutation pattern that breaks t.Parallel().
+type plansWatcherDeps struct {
+	flock  func(fd int, how int) error
+	sleep  func(time.Duration)
+	exitFn func(msg string) // called on the fail-closed path instead of os.Exit(1)
+}
+
+func defaultPlansWatcherDeps() plansWatcherDeps {
+	return plansWatcherDeps{
+		flock: func(fd int, how int) error { return syscall.Flock(fd, how) },
+		sleep: time.Sleep,
+		exitFn: func(msg string) {
+			fmt.Fprintf(os.Stderr, "[plans-watcher] fail-closed exit: %s\n", msg)
+			os.Exit(1)
+		},
+	}
+}
+
+// plansWatcher is the stateless handler; deps is the only mutable surface.
+type plansWatcher struct {
+	deps plansWatcherDeps
 }
 
 // plansWatcherInput is the stdin JSON passed to the plans-watcher hook.
@@ -48,13 +64,6 @@ const plansLockDirSuffix = ".dir"
 // plansLockMaxRetries is the maximum number of lock acquisition retries.
 const plansLockMaxRetries = 3
 
-// flockCall and sleepCall are package-level variables to allow test mocking.
-var flockCall = func(fd int, how int) error {
-	return syscall.Flock(fd, how)
-}
-
-var sleepCall = time.Sleep
-
 // plansLockHandle represents either a flock or mkdir-based fallback lock.
 type plansLockHandle struct {
 	file    *os.File
@@ -62,10 +71,10 @@ type plansLockHandle struct {
 	mode    string
 }
 
-// acquirePlansLock acquires an exclusive lock protecting plans-state.json.
+// acquireLock acquires an exclusive lock protecting plans-state.json.
 // Normally uses flock; falls back to mkdir-based atomic lock when flock is unavailable
 // (e.g. shared/network storage).
-func acquirePlansLock(lockPath string) (*plansLockHandle, error) {
+func (w *plansWatcher) acquireLock(lockPath string) (*plansLockHandle, error) {
 	if err := os.MkdirAll(filepath.Dir(lockPath), 0o755); err != nil {
 		return nil, fmt.Errorf("mkdir for plans lock: %w", err)
 	}
@@ -75,7 +84,7 @@ func acquirePlansLock(lockPath string) (*plansLockHandle, error) {
 			return nil, fmt.Errorf("open plans lock file: %w", err)
 		}
 
-		if err := flockCall(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err == nil {
+		if err := w.deps.flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err == nil {
 			return &plansLockHandle{
 				file:    f,
 				lockDir: lockPath + plansLockDirSuffix,
@@ -83,18 +92,18 @@ func acquirePlansLock(lockPath string) (*plansLockHandle, error) {
 			}, nil
 		} else if !isPlansLockBusy(err) {
 			f.Close()
-			return acquirePlansMkdirLock(lockPath + plansLockDirSuffix)
+			return w.acquireMkdirLock(lockPath + plansLockDirSuffix)
 		}
 
 		f.Close()
 		if attempt < plansLockMaxRetries {
-			sleepCall(1 * time.Second)
+			w.deps.sleep(1 * time.Second)
 		}
 	}
 	return nil, fmt.Errorf("failed to acquire plans lock after %d retries", plansLockMaxRetries)
 }
 
-func acquirePlansMkdirLock(lockDir string) (*plansLockHandle, error) {
+func (w *plansWatcher) acquireMkdirLock(lockDir string) (*plansLockHandle, error) {
 	for attempt := 1; attempt <= plansLockMaxRetries; attempt++ {
 		if err := os.Mkdir(lockDir, 0o755); err == nil {
 			return &plansLockHandle{
@@ -106,7 +115,7 @@ func acquirePlansMkdirLock(lockDir string) (*plansLockHandle, error) {
 		}
 
 		if attempt < plansLockMaxRetries {
-			sleepCall(1 * time.Second)
+			w.deps.sleep(1 * time.Second)
 		}
 	}
 	return nil, fmt.Errorf("failed to acquire mkdir fallback lock after %d retries", plansLockMaxRetries)
@@ -116,8 +125,8 @@ func isPlansLockBusy(err error) bool {
 	return errors.Is(err, syscall.EWOULDBLOCK) || errors.Is(err, syscall.EAGAIN)
 }
 
-// releasePlansLock releases the lock and closes any open file handles.
-func releasePlansLock(lock *plansLockHandle) {
+// releaseLock releases the lock and closes any open file handles.
+func (w *plansWatcher) releaseLock(lock *plansLockHandle) {
 	if lock == nil {
 		return
 	}
@@ -128,7 +137,7 @@ func releasePlansLock(lock *plansLockHandle) {
 		if lock.file == nil {
 			return
 		}
-		flockCall(int(lock.file.Fd()), syscall.LOCK_UN) //nolint:errcheck
+		w.deps.flock(int(lock.file.Fd()), syscall.LOCK_UN) //nolint:errcheck
 		lock.file.Close()
 	}
 }
@@ -152,12 +161,19 @@ type plansState struct {
 // plansFileNames lists the candidate Plans.md file names to search for.
 var plansFileNames = []string{"Plans.md", "plans.md", "PLANS.md", "PLANS.MD"}
 
-// HandlePlansWatcher is the Go port of plans-watcher.sh.
+// HandlePlansWatcher is the public entry point used by the post-tool-batch hook.
+// It constructs a plansWatcher with production defaults and delegates to handle().
+func HandlePlansWatcher(in io.Reader, out io.Writer) error {
+	w := &plansWatcher{deps: defaultPlansWatcherDeps()}
+	return w.handle(in, out)
+}
+
+// handle is the Go port of plans-watcher.sh.
 //
 // Called on PostToolUse Write/Edit events to detect changes to Plans.md.
 // Generates an aggregated summary of WIP/TODO/done markers and writes a PM notification file.
 // Files other than Plans.md are skipped.
-func HandlePlansWatcher(in io.Reader, out io.Writer) error {
+func (w *plansWatcher) handle(in io.Reader, out io.Writer) error {
 	data, err := io.ReadAll(in)
 	if err != nil {
 		return emptyPostToolOutput(out)
@@ -236,15 +252,15 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 	// Returning emptyPostToolOutput (= empty success) would cause the framework to treat
 	// a lock failure as success, resulting in lost updates. exitFailClosed exits with code 1
 	// to explicitly signal the error.
-	lockFile, lockErr := acquirePlansLock(lockPath)
+	lockFile, lockErr := w.acquireLock(lockPath)
 	if lockErr != nil {
 		fmt.Fprintf(os.Stderr, "[plans-watcher] lock acquisition failed (fail-closed): %v\n", lockErr)
-		exitFailClosed("lock acquisition timed out (3 retries exhausted)")
-		// exitFailClosed normally calls os.Exit(1), but if mocked in tests to be a no-op,
+		w.deps.exitFn("lock acquisition timed out (3 retries exhausted)")
+		// exitFn normally calls os.Exit(1), but if mocked in tests to be a no-op,
 		// fall back to an empty response.
 		return emptyPostToolOutput(out)
 	}
-	defer releasePlansLock(lockFile)
+	defer w.releaseLock(lockFile)
 
 	// aggregate the current state
 	current, err := collectPlansState(plansFile)

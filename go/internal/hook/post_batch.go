@@ -30,6 +30,12 @@ type hookFn struct {
 // postBatchHooks lists the 8 PostToolUse handlers run concurrently by
 // RunPostToolBatch. They match the hooks.json entries for the Write|Edit|Task
 // matcher that were collapsed into a single post-tool-batch invocation.
+//
+// Ordering matters: mergePostBatchOutputs iterates results in slice order and
+// picks the FIRST non-empty JSON output as the response forwarded to CC.
+// Hooks that must "win" the response (plans-watcher, quality-pack) are placed
+// before side-effect-only hooks (emit-trace, auto-cleanup) so their output
+// takes priority. Changing position silently changes which response CC sees.
 func postBatchHooks() []hookFn {
 	return []hookFn{
 		{"emit-trace", func(r io.Reader, w io.Writer) error {
