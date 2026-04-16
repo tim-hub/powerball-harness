@@ -2,7 +2,7 @@
 name: breezing
 description: "Use when running the full team/breezing flow end-to-end — all tasks with parallel workers. Do NOT load for: single-task implementation, planning, review, release, or setup."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Task", "WebSearch"]
-argument-hint: "[all|N-M|--codex|--parallel N|--no-commit|--no-discuss|--auto-mode]"
+argument-hint: "[all|N-M|--codex|--parallel N|--no-commit|--no-discuss|--auto-mode|--advisor|--no-advisor]"
 user-invocable: true
 ---
 
@@ -34,6 +34,8 @@ user-invocable: true
 | `--no-commit` | Suppress automatic commits | false |
 | `--no-discuss` | Skip planning discussion | false |
 | `--auto-mode` | Explicitly opt in to Auto Mode rollout. Only considered when the parent session's permission mode is compatible | false |
+| `--advisor` | Enable advisor consultation at risk/failure trigger points | from config |
+| `--no-advisor` | Disable advisor; escalate directly to user | false |
 
 ## Execution
 
@@ -62,6 +64,14 @@ user-invocable: true
 | Reviewer | `claude-code-harness:reviewer` | `bypassPermissions` (current) / Auto Mode (follow-up)* | Independent review |
 
 > *If the parent session or frontmatter specifies `bypassPermissions`, that takes precedence. The distributed template currently uses `bypassPermissions`, so Auto Mode is a follow-up rollout target and not the default behavior.
+
+## Advisor Integration
+
+When `advisor.enabled: true` in config (or `--advisor` flag), the Lead checks for advisor consultation at two points:
+- **Pre-spawn**: tasks marked `<!-- advisor:required -->` trigger a preflight consultation before Worker spawn
+- **Post-STOP**: if a Worker signals STOP, Lead consults the Advisor before escalating to the user
+
+Use `--no-advisor` to bypass and escalate directly.
 
 ### Codex Mode (`--codex`)
 
