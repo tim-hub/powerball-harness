@@ -94,6 +94,57 @@ func TestPostTool_CIConfigTampering(t *testing.T) {
 	}
 }
 
+func TestHasSuspiciousContent(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		want    bool
+	}{
+		{name: "empty string", content: "", want: false},
+		{name: "normal go code", content: "func main() {\n\tfmt.Println(\"hello\")\n}\n", want: false},
+		{name: "Anthropic API key prefix", content: `apiKey = "sk-ant-api03-xxx123"`, want: true},
+		{name: "JWT token prefix", content: `eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0`, want: true},
+		{name: "password assignment", content: `password = "hunter2"`, want: true},
+		{name: "AWS access key prefix", content: `awsKey = "AKIA1234567890ABCDEF"`, want: true},
+		{name: "process.env reference", content: `const key = process.env.API_KEY`, want: true},
+		{name: "innerHTML assignment", content: `el.innerHTML = userInput`, want: true},
+		{name: "eval call", content: `eval(userInput)`, want: true},
+		{name: "exec call", content: "exec(`cmd ${arg}`)", want: true},
+		{name: "GitHub token prefix", content: `token = "ghp_abc123"`, want: true},
+		{name: "Stripe live key", content: `sk_live_somekey`, want: true},
+		{name: "eyJ jwt fragment", content: `"eyJzdWIiOiJ1c2VyIn0"`, want: true},
+		{name: "plain struct definition", content: "type Config struct {\n\tPort int\n}\n", want: false},
+		{name: "innocuous comment", content: "// This function processes data without side effects", want: false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := hasSuspiciousContent(tc.content)
+			if got != tc.want {
+				t.Errorf("hasSuspiciousContent(%q) = %v, want %v", tc.content, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestDetectSecurityRisksSkippedForCleanContent(t *testing.T) {
+	// Clean content with no suspicious strings should get immediate approve
+	// with no security warning — verifying the pre-screen path via EvaluatePostTool.
+	input := hookproto.HookInput{
+		ToolName: "Write",
+		ToolInput: map[string]interface{}{
+			"file_path": "pkg/util/math.go",
+			"content":   "package util\n\nfunc Add(a, b int) int { return a + b }\n",
+		},
+	}
+	result := EvaluatePostTool(input)
+	if result.SystemMessage != "" {
+		t.Errorf("expected no warnings for clean content, got: %s", result.SystemMessage)
+	}
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for clean content, got: %s", result.Decision)
+	}
+}
+
 func TestPostTool_StructuredSecretDetection(t *testing.T) {
 	tests := []struct {
 		name        string
