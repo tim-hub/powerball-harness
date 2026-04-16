@@ -94,10 +94,10 @@ Created: 2026-04-16
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 63.1 | Consolidate `hook memory-bridge` invocations to single entry point with `--mode` flag | ≤1 memory-bridge subprocess spawn per hook event | Phase 62 | cc:WIP |
-| 63.2 | Make POST_BATCH (8 Write/Edit/Task hooks) concurrent fan-out in Go binary | PostToolUse batch wallclock ≤ 40% of Phase 62 baseline; `go test -race` passes | Phase 62 | cc:WIP |
-| 63.3 | Parallelize PreToolUse independent hooks on Write\|Edit | Total PreToolUse wallclock ≤ `max(individual hook time) + 20ms overhead` | Phase 62 | cc:WIP |
-| 63.4 | Validate + record deltas in `benchmarks/phase63-results.json` + CHANGELOG | Both scripts pass; results file exists | 63.1–63.3 | cc:WIP |
+| 63.1 | Consolidate `hook memory-bridge` invocations to single entry point with `--mode` flag | ≤1 memory-bridge subprocess spawn per hook event | Phase 62 | cc:Done [760d54f] |
+| 63.2 | Make POST_BATCH (8 Write/Edit/Task hooks) concurrent fan-out in Go binary | PostToolUse batch wallclock ≤ 40% of Phase 62 baseline; `go test -race` passes | Phase 62 | cc:Done [760d54f] |
+| 63.3 | Parallelize PreToolUse independent hooks on Write\|Edit | Total PreToolUse wallclock ≤ `max(individual hook time) + 20ms overhead` | Phase 62 | cc:Done [760d54f] |
+| 63.4 | Validate + record deltas in `benchmarks/phase63-results.json` + CHANGELOG | Both scripts pass; results file exists | 63.1–63.3 | cc:Done [760d54f] |
 
 ---
 
