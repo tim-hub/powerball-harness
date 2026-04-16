@@ -103,6 +103,28 @@ powerball-harness/
 
 ---
 
+## Advisor Strategy
+
+The **Advisor** is a read-only consultation agent (model: Opus) that Workers can consult during task execution. It never writes code or executes tools — it only returns structured guidance.
+
+### When It Triggers
+
+| Trigger | Condition |
+|---------|-----------|
+| High-risk preflight | Task marked `<!-- advisor:required -->` |
+| Repeated failure | Same error signature after >= `retry_threshold` retries |
+| Plateau | Task restarted without new commits |
+
+### Decisions
+
+- **`PLAN`** — Executor replans using the suggested approach
+- **`CORRECTION`** — Executor applies the provided local fix
+- **`STOP`** — Escalate to Reviewer; human decision required
+
+> See [docs/advisor-strategy.md](docs/advisor-strategy.md) for full configuration reference and the 4-agent team model.
+
+---
+
 ## Troubleshooting
 
 | Issue | Fix |
