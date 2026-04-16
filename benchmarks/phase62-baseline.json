@@ -1,0 +1,54 @@
+{
+  "phase": "62",
+  "description": "Guardrail engine baseline benchmarks before Phase 62 optimizations",
+  "captured_at": "2026-04-16T00:00:00Z",
+  "platform": "darwin-arm64",
+  "cpu": "Apple M4 Pro",
+  "go_version": "go1.26.1 darwin/arm64",
+  "metrics": {
+    "pre_tool_median_ms": 0.005969,
+    "pre_tool_sample_count": 616288,
+    "post_tool_non_test_file_ms": 0.019085,
+    "post_tool_non_test_file_sample_count": 188487,
+    "post_tool_test_file_tampering_ms": 0.080437,
+    "post_tool_test_file_tampering_sample_count": 45223,
+    "post_tool_batch_wallclock_ms": "N/A (runtime-only — measures full CC hook chain, not Go-level only)",
+    "session_start_first_prompt_ms": "N/A (runtime-only — measures CC startup latency)",
+    "breezing_phase_a_5tasks_ms": "N/A (runtime-only — measures Lead orchestration wallclock)"
+  },
+  "raw_ns_per_op": {
+    "pre_tool_ns_run1": 5889,
+    "pre_tool_ns_run2": 5969,
+    "pre_tool_ns_run3": 5998,
+    "post_tool_non_test_ns_run1": 19059,
+    "post_tool_non_test_ns_run2": 19085,
+    "post_tool_non_test_ns_run3": 19140,
+    "post_tool_test_file_ns_run1": 80491,
+    "post_tool_test_file_ns_run2": 80063,
+    "post_tool_test_file_ns_run3": 80437
+  },
+  "reproducibility": {
+    "run1_pre_tool_ms": 0.005889,
+    "run2_pre_tool_ms": 0.005969,
+    "run3_pre_tool_ms": 0.005998,
+    "run1_post_tool_non_test_ms": 0.019059,
+    "run2_post_tool_non_test_ms": 0.019085,
+    "run3_post_tool_non_test_ms": 0.019140,
+    "run1_post_tool_test_file_ms": 0.080491,
+    "run2_post_tool_test_file_ms": 0.080063,
+    "run3_post_tool_test_file_ms": 0.080437,
+    "pre_tool_variance_pct": 1.85,
+    "post_tool_non_test_variance_pct": 0.42,
+    "post_tool_test_file_variance_pct": 0.53,
+    "variance_within_10pct": true
+  },
+  "benchmark_commands": {
+    "run": "cd go && go test -bench=. -benchmem -benchtime=3s ./internal/guardrail/...",
+    "benchmark_functions": [
+      "BenchmarkEvaluatePreTool",
+      "BenchmarkEvaluatePostToolNonTest",
+      "BenchmarkEvaluatePostToolTestFile"
+    ]
+  },
+  "notes": "Metrics 4 (SessionStart->first prompt) and 5 (BREEZING Phase A for 5 tasks) require Claude Code runtime instrumentation and cannot be captured via Go benchmarks. They will be captured manually during Phase 62 integration testing. The post_tool_non_test_file metric measures security pattern scanning only (tampering scan is skipped for non-test, non-config files). The post_tool_test_file metric measures both tampering scan (T01-T12 patterns) and security scanning, explaining the ~4x higher latency vs non-test."
+}
