@@ -147,6 +147,7 @@ required_skill_dirs=(
   "codex/.codex/skills/harness-release"
   "codex/.codex/skills/harness-setup"
   "codex/.codex/skills/breezing"
+  "codex/.codex/skills/harness-loop"
 )
 skills_ok=true
 for dir in "${required_skill_dirs[@]}"; do
@@ -221,7 +222,7 @@ fi
 
 log_test "Codex docs point at harness-* workflow surfaces"
 workflow_surface_ok=true
-for required_surface in '$harness-plan' '$harness-sync' '$harness-work' '$breezing' '$harness-review'; do
+for required_surface in '$harness-plan' '$harness-sync' '$harness-work' '$breezing' '$harness-review' '$harness-loop'; do
   if ! rg -q --fixed-strings "$required_surface" "codex/README.md" "codex/AGENTS.md"; then
     echo "  missing: ${required_surface} in codex docs"
     workflow_surface_ok=false
@@ -233,6 +234,10 @@ if ! rg -q --fixed-strings '$harness-work' "codex/README.md"; then
 fi
 if ! rg -q --fixed-strings '$harness-review' "codex/README.md"; then
   echo "  missing: \$harness-review in codex/README.md"
+  workflow_surface_ok=false
+fi
+if ! rg -q --fixed-strings 'harness codex-loop start/status/stop' "codex/README.md" "codex/.codex/skills/harness-loop/SKILL.md"; then
+  echo "  missing: codex-loop runtime note"
   workflow_surface_ok=false
 fi
 if ! rg -q --fixed-strings 'spawn_agent' "codex/README.md" "codex/.codex/skills/breezing/SKILL.md"; then
@@ -251,8 +256,12 @@ if [ -L "codex/.codex/skills/breezing" ]; then
   echo "  symlink: codex/.codex/skills/breezing must be a real directory"
   workflow_surface_ok=false
 fi
-if ! diff -qr "skills/breezing" "codex/.codex/skills/breezing" >/dev/null 2>&1; then
-  echo "  drift: codex breezing mirror does not match skills/breezing"
+codex_breezing_ssot="skills/breezing"
+if [ -d "skills-codex/breezing" ]; then
+  codex_breezing_ssot="skills-codex/breezing"
+fi
+if ! diff -qr "${codex_breezing_ssot}" "codex/.codex/skills/breezing" >/dev/null 2>&1; then
+  echo "  drift: codex breezing mirror does not match ${codex_breezing_ssot}"
   workflow_surface_ok=false
 fi
 for forbidden_pat in '$plan-with-agent' '$work' '$verify' '$remember'; do
@@ -478,7 +487,7 @@ if [ -d "opencode/skills" ] && [ -d "codex/.codex/skills" ]; then
       dirname="$(basename "$d")"
       # Skip dev/test/unsupported skills (matches build-opencode.js logic)
       case "$dirname" in
-        test-*|x-*|allow1|breezing|cc-update-review|claude-codex-upstream-update|zz-review-empty|zz-review-escape|_archived|harness-ui) continue ;;
+        test-*|x-*|allow1|breezing|cc-update-review|claude-codex-upstream-update|harness-release-internal|maintenance|zz-review-empty|zz-review-escape|_archived|harness-ui) continue ;;
       esac
       if [ -f "$d/SKILL.md" ]; then
         sed -n 's/^name:[[:space:]]*//p' "$d/SKILL.md" | head -n 1 | tr -d '\"'

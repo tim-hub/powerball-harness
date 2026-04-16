@@ -227,7 +227,7 @@
           },
           {
             "type": "agent",
-            "prompt": "Check Plans.md for tasks with status 'cc:WIP' before the context window is compacted. If any WIP tasks exist, include a warning in systemMessage: 'Warning: Compacting context with WIP tasks in progress: [list task IDs and titles]. Key context about these tasks may be lost after compaction. Consider completing or checkpointing them first.' If no WIP tasks, return nothing. Input: $ARGUMENTS",
+            "prompt": "IMPORTANT: Parse the hook input JSON from $ARGUMENTS and extract the session_id field. Then check if '.claude/state/locks/loop-session.lock.d' exists as a DIRECTORY (test -d). If the lock directory EXISTS, read its session_id field (jq -r '.session_id' .claude/state/locks/loop-session.lock.d/meta.json) and compare with the current hook's session_id from $ARGUMENTS. If the session_ids MATCH, harness-loop owns this session — return nothing immediately (suppress all WIP warnings). If they DO NOT match (a different session owns the lock), proceed normally to check Plans.md. If the lock directory does NOT exist, also proceed normally. In either 'proceed normally' case: check Plans.md for tasks with status 'cc:WIP'. If any WIP tasks exist, include a warning in systemMessage: 'Warning: Compacting context with WIP tasks in progress: [list task IDs and titles]. Key context about these tasks may be lost after compaction. Consider completing or checkpointing them first.' If no WIP tasks, return nothing. Input: $ARGUMENTS",
             "model": "haiku",
             "timeout": 30
           }

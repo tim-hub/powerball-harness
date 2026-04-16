@@ -1,12 +1,144 @@
 #!/bin/bash
 # VibeCoder向けプラグイン検証テスト
 # このスクリプトは、claude-code-harnessが正しく構成されているかを検証します
+#
+# Usage: ./tests/validate-plugin.sh [--quick]
+#   --quick  harness-loop wake-up 用の軽量 state 整合性チェックのみ実行（数秒で完了）
+#            検証内容: .claude/state/ 存在確認 / Plans.md 存在+v2フォーマット / sprint-contract 形式
+#            フル検証（39項目）は走らせない
 
 set -u
 set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# --quick オプション処理
+QUICK_MODE=0
+for arg in "$@"; do
+    if [ "$arg" = "--quick" ]; then
+        QUICK_MODE=1
+    fi
+done
+
+# --quick モード: 軽量 state 整合性チェックのみ
+if [ "${QUICK_MODE}" -eq 1 ]; then
+    echo "=========================================="
+    echo "Claude harness - クイック整合性チェック"
+    echo "=========================================="
+    echo ""
+    QUICK_FAIL=0
+
+    # (1) .claude/state/ ディレクトリの存在
+    if [ -d "${PLUGIN_ROOT}/.claude/state" ]; then
+        echo "✓ .claude/state/ ディレクトリが存在します"
+    else
+        echo "✗ .claude/state/ ディレクトリが見つかりません"
+        QUICK_FAIL=$((QUICK_FAIL + 1))
+    fi
+
+    # (2) Plans.md の存在（plansDirectory 設定を尊重）
+    # config-utils.sh の get_plans_file_path() を利用して SSOT に従ったパスを解決する
+    PLANS_FILE=""
+    if [ -f "${PLUGIN_ROOT}/scripts/config-utils.sh" ]; then
+        # PLUGIN_ROOT を cwd として config-utils.sh をロードし、パスを解決する
+        PLANS_FILE="$(
+            cd "${PLUGIN_ROOT}" && \
+            CONFIG_FILE="${PLUGIN_ROOT}/.claude-code-harness.config.yaml" \
+            source "${PLUGIN_ROOT}/scripts/config-utils.sh" && \
+            get_plans_file_path 2>/dev/null
+        )" || PLANS_FILE=""
+        # get_plans_file_path は存在しない場合もデフォルトパスを返すため、実在確認する
+        if [ -n "${PLANS_FILE}" ] && [ ! -f "${PLUGIN_ROOT}/${PLANS_FILE}" ] && [ ! -f "${PLANS_FILE}" ]; then
+            PLANS_FILE=""
+        fi
+        # 相対パスの場合は PLUGIN_ROOT を前置する
+        if [ -n "${PLANS_FILE}" ] && [ ! -f "${PLANS_FILE}" ] && [ -f "${PLUGIN_ROOT}/${PLANS_FILE}" ]; then
+            PLANS_FILE="${PLUGIN_ROOT}/${PLANS_FILE}"
+        fi
+    fi
+    # フォールバック: config-utils.sh が使えない場合はリポジトリルート直下を確認
+    if [ -z "${PLANS_FILE}" ]; then
+        for f in Plans.md plans.md PLANS.md; do
+            if [ -f "${PLUGIN_ROOT}/${f}" ]; then
+                PLANS_FILE="${PLUGIN_ROOT}/${f}"
+                break
+            fi
+        done
+    fi
+    if [ -n "${PLANS_FILE}" ]; then
+        echo "✓ Plans.md が存在します: ${PLANS_FILE}"
+    else
+        echo "✗ Plans.md が見つかりません"
+        QUICK_FAIL=$((QUICK_FAIL + 1))
+    fi
+
+    # (3) Plans.md の v2 フォーマット確認（DoD / Depends カラムの存在）
+    if [ -n "${PLANS_FILE}" ]; then
+        if grep -q "DoD" "${PLANS_FILE}" && grep -q "Depends" "${PLANS_FILE}"; then
+            echo "✓ Plans.md は v2 フォーマットです（DoD / Depends カラムあり）"
+        else
+            echo "✗ Plans.md が v2 フォーマットではありません（DoD または Depends カラムがありません）"
+            QUICK_FAIL=$((QUICK_FAIL + 1))
+        fi
+    fi
+
+    # (4) sprint-contract が存在する場合、JSON として parse 可能かのみ確認（syntax-only）
+    # --quick は state 破損の検知が目的。approval status チェックは wake-up フロー側
+    # （ensure-sprint-contract-ready.sh）が現タスクの contract に対して個別に行う。
+    # 全 contract を approved ホワイトリストチェックすると、他タスクの draft/pending contract が
+    # あるだけで wake-up が停止してしまう（過剰なスコープ）。
+    CONTRACT_DIR="${PLUGIN_ROOT}/.claude/state/contracts"
+    if [ -d "${CONTRACT_DIR}" ]; then
+        contract_error=0
+
+        # jq フォールバック: jq → python3 → skip（macOS 素の環境等で jq 未導入でも誤判定しない）
+        if command -v jq >/dev/null 2>&1; then
+            _JSON_PARSER="jq"
+        elif command -v python3 >/dev/null 2>&1; then
+            _JSON_PARSER="python3"
+        else
+            _JSON_PARSER="skip"
+            echo "⚠ jq も python3 も利用不可のため、contract syntax check をスキップします"
+        fi
+
+        _check_json_syntax() {
+            local file="$1"
+            case "${_JSON_PARSER}" in
+                jq)     jq empty "${file}" 2>/dev/null ;;
+                python3) python3 -c "import json,sys; json.load(open(sys.argv[1]))" "${file}" 2>/dev/null ;;
+                skip)   return 0 ;;
+            esac
+        }
+
+        while IFS= read -r contract_file; do
+            [ ! -f "${contract_file}" ] && continue
+
+            # Syntax check のみ（approval status は wake-up の Step 3 で個別 contract に対して実行される）
+            if ! _check_json_syntax "${contract_file}"; then
+                echo "✗ 壊れた JSON: $(basename "${contract_file}")"
+                contract_error=$((contract_error + 1))
+            fi
+        done < <(find "${CONTRACT_DIR}" -name "*.sprint-contract.json" -type f 2>/dev/null)
+
+        if [ "${contract_error}" -eq 0 ]; then
+            echo "✓ sprint-contract の形式チェックは問題ありません"
+        else
+            QUICK_FAIL=$((QUICK_FAIL + contract_error))
+        fi
+    else
+        echo "✓ sprint-contract ディレクトリは未作成（初回実行）"
+    fi
+
+    echo ""
+    if [ "${QUICK_FAIL}" -eq 0 ]; then
+        echo "✓ クイック整合性チェック: OK"
+        exit 0
+    else
+        echo "✗ クイック整合性チェック: ${QUICK_FAIL} 件の問題があります"
+        exit 1
+    fi
+fi
 
 echo "=========================================="
 echo "Claude harness - プラグイン検証テスト"
@@ -447,6 +579,79 @@ if bash "$PLUGIN_ROOT/scripts/check-residue.sh" > /dev/null 2>&1; then
 else
     fail_test "Migration residue found — run 'bash scripts/check-residue.sh' to see details"
 fi
+
+echo ""
+echo "10. Optional integration tests"
+echo "----------------------------------------"
+
+INTEGRATION_PASS_COUNT=0
+INTEGRATION_FAIL_COUNT=0
+INTEGRATION_WARN_COUNT=0
+
+integration_pass_test() {
+    echo -e "${GREEN}✓${NC} $1"
+    INTEGRATION_PASS_COUNT=$((INTEGRATION_PASS_COUNT + 1))
+}
+
+integration_fail_test() {
+    echo -e "${YELLOW}⚠${NC} $1"
+    INTEGRATION_FAIL_COUNT=$((INTEGRATION_FAIL_COUNT + 1))
+}
+
+integration_warn_test() {
+    echo -e "${YELLOW}⚠${NC} $1"
+    INTEGRATION_WARN_COUNT=$((INTEGRATION_WARN_COUNT + 1))
+}
+
+INTEGRATION_TESTS=(
+    "$PLUGIN_ROOT/tests/integration/loop-3cycle.sh"
+    "$PLUGIN_ROOT/tests/integration/loop-compaction-resume.sh"
+    "$PLUGIN_ROOT/tests/integration/loop-max-cycles.sh"
+    "$PLUGIN_ROOT/tests/integration/loop-plans-concurrent.sh"
+)
+
+INTEGRATION_TMP_DIR="$(mktemp -d)"
+INTEGRATION_PIDS=()
+INTEGRATION_NAMES=()
+INTEGRATION_LOGS=()
+
+for integration_test in "${INTEGRATION_TESTS[@]}"; do
+    if [ ! -f "$integration_test" ]; then
+        integration_warn_test "optional integration test が見つかりません: $(basename "$integration_test")"
+        continue
+    fi
+
+    if [ ! -x "$integration_test" ]; then
+        integration_warn_test "optional integration test に実行権限がありません: $(basename "$integration_test")"
+        continue
+    fi
+
+    integration_log_file="${INTEGRATION_TMP_DIR}/$(basename "$integration_test").log"
+    bash "$integration_test" >"$integration_log_file" 2>&1 &
+    INTEGRATION_PIDS+=("$!")
+    INTEGRATION_NAMES+=("$(basename "$integration_test")")
+    INTEGRATION_LOGS+=("$integration_log_file")
+done
+
+for i in "${!INTEGRATION_PIDS[@]}"; do
+    if wait "${INTEGRATION_PIDS[$i]}"; then
+        integration_pass_test "integration: ${INTEGRATION_NAMES[$i]}"
+    else
+        integration_fail_test "integration: ${INTEGRATION_NAMES[$i]}"
+        if [ -f "${INTEGRATION_LOGS[$i]}" ]; then
+            sed -n '1,160p' "${INTEGRATION_LOGS[$i]}"
+        fi
+    fi
+done
+
+rm -rf "$INTEGRATION_TMP_DIR" 2>/dev/null || true
+
+echo ""
+echo "Optional integration summary"
+echo "----------------------------------------"
+echo "合格: ${INTEGRATION_PASS_COUNT}"
+echo "失敗: ${INTEGRATION_FAIL_COUNT}"
+echo "警告: ${INTEGRATION_WARN_COUNT}"
 
 echo ""
 echo "=========================================="

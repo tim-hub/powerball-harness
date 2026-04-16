@@ -1,0 +1,556 @@
+package hookhandler
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+)
+
+// SprintContractGenerator は Plans.md から sprint-contract を生成する。
+type SprintContractGenerator struct {
+	ProjectRoot string
+	PlansFile   string
+	OutputFile  string
+	Now         func() string
+}
+
+type sprintTaskRow struct {
+	TaskID  string
+	Title   string
+	DoD     string
+	Depends string
+	Status  string
+}
+
+type sprintContractDoc struct {
+	SchemaVersion string               `json:"schema_version"`
+	GeneratedAt   string               `json:"generated_at"`
+	Source        sprintContractSource `json:"source"`
+	Task          sprintContractTask   `json:"task"`
+	Contract      sprintContractBody   `json:"contract"`
+	Review        sprintContractReview `json:"review"`
+}
+
+type sprintContractSource struct {
+	PlansFile string `json:"plans_file"`
+	TaskID    string `json:"task_id"`
+}
+
+type sprintContractTask struct {
+	ID                 string   `json:"id"`
+	Title              string   `json:"title"`
+	DefinitionOfDone   string   `json:"definition_of_done"`
+	DependsOn          []string `json:"depends_on"`
+	StatusAtGeneration string   `json:"status_at_generation"`
+}
+
+type sprintContractBody struct {
+	Checks            []sprintCheck      `json:"checks"`
+	NonGoals          []string           `json:"non_goals"`
+	RuntimeValidation []sprintValidation `json:"runtime_validation"`
+	BrowserValidation []sprintValidation `json:"browser_validation"`
+	RiskFlags         []string           `json:"risk_flags"`
+}
+
+type sprintCheck struct {
+	ID          string `json:"id"`
+	Source      string `json:"source"`
+	Description string `json:"description"`
+}
+
+type sprintValidation struct {
+	ID                string   `json:"id"`
+	Label             string   `json:"label,omitempty"`
+	Command           string   `json:"command,omitempty"`
+	Description       string   `json:"description,omitempty"`
+	RequiredArtifacts []string `json:"required_artifacts,omitempty"`
+}
+
+type sprintContractReview struct {
+	Status          string          `json:"status"`
+	ReviewerProfile string          `json:"reviewer_profile"`
+	MaxIterations   int             `json:"max_iterations"`
+	RubricTarget    *uiRubricTarget `json:"rubric_target"`
+	BrowserMode     *string         `json:"browser_mode"`
+	Route           *string         `json:"route"`
+	ReviewerNotes   []string        `json:"reviewer_notes"`
+	ApprovedAt      *string         `json:"approved_at"`
+	Gaps            []string        `json:"gaps"`
+	Followups       []string        `json:"followups"`
+}
+
+type uiRubricTarget struct {
+	Design        int `json:"design"`
+	Originality   int `json:"originality"`
+	Craft         int `json:"craft"`
+	Functionality int `json:"functionality"`
+}
+
+var (
+	uiRubricRe          = regexp.MustCompile(`(?i)\bui-rubric\b|\bdesign\b|styling|aesthetic|visual polish|design-heavy|design quality|originality|craft|functionality|デザイン|見た目品質|意匠|質感|デザイン品質`)
+	uiWithDesignRe      = regexp.MustCompile(`(?i)\bui\b`)
+	layoutWithDesignRe  = regexp.MustCompile(`(?i)\blayout\b`)
+	uiDesignHintRe      = regexp.MustCompile(`(?i)design|styling|aesthetic|layout|visual|polish|デザイン|見た目`)
+	browserProfileRe    = regexp.MustCompile(`(?i)browser|chrome|playwright|\bui\b|layout|responsive|スクリーンショット|画面|web アプリ|webアプリ`)
+	runtimeProfileRe    = regexp.MustCompile(`(?i)runtime|typecheck|lint|test|api|probe|integration|e2e|検証コマンド`)
+	maxIterationsRe     = regexp.MustCompile(`(?is)<!--\s*max_iterations:\s*(\d+)\s*-->`)
+	exploratoryModeRe   = regexp.MustCompile(`(?i)(browser_mode\s*:\s*exploratory|\bexploratory\b|探索モード|探索的)`)
+	scriptedModeRe      = regexp.MustCompile(`(?i)(browser_mode\s*:\s*scripted|\bscripted\b|定型|決め打ち)`)
+	explicitRouteRe     = regexp.MustCompile(`(?i)(?:browser_)?route\s*:\s*(playwright|agent-browser|chrome-devtools)`)
+	securitySensitiveRe = regexp.MustCompile(`(?i)security|auth|permission|secret|guardrail|セキュリティ|権限`)
+	stateMigrationRe    = regexp.MustCompile(`(?i)migration|schema|state|resume|session|artifact|マイグレーション|セッション|再開`)
+	uxRegressionRe      = regexp.MustCompile(`(?i)browser|ui|layout|responsive|playwright|chrome|画面|レイアウト`)
+)
+
+var profileMaxIterations = map[string]int{
+	"static":    3,
+	"runtime":   3,
+	"browser":   5,
+	"ui-rubric": 10,
+}
+
+var defaultUIRubricTarget = &uiRubricTarget{
+	Design:        6,
+	Originality:   6,
+	Craft:         6,
+	Functionality: 6,
+}
+
+// Generate は指定タスクの sprint-contract を生成して返す。
+func (g *SprintContractGenerator) Generate(taskID string) (*sprintContractDoc, error) {
+	projectRoot := g.ProjectRoot
+	if projectRoot == "" {
+		projectRoot = resolveProjectRoot()
+	}
+
+	plansFile := g.PlansFile
+	if plansFile == "" {
+		plansFile = filepath.Join(projectRoot, "Plans.md")
+		if _, err := os.Stat(plansFile); err != nil {
+			if resolved := resolvePlansPath(projectRoot); resolved != "" {
+				plansFile = resolved
+			}
+		}
+	}
+
+	if _, err := os.Stat(plansFile); err != nil {
+		return nil, fmt.Errorf("Plans.md not found: %s", plansFile)
+	}
+
+	markdown, err := os.ReadFile(plansFile)
+	if err != nil {
+		return nil, fmt.Errorf("read plans file: %w", err)
+	}
+
+	row, err := parseSprintTaskRow(string(markdown), taskID)
+	if err != nil {
+		return nil, err
+	}
+
+	reviewerProfile := detectSprintProfile(row)
+	maxIterations := detectSprintMaxIterations(reviewerProfile, row)
+	runtimeValidation := pickRuntimeCommands(projectRoot)
+	riskFlags := detectSprintRiskFlags(row)
+
+	var browserMode *string
+	var route *string
+	if reviewerProfile == "browser" {
+		mode := detectSprintBrowserMode(row)
+		browserMode = &mode
+		if detected := detectSprintBrowserRoute(row, projectRoot, mode); detected != nil {
+			route = detected
+		}
+	}
+
+	var rubricTarget *uiRubricTarget
+	if reviewerProfile == "ui-rubric" {
+		copy := *defaultUIRubricTarget
+		rubricTarget = &copy
+	}
+
+	browserValidation := []sprintValidation{}
+	if reviewerProfile == "browser" && browserMode != nil {
+		requiredArtifacts := []string{"trace", "screenshot", "ui-flow-log"}
+		if *browserMode == "exploratory" {
+			requiredArtifacts = []string{"snapshot", "ui-flow-log"}
+		}
+		browserValidation = []sprintValidation{
+			{
+				ID:                "browser-smoke",
+				Description:       row.DoD,
+				RequiredArtifacts: requiredArtifacts,
+			},
+		}
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	if g.Now != nil {
+		now = g.Now()
+	}
+
+	relPlans := plansFile
+	if rel, err := filepath.Rel(projectRoot, plansFile); err == nil && rel != "" {
+		relPlans = rel
+	}
+
+	doc := &sprintContractDoc{
+		SchemaVersion: "sprint-contract.v1",
+		GeneratedAt:   now,
+		Source: sprintContractSource{
+			PlansFile: relPlans,
+			TaskID:    row.TaskID,
+		},
+		Task: sprintContractTask{
+			ID:                 row.TaskID,
+			Title:              row.Title,
+			DefinitionOfDone:   row.DoD,
+			DependsOn:          sprintToList(row.Depends),
+			StatusAtGeneration: row.Status,
+		},
+		Contract: sprintContractBody{
+			Checks: []sprintCheck{
+				{
+					ID:          "dod-primary",
+					Source:      "Plans.md.DoD",
+					Description: row.DoD,
+				},
+			},
+			NonGoals:          []string{},
+			RuntimeValidation: runtimeValidation,
+			BrowserValidation: browserValidation,
+			RiskFlags:         riskFlags,
+		},
+		Review: sprintContractReview{
+			Status:          "draft",
+			ReviewerProfile: reviewerProfile,
+			MaxIterations:   maxIterations,
+			RubricTarget:    rubricTarget,
+			BrowserMode:     browserMode,
+			Route:           route,
+			ReviewerNotes:   []string{},
+			ApprovedAt:      nil,
+			Gaps:            []string{},
+			Followups:       []string{},
+		},
+	}
+
+	return doc, nil
+}
+
+// Write は contract を JSON で出力ファイルへ保存する。
+func (g *SprintContractGenerator) Write(taskID string) (string, error) {
+	doc, err := g.Generate(taskID)
+	if err != nil {
+		return "", err
+	}
+
+	projectRoot := g.ProjectRoot
+	if projectRoot == "" {
+		projectRoot = resolveProjectRoot()
+	}
+
+	outputFile := g.OutputFile
+	if outputFile == "" {
+		outputFile = filepath.Join(projectRoot, ".claude", "state", "contracts", fmt.Sprintf("%s.sprint-contract.json", taskID))
+	}
+
+	if err := os.MkdirAll(filepath.Dir(outputFile), 0o755); err != nil {
+		return "", fmt.Errorf("create output dir: %w", err)
+	}
+
+	data, err := json.MarshalIndent(doc, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("marshal contract: %w", err)
+	}
+	data = append(data, '\n')
+
+	if err := os.WriteFile(outputFile, data, 0o644); err != nil {
+		return "", fmt.Errorf("write contract: %w", err)
+	}
+	return outputFile, nil
+}
+
+func parseSprintTaskRow(markdown, targetTaskID string) (*sprintTaskRow, error) {
+	lines := strings.Split(markdown, "\n")
+	headerColCount := 5
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if matched, _ := regexp.MatchString(`^\|[\s-]+\|`, trimmed); matched {
+			sepCols := []string{}
+			for _, part := range strings.Split(trimmed, "|") {
+				if strings.TrimSpace(part) != "" {
+					sepCols = append(sepCols, part)
+				}
+			}
+			if len(sepCols) >= 5 {
+				headerColCount = len(sepCols)
+			}
+			break
+		}
+	}
+
+	const pipePlaceholder = "\x00PIPE\x00"
+	escapePipes := func(s string) string { return strings.ReplaceAll(s, `\|`, pipePlaceholder) }
+	restorePipes := func(s string) string { return strings.ReplaceAll(s, pipePlaceholder, "|") }
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if !strings.HasPrefix(trimmed, "|") {
+			continue
+		}
+		if matched, _ := regexp.MatchString(`^\|[\s-]+\|`, trimmed); matched {
+			continue
+		}
+
+		inner := strings.TrimSuffix(strings.TrimPrefix(escapePipes(trimmed), "|"), "|")
+		parts := strings.Split(inner, "|")
+		if len(parts) < 5 {
+			continue
+		}
+
+		taskID := strings.TrimSpace(parts[0])
+		if taskID != targetTaskID {
+			continue
+		}
+
+		status := strings.TrimSpace(parts[len(parts)-1])
+		depends := strings.TrimSpace(parts[len(parts)-2])
+		middleParts := parts[1 : len(parts)-2]
+		expectedMiddle := headerColCount - 3
+
+		title := ""
+		dod := ""
+		if expectedMiddle <= 1 || len(middleParts) <= 1 {
+			if len(middleParts) > 0 {
+				title = strings.TrimSpace(middleParts[0])
+			}
+		} else {
+			dod = strings.TrimSpace(middleParts[len(middleParts)-1])
+			title = strings.TrimSpace(strings.Join(middleParts[:len(middleParts)-1], "|"))
+		}
+
+		return &sprintTaskRow{
+			TaskID:  restorePipes(taskID),
+			Title:   restorePipes(title),
+			DoD:     restorePipes(dod),
+			Depends: restorePipes(depends),
+			Status:  restorePipes(status),
+		}, nil
+	}
+
+	return nil, fmt.Errorf("task row not found in Plans.md: %s", targetTaskID)
+}
+
+func sprintToList(value string) []string {
+	if value == "" || value == "-" {
+		return []string{}
+	}
+	parts := strings.Split(value, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
+}
+
+func detectSprintProfile(task *sprintTaskRow) string {
+	text := strings.ToLower(fmt.Sprintf("%s %s", task.Title, task.DoD))
+	hasUIHints := uiRubricRe.MatchString(text) ||
+		(uiWithDesignRe.MatchString(text) && uiDesignHintRe.MatchString(text)) ||
+		(layoutWithDesignRe.MatchString(text) && uiDesignHintRe.MatchString(text))
+	if hasUIHints {
+		return "ui-rubric"
+	}
+	if browserProfileRe.MatchString(text) {
+		return "browser"
+	}
+	if runtimeProfileRe.MatchString(text) {
+		return "runtime"
+	}
+	return "static"
+}
+
+func detectSprintMaxIterations(profile string, task *sprintTaskRow) int {
+	defaultValue := 3
+	if value, ok := profileMaxIterations[profile]; ok {
+		defaultValue = value
+	}
+	text := fmt.Sprintf("%s\n%s", task.Title, task.DoD)
+	match := maxIterationsRe.FindStringSubmatch(text)
+	if len(match) >= 2 {
+		value, err := strconv.Atoi(match[1])
+		if err == nil && value >= 1 && value <= 30 {
+			return value
+		}
+		if err == nil {
+			fmt.Fprintf(os.Stderr, "[warn] max_iterations=%d out of range (1-30), falling back to default %d\n", value, defaultValue)
+		}
+	}
+	return defaultValue
+}
+
+func detectSprintBrowserMode(task *sprintTaskRow) string {
+	text := strings.ToLower(fmt.Sprintf("%s %s", task.Title, task.DoD))
+	if exploratoryModeRe.MatchString(text) {
+		return "exploratory"
+	}
+	if scriptedModeRe.MatchString(text) {
+		return "scripted"
+	}
+	return "scripted"
+}
+
+func detectSprintRiskFlags(task *sprintTaskRow) []string {
+	text := strings.ToLower(fmt.Sprintf("%s %s", task.Title, task.DoD))
+	flags := []string{}
+	if strings.Contains(task.Title, "[needs-spike]") || strings.Contains(task.DoD, "[needs-spike]") {
+		flags = append(flags, "needs-spike")
+	}
+	if securitySensitiveRe.MatchString(text) {
+		flags = append(flags, "security-sensitive")
+	}
+	if stateMigrationRe.MatchString(text) {
+		flags = append(flags, "state-migration")
+	}
+	if uxRegressionRe.MatchString(text) {
+		flags = append(flags, "ux-regression")
+	}
+	seen := map[string]struct{}{}
+	unique := make([]string, 0, len(flags))
+	for _, flag := range flags {
+		if _, ok := seen[flag]; ok {
+			continue
+		}
+		seen[flag] = struct{}{}
+		unique = append(unique, flag)
+	}
+	return unique
+}
+
+func detectSprintBrowserRoute(task *sprintTaskRow, root, browserMode string) *string {
+	text := fmt.Sprintf("%s\n%s", task.Title, task.DoD)
+	match := explicitRouteRe.FindStringSubmatch(text)
+	if len(match) >= 2 {
+		value := strings.ToLower(match[1])
+		return &value
+	}
+	if browserMode == "exploratory" {
+		return nil
+	}
+	if hasPlaywrightBasis(root) {
+		value := "playwright"
+		return &value
+	}
+	return nil
+}
+
+func hasPlaywrightBasis(root string) bool {
+	if os.Getenv("HARNESS_BROWSER_REVIEW_DISABLE_PLAYWRIGHT") != "" {
+		return false
+	}
+	packageJSONPath := filepath.Join(root, "package.json")
+	data, err := os.ReadFile(packageJSONPath)
+	if err != nil {
+		return false
+	}
+
+	var pkg struct {
+		Scripts         map[string]string `json:"scripts"`
+		Dependencies    map[string]string `json:"dependencies"`
+		DevDependencies map[string]string `json:"devDependencies"`
+	}
+	if err := json.Unmarshal(data, &pkg); err != nil {
+		return false
+	}
+	if _, ok := pkg.Scripts["test:e2e"]; ok {
+		return true
+	}
+	if _, ok := pkg.Dependencies["playwright"]; ok {
+		return true
+	}
+	if _, ok := pkg.DevDependencies["playwright"]; ok {
+		return true
+	}
+	if _, ok := pkg.Dependencies["@playwright/test"]; ok {
+		return true
+	}
+	if _, ok := pkg.DevDependencies["@playwright/test"]; ok {
+		return true
+	}
+	return false
+}
+
+func pickRuntimeCommands(root string) []sprintValidation {
+	commands := []sprintValidation{}
+
+	packageJSONPath := filepath.Join(root, "package.json")
+	if data, err := os.ReadFile(packageJSONPath); err == nil {
+		var pkg struct {
+			Scripts map[string]string `json:"scripts"`
+		}
+		if err := json.Unmarshal(data, &pkg); err == nil {
+			if _, ok := pkg.Scripts["test"]; ok {
+				commands = append(commands, sprintValidation{Label: "package-test", Command: "CI=true npm test"})
+			}
+			if _, ok := pkg.Scripts["lint"]; ok {
+				commands = append(commands, sprintValidation{Label: "package-lint", Command: "npm run lint"})
+			}
+			if _, ok := pkg.Scripts["typecheck"]; ok {
+				commands = append(commands, sprintValidation{Label: "package-typecheck", Command: "npm run typecheck"})
+			}
+			if _, ok := pkg.Scripts["test:e2e"]; ok {
+				commands = append(commands, sprintValidation{Label: "package-e2e", Command: "npm run test:e2e"})
+			}
+		} else {
+			commands = append(commands, sprintValidation{
+				Label:   "package-parse-error",
+				Command: fmt.Sprintf("echo \"ERROR: package.json parse failed: %s\" >&2; exit 1", strings.ReplaceAll(err.Error(), `"`, `\"`)),
+			})
+		}
+	}
+
+	if len(commands) == 0 {
+		fallbacks := []struct {
+			Marker  string
+			Label   string
+			Command string
+		}{
+			{Marker: "pnpm-lock.yaml", Label: "pnpm-test", Command: "pnpm test"},
+			{Marker: "bun.lock", Label: "bun-test", Command: "bun test"},
+			{Marker: "go.mod", Label: "go-test", Command: "go test ./..."},
+			{Marker: "Cargo.toml", Label: "cargo-test", Command: "cargo test"},
+		}
+		for _, fallback := range fallbacks {
+			if _, err := os.Stat(filepath.Join(root, fallback.Marker)); err == nil {
+				commands = append(commands, sprintValidation{Label: fallback.Label, Command: fallback.Command})
+				break
+			}
+		}
+	}
+
+	if len(commands) == 0 {
+		shellFallbacks := []struct {
+			Path    string
+			Label   string
+			Command string
+		}{
+			{Path: "tests/validate-plugin.sh", Label: "validate-plugin", Command: "./tests/validate-plugin.sh"},
+			{Path: "scripts/ci/check-consistency.sh", Label: "check-consistency", Command: "./scripts/ci/check-consistency.sh"},
+		}
+		for _, fallback := range shellFallbacks {
+			if _, err := os.Stat(filepath.Join(root, fallback.Path)); err == nil {
+				commands = append(commands, sprintValidation{Label: fallback.Label, Command: fallback.Command})
+			}
+		}
+	}
+
+	return commands
+}

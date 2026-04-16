@@ -28,7 +28,7 @@ cat > "${TMP_DIR}/package.json" <<'EOF'
 EOF
 
 OUTPUT_PATH="${TMP_DIR}/out/32.1.1.sprint-contract.json"
-(cd "${TMP_DIR}" && "${PROJECT_ROOT}/scripts/generate-sprint-contract.sh" "32.1.1" "${TMP_DIR}/Plans.md" "${OUTPUT_PATH}" >/dev/null)
+(cd "${TMP_DIR}" && node "${PROJECT_ROOT}/scripts/generate-sprint-contract.js" "32.1.1" "${TMP_DIR}/Plans.md" "${OUTPUT_PATH}" >/dev/null)
 
 jq -e '
   .schema_version == "sprint-contract.v1" and
@@ -36,11 +36,11 @@ jq -e '
   .task.depends_on == ["32.0.1"] and
   .review.reviewer_profile == "runtime" and
   (.contract.runtime_validation | type) == "array" and
-  .contract.runtime_validation[0].command == "npm test"
+  .contract.runtime_validation[0].command == "CI=true npm test"
 ' "${OUTPUT_PATH}" >/dev/null
 
 BROWSER_OUTPUT="${TMP_DIR}/out/32.2.2.sprint-contract.json"
-(cd "${TMP_DIR}" && "${PROJECT_ROOT}/scripts/generate-sprint-contract.sh" "32.2.2" "${TMP_DIR}/Plans.md" "${BROWSER_OUTPUT}" >/dev/null)
+(cd "${TMP_DIR}" && node "${PROJECT_ROOT}/scripts/generate-sprint-contract.js" "32.2.2" "${TMP_DIR}/Plans.md" "${BROWSER_OUTPUT}" >/dev/null)
 
 jq -e '
   .task.id == "32.2.2" and
@@ -52,14 +52,33 @@ jq -e '
 
 EXPLORATORY_OUTPUT="${TMP_DIR}/out/32.2.5.sprint-contract.json"
 (cd "${TMP_DIR}" && HARNESS_BROWSER_REVIEW_DISABLE_AGENT_BROWSER=1 \
-  "${PROJECT_ROOT}/scripts/generate-sprint-contract.sh" "32.2.5" "${TMP_DIR}/Plans.md" "${EXPLORATORY_OUTPUT}" >/dev/null)
+  node "${PROJECT_ROOT}/scripts/generate-sprint-contract.js" "32.2.5" "${TMP_DIR}/Plans.md" "${EXPLORATORY_OUTPUT}" >/dev/null)
 
 jq -e '
   .task.id == "32.2.5" and
   .review.reviewer_profile == "browser" and
   .review.browser_mode == "exploratory" and
-  .review.route == "playwright" and
+  .review.route == null and
   (.contract.browser_validation[0].required_artifacts | index("snapshot")) != null
 ' "${EXPLORATORY_OUTPUT}" >/dev/null
+
+cat > "${TMP_DIR}/ui-plans.md" <<'EOF'
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 41.3.1 | design-heavy task | design と styling と aesthetic を見ながら UI layout を磨く | 41.2.1 | cc:TODO |
+EOF
+
+UI_RUBRIC_OUTPUT="${TMP_DIR}/out/41.3.1.sprint-contract.json"
+(cd "${TMP_DIR}" && node "${PROJECT_ROOT}/scripts/generate-sprint-contract.js" "41.3.1" "${TMP_DIR}/ui-plans.md" "${UI_RUBRIC_OUTPUT}" >/dev/null)
+
+jq -e '
+  .task.id == "41.3.1" and
+  .review.reviewer_profile == "ui-rubric" and
+  .review.max_iterations == 10 and
+  .review.rubric_target.design == 6 and
+  .review.rubric_target.originality == 6 and
+  .review.rubric_target.craft == 6 and
+  .review.rubric_target.functionality == 6
+' "${UI_RUBRIC_OUTPUT}" >/dev/null
 
 echo "test-generate-sprint-contract: ok"

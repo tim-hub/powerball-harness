@@ -20,9 +20,80 @@ assert_contains() {
   fi
 }
 
+write_contract() {
+  local path="$1"
+  local task_id="$2"
+  local title="$3"
+  local profile="$4"
+  local max_iterations="$5"
+  local rubric_target="${6:-}"
+  local loop_pacing="${7:-}"
+  local browser_verdict="${8:-}"
+
+  {
+    cat <<EOF
+{
+  "schema_version": "sprint-contract.v1",
+  "generated_at": "2026-04-16T00:00:00Z",
+  "source": {
+    "plans_file": "Plans.md",
+    "task_id": "$task_id"
+  },
+  "task": {
+    "id": "$task_id",
+    "title": "$title",
+    "definition_of_done": "fixture",
+    "depends_on": [],
+    "status_at_generation": "cc:TODO"
+  },
+  "contract": {
+    "checks": [
+      {
+        "id": "dod-primary",
+        "source": "Plans.md.DoD",
+        "description": "fixture"
+      }
+    ],
+    "non_goals": [],
+    "runtime_validation": [],
+    "browser_validation": [],
+    "risk_flags": []
+  },
+  "review": {
+    "status": "approved",
+    "reviewer_profile": "$profile",
+    "max_iterations": $max_iterations
+EOF
+
+    if [ -n "$rubric_target" ]; then
+      printf ',\n    "rubric_target": %s' "$rubric_target"
+    fi
+
+    if [ -n "$loop_pacing" ]; then
+      printf ',\n    "loop_pacing": "%s"' "$loop_pacing"
+    fi
+
+    if [ -n "$browser_verdict" ]; then
+      printf ',\n    "browser_verdict": "%s"' "$browser_verdict"
+    fi
+
+    cat <<EOF
+,
+    "reviewer_notes": [],
+    "approved_at": "2026-04-16T00:00:00Z",
+    "gaps": [],
+    "followups": []
+  }
+}
+EOF
+  } > "$path"
+}
+
 setup_repo() {
   local repo="$1"
+  local contract_mode="${2:-valid}"
   mkdir -p "$repo/scripts"
+  mkdir -p "$repo/.claude/state/contracts"
   git init -q "$repo"
   git -C "$repo" config user.name "Test User"
   git -C "$repo" config user.email "test@example.com"
@@ -66,14 +137,66 @@ EOF
 local residual_patterns="${HARNESS_RELEASE_RESIDUAL_PATTERNS:-mockData|dummy|fakeData|localhost|TODO|FIXME}"
 EOF
 
+  if [ "$contract_mode" = "invalid" ]; then
+    write_contract \
+      "$repo/.claude/state/contracts/41.4.3-invalid.sprint-contract.json" \
+      "41.4.3-invalid" \
+      "invalid schema fixture" \
+      "browser" \
+      "100" \
+      "" \
+      "worker" \
+      "PENDING_BROWSER"
+  else
+    write_contract \
+      "$repo/.claude/state/contracts/41.4.3-static.sprint-contract.json" \
+      "41.4.3-static" \
+      "static schema fixture" \
+      "static" \
+      "3"
+    write_contract \
+      "$repo/.claude/state/contracts/41.4.3-runtime.sprint-contract.json" \
+      "41.4.3-runtime" \
+      "runtime schema fixture" \
+      "runtime" \
+      "3" \
+      "" \
+      "ci"
+    write_contract \
+      "$repo/.claude/state/contracts/41.4.3-browser.sprint-contract.json" \
+      "41.4.3-browser" \
+      "browser schema fixture" \
+      "browser" \
+      "5" \
+      "" \
+      "worker" \
+      "PENDING_BROWSER"
+    write_contract \
+      "$repo/.claude/state/contracts/41.4.3-security.sprint-contract.json" \
+      "41.4.3-security" \
+      "security schema fixture" \
+      "security" \
+      "4" \
+      "" \
+      "plateau"
+    write_contract \
+      "$repo/.claude/state/contracts/41.4.3-ui-rubric.sprint-contract.json" \
+      "41.4.3-ui-rubric" \
+      "ui rubric schema fixture" \
+      "ui-rubric" \
+      "10" \
+      '{"design":7,"originality":6,"craft":8,"functionality":9}' \
+      "night"
+  fi
+
   git -C "$repo" add .
   git -C "$repo" commit -qm "initial"
 }
 
 test_skill_mentions_preflight() {
-  assert_contains "$PROJECT_ROOT/skills/harness-release/SKILL.md" "release-preflight.sh"
   assert_contains "$PROJECT_ROOT/skills/harness-release/SKILL.md" "HARNESS_RELEASE_HEALTHCHECK_CMD"
   assert_contains "$PROJECT_ROOT/skills/harness-release/SKILL.md" "dry-run"
+  assert_contains "$PROJECT_ROOT/docs/release-preflight.md" "scripts/release-preflight.sh"
 }
 
 test_doc_mentions_overrides() {
@@ -83,7 +206,7 @@ test_doc_mentions_overrides() {
 
 test_preflight_pass_and_fail() {
   local repo="$TMP_DIR/release-preflight-repo"
-  setup_repo "$repo"
+  setup_repo "$repo" valid
 
   local success_output="$TMP_DIR/success.txt"
   HARNESS_RELEASE_PROJECT_ROOT="$repo" \
@@ -95,6 +218,7 @@ test_preflight_pass_and_fail() {
   assert_contains "$success_output" "\\[PASS\\] CHANGELOG.md has \\[Unreleased\\]"
   assert_contains "$success_output" "\\[PASS\\] .env matches .env.example"
   assert_contains "$success_output" "\\[PASS\\] healthcheck command"
+  assert_contains "$success_output" "\\[PASS\\] sprint-contract schema"
   assert_contains "$success_output" "\\[PASS\\] runtime residual scan"
   assert_contains "$success_output" "\\[PASS\\] CI status"
   assert_contains "$success_output" "Summary: "
@@ -109,11 +233,25 @@ test_preflight_pass_and_fail() {
   fi
 
   assert_contains "$failure_output" "\\[FAIL\\] working tree clean"
+
+  local invalid_repo="$TMP_DIR/release-preflight-invalid-contract"
+  setup_repo "$invalid_repo" invalid
+
+  local schema_failure_output="$TMP_DIR/schema-failure.txt"
+  if HARNESS_RELEASE_PROJECT_ROOT="$invalid_repo" \
+    HARNESS_RELEASE_HEALTHCHECK_CMD='true' \
+    HARNESS_RELEASE_CI_STATUS_CMD='true' \
+      "$PROJECT_ROOT/scripts/release-preflight.sh" >"$schema_failure_output" 2>&1; then
+    fail "preflight should fail on invalid sprint-contract schema"
+  fi
+
+  assert_contains "$schema_failure_output" "\\[FAIL\\] sprint-contract schema"
+  assert_contains "$schema_failure_output" "review.max_iterations must be an integer between 1 and 30"
 }
 
 test_preflight_warns_when_env_is_managed_elsewhere() {
   local repo="$TMP_DIR/release-preflight-managed-secrets"
-  setup_repo "$repo"
+  setup_repo "$repo" valid
 
   rm -f "$repo/.env"
   git -C "$repo" add -u

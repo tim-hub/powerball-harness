@@ -39,7 +39,7 @@ jq -e '
 
 cat > "${TMP_DIR}/browser-input.json" <<'EOF'
 {
-  "verdict": "PENDING_BROWSER",
+  "verdict": "APPROVE",
   "reviewer_profile": "browser",
   "browser_mode": "exploratory",
   "route": "playwright",
@@ -58,10 +58,19 @@ cat > "${TMP_DIR}/browser-input.json" <<'EOF'
 }
 EOF
 
-(cd "$TMP_DIR" && "${PROJECT_ROOT}/scripts/write-review-result.sh" "${TMP_DIR}/browser-input.json" "" "${TMP_DIR}/browser-review-result.json" >/dev/null)
+cat > "${TMP_DIR}/browser-result.json" <<'EOF'
+{
+  "browser_verdict": "APPROVE",
+  "runner_status": "ok",
+  "note": "browser review command completed"
+}
+EOF
+
+(cd "$TMP_DIR" && "${PROJECT_ROOT}/scripts/write-review-result.sh" "${TMP_DIR}/browser-input.json" "" "${TMP_DIR}/browser-review-result.json" --browser-result "${TMP_DIR}/browser-result.json" >/dev/null)
 
 jq -e '
-  .verdict == "PENDING_BROWSER" and
+  .verdict == "APPROVE" and
+  .browser_verdict == "APPROVE" and
   .reviewer_profile == "browser" and
   .execution.route == "playwright" and
   .execution.mode == "exploratory" and
@@ -70,6 +79,31 @@ jq -e '
   (.execution.instructions | length) == 2 and
   (.checks | length) == 1
 ' "${TMP_DIR}/browser-review-result.json" >/dev/null
+
+cat > "${TMP_DIR}/browser-request-input.json" <<'EOF'
+{
+  "verdict": "APPROVE",
+  "reviewer_profile": "browser",
+  "browser_mode": "exploratory",
+  "route": "playwright"
+}
+EOF
+
+cat > "${TMP_DIR}/browser-request-result.json" <<'EOF'
+{
+  "browser_verdict": "REQUEST_CHANGES",
+  "runner_status": "ok",
+  "note": "browser review found an issue"
+}
+EOF
+
+(cd "$TMP_DIR" && "${PROJECT_ROOT}/scripts/write-review-result.sh" "${TMP_DIR}/browser-request-input.json" "" "${TMP_DIR}/browser-request-review-result.json" --browser-result "${TMP_DIR}/browser-request-result.json" >/dev/null)
+
+jq -e '
+  .verdict == "REQUEST_CHANGES" and
+  .browser_verdict == "REQUEST_CHANGES" and
+  .reviewer_profile == "browser"
+' "${TMP_DIR}/browser-request-review-result.json" >/dev/null
 
 cat > "${TMP_DIR}/calibration-input.json" <<'EOF'
 {

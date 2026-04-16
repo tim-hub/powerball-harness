@@ -106,7 +106,7 @@ for task in execution_order:
     TASK_BASE_REF = git rev-parse HEAD
 
     # B-1. sprint-contract を生成
-    contract_path = bash("scripts/generate-sprint-contract.sh {task.number}")
+    contract_path = bash("node scripts/generate-sprint-contract.js {task.number}")
     contract_path = bash("scripts/enrich-sprint-contract.sh {contract_path} --check \"DoD を reviewer 観点で確認\" --approve")
     bash("scripts/ensure-sprint-contract-ready.sh {contract_path}")
 
@@ -143,9 +143,11 @@ for task in execution_order:
         REVIEW_INPUT = "review-output.json"
     bash("scripts/write-review-result.sh {REVIEW_INPUT} {commit_hash}")
 
-    # B-4. 修正ループ（REQUEST_CHANGES 時、最大 3 回）
+    # B-4. 修正ループ（REQUEST_CHANGES 時、contract の max_iterations まで）
     review_count = 0
-    while VERDICT == "REQUEST_CHANGES" and review_count < 3:
+    # sprint-contract が存在するときのみ max_iterations を読む。存在しない場合は 3（後方互換）
+    MAX_REVIEWS = read_contract(contract_path, ".review.max_iterations") or 3
+    while VERDICT == "REQUEST_CHANGES" and review_count < MAX_REVIEWS:
         send_input({
             id: worker_id,
             message: "指摘内容: {issues}\n修正して git commit --amend してください。修正後 JSON を再出力してください。"

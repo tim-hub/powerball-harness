@@ -1,16 +1,20 @@
 ---
 name: breezing
-description: "チーム実行モード — harness-work のチーム協調エイリアス。breezing, チーム実行, 全部やって でトリガー。"
-description-ja: "チーム実行モード — harness-work のチーム協調エイリアス。breezing, チーム実行, 全部やって でトリガー。"
-description-en: "Team execution mode — backward-compatible alias for harness-work with team orchestration."
-allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Task", "WebSearch", "Monitor"]
-argument-hint: "[all|N-M|--codex|--parallel N|--no-commit|--no-discuss|--auto-mode]"
+description: "チーム実行モード（Codex ネイティブ版）— harness-work のチーム協調エイリアス。breezing, チーム実行, 全部やって でトリガー。"
+description-en: "Team execution mode (Codex native) — backward-compatible alias for harness-work with team orchestration using Codex native subagent API."
+description-ja: "チーム実行モード（Codex ネイティブ版）— harness-work のチーム協調エイリアス。breezing, チーム実行, 全部やって でトリガー。"
+argument-hint: "[all|N-M|--max-workers N|--no-discuss]"
 user-invocable: true
+effort: high
 ---
 
-# Breezing — Team Execution Mode
+# Breezing — Team Execution Mode (Codex Native)
 
-> **後方互換エイリアス**: `harness-work` をチーム実行モードで動かします。
+> **この SKILL.md は Codex CLI ネイティブ版です。**
+> Claude Code 版は `skills/breezing/SKILL.md` を参照してください。
+> サブエージェント API は Codex の `spawn_agent` / `send_input` / `wait_agent` / `close_agent` を使用します。
+
+**後方互換エイリアス**: `harness-work --breezing` をチーム実行モードで動かします。
 
 ## Quick Reference
 
@@ -18,10 +22,8 @@ user-invocable: true
 breezing                        # スコープを聞いてから実行
 breezing all                    # Plans.md 全タスクを完走
 breezing 3-6                    # タスク3〜6を完走
-breezing --codex all            # Codex CLI で全タスク完走
-breezing --parallel 2 all       # 2並列で全タスク完走
+breezing --max-workers 2 all     # 独立タスクの同時 spawn 上限を2に
 breezing --no-discuss all       # 計画議論スキップで全タスク完走
-breezing --auto-mode all        # 互換な親セッションで Auto Mode rollout を試す
 ```
 
 ## Options
@@ -30,139 +32,48 @@ breezing --auto-mode all        # 互換な親セッションで Auto Mode rollo
 |--------|-------------|---------|
 | `all` | 全未完了タスクを対象 | - |
 | `N` or `N-M` | タスク番号/範囲指定 | - |
-| `--codex` | Codex CLI で実装委託 | false |
-| `--parallel N` | Implementer 並列数 | auto |
-| `--no-commit` | 自動コミット抑制 | false |
+| `--max-workers N` | 独立タスクの同時 spawn 数上限（breezing 固有オプション） | 1（直列） |
+| `--no-commit` | 非対応（Breezing では Worker の一時 commit と Lead の cherry-pick が必須） | - |
 | `--no-discuss` | 計画議論スキップ | false |
-| `--auto-mode` | Auto Mode rollout を明示。親セッションの permission mode が互換な場合のみ採用を検討 | false |
 
 ## Execution
 
-**このスキルは `harness-work` に委譲します。** 以下の設定で `harness-work` を実行してください:
+**このスキルは `harness-work --breezing` に委譲します。** 以下の設定で実行してください:
 
-1. **引数をそのまま `harness-work` に渡す**
-2. **チーム実行モードを強制** — Lead → Worker spawn → Reviewer spawn の三者分離
+1. **引数を `harness-work --breezing` に渡す**（`--max-workers N` は breezing 固有オプションとして解釈し、`harness-work` の `--parallel` とは別概念）
+2. **チーム実行モードを強制** — Lead → Worker spawn → companion review Reviewer の三者分離
 3. **Lead は delegate 専念** — コードを直接書かない
-4. **Auto Mode は opt-in 扱い** — `--auto-mode` は互換な親セッションでの rollout 用フラグとして受け付ける
 
 ### `harness-work` との違い
 
 | 特徴 | `harness-work` | `breezing` (このスキル) |
 |------|-----------------|------------------------|
-| 並列手段 | 必要数に応じた自動分割 | **Lead/Worker/Reviewer の役割分離** |
+| デフォルトモード | Solo / Sequential | **Breezing（チーム実行）** |
+| 並列手段 | companion `task` Bash 並列 | **`spawn_agent` によるサブエージェント委譲** |
 | Lead の役割 | 調整+実装 | **delegate (調整専念)** |
-| レビュー | Lead 自己レビュー | **独立 Reviewer** |
+| レビュー | Lead 自己レビュー | **companion review 独立レビュー** |
 | デフォルトスコープ | 次のタスク | **全部** |
 
-### Team Composition
+### Team Composition（Codex Native）
 
-| Role | Agent Type | Mode | 責務 |
-|------|-----------|------|------|
-| Lead | (self) | - | 調整・指揮・タスク分配 |
-| Worker ×N | `claude-code-harness:worker` | `bypassPermissions`（現行） / Auto Mode（follow-up）* | 実装 |
-| Reviewer | `claude-code-harness:reviewer` | `bypassPermissions`（現行） / Auto Mode（follow-up）* | 独立レビュー |
-
-> *親セッションまたは frontmatter が `bypassPermissions` の場合はそちらが優先される。配布テンプレートは現在も `bypassPermissions` を使うため、Auto Mode は follow-up の rollout 対象であり、既定挙動ではない。
-
-### Codex Mode (`--codex`)
-
-公式プラグイン `codex-plugin-cc` 経由で Codex CLI にすべての実装を委託するモード:
-
-```bash
-# タスク委託（書き込み可能）
-bash scripts/codex-companion.sh task --write "タスク内容"
-
-# stdin 経由（大きなプロンプト向け）
-CODEX_PROMPT=$(mktemp /tmp/codex-prompt-XXXXXX.md)
-# タスク内容を書き出し
-cat "$CODEX_PROMPT" | bash scripts/codex-companion.sh task --write
-rm -f "$CODEX_PROMPT"
-```
+| Role | 実行方式 | 権限 | 責務 |
+|------|---------|------|------|
+| Lead | (self) | 現セッション継承 | 調整・指揮・タスク分配・cherry-pick |
+| Worker ×N | `spawn_agent({message, fork_context})` | セッション権限継承 | 実装（git worktree 分離） |
+| Reviewer | companion `review --base` | read-only | 独立レビュー |
 
 ## Flow Summary
 
 ```
-breezing [scope] [--codex] [--parallel N] [--no-discuss] [--auto-mode]
+breezing [scope] [--max-workers N] [--no-discuss]
     │
-    ↓ Load harness-work with team mode
+    ↓ Load harness-work --breezing
     │
 Phase 0: Planning Discussion (--no-discuss でスキップ)
-Phase A: Pre-delegate（チーム初期化）
-Phase B: Delegate（Worker 実装 + Reviewer レビュー）
+Phase A: Pre-delegate（チーム初期化 + worktree 準備）
+Phase B: Delegate（Worker 実装 + companion review レビュー）
 Phase C: Post-delegate（統合検証 + Plans.md 更新 + commit）
 ```
-
-### Progress Feed（Phase B 中の進捗通知）
-
-Lead は Worker のタスク完了ごとに、以下のフォーマットで進捗を出力する:
-
-```
-📊 Progress: Task {completed}/{total} 完了 — "{task_subject}"
-```
-
-**出力例**:
-```
-📊 Progress: Task 1/5 完了 — "harness-work に失敗再チケット化を追加"
-📊 Progress: Task 2/5 完了 — "harness-sync に --snapshot を追加"
-📊 Progress: Task 3/5 完了 — "breezing にプログレスフィードを追加"
-```
-
-> **設計意図**: breezing は長時間実行になることが多い。
-> ユーザーがターミナルをチラ見した時に「今どこまで進んでいるか」が一目で分かるようにする。
-> task-completed.sh フックが systemMessage で同等の情報を出力するため、Lead の出力と補完し合う。
-
-### Monitor ツール活用ガイド (CC 2.1.98+)
-
-長時間実行コマンドを監視する時は、ポーリング (Read で定期的にファイル末尾を読む) ではなく **Monitor ツール** を使用する。Monitor はバックグラウンドプロセスの stdout 各行を逐次通知として Lead に届けるため、polling より低レイテンシかつ低トークン消費で状況を把握できる。
-
-**適用例**:
-- `go test ./... -v` の実行中進捗監視
-- `gh run watch` による GitHub Actions 進捗追跡
-- `npm run build --watch` / `vite build --watch` のビルドエラー即時検知
-- `codex-companion.sh status <job-id>` での Codex job 完了検知
-- `docker-compose logs -f` / `kubectl logs -f` のデプロイログ追跡
-
-**使い分けの判断基準**:
-
-| 対象 | Monitor 使う? | 理由 |
-|---|---|---|
-| Agent (Worker / Reviewer) の完了監視 | 不要 | Agent 層が自前で完了通知する |
-| `run_in_background: true` で投げた shell process | 推奨 | stdout 各行を逐次通知で拾える |
-| 短時間の一発コマンド (`go test` 1 回実行) | 不要 | 通常の Bash tool 実行で十分 |
-| 長時間 tail / watch / stream 系コマンド | 推奨 | polling より効率的 |
-
-**Breezing Lead での典型パターン**:
-
-```
-Lead:
-  Task(Worker1, ...)           ← Agent 完了待ち (Monitor 不要)
-  Task(Worker2, ...)           ← 同上
-  Bash(run_in_background, "gh run watch --exit-status")
-  Monitor(tailCommand="...")   ← CI 失敗を即時検知 → Worker に修正指示
-```
-
-これにより Lead が「Worker 完了 → CI 失敗検知 → 修正指示」の反応速度を上げられる。
-
-### Review Policy（全モード統一）
-
-Breezing モードでもレビューは **Codex exec 優先 → 内部 Reviewer フォールバック** の統一ポリシーに従う。
-詳細は `harness-work` の「レビューループ」セクションを参照。
-
-- Worker が worktree 内で実装・commit → Lead に結果返却
-- Lead が Codex exec でレビュー（120s タイムアウト、フォールバック: Reviewer agent）
-- REQUEST_CHANGES → Lead が SendMessage で Worker に修正指示、Worker が amend（最大 3 回）
-- APPROVE → **Lead** が main に cherry-pick → Plans.md を `cc:完了 [{hash}]` に更新
-
-### 完了報告（Phase C — Lead が生成）
-
-全タスク完了後、**Lead** が以下の手順でリッチ完了報告を生成する:
-
-1. `git log --oneline {base_ref}..HEAD` で全 cherry-pick コミットを収集
-2. `git diff --stat {base_ref}..HEAD` で全体の変更規模を取得
-3. Plans.md の `cc:TODO` / `cc:WIP` 残タスクを抽出
-4. `harness-work` の「完了報告フォーマット」の Breezing テンプレートに従い出力
-
-> **生成者は Lead**。Worker や hook ではない。Lead が Phase C で git + Plans.md を読んで生成する。
 
 ### Phase 0: Planning Discussion（構造化 3 問チェック）
 
@@ -172,45 +83,172 @@ Breezing モードでもレビューは **Codex exec 優先 → 内部 Reviewer 
 **Q1. スコープ確認**:
 > 「{{N}} 件のタスクを実行します。スコープは適切ですか？」
 
-多すぎる場合は優先度（Required > Recommended > Optional）で絞り込みを提案。
-
 **Q2. 依存関係確認**（Plans.md に Depends カラムがある場合のみ）:
 > 「タスク {{X}} は {{Y}} に依存しています。実行順序は合っていますか？」
-
-Depends カラムを読み取り、依存チェーンを表示。循環依存があればエラー。
 
 **Q3. リスクフラグ**（`[needs-spike]` タスクがある場合のみ）:
 > 「タスク {{Z}} は [needs-spike] です。先に spike しますか？」
 
-spike 未完了の `[needs-spike]` タスクがある場合、spike を先行実行するか確認。
+### Phase A: Pre-delegate
 
-3 問とも問題なければ、Phase A に進む（合計 30 秒で完了する設計）。
+1. Plans.md を読み込み、対象タスクを特定
+2. 依存グラフを解析し、実行順序を決定
+3. 各タスク用に git worktree を作成
 
-### 依存グラフに基づくタスク割り当て
+### Phase B: Delegate（Codex Native Subagent Orchestration）
 
-Plans.md に Depends カラムがある場合（v2 フォーマット）、依存グラフに従ってタスクを実行する:
+```
+for task in execution_order:
+    # B-0. 作業ディレクトリ分離
+    worktree_path = "/tmp/worker-{task.number}-$$"
+    branch_name = "worker-{task.number}-$$"
+    git worktree add -b {branch_name} {worktree_path}
+    TASK_BASE_REF = git rev-parse HEAD
 
-1. **Depends が `-` のタスク**を先に実行。独立タスクが複数あれば並列 spawn 可能
-2. 各 Worker 完了後、Lead がレビュー→cherry-pick（harness-work Phase B 参照）
-3. 依存元タスクが main に cherry-pick されたら、そのタスクに依存していたタスクを次に実行
-4. 全タスクが完了するまで繰り返す
+    # B-1. sprint-contract を生成
+    contract_path = bash("node scripts/generate-sprint-contract.js {task.number}")
+    contract_path = bash("scripts/enrich-sprint-contract.sh {contract_path} --check \"DoD を reviewer 観点で確認\" --approve")
+    bash("scripts/ensure-sprint-contract-ready.sh {contract_path}")
 
-> **注意**: 各タスクの「Worker 完了→レビュー→cherry-pick」は逐次処理。
-> 並列化できるのは独立タスク（Depends が `-`）の Worker spawn 部分のみ。
+    # B-2. Worker spawn
+    Plans.md: task.status = "cc:WIP"
 
-## Codex Native Orchestration
+    worker_id = spawn_agent({
+        message: "作業ディレクトリ: {worktree_path} で作業してください。\n\nタスク: {task.内容}\nDoD: {task.DoD}\ncontract_path: {contract_path}\n\n実装してください。完了後 git commit してください。\n\n完了時、以下の JSON を返してください:\n{\"commit\": \"<hash>\", \"files_changed\": [...], \"summary\": \"...\"}",
+        fork_context: true
+    })
+    wait_agent({ ids: [worker_id] })
 
-Codex では native subagent を使う。
-代表的な制御面は `spawn_agent`, `wait`, `send_input`, `resume_agent`, `close_agent`。
+    # B-3. Lead がレビュー実行（TASK_BASE_REF 起点）
+    # 公式プラグイン companion review を使用（harness-work の「レビューループ」参照）:
+    #   bash scripts/codex-companion.sh review --base {TASK_BASE_REF}
+    #   → verdict マッピング: approve→APPROVE, needs-attention→REQUEST_CHANGES
+    VERDICT = review_task(worktree_path, TASK_BASE_REF)  # static review（harness-work 参照）
+    PROFILE = jq(contract_path, ".review.reviewer_profile")
+    BROWSER_MODE = jq(contract_path, ".review.browser_mode // \"scripted\"")
+    REVIEW_INPUT = "review-output.json"
+    if PROFILE == "runtime":
+        # worktree 内で runtime checks を実行
+        REVIEW_INPUT = bash("cd {worktree_path} && scripts/run-contract-review-checks.sh {contract_path}")
+        RUNTIME_VERDICT = jq(REVIEW_INPUT, ".verdict")
+        if RUNTIME_VERDICT == "REQUEST_CHANGES":
+            VERDICT = "REQUEST_CHANGES"
+        elif RUNTIME_VERDICT == "DOWNGRADE_TO_STATIC":
+            REVIEW_INPUT = "review-output.json"  # static review にフォールバック
+    if PROFILE == "browser":
+        # browser artifact は PENDING_BROWSER scaffold。reviewer agent が後続で実行。
+        BROWSER_ARTIFACT = bash("scripts/generate-browser-review-artifact.sh {contract_path}")
+        # REVIEW_INPUT は static review のまま維持
+    if REVIEW_INPUT != "review-output.json" and jq(REVIEW_INPUT, ".verdict") == "DOWNGRADE_TO_STATIC":
+        REVIEW_INPUT = "review-output.json"
+    bash("scripts/write-review-result.sh {REVIEW_INPUT} {commit_hash}")
 
-> **Claude Code vs Codex の通信 API**（SSOT: `team-composition.md` の API マッピング表）:
-> - Claude Code: `SendMessage(to: agentId, message: "...")` で Worker に修正指示
-> - Codex: `resume_agent(agent_id)` で Worker を再開 → `send_input(agent_id, "...")` で指示送信
->
-> harness-work の擬似コードは Claude Code 構文で記述。Codex 環境では上記に読み替えること。
+    # B-4. 修正ループ（REQUEST_CHANGES 時、contract の max_iterations まで）
+    review_count = 0
+    # sprint-contract が存在するときのみ max_iterations を読む。存在しない場合は 3（後方互換）
+    MAX_REVIEWS = read_contract(contract_path, ".review.max_iterations") or 3
+    while VERDICT == "REQUEST_CHANGES" and review_count < MAX_REVIEWS:
+        send_input({
+            id: worker_id,
+            message: "指摘内容: {issues}\n修正して git commit --amend してください。修正後 JSON を再出力してください。"
+        })
+        wait_agent({ ids: [worker_id] })
+        VERDICT = review_task(worktree_path, TASK_BASE_REF)
+        review_count++
+
+    # B-5. Worker 終了
+    close_agent({ id: worker_id })
+
+    # B-6. 結果処理
+    if VERDICT == "APPROVE":
+        commit_hash = git("-C", worktree_path, "rev-parse", "HEAD")
+        git cherry-pick --no-commit {commit_hash}
+        git commit -m "{task.内容}"
+        Plans.md: task.status = "cc:完了 [{short_hash}]"
+    else:
+        → ユーザーにエスカレーション（Plans.md は cc:WIP のまま）
+        → 後続タスクも停止
+
+    # B-7. Worktree クリーンアップ
+    git worktree remove {worktree_path}
+    git branch -D {branch_name}
+
+    # B-8. Progress feed
+    print("📊 Progress: Task {completed}/{total} 完了 — {task.内容}")
+```
+
+### 独立タスクの並列 spawn（`--max-workers N` 指定時）
+
+依存のないタスクが複数ある場合、`--max-workers N` で同時 spawn 数を制御:
+
+> **`wait_agent` のセマンティクス**: `wait_agent({ids: [a, b]})` は最初に完了した1つを返す（全完了待ちではない）。
+> したがって、全 Worker の完了を待つにはループで個別に `wait_agent` を呼ぶ。
+
+```
+# 独立タスク A, B を並列 spawn（各自 worktree 分離済み）
+worker_a = spawn_agent({ message: "作業ディレクトリ: /tmp/worker-a-$$ ...", fork_context: true })
+worker_b = spawn_agent({ message: "作業ディレクトリ: /tmp/worker-b-$$ ...", fork_context: true })
+
+# 各 Worker の完了を個別に待ち → レビュー → cherry-pick（直列）
+# wait_agent は最初の1つを返すので、残りの Worker はまだ動作中
+for worker_id in [worker_a, worker_b]:
+    wait_agent({ ids: [worker_id] })    # この Worker の完了を待つ
+    VERDICT = review_task(worktree_path, TASK_BASE_REF)  # harness-work 参照
+    # 修正ループ（必要なら）...
+    close_agent({ id: worker_id })
+    if VERDICT == "APPROVE":
+        cherry-pick → Plans.md 更新
+```
+
+> **制約**: 並列化できるのは Depends が `-` の独立タスクのみ。
+> レビュー → cherry-pick は直列実行（main への書き込みが競合するため）。
+
+### Worker の出力契約
+
+Worker プロンプトには、完了時に以下の JSON を返すことを明示する:
+
+```json
+{
+  "commit": "a1b2c3d",
+  "files_changed": ["src/foo.ts", "tests/foo.test.ts"],
+  "summary": "foo モジュールに bar 機能を追加"
+}
+```
+
+Lead はこの JSON を解析して commit hash とファイル一覧を取得する。
+
+### Progress Feed（Phase B 中の進捗通知）
+
+```
+📊 Progress: Task 1/5 完了 — "harness-work に失敗再チケット化を追加"
+📊 Progress: Task 2/5 完了 — "harness-sync に --snapshot を追加"
+```
+
+### 完了報告（Phase C）
+
+全タスク完了後、Lead が以下の手順でリッチ完了報告を生成:
+
+1. `git log --oneline {session_base_ref}..HEAD` で全 cherry-pick コミットを収集
+2. `git diff --stat {session_base_ref}..HEAD` で全体の変更規模を取得
+3. Plans.md の残タスクを抽出
+4. Breezing テンプレートに従い出力
+
+## Claude Code 版との差分
+
+| 項目 | Claude Code 版 | Codex ネイティブ版（本ファイル） |
+|------|---------------|-------------------------------|
+| Worker spawn | `Agent(subagent_type="worker", isolation="worktree")` | `spawn_agent({message, fork_context})` + `git worktree add` |
+| 完了待ち | `Agent` の戻り値 | `wait_agent({ids: [id]})` |
+| 修正指示 | `SendMessage(to: agentId, message: "...")` | `send_input({id, message})` |
+| Worker 終了 | 自動 | `close_agent({id})` |
+| レビュー | Codex exec → Reviewer agent fallback | companion `review --base`（構造化出力） |
+| 権限 | `bypassPermissions` + hooks | companion `task --write` / `spawn_agent`: セッション権限継承 |
+| Agent Teams | `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` 環境変数 | Codex native（標準機能） |
+| Worktree | `isolation="worktree"` 自動管理 | `git worktree add/remove` 手動管理 |
+| モード昇格 | タスク4件以上で自動 | `--breezing` 明示時のみ |
 
 ## Related Skills
 
 - `harness-work` — 単一タスクからチーム実行まで（本体）
 - `harness-sync` — 進捗同期
-- `harness-review` — コードレビュー（breezing 内で自動起動）
+- `harness-review` — コードレビュー

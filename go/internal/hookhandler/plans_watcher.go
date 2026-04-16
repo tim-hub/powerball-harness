@@ -2,6 +2,7 @@ package hookhandler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -9,8 +10,18 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
+
+// exitFailClosed は lock 取得失敗など fail-closed パスで呼び出す。
+// PostToolUse フック仕様では exit code 非ゼロがフックエラー扱いになる。
+// これにより Plans 更新が静かに drop される「ロストアップデート」を防ぐ。
+// テストから直接呼ばれることはない（モック可能な変数で差し替える）。
+var exitFailClosed = func(msg string) {
+	fmt.Fprintf(os.Stderr, "[plans-watcher] fail-closed exit: %s\n", msg)
+	os.Exit(1)
+}
 
 // plansWatcherInput は plans-watcher.sh に渡される stdin JSON。
 type plansWatcherInput struct {
@@ -26,6 +37,101 @@ type plansWatcherInput struct {
 
 // plansStateFile は前回の状態を保存するファイルのパス。
 const plansStateFile = ".claude/state/plans-state.json"
+
+// plansLockFile は plans-state.json の排他制御に使用する flock ファイルのパス。
+// shell 版 scripts/plans-watcher.sh の 3-tier fallback と意味的に同等。
+const plansLockFile = ".claude/state/locks/plans.flock"
+
+// plansLockDirSuffix は flock が利用できない環境で使う mkdir ベースのフォールバックロック名。
+const plansLockDirSuffix = ".dir"
+
+// plansLockMaxRetries は lock 取得の最大リトライ回数。
+const plansLockMaxRetries = 3
+
+// flockCall と sleepCall はテスト差し替え用。
+var flockCall = func(fd int, how int) error {
+	return syscall.Flock(fd, how)
+}
+
+var sleepCall = time.Sleep
+
+// plansLockHandle は flock または mkdir fallback のどちらかを表す。
+type plansLockHandle struct {
+	file    *os.File
+	lockDir string
+	mode    string
+}
+
+// acquirePlansLock は plans-state.json を保護する排他ロックを取得する。
+// 通常は flock を使い、共有ストレージなどで flock が使えない場合のみ
+// mkdir ベースのアトミックロックへフォールバックする。
+func acquirePlansLock(lockPath string) (*plansLockHandle, error) {
+	if err := os.MkdirAll(filepath.Dir(lockPath), 0o755); err != nil {
+		return nil, fmt.Errorf("mkdir for plans lock: %w", err)
+	}
+	for attempt := 1; attempt <= plansLockMaxRetries; attempt++ {
+		f, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o644)
+		if err != nil {
+			return nil, fmt.Errorf("open plans lock file: %w", err)
+		}
+
+		if err := flockCall(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err == nil {
+			return &plansLockHandle{
+				file:    f,
+				lockDir: lockPath + plansLockDirSuffix,
+				mode:    "flock",
+			}, nil
+		} else if !isPlansLockBusy(err) {
+			f.Close()
+			return acquirePlansMkdirLock(lockPath + plansLockDirSuffix)
+		}
+
+		f.Close()
+		if attempt < plansLockMaxRetries {
+			sleepCall(1 * time.Second)
+		}
+	}
+	return nil, fmt.Errorf("failed to acquire plans lock after %d retries", plansLockMaxRetries)
+}
+
+func acquirePlansMkdirLock(lockDir string) (*plansLockHandle, error) {
+	for attempt := 1; attempt <= plansLockMaxRetries; attempt++ {
+		if err := os.Mkdir(lockDir, 0o755); err == nil {
+			return &plansLockHandle{
+				lockDir: lockDir,
+				mode:    "mkdir",
+			}, nil
+		} else if !errors.Is(err, os.ErrExist) {
+			return nil, fmt.Errorf("mkdir fallback lock: %w", err)
+		}
+
+		if attempt < plansLockMaxRetries {
+			sleepCall(1 * time.Second)
+		}
+	}
+	return nil, fmt.Errorf("failed to acquire mkdir fallback lock after %d retries", plansLockMaxRetries)
+}
+
+func isPlansLockBusy(err error) bool {
+	return errors.Is(err, syscall.EWOULDBLOCK) || errors.Is(err, syscall.EAGAIN)
+}
+
+// releasePlansLock はロックを解放してファイルをクローズする。
+func releasePlansLock(lock *plansLockHandle) {
+	if lock == nil {
+		return
+	}
+	switch lock.mode {
+	case "mkdir":
+		os.Remove(lock.lockDir) //nolint:errcheck
+	default:
+		if lock.file == nil {
+			return
+		}
+		flockCall(int(lock.file.Fd()), syscall.LOCK_UN) //nolint:errcheck
+		lock.file.Close()
+	}
+}
 
 // pmNotificationFile は PM 通知ファイルのパス。
 const pmNotificationFile = ".claude/state/pm-notification.md"
@@ -101,19 +207,58 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 		return emptyPostToolOutput(out)
 	}
 
+	// CWD を一つの変数に決定する。
+	// lock path と state file path を同じ CWD から導出することで、
+	// 異なる worktree（CWD A / CWD B）で hook が同時に走っても
+	// 「同じ CWD → 同じ lock + 同じ state」「異なる CWD → 別 lock + 別 state」となり
+	// プロジェクトごとに独立した排他制御が機能する。
+	cwd := input.CWD
+	if cwd == "" {
+		var cwdErr error
+		cwd, cwdErr = os.Getwd()
+		if cwdErr != nil {
+			cwd = ""
+		}
+	}
+
+	// lock path と state file path を同じ cwd から導出する
+	lockPath := plansLockFile
+	stateFilePath := plansStateFile
+	if cwd != "" {
+		lockPath = filepath.Join(cwd, plansLockFile)
+		// plansStateFile は相対パス定数なので cwd と結合して絶対パス化
+		stateFilePath = filepath.Join(cwd, plansStateFile)
+	}
+
+	// plans-state.json の read-modify-write を flock で保護する。
+	// Worker との競合で state を失わないよう fail-closed: lock 取得失敗時は処理を中断。
+	// PostToolUse フック仕様では exit code 非ゼロがフックエラー扱いになる。
+	// emptyPostToolOutput（= 空成功応答）を返すと hook framework は成功と解釈するため、
+	// ロストアップデートが発生する。exitFailClosed で exit code 1 を返すことで
+	// Plans 更新の drop を hook framework に明示的にエラーとして通知する。
+	lockFile, lockErr := acquirePlansLock(lockPath)
+	if lockErr != nil {
+		fmt.Fprintf(os.Stderr, "[plans-watcher] lock acquisition failed (fail-closed): %v\n", lockErr)
+		exitFailClosed("lock acquisition timed out (3 retries exhausted)")
+		// exitFailClosed は通常 os.Exit(1) するが、テスト時にモック差し替えで
+		// 通過する場合に備えて空応答にフォールバックする。
+		return emptyPostToolOutput(out)
+	}
+	defer releasePlansLock(lockFile)
+
 	// 現在の状態を集計
 	current, err := collectPlansState(plansFile)
 	if err != nil {
 		return emptyPostToolOutput(out)
 	}
 
-	// 前回の状態を読み込む
-	prev := loadPrevPlansState()
+	// 前回の状態を読み込む（CWD ベースの絶対パスを使用）
+	prev := loadPrevPlansState(stateFilePath)
 
-	// 状態を保存
-	stateDir := filepath.Dir(plansStateFile)
+	// 状態を保存（CWD ベースの絶対パスを使用）
+	stateDir := filepath.Dir(stateFilePath)
 	if mkErr := os.MkdirAll(stateDir, 0o755); mkErr == nil {
-		savePlansState(current)
+		savePlansState(stateFilePath, current)
 	}
 
 	// 変更の種類を判定
@@ -125,7 +270,7 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 	}
 
 	// PM 通知ファイルを生成
-	if err := writePMNotification(current, hasNewTasks, hasCompletedTasks); err != nil {
+	if err := writePMNotification(cwd, current, hasNewTasks, hasCompletedTasks); err != nil {
 		fmt.Fprintf(os.Stderr, "[plans-watcher] write notification: %v\n", err)
 	}
 
@@ -209,8 +354,9 @@ func collectPlansState(plansFile string) (plansState, error) {
 }
 
 // loadPrevPlansState は前回保存した状態を読み込む。存在しない場合はゼロ値を返す。
-func loadPrevPlansState() plansState {
-	data, err := os.ReadFile(plansStateFile)
+// stateFilePath は絶対パスまたは相対パスを受け付ける。
+func loadPrevPlansState(stateFilePath string) plansState {
+	data, err := os.ReadFile(stateFilePath)
 	if err != nil {
 		return plansState{}
 	}
@@ -222,12 +368,13 @@ func loadPrevPlansState() plansState {
 }
 
 // savePlansState は現在の状態をファイルに保存する。
-func savePlansState(state plansState) {
+// stateFilePath は絶対パスまたは相対パスを受け付ける。
+func savePlansState(stateFilePath string, state plansState) {
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
 		return
 	}
-	os.WriteFile(plansStateFile, append(data, '\n'), 0o644)
+	os.WriteFile(stateFilePath, append(data, '\n'), 0o644) //nolint:errcheck
 }
 
 // buildSummaryMessage は通知サマリ文字列を構築する。
@@ -260,8 +407,15 @@ func buildSummaryMessage(state plansState, hasNewTasks, hasCompletedTasks bool) 
 }
 
 // writePMNotification は PM 通知ファイルを生成する。
-func writePMNotification(state plansState, hasNewTasks, hasCompletedTasks bool) error {
-	stateDir := filepath.Dir(pmNotificationFile)
+func writePMNotification(cwd string, state plansState, hasNewTasks, hasCompletedTasks bool) error {
+	pmPath := pmNotificationFile
+	cursorPath := cursorNotificationFile
+	if cwd != "" {
+		pmPath = filepath.Join(cwd, pmNotificationFile)
+		cursorPath = filepath.Join(cwd, cursorNotificationFile)
+	}
+
+	stateDir := filepath.Dir(pmPath)
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		return fmt.Errorf("mkdir state dir: %w", err)
 	}
@@ -287,12 +441,12 @@ func writePMNotification(state plansState, hasNewTasks, hasCompletedTasks bool) 
 	sb.WriteString("**次のアクション**: PM Claude でレビューし、必要なら再依頼（/handoff-to-impl-claude）。\n")
 
 	content := []byte(sb.String())
-	if err := os.WriteFile(pmNotificationFile, content, 0o644); err != nil {
+	if err := os.WriteFile(pmPath, content, 0o644); err != nil {
 		return fmt.Errorf("write pm-notification.md: %w", err)
 	}
 
 	// 互換: cursor-notification.md にもコピー
-	_ = os.WriteFile(cursorNotificationFile, content, 0o644)
+	_ = os.WriteFile(cursorPath, content, 0o644)
 
 	return nil
 }

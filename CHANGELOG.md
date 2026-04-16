@@ -6,6 +6,93 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Added
+
+#### `/maintenance` スキルを復活
+
+**今まで**: `auto-cleanup-hook` が Plans.md や session-log.md の肥大化を検知すると
+「`/maintenance` で古いタスクをアーカイブすることを推奨します」と案内を出していましたが、
+`/maintenance` 本体は v3 で `harness-setup` に統合された際に削除され、ユーザーが実行しようとすると
+「存在しない」と言われる状態でした。警告を受けても対処コマンドが無い不整合が続いていました。
+
+**今後**: `skills/maintenance/SKILL.md` を再導入します。サブコマンドは
+`plans` / `session-log` / `logs` / `state` / `all` の 5 種類で、
+auto-cleanup-hook の警告メッセージに書かれた動作（Plans.md 完了タスクのアーカイブ移動、
+session-log.md の月別分割、`.claude/logs/` の古いファイル削除、`agent-trace.jsonl` のトリム）を
+単一スキル内で完結できます。自由記述の追加指示（閾値変更、除外ファイル指定、`--dry-run`）にも対応。
+
+```
+/maintenance plans          # Plans.md のアーカイブ
+/maintenance session-log    # session-log.md を月別に分割
+/maintenance all            # 4対象を順に実行
+/maintenance plans --dry-run  # 実行せず対象だけ列挙
+```
+
+詳細な実行手順・閾値・アーカイブ先は [skills/maintenance/references/cleanup.md](skills/maintenance/references/cleanup.md) を参照。
+`harness-setup` の「Maintenance — ファイル整理」セクションは引き続き残しますが、
+実行はこのスキルに委譲されます。
+
+#### Codex ネイティブの長時間ループ実行を追加
+
+**今まで**: Codex で `$harness-loop` を使っても、Claude Code の `/loop` 体験に相当する
+「裏で長時間走り続ける実体」はありませんでした。説明や運用案内はあっても、
+Codex 側では wake-up ベースの仕組みをそのまま使えず、ユーザーは手動で再実行したり、
+別の作業メモを見ながら companion 呼び出しをつなぐ必要がありました。
+
+**今後**: `harness codex-loop` を新設し、`start` / `status` / `stop` を持つ
+Codex 専用のバックグラウンドランナーを追加します。`.claude/state/codex-loop/` に
+状態を保存しながら、未完了タスクの取得、Codex companion への委譲、レビュー、
+checkpoint 記録、plateau 判定までを 1 サイクルずつ自動で回せます。
+Codex 向けの `$harness-loop` スキルもこの実体へつながる導線に更新され、
+「案内だけある」状態から「本当に回る」状態になります。
+
+```bash
+harness codex-loop start all --max-cycles 3
+harness codex-loop status
+harness codex-loop stop
+```
+
+### Changed
+
+#### Codex 専用スキルの正本を `skills-codex/` で持てるように統一
+
+**今まで**: Codex だけ内容を変えたいスキルでも、整合性チェックの一部が `skills/` を
+唯一の正本として決め打ちしていました。そのため `breezing` や `harness-loop` のように
+Codex ネイティブ API 向けへ最適化した mirror を置くと、意図した差分でも
+「不一致」と判定され、release preflight の足を引っ張る状態でした。
+
+**今後**: `sync-skill-mirrors.sh` と `check-consistency.sh` の両方で、
+Codex mirror は必要に応じて `skills-codex/` を正本として解決するように揃えました。
+これにより、Claude Code 向けと Codex 向けで役割や API が違うスキルを、
+無理に 1 ファイルへ押し込まずに安全に運用できます。今回の変更では
+`harness-loop` に加えて、意図的に Codex 版を持つ `breezing` の扱いもこのルールに合わせています。
+
+#### 本体 release フローで minor / major bump を扱えるように修正
+
+**今まで**: `harness-release-internal` の説明では bump level を判定して release できる前提でしたが、
+実際の `scripts/sync-version.sh bump` は patch しか上げられませんでした。`### Added` を含む
+`[Unreleased]` でも内部スクリプト側が patch に固定されるため、minor release を切るときに
+人手の介入が必要でした。
+
+**今後**: `scripts/sync-version.sh bump [patch|minor|major]` をサポートし、
+3 点 version sync（`VERSION` / `.claude-plugin/plugin.json` / `harness.toml`）と
+CHANGELOG compare link 更新を、release の意図した上げ幅に合わせて実行できるようにしました。
+
+### Fixed
+
+#### Codex 配布物で `harness-review` と workflow surface を継続検証
+
+**今まで**: `codex/.codex/skills/` 側の surface は mirror やセットアップで壊れても、
+「配布ユーザーが実際に使う場所まで入っているか」を十分に自動検証できない箇所がありました。
+ローカル開発環境では見えていても、配布された Codex パッケージで
+`$harness-review` や関連 workflow が抜け落ちると、ユーザー環境で初めて気づくリスクがありました。
+
+**今後**: Codex パッケージ向けの検証を強化し、`harness-review` を含む
+主要 workflow surface が配布物として存在すること、説明 frontmatter が揃っていること、
+mirror が同期していることを release 前に機械的に確認できるようにしました。
+今回の確認でも `tests/test-codex-package.sh` と `tests/validate-plugin.sh --quick` を通して、
+配布ユーザー向けの導線が維持されることを再確認しています。
+
 ## [4.0.4] - 2026-04-14
 
 ### テーマ: marketplace 配布でプラットフォームバイナリが届かない致命的バグを修正

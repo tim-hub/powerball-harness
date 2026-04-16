@@ -14,7 +14,7 @@ cat > "${TMP_DIR}/Plans.md" <<'EOF'
 EOF
 
 CONTRACT_PATH="${TMP_DIR}/contract.json"
-"${PROJECT_ROOT}/scripts/generate-sprint-contract.sh" "32.1.1" "${TMP_DIR}/Plans.md" "$CONTRACT_PATH" >/dev/null
+node "${PROJECT_ROOT}/scripts/generate-sprint-contract.js" "32.1.1" "${TMP_DIR}/Plans.md" "$CONTRACT_PATH" >/dev/null
 
 if "${PROJECT_ROOT}/scripts/ensure-sprint-contract-ready.sh" "$CONTRACT_PATH" >/dev/null 2>&1; then
   echo "contract should fail before approval"

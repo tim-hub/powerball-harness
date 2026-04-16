@@ -335,6 +335,7 @@ echo ""
 echo "📦 [10/13] スキル Mirror チェック..."
 
 SKILLS_DIR="$PLUGIN_ROOT/skills"
+CODEX_SKILLS_DIR="$PLUGIN_ROOT/skills-codex"
 CODEX_MIRROR="$PLUGIN_ROOT/codex/.codex/skills"
 OPENCODE_MIRROR="$PLUGIN_ROOT/opencode/skills"
 MIRROR_ISSUES=0
@@ -343,7 +344,17 @@ MIRROR_ISSUES=0
 # SSOT: skills/ → ミラー先: codex/.codex/skills/, opencode/skills/
 # NOTE: mirror 側には disable-model-invocation: true が追加されている（自動発動抑制）
 #       この差異は意図的なため、比較時に除外する
-HARNESS_SKILLS="harness-plan harness-work harness-review harness-release harness-setup harness-sync"
+HARNESS_SKILLS="harness-plan harness-work harness-review harness-release harness-setup harness-sync harness-loop"
+
+resolved_ssot_dir() {
+  local mirror_name="$1"
+  local skill="$2"
+  if [ "$mirror_name" = "codex" ] && [ -d "$CODEX_SKILLS_DIR/$skill" ]; then
+    printf '%s\n' "$CODEX_SKILLS_DIR/$skill"
+    return 0
+  fi
+  printf '%s\n' "$SKILLS_DIR/$skill"
+}
 
 # mirror 比較用ヘルパー: disable-model-invocation 行を除外してファイル単位で diff
 # mirror 固有の設定（自動発動抑制）は意図的な差異のため許容する
@@ -377,9 +388,9 @@ diff_mirror() {
 }
 
 for skill in $HARNESS_SKILLS; do
-  src="$SKILLS_DIR/$skill"
+  src="$(resolved_ssot_dir codex "$skill")"
   if [ ! -d "$src" ]; then
-    echo "  ❌ skills/$skill が存在しません（SSOT 欠落）"
+    echo "  ❌ $(basename "$(dirname "$src")")/$skill が存在しません（SSOT 欠落）"
     MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
     continue
   fi
@@ -407,10 +418,17 @@ for skill in $HARNESS_SKILLS; do
       continue
     fi
 
-    if diff_mirror "$src" "$mirror_path"; then
+    mirror_src="$(resolved_ssot_dir "$mirror_name" "$skill")"
+    if [ ! -d "$mirror_src" ]; then
+      echo "  ❌ $mirror_name: SSOT が見つかりません (${mirror_src})"
+      MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
+      continue
+    fi
+
+    if diff_mirror "$mirror_src" "$mirror_path"; then
       echo "  ✅ $mirror_name: $skill mirror is in sync"
     else
-      echo "  ❌ $mirror_name: $skill mirror が skills/ と不一致"
+      echo "  ❌ $mirror_name: $skill mirror が SSOT と不一致"
       MIRROR_ISSUES=$((MIRROR_ISSUES + 1))
     fi
   done
@@ -420,8 +438,13 @@ if [ $MIRROR_ISSUES -gt 0 ]; then
   ERRORS=$((ERRORS + MIRROR_ISSUES))
 fi
 
-# breezing alias は codex mirror のみ（skills/ に SSOT あり）
+# breezing alias は codex mirror のみ。
+# Codex ネイティブ版が skills-codex/ にある場合はそちらを SSOT とみなす。
 BREEZING_SRC="$SKILLS_DIR/breezing"
+if [ -d "$CODEX_SKILLS_DIR/breezing" ]; then
+  BREEZING_SRC="$CODEX_SKILLS_DIR/breezing"
+fi
+
 if [ -d "$BREEZING_SRC" ]; then
   BREEZING_CODEX="$CODEX_MIRROR/breezing"
   if [ ! -d "$BREEZING_CODEX" ]; then
@@ -433,11 +456,11 @@ if [ -d "$BREEZING_SRC" ]; then
   elif diff_mirror "$BREEZING_SRC" "$BREEZING_CODEX"; then
     echo "  ✅ codex: breezing mirror is in sync"
   else
-    echo "  ❌ codex: breezing mirror が skills/ と不一致"
+    echo "  ❌ codex: breezing mirror が SSOT と不一致"
     ERRORS=$((ERRORS + 1))
   fi
 else
-  echo "  ❌ skills/breezing が存在しません（SSOT 欠落）"
+  echo "  ❌ breezing の SSOT が見つかりません（skills/ または skills-codex/）"
   ERRORS=$((ERRORS + 1))
 fi
 
