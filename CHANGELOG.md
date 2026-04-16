@@ -3346,7 +3346,9 @@ Purpose: Transform from "just stopping" on self-correction loop failure to "prop
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/tim-hub/powerball-harness/releases).
 
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.4.5...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.5.1...HEAD
+[4.5.1]: https://github.com/tim-hub/powerball-harness/compare/v4.5.0...v4.5.1
+[4.5.0]: https://github.com/tim-hub/powerball-harness/compare/v4.4.5...v4.5.0
 [4.4.5]: https://github.com/tim-hub/powerball-harness/compare/v4.4.4...v4.4.5
 [4.4.4]: https://github.com/tim-hub/powerball-harness/compare/v4.4.3...v4.4.4
 [4.4.3]: https://github.com/tim-hub/powerball-harness/compare/v4.4.2...v4.4.3
