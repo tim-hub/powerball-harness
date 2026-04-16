@@ -2,6 +2,7 @@ package hookhandler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -9,10 +10,20 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
-// plansWatcherInput is the stdin JSON passed to plans-watcher.sh.
+// exitFailClosed is called on the fail-closed path (e.g. lock acquisition failure).
+// Per the PostToolUse hook spec, a non-zero exit code signals a hook error.
+// This prevents "lost updates" where Plans.md changes are silently dropped.
+// Tests swap this variable to avoid os.Exit(1).
+var exitFailClosed = func(msg string) {
+	fmt.Fprintf(os.Stderr, "[plans-watcher] fail-closed exit: %s\n", msg)
+	os.Exit(1)
+}
+
+// plansWatcherInput is the stdin JSON passed to the plans-watcher hook.
 type plansWatcherInput struct {
 	ToolName string `json:"tool_name"`
 	CWD      string `json:"cwd"`
@@ -26,6 +37,101 @@ type plansWatcherInput struct {
 
 // plansStateFile is the path to the file that stores the previous state.
 const plansStateFile = ".claude/state/plans-state.json"
+
+// plansLockFile is the flock file path used for exclusive access to plans-state.json.
+// Semantically equivalent to the 3-tier fallback in the shell version scripts/plans-watcher.sh.
+const plansLockFile = ".claude/state/locks/plans.flock"
+
+// plansLockDirSuffix is the suffix for the mkdir-based fallback lock used when flock is unavailable.
+const plansLockDirSuffix = ".dir"
+
+// plansLockMaxRetries is the maximum number of lock acquisition retries.
+const plansLockMaxRetries = 3
+
+// flockCall and sleepCall are package-level variables to allow test mocking.
+var flockCall = func(fd int, how int) error {
+	return syscall.Flock(fd, how)
+}
+
+var sleepCall = time.Sleep
+
+// plansLockHandle represents either a flock or mkdir-based fallback lock.
+type plansLockHandle struct {
+	file    *os.File
+	lockDir string
+	mode    string
+}
+
+// acquirePlansLock acquires an exclusive lock protecting plans-state.json.
+// Normally uses flock; falls back to mkdir-based atomic lock when flock is unavailable
+// (e.g. shared/network storage).
+func acquirePlansLock(lockPath string) (*plansLockHandle, error) {
+	if err := os.MkdirAll(filepath.Dir(lockPath), 0o755); err != nil {
+		return nil, fmt.Errorf("mkdir for plans lock: %w", err)
+	}
+	for attempt := 1; attempt <= plansLockMaxRetries; attempt++ {
+		f, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o644)
+		if err != nil {
+			return nil, fmt.Errorf("open plans lock file: %w", err)
+		}
+
+		if err := flockCall(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err == nil {
+			return &plansLockHandle{
+				file:    f,
+				lockDir: lockPath + plansLockDirSuffix,
+				mode:    "flock",
+			}, nil
+		} else if !isPlansLockBusy(err) {
+			f.Close()
+			return acquirePlansMkdirLock(lockPath + plansLockDirSuffix)
+		}
+
+		f.Close()
+		if attempt < plansLockMaxRetries {
+			sleepCall(1 * time.Second)
+		}
+	}
+	return nil, fmt.Errorf("failed to acquire plans lock after %d retries", plansLockMaxRetries)
+}
+
+func acquirePlansMkdirLock(lockDir string) (*plansLockHandle, error) {
+	for attempt := 1; attempt <= plansLockMaxRetries; attempt++ {
+		if err := os.Mkdir(lockDir, 0o755); err == nil {
+			return &plansLockHandle{
+				lockDir: lockDir,
+				mode:    "mkdir",
+			}, nil
+		} else if !errors.Is(err, os.ErrExist) {
+			return nil, fmt.Errorf("mkdir fallback lock: %w", err)
+		}
+
+		if attempt < plansLockMaxRetries {
+			sleepCall(1 * time.Second)
+		}
+	}
+	return nil, fmt.Errorf("failed to acquire mkdir fallback lock after %d retries", plansLockMaxRetries)
+}
+
+func isPlansLockBusy(err error) bool {
+	return errors.Is(err, syscall.EWOULDBLOCK) || errors.Is(err, syscall.EAGAIN)
+}
+
+// releasePlansLock releases the lock and closes any open file handles.
+func releasePlansLock(lock *plansLockHandle) {
+	if lock == nil {
+		return
+	}
+	switch lock.mode {
+	case "mkdir":
+		os.Remove(lock.lockDir) //nolint:errcheck
+	default:
+		if lock.file == nil {
+			return
+		}
+		flockCall(int(lock.file.Fd()), syscall.LOCK_UN) //nolint:errcheck
+		lock.file.Close()
+	}
+}
 
 // pmNotificationFile is the path to the PM notification file.
 const pmNotificationFile = ".claude/state/pm-notification.md"
@@ -101,19 +207,58 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 		return emptyPostToolOutput(out)
 	}
 
+	// Determine the effective CWD for deriving lock and state file paths.
+	// By using the same CWD for both lock and state paths, we ensure that
+	// two hooks running in different worktrees (CWD A / CWD B) use:
+	//   - same CWD → same lock + same state (correct serialization)
+	//   - different CWD → different lock + different state (correct isolation)
+	cwd := input.CWD
+	if cwd == "" {
+		var cwdErr error
+		cwd, cwdErr = os.Getwd()
+		if cwdErr != nil {
+			cwd = ""
+		}
+	}
+
+	// derive lock and state file paths from the same cwd
+	lockPath := plansLockFile
+	stateFilePath := plansStateFile
+	if cwd != "" {
+		lockPath = filepath.Join(cwd, plansLockFile)
+		// plansStateFile is a relative path constant; join with cwd to get an absolute path
+		stateFilePath = filepath.Join(cwd, plansStateFile)
+	}
+
+	// Protect the plans-state.json read-modify-write with flock.
+	// Fail-closed: if lock acquisition fails, abort rather than silently dropping the update.
+	// Per the PostToolUse hook spec, exit code 1 signals an error to the hook framework.
+	// Returning emptyPostToolOutput (= empty success) would cause the framework to treat
+	// a lock failure as success, resulting in lost updates. exitFailClosed exits with code 1
+	// to explicitly signal the error.
+	lockFile, lockErr := acquirePlansLock(lockPath)
+	if lockErr != nil {
+		fmt.Fprintf(os.Stderr, "[plans-watcher] lock acquisition failed (fail-closed): %v\n", lockErr)
+		exitFailClosed("lock acquisition timed out (3 retries exhausted)")
+		// exitFailClosed normally calls os.Exit(1), but if mocked in tests to be a no-op,
+		// fall back to an empty response.
+		return emptyPostToolOutput(out)
+	}
+	defer releasePlansLock(lockFile)
+
 	// aggregate the current state
 	current, err := collectPlansState(plansFile)
 	if err != nil {
 		return emptyPostToolOutput(out)
 	}
 
-	// load the previous state
-	prev := loadPrevPlansState()
+	// load the previous state (using CWD-based absolute path)
+	prev := loadPrevPlansState(stateFilePath)
 
-	// save the current state
-	stateDir := filepath.Dir(plansStateFile)
+	// save the current state (using CWD-based absolute path)
+	stateDir := filepath.Dir(stateFilePath)
 	if mkErr := os.MkdirAll(stateDir, 0o755); mkErr == nil {
-		savePlansState(current)
+		savePlansState(stateFilePath, current)
 	}
 
 	// determine the type of change
@@ -125,7 +270,7 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 	}
 
 	// generate the PM notification file
-	if err := writePMNotification(current, hasNewTasks, hasCompletedTasks); err != nil {
+	if err := writePMNotification(cwd, current, hasNewTasks, hasCompletedTasks); err != nil {
 		fmt.Fprintf(os.Stderr, "[plans-watcher] write notification: %v\n", err)
 	}
 
@@ -209,8 +354,9 @@ func collectPlansState(plansFile string) (plansState, error) {
 }
 
 // loadPrevPlansState loads the previously saved state. Returns zero value if not found.
-func loadPrevPlansState() plansState {
-	data, err := os.ReadFile(plansStateFile)
+// stateFilePath accepts both absolute and relative paths.
+func loadPrevPlansState(stateFilePath string) plansState {
+	data, err := os.ReadFile(stateFilePath)
 	if err != nil {
 		return plansState{}
 	}
@@ -222,12 +368,13 @@ func loadPrevPlansState() plansState {
 }
 
 // savePlansState saves the current state to a file.
-func savePlansState(state plansState) {
+// stateFilePath accepts both absolute and relative paths.
+func savePlansState(stateFilePath string, state plansState) {
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
 		return
 	}
-	os.WriteFile(plansStateFile, append(data, '\n'), 0o644)
+	os.WriteFile(stateFilePath, append(data, '\n'), 0o644) //nolint:errcheck
 }
 
 // buildSummaryMessage constructs the notification summary string.
@@ -260,8 +407,16 @@ func buildSummaryMessage(state plansState, hasNewTasks, hasCompletedTasks bool) 
 }
 
 // writePMNotification generates the PM notification file.
-func writePMNotification(state plansState, hasNewTasks, hasCompletedTasks bool) error {
-	stateDir := filepath.Dir(pmNotificationFile)
+// cwd is used to resolve the notification file paths to absolute paths.
+func writePMNotification(cwd string, state plansState, hasNewTasks, hasCompletedTasks bool) error {
+	pmPath := pmNotificationFile
+	cursorPath := cursorNotificationFile
+	if cwd != "" {
+		pmPath = filepath.Join(cwd, pmNotificationFile)
+		cursorPath = filepath.Join(cwd, cursorNotificationFile)
+	}
+
+	stateDir := filepath.Dir(pmPath)
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		return fmt.Errorf("mkdir state dir: %w", err)
 	}
@@ -287,12 +442,12 @@ func writePMNotification(state plansState, hasNewTasks, hasCompletedTasks bool) 
 	sb.WriteString("**Next action**: Review in PM Claude and re-delegate if needed (/handoff-to-impl-claude).\n")
 
 	content := []byte(sb.String())
-	if err := os.WriteFile(pmNotificationFile, content, 0o644); err != nil {
+	if err := os.WriteFile(pmPath, content, 0o644); err != nil {
 		return fmt.Errorf("write pm-notification.md: %w", err)
 	}
 
 	// compat: also copy to cursor-notification.md
-	_ = os.WriteFile(cursorNotificationFile, content, 0o644)
+	_ = os.WriteFile(cursorPath, content, 0o644)
 
 	return nil
 }
