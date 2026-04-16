@@ -13,6 +13,7 @@ cat > "${TMP_DIR}/Plans.md" <<'EOF'
 | 32.1.1 | contract を作る | runtime validation を contract に載せる | 32.0.1 | cc:TODO |
 | 32.2.2 | browser evaluator を追加する | browser で UI フローを確認する | 32.2.1 | cc:TODO |
 | 32.2.5 | browser_mode: exploratory を扱う | exploratory mode で AgentBrowser を優先する | 32.2.2 | cc:TODO |
+| 43.1.1 | [needs-spike] security migration contract | state migration の guard を確認する <!-- advisor:required --> | - | cc:TODO |
 EOF
 
 cat > "${TMP_DIR}/package.json" <<'EOF'
@@ -35,6 +36,14 @@ jq -e '
   .task.id == "32.1.1" and
   .task.depends_on == ["32.0.1"] and
   .review.reviewer_profile == "runtime" and
+  .advisor.enabled == true and
+  .advisor.mode == "on-demand" and
+  .advisor.max_consults == 3 and
+  .advisor.retry_threshold == 2 and
+  .advisor.pre_escalation_consult == true and
+  .advisor.model_policy.claude_default == "opus" and
+  .advisor.model_policy.codex_default == "gpt-5.4" and
+  (.advisor.triggers | length) == 0 and
   (.contract.runtime_validation | type) == "array" and
   .contract.runtime_validation[0].command == "CI=true npm test"
 ' "${OUTPUT_PATH}" >/dev/null
@@ -61,6 +70,23 @@ jq -e '
   .review.route == null and
   (.contract.browser_validation[0].required_artifacts | index("snapshot")) != null
 ' "${EXPLORATORY_OUTPUT}" >/dev/null
+
+ADVISOR_OUTPUT="${TMP_DIR}/out/43.1.1.sprint-contract.json"
+(cd "${TMP_DIR}" && node "${PROJECT_ROOT}/scripts/generate-sprint-contract.js" "43.1.1" "${TMP_DIR}/Plans.md" "${ADVISOR_OUTPUT}" >/dev/null)
+
+jq -e '
+  .task.id == "43.1.1" and
+  .advisor.enabled == true and
+  .advisor.mode == "on-demand" and
+  .advisor.max_consults == 3 and
+  .advisor.retry_threshold == 2 and
+  .advisor.pre_escalation_consult == true and
+  .advisor.model_policy.claude_default == "opus" and
+  .advisor.model_policy.codex_default == "gpt-5.4" and
+  .advisor.triggers == ["needs-spike", "security-sensitive", "state-migration", "<!-- advisor:required -->"] and
+  (.contract.risk_flags | index("security-sensitive")) != null and
+  (.contract.risk_flags | index("state-migration")) != null
+' "${ADVISOR_OUTPUT}" >/dev/null
 
 cat > "${TMP_DIR}/ui-plans.md" <<'EOF'
 | Task | 内容 | DoD | Depends | Status |

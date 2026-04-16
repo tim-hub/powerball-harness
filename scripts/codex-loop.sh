@@ -22,6 +22,7 @@ RUNNER_LOG="${LOOP_STATE_DIR}/runner.log"
 CURRENT_JOB_JSON="${LOOP_STATE_DIR}/current-job.json"
 PROMPTS_DIR="${LOOP_STATE_DIR}/prompts"
 RESULTS_DIR="${LOOP_STATE_DIR}/results"
+TASK_JOBS_DIR="${LOOP_STATE_DIR}/jobs"
 
 COMPANION="${CODEX_LOOP_COMPANION:-${PROJECT_ROOT}/scripts/codex-companion.sh}"
 VALIDATE_SCRIPT="${CODEX_LOOP_VALIDATE_SCRIPT:-${PROJECT_ROOT}/tests/validate-plugin.sh}"
@@ -45,6 +46,7 @@ Usage:
   scripts/codex-loop.sh stop
   scripts/codex-loop.sh run --run-id <id>
   scripts/codex-loop.sh run-cycle --run-id <id> --task-id <id> --cycle <n>
+  scripts/codex-loop.sh local-task-worker --job-id <id>
 EOF
 }
 
@@ -54,6 +56,7 @@ timestamp_utc() {
 
 ensure_dirs() {
   mkdir -p "${LOOP_STATE_DIR}" "${LOCKS_DIR}" "${PROMPTS_DIR}" "${RESULTS_DIR}"
+  mkdir -p "${TASK_JOBS_DIR}"
 }
 
 log_line() {
@@ -345,22 +348,361 @@ stop_requested() {
 
 companion_status_json() {
   local job_id="$1"
-  (cd "${PROJECT_ROOT}" && "${COMPANION}" status "${job_id}" --json)
+  local_task_status_json "${job_id}"
 }
 
 companion_result_json() {
   local job_id="$1"
-  (cd "${PROJECT_ROOT}" && "${COMPANION}" result "${job_id}" --json)
+  local_task_result_json "${job_id}"
 }
 
 companion_cancel_json() {
   local job_id="$1"
-  (cd "${PROJECT_ROOT}" && "${COMPANION}" cancel "${job_id}" --json)
+  local_task_cancel_json "${job_id}"
 }
 
 start_background_task() {
   local prompt_file="$1"
-  (cd "${PROJECT_ROOT}" && "${COMPANION}" task --background --json --write --prompt-file "${prompt_file}")
+  local_task_start_json "${prompt_file}"
+}
+
+local_task_job_file() {
+  printf '%s\n' "${TASK_JOBS_DIR}/$1.json"
+}
+
+local_task_log_file() {
+  printf '%s\n' "${TASK_JOBS_DIR}/$1.log"
+}
+
+local_task_output_file() {
+  printf '%s\n' "${TASK_JOBS_DIR}/$1.out"
+}
+
+local_task_summary() {
+  local prompt_file="$1"
+  python_json "${prompt_file}" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+if not path.exists():
+    print("Codex loop task")
+    raise SystemExit(0)
+
+for raw_line in path.read_text(encoding="utf-8").splitlines():
+    line = raw_line.strip()
+    if line:
+        print(line[:120])
+        raise SystemExit(0)
+
+print("Codex loop task")
+PY
+}
+
+local_task_write_record() {
+  local job_file="$1"
+  local payload_json="$2"
+  printf '%s\n' "${payload_json}" > "${job_file}"
+}
+
+local_task_mark_crashed_if_needed() {
+  local job_id="$1"
+  local job_file
+  job_file="$(local_task_job_file "${job_id}")"
+  [ -f "${job_file}" ] || return 0
+
+  python_json "${job_file}" <<'PY'
+import json
+import os
+import signal
+import sys
+
+job_file = sys.argv[1]
+with open(job_file, "r", encoding="utf-8") as fh:
+    job = json.load(fh)
+
+if job.get("status") not in {"queued", "running"}:
+    raise SystemExit(0)
+
+pid = job.get("pid")
+if not pid:
+    job["status"] = "failed"
+    job["phase"] = "failed"
+    job["errorMessage"] = "Loop worker terminated before recording a pid."
+else:
+    try:
+        os.kill(int(pid), 0)
+        raise SystemExit(0)
+    except OSError:
+        job["status"] = "failed"
+        job["phase"] = "failed"
+        job["pid"] = None
+        job["errorMessage"] = "Loop worker process exited unexpectedly."
+
+with open(job_file, "w", encoding="utf-8") as fh:
+    json.dump(job, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+}
+
+local_task_start_json() {
+  local prompt_file="$1"
+  local job_id="task-$(date +%Y%m%d%H%M%S)-$$"
+  local job_file log_file output_file summary
+  job_file="$(local_task_job_file "${job_id}")"
+  log_file="$(local_task_log_file "${job_id}")"
+  output_file="$(local_task_output_file "${job_id}")"
+  summary="$(local_task_summary "${prompt_file}")"
+
+  : > "${log_file}"
+  : > "${output_file}"
+  append_jsonl "${log_file}" "[local-task] queued"
+
+  local_task_write_record "${job_file}" "$(cat <<EOF
+{
+  "id": $(json_escape "${job_id}"),
+  "status": "queued",
+  "phase": "queued",
+  "title": "Codex Task",
+  "summary": $(json_escape "${summary}"),
+  "workspaceRoot": $(json_escape "${PROJECT_ROOT}"),
+  "jobClass": "task",
+  "write": true,
+  "logFile": $(json_escape "${log_file}"),
+  "request": {
+    "cwd": $(json_escape "${PROJECT_ROOT}"),
+    "promptFile": $(json_escape "${prompt_file}")
+  }
+}
+EOF
+)"
+
+  nohup bash "$0" local-task-worker --job-id "${job_id}" >/dev/null 2>&1 &
+  local worker_pid=$!
+
+  python_json "${job_file}" "${worker_pid}" <<'PY'
+import json
+import sys
+
+job_file = sys.argv[1]
+pid = int(sys.argv[2])
+with open(job_file, "r", encoding="utf-8") as fh:
+    job = json.load(fh)
+job["pid"] = pid
+with open(job_file, "w", encoding="utf-8") as fh:
+    json.dump(job, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+
+  python_json "${job_id}" "${log_file}" "${summary}" <<'PY'
+import json
+import sys
+
+job_id, log_file, summary = sys.argv[1:4]
+print(json.dumps({
+    "jobId": job_id,
+    "status": "queued",
+    "title": "Codex Task",
+    "summary": summary,
+    "logFile": log_file,
+}, ensure_ascii=False))
+PY
+}
+
+local_task_status_json() {
+  local job_id="$1"
+  local job_file
+  job_file="$(local_task_job_file "${job_id}")"
+  [ -f "${job_file}" ] || {
+    printf '{"job":{"id":%s,"status":"missing","phase":"missing"}}\n' "$(json_escape "${job_id}")"
+    return 0
+  }
+
+  local_task_mark_crashed_if_needed "${job_id}"
+  python_json "${job_file}" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as fh:
+    job = json.load(fh)
+print(json.dumps({"job": job}, ensure_ascii=False))
+PY
+}
+
+local_task_result_json() {
+  local job_id="$1"
+  local job_file
+  job_file="$(local_task_job_file "${job_id}")"
+  [ -f "${job_file}" ] || {
+    printf '{"storedJob":{"id":%s,"status":"missing","phase":"missing"}}\n' "$(json_escape "${job_id}")"
+    return 0
+  }
+
+  local_task_mark_crashed_if_needed "${job_id}"
+  python_json "${job_file}" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as fh:
+    job = json.load(fh)
+print(json.dumps({"storedJob": job}, ensure_ascii=False))
+PY
+}
+
+local_task_cancel_json() {
+  local job_id="$1"
+  local job_file
+  job_file="$(local_task_job_file "${job_id}")"
+  [ -f "${job_file}" ] || {
+    printf '{"jobId":%s,"cancelled":false,"reason":"missing"}\n' "$(json_escape "${job_id}")"
+    return 0
+  }
+
+  python_json "${job_file}" <<'PY'
+import json
+import os
+import signal
+import sys
+
+job_file = sys.argv[1]
+with open(job_file, "r", encoding="utf-8") as fh:
+    job = json.load(fh)
+
+pid = job.get("pid")
+cancelled = False
+reason = "not-running"
+if pid:
+    try:
+        os.kill(int(pid), signal.SIGTERM)
+        cancelled = True
+        reason = "signal_sent"
+    except OSError:
+        reason = "already-exited"
+
+job["status"] = "cancelled"
+job["phase"] = "cancelled"
+job["pid"] = None
+with open(job_file, "w", encoding="utf-8") as fh:
+    json.dump(job, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+
+print(json.dumps({
+    "jobId": job.get("id"),
+    "cancelled": cancelled,
+    "reason": reason,
+}, ensure_ascii=False))
+PY
+}
+
+run_local_task_worker() {
+  local job_id=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --job-id)
+        job_id="${2:-}"
+        shift 2
+        ;;
+      *)
+        echo "Unknown option: $1" >&2
+        exit 2
+        ;;
+    esac
+  done
+  [ -n "${job_id}" ] || {
+    echo "local-task-worker requires --job-id" >&2
+    exit 2
+  }
+
+  local job_file log_file output_file
+  job_file="$(local_task_job_file "${job_id}")"
+  [ -f "${job_file}" ] || {
+    echo "job file not found: ${job_id}" >&2
+    exit 1
+  }
+  log_file="$(local_task_log_file "${job_id}")"
+  output_file="$(local_task_output_file "${job_id}")"
+
+  local prompt_file
+  prompt_file="$(json_get_file "${job_file}" "request.promptFile" "")"
+  [ -f "${prompt_file}" ] || {
+    local_task_write_record "${job_file}" "$(cat <<EOF
+{
+  "id": $(json_escape "${job_id}"),
+  "status": "failed",
+  "phase": "failed",
+  "title": "Codex Task",
+  "summary": "Missing prompt file",
+  "workspaceRoot": $(json_escape "${PROJECT_ROOT}"),
+  "jobClass": "task",
+  "write": true,
+  "logFile": $(json_escape "${log_file}"),
+  "errorMessage": "Prompt file missing: ${prompt_file}"
+}
+EOF
+)"
+    exit 1
+  }
+
+  python_json "${job_file}" "$$" <<'PY'
+import json
+import sys
+from datetime import datetime, timezone
+
+job_file = sys.argv[1]
+pid = int(sys.argv[2])
+with open(job_file, "r", encoding="utf-8") as fh:
+    job = json.load(fh)
+job["status"] = "running"
+job["phase"] = "running"
+job["pid"] = pid
+job["startedAt"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+with open(job_file, "w", encoding="utf-8") as fh:
+    json.dump(job, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+
+  printf '[%s] local task worker started: %s\n' "$(timestamp_utc)" "${job_id}" >> "${log_file}"
+
+  local exit_code=0
+  if ! cat "${prompt_file}" | codex exec - --dangerously-bypass-approvals-and-sandbox > "${output_file}" 2>> "${log_file}"; then
+    exit_code=$?
+  fi
+
+  python_json "${job_file}" "${output_file}" "${exit_code}" <<'PY'
+import json
+import pathlib
+import sys
+from datetime import datetime, timezone
+
+job_file = pathlib.Path(sys.argv[1])
+output_file = pathlib.Path(sys.argv[2])
+exit_code = int(sys.argv[3])
+
+with job_file.open("r", encoding="utf-8") as fh:
+    job = json.load(fh)
+
+raw_output = output_file.read_text(encoding="utf-8") if output_file.exists() else ""
+job["status"] = "completed" if exit_code == 0 else "failed"
+job["phase"] = "done" if exit_code == 0 else "failed"
+job["pid"] = None
+job["completedAt"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+job["result"] = {
+    "status": exit_code,
+    "rawOutput": raw_output,
+    "touchedFiles": [],
+    "reasoningSummary": [],
+}
+job["rendered"] = raw_output
+if exit_code != 0:
+    job["errorMessage"] = f"codex exec exited with status {exit_code}"
+
+with job_file.open("w", encoding="utf-8") as fh:
+    json.dump(job, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+
+  printf '[%s] local task worker finished: %s (exit=%s)\n' "$(timestamp_utc)" "${job_id}" "${exit_code}" >> "${log_file}"
+  return "${exit_code}"
 }
 
 resume_pack_best_effort() {
@@ -1059,6 +1401,10 @@ case "${subcommand}" in
   run-cycle)
     shift
     cmd_run_cycle "$@"
+    ;;
+  local-task-worker)
+    shift
+    run_local_task_worker "$@"
     ;;
   ""|-h|--help|help)
     usage
