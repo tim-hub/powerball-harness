@@ -86,6 +86,9 @@ fi
 
 # ================================
 # 3. Version number consistency
+# Checks: VERSION == harness.toml
+# Not checked: marketplace.json (version field removed v4.4.0+)
+#              template _harness_version (backward-compatible, intentionally skipped)
 # ================================
 echo ""
 echo "🏷️ [3/13] Version number consistency..."
