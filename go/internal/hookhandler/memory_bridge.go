@@ -86,13 +86,28 @@ type harnessMemFinalizeRequest struct {
 // Dispatches one of the five known event targets (session-start, user-prompt,
 // post-tool-use, stop, codex-notify). If harness-mem is running on localhost,
 // events are also POSTed to the HTTP API. Unknown targets exit 0 (fail-open).
-func HandleMemoryBridge(in io.Reader, out io.Writer) error {
-	return defaultMemBridgeClient.Handle(in, out)
+//
+// The mode parameter is provided by the --mode=<event> flag in hooks.json and
+// allows the handler to distinguish which hook event fired it (start,
+// user-prompt, post, stop). If mode is empty, the handler falls back to
+// the HookEventName field from stdin (existing behavior).
+func HandleMemoryBridge(in io.Reader, out io.Writer, mode string) error {
+	return defaultMemBridgeClient.HandleWithMode(in, out, mode)
 }
 
-// Handle processes a memory bridge event: validates the target, writes the
-// JSONL log, POSTs to harness-mem (best-effort), and returns approve.
-func (c *MemoryBridgeClient) Handle(in io.Reader, out io.Writer) error {
+// modeToTarget maps the --mode flag values from hooks.json to the internal
+// kebab-case target names used by validTargets / bridgeToEventType.
+var modeToTarget = map[string]string{
+	"start":       "session-start",
+	"user-prompt": "user-prompt",
+	"post":        "post-tool-use",
+	"stop":        "stop",
+}
+
+// HandleWithMode processes a memory bridge event with an explicit mode hint.
+// When mode is non-empty it takes precedence over the HookEventName in stdin,
+// enabling hooks.json to supply context that stdin does not carry.
+func (c *MemoryBridgeClient) HandleWithMode(in io.Reader, out io.Writer, mode string) error {
 	data, err := io.ReadAll(in)
 	if err != nil {
 		return approveMemoryBridge(out, "")
@@ -103,26 +118,32 @@ func (c *MemoryBridgeClient) Handle(in io.Reader, out io.Writer) error {
 		return approveMemoryBridge(out, "")
 	}
 
-	target := input.HookEventName
-	// Normalize PascalCase CC event names (e.g. "SessionStart") to the
-	// kebab-case internal targets (e.g. "session-start").
-	if normalized, ok := pascalToTarget[target]; ok {
-		target = normalized
+	// Resolve target: prefer explicit --mode flag, fall back to HookEventName.
+	target := ""
+	if mode != "" {
+		if mapped, ok := modeToTarget[mode]; ok {
+			target = mapped
+		} else {
+			target = mode // pass through unrecognized modes for forward compat
+		}
+		fmt.Fprintf(os.Stderr, "[claude-code-harness] memory-bridge mode=%s target=%s\n", mode, target)
 	}
+	if target == "" {
+		target = input.HookEventName
+		if normalized, ok := pascalToTarget[target]; ok {
+			target = normalized
+		}
+	}
+
 	if !validTargets[target] {
-		// Unknown target: log to stderr (matching bash `echo ... >&2; exit 0`)
 		fmt.Fprintf(os.Stderr, "[claude-code-harness] unknown memory bridge target: %s\n", target)
 		return approveMemoryBridge(out, target)
 	}
 
-	// Log the event (always, regardless of harness-mem availability).
 	if logErr := logMemoryBridgeEvent(target, input.SessionID, input.CWD); logErr != nil {
-		// Non-fatal: the hook must not block on log failures.
 		fmt.Fprintf(os.Stderr, "[claude-code-harness] memory-bridge log error: %v\n", logErr)
 	}
 
-	// POST to harness-mem (best-effort, sync with 2s timeout).
-	// K-1.2: validate before sending to long-term memory.
 	if err := validateBridgeInput(input); err != nil {
 		fmt.Fprintf(os.Stderr, "[claude-code-harness] memory-bridge validation failed: %v\n", err)
 	} else {
@@ -131,6 +152,14 @@ func (c *MemoryBridgeClient) Handle(in io.Reader, out io.Writer) error {
 
 	return approveMemoryBridge(out, target)
 }
+
+// Handle processes a memory bridge event: validates the target, writes the
+// JSONL log, POSTs to harness-mem (best-effort), and returns approve.
+func (c *MemoryBridgeClient) Handle(in io.Reader, out io.Writer) error {
+	return c.HandleWithMode(in, out, "")
+}
+
+
 
 func validateBridgeInput(input memoryBridgeInput) error {
 	if input.SessionID == "" {

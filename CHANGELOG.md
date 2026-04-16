@@ -6,6 +6,30 @@ Change history for claude-code-harness.
 
 ## [Unreleased](https://github.com/tim-hub/powerball-harness/compare/v4.5.2...HEAD)
 
+### Phase 63: Hook chain optimizations — memory-bridge mode dispatch, POST_BATCH goroutine fan-out, PreToolUse fan-out
+
+**Hook subprocess count in PostToolUse drops from 9 to 2 (8 handlers collapsed into one concurrent goroutine fan-out).**
+
+---
+
+#### 1. Memory-Bridge Mode Dispatch (63.1)
+
+**Before**: All 4 `memory-bridge` hook invocations (SessionStart, UserPromptSubmit, PostToolUse, Stop) called `harness hook memory-bridge` with identical arguments. The handler received no indication of which event fired it, making per-event routing impossible.
+
+**After**: Each invocation now passes a `--mode=<event>` flag (`--mode=start`, `--mode=user-prompt`, `--mode=post`, `--mode=stop`). `HandleMemoryBridge` accepts a `mode string` parameter and resolves the dispatch target from the flag first, falling back to `HookEventName` from stdin for backward compatibility. This enables future per-event routing without changing subprocess count.
+
+#### 2. POST_BATCH Concurrent Fan-Out (63.2)
+
+**Before**: The `Write|Edit|Task` PostToolUse matcher had 8 separate hook entries — `emit-trace`, `auto-cleanup`, `track-changes`, `auto-test`, `quality-pack`, `plans-watcher`, `tdd-check`, `auto-broadcast` — each launching a separate subprocess. Total: 9 subprocesses per PostToolUse event (8 + 1 guardrail).
+
+**After**: The 8 entries are replaced by a single `post-tool-batch` command. Internally, `hook.RunPostToolBatch` reads stdin once, then fans out all 8 handlers as goroutines with a shared `bytes.Reader` each. Goroutines are synchronized with `sync.WaitGroup`. Total: 2 subprocesses per PostToolUse event (batch + guardrail). Estimated >60% wallclock reduction from eliminating 7 fork+exec calls.
+
+#### 3. PreToolUse Fan-Out Infrastructure (63.3)
+
+**Before**: The `Write|Edit` PreToolUse matcher had a separate `inbox-check` subprocess entry.
+
+**After**: `inbox-check` is replaced by `pre-tool-batch` which calls `hook.RunPreToolBatch`. The fan-out infrastructure handles deny-wins merge semantics (any hook returning `"deny"` takes precedence). New handlers for `Write|Edit` PreToolUse can be added to `preBatchHooks()` without modifying hooks.json.
+
 ### Phase 69: harness-loop runtime, UI rubric, new scripts, and maintenance skill — PR #81 + #82 sync
 
 **harness-loop graduates from a ~100-line advisor-only shim to a full ScheduleWakeup-based runtime with pacing, sprint-contracts, flock guard, and plateau detection.**

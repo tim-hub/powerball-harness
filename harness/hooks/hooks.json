@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook inbox-check",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook pre-tool-batch",
             "timeout": 10
           }
         ]
@@ -103,7 +103,7 @@
           },
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge --mode=start",
             "timeout": 30,
             "once": true
           }
@@ -281,7 +281,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge --mode=user-prompt",
             "timeout": 10
           },
           {
@@ -323,7 +323,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge --mode=post",
             "timeout": 10
           },
           {
@@ -384,44 +384,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook emit-trace",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook auto-cleanup",
-            "timeout": 60
-          },
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook track-changes",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook auto-test",
-            "timeout": 120,
-            "async": true
-          },
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook quality-pack",
-            "timeout": 60
-          },
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook plans-watcher",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook tdd-check",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook auto-broadcast",
-            "timeout": 10
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook post-tool-batch",
+            "timeout": 120
           }
         ]
       }
@@ -480,7 +444,7 @@
           },
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge --mode=stop",
             "timeout": 30
           },
           {
