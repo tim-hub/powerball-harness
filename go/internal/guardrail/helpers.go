@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 // ---------------------------------------------------------------------------
@@ -41,15 +42,59 @@ func matchesProtectedPatterns(filePath string) bool {
 	return false
 }
 
+// resolvedPathCache is a bounded cache for filepath.EvalSymlinks results.
+// Max 256 entries; when full, the oldest entry is evicted (FIFO).
+// Only successful resolutions are cached; errors are never stored.
+type resolvedPathCache struct {
+	mu   sync.Mutex
+	data map[string]string
+	keys []string // insertion-order for FIFO eviction
+}
+
+const resolvedPathCacheMax = 256
+
+var evalSymlinksCache = &resolvedPathCache{
+	data: make(map[string]string, resolvedPathCacheMax),
+	keys: make([]string, 0, resolvedPathCacheMax),
+}
+
+func (c *resolvedPathCache) get(key string) (string, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	v, ok := c.data[key]
+	return v, ok
+}
+
+func (c *resolvedPathCache) set(key, val string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if _, exists := c.data[key]; exists {
+		return // already cached
+	}
+	if len(c.data) >= resolvedPathCacheMax {
+		oldest := c.keys[0]
+		c.keys = c.keys[1:]
+		delete(c.data, oldest)
+	}
+	c.data[key] = val
+	c.keys = append(c.keys, key)
+}
+
 // isProtectedPath checks whether filePath refers to a protected resource.
 // It first matches against protectedPathPatterns directly, then resolves
 // symlinks via filepath.EvalSymlinks and re-checks the resolved path.
 // If EvalSymlinks returns an error (symlink loop, broken link, etc.),
 // the function returns true (fail-safe: deny the operation).
+// Successful EvalSymlinks resolutions are cached (bounded to 256 entries, FIFO eviction).
 func isProtectedPath(filePath string) bool {
 	// Direct match
 	if matchesProtectedPatterns(filePath) {
 		return true
+	}
+
+	// Check cache before calling EvalSymlinks
+	if realPath, ok := evalSymlinksCache.get(filePath); ok {
+		return matchesProtectedPatterns(realPath)
 	}
 
 	// Resolve symlinks and check the real path (CC 2.1.89: symlink target resolution)
@@ -62,10 +107,11 @@ func isProtectedPath(filePath string) bool {
 		if _, statErr := os.Lstat(filePath); os.IsNotExist(statErr) {
 			return false
 		}
-		// Any other error (loop, permission denied, etc.) → fail-safe deny
+		// Any other error (loop, permission denied, etc.) → fail-safe deny (never cache errors)
 		return true
 	}
 
+	evalSymlinksCache.set(filePath, realPath)
 	return matchesProtectedPatterns(realPath)
 }
 
@@ -100,6 +146,10 @@ var wsNormPattern = regexp.MustCompile(`\s+`)
 // so that "git  push  --force" and "git\tpush\t--force" are treated identically
 // to "git push --force".
 func normalizeCommand(cmd string) string {
+	// Fast-path: no tabs, newlines, or consecutive spaces — skip regex entirely
+	if !strings.ContainsAny(cmd, "\t\r\n") && !strings.Contains(cmd, "  ") {
+		return strings.TrimSpace(cmd) // cheap trim only; may itself return cmd with no alloc if no leading/trailing space
+	}
 	return strings.TrimSpace(wsNormPattern.ReplaceAllString(cmd, " "))
 }
 
