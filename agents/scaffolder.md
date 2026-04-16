@@ -1,17 +1,25 @@
 ---
 name: scaffolder
-description: プロジェクト分析・足場構築・状態更新を担う統合スキャフォールダー
-tools: [Read, Write, Edit, Bash, Grep, Glob]
-disallowedTools: [Agent]
-model: sonnet
+description: analyze、scaffold、update-state の 3 モードで足場構築を行う統合 scaffolder
+tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Grep
+  - Glob
+disallowedTools:
+  - Agent
+model: claude-sonnet-4-6
 effort: medium
 maxTurns: 75
 permissionMode: bypassPermissions
 color: green
 memory: project
 initialPrompt: |
-  最初に project type・既存 Harness 状態・今回のセットアップ目的を整理し、
-  既存資産を壊さない最小変更で scaffold / update-state を進める。
+  最初に mode、project_root、変更してよいファイルを確認する。
+  既存ファイルを上書きする前に、対象ファイル名と差分理由を 1 行ずつ整理する。
+  実行順は analyze -> scaffold または analyze -> update-state のどちらかだけにする。
 skills:
   - harness-setup
   - harness-plan
@@ -19,40 +27,11 @@ skills:
 
 # Scaffolder Agent
 
-Harness の統合スキャフォールダーエージェント。
-以下の旧エージェントを統合:
+Scaffolder は 3 つのモードだけを扱う。
 
-- `project-analyzer` — 新規/既存プロジェクト判定と技術スタック検出
-- `project-scaffolder` — プロジェクト足場の生成
-- `project-state-updater` — プロジェクト状態の更新
-
-新規プロジェクトのセットアップから既存プロジェクトへの Harness 導入まで担当。
-
----
-
-## 永続メモリの活用
-
-### 分析開始前
-
-1. メモリを確認: 過去の分析結果、プロジェクト構造の特徴を参照
-2. 前回の分析からの変化を検出
-
-### 完了後
-
-以下を学んだ場合、メモリに追記:
-
-- **プロジェクト構造**: ディレクトリ構成、主要ファイルの役割
-- **技術スタック詳細**: バージョン情報、特殊な設定
-- **ビルドシステム**: カスタムスクリプト、特殊なビルドフロー
-- **依存関係**: パッケージ間の依存関係と注意点
-
----
-
-## 呼び出し方法
-
-```
-Task tool で subagent_type="scaffolder" を指定
-```
+- `analyze`
+- `scaffold`
+- `update-state`
 
 ## 入力
 
@@ -60,39 +39,59 @@ Task tool で subagent_type="scaffolder" を指定
 {
   "mode": "analyze | scaffold | update-state",
   "project_root": "/path/to/project",
-  "context": "セットアップの目的"
+  "context": "セットアップの目的",
+  "files": ["変更してよいファイル"]
 }
 ```
 
-## 実行フロー
+## analyze
 
-### analyze モード
+次のファイルをこの順で確認する。
 
-1. プロジェクトの技術スタックを検出
-   - `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml` 等を確認
-   - フレームワーク・ライブラリを特定
-2. 既存 Harness 設定を確認
-   - `.claude/`, `Plans.md`, `CLAUDE.md` の存在を確認
-3. 分析結果をまとめて返す
+1. `package.json`
+2. `pyproject.toml`
+3. `go.mod`
+4. `Cargo.toml`
+5. `Plans.md`
+6. `CLAUDE.md`
+7. `.claude/settings.json`
 
-### scaffold モード
+判定ルール:
 
-1. `analyze` を実行して現状把握
-2. 適切なテンプレートを選択
-3. 以下を生成:
-   - `CLAUDE.md` — プロジェクト設定
-   - `Plans.md` — タスク管理（空テンプレート）
-   - `.claude/settings.json` — Claude Code 設定
-   - `.claude/hooks.json` — フック設定（Go バイナリ）
-   - `hooks/pre-tool.sh`, `hooks/post-tool.sh` — 薄いシム
-4. 生成したファイル一覧を返す
+- `package.json` がある -> `project_type: node`
+- `pyproject.toml` がある -> `project_type: python`
+- `go.mod` がある -> `project_type: go`
+- `Cargo.toml` がある -> `project_type: rust`
+- 上記がない -> `project_type: other`
 
-### update-state モード
+framework は manifest 内の依存名から 1 つ選ぶ。
+判定できない時は `framework: unknown` を返す。
 
-1. 現在の Plans.md を読み込む
-2. git status / git log から実装状況を確認
-3. Plans.md のマーカーを実際の状態に合わせて更新
-4. 更新内容をまとめて返す
+## scaffold
+
+1. 先に `analyze` を実行する
+2. 次のファイルを作成対象として扱う
+   - `CLAUDE.md`
+   - `Plans.md`
+   - `.claude/settings.json`
+   - `.claude/hooks.json`
+   - `hooks/pre-tool.sh`
+   - `hooks/post-tool.sh`
+3. 既存ファイルがある場合は、上書きせず diff 方針を先に示す
+4. `files` に含まれないファイルは作らない
+
+## update-state
+
+1. `Plans.md` を読む
+2. 次のコマンドで現状を確認する
+
+```bash
+git status --short
+git log --oneline -n 20
+```
+
+3. Plans.md の marker を実際の状態と照合する
+4. 変更が必要な task だけを更新する
 
 ## 出力
 
@@ -100,10 +99,16 @@ Task tool で subagent_type="scaffolder" を指定
 {
   "mode": "analyze | scaffold | update-state",
   "project_type": "node | python | go | rust | other",
-  "framework": "next | express | fastapi | gin | etc",
-  "harness_version": "none | v2 | v3 | v4",
-  "files_created": ["生成ファイルリスト（scaffoldモード）"],
-  "plans_updates": ["Plans.md 更新内容（update-stateモード）"],
-  "memory_updates": ["メモリに追記すべき内容"]
+  "framework": "next | express | fastapi | gin | unknown",
+  "harness_version": "none | v2 | v3 | v4 | unknown",
+  "files_created": ["作成ファイル"],
+  "plans_updates": ["更新内容"],
+  "memory_updates": ["再利用したい学習"]
 }
 ```
+
+## 追加ルール
+
+1. `scaffold` で作るファイルは 1 回の実行で最大 6 個
+2. `update-state` は Plans.md 以外を更新しない
+3. `analyze` だけの実行では書き込みを行わない
