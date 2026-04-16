@@ -1,6 +1,6 @@
-# Claude Code 2.1.74+ 新機能活用ガイド（完全版）
+# Claude Code 2.1.111 + Opus 4.7 新機能活用ガイド（完全版）
 
-> **概要**: Harness が活用する Claude Code 2.1.74+ の全機能一覧。
+> **概要**: Harness が活用する Claude Code 2.1.111 と Opus 4.7 までの全機能一覧。
 > CLAUDE.md の Feature Table の完全版（詳細説明付き）。
 
 ## 機能一覧
@@ -179,6 +179,44 @@
 | **Linux `apply-seccomp` helper (v2.1.92)** | setup | sandbox unix-socket ブロッキング強化。CC 自動継承 |
 | **Plugin `skills` フィールド明示化 (v2.1.94)** | setup | plugin.json に `"skills": ["./"]` を明示宣言。CC 2.1.94 でスキル呼び出し名が frontmatter `name` 基準に。A: 実装あり (plugin.json 更新) |
 | **Monitor ツール (v2.1.98)** | breezing/harness-work/ci/deploy/harness-review | 長時間プロセスの stdout ストリーミング監視。polling より低レイテンシ・低トークン消費で CI/デプロイ進捗を追跡。A: 実装あり (allowed-tools + 運用ガイド + Feature Table) |
+
+## Phase 44 追補テーブル
+
+この追補セクションでは、`2.1.99-2.1.111` と Opus 4.7 だけをまとめて見られるようにしています。
+
+| 機能 | 活用スキル / 領域 | 用途 | 付加価値 |
+|------|-------------------|------|----------|
+| **公開 changelog なしの版 (`2.1.99`, `2.1.100`, `2.1.102`, `2.1.103`, `2.1.104`, `2.1.106`)** | all skills | 明示追従項目なし。ベースライン確認のみ | `C: CC 自動継承` |
+| **`/team-onboarding` と `2.1.101` 系の安定化** | setup, session | onboarding / resume UX 向上 | `C: CC 自動継承` |
+| **`PreCompact` hook (v2.1.105)** | hooks, breezing | 長時間 Worker 実行中の compaction を block する設計の土台 | `A: 明示追従対象` |
+| **plugin `monitors` manifest (v2.1.105)** | hooks, setup, breezing | monitor を session start / skill invoke で auto-arm する | `A: 明示追従対象` |
+| **thinking hint 改善 (v2.1.107, v2.1.109)** | all skills | 長考中の UI ヒント改善 | `C: CC 自動継承` |
+| **`ENABLE_PROMPT_CACHING_1H` (v2.1.108)** | session, work, breezing | 1 時間 prompt cache TTL を opt-in で運用可能にする | `A: 明示追従対象` |
+| **recap / built-in slash command discovery (v2.1.108)** | session, all skills | 再開品質と slash command 利用の向上 | `C: CC 自動継承` |
+| **permission deny 再評価 fix (v2.1.110)** | hooks, guardrails | `updatedInput` と mode 更新後も deny を再評価する前提を docs とテスト観点に反映 | `A: 明示追従対象` |
+| **`/tui`, focus, recap まわりの UX 改善 (v2.1.110)** | session | 画面表示と remote client 体験の改善 | `C: CC 自動継承` |
+| **`xhigh` effort (v2.1.111)** | harness-review, advisor, docs | `high` と `max` の中間強度を正式対象として採用する | `A: 明示追従対象` |
+| **`/ultrareview` (v2.1.111)** | harness-review, docs | cloud 多エージェント review と `/harness-review` の役割を整理する | `A: 明示追従対象` |
+| **Auto mode no longer requires `--enable-auto-mode` (v2.1.111)** | docs, guardrails | Auto Mode の前提文言を古い enable flag 依存から更新する | `A: 明示追従対象` |
+| **`/effort` slider と model picker 連携 (v2.1.111)** | harness-review, docs | effort を会話中に調整しやすくする | `A: 明示追従対象` |
+| **read-only bash permission prompt 緩和 (v2.1.111)** | guardrails, docs | 安全な read-only コマンドの prompt 発火が減る前提を更新 | `C: CC 自動継承` |
+
+### Opus 4.7 セクション
+
+| 機能 | 活用スキル / 領域 | 用途 | 付加価値 |
+|------|-------------------|------|----------|
+| **literal instruction following** | agents, skills, docs | 曖昧表現を減らし、指示と停止条件を具体化する | `A: 明示追従対象` |
+| **`xhigh` effort** | harness-review, advisor, docs | 重い review / advisory だけ thinking を一段引き上げる | `A: 明示追従対象` |
+| **task budgets** | docs, future work | 既存 `max_consults` / cost 制御との競合を先に整理する | `A: 明示追従対象` |
+| **tokenizer 改善** | all skills | token 効率改善の恩恵を受ける | `C: CC 自動継承` |
+| **vision 2576px** | harness-review, docs | 高解像度レビューの運用上限を更新する | `A: 明示追従対象` |
+| **memory 改善** | session-memory, docs | 長時間実行と resume の説明を新前提に合わせる | `A: 明示追従対象` |
+| **`/ultrareview`** | harness-review, docs | `/harness-review` との役割分担を明文化する | `A: 明示追従対象` |
+| **Auto Mode 拡大** | docs, guardrails | enable flag 前提を落とし、常設機能として扱う | `A: 明示追従対象` |
+
+**注記**:
+この追補では `A` と `C` だけを使い、`B` は `0` 件です。  
+`A` は「Harness 側で明示追従する責務がある項目」、`C` は「Claude Code 本体の更新をそのまま継承する項目」を意味します。
 
 ## 機能詳細
 
