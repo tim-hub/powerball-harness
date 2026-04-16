@@ -42,6 +42,10 @@ enabled = true
 [[skills.config]]
 path = "$(pwd)/claude-code-harness/codex/.codex/skills/breezing"
 enabled = true
+
+[[skills.config]]
+path = "$(pwd)/claude-code-harness/codex/.codex/skills/harness-loop"
+enabled = true
 TOML
 ```
 
@@ -108,9 +112,10 @@ cp claude-code-harness/codex/.codex/config.toml "$CODEX_HOME/config.toml"
 
 ## Runtime Behavior
 
-- `$harness-plan`, `$harness-sync`, `$harness-work`, `$breezing`, and `$harness-review` are the primary Codex-facing workflow surfaces.
+- `$harness-plan`, `$harness-sync`, `$harness-work`, `$breezing`, `$harness-review`, and `$harness-loop` are the primary Codex-facing workflow surfaces.
 - Codex should be driven from the `harness-*` skill names, not legacy aliases like `$work`, `$plan-with-agent`, or `$verify`.
 - `$harness-work` and `$breezing` use Codex native multi-agent orchestration.
+- `$harness-loop` uses a real background runner behind `harness codex-loop start/status/stop`.
 - Native flow uses `spawn_agent`, `wait`, `send_input`, `resume_agent`, `close_agent`.
 - `breezing` keeps Lead/Worker/Reviewer separation while reusing Codex-native subagents instead of older teammate-only wording.
 

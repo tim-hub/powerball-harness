@@ -4,7 +4,9 @@
 # 使い方:
 #   ./scripts/sync-version.sh check    # 不一致をチェック
 #   ./scripts/sync-version.sh sync     # plugin.json を VERSION に合わせる
-#   ./scripts/sync-version.sh bump     # release 用に patch version を上げる
+#   ./scripts/sync-version.sh bump             # release 用に patch version を上げる
+#   ./scripts/sync-version.sh bump minor       # minor version を上げる
+#   ./scripts/sync-version.sh bump major       # major version を上げる
 
 set -euo pipefail
 
@@ -133,18 +135,37 @@ print(f"✅ CHANGELOG.md に compare link を追加: [{new}]")
 PY
 }
 
-# パッチバージョンを上げる
+# バージョンを上げる（既定は patch）
 bump_version() {
+    local level="${1:-patch}"
     local current=$(get_version)
     local major=$(echo "$current" | cut -d. -f1)
     local minor=$(echo "$current" | cut -d. -f2)
     local patch=$(echo "$current" | cut -d. -f3)
 
-    local new_patch=$((patch + 1))
-    local new_version="$major.$minor.$new_patch"
+    local new_version=""
+    case "$level" in
+        patch)
+            local new_patch=$((patch + 1))
+            new_version="$major.$minor.$new_patch"
+            ;;
+        minor)
+            local new_minor=$((minor + 1))
+            new_version="$major.$new_minor.0"
+            ;;
+        major)
+            local new_major=$((major + 1))
+            new_version="$new_major.0.0"
+            ;;
+        *)
+            echo "❌ 未対応の bump level: $level" >&2
+            echo "   使用可能: patch | minor | major" >&2
+            exit 1
+            ;;
+    esac
 
     echo "$new_version" > "$VERSION_FILE"
-    echo "✅ VERSION を更新: $current → $new_version"
+    echo "✅ VERSION を更新 ($level): $current → $new_version"
 
     sync_version
     update_changelog_compare_links "$current" "$new_version"
@@ -159,10 +180,10 @@ case "${1:-check}" in
         sync_version
         ;;
     bump)
-        bump_version
+        bump_version "${2:-patch}"
         ;;
     *)
-        echo "Usage: $0 {check|sync|bump}"
+        echo "Usage: $0 {check|sync|bump [patch|minor|major]}"
         exit 1
         ;;
 esac

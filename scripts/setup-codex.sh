@@ -552,7 +552,7 @@ print_success() {
     echo ""
     echo "Next steps:"
     echo "  1. Restart Codex"
-    echo "  2. Use \$harness-plan / \$harness-work / \$breezing to invoke Harness workflows"
+    echo "  2. Use \$harness-plan / \$harness-work / \$breezing / \$harness-loop to invoke Harness workflows"
     echo ""
 }
 

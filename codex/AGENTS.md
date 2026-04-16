@@ -172,6 +172,7 @@ skills/
 | harness-plan | 計画、タスク分解、Plans.md 更新 | 「計画して」「タスク追加」「今どこ」 |
 | harness-sync | 実装と Plans.md の同期 | 「進捗確認」「どこまで終わった」 |
 | harness-work / breezing | 実装、並列実行、チーム実行 | 「実装して」「全部やって」「チームで進めて」 |
+| harness-loop | 長時間の自律ループ実行、監視、停止 | 「長時間で回して」「loop で進めて」「止めて」 |
 | harness-review | コードレビュー、品質チェック | 「レビューして」「セキュリティ」「パフォーマンス」 |
 | harness-setup | プロジェクト初期化、Codex 配布更新 | 「セットアップ」「Codex設定」「初期化」 |
 | 2agent | 2エージェント運用設定 | 「2-Agent」「Cursor設定」「PM連携」 |
@@ -190,8 +191,9 @@ skills/
 1. **計画**: `$harness-plan` でタスクを Plans.md に落とす
 2. **同期**: `$harness-sync` で現状と Plans.md のズレを確認する
 3. **実装**: `$harness-work` または `$breezing` で Plans.md のタスクを実行
-3. **レビュー**: `$harness-review` で品質チェック
-4. **検証**: `./tests/validate-plugin.sh` で構造検証
+4. **長時間実行**: `$harness-loop` で 1 サイクルずつ自律実行
+5. **レビュー**: `$harness-review` で品質チェック
+6. **検証**: `./tests/validate-plugin.sh` で構造検証
 
 ## テスト方法
 
@@ -202,7 +204,7 @@ skills/
 
 # Codex CLI での確認（手動）
 # - `${CODEX_HOME:-~/.codex}/skills` または `.codex/skills` が読み込まれること
-# - `$harness-plan`, `$harness-sync`, `$harness-work`, `$breezing`, `$harness-review` が認識されること
+# - `$harness-plan`, `$harness-sync`, `$harness-work`, `$breezing`, `$harness-review`, `$harness-loop` が認識されること
 ```
 
 ## 注意事項
@@ -220,6 +222,7 @@ skills/
 | `$harness-sync` | 実装と Plans.md の状態を同期 |
 | `$harness-work` | タスクを実装（必要に応じて並列化） |
 | `$breezing` | Lead/Worker/Reviewer のチーム実行 |
+| `$harness-loop` | Codex の長時間バックグラウンドループを開始 / 監視 / 停止 |
 | `$harness-review` | 変更内容をレビュー |
 | `$harness-setup codex` | Codex 配布物を更新し、古い skill を整理 |
 
