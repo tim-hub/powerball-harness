@@ -94,6 +94,7 @@ run_state_patch() {
 import json
 import os
 import sys
+import tempfile
 
 path = sys.argv[1]
 patch = json.loads(sys.argv[2])
@@ -110,9 +111,12 @@ def merge(left, right):
             left[key] = value
 
 merge(data, patch)
-with open(path, "w", encoding="utf-8") as fh:
+parent = os.path.dirname(path) or "."
+fd, tmp_path = tempfile.mkstemp(prefix=".run-json-", suffix=".tmp", dir=parent)
+with os.fdopen(fd, "w", encoding="utf-8") as fh:
     json.dump(data, fh, ensure_ascii=False, indent=2)
     fh.write("\n")
+os.replace(tmp_path, path)
 PY
 }
 
@@ -253,6 +257,85 @@ delay_for_pacing() {
   esac
 }
 
+normalize_selection() {
+  local plans_file="$1"
+  local selection="$2"
+  python_json "${plans_file}" "${selection}" <<'PY'
+import sys
+
+plans_path = sys.argv[1]
+selection = sys.argv[2].strip()
+
+
+def load_task_ids():
+    task_ids = []
+    with open(plans_path, "r", encoding="utf-8") as fh:
+        for raw_line in fh:
+            stripped = raw_line.strip()
+            if not stripped.startswith("|"):
+                continue
+            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+            if len(cells) < 2:
+                continue
+            task_id = cells[0]
+            if not task_id or task_id.lower() == "task" or set(task_id) <= {"-"}:
+                continue
+            task_ids.append(task_id)
+    return task_ids
+
+
+def resolve_token(task_ids, token):
+    if token in task_ids:
+        return token
+
+    lowered = token.lower()
+    matches = [task_id for task_id in task_ids if task_id.lower() == lowered]
+    if len(matches) == 1:
+        return matches[0]
+    raise ValueError(f"selection token not found in Plans.md: {token}")
+
+
+task_ids = load_task_ids()
+if not task_ids:
+    raise SystemExit("no task ids found in Plans.md")
+
+if selection == "all":
+    print("all")
+    raise SystemExit(0)
+
+try:
+    print(resolve_token(task_ids, selection))
+    raise SystemExit(0)
+except ValueError:
+    pass
+
+range_parts = None
+if ".." in selection:
+    range_parts = selection.split("..", 1)
+elif "-" in selection:
+    range_parts = selection.split("-", 1)
+
+if range_parts is None:
+    print(resolve_token(task_ids, selection))
+    raise SystemExit(0)
+
+start_raw, end_raw = [part.strip() for part in range_parts]
+if not start_raw or not end_raw:
+    raise SystemExit(f"invalid selection range: {selection}")
+
+start_id = resolve_token(task_ids, start_raw)
+end_id = resolve_token(task_ids, end_raw)
+start_index = task_ids.index(start_id)
+end_index = task_ids.index(end_id)
+if start_index > end_index:
+    raise SystemExit(
+        f"selection range is reversed in Plans.md order: {start_id}..{end_id}"
+    )
+
+print(f"{start_id}..{end_id}")
+PY
+}
+
 selection_contains() {
   local selection="$1"
   local task_id="$2"
@@ -288,37 +371,55 @@ next_task_id() {
   local selection="$1"
   local plans_file="$2"
   python_json "${plans_file}" "${selection}" <<'PY'
-import re
 import sys
 
 plans_path = sys.argv[1]
 selection = sys.argv[2]
-task_re = re.compile(r'^\|\s*([0-9]+(?:\.[0-9]+)*)\s*\|')
 
-def to_tuple(value):
-    return tuple(int(part) for part in value.split("."))
 
-def matches(task_id):
-    if selection == "all":
-        return True
-    if "-" in selection:
-        start, end = selection.split("-", 1)
-        return to_tuple(start) <= to_tuple(task_id) <= to_tuple(end)
-    return selection == task_id
+def parse_task_rows():
+    rows = []
+    with open(plans_path, "r", encoding="utf-8") as fh:
+        for raw_line in fh:
+            stripped = raw_line.strip()
+            if not stripped.startswith("|"):
+                continue
+            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+            if len(cells) < 2:
+                continue
+            task_id = cells[0]
+            if not task_id or task_id.lower() == "task" or set(task_id) <= {"-"}:
+                continue
+            rows.append((task_id, cells[-1]))
+    return rows
 
-with open(plans_path, "r", encoding="utf-8") as fh:
-    for raw_line in fh:
-        match = task_re.match(raw_line)
-        if not match:
-            continue
-        task_id = match.group(1)
-        cells = [cell.strip() for cell in raw_line.strip().strip("|").split("|")]
-        if len(cells) < 2:
-            continue
-        status = cells[-1]
-        if matches(task_id) and ("cc:TODO" in status or "cc:WIP" in status):
-            print(task_id)
-            raise SystemExit(0)
+
+rows = parse_task_rows()
+ordered_ids = [task_id for task_id, _ in rows]
+
+if selection == "all":
+    selected_ids = set(ordered_ids)
+elif ".." in selection:
+    start, end = selection.split("..", 1)
+    start = start.strip()
+    end = end.strip()
+    start_index = ordered_ids.index(start)
+    end_index = ordered_ids.index(end)
+    selected_ids = set(ordered_ids[start_index : end_index + 1])
+elif "-" in selection:
+    start, end = selection.split("-", 1)
+    start = start.strip()
+    end = end.strip()
+    start_index = ordered_ids.index(start)
+    end_index = ordered_ids.index(end)
+    selected_ids = set(ordered_ids[start_index : end_index + 1])
+else:
+    selected_ids = {selection}
+
+for task_id, status in rows:
+    if task_id in selected_ids and ("cc:TODO" in status or "cc:WIP" in status):
+        print(task_id)
+        raise SystemExit(0)
 
 raise SystemExit(1)
 PY
@@ -328,24 +429,24 @@ task_status_value() {
   local plans_file="$1"
   local task_id="$2"
   python_json "${plans_file}" "${task_id}" <<'PY'
-import re
 import sys
 
 plans_path = sys.argv[1]
 target = sys.argv[2]
-task_re = re.compile(r'^\|\s*([0-9]+(?:\.[0-9]+)*)\s*\|')
 
 with open(plans_path, "r", encoding="utf-8") as fh:
     for raw_line in fh:
-        match = task_re.match(raw_line)
-        if not match:
+        stripped = raw_line.strip()
+        if not stripped.startswith("|"):
             continue
-        task_id = match.group(1)
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if len(cells) < 2:
+            continue
+        task_id = cells[0]
+        if not task_id or task_id.lower() == "task" or set(task_id) <= {"-"}:
+            continue
         if task_id != target:
             continue
-        cells = [cell.strip() for cell in raw_line.strip().strip("|").split("|")]
-        if len(cells) < 2:
-            break
         print(cells[-1])
         raise SystemExit(0)
 
@@ -1014,6 +1115,7 @@ record_advisor_consultation() {
 import json
 import os
 import sys
+import tempfile
 
 path, task_id, trigger_hash, decision, model = sys.argv[1:6]
 data = {}
@@ -1033,9 +1135,12 @@ if trigger_hash not in hashes:
 task_counts = data.setdefault("task_consultations", {})
 task_counts[task_id] = int(task_counts.get(task_id, 0)) + 1
 
-with open(path, "w", encoding="utf-8") as fh:
+parent = os.path.dirname(path) or "."
+fd, tmp_path = tempfile.mkstemp(prefix=".run-json-", suffix=".tmp", dir=parent)
+with os.fdopen(fd, "w", encoding="utf-8") as fh:
     json.dump(data, fh, ensure_ascii=False, indent=2)
     fh.write("\n")
+os.replace(tmp_path, path)
 PY
 }
 
@@ -1202,7 +1307,10 @@ EOF
 
 write_current_job_state() {
   local json_payload="$1"
-  printf '%s\n' "${json_payload}" > "${CURRENT_JOB_JSON}"
+  local tmp_file
+  tmp_file="$(mktemp "${CURRENT_JOB_JSON}.tmp.XXXXXX")"
+  printf '%s\n' "${json_payload}" > "${tmp_file}"
+  mv "${tmp_file}" "${CURRENT_JOB_JSON}"
 }
 
 perform_cycle() {
@@ -1509,7 +1617,7 @@ cmd_start() {
   local selection="${1:-}"
   shift || true
   [ -n "${selection}" ] || {
-    echo "codex-loop start requires a selection (all|N|N-M)" >&2
+    echo "codex-loop start requires a selection (all|TASK|START-END|START..END)" >&2
     exit 2
   }
 
@@ -1539,6 +1647,13 @@ cmd_start() {
     exit 1
   }
 
+  local normalized_selection=""
+  if ! normalized_selection="$(normalize_selection "${plans_file}" "${selection}" 2>&1)"; then
+    echo "${normalized_selection}" >&2
+    exit 2
+  fi
+  selection="${normalized_selection}"
+
   ensure_dirs
   if ! acquire_lock; then
     local existing_pid=""
@@ -1552,7 +1667,9 @@ cmd_start() {
   delay_seconds="$(delay_for_pacing "${pacing}")"
 
   rm -f "${CURRENT_JOB_JSON}"
-  cat > "${RUN_JSON}" <<EOF
+  local run_tmp
+  run_tmp="$(mktemp "${RUN_JSON}.tmp.XXXXXX")"
+  cat > "${run_tmp}" <<EOF
 {
   "schema_version": "codex-loop-run.v1",
   "run_id": "$(printf '%s' "${run_id}")",
@@ -1574,6 +1691,7 @@ cmd_start() {
   "plans_file": "$(printf '%s' "${plans_file}")"
 }
 EOF
+  mv "${run_tmp}" "${RUN_JSON}"
   : > "${RUNNER_LOG}"
 
   nohup env CODEX_LOOP_BOOTSTRAP_PID="$$" bash "$0" run --run-id "${run_id}" >/dev/null 2>&1 &
@@ -1667,11 +1785,11 @@ PY
     return 0
   fi
 
-  printf '%s\n' "${payload}" | python3 - <<'PY'
+  python3 - "${payload}" <<'PY'
 import json
 import sys
 
-payload = json.load(sys.stdin)
+payload = json.loads(sys.argv[1])
 status = payload.get("status")
 if status == "state_corrupt":
     print("codex-loop: state_corrupt")
