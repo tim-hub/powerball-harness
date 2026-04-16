@@ -39,12 +39,6 @@ MIRROR_ROOTS=(
   "opencode/skills"
 )
 
-# Dev/test/internal skills that may exist locally or in selected mirrors
-# but should not fail public mirror verification.
-CHECK_SKIP_SKILLS=(
-  "allow1"
-)
-
 MODE="sync"
 if [ "${1:-}" = "--check" ]; then
   MODE="check"
@@ -117,14 +111,6 @@ for mirror_root in "${MIRROR_ROOTS[@]}"; do
     # Skip non-skill entries
     [ "$skill" = "node_modules" ] && continue
     [ "$skill" = ".git" ] && continue
-
-    if [ "$MODE" = "check" ]; then
-      for skipped in "${CHECK_SKIP_SKILLS[@]}"; do
-        if [ "$skill" = "$skipped" ]; then
-          continue 2
-        fi
-      done
-    fi
 
     # Only sync if the resolved SSOT has this skill
     if [ ! -d "$(resolve_src_dir "$skill" "$mirror_root")" ]; then
