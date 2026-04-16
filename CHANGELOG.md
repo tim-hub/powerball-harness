@@ -60,6 +60,24 @@ Each axis is scored 1–5. `--ui-rubric` is a standalone flag; it does not chang
 
 **After**: New `/maintenance` skill at `harness/skills/maintenance/` provides guided cleanup operations via `cleanup.md` reference: archive old session logs, prune `.claude/state/` orphans, remove stale lock directories. Available in both CC and codex templates.
 
+### Phase 64: Agent orchestration optimizations — parallel reviewer invocations + concurrent sprint-contract generation
+
+**Review wallclock in `--parallel` mode is now O(1) relative to task count instead of O(N), and Breezing Phase A contract generation is concurrent.**
+
+---
+
+#### 1. Parallel Reviewer Invocations in `--parallel` Mode
+
+**Before**: After N Workers completed in `--parallel N` mode, Reviewer agents ran sequentially — one per task — so review wallclock scaled as N × single-review-time (~30s per task). For 5 tasks that was ~150s of review time.
+
+**After**: After all Workers complete, one Reviewer agent is spawned per Worker, all running concurrently (`run_in_background=true`). Review wallclock is bounded by `max(single-review-time) + 10s coordination overhead ≈ ~40s regardless of N`. Verdict outcomes are identical — each Reviewer receives the same diff it would have received sequentially.
+
+#### 2. Concurrent Sprint-Contract Generation in Breezing Phase A
+
+**Before**: Breezing Phase A generated sprint contracts sequentially before spawning Workers. For N tasks, Phase A duration was roughly N × per-task-contract-time — about 25s for 5 tasks.
+
+**After**: All sprint contracts in Phase A are generated concurrently via `parallel_map`. Phase A duration is bounded by `max(per-task contract time) + 10s overhead ≈ ~15s for 5 tasks` — a ~40% reduction. Contract content is byte-identical to sequential generation (scripts are stateless). Any contract that fails the `ensure-sprint-contract-ready` check stops Phase A immediately and escalates.
+
 ### Phase 62: Advisor Strategy — read-only consultation agent + harness-loop skill
 
 **Workers can now consult a read-only Advisor (Opus) at decision blockers instead of immediately escalating to the user.**

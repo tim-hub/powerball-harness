@@ -174,9 +174,24 @@ This check is intentionally lightweight — it only inspects commit messages, no
 
 ### Parallel Mode (auto-selected for 2-3 tasks / forced with `--parallel N`)
 
-Execute `[P]`-marked tasks with N workers in parallel.
+Execute tasks with N workers in parallel.
 When explicitly specified with `--parallel N`, this mode is used regardless of task count.
 If write conflicts to the same file occur, isolate with git worktree.
+
+**Review Phase** (after all Workers complete):
+Spawn one Reviewer agent per completed Worker, all running concurrently:
+- Each Reviewer receives its Worker's diff independently
+- Collect all verdicts; on any REQUEST_CHANGES, enter the fix loop for that task
+- Constraint: Review phase wallclock ≤ max(single-review-time) + 10s coordination overhead
+  (not the sum, which would be N × single-review-time)
+- Verdict outcomes are identical to sequential review — each Reviewer sees the same diff
+
+**Review execution order**:
+1. Collect all completed Worker diffs
+2. `for each worker_result in parallel:` spawn Reviewer agent (`run_in_background=true`)
+3. `await_all reviewers` — collect verdicts
+4. For any REQUEST_CHANGES: enter fix loop (sequential within that task)
+5. For all APPROVE: proceed to commit
 
 ### Codex Mode (`--codex` explicit only)
 
@@ -213,8 +228,18 @@ Lead (this agent)
 1. Read Plans.md and identify target tasks
 2. Analyze the dependency graph and determine execution order (Depends column)
 3. Effort scoring for each task (ultrathink injection decision)
-4. Generate `sprint-contract.json` with `"${CLAUDE_SKILL_DIR}/../../scripts/generate-sprint-contract.sh"`
-5. Add Reviewer perspective with `"${CLAUDE_SKILL_DIR}/../../scripts/enrich-sprint-contract.sh"` and stop if unapproved with `"${CLAUDE_SKILL_DIR}/../../scripts/ensure-sprint-contract-ready.sh"`
+4. Generate all sprint contracts concurrently (contracts are independent):
+   ```
+   contracts = parallel_map(tasks, λ task:
+       generate-sprint-contract.sh {task.number}
+       → enrich-sprint-contract.sh
+       → ensure-sprint-contract-ready.sh
+   )
+   ```
+   - Target: Phase A duration ≤ max(per-task contract time) + 10s overhead
+     (not sum(per-task contract time) which scales linearly with task count)
+   - Contract content is byte-identical to sequential generation (stateless scripts)
+   - If any contract fails ensure-sprint-contract-ready check → stop Phase A and escalate
 
 **Phase B: Delegate (Worker spawn → review → cherry-pick)**:
 
@@ -297,6 +322,8 @@ for task in execution_order:
 
 A `sprint-contract` is a small contract file that defines "what passes this task" in a format readable by both machines and humans.
 The default storage location is `.claude/state/contracts/<task-id>.sprint-contract.json`.
+
+> **Concurrency note**: In Breezing Phase A, contracts for all tasks are generated concurrently before any Worker is spawned.
 
 ```bash
 "${CLAUDE_SKILL_DIR}/../../scripts/generate-sprint-contract.sh" 32.1.1
