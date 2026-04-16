@@ -19,12 +19,6 @@
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook inbox-check",
             "timeout": 10
-          },
-          {
-            "type": "agent",
-            "prompt": "Review the following code change for quality issues. Check if the change: (1) introduces hardcoded secrets or credentials, (2) has obvious security vulnerabilities (SQL injection, XSS, command injection). If any issue is found, return JSON with permissionDecision: 'deny' and permissionDecisionReason explaining the issue. If the change looks acceptable, return nothing (exit 0). Input: $ARGUMENTS",
-            "model": "haiku",
-            "timeout": 30
           }
         ]
       },
