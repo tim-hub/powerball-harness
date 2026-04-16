@@ -61,7 +61,7 @@ When advisor consultation is enabled (default), the loop pauses and queries the 
 
 **Reason code**: `high_risk_preflight`
 
-**Behavior**: The Advisor reviews the task description, DoD, and current repo state. If it returns `PROCEED`, the task runs normally. If it returns `STOP`, the loop exits with a summary and explanation.
+**Behavior**: The Advisor reviews the task description, DoD, and current repo state. If it returns `PLAN`, the task runs normally. If it returns `STOP`, the loop exits with a summary and explanation.
 
 ### 2. Post-failure Retry Gate
 
@@ -69,7 +69,7 @@ When advisor consultation is enabled (default), the loop pauses and queries the 
 
 **Reason code**: `repeated_failure`
 
-**Behavior**: The loop presents the repeated failure pattern to the Advisor. The Advisor may return `PROCEED` (attempt once more with a different approach), `SKIP` (mark the task blocked and continue to the next), or `STOP` (exit and surface the failure to the user).
+**Behavior**: The loop presents the repeated failure pattern to the Advisor. The Advisor may return `PLAN` (attempt once more with the same approach), `CORRECTION` (attempt with a revised approach), or `STOP` (exit and surface the failure to the user).
 
 ### 3. Plateau Detection
 
