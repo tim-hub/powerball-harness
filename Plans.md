@@ -1,6 +1,6 @@
 # Powerball Harness — Plans.md
 
-Last archive: 2026-04-16 (Phase 53-54 → `.claude/memory/archive/Plans-2026-04-16-phase53-54.md`)
+Last archive: 2026-04-16 (Phase 55-56 → `.claude/memory/archive/Plans-2026-04-16-phase55-56.md`)
 Last release: v4.5.1 on 2026-04-16 (docs + hook removal + settings hardening)
 
 ---
@@ -164,22 +164,6 @@ Goal: Systematic review and optimization of every skill under `harness/skills/`.
 
 ---
 
-## Phase 56: Go validator + agent frontmatter fixes
-
-Created: 2026-04-15
-
-Goal: Fix the critical validator bug that rejects all agents, and clean up stale/missing fields in all agent frontmatter files. These are the highest-priority items from the project-wide review.
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 56.1 | Add short model aliases (`sonnet`, `opus`, `haiku`) to `validModelNames` in `go/cmd/harness/validate.go` | `harness validate agents` passes on all 6 agent files; Go tests pass | - | cc:Done [4e9303f] |
-| 56.2 | Fix `harness/agents/ci-cd-fixer.md` — remove `verify` from `skills:` (only keep `ci`); change `disallowedTools: [Task]` → `[Agent]`; add `permissionMode: bypassPermissions`, `effort: medium`, `maxTurns: 75`; align hook syntax to nested format matching worker.md | Agent passes `harness validate agents`; no references to non-existent skills | 56.1 | cc:Done [4e9303f] |
-| 56.3 | Fix `harness/agents/error-recovery.md` — remove `skills: [verify, troubleshoot]` (both non-existent); change `disallowedTools: [Task]` → `[Agent]`; add `permissionMode: bypassPermissions`, `effort: medium`, `maxTurns: 75`; add deprecation notice header noting consolidation into `worker` per `team-composition.md` | Agent passes validation; deprecation status clear | 56.1 | cc:Done [4e9303f] |
-| 56.4 | Fix `harness/agents/scaffolder.md` — update `"harness_version": "none | v2 | v3"` → `"none | v2 | v3 | v4"` in the output JSON schema | `grep 'v4' harness/agents/scaffolder.md` returns a match | - | cc:Done [4e9303f] |
-| 56.5 | Rebuild Go binary after validate.go change | `harness/bin/harness-darwin-arm64` updated; `harness validate agents` succeeds end-to-end | 56.1 | cc:Done [4e9303f] |
-
----
-
 ## Phase 57: Documentation drift cleanup
 
 Created: 2026-04-15
@@ -237,43 +221,6 @@ Goal: Fix shell script path conventions, strict mode, variable naming, and setti
 |------|-------------|-----|---------|--------|
 | 58.11 | Run full validation suite: `validate-plugin.sh` + `check-consistency.sh` + `check-residue.sh` + `harness validate all` | All pass with 0 failures | 56.1-56.5, 57.1-57.9, 58.1-58.10 | cc:Done [30a3866] |
 | 58.12 | Record all changes under `[Unreleased]` in CHANGELOG.md in Before/After format | CHANGELOG entry added | 58.11 | cc:Done [35cb85c] |
-
----
-
-## Phase 55: Path convention standardization — clear roots for all skills and scripts
-
-Created: 2026-04-15
-
-**Three-tier path convention** (per Opus consultation):
-- **skill-local**: `${CLAUDE_SKILL_DIR}/...` — files inside the skill's own directory
-- **plugin-local**: `${CLAUDE_SKILL_DIR}/../../...` — files elsewhere in the plugin (accepted `../../` since skills are always exactly at `skills/<name>/`, two levels below plugin root)
-- **project-root**: `git rev-parse --show-toplevel` in scripts — never derive user project paths from script location
-
-### Stage 1: Fix harness-release
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 55.1 | Fix `release-preflight.sh` CHANGELOG check — use `GIT_ROOT` (project root), not plugin root | Test passes: CHANGELOG found without env var override | - | cc:done |
-| 55.2 | Update `release-preflight.sh` — derive `PROJECT_ROOT` from `git rev-parse --show-toplevel`, add tier comments to both scripts | `# project-root:` / `# plugin-local:` comments on key paths; tests pass | - | cc:done [50e78cd] |
-| 55.3 | Update `SKILL.md` bash code blocks — replace bare `skills/harness-release/scripts/...` with `${CLAUDE_SKILL_DIR}/scripts/...` | `grep 'bash skills/' SKILL.md` returns 0 results | - | cc:done [6e3ec2c] |
-| 55.4 | Update `SKILL.md` plugin-local links — standardize `${CLAUDE_SKILL_DIR}/../../` form; annotate `local-scripts/` and `validate-release-notes.sh` with `<!-- project-root -->` or `<!-- plugin-local -->` comments | All plugin-level links use consistent `../../` traversal; ownership clear in SKILL.md prose | 55.3 | cc:done [6e3ec2c] |
-
-### Stage 2: Audit and fix all other skills
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 55.5 | Fix `harness-setup` — replace `${CLAUDE_PLUGIN_ROOT}/skills/harness-setup/scripts/...` with `${CLAUDE_SKILL_DIR}/scripts/...` | `grep 'CLAUDE_PLUGIN_ROOT' harness/skills/harness-setup/SKILL.md` returns 0 results | 55.3 | cc:done [0125611] |
-| 55.6 | Audit `references/` links across all 28 SKILL.md files — ensure all use `${CLAUDE_SKILL_DIR}` | `grep -r 'references/' harness/skills/*/SKILL.md \| grep -v CLAUDE_SKILL_DIR` returns 0 results | 55.5 | cc:done [0125611] |
-| 55.7 | Audit `scripts/` references across all SKILL.md files — annotate each as skill-local / plugin-local / project-root | `grep -r 'scripts/' harness/skills/*/SKILL.md \| grep -v CLAUDE_SKILL_DIR \| grep -v '^\#'` reviewed and classified | 55.5 | cc:done [0125611] |
-
-### Stage 3: Document and enforce
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 55.8 | Create `.claude/rules/path-conventions.md` — document the three-tier convention with examples | Rule file exists; covers skill-local, plugin-local, project-root with code snippets | 55.6, 55.7 | cc:done [0125611] |
-| 55.9 | Add path lint check to `validate-plugin.sh` — flag bare relative paths in bash code blocks in SKILL.md files | New check section passes on current HEAD | 55.8 | cc:done [0125611] |
-| 55.10 | Run full validation suite (`validate-plugin.sh` + `check-consistency.sh` + `check-residue.sh`) | All pass with 0 failures | 55.9 | cc:done [0125611] |
-| 55.11 | Record changes under `[Unreleased]` in CHANGELOG.md | Entry added | 55.10 | cc:done [7b0fc70] |
 
 ---
 
