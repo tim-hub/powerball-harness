@@ -18,6 +18,7 @@
 //	harness hook subagent-start    — SubagentStart: エージェント起動追跡
 //	harness hook subagent-stop     — SubagentStop: エージェント停止追跡
 //	harness evidence collect       — Collect evidence (test results, build logs)
+//	harness sprint-contract       — Generate sprint-contract from Plans.md
 //	harness status                 — 全追跡エージェントの状態表示
 //	harness version                — Print version
 //
@@ -66,6 +67,8 @@ func main() {
 			os.Exit(1)
 		}
 		runEvidence(os.Args[2:])
+	case "sprint-contract":
+		runSprintContract(os.Args[2:])
 	case "status":
 		runStatus(os.Args[2:])
 	case "init":
@@ -111,6 +114,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  evidence collect        Collect evidence (test results, build logs) from stdin")
 	fmt.Fprintln(os.Stderr, "    --label <label>       Evidence label (default: general)")
 	fmt.Fprintln(os.Stderr, "    --file <path>         Read content from file instead of stdin")
+	fmt.Fprintln(os.Stderr, "  sprint-contract <task-id> [plans-file] [output-file]  Generate sprint-contract JSON")
 	fmt.Fprintln(os.Stderr, "  status                  Show all tracked agent states")
 	fmt.Fprintln(os.Stderr, "  init [root]             Create harness.toml template in project root")
 	fmt.Fprintln(os.Stderr, "  sync [root]             Generate CC files from harness.toml")
@@ -453,7 +457,7 @@ func runPostTool(input hookproto.HookInput) {
 	if result.SystemMessage != "" {
 		out := hookproto.PostToolOutput{
 			HookSpecificOutput: hookproto.PostToolHookSpecific{
-				HookEventName:    "PostToolUse",
+				HookEventName:     "PostToolUse",
 				AdditionalContext: result.SystemMessage,
 			},
 		}

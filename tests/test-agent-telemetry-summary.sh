@@ -38,16 +38,19 @@ statusline_lines="$(wc -l < "${TMP_DIR}/.claude/state/statusline-telemetry.jsonl
 
 (
   cd "${TMP_DIR}" &&
+  CLAUDE_PLUGIN_ROOT="${ROOT_DIR}" \
   CLAUDE_TOOL_NAME="Task" \
   CLAUDE_TOOL_INPUT='{"subagent_type":"worker","task_id":"32.1.3"}' \
   CLAUDE_TOOL_RESULT='{"metrics":{"tokenCount":1200,"toolUses":5,"duration":45000}}' \
   CLAUDE_SESSION_ID="telemetry-session" \
   node "${TMP_DIR}/emit-agent-trace.js" >/dev/null &&
+  CLAUDE_PLUGIN_ROOT="${ROOT_DIR}" \
   CLAUDE_TOOL_NAME="Task" \
   CLAUDE_TOOL_INPUT='{"subagent_type":"reviewer","task_id":"32.1.3"}' \
   CLAUDE_TOOL_RESULT='{"metrics":{"tokenCount":800,"toolUses":3,"duration":30000}}' \
   CLAUDE_SESSION_ID="telemetry-session" \
   node "${TMP_DIR}/emit-agent-trace.js" >/dev/null &&
+  CLAUDE_PLUGIN_ROOT="${ROOT_DIR}" \
   CLAUDE_TOOL_NAME="Task" \
   CLAUDE_TOOL_INPUT='{"subagent_type":"lead","task_id":"32.1.3"}' \
   CLAUDE_TOOL_RESULT='{"metrics":{"tokenCount":600,"toolUses":2,"duration":20000}}' \

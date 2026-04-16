@@ -56,7 +56,7 @@ EOF
 export CLAUDE_SESSION_ID="test-session-123"
 export HARNESS_CONTEXT_RESET_MODE="fixture"
 export HARNESS_CONTEXT_RESET_DRY_RUN="1"
-pre_output="$(cd "${TMP_DIR}" && node "${TMP_DIR}/scripts/hook-handlers/pre-compact-save.js")"
+pre_output="$(cd "${TMP_DIR}" && CLAUDE_PLUGIN_ROOT="${ROOT_DIR}" node "${TMP_DIR}/scripts/hook-handlers/pre-compact-save.js")"
 artifact_file="${TMP_DIR}/.claude/state/handoff-artifact.json"
 legacy_file="${TMP_DIR}/.claude/state/precompact-snapshot.json"
 

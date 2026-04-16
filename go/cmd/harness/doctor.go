@@ -84,9 +84,9 @@ func runDoctor(args []string) {
 
 // checkResult holds the result of a single doctor check.
 type checkResult struct {
-	label   string
-	ok      bool
-	detail  string
+	label  string
+	ok     bool
+	detail string
 }
 
 // runBasicChecks performs basic health checks and prints them.
@@ -104,7 +104,7 @@ func runBasicChecks(projectRoot string) bool {
 		checkVersionMatch(projectRoot),
 		checkHooksGoPattern(projectRoot),
 		checkPlatformBinary(projectRoot),
-		checkNodeNotRequired(),
+		checkNodeNotRequired(projectRoot),
 	}
 
 	allOK := true
@@ -302,13 +302,70 @@ func checkPlatformBinary(projectRoot string) checkResult {
 	}
 }
 
-// checkNodeNotRequired informs the user that Node.js is no longer required
-// starting with v4.0 Hokage. This check always passes and is informational only.
-func checkNodeNotRequired() checkResult {
+var reLegacyHooksNodeDeps = regexp.MustCompile(`node\t|run-script`)
+
+// checkNodeNotRequired verifies that hooks/ no longer contains legacy Node.js
+// runtime references such as "node<TAB>" or "run-script".
+func checkNodeNotRequired(projectRoot string) checkResult {
+	label := "Node.js dependency"
+	hooksDir := filepath.Join(projectRoot, "hooks")
+
+	if _, err := os.Stat(hooksDir); err != nil {
+		if os.IsNotExist(err) {
+			return checkResult{
+				label:  label,
+				ok:     true,
+				detail: "hooks/ not found (skipped)",
+			}
+		}
+		return checkResult{
+			label:  label,
+			ok:     false,
+			detail: fmt.Sprintf("failed to inspect hooks/: %v", err),
+		}
+	}
+
+	var matches []string
+	walkErr := filepath.Walk(hooksDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if reLegacyHooksNodeDeps.Match(data) {
+			rel, relErr := filepath.Rel(projectRoot, path)
+			if relErr != nil {
+				rel = path
+			}
+			matches = append(matches, filepath.ToSlash(rel))
+		}
+		return nil
+	})
+	if walkErr != nil {
+		return checkResult{
+			label:  label,
+			ok:     false,
+			detail: fmt.Sprintf("failed to scan hooks/: %v", walkErr),
+		}
+	}
+
+	if len(matches) > 0 {
+		return checkResult{
+			label:  label,
+			ok:     false,
+			detail: fmt.Sprintf("legacy Node.js hook reference found in %s", matches[0]),
+		}
+	}
+
 	return checkResult{
-		label:  "Node.js dependency",
+		label:  label,
 		ok:     true,
-		detail: "✅ Node.js is no longer required (v4.0 Hokage)",
+		detail: "hooks/ contains no legacy Node.js hook references",
 	}
 }
 
@@ -384,8 +441,8 @@ func classifyCommand(cmd string) string {
 
 // mixedWarning reports mixed-mode hook events.
 type mixedWarning struct {
-	event    string
-	path     string // which hooks.json path
+	event string
+	path  string // which hooks.json path
 }
 
 // runMigrationCheck reads hooks.json (and the .claude-plugin copy if it exists),
@@ -549,9 +606,10 @@ func sortedKeys(m map[string][]hookGroup) []string {
 // transparently streams its output to stdout/stderr.
 //
 // Return values:
-//   0 — scanner exited cleanly (no residue detected)
-//   1 — scanner found migration residue (exit code 1 from script)
-//   2 — scanner script not found or failed to launch
+//
+//	0 — scanner exited cleanly (no residue detected)
+//	1 — scanner found migration residue (exit code 1 from script)
+//	2 — scanner script not found or failed to launch
 func runResidueCheck(projectRoot string) int {
 	fmt.Println("Migration Residue Check:")
 	fmt.Println()
