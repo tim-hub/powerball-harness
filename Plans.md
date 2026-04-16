@@ -1,7 +1,7 @@
 # Powerball Harness — Plans.md
 
 Last archive: 2026-04-16 (Phase 49–51 → `.claude/memory/archive/Plans-2026-04-16-phase49-51.md`)
-Last release: v4.5.0 on 2026-04-15 (Phase 60+61)
+Last release: v4.5.1 on 2026-04-16 (docs + hook removal + settings hardening)
 
 ---
 
