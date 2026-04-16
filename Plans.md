@@ -1,7 +1,77 @@
 # Powerball Harness — Plans.md
 
-Last archive: 2026-04-16 (Phase 55-56 → `.claude/memory/archive/Plans-2026-04-16-phase55-56.md`)
+Last archive: 2026-04-17 (Phase 57-58 → `.claude/memory/archive/Plans-2026-04-17-phase57-58.md`)
 Last release: v4.5.1 on 2026-04-16 (docs + hook removal + settings hardening)
+
+---
+
+## Phase 69: Upstream sync — PR #81 (Codex loop runtime + concurrency fixes) + PR #82 (mirror check fix)
+
+Created: 2026-04-17
+
+**Goal**: Sync missing upstream changes from Chachamaru127/claude-code-harness PR #81 and PR #82 that preceded PR #83 (our Phase 62 Advisor Strategy). PR #81 provides the foundational `harness-loop` runtime (ScheduleWakeup, pacing, sprint-contracts, flock locking, plateau detection) that PR #83's advisor integration was built on top of. PR #82 is a 1-line mirror-check fix.
+
+**Reference**: Chachamaru127/claude-code-harness PR #81 (merged 2026-04-16T06:42Z), PR #82 (merged 2026-04-16T06:53Z).
+
+**Key decision**: Replace our Phase 62 simplified harness-loop (advisor-only, ~100 lines) with PR #81's full runtime, then layer Phase 62 advisor trigger points back on top. All ported content must be in English — translate from upstream Japanese where needed.
+
+**Path mapping**: upstream `skills/` → `harness/skills/`, `agents/` → `harness/agents/`, `scripts/` → `harness/scripts/`, `opencode/skills/` → `harness/templates/opencode/skills/`, `go/` → `go/` (import path: `github.com/tim-hub/powerball-harness/...`).
+
+### Stage 1: harness-loop replacement
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 69.1 | Replace `harness/skills/harness-loop/SKILL.md` with PR #81 version: ScheduleWakeup-based loop with `--max-cycles`, `--pacing worker\|ci\|plateau\|night`, sprint-contract flow, flock locking, plateau detection. Translate from Japanese to English. Adapt paths (`${CLAUDE_SKILL_DIR}/references/flow.md`). Keep frontmatter English (`description:` only, no `description-ja:`, no Japanese `allowed-tools`). | `grep 'ScheduleWakeup' harness/skills/harness-loop/SKILL.md` returns match; `grep '^description:' harness/skills/harness-loop/SKILL.md` starts with `"Use when`; `local-scripts/audit-skill-descriptions.sh harness/skills/harness-loop` passes | - | cc:Done [b51bef4] |
+| 69.2 | Create `harness/skills/harness-loop/references/flow.md` from PR #81's 554-line `skills/harness-loop/references/flow.md`. Translate to English. Preserve all 9 steps (lock, Plans.md read, sprint-contract, readiness check, resume pack, worker cycle, Lead review, cherry-pick/escalation, plateau detection, checkpoint, ScheduleWakeup). Adapt path refs to `harness/scripts/`. | File exists; all 9 steps present in English; no Japanese text; path refs use `harness/` prefix | 69.1 | cc:Done [b51bef4] |
+| 69.3 | Update `harness/templates/codex-skills/harness-loop/SKILL.md` and `harness/templates/opencode/skills/harness-loop/SKILL.md` to match PR #81's codex/opencode variants (non-interactive mode, `disable-model-invocation: true` for codex, pacing options, ScheduleWakeup references). English only. | Both files updated; codex variant has `disable-model-invocation: true`; opencode variant matches core skill structure | 69.1 | cc:Done [b51bef4] |
+| 69.4 | Layer Phase 62 advisor trigger points back onto the new harness-loop. The new loop calls `run-advisor-consultation.sh` at: (a) pre-task when `<!-- advisor:required -->` marker present, (b) after `detect-review-plateau.sh` returns exit 2 (`PIVOT_REQUIRED`), (c) before user escalation on plateau. Add an "Advisor Integration" section to the new SKILL.md and update `references/flow.md` plateau step. | `grep 'advisor' harness/skills/harness-loop/SKILL.md` ≥ 3 matches; `grep 'run-advisor-consultation' harness/skills/harness-loop/references/flow.md` ≥ 1 match; `bash tests/test-advisor-protocol.sh` still passes | 69.1, 69.2 | cc:Done [b51bef4] |
+
+### Stage 2: plans_watcher concurrent safety (Go)
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 69.5 | Port concurrent safety overhaul to `go/internal/hookhandler/plans_watcher.go` from PR #81: add `syscall` import, `exitFailClosed` var, flock constants (`plansLockFile`, `plansLockDirSuffix`, `plansLockMaxRetries`), `flockCall`/`sleepCall` test mocks, `plansLockHandle` struct, `acquirePlansLock`/`acquirePlansMkdirLock`/`releasePlansLock`/`isPlansLockBusy` functions. Fail-closed semantics in `HandlePlansWatcher`. Update `plans_watcher_test.go` with PR #81's new concurrent-safety tests (317 lines of new tests). Import path: `github.com/tim-hub/powerball-harness/...`. | `go test -race ./go/internal/hookhandler/...` passes; `grep 'acquirePlansLock' go/internal/hookhandler/plans_watcher.go` returns match; existing test cases still pass | - | cc:TODO |
+
+### Stage 3: New Go files — sprint contract + codex loop CLI
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 69.6 | Port `go/internal/hookhandler/sprint_contract.go` (556 lines) + `sprint_contract_test.go` (160 lines) from PR #81. Sprint contract generation/validation logic. Update import paths to `github.com/tim-hub/powerball-harness/...`. Translate any Japanese comments to English. | `go test ./go/internal/hookhandler/...` passes including sprint contract tests; `grep 'SprintContract' go/internal/hookhandler/sprint_contract.go` returns match | 69.5 | cc:TODO |
+| 69.7 | Port `go/cmd/harness/codex_loop.go` (40 lines) and `go/cmd/harness/sprint_contract.go` (65 lines) from PR #81. Update `go/cmd/harness/main.go` to register `sprint-contract` and `codex-loop` subcommands. Port `go/cmd/harness/doctor.go` additions (new checks, +72/-14 lines). Update all import paths. | `go build ./go/cmd/harness/...` succeeds; `go test ./go/cmd/harness/...` passes; `bin/harness help` shows `sprint-contract` and `codex-loop` subcommands | 69.6 | cc:TODO |
+
+### Stage 4: harness-review enhancements
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 69.8 | Merge PR #81 additions into `harness/skills/harness-review/SKILL.md` (English): add `--ui-rubric` flag to Options table and argument-hint; add Step 0 (browser vs static auto-detection decision tree); add `reviewer_profile: "browser"` output path; add `calibration` field to review JSON schema; add `browser-review-runner.sh` and `build-review-few-shot-bank.sh` references. Do NOT replace existing English content — merge only the new sections. | `grep '\-\-ui-rubric' harness/skills/harness-review/SKILL.md` returns match; `grep 'calibration' harness/skills/harness-review/SKILL.md` returns match; existing 5-perspective review flow unchanged | - | cc:TODO |
+| 69.9 | Create `harness/skills/harness-review/references/ui-rubric.md` from PR #81's `skills/harness-review/references/ui-rubric.md` (104 lines). Translate to English. Define 4-axis design quality scoring: Design Quality, Originality, Craft, Functionality (0–10 scale). | File exists at correct path; no Japanese text; `grep 'Design Quality' harness/skills/harness-review/references/ui-rubric.md` returns match | 69.8 | cc:TODO |
+
+### Stage 5: New scripts
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 69.10 | Port 4 new scripts from PR #81 to `harness/scripts/`: `codex-loop.sh` (1071 lines — Codex-native loop runtime), `auto-checkpoint.sh` (checkpoint management), `browser-review-runner.sh` (browser-based review runner), `detect-review-plateau.sh` (plateau detection, returns exit 0/1/2). Update all path refs to use `BASH_SOURCE`-based resolution and `harness/` prefix per `path-conventions.md`. Make executable. | All 4 files exist and are executable; `bash harness/scripts/detect-review-plateau.sh --help` exits 0; `bash harness/scripts/auto-checkpoint.sh --help` exits 0; BASH_SOURCE used (not `$0`) in all 4 | - | cc:TODO |
+
+### Stage 6: Script modifications + sync-skill-mirrors (PR #81 + PR #82)
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 69.11 | Port script modifications from PR #81 to `harness/scripts/`: `plans-watcher.sh` (flock additions matching Go changes, +91 lines), `record-review-calibration.sh` (+84/-3 lines, plateau calibration support), `release-preflight.sh` (+118 lines, loop + codex checks), `run-contract-review-checks.sh` (+32/-3), `write-review-result.sh` (+95/-28, browser profile support), `sync-version.sh` (+28/-7, patch/minor/major bump support). Update path refs per `path-conventions.md`. | Each modified script exits 0 on `--help`; `bash harness/scripts/plans-watcher.sh` does not error on startup; `bash harness/skills/harness-release/scripts/check-consistency.sh` passes | 69.10 | cc:TODO |
+| 69.12 | Port `sync-skill-mirrors.sh` from PR #81 (new file, 145 lines) to `harness/scripts/sync-skill-mirrors.sh`. Apply PR #82's 1-line fix pre-applied (mirror validation uses `--check` against `scripts/sync-skill-mirrors.sh` instead of raw diff rules). Update paths for our directory layout (`harness/skills/` as SSOT, `harness/templates/codex-skills/` and `harness/templates/opencode/skills/` as mirrors, `harness/skills-codex/` for Codex-only SSOT variants if applicable). | `bash harness/scripts/sync-skill-mirrors.sh --check` exits 0 on clean repo; `grep 'skills-codex\|opencode' harness/scripts/sync-skill-mirrors.sh` returns matches | 69.11 | cc:TODO |
+
+### Stage 7: New maintenance skill
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 69.13 | Create `harness/skills/maintenance/` skill from PR #81: `SKILL.md` (66 lines) + `references/cleanup.md` (213 lines). Translate to English. Skill handles periodic cleanup operations (session log pruning, stale state files, orphaned worktrees, cache purge). `description:` must start with `Use when`, ≤300 chars. | Skill dir + both files exist; `local-scripts/audit-skill-descriptions.sh harness/skills/maintenance` passes; no Japanese text | - | cc:TODO |
+| 69.16 | Restore maintenance skill references removed in Phase 57. (a) `docs/CLAUDE-skill-catalog.md`: add `maintenance/` back to the hierarchy diagram and category table (was removed in commit `625db0b` as a phantom skill). (b) `harness/scripts/auto-cleanup-hook.sh` and `harness/scripts/stop-cleanup-check.sh`: revert `/harness-plan archive` back to `/maintenance` in hook messages (was replaced in commit `95d4d99`). | `grep 'maintenance' docs/CLAUDE-skill-catalog.md` returns match; `grep '/maintenance' harness/scripts/auto-cleanup-hook.sh` returns match; `grep '/maintenance' harness/scripts/stop-cleanup-check.sh` returns match | 69.13 | cc:TODO |
+
+### Stage 8: Tests + validation
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 69.14 | Port test files from PR #81 to `tests/`: `test-auto-checkpoint.sh` (378 lines), `test-codex-loop-cli.sh` (349 lines), `test-detect-review-plateau.sh` (142 lines), `test-harness-loop-flow.sh` (31 lines), `test-harness-loop-guard.sh` (171 lines); `tests/integration/`: `loop-3cycle.sh`, `loop-compaction-resume.sh`, `loop-max-cycles.sh`, `loop-plans-concurrent.sh`. Update paths for `harness/scripts/` layout. | All 9 test files exist; `bash tests/test-detect-review-plateau.sh` exits 0; `bash tests/test-auto-checkpoint.sh` exits 0 | 69.10, 69.11 | cc:TODO |
+| 69.15 | Full validation pass: `go test -race ./go/internal/hookhandler/...`, `go test ./go/cmd/harness/...`, `bash tests/validate-plugin.sh`, `bash harness/skills/harness-release/scripts/check-consistency.sh`, `bash harness/scripts/sync-skill-mirrors.sh --check`, `bash tests/test-advisor-protocol.sh`, `bash tests/test-advisor-config.sh`. Confirm Phase 62 advisor integration is not broken by harness-loop replacement. Add CHANGELOG `[Unreleased]` entry. | All commands exit 0; CHANGELOG entry present under `[Unreleased]` covering PR #81+#82 sync | 69.1–69.14, 69.16 | cc:TODO |
 
 ---
 
@@ -225,66 +295,6 @@ Goal: Systematic review and optimization of every skill under `harness/skills/`.
 | 59.6 | Update legacy slash commands to current skill invocation patterns in `workflow-guide` (6 commands), `session-init` (3 commands), `session` (2 commands), and `workflow-guide/examples/typical-workflow.md` | `grep -r '/harness-init\|/plan-with-agent\|/handoff-to-' harness/skills/` returns 0 hits | - | cc:done |
 | 59.7 | Structural fixes: move Quick Reference from line 99 → top in `agent-browser`; remove non-standard `Trigger` column from `ci` Feature Details table; fix `harness-plan` sync row wording; expand truncated Step 1 in `session-control`; add vibecoder-guide/session-init distinction note | Each fix individually verified post-edit | - | cc:done |
 | 59.8 | Delete `principles/references/vibecoder-guide.md` — content duplicated the standalone `vibecoder-guide` skill | File deleted; `principles` SKILL.md has no dangling reference | - | cc:done |
-
----
-
-## Phase 57: Documentation drift cleanup
-
-Created: 2026-04-15
-
-Goal: Fix stale references, duplicate rows, and format mismatches across docs, memory, and rules. All items from the project-wide review classified as documentation issues.
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 57.1 | Fix `docs/CLAUDE-skill-catalog.md` — remove references to non-existent skills `impl/`, `verify/`, `handoff/`, `maintenance/`, `troubleshoot/` from hierarchy diagram and category table | `grep -E 'impl/\|verify/\|handoff/\|maintenance/\|troubleshoot/' docs/CLAUDE-skill-catalog.md` returns 0 | - | cc:Done [625db0b] |
-| 57.2 | Fix `CONTRIBUTING.md` CHANGELOG format section (lines 131-161) — replace Keep a Changelog style description with actual Before/After narrative format used by the project | CONTRIBUTING.md CHANGELOG section matches `github-release.md` rules | - | cc:Done [625db0b] |
-| 57.3 | Fix `CONTRIBUTING.md` version management section (lines 98-103) — update "two places" to reference `harness/VERSION` + `harness/harness.toml` instead of `marketplace.json` | No mention of `marketplace.json` having a version field | - | cc:Done [625db0b] |
-| 57.4 | Fix `CONTRIBUTING.md` Testing section (lines 212-216) — fix duplicate step number "3." | Sequential step numbering (1, 2, 3, 4) | - | cc:Done [625db0b] |
-| 57.5 | Mark `.claude/memory/patterns.md` P1-P3 as superseded — add `_(superseded by D9/Go migration — see go/internal/guardrail/)_` markers; keep historical content but clearly flag it | P1, P2, P3 each have a superseded marker | - | cc:Done [c174a80] |
-| 57.6 | Deduplicate `docs/CLAUDE-feature-table.md` — remove duplicate Slack Integration row (line ~256) and duplicate Auto Mode row (line ~187); review 3 "planned/future" items and mark with dates or remove | No duplicate rows; planned items either have target dates or are removed | - | cc:Done [c174a80] |
-| 57.7 | Fix `go/DESIGN.md` — remove or annotate `internal/plans/` reference as "not yet implemented" | DESIGN.md accurately reflects actual package structure | - | cc:Done [711929a] |
-| 57.8 | Fix `.claude/rules/hooks-editing.md` — remove stale dual-sync `.claude-plugin/hooks.json` requirement; update to reflect current architecture where `harness/hooks/hooks.json` is the SSOT | Rule matches actual file layout | - | cc:Done [711929a] |
-| 57.9 | Register orphaned templates in `harness/templates/template-registry.json` or delete orphaned files — `sandbox-settings.json.template`, `rules/quality-gates.md.template`, `rules/security-guidelines.md.template`, `rules/tdd-guidelines.md.template` | Every `.template` file on disk has a registry entry, OR orphaned files are removed | - | cc:Done [711929a] |
-
----
-
-## Phase 58: Script hygiene + settings hardening
-
-Created: 2026-04-15
-
-Goal: Fix shell script path conventions, strict mode, variable naming, and settings.json deny rule inconsistencies. All LOW-severity items from the project-wide review.
-
-### Stage 1: Path convention fixes
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 58.1 | Fix `$0` → `${BASH_SOURCE[0]}` in 3 harness scripts: `harness/scripts/codex/sync-rules-to-agents.sh:15`, `harness/scripts/i18n/set-locale.sh:12`, `harness/scripts/i18n/check-translations.sh:9` | `grep -rn 'dirname "\$0"' harness/scripts/` returns 0 results | - | cc:Done [b4b5ef0] |
-| 58.2 | Fix `$0` → `${BASH_SOURCE[0]}` in `local-scripts/check-consistency.sh:11` | Line 11 uses `${BASH_SOURCE[0]}` | - | cc:Done [b4b5ef0] |
-| 58.3 | Fix misleading variable name in `harness/scripts/codex-setup-local.sh:55` — rename `repo_root` → `plugin_dir` with `# plugin-local:` comment | Variable name matches what it resolves to | - | cc:Done [b4b5ef0] |
-| 58.4 | Fix `harness/scripts/generate-sprint-contract.sh` — add `__dirname` or `git rev-parse` based root resolution instead of `process.cwd()` | Script resolves project root from git, not CWD | - | cc:Done [b4b5ef0] |
-
-### Stage 2: Test script fixes
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 58.5 | Fix `tests/validate-plugin.sh:206` — replace hardcoded `/tmp` with `${TMPDIR:-/tmp}` | No bare `/tmp` in mktemp calls | - | cc:Done [a5b2eb2] |
-| 58.6 | Fix `tests/validate-plugin.sh:5` — add `set -e` to existing `set -u` and `set -o pipefail` | Line 5 reads `set -euo pipefail` | - | cc:Done [a5b2eb2] |
-
-### Stage 3: Settings and skill description fixes
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 58.7 | Fix `harness/settings.json:21` — change `"Bash(* .env)"` to consistent `"Bash(cat .env:*)"` or equivalent `:*` syntax matching other rules | All deny rules use consistent syntax | - | cc:Done [a5b2eb2] |
-| 58.8 | Fix `harness/settings.json:80-82` — move `export PATH=*`, `export LD_LIBRARY_PATH=*`, `export PYTHONPATH=*` from `deny` to `ask` | Three rules moved from deny to ask array | - | cc:Done [a5b2eb2] |
-| 58.9 | Fix `harness/skills/vibecoder-guide/SKILL.md` description — rewrite to describe task shape not user attribute (remove "the user seems non-technical") | Description starts with `Use when ` and describes task shape per skill-description.md Rule 2 | - | cc:Done [a5b2eb2] |
-| 58.10 | Clean up orphaned reference files — either link `harness/skills/harness-setup/references/codex.md` and `harness/skills/workflow-guide/references/commands.md` from their SKILL.md, or delete them | Every file in `references/` is linked from SKILL.md, OR orphaned files removed | - | cc:Done [a5b2eb2] |
-
-### Stage 4: Validation
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 58.11 | Run full validation suite: `validate-plugin.sh` + `check-consistency.sh` + `check-residue.sh` + `harness validate all` | All pass with 0 failures | 56.1-56.5, 57.1-57.9, 58.1-58.10 | cc:Done [30a3866] |
-| 58.12 | Record all changes under `[Unreleased]` in CHANGELOG.md in Before/After format | CHANGELOG entry added | 58.11 | cc:Done [35cb85c] |
 
 ---
 
