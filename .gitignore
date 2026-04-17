@@ -22,7 +22,7 @@ docs/design/
 
 # Local development
 .claude/*
-go/.claude/*
+go/**/.claude/
 !.claude/rules/
 !.claude/output-styles/
 !.claude/settings.json
