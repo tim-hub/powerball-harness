@@ -1,0 +1,27 @@
+{
+  "phase": "64",
+  "description": "Agent orchestration optimizations — parallel reviewer invocations + concurrent sprint-contract generation",
+  "baseline_phase": "62",
+  "optimizations": {
+    "parallel_reviewer_invocations": {
+      "description": "In --parallel N mode, N Reviewer agents now run concurrently instead of sequentially",
+      "before": "Review phase wallclock = sum(N × single-review-time) ≈ N × ~30s",
+      "after": "Review phase wallclock = max(single-review-time) + 10s overhead ≈ ~40s regardless of N",
+      "improvement_formula": "O(N) → O(1) relative to task count",
+      "constraint": "Verdict outcomes identical — each Reviewer receives same diff as sequential",
+      "measurement_note": "Runtime-only metric — requires actual CC session with harness-work --parallel"
+    },
+    "concurrent_sprint_contract_generation": {
+      "description": "Breezing Phase A generates all sprint contracts concurrently",
+      "before_formula": "Phase A duration = sum(per-task contract time) ≈ N × ~5s",
+      "after_formula": "Phase A duration = max(per-task contract time) + 10s overhead ≈ ~15s for 5 tasks",
+      "for_5_task_breezing": {
+        "before_estimate_ms": 25000,
+        "after_estimate_ms": 15000,
+        "improvement_pct": 40
+      },
+      "measurement_note": "Runtime-only metric — requires CC session with harness-work --breezing"
+    }
+  },
+  "runtime_baseline": "N/A — Phase 62 baseline file captures only Go-level guardrail benchmarks, not orchestration wallclock"
+}
