@@ -9,6 +9,7 @@ Change history for claude-code-harness.
 ### Fixed
 
 - `harness codex-loop` が sibling install から helper script を正しく見つけられない問題を修正し、resume 時に古い `cycle_error` 状態が残ったまま再開されるケースと、同じ run への二重再入で state が混線するケースを防止
+- advisor consult が timeout したときに `run-advisor-consultation.sh` が `TypeError: can't concat str to bytes` で落ち、さらに `codex-loop.sh` がその失敗を即 `task_blocked` / `cycle_error` に昇格させて loop 全体を止めていた問題を修正。timeout の partial output を bytes→str に正規化し、high-risk preflight と retry-threshold の advisor 相談は失敗しても guidance を空にして task 実行を継続する fallback を追加
 
 ## [4.1.1] - 2026-04-16
 

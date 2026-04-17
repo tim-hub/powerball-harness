@@ -1349,16 +1349,22 @@ perform_cycle() {
   high_risk_summary="$(contract_high_risk_summary "${contract_path}")"
 
   if [ "${advisor_active}" = "true" ] && [ -n "${high_risk_summary}" ]; then
-    local preflight_hash preflight_response preflight_decision preflight_count
+    local preflight_hash preflight_response preflight_decision preflight_count preflight_exit
     preflight_hash="${task_id}:high-risk-preflight:$(normalize_error_signature "${high_risk_summary}")"
     preflight_count="$(advisor_task_consult_count "${task_id}")"
     if ! advisor_trigger_seen "${preflight_hash}" && [ "${preflight_count}" -lt "$(advisor_max_consults_per_task)" ]; then
-      preflight_response="$(consult_advisor "${task_id}" "high-risk-preflight" "${preflight_hash}" "高リスク task の初回実行前。どの観点を先に固めるべきか。" 1 "${high_risk_summary}" "task=${task_id}||risk_triggers=${high_risk_summary}||cycle=${cycle_number}")" || return 21
-      preflight_decision="$(json_get_file "${preflight_response}" "decision" "")"
-      advisor_guidance="$(render_advisor_guidance "${preflight_response}")"
-      if [ "${preflight_decision}" = "STOP" ]; then
-        log_line "advisor stop before execution for ${task_id}"
-        return 21
+      preflight_exit=0
+      preflight_response="$(consult_advisor "${task_id}" "high-risk-preflight" "${preflight_hash}" "高リスク task の初回実行前。どの観点を先に固めるべきか。" 1 "${high_risk_summary}" "task=${task_id}||risk_triggers=${high_risk_summary}||cycle=${cycle_number}")" || preflight_exit=$?
+      if [ "${preflight_exit}" -ne 0 ]; then
+        log_line "advisor preflight failed for ${task_id} (exit=${preflight_exit}); continuing without guidance"
+        advisor_guidance=""
+      else
+        preflight_decision="$(json_get_file "${preflight_response}" "decision" "")"
+        advisor_guidance="$(render_advisor_guidance "${preflight_response}")"
+        if [ "${preflight_decision}" = "STOP" ]; then
+          log_line "advisor stop before execution for ${task_id}"
+          return 21
+        fi
       fi
     fi
   fi
@@ -1538,19 +1544,29 @@ PY
     fi
 
     if [ "${advisor_active}" = "true" ] && [ "${failure_count}" -ge "${retry_threshold}" ]; then
-      local retry_hash retry_response retry_decision retry_count
+      local retry_hash retry_response retry_decision retry_count retry_exit
       retry_hash="${task_id}:retry-threshold:${failure_signature}"
       retry_count="$(advisor_task_consult_count "${task_id}")"
       if ! advisor_trigger_seen "${retry_hash}" && [ "${retry_count}" -lt "${max_consults}" ]; then
-        retry_response="$(consult_advisor "${task_id}" "retry-threshold" "${retry_hash}" "同じ原因の失敗が繰り返された。次は何を変えるべきか。" "${task_attempt}" "${summary}" "task=${task_id}||attempt=${task_attempt}||signature=${failure_signature}")" || return 21
-        retry_decision="$(json_get_file "${retry_response}" "decision" "")"
-        advisor_guidance="$(render_advisor_guidance "${retry_response}")"
-        if [ "${retry_decision}" = "STOP" ]; then
-          break
-        fi
-        if [ "${task_attempt}" -lt "${attempt_limit}" ]; then
-          task_attempt=$((task_attempt + 1))
-          continue
+        retry_exit=0
+        retry_response="$(consult_advisor "${task_id}" "retry-threshold" "${retry_hash}" "同じ原因の失敗が繰り返された。次は何を変えるべきか。" "${task_attempt}" "${summary}" "task=${task_id}||attempt=${task_attempt}||signature=${failure_signature}")" || retry_exit=$?
+        if [ "${retry_exit}" -ne 0 ]; then
+          log_line "advisor retry-threshold failed for ${task_id} (exit=${retry_exit}); proceeding without guidance"
+          advisor_guidance=""
+          if [ "${task_attempt}" -lt "${attempt_limit}" ]; then
+            task_attempt=$((task_attempt + 1))
+            continue
+          fi
+        else
+          retry_decision="$(json_get_file "${retry_response}" "decision" "")"
+          advisor_guidance="$(render_advisor_guidance "${retry_response}")"
+          if [ "${retry_decision}" = "STOP" ]; then
+            break
+          fi
+          if [ "${task_attempt}" -lt "${attempt_limit}" ]; then
+            task_attempt=$((task_attempt + 1))
+            continue
+          fi
         fi
       fi
     fi
