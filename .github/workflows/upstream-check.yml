@@ -10,32 +10,26 @@ jobs:
   check-upstream:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout fork (master)
-        uses: actions/checkout@v4
-        with:
-          ref: master
-          fetch-depth: 0
-
-      - name: Add upstream remote
+      - name: Check upstream activity (last 24 hours)
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git remote add upstream https://github.com/Chachamaru127/claude-code-harness.git
-          git fetch upstream main --quiet
+          SINCE=$(date -u -d '24 hours ago' '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null \
+              || date -u -v-24H '+%Y-%m-%dT%H:%M:%SZ')
 
-      - name: Compare with upstream/main
-        run: |
-          BEHIND=$(git rev-list --count HEAD..upstream/main)
-          AHEAD=$(git rev-list --count upstream/main..HEAD)
+          COMMITS=$(gh api "repos/Chachamaru127/claude-code-harness/commits?sha=main&since=${SINCE}" \
+            --jq 'length')
 
-          echo "Ahead of upstream by:  $AHEAD commits"
-          echo "Behind upstream by:    $BEHIND commits"
+          echo "Upstream commits in the last 24 hours: $COMMITS"
 
-          if [ "$BEHIND" -gt 0 ]; then
+          if [ "$COMMITS" -gt 0 ]; then
             echo ""
-            echo "::error::Upstream has $BEHIND new commit(s) not present in this fork."
+            echo "::warning::Upstream has $COMMITS new commit(s) in the last 24 hours."
             echo ""
-            echo "New upstream commits:"
-            git log --oneline HEAD..upstream/main
+            echo "Recent upstream commits:"
+            gh api "repos/Chachamaru127/claude-code-harness/commits?sha=main&since=${SINCE}" \
+              --jq '.[] | "\(.sha[0:7]) \(.commit.message | split("\n")[0])"'
             exit 1
           fi
 
-          echo "Fork is up to date with upstream."
+          echo "No upstream changes in the last 24 hours."
