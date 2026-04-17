@@ -5,10 +5,37 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.6.0...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.6.1...HEAD
+[4.6.1]: https://github.com/tim-hub/powerball-harness/compare/v4.6.0...v4.6.1
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.6.1] - 2026-04-17
+
+### Theme: Bug fixes and test robustness
+
+**Three small fixes: codex-loop Plans.md path resolution, test backward-compatibility for template versions, and branch policy documentation.**
+
+---
+
+#### 1. codex-loop Plans.md Path Resolution Fix
+
+**Before**: `plans_file_path()` in `codex-loop.sh` received a relative path (`Plans.md`) from `config-utils.sh` and checked its existence against the current working directory (the harness repo root). When starting a loop against an external project without `Plans.md`, the check would find the repo's own `Plans.md` and proceed — starting a background worker instead of failing with a clear error.
+
+**After**: Relative paths from `config-utils` are now resolved against `$PROJECT_ROOT` before the existence check. If the resolved path doesn't exist, the variable is cleared so the fail-fast guard fires correctly.
+
+#### 2. Template Version Backward-Compatibility in Tests
+
+**Before**: `test-frontmatter-integration.sh` Test 3 required template `_harness_version` to exactly match the plugin version. Bumping `harness/VERSION` without updating every template file caused CI failures.
+
+**After**: Test 3 now uses `semver_lte` (via `sort -V`) to accept any template version ≤ the current plugin version. Only a template claiming a version *newer* than the plugin fails the check.
+
+#### 3. Branch Policy Documentation Clarification
+
+**Before**: `harness-release/SKILL.md` only mentioned `main` in the solo-development push policy and in Phase 7 push command examples.
+
+**After**: Updated to reflect that both `main` and `master` are supported, matching actual repo usage.
 
 ## [4.6.0] - 2026-04-17
 
