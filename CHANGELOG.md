@@ -4,7 +4,15 @@ Change history for claude-code-harness.
 
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
-## [Unreleased](https://github.com/tim-hub/powerball-harness/compare/v4.5.2...HEAD)
+## [Unreleased](https://github.com/tim-hub/powerball-harness/compare/v4.6.0...HEAD)
+
+## [4.6.0](https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0) - 2026-04-17
+
+### Theme: Autonomous loop runtime, concurrent hook fan-out, and Advisor consultation agent
+
+**harness-loop graduates to a full cycle runtime; PostToolUse drops from 9 subprocess forks to 2 via concurrent Go fan-out; Workers gain a read-only Opus Advisor at decision blockers; reviewer and sprint-contract phases run in parallel.**
+
+---
 
 ### Phase 63: Hook chain optimizations — memory-bridge mode dispatch, POST_BATCH goroutine fan-out, PreToolUse fan-out
 
@@ -135,6 +143,30 @@ Each axis is scored 1–5. `--ui-rubric` is a standalone flag; it does not chang
 **Before**: `harness --version` failed when the binary was on PATH via a symlink — `dirname "$0"` resolved to the symlink's directory, not the real binary location.
 
 **After**: The shim uses `readlink -f` (Linux) / `realpath` (macOS) to resolve the real script path before `dirname`, so symlink-installed invocations work correctly.
+
+### Phase 70: Go code quality — struct-field dependency injection, hook ordering comment, go.work
+
+**Three non-blocking code-review observations addressed: plans_watcher is now `t.Parallel()`-safe, hook response priority is explicit, and gopls resolves Go imports from the repo root.**
+
+---
+
+#### 1. Struct-Field Dependency Injection in `plans_watcher.go` (70.1)
+
+**Before**: `flockCall`, `sleepCall`, and `exitFailClosed` were package-level `var` function variables. Tests swapped them via global mutation — a pattern that silently races under `t.Parallel()`.
+
+**After**: The three vars are replaced by `plansWatcherDeps` struct fields on a new `plansWatcher` type. `HandlePlansWatcher` stays a thin public wrapper (signature unchanged for `post_batch.go`); all logic runs in `(*plansWatcher).handle()`. Tests construct `&plansWatcher{deps: ...}` per-instance instead of mutating globals — fully `t.Parallel()`-safe.
+
+#### 2. Hook Ordering Comment in `post_batch.go` (70.2)
+
+**Before**: `postBatchHooks()` returned an ordered slice of 8 concurrent handlers, but nothing documented that slice position determines which handler's output CC receives. A future contributor inserting a hook at the wrong position would silently change the response without any warning.
+
+**After**: A doc comment on `postBatchHooks()` explicitly states the "first non-empty JSON wins" merge strategy and explains that output-producing hooks (plans-watcher, quality-pack) must precede side-effect-only hooks (emit-trace, auto-cleanup).
+
+#### 3. `go.work` at Repo Root (70.3)
+
+**Before**: The Go module lives at `go/go.mod`, not the repo root. gopls started from the repo root reported spurious "not in GOPATH" / "missing module" errors on imports — even though `go build ./...` from `go/` compiled cleanly.
+
+**After**: `go.work` at the repo root declares `use ./go`, giving gopls a workspace anchor that resolves imports correctly regardless of editor start directory. No build behavior changes — `go.work` is a tooling hint only.
 
 ## [4.5.2](https://github.com/tim-hub/powerball-harness/compare/v4.5.1...v4.5.2) - 2026-04-17
 
