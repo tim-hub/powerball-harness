@@ -99,7 +99,7 @@ Purpose: 長時間 Worker の安定性を支える CC 2.1.105 の新機構を Ha
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
 | 44.2.1 | `.claude-plugin/hooks.json` に `PreCompact` hook を追加し、`go/cmd/harness/pre_compact.go` (新設) で (a) 長時間 Worker 実行中は block (`{"decision":"block"}` または exit 2)、(b) reviewer/advisor セッションは許可、(c) Plans.md 未保存の状態では block してエスカレーション、の 3 判定を実装する。既存 PreToolUse / PostToolUse / Stop hook とは干渉しない | (a) `tests/test-pre-compact-hook.sh` (新設) で 3 判定が PASS、(b) `go test ./go/internal/hookhandler/...` PASS、(c) Breezing 長時間セッションで compaction が走らないことを手動確認 | 44.1.1 | cc:完了 [b7e4263] |
-| 44.2.2 | `.claude-plugin/plugin.json` に top-level `monitors` manifest を追加し、session 起動時に (a) harness-mem 健全性、(b) advisor/reviewer 状態、(c) Plans.md-実装の drift、を auto-arm でストリーミング監視する。既存 `scripts/monitor-*.sh` を `monitors` manifest から呼び出せるように統一する | (a) `claude plugin validate` PASS、(b) `/skills` 呼び出しで monitor が auto-arm される、(c) `go/cmd/harness/monitor_status.go` (新設) で monitor 一覧が出力できる | 44.1.1 | cc:TODO |
+| 44.2.2 | `.claude-plugin/plugin.json` に top-level `monitors` manifest を追加し、session 起動時に (a) harness-mem 健全性、(b) advisor/reviewer 状態、(c) Plans.md-実装の drift、を auto-arm でストリーミング監視する。既存 `scripts/monitor-*.sh` を `monitors` manifest から呼び出せるように統一する | (a) `claude plugin validate` PASS、(b) `/skills` 呼び出しで monitor が auto-arm される、(c) `go/cmd/harness/monitor_status.go` (新設) で monitor 一覧が出力できる | 44.1.1 | cc:完了 [a1aae68] |
 
 ---
 
