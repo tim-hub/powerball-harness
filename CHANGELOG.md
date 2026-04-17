@@ -5,12 +5,15 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.7.0...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.8.0...HEAD
+[4.8.0]: https://github.com/tim-hub/powerball-harness/compare/v4.7.0...v4.8.0
 [4.7.0]: https://github.com/tim-hub/powerball-harness/compare/v4.6.1...v4.7.0
 [4.6.1]: https://github.com/tim-hub/powerball-harness/compare/v4.6.0...v4.6.1
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.8.0] - 2026-04-18
 
 ### Theme: Per-task execution traces (Phase 72)
 
