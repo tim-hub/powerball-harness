@@ -18,7 +18,7 @@ import (
 
 func TestHandleMemoryBridge_EmptyInput(t *testing.T) {
 	var out bytes.Buffer
-	if err := HandleMemoryBridge(strings.NewReader(""), &out); err != nil {
+	if err := HandleMemoryBridge(strings.NewReader(""), &out, ""); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	assertApprove(t, out.String())
@@ -26,7 +26,7 @@ func TestHandleMemoryBridge_EmptyInput(t *testing.T) {
 
 func TestHandleMemoryBridge_InvalidJSON(t *testing.T) {
 	var out bytes.Buffer
-	if err := HandleMemoryBridge(strings.NewReader("not json"), &out); err != nil {
+	if err := HandleMemoryBridge(strings.NewReader("not json"), &out, ""); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	assertApprove(t, out.String())
@@ -35,7 +35,7 @@ func TestHandleMemoryBridge_InvalidJSON(t *testing.T) {
 func TestHandleMemoryBridge_UnknownTarget(t *testing.T) {
 	var out bytes.Buffer
 	payload := `{"hook_event_name":"unknown-event","session_id":"s1","cwd":"/tmp"}`
-	if err := HandleMemoryBridge(strings.NewReader(payload), &out); err != nil {
+	if err := HandleMemoryBridge(strings.NewReader(payload), &out, ""); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	assertApprove(t, out.String())
@@ -50,7 +50,7 @@ func TestHandleMemoryBridge_ValidTargets(t *testing.T) {
 		t.Run(target, func(t *testing.T) {
 			var out bytes.Buffer
 			payload := `{"hook_event_name":"` + target + `","session_id":"s1","cwd":"` + dir + `"}`
-			if err := HandleMemoryBridge(strings.NewReader(payload), &out); err != nil {
+			if err := HandleMemoryBridge(strings.NewReader(payload), &out, ""); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			assertApprove(t, out.String())
@@ -74,7 +74,7 @@ func TestHandleMemoryBridge_LogEntry_Format(t *testing.T) {
 
 	var out bytes.Buffer
 	payload := `{"hook_event_name":"session-start","session_id":"sess-abc","cwd":"` + dir + `"}`
-	if err := HandleMemoryBridge(strings.NewReader(payload), &out); err != nil {
+	if err := HandleMemoryBridge(strings.NewReader(payload), &out, ""); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -120,7 +120,7 @@ func TestHandleMemoryBridge_PascalCaseNormalization(t *testing.T) {
 		t.Run(tc.ccEventName, func(t *testing.T) {
 			var out bytes.Buffer
 			payload := `{"hook_event_name":"` + tc.ccEventName + `","session_id":"s1","cwd":"` + dir + `"}`
-			if err := HandleMemoryBridge(strings.NewReader(payload), &out); err != nil {
+			if err := HandleMemoryBridge(strings.NewReader(payload), &out, ""); err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 			assertApprove(t, out.String())

@@ -28,6 +28,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/tim-hub/powerball-harness/go/internal/ci"
@@ -247,7 +248,13 @@ func runHook(hookType string) {
 			fmt.Fprintf(os.Stderr, "browser-guide handler error: %v\n", err)
 		}
 	case "memory-bridge":
-		if err := hookhandler.HandleMemoryBridge(os.Stdin, os.Stdout); err != nil {
+		mode := ""
+		for _, arg := range os.Args[3:] {
+			if strings.HasPrefix(arg, "--mode=") {
+				mode = strings.TrimPrefix(arg, "--mode=")
+			}
+		}
+		if err := hookhandler.HandleMemoryBridge(os.Stdin, os.Stdout, mode); err != nil {
 			fmt.Fprintf(os.Stderr, "memory-bridge handler error: %v\n", err)
 		}
 	case "worktree-create":
@@ -398,6 +405,14 @@ func runHook(hookType string) {
 		h := &hookhandler.PreCompactSave{}
 		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "pre-compact-save handler error: %v\n", err)
+		}
+	case "post-tool-batch":
+		if err := hook.RunPostToolBatch(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "post-tool-batch handler error: %v\n", err)
+		}
+	case "pre-tool-batch":
+		if err := hook.RunPreToolBatch(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "pre-tool-batch handler error: %v\n", err)
 		}
 	case "emit-trace":
 		h := &hookhandler.EmitAgentTrace{}
