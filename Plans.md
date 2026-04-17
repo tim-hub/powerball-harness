@@ -5,6 +5,66 @@ Last release: v4.5.1 on 2026-04-16 (docs + hook removal + settings hardening)
 
 ---
 
+## Phase 74: Code-space skill search — proof-of-concept on `harness-review`
+
+Created: 2026-04-17
+
+**Goal**: Borrow Meta-Harness's code-space search idea (arxiv 2603.28052) — instead of hand-editing `SKILL.md`, generate variants and score them against an evaluation suite. Scope: one skill (`harness-review`), 3-5 variants, measurable outcome. If the POC improves the skill, formalize the loop; if not, record why and discard.
+
+**Depends on**: Phase 72 (traces provide failure signal for the proposer) + Phase 73 (advisor pattern reusable for proposer scaffolding).
+
+**Open design decision** (user input during 74.1): score function — rubric-based (0-5 across N criteria like "catches real bugs", "no false positives", "clear verdict rationale") vs pass/fail against golden verdicts on a fixed PR corpus. Rubric gives gradient signal; golden outputs are objective but binary. Pick one.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 74.1 | Define score function + build eval runner `local-scripts/eval-skill.sh <skill-dir> <eval-suite-dir>`. Runs fixed inputs through the skill, captures outputs, emits JSON score report | `eval-skill.sh harness/skills/harness-review tests/skill-eval/harness-review` prints a reproducible score | 72.1 | cc:TODO |
+| 74.2 | Build evaluation suite for `harness-review` at `tests/skill-eval/harness-review/` — 5 PR diffs (2 with real bugs, 2 clean, 1 scope-creep) + expected verdicts | `ls tests/skill-eval/harness-review/*.{diff,expected.json}` shows 10 files; running baseline skill against suite produces a score | 74.1 | cc:TODO |
+| 74.3 | Write proposer script `local-scripts/propose-skill-variants.sh <skill-dir>`. Given SKILL.md + eval output + recent traces, generates 3 SKILL.md variants to `/tmp/skill-variants/harness-review-v{1,2,3}/SKILL.md` via Claude subagent | Running against a broken baseline (intentionally degraded `harness-review`) produces 3 syntactically valid SKILL.md files with meaningful diffs | 74.1 | cc:TODO |
+| 74.4 | Run end-to-end search loop: baseline → generate 3 variants → score each → pick winner. Emit report at `.claude/state/code-search/harness-review-<YYYY-MM-DD>.md` with scores, diffs, chosen winner | Report exists; winner's score ≥ baseline's score; report includes rationale | 74.2, 74.3 | cc:TODO |
+| 74.5 | Decision gate: if winner beats baseline by ≥10%, promote to main and add pattern to `patterns.md`. Otherwise document the null result. Update CHANGELOG [Unreleased] | Either a commit promoting the variant OR a patterns.md entry "code-space search POC attempted; no gain — reasons X, Y" | 74.4 | cc:TODO |
+
+---
+
+## Phase 73: Advisor full-history inspection — scoped raw-source loader
+
+Created: 2026-04-17
+
+**Goal**: Upgrade the Advisor (harness/agents/advisor.md) from `history.jsonl`-only reads to scoped raw-source inspection — recent session-log excerpts, relevant git diffs, and Phase 72 execution traces. The Meta-Harness paper's core claim is that compressed feedback (summaries) loses the causal signal needed to fix problems; raw sources restore it.
+
+**Depends on**: Phase 72 (trace files are the richest new source).
+
+**Non-goals**: Replacing `patterns.md` or `decisions.md`. Those remain summary SSOTs for humans. Advisor just gets more context *options* for edge cases where summaries don't suffice.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 73.1 | Extend advisor input schema with optional `context_sources` array (values: `session_log`, `git_diff`, `trace`, `patterns`). Caller chooses what to load per invocation | advisor.md schema updated; example in advisor.md shows all 4 source values | - | cc:TODO |
+| 73.2 | Implement scoped loader `harness/scripts/advisor-load-context.sh <task_id> <sources...>`. Returns ≤10KB per source by default: session-log entries mentioning task_id, `git diff` since task-start commit, trace JSONL for this task, patterns.md sections matching task tags | Running with `--task 72.1 --sources trace,git_diff` on a real task returns valid excerpts totaling <20KB | 72.1 | cc:TODO |
+| 73.3 | Update advisor.md prompt: add "When each source helps" table (e.g. trace → repeated_failure; git_diff → high_risk_preflight; session_log → plateau_before_escalation). Preserve PLAN/CORRECTION/STOP schema backward-compat | advisor.md passes `./tests/validate-plugin.sh`; schema section unchanged | 73.1 | cc:TODO |
+| 73.4 | Keep duplicate suppression first — advisor only loads raw context when no `history.jsonl` cache hit exists for (task_id, reason_code, error_signature) tuple | Unit test: cached match → no context loaded; miss → context loader invoked once | 73.2 | cc:TODO |
+| 73.5 | Add integration test: seed a trace showing "fix was a single-file rename in N files"; assert advisor returns `CORRECTION` with suggested_approach mentioning the rename pattern | Test at `tests/advisor/test-full-history-correction.sh` passes | 73.2, 73.3 | cc:TODO |
+
+---
+
+## Phase 72: Execution trace retention — per-task causal log
+
+Created: 2026-04-17
+
+**Goal**: Introduce structured per-task execution traces so future agents can reason causally about what was tried and what failed — not just what was decided. Complements `decisions.md` (why) and `patterns.md` (how) with a third layer: **attempts** (what actually happened).
+
+**Motivation**: Borrowed from Meta-Harness (arxiv 2603.28052). The paper's proposer reads a median of 82 files per iteration — full execution history — and that raw context is what distinguishes it from template-based optimization. This project currently persists only summaries.
+
+**Open design decision** (user input during 72.1): trace schema shape — flat JSONL where each line is one event (`tool_call`, `decision`, `error`, `fix_attempt`, `outcome`) vs nested per-attempt where each entry groups an attempt's tool_calls + outcome. Flat is simpler to append and tail; nested preserves attempt boundaries natively. Both are valid; pick one.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 72.1 | Define trace schema + storage layout. Write schema doc at `.claude/memory/schemas/trace.v1.md`. Storage: `.claude/state/traces/<task_id>.jsonl` — one file per Plans.md task. Capture: ts, event_type, tool (if tool_call), error_signature (if error), payload | schema doc exists; includes ≥1 concrete example per event type | - | cc:TODO |
+| 72.2 | Implement Go emitter `go/internal/trace/writer.go` with `AppendEvent(taskID, event)` — atomic append via flock, fsync on close. Add unit test for concurrent writers to different task files | `go test ./go/internal/trace/...` passes; concurrent test with 10 goroutines writing to 10 files produces 10 valid JSONL files with no corruption | 72.1 | cc:TODO |
+| 72.3 | Wire PostToolUse hook → trace emitter. Derive `task_id` from `.claude/state/plans-state.json` (active task). Skip if no active task | `/harness-work` on a test task produces a populated `.claude/state/traces/<task_id>.jsonl`; no-task sessions produce no trace file | 72.2 | cc:TODO |
+| 72.4 | Archive policy script `harness/skills/maintenance/scripts/archive-traces.sh`. Moves traces for `cc:done` tasks >30 days old into `.claude/memory/archive/traces/YYYY-MM/`. Wire into existing maintenance skill | Script runs idempotently; second run is a no-op; files moved retain JSONL validity | 72.2 | cc:TODO |
+| 72.5 | Documentation: add "Trace retention" section to `harness/README.md` memory diagram (L0/L1/L2) explaining where traces fit. Update `.claude/memory/patterns.md` with a `P10: Per-task execution traces` pattern. Add CHANGELOG [Unreleased] entry | README memory section mentions traces; patterns.md has P10; CHANGELOG entry present | 72.1, 72.3 | cc:TODO |
+
+---
+
 ## Phase 71: Skill description reformat — capability summary + when_to_use field
 
 Created: 2026-04-17
