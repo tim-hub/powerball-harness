@@ -278,9 +278,9 @@ var Rules = []GuardRule{
 		},
 	},
 
-	// R12: deny direct push to protected branch
+	// R12: warn on direct push to protected branch (solo-dev: allowed; collaborative: use a PR)
 	{
-		ID:          "R12:deny-direct-push-protected-branch",
+		ID:          "R12:warn-direct-push-protected-branch",
 		ToolPattern: regexp.MustCompile(`^Bash$`),
 		Evaluate: func(ctx hookproto.RuleContext) *hookproto.HookResult {
 			command, ok := ctx.Input.ToolInput["command"].(string)
@@ -291,8 +291,8 @@ var Rules = []GuardRule{
 				return nil
 			}
 			return &hookproto.HookResult{
-				Decision: hookproto.DecisionDeny,
-				Reason:   "Direct push to main/master is prohibited. Create a PR via a feature branch.",
+				Decision:      hookproto.DecisionApprove,
+				SystemMessage: "Warning: Pushing directly to main/master. For collaborative projects, prefer a PR via a feature branch.",
 			}
 		},
 	},

@@ -15,7 +15,7 @@ Change history for claude-code-harness.
 
 ### Theme: Bug fixes and test robustness
 
-**Three small fixes: codex-loop Plans.md path resolution, test backward-compatibility for template versions, and branch policy documentation.**
+**Four small fixes: codex-loop Plans.md path resolution, R12 guardrail softened to warn, test backward-compatibility for template versions, and branch policy documentation.**
 
 ---
 
@@ -36,6 +36,12 @@ Change history for claude-code-harness.
 **Before**: `harness-release/SKILL.md` only mentioned `main` in the solo-development push policy and in Phase 7 push command examples.
 
 **After**: Updated to reflect that both `main` and `master` are supported, matching actual repo usage.
+
+#### 4. R12 Guardrail: Direct Push to main/master Softened to Warning
+
+**Before**: R12 (`deny-direct-push-protected-branch`) returned `DecisionDeny`, blocking any direct `git push` to `main` or `master`. Solo-dev release workflows (like `harness-release`) that push directly to the main branch were blocked by their own guardrail.
+
+**After**: R12 (`warn-direct-push-protected-branch`) now returns `DecisionApprove` with a `SystemMessage` warning. Direct pushes proceed with a visible advisory message; collaborative projects can enforce PRs via branch-protection rules at the GitHub level rather than at the Claude guardrail level.
 
 ## [4.6.0] - 2026-04-17
 
