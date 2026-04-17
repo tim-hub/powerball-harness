@@ -6,6 +6,60 @@ Change history for claude-code-harness.
 
 ## [Unreleased](https://github.com/tim-hub/powerball-harness/compare/v4.5.2...HEAD)
 
+### Phase 69: harness-loop runtime, UI rubric, new scripts, and maintenance skill — PR #81 + #82 sync
+
+**harness-loop graduates from a ~100-line advisor-only shim to a full ScheduleWakeup-based runtime with pacing, sprint-contracts, flock guard, and plateau detection.**
+
+---
+
+#### 1. harness-loop Replacement (69.1–69.4)
+
+**Before**: `harness/skills/harness-loop/SKILL.md` was a ~100-line advisor-only loop. It had no cycle management, no pacing, and no sprint-contract flow. Running tasks back-to-back required manual re-invocation after each task.
+
+**After**: Full `ScheduleWakeup`-based runtime with `--max-cycles N`, `--pacing worker|ci|plateau|night` (270 s / 1 200 s / 3 600 s delays), flock-based single-instance guard, sprint-contract generation and readiness checks, plateau detection via `detect-review-plateau.sh`, auto-checkpoint on APPROVE, and three Advisor consultation trigger points (high-risk preflight, repeated-failure gate, plateau pre-escalation). Templates updated for both `codex-skills` and `opencode`.
+
+#### 2. Plans.md Concurrent Safety — flock-based exclusive access (69.5)
+
+**Before**: Concurrent workers writing `plans-state.json` had no locking. Simultaneous writes could silently corrupt state, causing task markers to be lost or duplicated.
+
+**After**: `harness/scripts/codex-loop.sh` acquires a `mkdir`-based exclusive lock (`codex-loop.lock.d/`) before reading or writing Plans state. Lock acquisition is fail-closed — a second `start` while a run is active exits with an error message rather than starting a conflicting loop. Stale locks left by crashed processes are automatically cleaned up on the next invocation.
+
+#### 3. Sprint Contract Go Package (69.6–69.7)
+
+**Before**: Sprint contracts were generated solely by shell scripts with no programmatic validation. The Go harness had no understanding of contract structure, making it impossible to validate contracts in hook handlers.
+
+**After**: `go/internal/hookhandler/sprint_contract.go` provides structured contract generation and validation. New `harness sprint-contract` CLI subcommands (`generate`, `validate`, `show`) allow agents and scripts to create and inspect contracts without shelling out to JS. Fallback validation script path updated from deleted `scripts/ci/` to `harness/skills/harness-release/scripts/`.
+
+#### 4. UI Rubric Review Flag (69.8–69.9)
+
+**Before**: `harness-review` had no UI quality scoring. Visual design changes passed review with only code-quality criteria; no structured axis for assessing UI craft.
+
+**After**: `harness-review --ui-rubric` adds a 4-axis scoring rubric:
+- **Design Quality**: visual hierarchy, spacing, color coherence
+- **Originality**: distinctiveness vs. generic templates
+- **Craft**: micro-interactions, typography, accessibility
+- **Functionality**: UX flow, error states, responsiveness
+
+Each axis is scored 1–5. `--ui-rubric` is a standalone flag; it does not change the default review behavior.
+
+#### 5. New Scripts (69.10–69.12)
+
+**Before**: Four capabilities (codex background loop, periodic checkpointing, browser-based review, plateau detection) had no dedicated scripts. The `sync-skill-mirrors.sh` script was missing opencode template sync.
+
+**After**: Four new harness scripts added:
+- `harness/scripts/codex-loop.sh` — real background loop runner with state under `.claude/state/codex-loop/`, companion driver, cycle prompts, advisor integration
+- `harness/scripts/auto-checkpoint.sh` — Phase B-5 checkpoint via harness-mem API with flock guard and `checkpoint-events.jsonl` audit trail
+- `harness/scripts/browser-review-runner.sh` — drives browser-based review execution with artifact collection
+- `harness/scripts/detect-review-plateau.sh` — Jaccard-similarity plateau detector: exits 0 (PIVOT_NOT_REQUIRED), 1 (INSUFFICIENT_DATA), or 2 (PIVOT_REQUIRED)
+
+`harness/scripts/sync-skill-mirrors.sh` updated to include `templates/opencode/skills/harness-loop` (PR #82 fix).
+
+#### 6. Maintenance Skill (69.13, 69.16)
+
+**Before**: Maintenance operations (archive cleanup, orphan state pruning, stale lock removal) had no dedicated skill. Users had to know which scripts to call directly.
+
+**After**: New `/maintenance` skill at `harness/skills/maintenance/` provides guided cleanup operations via `cleanup.md` reference: archive old session logs, prune `.claude/state/` orphans, remove stale lock directories. Available in both CC and codex templates.
+
 ### Phase 62: Advisor Strategy — read-only consultation agent + harness-loop skill
 
 **Workers can now consult a read-only Advisor (Opus) at decision blockers instead of immediately escalating to the user.**
