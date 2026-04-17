@@ -1,8 +1,99 @@
 #!/bin/bash
 # plans-watcher.sh - Monitor changes to Plans.md and generate notifications to PM (compatible: cursor:*)
 # Called from PostToolUse hook
+#
+# Idempotency guard: exclusive locking via .claude/state/locks/plans.flock
+# Prevents lost updates from concurrent wake-up and Worker writes.
+# Uses 3-tier locking: flock(Linux) → lockf(macOS) → mkdir fallback.
+# Same pattern as acquire_lock/release_lock in auto-checkpoint.sh.
+#
+# fail-closed policy:
+# On lock acquisition failure, retry 3 times (absorb transient races),
+# then exit 11 fail-closed if still unavailable (do not proceed).
+# This prevents unguarded read-modify-write on plans-state.json.
 
 set +e  # Do not stop on error
+
+# ── flock guard (3-tier fallback) ──────────────────────────────────────────────
+PLANS_LOCK_FILE="${PLANS_LOCK_FILE:-.claude/state/locks/plans.flock}"
+PLANS_LOCK_DIR="${PLANS_LOCK_FILE}.dir"
+PLANS_LOCK_TIMEOUT="${PLANS_LOCK_TIMEOUT:-5}"
+_PLANS_LOCK_ACQUIRED=0
+
+_plans_acquire_lock() {
+    mkdir -p "$(dirname "${PLANS_LOCK_FILE}")" 2>/dev/null || true
+
+    if command -v flock >/dev/null 2>&1; then
+        exec 8>"${PLANS_LOCK_FILE}"
+        if flock -w "${PLANS_LOCK_TIMEOUT}" 8 2>/dev/null; then
+            _PLANS_LOCK_ACQUIRED=1
+            return 0
+        else
+            exec 8>&- 2>/dev/null || true
+            return 1
+        fi
+    fi
+
+    if command -v lockf >/dev/null 2>&1; then
+        exec 8>"${PLANS_LOCK_FILE}"
+        if lockf -s -t "${PLANS_LOCK_TIMEOUT}" 8 2>/dev/null; then
+            _PLANS_LOCK_ACQUIRED=2
+            return 0
+        else
+            exec 8>&- 2>/dev/null || true
+            return 1
+        fi
+    fi
+
+    # Fallback: mkdir-based exclusive lock
+    local waited=0
+    local max_wait=$(( PLANS_LOCK_TIMEOUT * 5 ))
+    while ! mkdir "${PLANS_LOCK_DIR}" 2>/dev/null; do
+        sleep 0.2
+        waited=$(( waited + 1 ))
+        if [ "${waited}" -ge "${max_wait}" ]; then
+            return 1
+        fi
+    done
+    _PLANS_LOCK_ACQUIRED=3
+    return 0
+}
+
+_plans_release_lock() {
+    case "${_PLANS_LOCK_ACQUIRED}" in
+        1) flock -u 8 2>/dev/null || true; exec 8>&- 2>/dev/null || true ;;
+        2) exec 8>&- 2>/dev/null || true ;;
+        3) rmdir "${PLANS_LOCK_DIR}" 2>/dev/null || true ;;
+    esac
+    _PLANS_LOCK_ACQUIRED=0
+}
+
+# Acquire lock (fail-closed: exit 11 after 3 retries)
+# Retry 3 times to absorb transient race conditions.
+# Abort on all failures to avoid unguarded access to plans-state.json.
+_PLANS_LOCK_MAX_RETRIES=3
+_PLANS_LOCK_GOT=0
+for _retry in 1 2 3; do
+    if _plans_acquire_lock; then
+        _PLANS_LOCK_GOT=1
+        break
+    fi
+    echo "plans-watcher.sh: warning: could not acquire plans.flock (attempt ${_retry}/${_PLANS_LOCK_MAX_RETRIES}, timeout ${PLANS_LOCK_TIMEOUT}s)" >&2
+    if [ "${_retry}" -lt "${_PLANS_LOCK_MAX_RETRIES}" ]; then
+        sleep 1
+    fi
+done
+
+if [ "${_PLANS_LOCK_GOT}" -eq 0 ]; then
+    echo "plans-watcher.sh: ERROR: failed to acquire plans.flock after ${_PLANS_LOCK_MAX_RETRIES} attempts, abort (fail-closed)" >&2
+    exit 11
+fi
+
+# Always release lock on script exit
+_plans_watcher_cleanup() {
+    _plans_release_lock
+}
+trap _plans_watcher_cleanup EXIT
 
 # Get the changed file (stdin JSON preferred / compatible: $1,$2)
 INPUT=""

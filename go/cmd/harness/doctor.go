@@ -104,7 +104,7 @@ func runBasicChecks(projectRoot string) bool {
 		checkVersionMatch(projectRoot),
 		checkHooksGoPattern(projectRoot),
 		checkPlatformBinary(projectRoot),
-		checkNodeNotRequired(),
+		checkNodeNotRequired(projectRoot),
 	}
 
 	allOK := true
@@ -302,13 +302,70 @@ func checkPlatformBinary(projectRoot string) checkResult {
 	}
 }
 
-// checkNodeNotRequired informs the user that Node.js is no longer required
-// starting with v4.0 Hokage. This check always passes and is informational only.
-func checkNodeNotRequired() checkResult {
+var reLegacyHooksNodeDeps = regexp.MustCompile(`node\t|run-script`)
+
+// checkNodeNotRequired verifies that hooks/ no longer contains legacy Node.js
+// runtime references such as "node<TAB>" or "run-script".
+func checkNodeNotRequired(projectRoot string) checkResult {
+	label := "Node.js dependency"
+	hooksDir := filepath.Join(projectRoot, "hooks")
+
+	if _, err := os.Stat(hooksDir); err != nil {
+		if os.IsNotExist(err) {
+			return checkResult{
+				label:  label,
+				ok:     true,
+				detail: "hooks/ not found (skipped)",
+			}
+		}
+		return checkResult{
+			label:  label,
+			ok:     false,
+			detail: fmt.Sprintf("failed to inspect hooks/: %v", err),
+		}
+	}
+
+	var matches []string
+	walkErr := filepath.Walk(hooksDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if reLegacyHooksNodeDeps.Match(data) {
+			rel, relErr := filepath.Rel(projectRoot, path)
+			if relErr != nil {
+				rel = path
+			}
+			matches = append(matches, filepath.ToSlash(rel))
+		}
+		return nil
+	})
+	if walkErr != nil {
+		return checkResult{
+			label:  label,
+			ok:     false,
+			detail: fmt.Sprintf("failed to scan hooks/: %v", walkErr),
+		}
+	}
+
+	if len(matches) > 0 {
+		return checkResult{
+			label:  label,
+			ok:     false,
+			detail: fmt.Sprintf("legacy Node.js hook reference found in %s", matches[0]),
+		}
+	}
+
 	return checkResult{
-		label:  "Node.js dependency",
+		label:  label,
 		ok:     true,
-		detail: "✅ Node.js is no longer required (v4.0 Hokage)",
+		detail: "hooks/ contains no legacy Node.js hook references",
 	}
 }
 
@@ -550,9 +607,13 @@ func runResidueCheck(projectRoot string) int {
 	fmt.Println("Migration Residue Check:")
 	fmt.Println()
 
-	script := filepath.Join(projectRoot, "local-scripts", "check-residue.sh")
+	// Try harness/skills path first (current layout), fall back to local-scripts
+	script := filepath.Join(projectRoot, "harness", "skills", "harness-release", "scripts", "check-residue.sh")
 	if _, err := os.Stat(script); err != nil {
-		fmt.Fprintf(os.Stderr, "  scanner failed: local-scripts/check-residue.sh not found at %s\n", script)
+		script = filepath.Join(projectRoot, "local-scripts", "check-residue.sh")
+	}
+	if _, err := os.Stat(script); err != nil {
+		fmt.Fprintf(os.Stderr, "  scanner failed: check-residue.sh not found\n")
 		return 2
 	}
 

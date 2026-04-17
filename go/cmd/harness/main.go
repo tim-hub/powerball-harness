@@ -63,6 +63,10 @@ func main() {
 			os.Exit(1)
 		}
 		runEvidence(os.Args[2:])
+	case "sprint-contract":
+		runSprintContract(os.Args[2:])
+	case "codex-loop":
+		runCodexLoop(os.Args[2:])
 	case "status":
 		runStatus(os.Args[2:])
 	case "init":
@@ -108,6 +112,8 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  evidence collect        Collect evidence (test results, build logs) from stdin")
 	fmt.Fprintln(os.Stderr, "    --label <label>       Evidence label (default: general)")
 	fmt.Fprintln(os.Stderr, "    --file <path>         Read content from file instead of stdin")
+	fmt.Fprintln(os.Stderr, "  sprint-contract <task-id> [plans-file] [output-file]  Generate sprint-contract JSON")
+	fmt.Fprintln(os.Stderr, "  codex-loop <start|status|stop> ...   Run the Codex-native long-running loop")
 	fmt.Fprintln(os.Stderr, "  status                  Show all tracked agent states")
 	fmt.Fprintln(os.Stderr, "  init [root]             Create harness.toml template in project root")
 	fmt.Fprintln(os.Stderr, "  sync [root]             Generate CC files from harness.toml")

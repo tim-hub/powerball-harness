@@ -82,20 +82,89 @@ sync_version() {
     fi
 }
 
-# Bump patch version
+# Update CHANGELOG.md compare links (replace Unreleased link + insert new version line)
+update_changelog_compare_links() {
+    local current="$1"
+    local new="$2"
+    local changelog
+    changelog="$(git rev-parse --show-toplevel)/CHANGELOG.md"  # project-root
+
+    if [ ! -f "$changelog" ]; then
+        return 0
+    fi
+
+    python3 - "$changelog" "$current" "$new" <<'PY'
+import re
+import sys
+
+changelog, current, new = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(changelog, "r", encoding="utf-8") as fh:
+    lines = fh.readlines()
+
+pattern = re.compile(
+    rf"^\[Unreleased\]: (https://github\.com/[^/]+/[^/]+)/compare/v{re.escape(current)}\.\.\.HEAD\s*$"
+)
+
+new_lines = []
+inserted = False
+for line in lines:
+    match = pattern.match(line)
+    if match and not inserted:
+        repo = match.group(1)
+        new_lines.append(f"[Unreleased]: {repo}/compare/v{new}...HEAD\n")
+        new_lines.append(f"[{new}]: {repo}/compare/v{current}...v{new}\n")
+        inserted = True
+        continue
+    new_lines.append(line)
+
+if not inserted:
+    print(
+        f"  CHANGELOG.md [Unreleased] compare link (v{current}...HEAD) not found. Add manually.",
+        file=sys.stderr,
+    )
+    sys.exit(0)
+
+with open(changelog, "w", encoding="utf-8") as fh:
+    fh.writelines(new_lines)
+
+print(f"  Updated CHANGELOG.md compare link: [{new}]")
+PY
+}
+
+# Bump version (default: patch)
 bump_version() {
+    local level="${1:-patch}"
     local current=$(get_version)
     local major=$(echo "$current" | cut -d. -f1)
     local minor=$(echo "$current" | cut -d. -f2)
     local patch=$(echo "$current" | cut -d. -f3)
 
-    local new_patch=$((patch + 1))
-    local new_version="$major.$minor.$new_patch"
+    local new_version=""
+    case "$level" in
+        patch)
+            local new_patch=$((patch + 1))
+            new_version="$major.$minor.$new_patch"
+            ;;
+        minor)
+            local new_minor=$((minor + 1))
+            new_version="$major.$new_minor.0"
+            ;;
+        major)
+            local new_major=$((major + 1))
+            new_version="$new_major.0.0"
+            ;;
+        *)
+            echo "Unsupported bump level: $level" >&2
+            echo "  Available: patch | minor | major" >&2
+            exit 1
+            ;;
+    esac
 
     echo "$new_version" > "$VERSION_FILE"
-    echo "✅ Updated VERSION: $current → $new_version"
+    echo "✅ Updated VERSION ($level): $current → $new_version"
 
     sync_version
+    update_changelog_compare_links "$current" "$new_version"
 }
 
 # Main
@@ -107,10 +176,10 @@ case "${1:-check}" in
         sync_version
         ;;
     bump)
-        bump_version
+        bump_version "${2:-patch}"
         ;;
     *)
-        echo "Usage: $0 {check|sync|bump}"
+        echo "Usage: $0 {check|sync|bump [patch|minor|major]}"
         exit 1
         ;;
 esac

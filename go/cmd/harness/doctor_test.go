@@ -704,18 +704,49 @@ func TestDoctor_CheckPlatformBinary_Absent(t *testing.T) {
 // TestDoctor_CheckNodeNotRequired
 // ---------------------------------------------------------------------------
 
-// TestDoctor_CheckNodeNotRequired verifies that the check always passes and
-// contains the expected message.
-func TestDoctor_CheckNodeNotRequired(t *testing.T) {
-	r := checkNodeNotRequired()
+// TestDoctor_CheckNodeNotRequired_CleanHooks verifies that hooks/ without
+// legacy Node.js references passes the check.
+func TestDoctor_CheckNodeNotRequired_CleanHooks(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "hooks"), 0o755); err != nil {
+		t.Fatalf("mkdir hooks: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "hooks", "hooks.json"), []byte(`{"hooks":{}}`), 0o644); err != nil {
+		t.Fatalf("write hooks.json: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "hooks", "BEST_PRACTICES.md"), []byte("# Hooks Best Practices\n"), 0o644); err != nil {
+		t.Fatalf("write BEST_PRACTICES.md: %v", err)
+	}
+
+	r := checkNodeNotRequired(dir)
 	if !r.ok {
-		t.Errorf("expected ok=true for Node.js check, got false")
+		t.Fatalf("expected ok=true for clean hooks/, got false: %s", r.detail)
 	}
-	if !strings.Contains(r.detail, "Node.js is no longer required") {
-		t.Errorf("expected Node.js message, got %q", r.detail)
+	if !strings.Contains(r.detail, "no legacy Node.js hook references") {
+		t.Errorf("expected clean detail, got %q", r.detail)
 	}
-	if !strings.Contains(r.detail, "v4.0 Hokage") {
-		t.Errorf("expected 'v4.0 Hokage' in detail, got %q", r.detail)
+}
+
+// TestDoctor_CheckNodeNotRequired_DirtyHooks verifies that legacy references
+// inside hooks/ are reported.
+func TestDoctor_CheckNodeNotRequired_DirtyHooks(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "hooks"), 0o755); err != nil {
+		t.Fatalf("mkdir hooks: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "hooks", "legacy.txt"), []byte("node\tlegacy-call\nrun-script legacy-call\n"), 0o644); err != nil {
+		t.Fatalf("write legacy.txt: %v", err)
+	}
+
+	r := checkNodeNotRequired(dir)
+	if r.ok {
+		t.Fatalf("expected ok=false for legacy hooks/, got true: %s", r.detail)
+	}
+	if !strings.Contains(r.detail, "legacy Node.js hook reference found") {
+		t.Errorf("expected legacy reference detail, got %q", r.detail)
+	}
+	if !strings.Contains(r.detail, "hooks/legacy.txt") {
+		t.Errorf("expected matching file path in detail, got %q", r.detail)
 	}
 }
 

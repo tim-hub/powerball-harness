@@ -1,323 +1,399 @@
 ---
 name: harness-work
-description: "Use when implementing or executing Plans.md tasks in Codex — single task, parallel workers, or full breezing team run. Do NOT load for: planning, review, release, or setup."
-description-en: "Unified execution skill for Harness (Codex native). Implements Plans.md tasks from single task to full parallel team runs."
-argument-hint: "[all] [task-number|range] [--parallel N] [--no-commit] [--breezing]"
+description: "Use when implementing, executing, or running Plans.md tasks — single task, parallel workers, or full team/breezing run. Accepts specific task numbers or ranges. Do NOT load for: planning, review, release, or setup."
+allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
+argument-hint: "[all] [task-number|range] [--codex] [--parallel N] [--no-commit] [--resume id] [--breezing] [--auto-mode] [--advisor] [--no-advisor]"
 effort: high
 ---
 
-# Harness Work — Codex Native
-
-> **This SKILL.md is the Codex CLI native version.**
-> For the Claude Code version, see `skills/harness-work/SKILL.md`.
-> Subagent APIs use Codex's `spawn_agent` / `send_input` / `wait_agent` / `close_agent`.
+# Harness Work
 
 Unified execution skill for Harness.
+Consolidates the following legacy skills:
+
+- `work` — Plans.md task implementation (auto scope detection)
+- `impl` — Feature implementation (task-based)
+- `breezing` — Full team auto-execution
+- `parallel-workflows` — Parallel workflow optimization
+- `ci` — CI failure recovery
 
 ## Quick Reference
 
-| User Input | Mode | Behavior |
-|------------|--------|------|
-| `harness-work` | **solo** | Execute the next incomplete task |
-| `harness-work all` | **sequential** | Execute all incomplete tasks sequentially |
-| `harness-work 3` | solo | Execute task 3 immediately |
-| `harness-work --parallel 3` | parallel | Run 3 tasks in parallel via companion `task` (Bash `&` + `wait`) |
-| `harness-work --breezing` | breezing | Team execution via `spawn_agent` (explicit only) |
+| User Input | Subcommand | Behavior |
+|------------|------------|----------|
+| `harness-work` | **auto** | Auto-selects based on task count (see below) |
+| `harness-work all` | **auto** | Executes all incomplete tasks in auto mode |
+| `harness-work 3` | solo | Immediately executes task 3 only |
+| `harness-work --parallel 5` | parallel | Forces parallel execution with 5 workers |
+| `harness-work --codex` | codex | Delegates to Codex CLI (explicit only) |
+| `harness-work --breezing` | breezing | Forces team execution |
 
-## Execution Mode Selection
+## Execution Mode Auto Selection (auto-selection when no flag is specified)
 
-> **Important**: In Codex, `spawn_agent` is used only when the user explicitly requests team execution or parallel work.
-> Do not auto-promote based solely on task count.
+When no explicit mode flag (`--parallel`, `--breezing`, `--codex`) is provided,
+the optimal mode is automatically selected based on the number of target tasks:
 
-| Condition | Mode | Reason |
-|------|--------|------|
-| No args / single task specified | **Solo** | Direct implementation is fastest |
-| `all` / range specified (no flags) | **Sequential** | Safe sequential processing |
-| `--parallel N` | **Parallel** | Bash parallel via companion `task` (explicit only) |
-| `--breezing` | **Breezing** | `spawn_agent` team execution (explicit only) |
+| Target Task Count | Auto-Selected Mode | Reason |
+|-------------------|-------------------|--------|
+| **1 task** | Solo | Minimal overhead. Direct implementation is fastest |
+| **2-3 tasks** | Parallel (Task tool) | Threshold where Worker isolation benefits emerge |
+| **4+ tasks** | Breezing | Lead coordination + Worker parallelism + Reviewer independence is effective |
 
 ### Rules
 
-1. **Explicit flags always override defaults**
-2. **`--breezing` and `--parallel` activate only when explicitly specified**. No auto-promotion based on task count
-3. `--parallel` and `--breezing` are mutually exclusive (cannot be specified together)
+1. **Explicit flags always override auto mode**
+   - `--parallel N` → Parallel mode (regardless of task count)
+   - `--breezing` → Breezing mode (regardless of task count)
+   - `--codex` → Codex mode (regardless of task count)
+2. **`--codex` activates only when explicitly specified**. Not auto-selected because Codex CLI may not be installed in some environments
+3. `--codex` can be combined with other modes: `--codex --breezing` → Codex + Breezing
 
 ## Options
 
 | Option | Description | Default |
-|----------|------|----------|
+|--------|-------------|---------|
 | `all` | Target all incomplete tasks | - |
-| `N` or `N-M` | Task number / range specification | - |
-| `--parallel N` | companion `task` Bash parallel count | - |
+| `N` or `N-M` | Task number/range specification | - |
+| `--parallel N` | Number of parallel workers | auto |
 | `--sequential` | Force sequential execution | - |
-| `--no-commit` | Suppress final commit to main (Solo/Sequential only. Not supported for Breezing/Parallel) | false |
-| `--breezing` | Team execution with Lead/Worker/Reviewer | false |
+| `--codex` | Delegate implementation to Codex CLI (explicit only, not auto-selected) | false |
+| `--no-commit` | Suppress auto-commit | false |
+| `--resume <id\|latest>` | Resume previous session | - |
+| `--breezing` | Lead/Worker/Reviewer team execution | false |
 | `--no-tdd` | Skip TDD phase | false |
+| `--no-simplify` | Skip Auto-Refinement | false |
+| `--auto-mode` | Explicitly enable Auto Mode rollout. Only considered when the parent session's permission mode is compatible | false |
+| `--advisor` | Enable advisor consultation (overrides config) | from config |
+| `--no-advisor` | Disable advisor consultation | false |
+
+> **Token Optimization (v2.1.69+)**: For lightweight tasks that don't involve git operations,
+> enable `includeGitInstructions: false` in plugin settings to
+> reduce prompt token usage.
 
 ## Scope Dialog (when no arguments provided)
+
+> **Note**: A lightweight drift check (`bash harness/scripts/plans-drift-check.sh`) runs before the scope dialog regardless of which option the user chooses. If stale markers are detected, the dialog is preceded by a drift summary and a confirmation prompt.
 
 ```
 harness-work
 How far do you want to go?
-1) Next task: the next incomplete task in Plans.md → execute in Solo mode
-2) All: execute all remaining tasks sequentially
-3) Specify number: enter a task number (e.g., 3, 5-7)
+1) Next task: The next incomplete task in Plans.md → Execute in Solo mode
+2) All (recommended): Complete all remaining tasks → Auto-select mode based on task count
+3) Specify numbers: Enter task numbers (e.g., 3, 5-7) → Auto-select mode based on count
 ```
 
-If arguments are provided, execute immediately (skip dialog).
+If arguments are provided, execute immediately (skip dialog):
+- `harness-work all` → All tasks, auto mode selection
+- `harness-work 3-6` → 4 tasks, so Breezing is auto-selected
+
+## Effort Level Control (v2.1.68+, simplified in v2.1.72)
+
+Claude Code v2.1.68 sets **medium effort** (`◐`) as default for Opus 4.6.
+v2.1.72 removed the `max` level, simplifying to 3 levels: `low(○)/medium(◐)/high(●)`.
+`/effort auto` resets to default.
+For complex tasks, use the `ultrathink` keyword to enable high effort (`●`).
+
+### Multi-Factor Scoring
+
+At task start, the following scores are summed, and **ultrathink is injected when the threshold reaches 3 or above**:
+
+| Factor | Condition | Score |
+|--------|-----------|-------|
+| File count | 4+ files to be changed | +1 |
+| Directory | Includes core/, guardrails/, security/ | +1 |
+| Keywords | Contains architecture, security, design, migration | +1 |
+| Failure history | Agent memory contains failure records for the same task | +2 |
+| Explicit specification | PM template includes ultrathink notation | +3 (auto-adopted) |
+
+### Injection Method
+
+When score >= 3, prepend `ultrathink` to the Worker spawn prompt.
+The same logic applies in breezing mode (managed centrally by harness-work).
 
 ## Execution Mode Details
 
-### Solo Mode
+### Solo Mode (auto-selected for 1 task)
 
-1. Load Plans.md and identify the target task
-   - **If Plans.md does not exist**: auto-call `harness-plan create --ci` → generate Plans.md and continue
-   - If the header lacks DoD / Depends columns: stop
-   - **If there are tasks not in the conversation**: extract requirements from the preceding conversation context and auto-append to Plans.md as `cc:TODO`
-1.5. **Task background check** (30 seconds):
-   - Infer and display the purpose of the task from its "content" and "DoD" in one line
-   - If confident in the inference: proceed directly to implementation
-   - If not confident: ask the user exactly one clarifying question
-2. Update task to `cc:WIP`. Record `TASK_BASE_REF=$(git rev-parse HEAD)`
+#### Step 0: Entry-point drift check
+
+Before selecting execution mode, run a lightweight sync pass to catch stale Plans.md markers:
+
+```bash
+bash harness/scripts/plans-drift-check.sh
+```
+
+- **Exit 0** (no stale markers): proceed immediately to Step 1
+- **Exit 1** (stale markers detected): display the drift report, then prompt the user:
+  "Stale markers detected. Proceed anyway? (y/N) [default: N]"
+  - If user confirms (`y`): continue to Step 1
+  - If user declines or no response: stop with message "Run /harness-plan sync first to resolve marker drift"
+
+This check is intentionally lightweight — it only inspects commit messages, not file content. For a thorough sync, run `/harness-plan sync` explicitly.
+
+1. Read Plans.md and identify the target task
+   - **If Plans.md does not exist**: Auto-invoke `harness-plan create --ci` → Generate Plans.md and continue
+   - If header lacks DoD / Depends columns: `Plans.md is in the old format. Please regenerate with harness-plan create.` → **Stop**
+   - **If the conversation contains unlisted tasks**: Extract requirements from the recent conversation context and auto-append to Plans.md as `cc:TODO`
+     - Extraction logic: Detect action verbs from user statements ("add...", "fix...", "implement...")
+     - Appended entries conform to v2 format (Task / Content / DoD / Depends / Status)
+     - After appending, display "Added the following to Plans.md" with a 5-second timeout prompt (default: continue)
+1.5. **Task Background Check** (30 seconds):
+   - Infer and display the **purpose** (the problem this task solves) in one line from the task's "Content" and "DoD"
+   - Use `git grep` / `Glob` to infer and display the **impact scope** (files/modules affected by changes)
+   - If confident in the inference: proceed directly to implementation (no flow delay)
+   - If not confident: ask the user one question only ("Is this understanding correct?")
+1.6. **Advisor Preflight** (when `advisor.enabled` or `--advisor`):
+   - If task has `<!-- advisor:required -->` marker: consult `powerball-harness:advisor` with `reason_code: high_risk_preflight`
+   - On `PLAN`: proceed with suggested approach
+   - On `CORRECTION`: apply correction before starting
+   - On `STOP`: escalate to user immediately
+2. Update task to `cc:WIP`
 3. **TDD Phase** (when `[skip:tdd]` is absent & test framework exists):
    a. Create test file first (Red)
    b. Confirm failure
-4. Implement code (Green)
-5. Auto-commit with `git commit` (can be skipped with `--no-commit`)
-6. **Auto-review stage** (see "Review Loop") — review diff from TASK_BASE_REF..HEAD
-7. Update task to `cc:Done [hash]`
-8. **Rich completion report** (see "Completion Report Format")
-9. **Auto re-ticketing on failure** (only on test/CI failure)
+4. Generate `sprint-contract.json` with `"${CLAUDE_SKILL_DIR}/../../scripts/generate-sprint-contract.sh" <task-id>`
+5. Add Reviewer perspective with `"${CLAUDE_SKILL_DIR}/../../scripts/enrich-sprint-contract.sh"` and confirm approved status with `"${CLAUDE_SKILL_DIR}/../../scripts/ensure-sprint-contract-ready.sh"`
+6. Implement code (Green) (Read/Write/Edit/Bash)
+7. Auto-Refinement with `/simplify` (skip with `--no-simplify`)
+8. **Auto Review Stage** (see "Review Loop"):
+   - Execute review with Codex exec priority → fallback to internal Reviewer agent
+   - If `sprint-contract.json`'s `reviewer_profile` is `runtime`, execute `"${CLAUDE_SKILL_DIR}/../../scripts/run-contract-review-checks.sh"`
+   - On REQUEST_CHANGES: fix based on feedback → re-review (up to 3 times)
+   - Proceed to next step on APPROVE. Self-check alone does not confirm completion
+9. Normalize and save review artifact with `"${CLAUDE_SKILL_DIR}/../../scripts/write-review-result.sh"`
+10. Auto-commit with `git commit` (skip with `--no-commit`)
+11. Update task to `cc:Done` (with commit hash)
+   - Get the latest commit hash (abbreviated 7 chars) with `git log --oneline -1`
+   - Update Plans.md Status to `cc:Done [a1b2c3d]` format
+   - If no commit (`--no-commit`), use `cc:Done` without hash
+12. **Rich Completion Report** (see "Completion Report Format")
+13. **Automatic Re-ticketing on Failure** (test/CI failure only):
+    - Check test execution results
+    - On failure: save fix task proposal to state, add to Plans.md via approval command (see "Automatic Re-ticketing of Failed Tasks")
+    - On success: proceed to next task
 
-### Sequential Mode (default when `all` is specified)
+### Parallel Mode (auto-selected for 2-3 tasks / forced with `--parallel N`)
 
-Process tasks in Plans.md one by one in dependency order using Solo mode.
-Update Plans.md after each task completes and move to the next.
+Execute `[P]`-marked tasks with N workers in parallel.
+When explicitly specified with `--parallel N`, this mode is used regardless of task count.
+If write conflicts to the same file occur, isolate with git worktree.
 
-### Parallel Mode (only when `--parallel N` is explicitly specified)
+### Codex Mode (`--codex` explicit only)
 
-Execute independent tasks in parallel using Bash `&` + `wait`.
-Uses the official plugin's companion `task`, isolating each Worker in a worktree.
+> Load [`${CLAUDE_SKILL_DIR}/references/codex-work.md`](${CLAUDE_SKILL_DIR}/references/codex-work.md)
+> only when `command -v codex` succeeds **and** the user passes `--codex` or explicitly asks to use Codex.
 
-> **Constraint**: Do not parallelize tasks that may modify the same files.
-> Use `git worktree add` to separate work directories per Worker, with Lead cherry-picking after review.
+### Breezing Mode (auto-selected for 4+ tasks / forced with `--breezing`)
 
-```bash
-# Separate worktree per Worker (note the order: -b <branch> <path>)
-git worktree add -b worker-a-$$ /tmp/worker-a-$$
-git worktree add -b worker-b-$$ /tmp/worker-b-$$
+Team execution with Lead / Worker / Reviewer role separation.
+In Codex, this assumes native subagent orchestration using `spawn_agent`, `wait`, `send_input`, `resume_agent`, `close_agent`,
+and does not follow the old TeamCreate / TaskCreate-based approach.
 
-# Task A (switch cwd to worktree via cd before calling companion)
-PROMPT_A=$(mktemp /tmp/codex-prompt-XXXXXX.md)
-cat > "$PROMPT_A" << EOF
-Content of task A...
+**Permission Policy**:
+- The current shipped default is `bypassPermissions`
+- `--auto-mode` is treated as an opt-in rollout flag for compatible parent sessions
+- Do not write the undocumented `autoMode` value to `permissions.defaultMode` or agent frontmatter `permissionMode`
 
-When done, output the following JSON to stdout:
-{"commit": "<hash>", "files_changed": ["path1", "path2"], "summary": "..."}
-EOF
-(cd /tmp/worker-a-$$ && cat "$PROMPT_A" | bash "${PROJECT_ROOT}/scripts/codex-companion.sh" task --write) > /tmp/out-a-$$.json 2>>/tmp/harness-codex-$$.log &
-
-# Task B (switch cwd to worktree via cd before calling companion)
-PROMPT_B=$(mktemp /tmp/codex-prompt-XXXXXX.md)
-cat > "$PROMPT_B" << EOF
-Content of task B...
-
-When done, output the following JSON to stdout:
-{"commit": "<hash>", "files_changed": ["path1", "path2"], "summary": "..."}
-EOF
-(cd /tmp/worker-b-$$ && cat "$PROMPT_B" | bash "${PROJECT_ROOT}/scripts/codex-companion.sh" task --write) > /tmp/out-b-$$.json 2>>/tmp/harness-codex-$$.log &
-
-wait
-rm -f "$PROMPT_A" "$PROMPT_B"
-
-# Lead gets commit hash from each Worker's output JSON, reviews individually → cherry-pick
-# ... review / cherry-pick processing ...
-
-# Remove worktrees
-git worktree remove /tmp/worker-a-$$
-git worktree remove /tmp/worker-b-$$
-```
-
-### Breezing Mode (only when `--breezing` is explicitly specified)
-
-Team execution with role separation: Lead / Worker / Reviewer.
-Uses Codex's native subagent API.
-
-> **`--breezing` is explicit-only**. Use only when the user instructs "with team execution" or "with breezing".
+> **CC v2.1.69+**: Nested teammates are prohibited by the platform,
+> so do not add redundant nested prevention wording to Worker/Reviewer prompts.
 
 ```
 Lead (this agent)
-├── Worker (spawn_agent) — implementation
-│   Each Worker operates in a git worktree-isolated work directory
-└── Reviewer (companion review --base) — review
+├── Worker (task-worker agent) — Implementation
+└── Reviewer (code-reviewer agent) — Review
 ```
 
-**Phase A: Pre-delegate (preparation)**:
-1. Load Plans.md and identify target tasks
-2. Analyze dependency graph and determine execution order (Depends column)
-3. Create git worktree for each task
-4. Generate `sprint-contract.json` with `scripts/generate-sprint-contract.sh`
-5. Enrich with Reviewer perspective via `scripts/enrich-sprint-contract.sh`; stop if not approved via `scripts/ensure-sprint-contract-ready.sh`
+**Phase A: Pre-delegate (Preparation)**:
+0. **Entry-point drift check** — run before dependency analysis:
+   ```bash
+   bash harness/scripts/plans-drift-check.sh
+   ```
+   - Exit 0: proceed to step 1
+   - Exit 1: display drift report and prompt "Stale markers detected. Proceed anyway? (y/N)". Stop if user declines.
+1. Read Plans.md and identify target tasks
+2. Analyze the dependency graph and determine execution order (Depends column)
+3. Effort scoring for each task (ultrathink injection decision)
+4. Generate `sprint-contract.json` with `"${CLAUDE_SKILL_DIR}/../../scripts/generate-sprint-contract.sh"`
+5. Add Reviewer perspective with `"${CLAUDE_SKILL_DIR}/../../scripts/enrich-sprint-contract.sh"` and stop if unapproved with `"${CLAUDE_SKILL_DIR}/../../scripts/ensure-sprint-contract-ready.sh"`
 
 **Phase B: Delegate (Worker spawn → review → cherry-pick)**:
 
 Execute the following **sequentially** for each task (in dependency order):
 
+> **API Note**: The following is written in Claude Code API syntax.
+> In Codex environments, read `Agent(...)` as `spawn_agent(...)`, `SendMessage(...)` as `send_input(...)`.
+> See the API mapping table in `team-composition.md` for details.
+
 ```
 for task in execution_order:
-    # B-0. Isolate work directory
-    worktree_path = "/tmp/worker-{task.number}-$$"
-    branch_name = "worker-{task.number}-$$"
-    git worktree add -b {branch_name} {worktree_path}
-    TASK_BASE_REF = git rev-parse HEAD  # base ref specific to this task
-
     # B-1. Generate sprint-contract
-    contract_path = bash("scripts/generate-sprint-contract.sh {task.number}")
-    contract_path = bash("scripts/enrich-sprint-contract.sh {contract_path} --check \"Verify DoD from reviewer perspective\" --approve")
-    bash("scripts/ensure-sprint-contract-ready.sh {contract_path}")
+    contract_path = bash("${CLAUDE_SKILL_DIR}/../../scripts/generate-sprint-contract.sh {task.number}")  # pseudocode — plugin-local
+    contract_path = bash("${CLAUDE_SKILL_DIR}/../../scripts/enrich-sprint-contract.sh {contract_path} --check \"Verify DoD from reviewer perspective\" --approve")  # pseudocode — plugin-local
+    bash("${CLAUDE_SKILL_DIR}/../../scripts/ensure-sprint-contract-ready.sh {contract_path}")  # pseudocode — plugin-local
 
-    # B-2. Worker spawn (Codex native subagent)
-    Plans.md: task.status = "cc:WIP"
+    # B-2. Worker spawn (foreground, worktree isolation)
+    # Agent tool return value contains agentId — used for SendMessage in fix loop
+    Plans.md: task.status = "cc:WIP"  # Update on start (unstarted tasks remain cc:TODO)
 
-    worker_id = spawn_agent({
-        message: "Work in directory: {worktree_path}.\n\nTask: {task.content}\nDoD: {task.DoD}\ncontract_path: {contract_path}\n\nPlease implement. When done, git commit.\n\nWhen complete, return the following JSON:\n{\"commit\": \"<hash>\", \"files_changed\": [\"path1\"], \"summary\": \"...\"}",
-        fork_context: true
-    })
-    wait_agent({ ids: [worker_id] })
-    # Get commit hash, files_changed, summary from Worker output
+    worker_result = Agent(
+        subagent_type="claude-code-harness:worker",
+        prompt="Task: {task.content}\nDoD: {task.DoD}\ncontract_path: {contract_path}\nmode: breezing",
+        isolation="worktree",
+        run_in_background=false  # Foreground execution → wait for Worker completion
+    )
+    worker_id = worker_result.agentId  # Retain for SendMessage
+    # worker_result contains {commit, worktreePath, files_changed, summary}
 
-    # B-3. Lead runs review (companion review --base TASK_BASE_REF)
-    # Review only the diff specific to this task (from TASK_BASE_REF)
-    # Use the official plugin's structured review
-    verdict = companion_review(TASK_BASE_REF)  # static review (see "Review Loop" for details)
+    # B-3. Lead executes review (Codex exec priority)
+    diff_text = git("-C", worker_result.worktreePath, "show", worker_result.commit)
+    verdict = codex_exec_review(diff_text) or reviewer_agent_review(diff_text)
     profile = jq(contract_path, ".review.reviewer_profile")
-    browser_mode = jq(contract_path, ".review.browser_mode // \"scripted\"")
     review_input = "review-output.json"
     if profile == "runtime":
-        # Run runtime checks inside worktree (against Worker's artifacts, not Lead's cwd)
-        review_input = bash("cd {worktree_path} && scripts/run-contract-review-checks.sh {contract_path}")
+        review_input = bash("cd {worker_result.worktreePath} && ${CLAUDE_SKILL_DIR}/../../scripts/run-contract-review-checks.sh {contract_path}")  # pseudocode — plugin-local
         runtime_verdict = jq(review_input, ".verdict")
         if runtime_verdict == "REQUEST_CHANGES":
             verdict = "REQUEST_CHANGES"
         elif runtime_verdict == "DOWNGRADE_TO_STATIC":
-            # No runtime verification commands → fall back to static review result
-            review_input = "review-output.json"
+            pass  # No runtime validation command → use static verdict as-is
     if profile == "browser":
-        # browser artifact is a PENDING_BROWSER scaffold. Actual browser execution is handled by reviewer agent later.
-        # Write static review verdict to review-result (not PENDING_BROWSER).
-        browser_artifact = bash("scripts/generate-browser-review-artifact.sh {contract_path}")
-        # review_input stays as static review
-    # Confirm DOWNGRADE_TO_STATIC does not remain in review_input
+        # browser artifact generates a PENDING_BROWSER scaffold.
+        # Actual browser execution is handled by the reviewer agent in a subsequent step.
+        # Write the static review verdict to review-result (not PENDING_BROWSER).
+        browser_artifact = bash("${CLAUDE_SKILL_DIR}/../../scripts/generate-browser-review-artifact.sh {contract_path}")  # pseudocode — plugin-local
+        # browser artifact is saved for reference, but review-result verdict remains static
+    # If review_input is DOWNGRADE_TO_STATIC, use the static review result
     if review_input != "review-output.json" and jq(review_input, ".verdict") == "DOWNGRADE_TO_STATIC":
-        review_input = "review-output.json"
-    bash("scripts/write-review-result.sh {review_input} {commit_hash}")
+        review_input = "review-output.json"  # Fall back to static review result
+    bash("${CLAUDE_SKILL_DIR}/../../scripts/write-review-result.sh {review_input} {latest_commit}")  # pseudocode — plugin-local
 
-    # B-4. Fix loop (on REQUEST_CHANGES, max 3 times)
+    # B-4. Fix loop (on REQUEST_CHANGES, up to 3 times)
+    # Worker has completed in foreground, but can be resumed via SendMessage
+    # (CC: SendMessage(to: agentId) / Codex: resume_agent(agent_id) + send_input)
     review_count = 0
+    latest_commit = worker_result.commit
     while verdict == "REQUEST_CHANGES" and review_count < 3:
-        # Worker is done but not closed, so send_input can be used to instruct directly
-        send_input({
-            id: worker_id,
-            message: "Issues found: {issues}\nFix them and run git commit --amend. Output JSON again after fixing."
-        })
-        wait_agent({ ids: [worker_id] })
-        # Re-review (diff from TASK_BASE_REF)
-        diff_text = git("-C", worktree_path, "diff", TASK_BASE_REF, "HEAD")
-        verdict = codex_exec_review(diff_text)
+        SendMessage(to=worker_id, message="Issues found: {issues}\nPlease fix and amend")
+        # Worker fixes → amends → returns updated commit hash
+        updated_result = wait_for_response(worker_id)
+        latest_commit = updated_result.commit
+        diff_text = git("-C", worker_result.worktreePath, "show", latest_commit)
+        verdict = codex_exec_review(diff_text) or reviewer_agent_review(diff_text)
         review_count++
 
-    close_agent({ id: worker_id })
-
-    # B-5. Result handling
+    # B-5. APPROVE → cherry-pick to main
     if verdict == "APPROVE":
-        # Cherry-pick worktree commit into main
-        commit_hash = git("-C", worktree_path, "rev-parse", "HEAD")
-        git cherry-pick --no-commit {commit_hash}
+        git cherry-pick --no-commit {latest_commit}  # worktree → main
         git commit -m "{task.content}"
-        Plans.md: task.status = "cc:Done [{short_hash}]"
+        Plans.md: task.status = "cc:Done [{hash}]"
     else:
-        → Escalate to user (Plans.md stays as cc:WIP)
-        # Skip B-5 onward, also stop subsequent tasks
+        → Escalate to user
 
-    # B-6. Worktree cleanup
-    git worktree remove {worktree_path}
-    git branch -D {branch_name}
-
-    # B-7. Progress feed
+    # B-6. Progress feed
     print("📊 Progress: Task {completed}/{total} done — {task.content}")
 ```
 
-**Phase C: Post-delegate (integration & report)**:
-1. Aggregate commit log for all tasks
-2. Output **rich completion report**
-3. Final Plans.md check (verify all tasks are cc:Done)
+### Sprint Contract
 
-## Handling CI Failures
+A `sprint-contract` is a small contract file that defines "what passes this task" in a format readable by both machines and humans.
+The default storage location is `.claude/state/contracts/<task-id>.sprint-contract.json`.
+
+```bash
+"${CLAUDE_SKILL_DIR}/../../scripts/generate-sprint-contract.sh" 32.1.1
+```
+
+The generated artifact includes:
+
+- `checks`: Verification items decomposed from the DoD
+- `non_goals`: What is out of scope for this task
+- `runtime_validation`: Validation commands such as test, lint, typecheck
+- `browser_validation`: UI flow verification items for the browser reviewer
+- `browser_mode`: `scripted` or `exploratory`
+- `route`: Whether the browser reviewer uses `playwright` / `agent-browser` / `chrome-devtools`
+- `risk_flags`: `needs-spike`, `security-sensitive`, `ux-regression`, etc.
+- `reviewer_profile`: `static`, `runtime`, `browser`
+
+**Phase C: Post-delegate (Integration & Reporting)**:
+1. Aggregate commit logs for all tasks
+2. Output a **Rich Completion Report** (Breezing template from "Completion Report Format")
+3. Final check of Plans.md (verify all tasks are cc:Done)
+
+## CI Failure Handling
+
+When CI fails:
 
 1. Check logs and identify the error
-2. Apply fixes
-3. If the same cause fails 3 times, stop the auto-fix loop
-4. Summarize the failure log, attempted fixes, and remaining issues for escalation
+2. Implement fixes
+3. Stop the auto-fix loop after 3 failures from the same cause
+4. Summarize failure logs, attempted fixes, and remaining issues for escalation
 
-## Auto Re-Ticketing of Failed Tasks
+## Automatic Re-ticketing of Failed Tasks
 
-When tests/CI fail after a task completes, auto-generate fix task proposals and reflect them in Plans.md after approval.
+When tests/CI fail after task completion, auto-generate fix task proposals and reflect them in Plans.md after approval:
+
+### Trigger Conditions
 
 | Condition | Action |
-|------|----------|
-| Tests fail after `cc:Done` | Present fix task proposal and wait for approval |
-| CI failure (fewer than 3 times) | Apply fixes |
+|-----------|--------|
+| Test failure after `cc:Done` | Save fix task proposal to state and wait for approval |
+| CI failure (fewer than 3 times) | Implement fix and increment failure count |
 | CI failure (3rd time) | Present fix task proposal + escalate |
+
+### Auto-Generation of Fix Tasks
+
+1. Classify failure cause (syntax_error / import_error / type_error / assertion_error / timeout / runtime_error)
+2. Save fix task proposal to `.claude/state/pending-fix-proposals.jsonl`:
+   - Number: Original task number + `.fix` suffix (e.g., `26.1.fix`)
+   - Content: `fix: [original task name] - [failure cause category]`
+   - DoD: Tests/CI pass
+   - Depends: Original task number
+3. When user sends `approve fix <task_id>`, add to Plans.md as `cc:TODO`
+4. `reject fix <task_id>` discards the proposal. When there is only one pending item, `yes` / `no` responses are also accepted
 
 ## Review Loop
 
-Quality verification stage that runs automatically after implementation.
-Applied uniformly across **all modes** (Solo / Sequential / Parallel / Breezing).
+A quality verification stage that runs automatically after implementation completion (after step 5).
+Applied uniformly across **all modes** (Solo / Parallel / Breezing).
+In Parallel mode, each Worker executes the same loop as step 10 (external review acceptance).
 
-### Running the Review (via official plugin companion)
+### Review Execution Priority
 
-Use the companion review from the official plugin `codex-plugin-cc`.
-Obtain the verdict in structured output (conforming to `review-output.schema.json`).
-
-> **Diff base**: Use the `TASK_BASE_REF` specific to each task (HEAD at the time the task started).
-> Review only the changes for that task, not accumulated diffs.
-
-```bash
-# Record base ref at task start (run before updating cc:WIP)
-TASK_BASE_REF=$(git rev-parse HEAD)
-
-# ... after implementation ...
-
-# Run structured review via official plugin
-bash scripts/codex-companion.sh review --base "${TASK_BASE_REF}"
-REVIEW_EXIT=$?
+```
+1. Codex exec (priority, when available) — see ${CLAUDE_SKILL_DIR}/references/codex-work.md
+   ↓ codex command does not exist or timeout (120s)
+2. Internal Reviewer agent (fallback)
 ```
 
-**Verdict mapping** (official plugin → Harness format):
+### APPROVE / REQUEST_CHANGES Verdict Criteria
 
-| Official plugin | Harness | Verdict impact |
-|---|---|---|
-| `approve` | `APPROVE` | - |
-| `needs-attention` | `REQUEST_CHANGES` | - |
-| `findings[].severity: critical` | `critical_issues[]` | Even 1 → REQUEST_CHANGES |
-| `findings[].severity: high` | `major_issues[]` | Even 1 → REQUEST_CHANGES |
-| `findings[].severity: medium/low` | `recommendations[]` | No impact on verdict |
+The following threshold criteria are provided to reviewers, and the verdict is determined **solely by these criteria**.
+Improvement suggestions outside these criteria are returned as `recommendations` but do not affect the verdict.
 
-Determine verdict from companion review output:
-- `verdict` is `approve` → `APPROVE`
-- `verdict` is `needs-attention` → `REQUEST_CHANGES`
-- `findings` contains `critical` / `high` severity → `REQUEST_CHANGES`
+| Severity | Definition | Verdict Impact |
+|----------|------------|----------------|
+| **critical** | Security vulnerabilities, data loss risk, potential production incidents | 1 item → REQUEST_CHANGES |
+| **major** | Breaking existing functionality, clear contradiction with specifications, test failures | 1 item → REQUEST_CHANGES |
+| **minor** | Naming improvements, insufficient comments, style inconsistencies | No impact on verdict |
+| **recommendation** | Best practice suggestions, future improvement ideas | No impact on verdict |
 
-### APPROVE / REQUEST_CHANGES Criteria
+> **Important**: When only minor / recommendation items exist, **always return APPROVE**.
+> "Nice-to-have improvements" are not grounds for REQUEST_CHANGES.
 
-| Severity | Definition | Impact on verdict |
-|--------|------|-----------------|
-| **critical** | Security vulnerability, data loss risk, potential production incident | Even 1 → REQUEST_CHANGES |
-| **major** | Breaks existing functionality, clear contradiction with spec, test failure | Even 1 → REQUEST_CHANGES |
-| **minor** | Naming improvement, missing comments, style inconsistency | No impact on verdict |
-| **recommendation** | Best practice suggestion, future improvement | No impact on verdict |
+### Codex Exec Review (via official plugin)
 
-> **Important**: If only minor / recommendation issues are found, **always return APPROVE**.
+> When Codex is available, load [`${CLAUDE_SKILL_DIR}/references/codex-work.md`](${CLAUDE_SKILL_DIR}/references/codex-work.md)
+> for the full Codex exec review flow, verdict mapping, and AI Residuals scan details.
+
+### Internal Reviewer Agent Fallback
+
+When Codex exec is unavailable (`command -v codex` fails, or exit code != 0):
+
+```
+Agent tool: subagent_type="reviewer"
+prompt: "Please review the following changes. Verdict criteria: critical/major → REQUEST_CHANGES, minor/recommendation only → APPROVE. diff: {git diff ${BASE_REF}}"
+```
+
+The Reviewer agent executes reviews safely in Read-only mode (Write/Edit/Bash disabled).
 
 ### Fix Loop (on REQUEST_CHANGES)
 
@@ -328,99 +404,99 @@ MAX_REVIEWS = 3
 while verdict == "REQUEST_CHANGES" and review_count < MAX_REVIEWS:
     1. Analyze review findings (critical / major only)
     2. Implement fixes for each finding
-    3. git commit --amend
-    4. Run companion review again (from TASK_BASE_REF)
+    3. Re-execute review (same criteria, same priority)
     review_count++
 
 if review_count >= MAX_REVIEWS and verdict != "APPROVE":
     → Escalate to user
-    → Display "Fixed 3 times but the following critical/major issues remain" + issue list
+    → Display "Fixed 3 times but the following critical/major issues remain" + list of issues
     → Wait for user decision (continue / abort)
 ```
 
 ### Application in Breezing Mode
 
-1. Worker implements and commits in worktree → wait for completion with `wait_agent`
-2. Lead reviews with companion review (from TASK_BASE_REF)
-3. REQUEST_CHANGES → instruct Worker to fix via `send_input` → Worker amends
-4. Re-review after fix (max 3 times)
-5. Terminate Worker with `close_agent`
-6. APPROVE → Lead cherry-picks to main → update Plans.md to `cc:Done [{hash}]`
+In Breezing mode, the **Lead** executes the review loop (see Phase B above):
 
-### Worker Output Contract
-
-The Worker prompt must explicitly specify that the following JSON is returned on completion:
-
-```json
-{
-  "commit": "a1b2c3d",
-  "files_changed": ["src/foo.ts", "tests/foo.test.ts"],
-  "summary": "Add bar feature to foo module"
-}
-```
-
-Lead parses this JSON to get the commit hash and file list.
-If Worker does not return JSON, get the most recent commit with `git log --oneline -1`.
+1. Worker implements and commits in worktree → returns result to Lead
+2. Lead reviews with Codex exec (priority) / Reviewer agent (fallback)
+3. REQUEST_CHANGES → Lead sends fix instructions to Worker via SendMessage → Worker amends
+4. After fix, re-review (up to 3 times)
+5. APPROVE → Lead cherry-picks to main → Updates Plans.md to `cc:Done [{hash}]`
 
 ## Completion Report Format
 
-Visual summary automatically output when a task completes.
+A visual summary auto-output on task completion (after `cc:Done` + commit).
+Designed to convey change content and impact even to non-technical stakeholders.
 
-### Solo Template
-
-```
-┌─────────────────────────────────────────────┐
-│  ✓ Task {N} Done: {Task Name}               │
-├─────────────────────────────────────────────┤
-│  ■ What was done                            │
-│    • {Change 1}                             │
-│    • {Change 2}                             │
-│  ■ What changed                             │
-│    Before: {old behavior}                   │
-│    After:  {new behavior}                   │
-│  ■ Changed files ({N} files)                │
-│    {file path 1}                            │
-│  ■ Remaining items                          │
-│    {M} incomplete tasks remain in Plans.md  │
-│  commit: {hash} | review: {APPROVE}         │
-└─────────────────────────────────────────────┘
-```
-
-### Breezing Template
+### Template
 
 ```
 ┌─────────────────────────────────────────────┐
-│  ✓ Breezing Done: {N}/{M} tasks             │
+│  ✓ Task {N} Done: {task name}                │
 ├─────────────────────────────────────────────┤
-│  1. ✓ {Task Name 1}            [{hash1}]    │
-│  2. ✓ {Task Name 2}            [{hash2}]    │
-│  ■ Overall changes                          │
-│    {N} files changed, {A} insertions(+),    │
-│    {D} deletions(-)                         │
-│  ■ Remaining items                          │
-│    {K} incomplete tasks remain in Plans.md  │
+│                                              │
+│  ■ What was done                             │
+│    • {change 1}                              │
+│    • {change 2}                              │
+│                                              │
+│  ■ What changed                              │
+│    Before: {old behavior}                    │
+│    After:  {new behavior}                    │
+│                                              │
+│  ■ Changed files ({N} files)                 │
+│    {file path 1}                             │
+│    {file path 2}                             │
+│                                              │
+│  ■ Remaining issues                          │
+│    • Task {X} ({status}): {content}  ← Plans.md  │
+│    • Task {Y} ({status}): {content}  ← Plans.md  │
+│    ({M} incomplete tasks in Plans.md)        │
+│                                              │
+│  commit: {hash} | review: {APPROVE}           │
 └─────────────────────────────────────────────┘
 ```
 
-## Differences from Claude Code Version
+### Generation Rules
 
-| Item | Claude Code version | Codex native version (this file) |
-|------|---------------|-------------------------------|
-| Worker spawn | `Agent(subagent_type="worker")` | `spawn_agent({message, fork_context})` |
-| Wait for completion | `Agent` return value | `wait_agent({ids: [id]})` |
-| Fix instruction | `SendMessage(to: agentId)` | `send_input({id, message})` |
-| Worker termination | Automatic (Agent tool return value) | Explicit via `close_agent({id})` |
-| Worktree isolation | `isolation="worktree"` auto-managed | Manual isolation via `git worktree add` |
-| Permissions | `bypassPermissions` | companion `task --write` / `spawn_agent`: inherits session permissions |
-| Review | Codex exec → Reviewer agent fallback | companion `review --base` (structured output) |
-| Verdict retrieval | Parse Agent response | companion review `verdict` field (approve/needs-attention) |
-| Mode auto-promotion | Auto-determined by task count | Explicit flags only (no auto-promotion) |
-| Effort control | `ultrathink` + `/effort` | `model_reasoning_effort` in config.toml |
-| Auto-Refinement | `/simplify` | None |
+1. **What was done**: Auto-extracted from `git diff --stat HEAD~1` and commit message. Minimize technical jargon, start with verbs
+2. **What changed**: Infer Before/After from the task's "Content" and "DoD". Emphasize user experience changes
+3. **Changed files**: Retrieved from `git diff --name-only HEAD~1`. Abbreviate with count when exceeding 5 files
+4. **Remaining issues**: List `cc:TODO` / `cc:WIP` tasks from Plans.md. Indicate whether they are already in Plans.md
+5. **Review**: Display review result (APPROVE / REQUEST_CHANGES → APPROVE)
+
+### Reporting in Parallel Mode
+
+- **1 task** (when forced with `--parallel`): Use Solo template
+- **Multiple tasks**: Use Breezing aggregate template (see below)
+
+### Reporting in Breezing Mode
+
+Output collectively after all tasks are complete. Each task is listed in abbreviated form (what was done + commit hash only),
+followed by an overall summary (total changed files + remaining issues):
+
+```
+┌─────────────────────────────────────────────┐
+│  ✓ Breezing Complete: {N}/{M} tasks          │
+├─────────────────────────────────────────────┤
+│                                              │
+│  1. ✓ {task name 1}            [{hash1}]     │
+│  2. ✓ {task name 2}            [{hash2}]     │
+│  3. ✓ {task name 3}            [{hash3}]     │
+│                                              │
+│  ■ Overall changes                           │
+│    {N} files changed, {A} insertions(+),     │
+│    {D} deletions(-)                          │
+│                                              │
+│  ■ Remaining issues                          │
+│    {K} incomplete tasks in Plans.md          │
+│    • Task {X}: {content}                     │
+│                                              │
+└─────────────────────────────────────────────┘
+```
 
 ## Related Skills
 
 - `harness-plan` — Plan the tasks to execute
 - `harness-sync` — Sync implementation with Plans.md
-- `harness-review` — Review implementation
+- `harness-review` — Review implementations
 - `harness-release` — Version bump and release
