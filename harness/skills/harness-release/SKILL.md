@@ -34,9 +34,8 @@ Key paths:
 
 ## Branch Policy
 
-- **Solo development**: Direct push to main is allowed (CI serves as the quality gate)
+- **Solo development**: Direct push to main or master is allowed (CI serves as the quality gate)
 - **Collaborative development**: Merge via PR is required
-- Force push (`--force` / `--force-with-lease`) is always prohibited
 
 ## Version Determination Criteria (SemVer)
 
@@ -194,7 +193,7 @@ git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
 ### Phase 7: Push
 
 ```bash
-git push origin main --tags
+git push origin {main or master} --tags
 ```
 
 **Note**: `.github/workflows/release.yml` detects tag pushes and runs a safety net that auto-generates a GitHub Release from CHANGELOG if one hasn't been created yet. If you create the GitHub Release manually first, the workflow will automatically skip.
@@ -250,7 +249,7 @@ Release notes validation (plugin-level script):
 
 ```bash
 git commit --allow-empty -m "chore: mark v$NEW_VERSION release complete"
-git push origin main
+git push origin {main or master}
 ```
 
 This empty commit serves as an explicit marker that "all release work is complete."
