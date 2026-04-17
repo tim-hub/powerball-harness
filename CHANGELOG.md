@@ -5,13 +5,22 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.8.0...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.8.1...HEAD
+[4.8.1]: https://github.com/tim-hub/powerball-harness/compare/v4.8.0...v4.8.1
 [4.8.0]: https://github.com/tim-hub/powerball-harness/compare/v4.7.0...v4.8.0
 [4.7.0]: https://github.com/tim-hub/powerball-harness/compare/v4.6.1...v4.7.0
 [4.6.1]: https://github.com/tim-hub/powerball-harness/compare/v4.6.0...v4.6.1
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.8.1] - 2026-04-18
+
+### Theme: Fix archive-traces portability on Linux
+
+**`/maintenance --archive-traces` now works correctly on GNU coreutils (Linux CI, typical container hosts). v4.8.0's archive script used a "try BSD first, fall through to GNU on failure" pattern that silently produced garbage on Linux — archived trace files landed in a blank `YYYY-MM` directory because `stat -f "%m"` is interpreted as "filesystem stats" by GNU stat (not file stats) and exits 0, defeating the fall-through.**
+
+**Fix**: feature-detect GNU vs BSD coreutils once via `--version` probe, then route each call unambiguously.
 
 ## [4.8.0] - 2026-04-18
 
