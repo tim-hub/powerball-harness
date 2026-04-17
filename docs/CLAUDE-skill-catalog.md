@@ -21,43 +21,69 @@ YES -> Launch with Skill tool -> Follow skill procedures
 NO  -> Handle with standard reasoning
 ```
 
-## Skill Hierarchy
+## Skill Directory (27 skills)
 
-Skills are organized in a hierarchy of **parent skills (categories)** and **child skills (specific features)**.
+Skills are flat — each skill lives in its own directory with a `SKILL.md`. Routing is description-based (auto-loaded by trigger matching).
 
 ```
 harness/skills/
-├── harness-review/        # Review (quality, security, performance)
-├── maintenance/           # Periodic housekeeping (log pruning, state cleanup, cache purge, worktrees)
-├── setup/                 # Integrated setup (project init, tool config, 2-Agent, harness-mem, Codex CLI, rule localization)
-├── memory/                # Memory management (SSOT, decisions.md, patterns.md, SSOT promotion, memory search)
-├── principles/            # Principles and guidelines (VibeCoder, diff editing)
-├── auth/                  # Authentication and payments (Clerk, Supabase, Stripe)
-├── deploy/                # Deployment (Vercel, Netlify, analytics)
-├── ui/                    # UI (components, feedback)
-└── notebook-lm/           # Documentation (NotebookLM, YAML)
+├── harness-work/          # Task implementation (Plans.md tasks, parallel workers, breezing)
+├── harness-plan/          # Plans.md authoring — create tasks, add acceptance criteria
+├── harness-review/        # Code/plan/scope review — pre-merge quality gate, security, performance
+├── harness-release/       # Version bumps, CHANGELOG, git tags, GitHub Releases
+├── harness-setup/         # Project init, CI/Codex/memory config, binary download
+├── harness-sync/          # Plans.md ↔ implementation drift detection and marker updates
+├── harness-loop/          # Autonomous ScheduleWakeup-based loop runtime with sprint-contracts
+├── breezing/              # Full team end-to-end run with parallel Workers (auto-detects task count)
+├── memory/                # SSOT management — decisions.md, patterns.md, memory search
+├── maintenance/           # Periodic cleanup — session log pruning, stale state, cache purge
+├── session/               # Session lifecycle: list, inbox checks, broadcast
+├── session-init/          # Session start — status check, Plans.md overview, env readiness
+├── session-state/         # Internal — auto-triggered at harness-work phase boundaries
+├── session-control/       # Internal — auto-triggered for --resume/--fork flags
+├── session-memory/        # Cross-session context recall and persistence
+├── ci/                    # CI/CD failure diagnosis — GitHub Actions, pipeline errors
+├── agent-browser/         # Browser automation — URLs, forms, scraping, UI testing
+├── cc-cursor-cc/          # Cursor ↔ Claude Code handoff — PM plan validation, Plans.md sync
+├── crud/                  # Scaffold CRUD — API endpoints, database models, REST resources
+├── deploy/                # Deploy to Vercel or Netlify — health checks, monitoring
+├── auth/                  # Authentication, OAuth, sessions, payments (Clerk, Supabase, Stripe)
+├── ui/                    # UI components — hero sections, landing pages, feedback forms
+├── gogcli-ops/            # Google Drive/Docs/Sheets/Slides via gogcli
+├── notebook-lm/           # NotebookLM YAML, structured slide content
+├── principles/            # Coding principles, development guidelines, safe-editing practices
+├── vibecoder-guide/       # Plain-language workflow guidance for newcomers
+└── workflow-guide/        # 2-agent workflow (Cursor ↔ Claude Code roles)
 ```
-
-**Usage:**
-1. Launch the parent skill with the Skill tool
-2. The parent skill routes to the appropriate child skill (doc.md) based on user intent
-3. Execute work following the child skill's procedures
 
 ## Full Skill Category Listing
 
-| Category | Purpose | Trigger Examples |
-|---------|------|-----------|
-| work | Task implementation (auto-scope detection, --codex support) | "implement", "do it all", "/work" |
-| breezing | Full auto-run with Agent Teams (--codex support) | "run with team", "breezing" |
-| harness-review | Code review, quality checks | "review this", "security", "performance" |
-| maintenance | Periodic housekeeping: log pruning, stale state cleanup, cache purge, worktrees | "prune logs", "clear state", "clean worktrees", "/maintenance" |
-| setup | Integrated setup hub (project init, tool config, 2-Agent, harness-mem, Codex CLI, rule localization) | "setup", "CLAUDE.md", "initialize", "CI setup", "2-Agent", "Cursor config", "harness-mem", "codex-setup" |
-| memory | SSOT management, memory search, SSOT promotion, Cursor-linked memory | "SSOT", "decisions.md", "merge", "SSOT promotion", "memory search", "harness-mem" |
-| principles | Development principles, guidelines | "principles", "VibeCoder", "safety" |
-| auth | Authentication, payment features | "login", "Clerk", "Stripe", "payments" |
-| deploy | Deployment, analytics | "deploy", "Vercel", "GA" |
-| ui | UI component generation | "component", "hero", "form" |
-| notebook-lm | Document generation | "document", "NotebookLM", "slides" |
+| Skill | Purpose | Trigger Examples |
+|-------|---------|-----------|
+| `harness-work` | Task implementation (auto-scope detection, parallel workers) | "implement", "do it all", "/harness-work" |
+| `harness-plan` | Create/update Plans.md with tasks and acceptance criteria | "plan", "add task", "/harness-plan" |
+| `harness-review` | Code review, quality checks, security audit | "review this", "security", "performance" |
+| `harness-release` | Version bump, CHANGELOG, tag, GitHub Release | "release", "tag", "publish" |
+| `harness-setup` | Project init, binary download, CI config | "setup", "initialize", "install binary" |
+| `harness-sync` | Drift detection between Plans.md and implementation | "sync", "check drift", "update markers" |
+| `harness-loop` | Autonomous loop runtime with ScheduleWakeup and sprint-contracts | "loop", "autonomous run", "harness-loop" |
+| `breezing` | Full auto-run with parallel Agent Teams | "run with team", "breezing", "all tasks" |
+| `memory` | SSOT management, decisions.md, patterns.md | "SSOT", "decisions", "memory search" |
+| `maintenance` | Periodic housekeeping — log pruning, stale state, worktrees | "prune logs", "clean state", "/maintenance" |
+| `session` | Session lifecycle: list, inbox, broadcast | "/session", "session status" |
+| `session-init` | Session start check — Plans.md overview, env readiness | (auto-triggered on session start) |
+| `ci` | Diagnose CI/CD failures — GitHub Actions errors | "CI failed", "pipeline broken" |
+| `agent-browser` | Browser automation — scraping, screenshots, UI testing | "open URL", "click", "screenshot" |
+| `cc-cursor-cc` | Cursor ↔ Claude Code handoff | "hand off to Cursor", "sync plans" |
+| `crud` | Scaffold CRUD API, database models | "create endpoint", "scaffold CRUD" |
+| `deploy` | Deploy to Vercel/Netlify, health checks | "deploy", "Vercel", "Netlify" |
+| `auth` | Auth, OAuth, sessions, payments | "login", "Clerk", "Stripe", "payments" |
+| `ui` | UI component generation | "component", "hero", "landing page form" |
+| `gogcli-ops` | Google Drive/Docs/Sheets via gogcli | "Google Drive", "Sheets", "gogcli" |
+| `notebook-lm` | NotebookLM YAML, slide content | "document", "NotebookLM", "slides" |
+| `principles` | Development principles, guidelines | "principles", "VibeCoder", "safety" |
+| `vibecoder-guide` | Newcomer-friendly workflow guide | "how does this work", "explain workflow" |
+| `workflow-guide` | 2-agent workflow reference | "cursor role", "claude code role", "2-agent" |
 
 ## Development Skills (Private)
 

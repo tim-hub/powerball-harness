@@ -5,11 +5,15 @@ Record the **problem, solution, and applicability conditions** so the same decis
 
 ## Index
 
-- P1: Declarative rule table pattern #guardrails #rules
-- P2: stdin -> route -> stdout pipeline #hooks #architecture
-- P3: Synchronizing test assertions with output language #testing #i18n
+- P1: Declarative rule table pattern #guardrails #rules _(superseded — see P8 for Go equivalent)_
+- P2: stdin -> route -> stdout pipeline #hooks #architecture _(superseded — see P8 for Go equivalent)_
+- P3: Synchronizing test assertions with output language #testing #i18n _(superseded — TypeScript era)_
 - P4: Symlink + CI verification pattern #monorepo #consistency
-- P5: Native module management via optionalDependencies #node #dependencies
+- P5: Native module management via optionalDependencies #node #dependencies _(TypeScript era — Go binary has no runtime deps)_
+- P6: Idempotent managed-block template merge #templates #setup #idempotency
+- P7: Optional-tool extraction for skills #skills #conditional-load #codex
+- P8: Go declarative guardrail rule table #guardrails #go
+- P9: Concurrent hook fan-out with deny-wins merge #hooks #concurrency
 
 ---
 
@@ -285,3 +289,93 @@ Phase 41 applied this twice:
 ### Related
 
 - files: `skills/harness-review/references/codex-review.md`, `skills/harness-work/references/codex-work.md`
+
+---
+
+## P8: Go declarative guardrail rule table #guardrails #go
+
+> _(Go successor to the TypeScript P1/P2 patterns. Current implementation since v4.0.0.)_
+
+### Problem
+
+- Guardrail rules written as if-else chains make adding new rules, testing, and priority management difficult
+- TypeScript core/ required Node.js runtime at hook execution time
+
+### Solution
+
+- Declare rules as a slice of `GuardRule` structs in `go/internal/guardrail/rules.go`
+- Each rule has `{id, toolPattern, evaluate(ctx) -> *RuleResult}`; slice order = priority
+- Return `nil` means "rule does not apply" → next rule is evaluated
+- Context carries `WorkMode`, `BreezingRole`, `CodexMode` flags to enable rule skipping
+
+```go
+var guardRules = []GuardRule{
+  {id: "R01:no-sudo", toolPattern: regexp.MustCompile(`^Bash$`), evaluate: evalNoSudo},
+  {id: "R02:no-write-protected-paths", toolPattern: regexp.MustCompile(`^Write|Edit|MultiEdit$`), evaluate: evalProtectedPaths},
+  // ...
+}
+```
+
+- Binary compiled CGO_ENABLED=0 (static, no runtime deps) for darwin-arm64/amd64/linux-amd64
+- hooks/ shims call `"${CLAUDE_PLUGIN_ROOT}/bin/harness" hook <name>` — no Node.js needed
+
+### When to Apply
+
+- Adding a new guardrail rule: add one entry to the slice in `rules.go`, add a test in `rules_test.go`
+- Rules with complex priority or context-dependent skipping
+
+### When NOT to Apply
+
+- Simple one-off permission checks that don't need priority ordering
+
+### Notes
+
+- `deny-wins` semantics: if any rule returns Deny, the entire evaluation denies even if a later rule would approve
+- `WorkMode` bypasses R04 and R05 (write outside project / rm -rf) — these are safe in breezing workers but risky in interactive mode
+
+### Related
+
+- decisions: D9
+- files: `go/internal/guardrail/rules.go`, `go/internal/guardrail/rules_test.go`, `harness/bin/harness`
+
+---
+
+## P9: Concurrent hook fan-out with deny-wins merge #hooks #concurrency
+
+### Problem
+
+- `PostToolUse` triggers many independent side-effect scripts sequentially (9 subprocess forks), adding latency after every tool call
+- `PreToolUse` needs to run multiple guardrail checks but must deny if any single check denies
+
+### Solution
+
+- Introduce fan-out orchestrator scripts (`post-tool-batch`, `pre-tool-batch`) that launch all handlers as goroutines and merge results
+- **PostToolUse fan-out**: fire-and-forget goroutines — side effects run concurrently, result is always approve (no blocking)
+- **PreToolUse fan-out**: collect all results; if any result is `deny`, return deny (deny-wins semantics)
+
+```
+PostToolUse → post-tool-batch → [goroutine: memory-bridge] [goroutine: log-toolname] [goroutine: usage-tracker] ...
+                                  all concurrent, result = approve
+PreToolUse  → pre-tool-batch  → [goroutine: guardrail] [goroutine: browser-guide] ...
+                                  deny-wins merge
+```
+
+### When to Apply
+
+- Multiple independent side-effect hooks that don't need to block the response
+- Multiple guard checks where any-deny should block
+
+### When NOT to Apply
+
+- Hooks with data dependencies between them (must run sequentially)
+- Hooks where ordering of side effects matters
+
+### Notes
+
+- Use `flock` for shared file access (Plans.md) within fan-out goroutines to prevent race conditions
+- Fan-out reduced PostToolUse from 9 sequential forks to 2 concurrent — measurable latency drop
+
+### Related
+
+- decisions: D15
+- files: `go/internal/hookhandler/`, `harness/hooks/hooks.json` (batch entries)

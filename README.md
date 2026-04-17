@@ -68,7 +68,7 @@ Run everything after plan approval:
   <img src="assets/readme-visuals-en/generated/safety-guardrails.svg" alt="Safety Protection System" width="640">
 </p>
 
-Harness protects your codebase with a **Go-native guardrail engine** (`go/internal/guardrail/`) — 13 declarative rules (R01–R13):
+Harness protects your codebase with a **Go-native guardrail engine** (`go/internal/guardrail/`) — 13 declarative rules (R01–R13) evaluated in priority order:
 
 | Rule | Protected | Action |
 |------|-----------|--------|
@@ -95,9 +95,9 @@ Runtime hook behavior is documented in [docs/hardening-parity.md](docs/hardening
 ```
 powerball-harness/
 ├── go/         # Go guardrail engine (bin/harness binary)
-├── skills/     # 31 skills (5 core verbs + specialized)
+├── skills/     # 27 skills (5 core verbs + specialized)
 ├── agents/     # 7 agents (worker, reviewer, scaffolder + 4 specialized)
-├── hooks/      # 58 hooks across 27 event types → Go binary
+├── hooks/      # ~35 hook entries across 27 event types → Go binary
 └── scripts/    # Helper scripts
 ```
 

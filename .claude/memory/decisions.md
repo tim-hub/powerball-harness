@@ -5,13 +5,13 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 
 ## Index
 
-- D1: 2026-04-12: Adopt 5-verb skills + 3-agent structure in v3 architecture #architecture #v3
+- D1: 2026-04-12: Adopt 5-verb skills + 7-agent structure #architecture
 - D2: 2026-04-12: Implement declarative guardrails with TypeScript core engine #guardrails #typescript _(superseded by D9)_
 - D3: 2026-04-12: Translate all comments, tests, and output in core/ to English #i18n #core
 - D4: 2026-04-12: Manage better-sqlite3 as optionalDependencies #dependencies #node24
 - D5: 2026-04-12: Unify Codex integration through official plugin #codex #policy
 - D6: 2026-04-12: Require implementation or category classification for Feature Table additions #quality #policy
-- D7: 2026-04-12: Keep hooks/ as thin shims, delegate logic to core/ #architecture #hooks _(updated: core/ → go/ binary)_
+- D7: 2026-04-12: Keep hooks/ as thin shims, delegate logic to Go binary #architecture #hooks
 - D8: 2026-04-12: Retire OpenCode platform, keep Codex via symlinks #architecture #cleanup
 - D9: 2026-04-13: Migrate guardrail engine from TypeScript to Go native binary #guardrails #go
 - D10: 2026-04-13: Hooks fail-open (exit 0) when platform binary is missing #hooks #ux
@@ -19,6 +19,7 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 - D12: 2026-04-15: Makefile as stable CI interface layer between workflows and script paths #ci #architecture
 - D13: 2026-04-15: MARKETPLACE_NAME and PLUGIN_NAME in cache scripts must match marketplace.json #distribution #cache
 - D14: 2026-04-15: Consistency check sections must be explicitly skipped, never silently no-op #quality #ci
+- D15: 2026-04-17: Concurrent hook fan-out and ScheduleWakeup-based harness-loop runtime #architecture #hooks #breezing
 
 ---
 
@@ -27,7 +28,7 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 ### Conclusion
 
 - Consolidate skills into 5 verbs (plan / execute / review / release / setup)
-- Consolidate agents into 6 (worker / reviewer / scaffolder / team-composition / ci-cd-fixer / video-scene-generator + error-recovery), reduced from 11
+- Consolidate agents into 7 (worker / reviewer / scaffolder / team-composition / ci-cd-fixer / error-recovery / advisor), reduced from 11
 - Use skills/ as the source of truth; codex/ references via symlinks (opencode retired in Phase 36)
 
 ### Background
@@ -203,25 +204,29 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 
 ---
 
-## D7: 2026-04-12: Keep hooks/ as thin shims, delegate logic to core/ #architecture #hooks
+## D7: 2026-04-12: Keep hooks/ as thin shims, delegate logic to Go binary #architecture #hooks
+
+> _(Updated 2026-04-13: core/ TypeScript → go/ Go binary. See D9.)_
 
 ### Conclusion
 
-- Bash scripts in hooks/ are thin shims that simply pipe stdin to core/src/index.ts
-- All logic (guardrail evaluation, tampering detection, session management) is centralized in core/
+- Bash scripts in hooks/ are thin shims that call `"${CLAUDE_PLUGIN_ROOT}/bin/harness" hook <name>`
+- All logic (guardrail evaluation, permission handling, session management) is centralized in the Go binary at `go/internal/`
 
 ### Background
 
 - Writing logic in bash makes testing difficult and leads to complex conditional branching
+- TypeScript core/ was the original centralization layer (D2), superseded by Go binary (D9)
 
 ### Rationale
 
 - A single entry point makes testing and debugging straightforward
 - Logic can be updated without changing hooks.json configuration
+- Go binary is statically compiled — no runtime dependencies
 
 ### Review Conditions
 
-- If Claude Code makes the hooks execution environment natively TypeScript
+- If Claude Code makes hooks execution environment natively Go or provides a native plugin SDK
 
 ---
 
@@ -414,3 +419,37 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 ### Review Conditions
 
 - Pattern should be applied proactively whenever a check section's target path changes
+
+---
+
+## D15: 2026-04-17: Concurrent hook fan-out and ScheduleWakeup-based harness-loop runtime #architecture #hooks #breezing
+
+### Conclusion
+
+- `PostToolUse` and `PreToolUse` hooks use goroutine fan-out (`post-tool-batch`, `pre-tool-batch`) to parallelize subprocess invocations — 9 sequential forks reduced to 2 concurrent via `post-tool-batch`
+- `harness-loop` graduated from a basic loop to a full ScheduleWakeup-based autonomous runtime with `--max-cycles`, `--pacing`, flock guard, sprint-contracts, and plateau detection
+- Sprint Contract defined as a Go package (`go/internal/sprint`) — structured commitment between Planner and Worker with acceptance criteria
+
+### Background
+
+- Phase 63: Hook chain was blocking on sequential subprocess calls; fan-out eliminates the bottleneck
+- Phase 69: harness-loop needed to be autonomous enough to run unattended across multiple Claude Code sessions using ScheduleWakeup events
+
+### Rationale
+
+- Fan-out is safe for PostToolUse (side effects, not blocking decisions); deny-wins merge semantics for PreToolUse ensures safety is preserved
+- ScheduleWakeup gives the loop persistence across session boundaries without requiring the user to stay present
+
+### Impact / Trade-offs
+
+- `flock` guard prevents concurrent harness-loop instances from stepping on each other (Plans.md exclusive access)
+- `--pacing` allows rate-limiting to avoid overwhelming external resources during automated runs
+
+### Review Conditions
+
+- If Claude Code provides a native autonomous loop primitive (ScheduleWakeup replacement)
+- If fan-out introduces race conditions that surface in CI
+
+### Related
+
+- files: `go/internal/hookhandler/`, `harness/skills/harness-loop/`, `harness/scripts/codex-loop.sh`
