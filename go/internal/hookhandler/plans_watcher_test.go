@@ -610,8 +610,10 @@ func TestAcquirePlansLock_BasicLock(t *testing.T) {
 	tmpDir := t.TempDir()
 	lockPath := filepath.Join(tmpDir, "locks", "plans.flock")
 
+	w := &plansWatcher{deps: defaultPlansWatcherDeps()}
+
 	// first acquisition should succeed
-	lock, err := acquirePlansLock(lockPath)
+	lock, err := w.acquireLock(lockPath)
 	if err != nil {
 		t.Fatalf("expected lock acquisition to succeed, got: %v", err)
 	}
@@ -625,25 +627,20 @@ func TestAcquirePlansLock_BasicLock(t *testing.T) {
 	}
 
 	// release should not panic
-	releasePlansLock(lock)
+	w.releaseLock(lock)
 }
 
 func TestAcquirePlansLock_FallsBackToMkdir(t *testing.T) {
 	tmpDir := t.TempDir()
 	lockPath := filepath.Join(tmpDir, "locks", "plans.flock")
 
-	origFlockCall := flockCall
-	origSleepCall := sleepCall
-	flockCall = func(fd int, how int) error {
-		return syscall.ENOTSUP
-	}
-	sleepCall = func(time.Duration) {}
-	defer func() {
-		flockCall = origFlockCall
-		sleepCall = origSleepCall
-	}()
+	w := &plansWatcher{deps: plansWatcherDeps{
+		flock: func(fd int, how int) error { return syscall.ENOTSUP },
+		sleep: func(time.Duration) {},
+		exitFn: defaultPlansWatcherDeps().exitFn,
+	}}
 
-	lock, err := acquirePlansLock(lockPath)
+	lock, err := w.acquireLock(lockPath)
 	if err != nil {
 		t.Fatalf("expected mkdir fallback lock acquisition to succeed, got: %v", err)
 	}
@@ -656,7 +653,7 @@ func TestAcquirePlansLock_FallsBackToMkdir(t *testing.T) {
 		t.Fatalf("expected mkdir fallback lock dir %s to exist: %v", lockDir, statErr)
 	}
 
-	releasePlansLock(lock)
+	w.releaseLock(lock)
 
 	if _, statErr := os.Stat(lockDir); !os.IsNotExist(statErr) {
 		t.Fatalf("expected mkdir fallback lock dir to be removed, got: %v", statErr)
@@ -703,24 +700,23 @@ func TestHandlePlansWatcher_LockExhaustionFailsClosed(t *testing.T) {
 		t.Skip("skipping fail-closed test: running as root (0o000 mode has no effect)")
 	}
 
-	// mock exitFailClosed to avoid os.Exit(1)
+	// inject a no-op exitFn so the test doesn't call os.Exit(1)
 	failClosedCalled := false
-	origExitFailClosed := exitFailClosed
-	exitFailClosed = func(msg string) {
-		failClosedCalled = true
-		// do not call os.Exit(1) — allow test to continue
-	}
-	defer func() { exitFailClosed = origExitFailClosed }()
+	w := &plansWatcher{deps: plansWatcherDeps{
+		flock:  defaultPlansWatcherDeps().flock,
+		sleep:  defaultPlansWatcherDeps().sleep,
+		exitFn: func(msg string) { failClosedCalled = true },
+	}}
 
 	input := `{"tool_name":"Edit","tool_input":{"file_path":"Plans.md"}}`
 	var out bytes.Buffer
-	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
-		t.Fatalf("HandlePlansWatcher should not return error even on lock failure: %v", err)
+	if err := w.handle(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("handle should not return error even on lock failure: %v", err)
 	}
 
-	// fail-closed: exitFailClosed must have been called
+	// fail-closed: exitFn must have been called
 	if !failClosedCalled {
-		t.Error("expected exitFailClosed to be called on lock exhaustion, but it was not")
+		t.Error("expected exitFn to be called on lock exhaustion, but it was not")
 	}
 
 	var result postToolOutput
@@ -847,15 +843,17 @@ func TestAcquirePlansLock_FailClosed(t *testing.T) {
 		t.Skip("skipping fail-closed test: running as root (0o000 mode has no effect)")
 	}
 
-	// mock exitFailClosed to avoid os.Exit(1)
-	origExitFailClosed := exitFailClosed
-	exitFailClosed = func(msg string) { /* no-op for test */ }
-	defer func() { exitFailClosed = origExitFailClosed }()
+	// inject a no-op exitFn so the test doesn't call os.Exit(1)
+	w := &plansWatcher{deps: plansWatcherDeps{
+		flock:  defaultPlansWatcherDeps().flock,
+		sleep:  defaultPlansWatcherDeps().sleep,
+		exitFn: func(msg string) { /* no-op for test */ },
+	}}
 
 	input := `{"tool_name":"Edit","tool_input":{"file_path":"Plans.md"}}`
 	var out bytes.Buffer
-	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
-		t.Fatalf("HandlePlansWatcher should not return error even on lock failure: %v", err)
+	if err := w.handle(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("handle should not return error even on lock failure: %v", err)
 	}
 
 	var result postToolOutput
@@ -870,8 +868,9 @@ func TestAcquirePlansLock_FailClosed(t *testing.T) {
 	}
 }
 
-// TestReleasePlansLock_Nil verifies that releasePlansLock does not panic when called with nil.
+// TestReleasePlansLock_Nil verifies that releaseLock does not panic when called with nil.
 func TestReleasePlansLock_Nil(t *testing.T) {
+	w := &plansWatcher{deps: defaultPlansWatcherDeps()}
 	// should not panic
-	releasePlansLock(nil)
+	w.releaseLock(nil)
 }

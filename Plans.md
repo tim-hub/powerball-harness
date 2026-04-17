@@ -5,6 +5,20 @@ Last release: v4.5.1 on 2026-04-16 (docs + hook removal + settings hardening)
 
 ---
 
+## Phase 70: Code-review quality fixes (struct-field DI, hook ordering, go.work)
+
+Created: 2026-04-17
+
+**Goal**: Address three non-blocking code-review observations: move package-level test mocks to struct fields in `plans_watcher.go`, add an explicit hook-ordering comment in `post_batch.go`, and add `go.work` at the repo root to silence gopls false positives.
+
+| Task | Description | DoD | Status |
+|------|-------------|-----|--------|
+| 70.1 | Refactor `plans_watcher.go`: replace package-level `flockCall`/`sleepCall`/`exitFailClosed` vars with `plansWatcherDeps` struct + `plansWatcher` type; keep `HandlePlansWatcher` as thin public wrapper | `go test ./go/internal/hookhandler/...` passes; `t.Parallel()`-safe | cc:done |
+| 70.2 | Add hook-ordering comment to `postBatchHooks()` in `post_batch.go` explaining that slice position determines which output CC sees | Comment present; no test changes needed | cc:done |
+| 70.3 | Add `go.work` at repo root pointing to `./go` to silence gopls false positives | `gopls` resolves imports from repo root without errors | cc:done |
+
+---
+
 ## Phase 69: Upstream sync — PR #81 (Codex loop runtime + concurrency fixes) + PR #82 (mirror check fix)
 
 Created: 2026-04-17
