@@ -5,11 +5,14 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.6.1...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.7.0...HEAD
+[4.7.0]: https://github.com/tim-hub/powerball-harness/compare/v4.6.1...v4.7.0
 [4.6.1]: https://github.com/tim-hub/powerball-harness/compare/v4.6.0...v4.6.1
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.7.0] - 2026-04-17
 
 ### Theme: Skill description reformat — capability-first with when_to_use field
 
