@@ -178,8 +178,14 @@ plans_file_path() {
       source "${SCRIPT_DIR}/config-utils.sh" && \
       get_plans_file_path 2>/dev/null
     )" || plans_file=""
-    if [ -n "${plans_file}" ] && [ ! -f "${plans_file}" ] && [ -f "${PROJECT_ROOT}/${plans_file}" ]; then
-      plans_file="${PROJECT_ROOT}/${plans_file}"
+    # Resolve relative paths against PROJECT_ROOT
+    if [ -n "${plans_file}" ]; then
+      case "${plans_file}" in
+        /*) ;; # already absolute
+        *)  plans_file="${PROJECT_ROOT}/${plans_file}" ;;
+      esac
+      # Clear if the resolved path doesn't exist
+      [ -f "${plans_file}" ] || plans_file=""
     fi
   fi
 
