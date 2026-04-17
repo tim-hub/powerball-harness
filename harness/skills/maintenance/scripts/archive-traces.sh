@@ -40,23 +40,39 @@ log_always() {
     echo "[archive-traces] $*" >&2
 }
 
+# Feature-detect GNU vs BSD coreutils once. GNU tools accept --version;
+# BSD tools (macOS default) do not. The earlier "try -f, fall through to -c"
+# pattern was buggy on Linux because GNU `stat -f "%m" file` treats -f as
+# "display filesystem stats", prints a placeholder for unknown format fields,
+# and exits 0 — so the fall-through never triggered and we captured garbage.
+if stat --version >/dev/null 2>&1; then
+    _HARNESS_STAT_GNU=1
+else
+    _HARNESS_STAT_GNU=0
+fi
+if date --version >/dev/null 2>&1; then
+    _HARNESS_DATE_GNU=1
+else
+    _HARNESS_DATE_GNU=0
+fi
+
 # mtime_epoch returns the modification time of $1 as Unix seconds.
-# Handles both BSD (macOS) and GNU (Linux) stat.
 mtime_epoch() {
-    if stat -f "%m" "$1" 2>/dev/null; then
-        return 0
+    if [[ "$_HARNESS_STAT_GNU" == "1" ]]; then
+        stat -c "%Y" "$1"
+    else
+        stat -f "%m" "$1"
     fi
-    stat -c "%Y" "$1"
 }
 
 # format_ym converts an epoch timestamp to "YYYY-MM".
-# Handles both BSD (-r) and GNU (-d @) date.
 format_ym() {
     local epoch="$1"
-    if date -r "$epoch" +"%Y-%m" 2>/dev/null; then
-        return 0
+    if [[ "$_HARNESS_DATE_GNU" == "1" ]]; then
+        date -d "@$epoch" +"%Y-%m"
+    else
+        date -r "$epoch" +"%Y-%m"
     fi
-    date -d "@$epoch" +"%Y-%m"
 }
 
 # task_is_done checks whether Plans.md has a row for $1 with a cc:Done marker.
