@@ -14,7 +14,9 @@ Change history for claude-code-harness.
 
 ### Theme: Per-task execution traces (Phase 72)
 
-**Harness now records a per-task JSONL trace of every mutating tool call during `/harness-work` sessions, laying the foundation for the Phase 73 advisor upgrade and Phase 74 code-space search experiments. The idea is borrowed from the Meta-Harness paper (arxiv 2603.28052): downstream agents need raw causal history, not just summaries, to reason about why past attempts failed.**
+**Harness now records a per-task JSONL trace of every mutating tool call during `/harness-work` sessions, laying the foundation for the Phase 73 advisor upgrade and Phase 74 code-space search experiments.**
+
+**Inspired by the Meta-Harness paper — [Meta-Harness: End-to-End Optimization of Model Harnesses (arXiv:2603.28052)](https://doi.org/10.48550/arXiv.2603.28052).** The paper's central claim is that compressed feedback (summaries) loses the causal signal needed to fix problems; downstream agents need raw execution history to reason about why past attempts failed, not just that they did.
 
 ---
 
