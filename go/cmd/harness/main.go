@@ -342,6 +342,10 @@ func runHook(hookType string) {
 		if err := hookhandler.HandlePlansWatcher(os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "plans-watcher handler error: %v\n", err)
 		}
+	case "trace-posttool":
+		if err := hookhandler.HandlePostToolUseTrace(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "trace-posttool handler error: %v\n", err)
+		}
 	case "tdd-check":
 		if err := hookhandler.HandleTDDOrderCheck(os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "tdd-check handler error: %v\n", err)

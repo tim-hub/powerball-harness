@@ -318,6 +318,16 @@
         ]
       },
       {
+        "matcher": "Write|Edit|MultiEdit|Bash|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook trace-posttool",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "*",
         "hooks": [
           {
