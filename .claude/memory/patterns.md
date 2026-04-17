@@ -379,3 +379,45 @@ PreToolUse  → pre-tool-batch  → [goroutine: guardrail] [goroutine: browser-g
 
 - decisions: D15
 - files: `go/internal/hookhandler/`, `harness/hooks/hooks.json` (batch entries)
+
+---
+
+## P10: Per-task execution trace as causal-history layer #observability #traces
+
+### Problem
+
+- Summary-only memory (`decisions.md`, `patterns.md`) captures *why* and *how* but loses the causal chain of "attempted X → failed with Y → fixed via Z"
+- Downstream consumers (Phase 73 advisor, Phase 74 code-space proposer) need causal reasoning about *why* past attempts failed, not just that they did
+- Session-level `.claude/state/agent-trace.jsonl` aggregates across all tasks in a session, making per-task replay expensive (have to filter across everything)
+
+### Solution
+
+- Add a per-task trace layer between raw tool calls and human-curated summaries: JSONL files at `.claude/state/traces/<task_id>.jsonl`
+- Schema (`trace.v1`) is flat: one JSONL line per event, six event types (`task_start`, `tool_call`, `decision`, `error`, `fix_attempt`, `outcome`)
+- Writer is concurrency-safe (flock + fsync) and caps marshaled line size at 1 MiB as a privacy guard against accidental file-content leaks
+- Capture is automatic via PostToolUse hook scoped to the active `cc:WIP` task in Plans.md — no LLM instruction needed
+- Retention: 30 days post `cc:Done`, then moved to `.claude/memory/archive/traces/YYYY-MM/` by `/maintenance --archive-traces`
+
+### When to Apply
+
+- Downstream agents need causal reasoning ("why did this fail?" not just "did this fail?")
+- Work is structured into discrete tasks with clear start/end markers (Plans.md `cc:WIP` → `cc:Done`)
+- The cost of losing attempt history exceeds the cost of writing + archiving JSONL
+
+### When NOT to Apply
+
+- For session-level monitoring — `.claude/state/agent-trace.jsonl` already exists for that
+- For metrics/telemetry — this is a replay log, not a metrics system; events aren't numeric
+- For audit logging of permissions — that belongs to the Go guardrail engine
+
+### Notes
+
+- `error_signature` normalization (lowercase, strip numerics/hex/UUIDs/paths, collapse whitespace) makes "same logical error" detectable across runs and is shared with `harness/agents/advisor.md`'s duplicate-suppression cache
+- Flat schema chosen over nested-per-attempt for append simplicity; attempt boundaries preserved via monotonic `attempt_n` field on each event
+- Privacy defaults favour less data over more: `args_summary` preserves paths but never contents; Bash commands truncated to 500 chars; environment variables are never captured
+
+### Related
+
+- schema: `.claude/memory/schemas/trace.v1.md`
+- files: `go/internal/trace/writer.go`, `go/internal/trace/errsig.go`, `go/internal/hookhandler/posttooluse_trace.go`, `harness/skills/maintenance/scripts/archive-traces.sh`
+- roadmap: Phase 73 (advisor consumes traces), Phase 74 (code-space proposer consumes traces)

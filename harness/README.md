@@ -198,8 +198,9 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    subgraph L0["Layer 0 · Agent Trace (auto)"]
-        AT[".claude/state/agent-trace.jsonl\ntool execution history"]
+    subgraph L0["Layer 0 · Execution Traces (auto)"]
+        AT[".claude/state/agent-trace.jsonl\nsession-level tool calls"]
+        TT[".claude/state/traces/&lt;task&gt;.jsonl\nper-task causal history (trace.v1)"]
     end
     subgraph L1["Layer 1 · Project SSOT (skill: memory)"]
         DEC2["decisions.md\n(why decisions were made)"]
@@ -211,9 +212,14 @@ flowchart LR
     end
 
     AT -->|promoted by session-memory| L1
+    TT -->|archived after 30d by /maintenance| TT
     L1 -->|sync via /memory sync-across| L2
     L2 -->|recalled via /memory search| L1
 ```
+
+**L0 has two trace streams**:
+- `agent-trace.jsonl` aggregates all tool calls in a session (session-scoped; see `go/internal/hookhandler/emit_agent_trace.go`)
+- `traces/<task_id>.jsonl` records causal history for one Plans.md task (task-scoped; schema defined at `.claude/memory/schemas/trace.v1.md`). Consumers: Phase 73 advisor, Phase 74 code-space proposer.
 
 ---
 

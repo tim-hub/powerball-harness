@@ -12,6 +12,30 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Per-task execution traces (Phase 72)
+
+**Harness now records a per-task JSONL trace of every mutating tool call during `/harness-work` sessions, laying the foundation for the Phase 73 advisor upgrade and Phase 74 code-space search experiments. The idea is borrowed from the Meta-Harness paper (arxiv 2603.28052): downstream agents need raw causal history, not just summaries, to reason about why past attempts failed.**
+
+---
+
+#### 1. trace.v1 schema and Go writer
+
+**Before**: The project's three-layer memory (`decisions.md`, `patterns.md`, `session-log.md`) captured *why* and *how*, but not *what was actually tried*. When a Worker got stuck and recovered, the causal chain of "failed here → fixed by doing X" lived only in git history and had to be reconstructed from diffs.
+
+**After**: `.claude/state/traces/<task_id>.jsonl` records the full attempt history per Plans.md task using the `trace.v1` schema — `task_start`, `tool_call`, `decision`, `error`, `fix_attempt`, `outcome` events with stable `error_signature` normalization for cross-run deduplication. Writer is concurrency-safe (flock + fsync, Go package `go/internal/trace`) with 1 MiB per-line cap and 50 MiB rotation.
+
+#### 2. Automatic capture via PostToolUse hook
+
+**Before**: Agents would have had to explicitly emit trace events, which never happened in practice — infrastructure existing without wiring produces no data.
+
+**After**: The new `trace-posttool` hook fires after every Edit / Write / MultiEdit / Bash / Task call, derives the active task id from the first `cc:WIP` row in Plans.md, and appends a `tool_call` event automatically. Ad-hoc sessions (no `cc:WIP`) produce no trace files — traces are scoped to intentional `/harness-work` activity only. Privacy-preserving: `args_summary` preserves file paths but never file contents, and Bash commands are truncated to 500 chars.
+
+#### 3. Archive policy via `/maintenance --archive-traces`
+
+**Before**: Anything that accumulates in `.claude/state/` has no retention policy by default. A new per-task file per task would grow indefinitely.
+
+**After**: `/maintenance --archive-traces` moves trace files for `cc:Done` tasks older than 30 days into `.claude/memory/archive/traces/YYYY-MM/`, bucketed by mtime. Idempotent (second run is a no-op) and safe to invoke from cron. Environment knobs `RETENTION_DAYS=N`, `DRY_RUN=1`, and `VERBOSE=1` cover the rare tuning cases.
+
 ## [4.7.0] - 2026-04-17
 
 ### Theme: Skill description reformat — capability-first with when_to_use field
