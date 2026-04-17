@@ -19,5 +19,17 @@
   "skills": [
     "./skills/"
   ],
+  "monitors": [
+    {
+      "id": "harness-session-monitor",
+      "name": "Harness Session Monitor",
+      "description": "Auto-arm session monitoring for harness-mem health, advisor/reviewer state, and Plans.md drift.",
+      "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook session-monitor",
+      "autoArm": [
+        "plugin_enable",
+        "skill_invoke"
+      ]
+    }
+  ],
   "outputStyles": "./output-styles/"
 }
