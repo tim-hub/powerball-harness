@@ -23,6 +23,7 @@ docs/design/
 # Local development
 .claude/*
 go/**/.claude/
+harness/.claude/
 !.claude/rules/
 !.claude/output-styles/
 !.claude/settings.json
