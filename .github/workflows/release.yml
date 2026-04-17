@@ -74,20 +74,14 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           VERSION="${TAG#v}"
 
-          if gh release create "$TAG" \
+          gh release create "$TAG" \
             --title "$TAG" \
             --notes-file /tmp/release-body.md \
             --verify-tag \
-            bin/harness-darwin-arm64 \
-            bin/harness-darwin-amd64 \
-            bin/harness-linux-amd64; then
-            echo "✅ Release created for $TAG with Go binaries"
-          else
-            echo "⚠️ Release already exists (race condition), uploading binaries instead"
-            for bin in bin/harness-darwin-arm64 bin/harness-darwin-amd64 bin/harness-linux-amd64; do
-              gh release upload "$TAG" "$bin" --clobber 2>/dev/null || true
-            done
-          fi
+            harness/bin/harness-darwin-arm64 \
+            harness/bin/harness-darwin-amd64 \
+            harness/bin/harness-linux-amd64
+          echo "✅ Release created for $TAG with Go binaries"
 
       - name: Upload Go binaries to existing release
         if: steps.check.outputs.exists == 'true'
@@ -97,7 +91,7 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
 
           # Upload binaries if not already attached
-          for bin in bin/harness-darwin-arm64 bin/harness-darwin-amd64 bin/harness-linux-amd64; do
+          for bin in harness/bin/harness-darwin-arm64 harness/bin/harness-darwin-amd64 harness/bin/harness-linux-amd64; do
             gh release upload "$TAG" "$bin" --clobber 2>/dev/null || true
           done
 
