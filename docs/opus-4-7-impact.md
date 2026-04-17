@@ -97,3 +97,51 @@ Opus 4.7 では `literal instruction following` と `xhigh`、`/ultrareview`、A
 
 Opus 4.7 の変化は「できることが少し増えた」より、「指示との付き合い方が変わった」が本質だからです。  
 そのため、まず docs と prompt 設計を正すのが最も費用対効果が高いです。
+
+---
+
+## Phase 44 トレース表
+
+Phase 44 の各サブフェーズが、上記 8 項目のどれを担当するかを逆引きできるようにする。
+`Plans.md` の Phase 44 定義および `docs/cc-2.1.99-2.1.110-impact.md` と整合する。
+
+| # | 項目 | 影響重み | 主担当 Phase | 補助 Phase |
+|---|------|---------|------------|-----------|
+| 1 | literal instruction following | **High** | **44.4.1 (agents)** + **44.4.2 (skills)** | 44.11.1 (Feature Table 追記) |
+| 2 | `xhigh` effort | Medium | **44.5.1** | 44.11.1 |
+| 3 | task budgets (public beta) | Low | **44.10.1** (調査のみ) | — |
+| 4 | tokenizer 1.0-1.35× | Low | — (自動継承) | 44.6.1 で 1h cache 効果測定に統合 / 44.11.1 に 1 段落 |
+| 5 | vision 2576px | Low | **44.9.1 (Optional)** | 44.11.1 |
+| 6 | file-system memory 強化 | Medium | **44.4.1** (agent memory 記述の audit に集約) | 次サイクルのメモリメンテ |
+| 7 | `/ultrareview` | Medium | **44.8.1** | 44.7.1 (built-in slash via Skill tool) |
+| 8 | Auto Mode 拡大 | Low | — (本 Phase では採用しない) | 44.12.1 (smoke test で挙動確認のみ) |
+
+### 最優先着手点
+
+**44.4 (literal prompt re-tune) が最優先**。Opus 4.7 では 4.6 時代に暗黙補完されていた挙動が破綻する可能性が最大。他の項目は後回しでも致命傷にならないが、44.4 を放置すると Worker / Reviewer / Advisor の振る舞いが不安定になる。
+
+### 44.4 実行の指針
+
+1. **曖昧語を grep で列挙**: `いい感じに` / `必要に応じて` / `適切に` / `ちゃんと` / `なるべく` / `可能であれば` / `良しなに` / `自動的に` を `agents/` と `skills/` 配下で検索
+2. **列挙結果ごとに replace**: 具体的な判断基準 (閾値・マーカー・ファイル名・コマンド名) に置換
+3. **audit checklist 化**: `.claude/rules/opus-4-7-prompt-audit.md` に before/after 例と残件を記録
+4. **Codex mirror 同期**: `agents-codex/` と `skills-codex/` も同じ基準で整理
+
+### 本 Phase で触らないもの（明示）
+
+以下は Opus 4.7 関連だが、Phase 44 の射程外とする。
+後続 Phase または次リリースサイクルで検討する。
+
+- **Task Budgets の本採用** — public beta のため次サイクル
+- **Auto Mode への全面切替** — 挙動差が読めないため `bypassPermissions` を維持
+- **`decisions.md` / `patterns.md` の全面メンテナンス** — 次のメモリメンテサイクルで
+- **新モデル ID の Harness デフォルト化** — `claude-opus-4-7` への明示的な frontmatter 固定は行わない。CC の model picker / config に従う
+
+---
+
+## 参照
+
+- 一次情報: https://www.anthropic.com/news/claude-opus-4-7
+- Claude Code 側の変更: [cc-2.1.99-2.1.110-impact.md](./cc-2.1.99-2.1.110-impact.md)
+- Phase 44 定義: [../Plans.md](../Plans.md) の "Phase 44: Opus 4.7 / Claude Code 2.1.99-2.1.110 追従"
+- 分類ルール: [../.claude/rules/cc-update-policy.md](../.claude/rules/cc-update-policy.md)
