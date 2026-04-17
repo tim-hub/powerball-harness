@@ -1,6 +1,7 @@
 ---
 name: workflow-guide
-description: "Use when asked how the 2-agent workflow operates — Cursor ↔ Claude Code roles, codex and opencode roles, handoffs, or process flow. Do NOT load for: implementation, executing handoffs (cc-cursor-cc), or workflow config setup."
+description: "Explains the 2-agent Cursor and Claude Code workflow — roles, handoffs, and process flow. Use when asking how the dual-agent workflow operates."
+when_to_use: "how does the workflow work, Cursor and Claude Code, 2-agent workflow, handoff process, workflow roles"
 allowed-tools: ["Read"]
 user-invocable: false
 ---

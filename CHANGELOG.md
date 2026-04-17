@@ -11,6 +11,36 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Skill description reformat — capability-first with when_to_use field
+
+**All 28 harness skills now lead with a capability summary, carry a new `when_to_use` field for routing phrases, and drop negative `Do NOT load for` exclusions.**
+
+---
+
+#### 1. New `when_to_use` frontmatter field across all 28 skills
+
+**Before**: Skill routing relied on the `description` field alone, with exclusions (`Do NOT load for: ...`) to prevent mis-routing.
+
+**After**: Each skill gains a `when_to_use` field of comma-separated trigger phrases. Combined `description` + `when_to_use` budget validated at ≤ 1536 chars hard limit.
+
+#### 2. Description format changed to capability-first
+
+**Before**: `"Use when <trigger>. Do NOT load for: <exclusions>."`
+
+**After**: `"<Capability summary>. Use when <trigger>."` — leads with what the skill does; drops all exclusion clauses.
+
+#### 3. Four `argument-hint` fields normalised to `[a|b|c]` style
+
+**Before**: `harness-work`, `harness-loop`, `harness-review`, and `agent-browser` used separate `[a] [b]` bracket style.
+
+**After**: All four consolidated to single-bracket `[a|b|c]` style matching all other skills.
+
+#### 4. `audit-skill-descriptions.sh` updated for new format
+
+**Before**: Enforced "must start with `Use when `". Internal (`user-invocable: false`) skills could not conform.
+
+**After**: Checks that `Use when ` appears anywhere in the description; exempts internal skills. `.claude/rules/skill-description.md` updated to match.
+
 ## [4.6.1] - 2026-04-17
 
 ### Theme: Bug fixes and test robustness

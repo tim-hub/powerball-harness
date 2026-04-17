@@ -1,6 +1,7 @@
 ---
 name: memory
-description: "Use when managing SSOT, recording decisions, searching memory, promoting learnings to decisions.md/patterns.md, or invoking harness-mem. Do NOT load for: implementation, reviews, ad-hoc notes, or in-session logging."
+description: "Manages SSOT memory — decisions.md, patterns.md, and cross-session learnings. Use when recording decisions, searching memory, or promoting learnings."
+when_to_use: "record decision, search memory, update patterns, SSOT, promote learning, decisions.md"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "mcp__harness__harness_mem_*"]
 argument-hint: "[ssot|sync|sync-across|migrate|merge|search|record]"
 context: fork

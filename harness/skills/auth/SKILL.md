@@ -1,6 +1,7 @@
 ---
 name: auth
-description: "Use when implementing authentication, OAuth, sessions, payments, subscriptions, or billing — including route protection, RBAC, and payment webhooks. Do NOT load for: general UI, schema design, or non-auth API endpoints."
+description: "Implements authentication, OAuth, sessions, payments, and billing. Use when adding auth flows, route protection, RBAC, or payment webhooks."
+when_to_use: "authentication, OAuth, login, signup, payments, Stripe, billing, subscriptions, route protection, RBAC"
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 user-invocable: false
 ---

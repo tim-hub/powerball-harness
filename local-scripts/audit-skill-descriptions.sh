@@ -31,7 +31,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-REQUIRED_PREFIX="Use when "
+REQUIRED_PHRASE="Use when "
 MAX_LEN=300
 SNIPPET_MAX=120
 
@@ -87,6 +87,12 @@ extract_description() {
   ' "$file" | sed -E 's/^description:[[:space:]]*//; s/^"//; s/"[[:space:]]*$//'
 }
 
+is_internal_skill() {
+  # Returns 0 (true) if the SKILL.md frontmatter contains `user-invocable: false`.
+  local file="$1"
+  grep -q "^user-invocable:[[:space:]]*false" "$file"
+}
+
 truncate_snippet() {
   local s="$1"
   if [ "${#s}" -gt "$SNIPPET_MAX" ]; then
@@ -128,9 +134,10 @@ for file in "${SKILL_FILES[@]}"; do
     continue
   fi
 
-  # 1. Required prefix check
-  if [[ "$desc" != "${REQUIRED_PREFIX}"* ]]; then
-    report_violation "$file" "missing-use-when-prefix" "$desc"
+  # 1. Required phrase check — "Use when " must appear somewhere in the description
+  #    Skipped for internal (non-user-invocable) skills — they are auto-triggered.
+  if ! is_internal_skill "$file" && [[ "$desc" != *"${REQUIRED_PHRASE}"* ]]; then
+    report_violation "$file" "missing-use-when" "$desc"
     had_violation=1
   fi
 

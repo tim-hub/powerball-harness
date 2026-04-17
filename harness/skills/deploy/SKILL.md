@@ -1,6 +1,7 @@
 ---
 name: deploy
-description: "Use when deploying to Vercel or Netlify — production pushes, health checks, post-deploy monitoring, or analytics setup. Do NOT load for: feature implementation, local dev, reviews, or project init."
+description: "Deploys to Vercel or Netlify, runs health checks, and monitors post-deploy. Use when deploying to production or checking deployment status."
+when_to_use: "deploy to Vercel, deploy to Netlify, production push, health check, post-deploy monitoring, analytics setup"
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 disable-model-invocation: true
 argument-hint: "[vercel|netlify|health]"

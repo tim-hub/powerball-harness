@@ -1,6 +1,7 @@
 ---
 name: session-memory
-description: "Use when recalling prior sessions, past work, continue from before, continuing past work, referencing earlier decisions, or persisting cross-session context. Do NOT load for: implementation, reviews, ad-hoc notes, or in-session logging."
+description: "Recalls prior sessions and persists cross-session context for continuity. Use when referencing past decisions or continuing prior work."
+when_to_use: "recall prior sessions, continue from before, what did we do last time, past work, cross-session context"
 allowed-tools: ["Read", "Write", "Edit"]
 user-invocable: false
 ---

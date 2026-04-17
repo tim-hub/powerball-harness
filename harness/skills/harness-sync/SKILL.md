@@ -1,6 +1,7 @@
 ---
 name: harness-sync
-description: "Use when syncing progress between Plans.md and implementation — drift detection, marker updates, retrospectives, or 'where am I' checks. Supports --snapshot. Do NOT load for: creating plans, implementation, or review."
+description: "Detects drift between Plans.md markers and actual implementation, then corrects them. Use when checking sync status or running a retrospective."
+when_to_use: "sync status, drift check, where am I, retrospective, markers out of date, plans out of sync, snapshot"
 allowed-tools: ["Read", "Edit", "Bash", "Grep", "Glob"]
 argument-hint: "[--snapshot|--no-retro]"
 effort: medium

@@ -1,8 +1,9 @@
 ---
 name: harness-loop
-description: "Use when running Plans.md tasks in a long-running autonomous loop with ScheduleWakeup (fresh context per wake-up, sprint-contract flow, plateau detection, flock guard). Do NOT load for: single-task work (harness-work), planning, review, release."
+description: "Runs Plans.md tasks in a long-running autonomous loop with ScheduleWakeup, sprint contracts, and plateau detection. Use when running tasks overnight or in a continuous loop."
+when_to_use: "autonomous loop, overnight run, scheduled loop, continuous execution, long-running loop"
 allowed-tools: ["Read", "Edit", "Bash", "Task", "ScheduleWakeup", "mcp__harness__harness_mem_resume_pack", "mcp__harness__harness_mem_record_checkpoint"]
-argument-hint: "[all|N-M] [--max-cycles N] [--pacing worker|ci|plateau|night] [--advisor|--no-advisor]"
+argument-hint: "[all|N-M|--max-cycles N|--pacing worker|ci|plateau|night|--advisor|--no-advisor]"
 ---
 
 # Harness Loop

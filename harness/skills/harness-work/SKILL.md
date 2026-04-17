@@ -1,8 +1,9 @@
 ---
 name: harness-work
-description: "Use when implementing, executing, or running Plans.md tasks — single task, parallel workers, or full team/breezing run. Accepts specific task numbers or ranges. Do NOT load for: planning, review, release, or setup."
+description: "Executes Plans.md tasks — solo, parallel, or breezing team mode. Use when implementing tasks or running the work loop."
+when_to_use: "implement task, run task, execute plans, work on task, run all tasks, parallel workers, breezing"
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
-argument-hint: "[all] [task-number|range] [--codex] [--parallel N] [--no-commit] [--resume id] [--breezing] [--auto-mode] [--advisor] [--no-advisor]"
+argument-hint: "[all|task-number|range|--codex|--parallel N|--no-commit|--resume id|--breezing|--auto-mode|--advisor|--no-advisor]"
 effort: high
 ---
 

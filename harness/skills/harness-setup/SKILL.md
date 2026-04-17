@@ -1,6 +1,7 @@
 ---
 name: harness-setup
-description: "Use when initializing a project, setting up CI/Codex/memory config, configuring 2-agent workflow, or running /harness-setup. Do NOT load for: implementation, review, release, or planning."
+description: "Initializes and configures Harness in a project — CI, memory, duo workflow, Codex. Use when setting up a new project or adding Harness configuration."
+when_to_use: "initialize project, setup harness, configure CI, setup memory, duo workflow, gitignore"
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
 argument-hint: "[init|codex|opencode|duo|cleanup|gitignore]"
 effort: medium

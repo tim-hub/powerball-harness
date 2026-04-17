@@ -1,6 +1,7 @@
 ---
 name: crud
-description: "Use when scaffolding CRUD — API endpoints, database models, REST resources for a table, or standard create/read/update/delete with authorization. Do NOT load for: UI/form design, schema-only discussions, or non-CRUD business logic."
+description: "Scaffolds CRUD endpoints, database models, and REST resources. Use when generating create/read/update/delete operations for an entity."
+when_to_use: "CRUD, scaffold API, database model, REST resource, create endpoints, entity operations"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob"]
 argument-hint: "<entity-name>"
 user-invocable: false

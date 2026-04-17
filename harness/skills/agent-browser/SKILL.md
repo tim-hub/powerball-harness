@@ -1,10 +1,11 @@
 ---
 name: agent-browser
-description: "Use when automating browser workflows — visiting URLs, clicking, filling forms, scraping, screenshots, UI testing, or web data extraction. Do NOT load for: embedding URLs in code, reading local screenshots, or non-browser file ops."
+description: "Automates browser workflows — visiting URLs, clicking, filling forms, scraping, and taking screenshots. Use when automating web interactions or UI testing."
+when_to_use: "visit URL, click button, fill form, web scraping, screenshot, browser automation, UI testing, web data extraction"
 allowed-tools: ["Bash", "Read"]
 user-invocable: false
 context: fork
-argument-hint: "[url] [--headless]"
+argument-hint: "[url|--headless]"
 ---
 
 # Agent Browser Skill

@@ -1,6 +1,7 @@
 ---
 name: ui
-description: "Use when building UI components, hero sections, landing-page sections, feedback/contact forms, or front-end visual elements. Do NOT load for: auth, backend APIs, database ops, or business logic."
+description: "Builds UI components, landing page sections, hero sections, and contact forms. Use when creating front-end visual elements."
+when_to_use: "UI component, hero section, landing page, contact form, front-end, visual elements, feedback form"
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 user-invocable: false
 ---

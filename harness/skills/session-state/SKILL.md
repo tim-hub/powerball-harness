@@ -1,6 +1,7 @@
 ---
 name: session-state
-description: "Use when orchestration system hits harness-work phase boundaries (auto-triggered). Internal workflow skill. Do NOT load for: user-facing session management, login state, or direct user requests."
+description: "Internal skill for harness-work phase boundary management. Auto-triggered by orchestration."
+when_to_use: "phase boundary, save state, restore state"
 allowed-tools: ["Read", "Bash"]
 user-invocable: false
 ---

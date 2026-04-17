@@ -1,6 +1,7 @@
 ---
 name: session
-description: "Use when running /session — listing sessions, inbox checks, broadcasting, or managing Claude Code session lifecycle. Do NOT load for: application user sessions, login/auth state, or auth features."
+description: "Manages Claude Code session lifecycle — listing, inbox, and broadcasting. Use when running session commands or managing active sessions."
+when_to_use: "list sessions, inbox check, broadcast message, session lifecycle, manage sessions"
 allowed-tools: ["Read", "Bash", "Write", "Edit", "Glob"]
 argument-hint: "[list|inbox|broadcast \"message\"]"
 ---

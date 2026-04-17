@@ -1,6 +1,7 @@
 ---
 name: principles
-description: "Use when consulting coding principles, development guidelines or safe-editing practices. Do NOT load for: direct implementation (harness-work), reviews, or setup."
+description: "Provides coding principles, development guidelines, and safe-editing practices. Use when consulting best practices or design guidelines."
+when_to_use: "coding principles, development guidelines, best practices, safe editing, design principles, how should I approach"
 allowed-tools: ["Read"]
 user-invocable: false
 ---

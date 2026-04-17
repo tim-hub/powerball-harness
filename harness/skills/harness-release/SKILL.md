@@ -1,6 +1,7 @@
 ---
 name: harness-release
-description: "Use when releasing — version bumps, CHANGELOG, git tags, GitHub Releases, or /harness-release. Do NOT load for: implementation (harness-work), review (harness-review), planning (harness-plan), or setup."
+description: "Manages version bumps, CHANGELOG, git tags, and GitHub Releases. Use when cutting a release or updating version metadata."
+when_to_use: "release, bump version, update CHANGELOG, create tag, GitHub release, patch release, minor release"
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[patch|minor|major|--dry-run|--complete]"
 context: fork

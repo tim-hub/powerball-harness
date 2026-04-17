@@ -1,6 +1,7 @@
 ---
 name: cc-cursor-cc
-description: "Use when handing off between Cursor and Claude Code — PM plan validation, brainstorm review, Plans.md sync, or cross-agent round trip. Do NOT load for: single-agent direct implementation or standard code editing."
+description: "Handles Cursor to Claude Code handoffs — PM plan validation, brainstorm review, and Plans.md sync. Use when bridging between Cursor and Claude Code sessions."
+when_to_use: "Cursor handoff, Claude Code round trip, PM plan validation, cross-agent sync, brainstorm review"
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 user-invocable: false
 ---

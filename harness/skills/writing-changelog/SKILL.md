@@ -1,6 +1,7 @@
 ---
 name: writing-changelog
-description: "Use when writing or updating CHANGELOG.md — adding entries to [Unreleased], finalizing a versioned release section, or writing GitHub Release notes. Do NOT load for: running the full release workflow (harness-release), code review, or implementation."
+description: "Writes and updates CHANGELOG.md with Unreleased entries or versioned sections. Use when adding CHANGELOG entries or writing GitHub Release notes."
+when_to_use: "update CHANGELOG, add changelog entry, GitHub release notes, unreleased section, finalize release notes"
 allowed-tools: ["Read", "Write", "Edit"]
 argument-hint: "[unreleased|release|github-release]"
 ---

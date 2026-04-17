@@ -1,6 +1,7 @@
 ---
 name: harness-plan
-description: "Use when creating plans, adding tasks, updating Plans.md, marking tasks done, or checking progress/sync. Do NOT load for: implementation (harness-work), review (harness-review), or release (harness-release)."
+description: "Plans and tracks tasks in Plans.md. Use when creating plans, adding tasks, updating markers, or checking progress."
+when_to_use: "create a plan, add a task, mark task done, where am I, check progress, sync plans, archive phases"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "Task"]
 argument-hint: "[create|add|update|sync|archive|session-log|sync --no-retro|--ci]"
 effort: medium

@@ -1,6 +1,7 @@
 ---
 name: breezing
-description: "Use when running the full team/breezing flow end-to-end — all tasks with parallel workers. Do NOT load for: single-task implementation, planning, review, release, or setup."
+description: "Full team execution with Lead/Worker/Reviewer agents running all Plans.md tasks end-to-end. Use when running the complete breezing flow with parallel workers."
+when_to_use: "full team run, run all tasks with team, parallel team execution, end-to-end execution"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Task", "WebSearch"]
 argument-hint: "[all|N-M|--codex|--parallel N|--no-commit|--no-discuss|--auto-mode|--advisor|--no-advisor]"
 user-invocable: true

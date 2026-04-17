@@ -1,8 +1,9 @@
 ---
 name: harness-review
-description: "Use when reviewing code, plans, or scope — pre-merge quality gate, security audit, PR examination, or second-opinion runs. Do NOT load for: implementation (harness-work), planning, or release."
+description: "Multi-angle code and plan review with security, scope, and UI profiles. Use when reviewing code, plans, PRs, or running pre-merge quality gates."
+when_to_use: "review code, review plan, review PR, security audit, pre-merge check, scope analysis, quality gate"
 allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task"]
-argument-hint: "[code|plan|scope] [--dual] [--security] [--ui-rubric]"
+argument-hint: "[code|plan|scope|--dual|--security|--ui-rubric]"
 context: fork
 effort: high
 model: opus

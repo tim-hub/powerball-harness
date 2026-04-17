@@ -1,6 +1,7 @@
 ---
 name: vibecoder-guide
-description: "Use when providing plain-language workflow guidance, explaining what to do next, or helping someone unfamiliar with the harness development cycle get started. Do NOT load for: implementation, reviews, or debugging."
+description: "Plain-language workflow guidance for users unfamiliar with the Harness development cycle. Use when explaining what to do next or getting someone started."
+when_to_use: "what do I do next, explain workflow, getting started, harness guide, how does this work"
 allowed-tools: ["Read"]
 user-invocable: false
 ---

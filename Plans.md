@@ -5,6 +5,34 @@ Last release: v4.5.1 on 2026-04-16 (docs + hook removal + settings hardening)
 
 ---
 
+## Phase 71: Skill description reformat — capability summary + when_to_use field
+
+Created: 2026-04-17
+
+**Goal**: Reformat frontmatter in all 28 harness skills with two changes:
+1. `description` → `"<Capability summary>. Use when <trigger>."` — remove `Do NOT load for` exclusions; lead with what the skill does
+2. Add new `when_to_use` field — holds trigger phrases and example user requests (e.g. `"create a plan", "add a task", "mark done"`)
+
+**Character budget**: `len(description) + len(when_to_use)` must stay ≤ 1500 chars (soft limit), hard limit 1536.
+
+**Example**:
+```yaml
+description: "Plans and tracks tasks in Plans.md. Use when creating plans, adding tasks, or checking progress."
+when_to_use: "create a plan, add a task, mark task done, check progress, where am I"
+```
+
+| Task | Description | DoD | Status |
+|------|-------------|-----|--------|
+| 71.1 | Update core workflow skills: `harness-plan`, `harness-work`, `harness-review`, `harness-release`, `harness-setup`, `harness-sync` | All 6 skills have new `description` + `when_to_use`; no `Do NOT load for` remains | cc:done |
+| 71.2 | Update session skills: `session`, `session-init`, `session-control`, `session-state`, `session-memory` | All 5 updated | cc:done |
+| 71.3 | Update infra/ops skills: `ci`, `deploy`, `maintenance`, `gogcli-ops`, `breezing`, `harness-loop` | All 6 updated | cc:done |
+| 71.4 | Update feature/content skills: `auth`, `crud`, `ui`, `agent-browser`, `notebook-lm`, `writing-changelog` | All 6 updated | cc:done |
+| 71.5 | Update guide/meta skills: `principles`, `vibecoder-guide`, `workflow-guide`, `cc-cursor-cc`, `memory` | All 5 updated | cc:done |
+| 71.6 | Validate character budgets and run `./tests/validate-plugin.sh`; add CHANGELOG [Unreleased] entry | All 28 skills: `len(description)+len(when_to_use)` ≤ 1536; validation passes | cc:done |
+| 71.7 | Fix `argument-hint` style in 4 inconsistent skills (`harness-work`, `harness-loop`, `harness-review`, `agent-browser`): consolidate separate `[a] [b]` brackets into single `[a\|b\|c]` style matching all other skills | All 4 updated; grep for `] [` in argument-hints returns 0 matches | cc:done |
+
+---
+
 ## Phase 70: Code-review quality fixes (struct-field DI, hook ordering, go.work)
 
 Created: 2026-04-17

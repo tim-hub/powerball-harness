@@ -1,6 +1,7 @@
 ---
 name: maintenance
-description: "Use when performing periodic cleanup operations: session log pruning, stale state files, orphaned worktrees, or cache purge. Do NOT load for: plans archiving (harness-plan archive), implementation, review."
+description: "Performs periodic cleanup — session log pruning, stale state files, orphaned worktrees, cache purge. Use when performing routine housekeeping."
+when_to_use: "prune logs, clear state, purge cache, clean worktrees, housekeeping, maintenance, cleanup"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]
 argument-hint: "[--prune-logs|--clear-state|--purge-cache|--clean-worktrees|--all]"
 user-invocable: true

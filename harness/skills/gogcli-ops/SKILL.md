@@ -1,6 +1,7 @@
 ---
 name: gogcli-ops
-description: "Use when operating Google Drive, Docs, Sheets, or Slides via gogcli — listing, searching, exporting, reading, updating, or parsing Google URLs/IDs. Do NOT load for: non-Google cloud storage or standard shell commands."
+description: "Operates Google Drive, Docs, Sheets, and Slides via gogcli. Use when listing, searching, reading, or updating Google Workspace files."
+when_to_use: "Google Drive, Google Docs, Google Sheets, Slides, export doc, read spreadsheet, parse Google URL"
 allowed-tools: ["Read", "Bash", "Grep", "Glob"]
 ---
 

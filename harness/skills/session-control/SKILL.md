@@ -1,6 +1,7 @@
 ---
 name: session-control
-description: "Use when harness-work runs with --resume or --fork flags (auto-triggered). Internal workflow skill. Do NOT load for: user-facing session management, login state, or app state handling."
+description: "Internal skill for --resume and --fork workflow boundaries in harness-work. Auto-triggered by orchestration."
+when_to_use: "resume session, fork session"
 allowed-tools: ["Read", "Bash", "Write", "Edit"]
 user-invocable: false
 ---

@@ -1,6 +1,7 @@
 ---
 name: session-init
-description: "Use when starting a new session — start session, start work, check the status, pre-work status check, environment readiness verification, or Plans.md overview. Do NOT load for: mid-session implementation, reviews, or ongoing tasks."
+description: "Pre-work status check that verifies environment readiness and gives a Plans.md overview. Use when starting a new session or checking status before work."
+when_to_use: "start session, start work, check status, pre-work check, what needs to be done, environment ready"
 allowed-tools: ["Read", "Write", "Bash"]
 user-invocable: false
 ---

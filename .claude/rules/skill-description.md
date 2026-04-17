@@ -7,116 +7,103 @@ Applies to all skills under `skills/` and `templates/codex-skills/`.
 ## Required Format
 
 ```
-description: "Use when <trigger>. [Optional: Do NOT load for: <exclusions>.]"
+description: "<Capability summary>. Use when <trigger>."
+when_to_use: "<trigger phrase 1>, <trigger phrase 2>, ..."
 ```
 
 ## Rules
 
-### 1. Must start with the literal prefix `Use when `
+### 1. Description must contain `Use when `
 
-Nothing comes before it. No `Use this skill...`, no `This skill...`, no `the user mentions`, no `the user asks`.
+The description must include the phrase `Use when ` followed by the trigger condition.
+A one-sentence capability summary may precede it.
+Forbidden at the start: `Use this skill...`, `This skill...`, `the user mentions`, `the user asks`.
 
-**Why**: The first words of the description are what the auto-loader reads first when deciding "is this skill relevant?". Starting with `Use when ` puts the trigger condition in the highest-signal position. Self-describing prose ("This skill...") wastes that position.
+**Why**: `Use when` is the routing signal the auto-loader looks for. The capability summary preceding it gives humans and the model a quick "what is this?" before the trigger condition.
 
-### 2. Trigger describes task shape or invocation — not user phrases
+### 2. Trigger describes task shape — not user phrases
 
 - Good: `Use when reviewing code, plans, or scope`
 - Bad: `Use when the user says "review" or "check"`
 
-**Why**: Auto-loading matches semantic task shape, not keywords. Enumerating user phrases (`the user mentions review, check, audit, inspect, look at...`) bloats the description without adding routing signal the model wasn't already going to pick up from the task shape.
+**Why**: Auto-loading matches semantic task shape. Enumerating user phrases bloats the description without adding routing signal.
 
-### 3. Skill introduction / summary / capability list belongs in the SKILL.md body
+### 3. Capability summary leads the description (one sentence, ≤ 120 chars)
 
-Drop trailing sentences like `Implements X using Y` or `A collection of skills for Z` from the description. Move them into the first paragraph of the SKILL.md body (or a `## Overview` section).
+Open with what the skill does: `"<Does X for Y>. Use when <trigger>."`
 
-**Why**: The description is always loaded into context (routing signal). The body is loaded only after routing succeeds (operating manual). Mixing introduction into the description wastes the always-loaded token budget on content that's only relevant once the skill has already been selected.
+Avoid starting with "This skill..." or "A skill that...". Use an active verb: "Manages", "Builds", "Runs", "Detects".
 
-### 4. Exclusions are optional but recommended when another skill covers adjacent territory
+### 4. Exclusions: use `when_to_use` for routing signal, not `Do NOT load for`
 
-Format: `Do NOT load for: <exclusion 1>, <exclusion 2>.`
+Positive trigger phrases in `when_to_use` provide better routing signal than negative exclusions in the description. Drop `Do NOT load for` clauses entirely.
 
-Point to the sibling skill in parens if helpful: `Do NOT load for: planning (use harness-plan).`
+### 5. Length: `description` ≤ 300 chars; `len(description) + len(when_to_use)` ≤ 1536 chars (hard)
 
-**Why**: Exclusions prevent the auto-loader from picking this skill when an adjacent skill is a better fit. Skip exclusions for standalone skills with no near-neighbors.
+Hard-enforced by `local-scripts/audit-skill-descriptions.sh` (description > 300 chars fails).
+Character budget check for combined length is validated in `tests/validate-plugin.sh`.
 
-### 5. Length: target ≤ 200 characters, ceiling 300 characters
-
-Hard-enforced by `local-scripts/audit-skill-descriptions.sh`: anything > 300 chars fails.
-
-**Why**: The description field is evaluated on every session. Keeping it tight preserves context budget for everything else. If a description doesn't fit within 300 chars, the summary sentence is the first thing to cut — never the trigger or the exclusions.
+**Why**: The description is evaluated on every session. The combined budget keeps the routing overhead bounded.
 
 ## Good Examples
 
-### Trigger + exclusions, both present
+### Capability summary + trigger + when_to_use
 
 ```yaml
 ---
 name: harness-review
-description: "Use when reviewing code, plans, or scope — pre-merge quality gate, security audit, or scope check. Do NOT load for: implementation (harness-work), planning (harness-plan), release (harness-release)."
+description: "Multi-angle code and plan review with security, scope, and UI profiles. Use when reviewing code, plans, PRs, or running pre-merge quality gates."
+when_to_use: "review code, review plan, review PR, security audit, pre-merge check, scope analysis, quality gate"
 ---
 # Harness Review
 
-Multi-angle review skill covering code, plans, and scope with optional dual-reviewer and security profiles.
-```
-
-Length: ~205 chars. Body opens with the introduction that used to be in the description.
-
-### Trigger only (standalone skill, no close siblings)
-
-```yaml
----
-name: memory
-description: "Use when recording decisions, managing SSOT, searching memory, or promoting learnings to decisions.md / patterns.md."
----
-# Memory Skills
-
-SSOT (Single Source of Truth) and cross-tool memory management for Harness.
-```
-
-Length: ~117 chars.
-
-## Bad Example With Fix
-
-Current `skills/auth/SKILL.md`:
-
-```yaml
-description: "Use this skill whenever the user mentions login, signup, authentication, OAuth, session management, payments, subscriptions, billing, Stripe integration, or checkout flows. Also use when the user needs to protect routes, add role-based access, or implement payment webhooks. Do NOT load for: general UI components, database schema design, non-auth API endpoints, or business logic unrelated to auth/payments. Implements authentication and payment features using Clerk, Supabase Auth, or Stripe."
-```
-
-Problems:
-- Starts with `Use this skill whenever the user mentions` — violates Rule 1.
-- Enumerates 10+ user phrases — violates Rule 2.
-- Trailing `Implements authentication and payment features using Clerk, Supabase Auth, or Stripe.` is body intro — violates Rule 3.
-- 500+ characters — violates Rule 5.
-
-Fixed description:
-
-```yaml
-description: "Use when implementing authentication, OAuth, sessions, payments, subscriptions, or billing — including route protection, RBAC, and payment webhooks. Do NOT load for: general UI, schema design, or non-auth API endpoints."
-```
-
-And move the capability description into the body:
-
-```markdown
-# Auth Skills
-
-Implements authentication and payment features using Clerk, Supabase Auth, or Stripe.
-
-## Feature Details
 ...
 ```
 
-Length after fix: ~223 chars.
+description length: ~155 chars. when_to_use: ~88 chars. Combined: ~243 chars.
+
+### Minimal (internal/auto-triggered skill)
+
+```yaml
+---
+name: session-control
+description: "Internal skill for --resume and --fork workflow boundaries in harness-work. Auto-triggered by orchestration."
+when_to_use: "resume session, fork session"
+---
+```
+
+description length: ~108 chars. when_to_use: ~28 chars. Combined: ~136 chars.
+
+## Bad Example With Fix
+
+Old `skills/auth/SKILL.md`:
+
+```yaml
+description: "Use this skill whenever the user mentions login, signup, authentication, OAuth, session management, payments..."
+```
+
+Problems:
+- Starts with `Use this skill whenever` — violates Rule 1 (forbidden phrasing).
+- Enumerates 10+ user phrases — violates Rule 2.
+- 500+ characters — violates Rule 5.
+
+Fixed:
+
+```yaml
+description: "Implements authentication, OAuth, sessions, payments, and billing. Use when adding auth flows, route protection, RBAC, or payment webhooks."
+when_to_use: "authentication, OAuth, login, signup, payments, Stripe, billing, subscriptions, route protection, RBAC"
+```
+
+Combined: ~241 chars.
 
 ## Migration Steps
 
 When updating an existing SKILL.md to conform:
 
-1. Identify the skill's core trigger shape — what task makes this skill relevant?
-2. Rewrite `description` starting with `Use when <trigger>`.
-3. Move any introduction/summary sentence into the SKILL.md body's first paragraph.
-4. Keep exclusions if another skill covers adjacent territory; drop them if the skill is unique.
-5. Run `local-scripts/audit-skill-descriptions.sh <skill-dir>` to verify conformance.
+1. Write a one-sentence capability summary: what does this skill do?
+2. Append `Use when <trigger shape>` — describe the task, not user phrases.
+3. Drop `Do NOT load for` clauses; add positive trigger phrases to `when_to_use` instead.
+4. Run `local-scripts/audit-skill-descriptions.sh <skill-dir>` to verify conformance.
 
 ## Supersedes
 

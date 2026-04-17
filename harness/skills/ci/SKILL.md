@@ -1,6 +1,7 @@
 ---
 name: ci
-description: "Use when diagnosing CI/CD failures — GitHub Actions errors, pipeline breakage, red builds, or pasted CI logs. Do NOT load for: local builds, local test runs, or standard implementation."
+description: "Diagnoses and fixes CI/CD failures from GitHub Actions logs. Use when a build is broken, CI is red, or a pipeline has failed."
+when_to_use: "CI failed, build broken, GitHub Actions error, red build, pipeline failure, fix CI"
 allowed-tools: ["Read", "Grep", "Bash", "Task"]
 user-invocable: false
 context: fork
