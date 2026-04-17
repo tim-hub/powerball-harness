@@ -1,6 +1,6 @@
 ---
 _harness_template: "CLAUDE.md.template"
-_harness_version: "4.5.2"
+_harness_version: "4.6.0"
 ---
 
 # CLAUDE.md - Claude Code Execution Guide

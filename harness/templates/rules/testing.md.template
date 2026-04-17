@@ -6,7 +6,7 @@ paths:
   - "**/tests/**/*.*"
   - "**/__tests__/**/*.*"
 _harness_template: "rules/testing.md.template"
-_harness_version: "4.5.2"
+_harness_version: "4.6.0"
 ---
 
 # Testing Rules
