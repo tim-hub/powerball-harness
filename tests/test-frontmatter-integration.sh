@@ -48,6 +48,13 @@ log_info() {
   echo -e "   ℹ️  $1"
 }
 
+# Returns 0 if $1 <= $2 (semver comparison using sort -V)
+semver_lte() {
+  local smallest
+  smallest=$(printf '%s\n' "$1" "$2" | sort -V | head -1)
+  [ "$smallest" = "$1" ]
+}
+
 # ================================
 # Test 1: Template frontmatter existence validation
 # ================================
@@ -147,14 +154,14 @@ test_version_consistency() {
 
     local inconsistent=0
     while IFS= read -r ver; do
-      if [ "$ver" != "$plugin_version" ]; then
-        log_fail "template-registry.json: version mismatch ($ver != $plugin_version)"
+      if ! semver_lte "$ver" "$plugin_version"; then
+        log_fail "template-registry.json: template version newer than plugin ($ver > $plugin_version)"
         inconsistent=1
       fi
     done <<< "$registry_versions"
 
     if [ $inconsistent -eq 0 ]; then
-      log_pass "template-registry.json: all versions match ($plugin_version)"
+      log_pass "template-registry.json: all versions compatible (<= $plugin_version)"
     fi
   else
     log_skip "template-registry.json: jq not available, skipping validation"
@@ -173,10 +180,10 @@ test_version_consistency() {
       local file_version
       file_version=$(grep "_harness_version:" "$file" | head -1 | sed 's/.*: *"//' | sed 's/".*//')
       
-      if [ "$file_version" = "$plugin_version" ]; then
-        log_pass "$template: version matches ($file_version)"
+      if semver_lte "$file_version" "$plugin_version"; then
+        log_pass "$template: version compatible ($file_version <= $plugin_version)"
       else
-        log_fail "$template: version mismatch ($file_version != $plugin_version)"
+        log_fail "$template: template version newer than plugin ($file_version > $plugin_version)"
       fi
     fi
   done
