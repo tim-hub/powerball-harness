@@ -214,6 +214,8 @@
 | **`/ultrareview`** | harness-review, docs | `/harness-review` との役割分担を明文化する | `A: 明示追従対象` |
 | **Auto Mode 拡大** | docs, guardrails | enable flag 前提を落とし、常設機能として扱う | `A: 明示追従対象` |
 
+| **`context: fork` host CLAUDE.md 継承仕様と auto-start 回避パターン (Phase 46)** | harness-review | `context: fork` スキルは isolated context で動作し、host CLAUDE.md の session-start rules に override されて停止する事象を解消。host CLAUDE.md 継承仕様と auto-start 回避パターンを `skill-editing.md` に明文化（Issue #84）。A: 実装あり（SKILL.md Step 0 硬化 + `REVIEW_AUTOSTART` marker 契約） | `A: 実装あり` |
+
 **注記**:
 この追補では `A` と `C` だけを使い、`B` は `0` 件です。  
 `A` は「Harness 側で明示追従する責務がある項目」、`C` は「Claude Code 本体の更新をそのまま継承する項目」を意味します。

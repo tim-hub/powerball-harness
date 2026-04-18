@@ -3,7 +3,7 @@
 
 [project]
 name = "claude-code-harness"
-version = "4.2.0"
+version = "4.3.0"
 description = "Claude harness - A harness for solo developers (Vibecoders) to handle full-cycle contract development."
 homepage = "https://github.com/Chachamaru127/claude-code-harness"
 repository = "https://github.com/Chachamaru127/claude-code-harness"
@@ -79,4 +79,20 @@ allowRead = [
   "config/public-*",
   "docs/**",
 ]
+
+# Worker が commit 前に自己検証する rule セット。Worker は `worker-report.v1` の
+# self_review[] にそれぞれ {rule, verified: true, evidence: "<実コマンド出力>"} を
+# 埋めて返す。Lead は verified=false または evidence="" の rule が 1 件でもあれば
+# Reviewer を spawn せずに Worker に自動差し戻す（同一セッション内 最大 2 回、3 回目で escalate）。
+# project 固有 rule を追加したい場合は `extra_rules` 配列に追記する（default 5 とは独立）。
+[worker.self_review]
+default_rules = [
+  "dry-violation-none",                  # DRY 違反ゼロ（実装も import 共有）
+  "plans-cc-markers-untouched",          # Plans.md cc:* マーカー未書換
+  "all-declared-symbols-called",         # 宣言した関数/クラスは全て呼び出し経路あり
+  "dod-items-verified-with-evidence",    # DoD 各項目に検証方法と evidence
+  "no-existing-test-regression",         # 既存テスト回帰なし
+]
+extra_rules = []                         # project 固有 rule を追加する場合はここに列挙
+max_retries_before_escalate = 2          # 3 回目の差し戻しで Lead に escalate
 

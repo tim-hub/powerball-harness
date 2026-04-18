@@ -112,6 +112,82 @@ hooks:
 5. 変更理由を diff から説明できる
 6. 実行予定の検証コマンドが 1 つ以上ある
 
+### universal NG rules（mode を問わず常時適用）
+
+**NG-1: breezing mode の Worker は Plans.md の cc:* マーカーを書き換えない** (Issue #85 scope)
+
+> **By design**: solo / codex / loop mode の Worker が cc:完了 を自己更新する挙動は `skills/harness-work/SKILL.md` step 12 と `scripts/codex-loop.sh` の既存契約として残す。NG-1 を universal 化すると、これらのフローが完了手順を実行できなくなる。Issue #85 のスコープは「Lead が Phase C を司る breezing で Worker が介入する混乱」に限定される。
+
+- `mode == breezing` の場合のみ適用される規則。他 mode (`solo` / `codex` / `loop`) の Plans.md 更新 step は既存契約どおり維持する
+- Plans.md のパス判定は `scripts/config-utils.sh` の `get_plans_file_path` が返すパスと比較する:
+  ```bash
+  PLANS_PATH="$(bash scripts/config-utils.sh >/dev/null 2>&1; . scripts/config-utils.sh && get_plans_file_path)"
+  for f in "${FILES_ARRAY[@]}"; do
+    if [ "$f" = "$PLANS_PATH" ] || [ "$(realpath "$f" 2>/dev/null)" = "$(realpath "$PLANS_PATH" 2>/dev/null)" ]; then
+      IS_PLANS_MATCH=1
+    fi
+  done
+  ```
+- `mode == breezing` かつ `IS_PLANS_MATCH == 1` の場合、**さらに** diff で cc:* マーカー行が変更されているかを確認する:
+  ```bash
+  # preflight 時点の unstaged 変更と staged 変更の両方を見る (HEAD との差分)
+  # markdown table の status 列 ("| cc:XXX ... |" の形) のみ matching
+  # markdown table の最終カラムに cc:STATUS マーカーがある行のみマッチ
+  # 形式: "| ... | cc:TODO |" / "| ... | cc:WIP |" / "| ... | cc:完了 [hash] |"
+  # セル境界は次の | で検出: "cc:STATUS" の後 | が来るまでの内容 ([^|]*) を permissive に許可
+  # これにより日付・注記・URL・ハッシュ以外の注記付き suffix を全て捕捉できる
+  # status enum は実在 4 種 (完了/不要/TODO/WIP) + 将来用 保留 を網羅
+  # 検証済みケース:
+  #   (1) "cc:完了 [2026-04-18 検証] — 別フォルダでの..." → マッチ ✓
+  #   (2) "cc:不要 [2026-04-18] — 44.13.1 で..." → マッチ ✓
+  #   (3) "cc:完了 [d3e5c8c7 — 45.1.1 と同 commit で副次的に達成、別 commit 不要]" → マッチ ✓
+  #   (4) DoD 内 "cc:完了" は中間 | に阻まれ [^|]*\|\s*$ 不成立 → マッチしない ✓
+  #   (5) "+ cc:TODO 状態の..." (自然文) → .*\| 不成立 → マッチしない ✓
+  #   (6) desc cell 内 "cc:TODO を..." → 最終 cell は cc: なし → マッチしない ✓
+  CC_MARKER_DIFF="$(git diff HEAD -- "$PLANS_PATH" 2>/dev/null \
+    | grep -E '^[+-].*\|[[:space:]]*cc:(TODO|WIP|完了|不要|保留)[^|]*\|[[:space:]]*$' || true)"
+  ```
+- `CC_MARKER_DIFF` が非空の場合（Worker が cc:* マーカー行を追加/変更/削除している）、タスクを abort して以下を返す:
+  ```json
+  { "status": "failed", "escalation_reason": "cc:* marker transitions are Lead-owned in Phase C (breezing mode)" }
+  ```
+- `CC_MARKER_DIFF` が空の場合（Plans.md に触れているが cc:* マーカーは変更していない、例: `plans-format-migrate.sh` のような format 変更）は続行する
+- breezing の `cc:TODO` / `cc:WIP` / `cc:完了` 遷移は Lead の Phase C 責務であり、Worker はこれらのマーカーを変更しない
+- 進捗マーカーの更新は cherry-pick 後に Lead が行う
+- Custom Plans path (`config-utils.sh: plans_file` override) にも `get_plans_file_path` 経由で対応する
+
+**NG-2: embedded git repo 検出**
+
+- commit 前に `files[]` に列挙された各ファイルの所在 repo root を確認する:
+  ```bash
+  # main repo root
+  REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+  # (a) 自分自身が submodule かどうか
+  SUPER="$(git rev-parse --show-superproject-working-tree 2>/dev/null)"
+
+  # (b) files[] 各要素の所在 repo root を個別に確認
+  #     .git は submodule/worktree ではファイルになる場合があるため -type 指定しない
+  NESTED=""
+  for f in "${FILES_ARRAY[@]}"; do
+    OWNER="$(git -C "$(dirname "$f")" rev-parse --show-toplevel 2>/dev/null)"
+    if [ -n "$OWNER" ] && [ "$OWNER" != "$REPO_ROOT" ]; then
+      NESTED="$NESTED $f"
+    fi
+  done
+  ```
+- `SUPER` が非空、または `NESTED` が非空の場合は `advisor-request.v1` を最大 1 回返す:
+  - `reason_code`: `needs-spike`
+  - `trigger_hash`: `<task_id>:needs-spike:embedded-git-repo`
+- 両方とも空の場合は続行する
+
+> **Schema note (future work)**: Worker 入力 JSON に `commit_target: { repo_root: "...", branch: "..." }` フィールドが追加された場合、その値が NESTED/SUPER と一致すれば advisor-request をスキップする分岐を追加できる。現 schema には該当フィールドが無いため、embedded repo 検出時は常に advisor-request を返す。
+
+**NG-3: nested teammate spawn 禁止**
+
+- Worker は `Agent` tool を呼ばない（frontmatter の `disallowedTools: [Agent]` で強制済み）
+- Advisor が必要な場合は `advisor-request.v1` を返すだけで、自力で spawn しない
+
 ## Advisor 相談判定
 
 次のどれかに一致したら、作業を続けず `advisor-request.v1` を返す。
@@ -140,9 +216,11 @@ hooks:
 
 ## モード別ルール
 
+> **注意**: embedded git repo 検出 (NG-2) と nested teammate spawn 禁止 (NG-3) は universal NG rules として全 mode に適用される。Plans.md cc:* マーカー書換禁止 (NG-1) は `mode == breezing` 限定で、他 mode の Plans.md 更新契約は維持される。
+
 ### `mode: solo`
 
-1. Plans.md を触るのは review artifact が `APPROVE` の時だけ
+1. Plans.md の cc:* マーカーを更新するのは review artifact が `APPROVE` の時だけ（Lead 代行として solo mode の既存契約）
 2. `git commit` は main 上でも可
 
 ### `mode: codex`
@@ -159,23 +237,25 @@ bash scripts/codex-companion.sh review --base "${TASK_BASE_REF}"
 
 ### `mode: breezing`
 
-1. Plans.md は編集しない
-2. commit 前に必ず `git branch --show-current` を実行する
-3. 現在ブランチが `main` または `master` なら次を実行する
+1. commit 前に必ず `git branch --show-current` を実行する
+2. 現在ブランチが `main` または `master` なら次を実行する
 
 ```bash
 git switch -c harness-work/<task-id>
 ```
 
-4. commit は feature branch 上で行う
-5. Lead が `REQUEST_CHANGES` を返した場合だけ `git commit --amend` を使う
+3. commit は feature branch 上で行う
+4. Lead が `REQUEST_CHANGES` を返した場合だけ `git commit --amend` を使う
 
 ## 出力
 
-### 完了時
+### 完了時 (`worker-report.v1`)
+
+`self_review` は commit 前に必ず埋める。5 rule すべて `verified: true` かつ `evidence` が非空の時だけ Lead に `ready_for_review` として返す。`verified: false` または `evidence: ""` が 1 件でもあれば、Lead は Reviewer を spawn せず **自動で `REQUEST_CHANGES` として差し戻す**（同一セッション内 最大 2 回、3 回目で Lead が escalate）。
 
 ```json
 {
+  "schema_version": "worker-report.v1",
   "status": "completed",
   "task": "完了したタスク",
   "files_changed": ["変更ファイル"],
@@ -187,9 +267,28 @@ git switch -c harness-work/<task-id>
   "effort_applied": "medium | high",
   "effort_sufficient": true,
   "turns_used": 12,
-  "task_complexity_note": "次回への申し送り"
+  "task_complexity_note": "次回への申し送り",
+  "self_review": [
+    { "rule": "dry-violation-none", "verified": true, "evidence": "実装と import を grep で確認: 重複定義ゼロ、既存 util を 2 箇所で再利用" },
+    { "rule": "plans-cc-markers-untouched", "verified": true, "evidence": "git diff HEAD -- Plans.md | grep -E '^[+-].*cc:' → 0 行" },
+    { "rule": "all-declared-symbols-called", "verified": true, "evidence": "新規 export したシンボルは tests/ または docs から参照済み（grep で経路確認）" },
+    { "rule": "dod-items-verified-with-evidence", "verified": true, "evidence": "DoD (a)(b)(c) 各項目について実コマンド出力または literal テスト結果を briefing に添付" },
+    { "rule": "no-existing-test-regression", "verified": true, "evidence": "bash tests/validate-plugin.sh → PASS、bash scripts/ci/check-consistency.sh → PASS" }
+  ]
 }
 ```
+
+**Default rule セット**:
+
+| rule | 意味 | evidence の典型 |
+|------|------|---------------|
+| `dry-violation-none` | 新規コードが既存実装と重複していない、import 共有で解決可能なものを重複定義していない | `grep -r <symbol>` の結果、共通化した util name |
+| `plans-cc-markers-untouched` | Plans.md の cc:* マーカー行を Worker が書換していない | `git diff HEAD -- Plans.md` を NG-1 regex で grep した結果 |
+| `all-declared-symbols-called` | 新規 export / 関数 / class は tests / docs / 別モジュールから呼び出し経路がある | `grep -rn <symbol>` の呼び出し箇所一覧 |
+| `dod-items-verified-with-evidence` | DoD の各項目に対応する実行コマンドまたは literal 証跡がある | コマンド出力、ファイル diff、tests PASS line |
+| `no-existing-test-regression` | 既存テストが全て PASS、validate-plugin.sh が PASS | `bash tests/validate-plugin.sh` の最終行 |
+
+project ごとの追加 rule は `harness.toml` の `[worker.self_review]` で override する（scaffolder が雛形を生成）。
 
 ### Advisor 相談時
 

@@ -236,9 +236,19 @@ for task in execution_order:
     # Agent tool の戻り値に agentId が含まれる — 修正ループで SendMessage に使用
     Plans.md: task.status = "cc:WIP"  # 着手時に更新（未着手タスクは cc:TODO のまま）
 
+    # 逐次 /harness-work を連打している時も universal violations を伝播させる
+    # （初回実行時は universal_violations = [] で初期化済み想定）
+    briefing_header = ""
+    if universal_violations:
+        briefing_header = (
+            "🚨 同一セッションで既に検出された universal 違反（再発禁止）:\n"
+            + "\n".join(f"- {v}" for v in universal_violations)
+            + "\n\n"
+        )
+
     worker_result = Agent(
         subagent_type="claude-code-harness:worker",
-        prompt="タスク: {task.内容}\nDoD: {task.DoD}\ncontract_path: {contract_path}\nmode: breezing",
+        prompt=briefing_header + "タスク: {task.内容}\nDoD: {task.DoD}\ncontract_path: {contract_path}\nmode: breezing",
         isolation="worktree",
         run_in_background=false  # フォアグラウンドで実行 → Worker 完了まで待機
     )
@@ -254,6 +264,30 @@ for task in execution_order:
             to=worker_id,
             message="advisor-response.v1: {advisor_result}"
         )
+
+    # B-3.5. self_review ゲート（Reviewer spawn 前、Lead が機械的に検証）
+    # Worker の worker-report.v1 に self_review[] が 5 件あり、全 verified=true かつ evidence 非空であること
+    # verified=false または evidence=="" が 1 件でもあれば Reviewer を spawn せず Worker に差し戻す
+    self_review_failures = 0
+    MAX_SELF_REVIEW_RETRIES = 2  # 3 回目 (retries=2) で Lead が escalate
+    while True:
+        unverified = [
+            r for r in worker_result.self_review
+            if (not r.get("verified")) or (not r.get("evidence"))
+        ]
+        if not unverified:
+            break  # 全 rule verified → B-4 (実レビュー) へ進む
+        self_review_failures += 1
+        if self_review_failures > MAX_SELF_REVIEW_RETRIES:
+            # 3 回目でも未確認項目あり → Lead に escalate
+            Plans.md: task.status = "cc:TODO"  # 着手前に戻す
+            raise EscalationError(f"self_review が 3 回の差し戻しでも未確認 (rules: {[u['rule'] for u in unverified]})")
+        # Worker に差し戻し (Reviewer spawn せず)
+        SendMessage(
+            to=worker_id,
+            message=f"self_review に未確認 rule があります: {[u['rule'] for u in unverified]}。各 rule の evidence を実コマンド出力または literal テスト結果で埋め、verified=true にしてから amend してください"
+        )
+        worker_result = wait_for_response(worker_id)
 
     # B-4. Lead がレビュー実行（Codex exec 優先）
     diff_text = git("-C", worker_result.worktreePath, "show", worker_result.commit)

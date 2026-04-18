@@ -175,7 +175,8 @@ Lead:
 Breezing モードでもレビューは **Codex exec 優先 → 内部 Reviewer フォールバック** の統一ポリシーに従う。
 詳細は `harness-work` の「レビューループ」セクションを参照。
 
-- Worker が worktree 内で実装・commit → Lead に結果返却
+- Worker が worktree 内で実装・commit → `worker-report.v1` (self_review 5 件) を Lead に返却
+- **self_review ゲート (Reviewer spawn 前)**: Lead が `self_review[].verified` と `evidence` を機械検証。1 件でも `verified:false` or `evidence:""` なら Reviewer を spawn せず Worker に自動差し戻し（同一セッション内 最大 2 回、3 回目で escalate）
 - Lead が Codex exec でレビュー（120s タイムアウト、フォールバック: Reviewer agent）
 - REQUEST_CHANGES → Lead が SendMessage で Worker に修正指示、Worker が amend（最大 `MAX_REVIEWS` 回。`MAX_REVIEWS = read_contract(contract_path, ".review.max_iterations") or 3`）
 - APPROVE → **Lead** が main に cherry-pick → Plans.md を `cc:完了 [{hash}]` に更新
@@ -212,6 +213,36 @@ Depends カラムを読み取り、依存チェーンを表示。循環依存が
 spike 未完了の `[needs-spike]` タスクがある場合、spike を先行実行するか確認。
 
 3 問とも問題なければ、Phase A に進む（合計 30 秒で完了する設計）。
+
+### Universal Violations Injection（セッション内 Worker 間の学習伝播）
+
+同一 `/breezing` 起動内で蓄積された Reviewer の universal gotchas を次 Worker の briefing 冒頭に自動注入する。**同一セッション内のみ有効**（セッション終了で破棄、`session-memory` には書かない）。
+
+```python
+# Phase A 開始時に Lead プロセスの in-memory 配列を初期化
+universal_violations = []  # List[str] — このセッション内で蓄積
+
+# Phase B で Worker を spawn する直前、briefing 冒頭に注入:
+def build_worker_briefing(task, contract_path):
+    header = ""
+    if universal_violations:
+        header = (
+            "🚨 同一セッションで既に検出された universal 違反（再発禁止）:\n"
+            + "\n".join(f"- {v}" for v in universal_violations)
+            + "\n\n"
+        )
+    return header + f"タスク: {task.内容}\nDoD: {task.DoD}\ncontract_path: {contract_path}\nmode: breezing"
+
+# Reviewer が review-result.v1 を返した後、Lead が scope="universal" のみ抽出して累積:
+for update in reviewer_result.memory_updates:
+    # 後方互換: 文字列は task-specific 扱い → 無視
+    if isinstance(update, str):
+        continue
+    if update.get("scope") == "universal":
+        universal_violations.append(update["text"])
+```
+
+**方針**: 過剰設計回避のため、`session-memory` や `decisions.md` への永続化は行わない。Lead プロセスの in-memory 配列に保持するだけで、`/breezing` セッション終了時に破棄する（issue #87 本文の方針）。
 
 ### 依存グラフに基づくタスク割り当て
 

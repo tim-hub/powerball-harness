@@ -180,6 +180,58 @@ Commands have been migrated to skills. Key differences:
 | Auto-loading | Limited | Full description-based matching |
 | Supporting files | Not supported | `references/` subdirectory |
 
+## `context: fork` + `disable-model-invocation: true` 時の auto-start pattern
+
+`context: fork` を持つスキルは isolated context で動作し、host project の CLAUDE.md を継承しない。
+しかし実際には host session-start rules が fork 先に漏れ込み、スキルが「タスクが不明確」で停止する
+現象が通算 6 回観測された (Issue #84)。このセクションはその対策パターンを定義する。
+
+### fork 継承の仕様
+
+- `context: fork` スキルは起動時に新しい isolated context を作成する
+- 親セッションの CLAUDE.md / session-start rules は原則として継承されない
+- ただし CC の実装上、host project の rules が fork 先に流入するケースが確認されている (#84)
+- 流入した rules が「まず明確な指示を確認する」等の停止トリガーとして働く
+
+### auto-start pattern の実装ガイド
+
+`context: fork` スキルで即時自動開始が必要な場合、以下の 3 点を SKILL.md の Step 0 冒頭に実装する:
+
+#### (1) 最冒頭 3 行以内に機械可読条件を literal に配置する
+
+```
+if $ARGUMENTS == "":
+  → {自動処理の内容} を開始する
+  → 「タスクが不明確」「追加の指示を待つ」は禁止行動
+```
+
+この条件ブロックを Step 0 見出しの直下 3 行以内に置くことで、
+他のルールが流入しても機械的に条件分岐が先に読まれることを保証する。
+
+#### (2) 禁止行動を明示列挙する
+
+停止パターンを具体的な文言で 3 項目以上列挙する。
+曖昧な「停止するな」ではなく、観測されたパターン（「タスクが不明確」「追加の指示をお待ちします」等）
+を literal に列挙することで、host rules の override を文言レベルで上書きする。
+
+#### (3) `*_AUTOSTART` marker の契約を明記する
+
+引数なしで呼ばれた時、最初の応答に識別マーカーを必ず出力する契約を書く:
+
+```
+REVIEW_AUTOSTART: base_ref={ref}, type=code
+```
+
+この契約は次の効果を持つ:
+- 人間・監視スクリプトが自動開始を確認できる
+- marker を出力するという行動契約が、応答の最初の一手を「停止」から「実行」に固定する
+- `grep -c 'REVIEW_AUTOSTART' skills/*/SKILL.md` で実装漏れを検査できる
+
+### 参考: harness-review の実装例
+
+`skills/harness-review/SKILL.md` Step 0 が上記 3 パターンのリファレンス実装。
+同様の問題が他のスキルで発生した場合は同じパターンを適用する。
+
 ## Related Documentation
 
 - [Claude Code Skills Documentation](https://code.claude.com/docs/en/skills)
