@@ -113,10 +113,22 @@ if [ "$CHANGED_COUNT" -eq 0 ]; then
     # BASE_REF=HEAD のまま維持。後段の git diff は引数なし (working tree 対比) で動作する
     BASE_REF="HEAD"
     CHANGED_COUNT=1
+
+    # untracked files も enumeration に含める（git diff HEAD は untracked を含まない）
+    UNTRACKED_FILES="$(git ls-files --others --exclude-standard 2>/dev/null || true)"
+    if [ -n "$UNTRACKED_FILES" ]; then
+      UNTRACKED_COUNT="$(printf '%s\n' "$UNTRACKED_FILES" | wc -l | tr -d ' ')"
+      echo "ℹ️ untracked files ${UNTRACKED_COUNT} 件も review 対象に含めます:"
+      printf '%s\n' "$UNTRACKED_FILES" | sed 's/^/  - /'
+    else
+      UNTRACKED_COUNT=0
+    fi
   else
     echo "⚠️ ${BASE_REF}..HEAD に差分がなく、working tree も clean です。HEAD~5..HEAD にフォールバックします。"
     BASE_REF="HEAD~5"
     CHANGED_COUNT="$(git log --oneline "${BASE_REF}..HEAD" 2>/dev/null | wc -l | tr -d ' ')"
+    UNTRACKED_FILES=""
+    UNTRACKED_COUNT=0
   fi
 fi
 
@@ -220,11 +232,28 @@ echo "Auto-detected review type: ${REVIEW_TYPE}"
 
 ### Step 1: 変更差分を収集
 
+> **`BASE_REF=HEAD` fallback 時の注意**:
+> Step 0.1 で `BASE_REF=HEAD` に設定されたパスに入ったときは、`git diff HEAD` が tracked 変更だけを返し untracked files を落とす。
+> このステップの change enumeration と Step 1.5 の residual scan は、`git diff HEAD` の結果に加えて
+> `${UNTRACKED_FILES}` (= `git ls-files --others --exclude-standard` の出力) のファイルも
+> **個別に `cat` して review scope に含めること**。untracked ファイルの行数は `wc -l` で
+> CHANGED_COUNT 上限チェックには含めず、レビュー本文だけに含める。
+> `UNTRACKED_COUNT=0` の場合はこの手順をスキップしてよい。
+
 ```bash
 # BASE_REF が harness-work から渡された場合はそれを使用、なければ HEAD~1 にフォールバック
 CHANGED_FILES="$(git diff --name-only --diff-filter=ACMR "${BASE_REF:-HEAD~1}")"
 git diff ${BASE_REF:-HEAD~1} --stat
 git diff ${BASE_REF:-HEAD~1} -- ${CHANGED_FILES}
+
+# BASE_REF=HEAD の場合: untracked files も個別に取得してレビュー範囲に含める
+if [ "${BASE_REF}" = "HEAD" ] && [ -n "${UNTRACKED_FILES:-}" ]; then
+  echo "--- untracked files (レビュー対象に追加) ---"
+  printf '%s\n' "$UNTRACKED_FILES" | while IFS= read -r f; do
+    echo "=== $f (untracked) ==="
+    cat "$f" 2>/dev/null || echo "(読み取り不可)"
+  done
+fi
 ```
 
 ### Step 1.5: AI Residuals を静的走査
