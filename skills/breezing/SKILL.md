@@ -214,6 +214,36 @@ spike 未完了の `[needs-spike]` タスクがある場合、spike を先行実
 
 3 問とも問題なければ、Phase A に進む（合計 30 秒で完了する設計）。
 
+### Universal Violations Injection（セッション内 Worker 間の学習伝播）
+
+同一 `/breezing` 起動内で蓄積された Reviewer の universal gotchas を次 Worker の briefing 冒頭に自動注入する。**同一セッション内のみ有効**（セッション終了で破棄、`session-memory` には書かない）。
+
+```python
+# Phase A 開始時に Lead プロセスの in-memory 配列を初期化
+universal_violations = []  # List[str] — このセッション内で蓄積
+
+# Phase B で Worker を spawn する直前、briefing 冒頭に注入:
+def build_worker_briefing(task, contract_path):
+    header = ""
+    if universal_violations:
+        header = (
+            "🚨 同一セッションで既に検出された universal 違反（再発禁止）:\n"
+            + "\n".join(f"- {v}" for v in universal_violations)
+            + "\n\n"
+        )
+    return header + f"タスク: {task.内容}\nDoD: {task.DoD}\ncontract_path: {contract_path}\nmode: breezing"
+
+# Reviewer が review-result.v1 を返した後、Lead が scope="universal" のみ抽出して累積:
+for update in reviewer_result.memory_updates:
+    # 後方互換: 文字列は task-specific 扱い → 無視
+    if isinstance(update, str):
+        continue
+    if update.get("scope") == "universal":
+        universal_violations.append(update["text"])
+```
+
+**方針**: 過剰設計回避のため、`session-memory` や `decisions.md` への永続化は行わない。Lead プロセスの in-memory 配列に保持するだけで、`/breezing` セッション終了時に破棄する（issue #87 本文の方針）。
+
 ### 依存グラフに基づくタスク割り当て
 
 Plans.md に Depends カラムがある場合（v2 フォーマット）、依存グラフに従ってタスクを実行する:

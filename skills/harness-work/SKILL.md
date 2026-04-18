@@ -236,9 +236,19 @@ for task in execution_order:
     # Agent tool の戻り値に agentId が含まれる — 修正ループで SendMessage に使用
     Plans.md: task.status = "cc:WIP"  # 着手時に更新（未着手タスクは cc:TODO のまま）
 
+    # 逐次 /harness-work を連打している時も universal violations を伝播させる
+    # （初回実行時は universal_violations = [] で初期化済み想定）
+    briefing_header = ""
+    if universal_violations:
+        briefing_header = (
+            "🚨 同一セッションで既に検出された universal 違反（再発禁止）:\n"
+            + "\n".join(f"- {v}" for v in universal_violations)
+            + "\n\n"
+        )
+
     worker_result = Agent(
         subagent_type="claude-code-harness:worker",
-        prompt="タスク: {task.内容}\nDoD: {task.DoD}\ncontract_path: {contract_path}\nmode: breezing",
+        prompt=briefing_header + "タスク: {task.内容}\nDoD: {task.DoD}\ncontract_path: {contract_path}\nmode: breezing",
         isolation="worktree",
         run_in_background=false  # フォアグラウンドで実行 → Worker 完了まで待機
     )
