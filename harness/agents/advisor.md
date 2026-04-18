@@ -107,3 +107,29 @@ If a matching entry exists, return the cached decision unchanged rather than re-
 The advisor's guidance does not replace the Reviewer's final `APPROVE` / `REQUEST_CHANGES` verdict. The advisor operates earlier in the loop — at the point where a Worker is blocked or at risk — and its decisions govern *whether and how to continue implementation*.
 
 A `STOP` decision means "escalate to the Reviewer and surface this to the user"; it does not constitute an automatic rejection of the task. Final quality verdicts remain the exclusive domain of the Reviewer agent.
+
+---
+
+## Reasoning Guidance
+
+When `context_sources` are loaded (on cache miss), integrate them into the decision using the following guidance.
+
+### Source weighting by `reason_code`
+
+| `reason_code` | Primary | Secondary | Tertiary |
+|---------------|---------|-----------|----------|
+| `repeated_failure` | `trace` | `git_diff` | `session_log` |
+| `high_risk_preflight` | `git_diff` | `trace` | `patterns` |
+| `plateau_before_escalation` | `session_log` | `trace` | `git_diff` |
+| `explicit_marker` | (whatever the caller passed) | — | — |
+
+### Decision hints
+
+- **Two or more `fix_attempt` events in the trace sharing the same `prior_error_signature`** → prefer `PLAN` (the current strategy is not converging; replan is needed)
+- **A single `fix_attempt` after a distinct error** → prefer `CORRECTION` (local fix is working)
+- **`git_diff` shows a destructive operation (rm, force-push, migration, irreversible schema change) before a `high_risk_preflight`** → default to `STOP` unless `patterns.md` documents this exact scenario as a known-safe pattern
+- **All loaded sources are empty (missing files / no matches)** → fall back to `history.jsonl`-only reasoning; prefer `STOP` when confidence is low rather than fabricating guidance
+
+### Citation rule
+
+Cite exactly which source informed the decision in the `rationale` field — e.g. `"trace shows 3 fix_attempts on identical error_signature; recommending PLAN"`. Readers of the advisor history must be able to reconstruct *why* a past decision was reached without re-loading the sources.
