@@ -40,9 +40,6 @@ failIfUnavailable = false
 # denyRead = [".env", "secrets/**"]
 # allowRead = [".env.example"]
 
-[telemetry]
-# otel_endpoint = ""
-# webhook_url = ""
 `
 
 // runInit implements the "harness init" subcommand.

@@ -164,7 +164,11 @@ func hasForcePush(command string) bool {
 // sudo detection
 // ---------------------------------------------------------------------------
 
-var sudoPattern = regexp.MustCompile(`(?:^|\s)sudo\s`)
+// sudoPattern matches "sudo" preceded by start-of-string, whitespace,
+// or shell metacharacters that introduce a subshell context: (, |, &, `, ;.
+// This prevents bypass via "echo $(sudo ...)" or "echo `sudo ...`".
+// CC 2.1.110: extended to cover subshell and backtick contexts.
+var sudoPattern = regexp.MustCompile(`(?:^|[\s(|&` + "`" + `;])sudo\s`)
 
 func hasSudo(command string) bool {
 	command = normalizeCommand(command)

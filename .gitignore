@@ -19,6 +19,7 @@ docs/design/
 .env
 .env.*
 !.env.example
+env.local
 
 # Local development
 .claude/*
@@ -65,6 +66,10 @@ harness-ui/CLAUDE.md
 # Temporary files
 *.tmp
 *.temp
+/Plans.md.bak.*
+
+# Local build artifacts
+/go/bin/
 
 # Secrets
 .credentials.json

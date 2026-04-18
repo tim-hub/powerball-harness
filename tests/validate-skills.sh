@@ -59,10 +59,18 @@ VALID_TOOLS=(
   "Task" "WebFetch" "WebSearch" "TodoWrite"
   "AskUserQuestion" "Skill" "EnterPlanMode" "ExitPlanMode"
   "NotebookEdit" "LSP" "MCPSearch" "Append"
+  "Monitor" "ScheduleWakeup" "Agent"
 )
 
 is_valid_tool() {
   local tool="$1"
+
+  # MCP tools are exposed as concrete names such as mcp__harness__...
+  # and should be accepted without enumerating every connector method.
+  if [[ "$tool" == mcp__* ]]; then
+    return 0
+  fi
+
   for valid in "${VALID_TOOLS[@]}"; do
     if [[ "$valid" == "$tool" ]]; then
       return 0
@@ -101,6 +109,10 @@ fi
 # スキルディレクトリを収集
 SKILL_DIRS=()
 while IFS= read -r skill_md; do
+  if git -C "$PLUGIN_ROOT" check-ignore -q "${skill_md#$PLUGIN_ROOT/}" 2>/dev/null; then
+    debug_log "Skipping ignored skill: $skill_md"
+    continue
+  fi
   SKILL_DIRS+=("$(dirname "$skill_md")")
 done < <(find "$SKILLS_DIR" -name "SKILL.md" -type f 2>/dev/null | sort)
 

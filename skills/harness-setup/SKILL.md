@@ -22,13 +22,17 @@ Harness の統合セットアップスキル。
 
 | サブコマンド | 動作 |
 |------------|------|
-| `harness-setup init` | 新規プロジェクト初期化（CLAUDE.md + Plans.md + hooks + sync + doctor）|
-| `harness-setup ci` | CI/CD パイプライン設定 |
-| `harness-setup codex` | Codex CLI インストール・設定 |
-| `harness-setup harness-mem` | harness-mem 統合・メモリ設定 |
-| `harness-setup mirrors` | skills/ → 公開 mirror bundle 更新 |
-| `harness-setup agents` | agents/ エージェント設定 |
-| `harness-setup localize` | CLAUDE.md ルールのローカライズ |
+| `/harness-setup init` | 新規プロジェクト初期化（CLAUDE.md + Plans.md + hooks + sync + doctor）|
+| `/harness-setup ci` | CI/CD パイプライン設定 |
+| `/harness-setup codex` | Codex CLI インストール・設定 |
+| `/harness-setup harness-mem` | harness-mem 統合・メモリ設定 |
+| `/harness-setup mirrors` | skills/ → 公開 mirror bundle 更新 |
+| `/harness-setup agents` | agents/ エージェント設定 |
+| `/harness-setup localize` | CLAUDE.md ルールのローカライズ |
+
+> **Built-in slash discovery (CC 2.1.108+)**:
+> `/init` のような built-in slash command も発見される。
+> Harness 固有の bootstrap が必要な時だけ `/harness-setup init` と使い分ける。
 
 ## サブコマンド詳細
 

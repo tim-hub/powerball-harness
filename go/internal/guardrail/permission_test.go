@@ -1,6 +1,7 @@
 package guardrail
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/Chachamaru127/claude-code-harness/go/pkg/hookproto"
@@ -244,5 +245,99 @@ func TestPermission_MixedKnownAndUnknownEnvVars(t *testing.T) {
 	_, perm := EvaluatePermission(input)
 	if perm != nil {
 		t.Error("expected nil (unsafe) for mixed known+unknown env vars")
+	}
+}
+
+func TestPermissionOutput_JSONIncludesUpdatedInput(t *testing.T) {
+	out := hookproto.PermissionOutput{
+		HookSpecificOutput: hookproto.PermissionHookSpecific{
+			HookEventName: "PermissionRequest",
+			Decision: hookproto.PermissionDecision{
+				Behavior:     "allow",
+				UpdatedInput: json.RawMessage(`{"command":"npm run lint","description":"Run lint"}`),
+			},
+		},
+	}
+
+	data, err := json.Marshal(out)
+	if err != nil {
+		t.Fatalf("marshal permission output: %v", err)
+	}
+
+	var decoded map[string]interface{}
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("unmarshal permission output: %v", err)
+	}
+
+	hookOut := decoded["hookSpecificOutput"].(map[string]interface{})
+	decision := hookOut["decision"].(map[string]interface{})
+	updatedInput := decision["updatedInput"].(map[string]interface{})
+	if updatedInput["command"] != "npm run lint" {
+		t.Errorf("expected updatedInput.command to be preserved, got %v", updatedInput["command"])
+	}
+	if updatedInput["description"] != "Run lint" {
+		t.Errorf("expected updatedInput.description to be preserved, got %v", updatedInput["description"])
+	}
+}
+
+func TestPermissionOutput_JSONIncludesUpdatedPermissions(t *testing.T) {
+	out := hookproto.PermissionOutput{
+		HookSpecificOutput: hookproto.PermissionHookSpecific{
+			HookEventName: "PermissionRequest",
+			Decision: hookproto.PermissionDecision{
+				Behavior: "allow",
+				UpdatedPermissions: []hookproto.PermissionUpdateEntry{
+					{
+						Type:        "addRules",
+						Behavior:    "allow",
+						Destination: "localSettings",
+						Rules: []hookproto.PermissionRule{
+							{ToolName: "Bash", RuleContent: "rm -rf node_modules"},
+						},
+					},
+					{
+						Type:        "setMode",
+						Mode:        "dontAsk",
+						Destination: "session",
+					},
+				},
+			},
+		},
+	}
+
+	data, err := json.Marshal(out)
+	if err != nil {
+		t.Fatalf("marshal permission output: %v", err)
+	}
+
+	var decoded map[string]interface{}
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("unmarshal permission output: %v", err)
+	}
+
+	hookOut := decoded["hookSpecificOutput"].(map[string]interface{})
+	decision := hookOut["decision"].(map[string]interface{})
+	entries := decision["updatedPermissions"].([]interface{})
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 updatedPermissions entries, got %d", len(entries))
+	}
+
+	first := entries[0].(map[string]interface{})
+	if first["type"] != "addRules" {
+		t.Errorf("expected first entry type addRules, got %v", first["type"])
+	}
+	if first["behavior"] != "allow" {
+		t.Errorf("expected first entry behavior allow, got %v", first["behavior"])
+	}
+	if first["destination"] != "localSettings" {
+		t.Errorf("expected first entry destination localSettings, got %v", first["destination"])
+	}
+
+	second := entries[1].(map[string]interface{})
+	if second["type"] != "setMode" {
+		t.Errorf("expected second entry type setMode, got %v", second["type"])
+	}
+	if second["mode"] != "dontAsk" {
+		t.Errorf("expected second entry mode dontAsk, got %v", second["mode"])
 	}
 }

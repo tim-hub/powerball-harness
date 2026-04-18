@@ -654,6 +654,22 @@ echo "失敗: ${INTEGRATION_FAIL_COUNT}"
 echo "警告: ${INTEGRATION_WARN_COUNT}"
 
 echo ""
+echo "11. Sync idempotent check"
+echo "----------------------------------------"
+
+if bash "$PLUGIN_ROOT/tests/test-sync-idempotent.sh" > /dev/null 2>&1; then
+    pass_test "harness sync は冪等であり phantom field を出力しません (test-sync-idempotent.sh)"
+else
+    fail_test "harness sync の冪等性テストに失敗 — 'bash tests/test-sync-idempotent.sh' で詳細確認"
+fi
+
+if bash "$PLUGIN_ROOT/tests/test-reenter-worktree-json.sh" > /dev/null 2>&1; then
+    pass_test "reenter-worktree.sh は stdout に JSON だけを出力します (test-reenter-worktree-json.sh)"
+else
+    fail_test "reenter-worktree.sh の JSON 出力契約テストに失敗 — 'bash tests/test-reenter-worktree-json.sh' で詳細確認"
+fi
+
+echo ""
 echo "=========================================="
 echo "テスト結果サマリー"
 echo "=========================================="

@@ -20,6 +20,9 @@ type HookInput struct {
 	HookEventName  string                 `json:"hook_event_name,omitempty"`
 	ToolName       string                 `json:"tool_name"`
 	ToolInput      map[string]interface{} `json:"tool_input"`
+	// PermissionSuggestions contains the "always allow/deny" options proposed by
+	// Claude Code for PermissionRequest hooks.
+	PermissionSuggestions []PermissionUpdateEntry `json:"permission_suggestions,omitempty"`
 
 	// Harness extension fields
 	PluginRoot string `json:"plugin_root,omitempty"`
@@ -70,7 +73,7 @@ type PreToolOutput struct {
 
 // PostToolHookSpecific is the inner hookSpecificOutput for PostToolUse events.
 type PostToolHookSpecific struct {
-	HookEventName    string `json:"hookEventName"`
+	HookEventName     string `json:"hookEventName"`
 	AdditionalContext string `json:"additionalContext,omitempty"`
 }
 
@@ -83,15 +86,36 @@ type PostToolOutput struct {
 // PermissionRequest hookSpecificOutput (official protocol)
 // ---------------------------------------------------------------------------
 
-// PermissionDecisionBehavior is the behavior field in PermissionRequest output.
-type PermissionDecisionBehavior struct {
-	Behavior string `json:"behavior"` // "allow" or "deny"
+// PermissionRule identifies a permission rule entry for a specific tool.
+type PermissionRule struct {
+	ToolName    string `json:"toolName"`
+	RuleContent string `json:"ruleContent,omitempty"`
+}
+
+// PermissionUpdateEntry represents one entry in permission_suggestions or
+// decision.updatedPermissions.
+type PermissionUpdateEntry struct {
+	Type        string           `json:"type"`
+	Rules       []PermissionRule `json:"rules,omitempty"`
+	Behavior    string           `json:"behavior,omitempty"`
+	Destination string           `json:"destination,omitempty"`
+	Mode        string           `json:"mode,omitempty"`
+	Directories []string         `json:"directories,omitempty"`
+}
+
+// PermissionDecision is the decision object returned by PermissionRequest.
+type PermissionDecision struct {
+	Behavior           string                  `json:"behavior"` // "allow" or "deny"
+	UpdatedInput       json.RawMessage         `json:"updatedInput,omitempty"`
+	UpdatedPermissions []PermissionUpdateEntry `json:"updatedPermissions,omitempty"`
+	Message            string                  `json:"message,omitempty"`
+	Interrupt          *bool                   `json:"interrupt,omitempty"`
 }
 
 // PermissionHookSpecific is the hookSpecificOutput for PermissionRequest events.
 type PermissionHookSpecific struct {
-	HookEventName string                     `json:"hookEventName"`
-	Decision      PermissionDecisionBehavior `json:"decision"`
+	HookEventName string             `json:"hookEventName"`
+	Decision      PermissionDecision `json:"decision"`
 }
 
 // PermissionOutput wraps PermissionHookSpecific for the full response.

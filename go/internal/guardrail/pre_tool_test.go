@@ -125,6 +125,36 @@ func TestPreToolToOutput_DeferJSON(t *testing.T) {
 	}
 }
 
+func TestPreToolOutput_JSONUsesAdditionalContextAndUpdatedInput(t *testing.T) {
+	out := hookproto.PreToolOutput{
+		HookSpecificOutput: hookproto.PreToolHookSpecific{
+			HookEventName:      "PreToolUse",
+			PermissionDecision: "allow",
+			UpdatedInput:       json.RawMessage(`{"file_path":"src/app.ts","content":"const answer = 42;"}`),
+			AdditionalContext:  "この変更は自動整形済みです",
+		},
+	}
+
+	jsonBytes, err := json.Marshal(out)
+	if err != nil {
+		t.Fatalf("failed to marshal output: %v", err)
+	}
+
+	var decoded map[string]interface{}
+	if err := json.Unmarshal(jsonBytes, &decoded); err != nil {
+		t.Fatalf("failed to unmarshal JSON: %v", err)
+	}
+
+	hookOutput := decoded["hookSpecificOutput"].(map[string]interface{})
+	if hookOutput["additionalContext"] != "この変更は自動整形済みです" {
+		t.Errorf("expected additionalContext to be preserved, got %v", hookOutput["additionalContext"])
+	}
+	updatedInput := hookOutput["updatedInput"].(map[string]interface{})
+	if updatedInput["file_path"] != "src/app.ts" {
+		t.Errorf("expected updatedInput.file_path to be preserved, got %v", updatedInput["file_path"])
+	}
+}
+
 // ---------------------------------------------------------------------------
 // FormatPreToolResult — exit code tests
 // ---------------------------------------------------------------------------

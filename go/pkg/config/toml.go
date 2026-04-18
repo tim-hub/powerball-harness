@@ -29,7 +29,6 @@ type Config struct {
 	Agent     AgentConfig     `toml:"agent"`
 	Env       map[string]string `toml:"env"`
 	Safety    SafetyConfig    `toml:"safety"`
-	Telemetry TelemetryConfig `toml:"telemetry"`
 }
 
 // ProjectConfig maps to [project] in harness.toml.
@@ -99,13 +98,6 @@ type SandboxConfig struct {
 type SandboxFilesystemConfig struct {
 	DenyRead  []string `toml:"denyRead"`
 	AllowRead []string `toml:"allowRead"`
-}
-
-// TelemetryConfig maps to [telemetry] in harness.toml.
-// These are harness-internal settings and are NOT reflected to CC files.
-type TelemetryConfig struct {
-	OtelEndpoint string `toml:"otel_endpoint"`
-	WebhookURL   string `toml:"webhook_url"`
 }
 
 // ---------------------------------------------------------------------------

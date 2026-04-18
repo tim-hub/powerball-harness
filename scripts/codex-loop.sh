@@ -9,7 +9,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEFAULT_PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+DEFAULT_INSTALL_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+HARNESS_INSTALL_ROOT="${HARNESS_INSTALL_ROOT:-${DEFAULT_INSTALL_ROOT}}"
+DEFAULT_PROJECT_ROOT="${HARNESS_INSTALL_ROOT}"
 PROJECT_ROOT="${PROJECT_ROOT:-${DEFAULT_PROJECT_ROOT}}"
 
 STATE_ROOT="${PROJECT_ROOT}/.claude/state"
@@ -23,19 +25,19 @@ CURRENT_JOB_JSON="${LOOP_STATE_DIR}/current-job.json"
 PROMPTS_DIR="${LOOP_STATE_DIR}/prompts"
 RESULTS_DIR="${LOOP_STATE_DIR}/results"
 TASK_JOBS_DIR="${LOOP_STATE_DIR}/jobs"
-CONFIG_UTILS="${SCRIPT_DIR}/config-utils.sh"
+CONFIG_UTILS="${HARNESS_INSTALL_ROOT}/scripts/config-utils.sh"
 
-COMPANION="${CODEX_LOOP_COMPANION:-${PROJECT_ROOT}/scripts/codex-companion.sh}"
+COMPANION="${CODEX_LOOP_COMPANION:-${HARNESS_INSTALL_ROOT}/scripts/codex-companion.sh}"
 VALIDATE_SCRIPT="${CODEX_LOOP_VALIDATE_SCRIPT:-${PROJECT_ROOT}/tests/validate-plugin.sh}"
-ENRICH_CONTRACT_SCRIPT="${CODEX_LOOP_ENRICH_CONTRACT_SCRIPT:-${PROJECT_ROOT}/scripts/enrich-sprint-contract.sh}"
-ENSURE_CONTRACT_SCRIPT="${CODEX_LOOP_ENSURE_CONTRACT_SCRIPT:-${PROJECT_ROOT}/scripts/ensure-sprint-contract-ready.sh}"
-RUNTIME_REVIEW_SCRIPT="${CODEX_LOOP_RUNTIME_REVIEW_SCRIPT:-${PROJECT_ROOT}/scripts/run-contract-review-checks.sh}"
-WRITE_REVIEW_RESULT_SCRIPT="${CODEX_LOOP_WRITE_REVIEW_RESULT_SCRIPT:-${PROJECT_ROOT}/scripts/write-review-result.sh}"
-PLATEAU_SCRIPT="${CODEX_LOOP_PLATEAU_SCRIPT:-${PROJECT_ROOT}/scripts/detect-review-plateau.sh}"
-CHECKPOINT_SCRIPT="${CODEX_LOOP_CHECKPOINT_SCRIPT:-${PROJECT_ROOT}/scripts/auto-checkpoint.sh}"
-MEM_CLIENT="${CODEX_LOOP_MEM_CLIENT:-${PROJECT_ROOT}/scripts/harness-mem-client.sh}"
+ENRICH_CONTRACT_SCRIPT="${CODEX_LOOP_ENRICH_CONTRACT_SCRIPT:-${HARNESS_INSTALL_ROOT}/scripts/enrich-sprint-contract.sh}"
+ENSURE_CONTRACT_SCRIPT="${CODEX_LOOP_ENSURE_CONTRACT_SCRIPT:-${HARNESS_INSTALL_ROOT}/scripts/ensure-sprint-contract-ready.sh}"
+RUNTIME_REVIEW_SCRIPT="${CODEX_LOOP_RUNTIME_REVIEW_SCRIPT:-${HARNESS_INSTALL_ROOT}/scripts/run-contract-review-checks.sh}"
+WRITE_REVIEW_RESULT_SCRIPT="${CODEX_LOOP_WRITE_REVIEW_RESULT_SCRIPT:-${HARNESS_INSTALL_ROOT}/scripts/write-review-result.sh}"
+PLATEAU_SCRIPT="${CODEX_LOOP_PLATEAU_SCRIPT:-${HARNESS_INSTALL_ROOT}/scripts/detect-review-plateau.sh}"
+CHECKPOINT_SCRIPT="${CODEX_LOOP_CHECKPOINT_SCRIPT:-${HARNESS_INSTALL_ROOT}/scripts/auto-checkpoint.sh}"
+MEM_CLIENT="${CODEX_LOOP_MEM_CLIENT:-${HARNESS_INSTALL_ROOT}/scripts/harness-mem-client.sh}"
 NODE_BIN="${NODE_BIN:-node}"
-GENERATE_CONTRACT_SCRIPT="${CODEX_LOOP_GENERATE_CONTRACT_SCRIPT:-${PROJECT_ROOT}/scripts/generate-sprint-contract.js}"
+GENERATE_CONTRACT_SCRIPT="${CODEX_LOOP_GENERATE_CONTRACT_SCRIPT:-${HARNESS_INSTALL_ROOT}/scripts/generate-sprint-contract.js}"
 
 POLL_INTERVAL_SEC="${CODEX_LOOP_POLL_INTERVAL_SEC:-5}"
 
@@ -92,6 +94,7 @@ run_state_patch() {
 import json
 import os
 import sys
+import tempfile
 
 path = sys.argv[1]
 patch = json.loads(sys.argv[2])
@@ -108,9 +111,12 @@ def merge(left, right):
             left[key] = value
 
 merge(data, patch)
-with open(path, "w", encoding="utf-8") as fh:
+parent = os.path.dirname(path) or "."
+fd, tmp_path = tempfile.mkstemp(prefix=".run-json-", suffix=".tmp", dir=parent)
+with os.fdopen(fd, "w", encoding="utf-8") as fh:
     json.dump(data, fh, ensure_ascii=False, indent=2)
     fh.write("\n")
+os.replace(tmp_path, path)
 PY
 }
 
@@ -170,11 +176,11 @@ append_jsonl() {
 
 plans_file_path() {
   local plans_file=""
-  if [ -f "${PROJECT_ROOT}/scripts/config-utils.sh" ]; then
+  if [ -f "${CONFIG_UTILS}" ]; then
     plans_file="$(
       cd "${PROJECT_ROOT}" && \
       CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml" \
-      source "${PROJECT_ROOT}/scripts/config-utils.sh" && \
+      source "${CONFIG_UTILS}" && \
       get_plans_file_path 2>/dev/null
     )" || plans_file=""
     if [ -n "${plans_file}" ] && [ ! -f "${plans_file}" ] && [ -f "${PROJECT_ROOT}/${plans_file}" ]; then
@@ -186,6 +192,13 @@ plans_file_path() {
     if [ -f "${PROJECT_ROOT}/Plans.md" ]; then
       plans_file="${PROJECT_ROOT}/Plans.md"
     fi
+  fi
+
+  if [ -n "${plans_file}" ]; then
+    case "${plans_file}" in
+      /*) ;;
+      *) plans_file="${PROJECT_ROOT}/${plans_file}" ;;
+    esac
   fi
 
   printf '%s\n' "${plans_file}"
@@ -244,6 +257,111 @@ delay_for_pacing() {
   esac
 }
 
+normalize_selection() {
+  local plans_file="$1"
+  local selection="$2"
+  python_json "${plans_file}" "${selection}" <<'PY'
+import sys
+
+plans_path = sys.argv[1]
+selection = sys.argv[2].strip()
+
+
+def load_task_ids():
+    task_ids = []
+    with open(plans_path, "r", encoding="utf-8") as fh:
+        for raw_line in fh:
+            stripped = raw_line.strip()
+            if not stripped.startswith("|"):
+                continue
+            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+            if len(cells) < 2:
+                continue
+            task_id = cells[0]
+            if not task_id or task_id.lower() == "task" or set(task_id) <= {"-"}:
+                continue
+            task_ids.append(task_id)
+    return task_ids
+
+
+def to_tuple(value):
+    parts = []
+    for item in value.split("."):
+        try:
+            parts.append(int(item))
+        except ValueError:
+            parts.append(item)
+    return tuple(parts)
+
+
+def resolve_token(task_ids, token):
+    if token in task_ids:
+        return token
+
+    lowered = token.lower()
+    matches = [task_id for task_id in task_ids if task_id.lower() == lowered]
+    if len(matches) == 1:
+        return matches[0]
+    raise ValueError(f"selection token not found in Plans.md: {token}")
+
+
+def resolve_range_endpoint(task_ids, token, side):
+    """Resolve a range endpoint, accepting phase prefixes like 41.1 to mean
+    'first/last task whose ID starts with 41.1.'. Restores main-branch behavior
+    where harness codex-loop start 41.1-41.4 traversed all 41.1.x..41.4.x tasks.
+    """
+    try:
+        return resolve_token(task_ids, token)
+    except ValueError:
+        pass
+    token_tuple = to_tuple(token)
+    matching = [tid for tid in task_ids if to_tuple(tid)[: len(token_tuple)] == token_tuple]
+    if not matching:
+        raise ValueError(f"selection token not found in Plans.md: {token}")
+    return matching[0] if side == "start" else matching[-1]
+
+
+task_ids = load_task_ids()
+if not task_ids:
+    raise SystemExit("no task ids found in Plans.md")
+
+if selection == "all":
+    print("all")
+    raise SystemExit(0)
+
+try:
+    print(resolve_token(task_ids, selection))
+    raise SystemExit(0)
+except ValueError:
+    pass
+
+range_parts = None
+if ".." in selection:
+    range_parts = selection.split("..", 1)
+elif "-" in selection:
+    range_parts = selection.split("-", 1)
+
+if range_parts is None:
+    print(resolve_token(task_ids, selection))
+    raise SystemExit(0)
+
+start_raw, end_raw = [part.strip() for part in range_parts]
+if not start_raw or not end_raw:
+    raise SystemExit(f"invalid selection range: {selection}")
+
+start_id = resolve_range_endpoint(task_ids, start_raw, "start")
+end_id = resolve_range_endpoint(task_ids, end_raw, "end")
+start_index = task_ids.index(start_id)
+end_index = task_ids.index(end_id)
+if start_index > end_index:
+    raise SystemExit(
+        f"selection range is reversed in Plans.md order: {start_id}..{end_id}"
+    )
+
+print(f"{start_id}..{end_id}")
+PY
+}
+
 selection_contains() {
   local selection="$1"
   local task_id="$2"
@@ -279,37 +397,55 @@ next_task_id() {
   local selection="$1"
   local plans_file="$2"
   python_json "${plans_file}" "${selection}" <<'PY'
-import re
 import sys
 
 plans_path = sys.argv[1]
 selection = sys.argv[2]
-task_re = re.compile(r'^\|\s*([0-9]+(?:\.[0-9]+)*)\s*\|')
 
-def to_tuple(value):
-    return tuple(int(part) for part in value.split("."))
 
-def matches(task_id):
-    if selection == "all":
-        return True
-    if "-" in selection:
-        start, end = selection.split("-", 1)
-        return to_tuple(start) <= to_tuple(task_id) <= to_tuple(end)
-    return selection == task_id
+def parse_task_rows():
+    rows = []
+    with open(plans_path, "r", encoding="utf-8") as fh:
+        for raw_line in fh:
+            stripped = raw_line.strip()
+            if not stripped.startswith("|"):
+                continue
+            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+            if len(cells) < 2:
+                continue
+            task_id = cells[0]
+            if not task_id or task_id.lower() == "task" or set(task_id) <= {"-"}:
+                continue
+            rows.append((task_id, cells[-1]))
+    return rows
 
-with open(plans_path, "r", encoding="utf-8") as fh:
-    for raw_line in fh:
-        match = task_re.match(raw_line)
-        if not match:
-            continue
-        task_id = match.group(1)
-        cells = [cell.strip() for cell in raw_line.strip().strip("|").split("|")]
-        if len(cells) < 2:
-            continue
-        status = cells[-1]
-        if matches(task_id) and ("cc:TODO" in status or "cc:WIP" in status):
-            print(task_id)
-            raise SystemExit(0)
+
+rows = parse_task_rows()
+ordered_ids = [task_id for task_id, _ in rows]
+
+if selection == "all":
+    selected_ids = set(ordered_ids)
+elif ".." in selection:
+    start, end = selection.split("..", 1)
+    start = start.strip()
+    end = end.strip()
+    start_index = ordered_ids.index(start)
+    end_index = ordered_ids.index(end)
+    selected_ids = set(ordered_ids[start_index : end_index + 1])
+elif "-" in selection:
+    start, end = selection.split("-", 1)
+    start = start.strip()
+    end = end.strip()
+    start_index = ordered_ids.index(start)
+    end_index = ordered_ids.index(end)
+    selected_ids = set(ordered_ids[start_index : end_index + 1])
+else:
+    selected_ids = {selection}
+
+for task_id, status in rows:
+    if task_id in selected_ids and ("cc:TODO" in status or "cc:WIP" in status):
+        print(task_id)
+        raise SystemExit(0)
 
 raise SystemExit(1)
 PY
@@ -319,24 +455,24 @@ task_status_value() {
   local plans_file="$1"
   local task_id="$2"
   python_json "${plans_file}" "${task_id}" <<'PY'
-import re
 import sys
 
 plans_path = sys.argv[1]
 target = sys.argv[2]
-task_re = re.compile(r'^\|\s*([0-9]+(?:\.[0-9]+)*)\s*\|')
 
 with open(plans_path, "r", encoding="utf-8") as fh:
     for raw_line in fh:
-        match = task_re.match(raw_line)
-        if not match:
+        stripped = raw_line.strip()
+        if not stripped.startswith("|"):
             continue
-        task_id = match.group(1)
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if len(cells) < 2:
+            continue
+        task_id = cells[0]
+        if not task_id or task_id.lower() == "task" or set(task_id) <= {"-"}:
+            continue
         if task_id != target:
             continue
-        cells = [cell.strip() for cell in raw_line.strip().strip("|").split("|")]
-        if len(cells) < 2:
-            break
         print(cells[-1])
         raise SystemExit(0)
 
@@ -744,8 +880,92 @@ resume_pack_best_effort() {
   fi
 }
 
+builtin_validate_quick() {
+  echo "=========================================="
+  echo "Claude harness - クイック整合性チェック"
+  echo "=========================================="
+  echo ""
+
+  local quick_fail=0
+
+  if [ -d "${PROJECT_ROOT}/.claude/state" ]; then
+    echo "✓ .claude/state/ ディレクトリが存在します"
+  else
+    echo "✗ .claude/state/ ディレクトリが見つかりません"
+    quick_fail=$((quick_fail + 1))
+  fi
+
+  local plans_file=""
+  plans_file="$(plans_file_path)"
+  if [ -n "${plans_file}" ] && [ -f "${plans_file}" ]; then
+    echo "✓ Plans.md が存在します: ${plans_file}"
+  else
+    echo "✗ Plans.md が見つかりません"
+    quick_fail=$((quick_fail + 1))
+  fi
+
+  if [ -n "${plans_file}" ] && [ -f "${plans_file}" ]; then
+    if grep -q "DoD" "${plans_file}" && grep -q "Depends" "${plans_file}"; then
+      echo "✓ Plans.md は v2 フォーマットです（DoD / Depends カラムあり）"
+    else
+      echo "✗ Plans.md が v2 フォーマットではありません（DoD または Depends カラムがありません）"
+      quick_fail=$((quick_fail + 1))
+    fi
+  fi
+
+  local contract_dir="${PROJECT_ROOT}/.claude/state/contracts"
+  if [ -d "${contract_dir}" ]; then
+    local contract_error=0
+    while IFS= read -r contract_file; do
+      [ -f "${contract_file}" ] || continue
+      if command -v jq >/dev/null 2>&1; then
+        if ! jq empty "${contract_file}" >/dev/null 2>&1; then
+          echo "✗ 壊れた JSON: $(basename "${contract_file}")"
+          contract_error=$((contract_error + 1))
+        fi
+      elif command -v python3 >/dev/null 2>&1; then
+        if ! python3 -c "import json,sys; json.load(open(sys.argv[1], encoding='utf-8'))" "${contract_file}" >/dev/null 2>&1; then
+          echo "✗ 壊れた JSON: $(basename "${contract_file}")"
+          contract_error=$((contract_error + 1))
+        fi
+      fi
+    done < <(find "${contract_dir}" -name "*.sprint-contract.json" -type f 2>/dev/null)
+
+    if [ "${contract_error}" -eq 0 ]; then
+      echo "✓ sprint-contract の形式チェックは問題ありません"
+    else
+      quick_fail=$((quick_fail + contract_error))
+    fi
+  else
+    echo "✓ sprint-contract ディレクトリは未作成（初回実行）"
+  fi
+
+  echo ""
+  if [ "${quick_fail}" -eq 0 ]; then
+    echo "✓ クイック整合性チェック: OK"
+    return 0
+  fi
+
+  echo "✗ クイック整合性チェック: ${quick_fail} 件の問題があります"
+  return 1
+}
+
 validate_quick() {
-  (cd "${PROJECT_ROOT}" && bash "${VALIDATE_SCRIPT}" --quick)
+  if [ -n "${CODEX_LOOP_VALIDATE_SCRIPT:-}" ]; then
+    if [ ! -f "${VALIDATE_SCRIPT}" ]; then
+      echo "validate script not found: ${VALIDATE_SCRIPT}" >&2
+      return 1
+    fi
+    (cd "${PROJECT_ROOT}" && bash "${VALIDATE_SCRIPT}" --quick)
+    return 0
+  fi
+
+  if [ -f "${VALIDATE_SCRIPT}" ]; then
+    (cd "${PROJECT_ROOT}" && bash "${VALIDATE_SCRIPT}" --quick)
+    return 0
+  fi
+
+  builtin_validate_quick
 }
 
 generate_contract() {
@@ -781,7 +1001,7 @@ run_checkpoint() {
 }
 
 advisor_script_path() {
-  printf '%s\n' "${CODEX_LOOP_ADVISOR_SCRIPT:-${PROJECT_ROOT}/scripts/run-advisor-consultation.sh}"
+  printf '%s\n' "${CODEX_LOOP_ADVISOR_SCRIPT:-${HARNESS_INSTALL_ROOT}/scripts/run-advisor-consultation.sh}"
 }
 
 advisor_enabled_globally() {
@@ -921,6 +1141,7 @@ record_advisor_consultation() {
 import json
 import os
 import sys
+import tempfile
 
 path, task_id, trigger_hash, decision, model = sys.argv[1:6]
 data = {}
@@ -940,9 +1161,12 @@ if trigger_hash not in hashes:
 task_counts = data.setdefault("task_consultations", {})
 task_counts[task_id] = int(task_counts.get(task_id, 0)) + 1
 
-with open(path, "w", encoding="utf-8") as fh:
+parent = os.path.dirname(path) or "."
+fd, tmp_path = tempfile.mkstemp(prefix=".run-json-", suffix=".tmp", dir=parent)
+with os.fdopen(fd, "w", encoding="utf-8") as fh:
     json.dump(data, fh, ensure_ascii=False, indent=2)
     fh.write("\n")
+os.replace(tmp_path, path)
 PY
 }
 
@@ -1109,7 +1333,10 @@ EOF
 
 write_current_job_state() {
   local json_payload="$1"
-  printf '%s\n' "${json_payload}" > "${CURRENT_JOB_JSON}"
+  local tmp_file
+  tmp_file="$(mktemp "${CURRENT_JOB_JSON}.tmp.XXXXXX")"
+  printf '%s\n' "${json_payload}" > "${tmp_file}"
+  mv "${tmp_file}" "${CURRENT_JOB_JSON}"
 }
 
 perform_cycle() {
@@ -1148,16 +1375,22 @@ perform_cycle() {
   high_risk_summary="$(contract_high_risk_summary "${contract_path}")"
 
   if [ "${advisor_active}" = "true" ] && [ -n "${high_risk_summary}" ]; then
-    local preflight_hash preflight_response preflight_decision preflight_count
+    local preflight_hash preflight_response preflight_decision preflight_count preflight_exit
     preflight_hash="${task_id}:high-risk-preflight:$(normalize_error_signature "${high_risk_summary}")"
     preflight_count="$(advisor_task_consult_count "${task_id}")"
     if ! advisor_trigger_seen "${preflight_hash}" && [ "${preflight_count}" -lt "$(advisor_max_consults_per_task)" ]; then
-      preflight_response="$(consult_advisor "${task_id}" "high-risk-preflight" "${preflight_hash}" "高リスク task の初回実行前。どの観点を先に固めるべきか。" 1 "${high_risk_summary}" "task=${task_id}||risk_triggers=${high_risk_summary}||cycle=${cycle_number}")" || return 21
-      preflight_decision="$(json_get_file "${preflight_response}" "decision" "")"
-      advisor_guidance="$(render_advisor_guidance "${preflight_response}")"
-      if [ "${preflight_decision}" = "STOP" ]; then
-        log_line "advisor stop before execution for ${task_id}"
-        return 21
+      preflight_exit=0
+      preflight_response="$(consult_advisor "${task_id}" "high-risk-preflight" "${preflight_hash}" "高リスク task の初回実行前。どの観点を先に固めるべきか。" 1 "${high_risk_summary}" "task=${task_id}||risk_triggers=${high_risk_summary}||cycle=${cycle_number}")" || preflight_exit=$?
+      if [ "${preflight_exit}" -ne 0 ]; then
+        log_line "advisor preflight failed for ${task_id} (exit=${preflight_exit}); continuing without guidance"
+        advisor_guidance=""
+      else
+        preflight_decision="$(json_get_file "${preflight_response}" "decision" "")"
+        advisor_guidance="$(render_advisor_guidance "${preflight_response}")"
+        if [ "${preflight_decision}" = "STOP" ]; then
+          log_line "advisor stop before execution for ${task_id}"
+          return 21
+        fi
       fi
     fi
   fi
@@ -1337,19 +1570,29 @@ PY
     fi
 
     if [ "${advisor_active}" = "true" ] && [ "${failure_count}" -ge "${retry_threshold}" ]; then
-      local retry_hash retry_response retry_decision retry_count
+      local retry_hash retry_response retry_decision retry_count retry_exit
       retry_hash="${task_id}:retry-threshold:${failure_signature}"
       retry_count="$(advisor_task_consult_count "${task_id}")"
       if ! advisor_trigger_seen "${retry_hash}" && [ "${retry_count}" -lt "${max_consults}" ]; then
-        retry_response="$(consult_advisor "${task_id}" "retry-threshold" "${retry_hash}" "同じ原因の失敗が繰り返された。次は何を変えるべきか。" "${task_attempt}" "${summary}" "task=${task_id}||attempt=${task_attempt}||signature=${failure_signature}")" || return 21
-        retry_decision="$(json_get_file "${retry_response}" "decision" "")"
-        advisor_guidance="$(render_advisor_guidance "${retry_response}")"
-        if [ "${retry_decision}" = "STOP" ]; then
-          break
-        fi
-        if [ "${task_attempt}" -lt "${attempt_limit}" ]; then
-          task_attempt=$((task_attempt + 1))
-          continue
+        retry_exit=0
+        retry_response="$(consult_advisor "${task_id}" "retry-threshold" "${retry_hash}" "同じ原因の失敗が繰り返された。次は何を変えるべきか。" "${task_attempt}" "${summary}" "task=${task_id}||attempt=${task_attempt}||signature=${failure_signature}")" || retry_exit=$?
+        if [ "${retry_exit}" -ne 0 ]; then
+          log_line "advisor retry-threshold failed for ${task_id} (exit=${retry_exit}); proceeding without guidance"
+          advisor_guidance=""
+          if [ "${task_attempt}" -lt "${attempt_limit}" ]; then
+            task_attempt=$((task_attempt + 1))
+            continue
+          fi
+        else
+          retry_decision="$(json_get_file "${retry_response}" "decision" "")"
+          advisor_guidance="$(render_advisor_guidance "${retry_response}")"
+          if [ "${retry_decision}" = "STOP" ]; then
+            break
+          fi
+          if [ "${task_attempt}" -lt "${attempt_limit}" ]; then
+            task_attempt=$((task_attempt + 1))
+            continue
+          fi
         fi
       fi
     fi
@@ -1416,7 +1659,7 @@ cmd_start() {
   local selection="${1:-}"
   shift || true
   [ -n "${selection}" ] || {
-    echo "codex-loop start requires a selection (all|N|N-M)" >&2
+    echo "codex-loop start requires a selection (all|TASK|START-END|START..END)" >&2
     exit 2
   }
 
@@ -1446,6 +1689,13 @@ cmd_start() {
     exit 1
   }
 
+  local normalized_selection=""
+  if ! normalized_selection="$(normalize_selection "${plans_file}" "${selection}" 2>&1)"; then
+    echo "${normalized_selection}" >&2
+    exit 2
+  fi
+  selection="${normalized_selection}"
+
   ensure_dirs
   if ! acquire_lock; then
     local existing_pid=""
@@ -1458,7 +1708,10 @@ cmd_start() {
   run_id="codex-loop-$(date +%Y%m%d%H%M%S)-$$"
   delay_seconds="$(delay_for_pacing "${pacing}")"
 
-  cat > "${RUN_JSON}" <<EOF
+  rm -f "${CURRENT_JOB_JSON}"
+  local run_tmp
+  run_tmp="$(mktemp "${RUN_JSON}.tmp.XXXXXX")"
+  cat > "${run_tmp}" <<EOF
 {
   "schema_version": "codex-loop-run.v1",
   "run_id": "$(printf '%s' "${run_id}")",
@@ -1480,9 +1733,10 @@ cmd_start() {
   "plans_file": "$(printf '%s' "${plans_file}")"
 }
 EOF
+  mv "${run_tmp}" "${RUN_JSON}"
   : > "${RUNNER_LOG}"
 
-  nohup bash "$0" run --run-id "${run_id}" >/dev/null 2>&1 &
+  nohup env CODEX_LOOP_BOOTSTRAP_PID="$$" bash "$0" run --run-id "${run_id}" >/dev/null 2>&1 &
   local runner_pid=$!
   printf '%s\n' "${runner_pid}" > "${LOCK_DIR}/pid"
   run_state_patch "$(cat <<EOF
@@ -1520,20 +1774,50 @@ cmd_status() {
   fi
 
   local payload
-  payload="$(python_json "${RUN_JSON}" "${CURRENT_JOB_JSON}" <<'PY'
+  payload="$(python_json "${RUN_JSON}" "${CURRENT_JOB_JSON}" "${PROJECT_ROOT}" <<'PY'
 import json
 import os
 import sys
 
-run_file, current_job_file = sys.argv[1:3]
-with open(run_file, "r", encoding="utf-8") as fh:
-    run = json.load(fh)
-payload = {"run": run}
+run_file, current_job_file, project_root = sys.argv[1:4]
+
+def pid_alive(pid):
+    if pid in (None, "", 0):
+        return False
+    try:
+        os.kill(int(pid), 0)
+    except (OSError, ValueError, TypeError):
+        return False
+    return True
+
+try:
+    with open(run_file, "r", encoding="utf-8") as fh:
+        run = json.load(fh)
+except Exception as exc:
+    print(json.dumps({
+        "status": "state_corrupt",
+        "project_root": project_root,
+        "run": None,
+        "current_job": None,
+        "error": str(exc),
+    }, ensure_ascii=False, indent=2))
+    raise SystemExit(0)
+
+payload = {"run": run, "current_job": None}
 if os.path.exists(current_job_file):
-    with open(current_job_file, "r", encoding="utf-8") as fh:
-        payload["current_job"] = json.load(fh)
-else:
-    payload["current_job"] = None
+    try:
+        with open(current_job_file, "r", encoding="utf-8") as fh:
+            payload["current_job"] = json.load(fh)
+    except Exception as exc:
+        payload["warning"] = f"current_job_corrupt: {exc}"
+
+active_statuses = {"starting", "running", "waiting", "stopping"}
+if run.get("status") in active_statuses and not pid_alive(run.get("pid")):
+    run = dict(run)
+    run["status"] = "state_stale"
+    run["error_message"] = run.get("error_message") or "loop runner pid is not alive"
+    payload["run"] = run
+
 print(json.dumps(payload, ensure_ascii=False, indent=2))
 PY
 )"
@@ -1543,28 +1827,42 @@ PY
     return 0
   fi
 
-  local status selection cycles max_cycles task job_state
-  status="$(json_get_file "${RUN_JSON}" "status" "unknown")"
-  selection="$(json_get_file "${RUN_JSON}" "selection" "")"
-  cycles="$(json_get_file "${RUN_JSON}" "cycle_count" "0")"
-  max_cycles="$(json_get_file "${RUN_JSON}" "max_cycles" "0")"
-  task="$(json_get_file "${RUN_JSON}" "current_task_id" "")"
-  job_state="$(json_get_file "${RUN_JSON}" "current_job_status" "")"
+  python3 - "${payload}" <<'PY'
+import json
+import sys
 
-  echo "codex-loop: ${status}"
-  echo "  selection: ${selection}"
-  echo "  cycles: ${cycles}/${max_cycles}"
-  if [ -n "${task}" ]; then
-    echo "  current task: ${task}"
-  fi
-  if [ -n "${job_state}" ]; then
-    echo "  current job: ${job_state}"
-  fi
-  local exit_reason
-  exit_reason="$(json_get_file "${RUN_JSON}" "exit_reason" "")"
-  if [ -n "${exit_reason}" ]; then
-    echo "  exit reason: ${exit_reason}"
-  fi
+payload = json.loads(sys.argv[1])
+status = payload.get("status")
+if status == "state_corrupt":
+    print("codex-loop: state_corrupt")
+    print(f"  error: {payload.get('error', 'unknown error')}")
+    raise SystemExit(0)
+
+run = payload.get("run") or {}
+print(f"codex-loop: {run.get('status', 'unknown')}")
+selection = run.get("selection")
+if selection:
+    print(f"  selection: {selection}")
+cycles = run.get("cycle_count")
+max_cycles = run.get("max_cycles")
+if cycles is not None and max_cycles is not None:
+    print(f"  cycles: {cycles}/{max_cycles}")
+task_id = run.get("current_task_id")
+if task_id:
+    print(f"  current task: {task_id}")
+job_state = run.get("current_job_status")
+if job_state:
+    print(f"  current job: {job_state}")
+exit_reason = run.get("exit_reason")
+if exit_reason:
+    print(f"  exit reason: {exit_reason}")
+error_message = run.get("error_message")
+if error_message:
+    print(f"  error: {error_message}")
+warning = payload.get("warning")
+if warning:
+    print(f"  warning: {warning}")
+PY
 }
 
 cmd_stop() {
@@ -1592,6 +1890,31 @@ EOF
   echo "stop requested"
 }
 
+prepare_run_lock() {
+  local bootstrap_pid="${CODEX_LOOP_BOOTSTRAP_PID:-}"
+  local lock_pid=""
+
+  if [ -d "${LOCK_DIR}" ]; then
+    lock_pid="$(cat "${LOCK_DIR}/pid" 2>/dev/null || true)"
+    if [ -n "${lock_pid}" ] && is_pid_alive "${lock_pid}"; then
+      if [ "${lock_pid}" != "$$" ] && [ -z "${bootstrap_pid}" -o "${lock_pid}" != "${bootstrap_pid}" ]; then
+        return 1
+      fi
+    else
+      rm -rf "${LOCK_DIR}" 2>/dev/null || true
+    fi
+  fi
+
+  if [ ! -d "${LOCK_DIR}" ]; then
+    if ! acquire_lock; then
+      return 1
+    fi
+  fi
+
+  printf '%s\n' "$$" > "${LOCK_DIR}/pid"
+  return 0
+}
+
 cmd_run() {
   local run_id=""
   while [ $# -gt 0 ]; do
@@ -1612,13 +1935,25 @@ cmd_run() {
   }
 
   ensure_dirs
-  if [ ! -d "${LOCK_DIR}" ]; then
-    if ! acquire_lock; then
-      log_line "runner refused to start: lock already held"
-      exit 1
-    fi
+  [ -f "${RUN_JSON}" ] || {
+    echo "codex-loop run state not found for ${run_id}" >&2
+    exit 1
+  }
+
+  local state_run_id=""
+  state_run_id="$(json_get_file "${RUN_JSON}" "run_id" "")"
+  if [ -n "${state_run_id}" ] && [ "${state_run_id}" != "${run_id}" ]; then
+    echo "codex-loop run id mismatch: state has ${state_run_id}, requested ${run_id}" >&2
+    exit 1
   fi
-  printf '%s\n' "$$" > "${LOCK_DIR}/pid"
+
+  if ! prepare_run_lock; then
+    local existing_pid=""
+    existing_pid="$(cat "${LOCK_DIR}/pid" 2>/dev/null || true)"
+    log_line "runner refused to start: lock already held by pid=${existing_pid:-unknown}"
+    echo "codex-loop is already running (pid=${existing_pid:-unknown})" >&2
+    exit 1
+  fi
   trap 'release_lock' EXIT
 
   local selection max_cycles pacing delay_seconds plans_file
@@ -1627,8 +1962,18 @@ cmd_run() {
   pacing="$(json_get_file "${RUN_JSON}" "pacing" "worker")"
   delay_seconds="$(json_get_file "${RUN_JSON}" "delay_seconds" "270")"
   plans_file="$(json_get_file "${RUN_JSON}" "plans_file" "$(plans_file_path)")"
-  set_run_field "pid" "$$"
-  set_run_field "status" '"running"'
+  run_state_patch "$(cat <<EOF
+{
+  "pid": $$,
+  "status": "running",
+  "updated_at": $(json_escape "$(timestamp_utc)"),
+  "exit_reason": null,
+  "finished_at": null,
+  "error_message": null,
+  "stop_requested_at": null
+}
+EOF
+)"
 
   while true; do
     if stop_requested; then

@@ -15,13 +15,13 @@ user-invocable: true
 ## Quick Reference
 
 ```bash
-breezing                        # スコープを聞いてから実行
-breezing all                    # Plans.md 全タスクを完走
-breezing 3-6                    # タスク3〜6を完走
-breezing --codex all            # Codex CLI で全タスク完走
-breezing --parallel 2 all       # 2並列で全タスク完走
-breezing --no-discuss all       # 計画議論スキップで全タスク完走
-breezing --auto-mode all        # 互換な親セッションで Auto Mode rollout を試す
+/breezing                       # スコープを聞いてから実行
+/breezing all                   # Plans.md 全タスクを完走
+/breezing 3-6                   # タスク3〜6を完走
+/breezing --codex all           # Codex CLI で全タスク完走
+/breezing --parallel 2 all      # 2並列で全タスク完走
+/breezing --no-discuss all      # 計画議論スキップで全タスク完走
+/breezing --auto-mode all       # 互換な親セッションで Auto Mode rollout を試す
 ```
 
 ## Options
@@ -34,7 +34,14 @@ breezing --auto-mode all        # 互換な親セッションで Auto Mode rollo
 | `--parallel N` | Implementer 並列数 | auto |
 | `--no-commit` | 自動コミット抑制 | false |
 | `--no-discuss` | 計画議論スキップ | false |
-| `--auto-mode` | Auto Mode rollout を明示。親セッションの permission mode が互換な場合のみ採用を検討 | false |
+| `--auto-mode` | Harness 側の Auto Mode rollout を明示。CC 2.1.111 で不要になった `--enable-auto-mode` とは別物 | false |
+
+> **CC 2.1.111 note**:
+> Opus 4.7 では literal に `/effort xhigh` が使える。
+> built-in `/ultrareview` は明示要求時だけ追加で使い、既定レビューは置き換えない。
+
+> **長時間セッション推奨 (CC 2.1.108+)**:
+> セッション長が 30 分を超える見込みの場合、開始前に `bash scripts/enable-1h-cache.sh` を実行して 1 時間 prompt cache を opt-in すること。
 
 ## Execution
 

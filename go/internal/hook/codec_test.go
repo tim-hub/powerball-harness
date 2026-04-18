@@ -55,6 +55,42 @@ func TestReadInput_OfficialFields(t *testing.T) {
 	}
 }
 
+func TestReadInput_PermissionSuggestions(t *testing.T) {
+	json := `{
+		"tool_name":"Bash",
+		"hook_event_name":"PermissionRequest",
+		"tool_input":{"command":"rm -rf node_modules"},
+		"permission_suggestions":[
+			{
+				"type":"addRules",
+				"rules":[{"toolName":"Bash","ruleContent":"rm -rf node_modules"}],
+				"behavior":"allow",
+				"destination":"localSettings"
+			}
+		]
+	}`
+	input, err := ReadInput(strings.NewReader(json))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(input.PermissionSuggestions) != 1 {
+		t.Fatalf("expected 1 permission suggestion, got %d", len(input.PermissionSuggestions))
+	}
+	entry := input.PermissionSuggestions[0]
+	if entry.Type != "addRules" {
+		t.Errorf("expected addRules, got %s", entry.Type)
+	}
+	if entry.Behavior != "allow" {
+		t.Errorf("expected allow behavior, got %s", entry.Behavior)
+	}
+	if entry.Destination != "localSettings" {
+		t.Errorf("expected localSettings, got %s", entry.Destination)
+	}
+	if len(entry.Rules) != 1 || entry.Rules[0].ToolName != "Bash" {
+		t.Errorf("unexpected rules payload: %+v", entry.Rules)
+	}
+}
+
 func TestReadInput_MissingToolName(t *testing.T) {
 	json := `{"tool_input":{"command":"ls"}}`
 	_, err := ReadInput(strings.NewReader(json))

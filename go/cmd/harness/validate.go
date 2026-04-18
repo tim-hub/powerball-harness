@@ -27,14 +27,14 @@ type validationError struct {
 
 // skillFrontmatter holds parsed SKILL.md frontmatter fields.
 type skillFrontmatter struct {
-	name                     string
-	description              string
-	allowedTools             []string
-	model                    string
-	effort                   string
-	context                  string
-	userInvocable            *bool
-	disableModelInvocation   *bool
+	name                   string
+	description            string
+	allowedTools           []string
+	model                  string
+	effort                 string
+	context                string
+	userInvocable          *bool
+	disableModelInvocation *bool
 }
 
 // agentFrontmatter holds parsed agent *.md frontmatter fields.
@@ -53,17 +53,17 @@ type agentFrontmatter struct {
 
 // validModelNames is the set of recognized Claude model identifiers.
 var validModelNames = map[string]bool{
-	"claude-opus-4-6":    true,
-	"claude-sonnet-4-6":  true,
-	"claude-haiku-4-5":   true,
-	"claude-opus-4":      true,
-	"claude-sonnet-4":    true,
-	"claude-haiku-4":     true,
-	"claude-3-7-sonnet":  true,
-	"claude-3-5-sonnet":  true,
-	"claude-3-5-haiku":   true,
-	"claude-3-opus":      true,
-	"opusplan":           true,
+	"claude-opus-4-6":   true,
+	"claude-sonnet-4-6": true,
+	"claude-haiku-4-5":  true,
+	"claude-opus-4":     true,
+	"claude-sonnet-4":   true,
+	"claude-haiku-4":    true,
+	"claude-3-7-sonnet": true,
+	"claude-3-5-sonnet": true,
+	"claude-3-5-haiku":  true,
+	"claude-3-opus":     true,
+	"opusplan":          true,
 }
 
 // validEffortValues is the set of accepted effort strings.
@@ -71,6 +71,7 @@ var validEffortValues = map[string]bool{
 	"low":    true,
 	"medium": true,
 	"high":   true,
+	"xhigh":  true,
 }
 
 // runValidate implements the "harness validate [skills|agents|all]" subcommand.
@@ -264,11 +265,11 @@ func validateSkillFields(path, dirName string, fm skillFrontmatter) []validation
 		})
 	}
 
-	// Optional: effort must be low/medium/high
+	// Optional: effort must be low/medium/high/xhigh
 	if fm.effort != "" && !validEffortValues[fm.effort] {
 		errs = append(errs, validationError{
 			file:    path,
-			message: fmt.Sprintf(`effort %q must be one of: low, medium, high`, fm.effort),
+			message: fmt.Sprintf(`effort %q must be one of: low, medium, high, xhigh`, fm.effort),
 		})
 	}
 
@@ -410,11 +411,11 @@ func validateAgentFields(path string, fm agentFrontmatter) []validationError {
 		})
 	}
 
-	// effort must be low/medium/high if set
+	// effort must be low/medium/high/xhigh if set
 	if fm.effort != "" && !validEffortValues[fm.effort] {
 		errs = append(errs, validationError{
 			file:    path,
-			message: fmt.Sprintf(`effort %q must be one of: low, medium, high`, fm.effort),
+			message: fmt.Sprintf(`effort %q must be one of: low, medium, high, xhigh`, fm.effort),
 		})
 	}
 

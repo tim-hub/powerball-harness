@@ -21,12 +21,17 @@ Harness の統合プランニングスキル。
 
 | ユーザー入力 | サブコマンド | 動作 |
 |------------|------------|------|
-| "計画を作って" / "create a plan" | `create` | 対話型ヒアリング → Plans.md 生成 |
-| "タスクを追加して" / "add a task" | `add` | Plans.md に新タスク追加 |
-| "完了にして" / "mark complete" | `update` | タスクマーカーを cc:完了 に変更 |
-| "今どこ？" / "check progress" | `sync` | 実装とPlans.mdを照合・同期 |
-| `harness-sync` | `sync` | 進捗確認（独立 sync surface と同等） |
-| `harness-plan create` | `create` | 計画作成 |
+| "計画を作って" / `/harness-plan create` | `create` | 対話型ヒアリング → Plans.md 生成 |
+| "タスクを追加して" / `/harness-plan add` | `add` | Plans.md に新タスク追加 |
+| "完了にして" / `/harness-plan update` | `update` | タスクマーカーを cc:完了 に変更 |
+| "今どこ？" / `/harness-plan sync` | `sync` | 実装とPlans.mdを照合・同期 |
+| `/harness-sync` | `sync` | 進捗確認（独立 sync surface と同等） |
+| `/harness-plan create` | `create` | 計画作成 |
+
+## Literal companion commands（CC 2.1.108+）
+
+- `/recap`: 久しぶりに戻った時に要約を取り直してから `sync` へ入る
+- `/undo`: `/rewind` の別名。直前の plan 更新を即座に戻したい時にそのまま使う
 
 ## サブコマンド詳細
 
@@ -46,6 +51,53 @@ See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md)
 7. Plans.md 生成（`cc:TODO` マーカー付き）
 8. 次のアクション案内
 
+### create 完了時のセッション起動案内（必須）
+
+`create` が終わったら、説明だけで終わらせず、**新しいセッションの起動コマンド** と
+**起動後にそのまま入れる最初の指示プロンプト** をセットで案内する。
+
+優先順位は次の通り:
+
+1. 未完了タスクが 1 件だけ、または最初の 1 件だけ始めるのが自然
+   - 起動コマンド: `claude`
+   - 最初の入力: `/harness-work <task番号>`
+2. 依存の薄いタスクが複数あり、まとめて進めるのが自然
+   - 起動コマンド: `claude`
+   - 最初の入力: `/breezing all`
+   - 代替: `/harness-work all`
+3. 長時間実行や再入が前提
+   - 起動コマンド: `ENABLE_PROMPT_CACHING_1H=1 claude`
+   - 最初の入力: `/harness-loop all`
+   - 代替: `/breezing all`
+
+最低でも次の 3 行を含める:
+
+- `新しいセッションの起動コマンド:`
+- `起動後の最初の入力:`
+- `向いている場面:`
+
+例:
+
+```text
+新しいセッションの起動コマンド: claude
+起動後の最初の入力: /breezing all
+向いている場面: Phase 1 の task が複数あり、まとめて進めるほうが自然なため
+```
+
+長時間系を勧める場合は、Claude Code セッション起動コマンドも併記する:
+
+```text
+新しいセッションの起動コマンド: ENABLE_PROMPT_CACHING_1H=1 claude
+起動後の最初の入力: /harness-loop all
+向いている場面: 5 分を超える待機や resume をまたぐ長時間タスクのため
+```
+
+補足:
+
+- `scripts/claude-longrun.sh` はこのリポジトリの開発補助スクリプトで、plugin install 後の consumer 環境には配布されない
+- そのため、consumer 向け案内では常に `ENABLE_PROMPT_CACHING_1H=1 claude` の 1 行コマンドを優先する
+- リポジトリ開発中だけ同等のラッパーを使いたい場合、`bash scripts/claude-longrun.sh` はローカル checkout 上では利用してよい
+
 **CI モード** (`--ci`):
 ヒアリングなし。既存の Plans.md をそのまま利用してタスク分解のみ行う。
 
@@ -54,7 +106,7 @@ See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md)
 Plans.md に新しいタスクを追加する。
 
 ```
-harness-plan add タスク名: 詳細説明 [--phase フェーズ番号]
+/harness-plan add タスク名: 詳細説明 [--phase フェーズ番号]
 ```
 
 タスクは `cc:TODO` マーカーで追加される。
@@ -64,7 +116,7 @@ harness-plan add タスク名: 詳細説明 [--phase フェーズ番号]
 タスクのステータスマーカーを変更する。
 
 ```
-harness-plan update [タスク名|タスク番号] [WIP|完了|blocked]
+/harness-plan update [タスク名|タスク番号] [WIP|完了|blocked]
 ```
 
 マーカー対応表:

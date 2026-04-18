@@ -23,12 +23,12 @@ Harness の統合実行スキル。
 
 | ユーザー入力 | モード | 動作 |
 |------------|--------|------|
-| `harness-work` | **auto** | タスク数で自動判定（下記参照） |
-| `harness-work all` | **auto** | 全未完了タスクを自動モードで実行 |
-| `harness-work 3` | solo | タスク3だけ即実行 |
-| `harness-work --parallel 5` | parallel | 5ワーカーで並列実行（強制） |
-| `harness-work --codex` | codex | Codex CLI に委託（明示時のみ） |
-| `harness-work --breezing` | breezing | チーム実行を強制 |
+| `/harness-work` | **auto** | タスク数で自動判定（下記参照） |
+| `/harness-work all` | **auto** | 全未完了タスクを自動モードで実行 |
+| `/harness-work 3` | solo | タスク3だけ即実行 |
+| `/harness-work --parallel 5` | parallel | 5ワーカーで並列実行（強制） |
+| `/harness-work --codex` | codex | Codex CLI に委託（明示時のみ） |
+| `/harness-work --breezing` | breezing | チーム実行を強制 |
 
 ## Execution Mode Auto Selection（フラグなし時の自動判定）
 
@@ -60,20 +60,23 @@ Harness の統合実行スキル。
 | `--sequential` | 直列実行強制 | - |
 | `--codex` | Codex CLI で実装委託（明示時のみ、自動選択しない） | false |
 | `--no-commit` | 自動コミット抑制 | false |
-| `--resume <id\|latest>` | 前回セッション再開 | - |
+| `--resume <id\|latest>` | 前回セッション再開。長く空いた後は `/recap` 併用を推奨 | - |
 | `--breezing` | Lead/Worker/Reviewer のチーム実行 | false |
 | `--no-tdd` | TDD フェーズスキップ | false |
 | `--no-simplify` | Auto-Refinement スキップ | false |
-| `--auto-mode` | Auto Mode rollout を明示。親セッションの permission mode が互換な場合のみ採用を検討 | false |
+| `--auto-mode` | Harness 側の Auto Mode rollout を明示。CC 2.1.111 で不要になった `--enable-auto-mode` とは別物 | false |
 
 > **Token Optimization (v2.1.69+)**: git 操作を伴わない軽量タスクでは
 > plugin settings の `includeGitInstructions: false` を有効にして
 > プロンプトトークンを削減できる。
 
+> **Prompt Cache (CC 2.1.108+)**: 長めの実装や `--resume` を多用する作業では
+> `ENABLE_PROMPT_CACHING_1H=1` を優先する。
+
 ## スコープダイアログ（引数なし時）
 
 ```
-harness-work
+/harness-work
 どこまでやりますか?
 1) 次のタスク: Plans.md の次の未完了タスク → Solo で実行
 2) 全部（推奨）: 残りのタスクをすべて完了 → タスク数で自動モード選択
@@ -81,15 +84,17 @@ harness-work
 ```
 
 引数ありなら即実行（対話スキップ）:
-- `harness-work all` → 全タスク、自動モード選択
-- `harness-work 3-6` → 4件なので Breezing 自動選択
+- `/harness-work all` → 全タスク、自動モード選択
+- `/harness-work 3-6` → 4件なので Breezing 自動選択
 
-## Effort レベル制御（v2.1.68+, v2.1.72 簡素化）
+## Effort レベル制御（v2.1.68+, v2.1.72, v2.1.111）
 
 Claude Code v2.1.68 で Opus 4.6 は **medium effort** (`◐`) がデフォルト。
 v2.1.72 で `max` レベルが廃止され、3段階 `low(○)/medium(◐)/high(●)` に簡素化。
 `/effort auto` でデフォルトにリセット可能。
 複雑なタスクには `ultrathink` キーワードで high effort (`●`) を有効化する。
+CC 2.1.111 では Opus 4.7 向けに `xhigh` が追加された。
+必要なら literal に `/effort xhigh` を上乗せしてよい。
 
 ### 多要素スコアリング
 

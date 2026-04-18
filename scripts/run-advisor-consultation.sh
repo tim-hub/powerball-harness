@@ -132,6 +132,13 @@ schema = sys.argv[7]
 
 prompt = prompt_file.read_text(encoding="utf-8")
 
+def _to_text(value):
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return value
+
 try:
     completed = subprocess.run(
         ["bash", companion, "task", "--model", model, "--output-schema", schema],
@@ -142,12 +149,14 @@ try:
         check=False,
     )
 except subprocess.TimeoutExpired as exc:
-    stdout_file.write_text(exc.stdout or "", encoding="utf-8")
-    stderr_file.write_text((exc.stderr or "") + "\nTIMEOUT\n", encoding="utf-8")
+    # TimeoutExpired.stdout/stderr can be bytes even when text=True, because
+    # the exception carries the raw partial buffers captured before timeout.
+    stdout_file.write_text(_to_text(exc.stdout), encoding="utf-8")
+    stderr_file.write_text(_to_text(exc.stderr) + "\nTIMEOUT\n", encoding="utf-8")
     raise SystemExit(124)
 
-stdout_file.write_text(completed.stdout or "", encoding="utf-8")
-stderr_file.write_text(completed.stderr or "", encoding="utf-8")
+stdout_file.write_text(_to_text(completed.stdout), encoding="utf-8")
+stderr_file.write_text(_to_text(completed.stderr), encoding="utf-8")
 raise SystemExit(completed.returncode)
 PY
 COMMAND_EXIT=$?
