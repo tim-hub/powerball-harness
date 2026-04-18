@@ -302,7 +302,7 @@ Purpose: harness.toml の `[telemetry]` セクションと `Telemetry` Go struct
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 45.4.1 | (a) `harness.toml` から `[telemetry]` セクション (otel_endpoint, webhook_url コメントアウト含む) を削除。(b) `go/pkg/config/toml.go` から `TelemetryConfig` struct と `Telemetry` field を削除。(c) `go/pkg/config/toml_test.go` から telemetry 関連 test ケースを削除または「NOT 設定」前提に書き換え。(d) `go/cmd/harness/init.go` の scaffold template から `[telemetry]` セクション例を削除。(e) `webhook_url` は env 変数 `HARNESS_WEBHOOK_URL` 経由のみで設定される旨を `docs/long-running-harness.md` または `CLAUDE.md` に 1 行追記 | (a)-(e) 完了、(f) `go test ./go/...` PASS、(g) `tests/validate-plugin.sh` PASS、(h) `bash bin/harness sync` 動作 | - | cc:TODO |
+| 45.4.1 | (a) `harness.toml` から `[telemetry]` セクション (otel_endpoint, webhook_url コメントアウト含む) を削除。(b) `go/pkg/config/toml.go` から `TelemetryConfig` struct と `Telemetry` field を削除。(c) `go/pkg/config/toml_test.go` から telemetry 関連 test ケースを削除または「NOT 設定」前提に書き換え。(d) `go/cmd/harness/init.go` の scaffold template から `[telemetry]` セクション例を削除。(e) `webhook_url` は env 変数 `HARNESS_WEBHOOK_URL` 経由のみで設定される旨を `docs/long-running-harness.md` または `CLAUDE.md` に 1 行追記 | (a)-(e) 完了、(f) `go test ./go/...` PASS、(g) `tests/validate-plugin.sh` PASS、(h) `bash bin/harness sync` 動作 | - | cc:完了 [648c2bfe] |
 
 ---
 
