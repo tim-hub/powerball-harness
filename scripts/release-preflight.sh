@@ -372,8 +372,12 @@ check_ci_status() {
 
   local gh_output
   gh_output="$(gh run list --branch "$branch" --limit 1 --json status,conclusion 2>/dev/null || true)"
-  if [ -z "$gh_output" ]; then
-    warn "CI status unavailable (no GitHub Actions data)"
+  if [ -z "$gh_output" ] || [ "$(printf '%s' "$gh_output" | tr -d '[:space:]')" = "[]" ]; then
+    # Empty array means the branch has never been pushed (or no workflow has
+    # run on it yet). Treat as warning rather than fail so first-time release
+    # branches can pass preflight; CI will run on push and the release flow
+    # can re-check before tagging.
+    warn "CI status unavailable (no runs found for branch '$branch' — push to trigger CI)"
     return
   fi
 
