@@ -93,7 +93,7 @@ Does the change include UI files (.tsx, .jsx, .vue, .css, .html)?
 bash "${CLAUDE_SKILL_DIR}/../../scripts/browser-review-runner.sh" --contract "${CONTRACT_PATH}"
 ```
 
-The browser reviewer captures screenshots, verifies interaction flows, and outputs findings conforming to the Step 3 JSON schema. Build the few-shot bank after browser review:
+The browser reviewer captures screenshots, verifies interaction flows, and outputs findings conforming to the Step 4 JSON schema. Build the few-shot bank after browser review:
 ```bash
 bash "${CLAUDE_SKILL_DIR}/../../scripts/build-review-few-shot-bank.sh"
 ```
@@ -107,7 +107,7 @@ git diff ${BASE_REF:-HEAD~1} --stat
 git diff ${BASE_REF:-HEAD~1} -- ${CHANGED_FILES}
 ```
 
-### Step 1.5: Static Scan for AI Residuals
+### Step 2: Static Scan for AI Residuals
 
 Rather than relying solely on LLM impressions, pick up residual candidates in a reproducible way. `"${CLAUDE_SKILL_DIR}/../../scripts/review-ai-residuals.sh"` returns stable JSON, which is used as review evidence.
 
@@ -119,7 +119,7 @@ AI_RESIDUALS_JSON="$(bash "${CLAUDE_SKILL_DIR}/../../scripts/review-ai-residuals
 bash "${CLAUDE_SKILL_DIR}/../../scripts/review-ai-residuals.sh" path/to/file.ts path/to/config.sh
 ```
 
-### Step 2: Review from 5 Perspectives
+### Step 3: Review from 5 Perspectives
 
 | Perspective | Check Items |
 |-------------|-------------|
@@ -131,7 +131,7 @@ bash "${CLAUDE_SKILL_DIR}/../../scripts/review-ai-residuals.sh" path/to/file.ts 
 
 **During review**: Apply the severity framework established above. Classify each finding against the critical/major/minor/recommendation matrix. **Document your severity classification and rationale for each finding in the output.**
 
-### Step 3: Review Result Output with Explicit Verdict Reasoning
+### Step 4: Review Result Output with Explicit Verdict Reasoning
 
 ```json
 {
@@ -185,9 +185,9 @@ For browser reviews, `"${CLAUDE_SKILL_DIR}/../../scripts/generate-browser-review
 This file serves as the shared input for the commit guard and downstream flows.
 Review results with `calibration` are appended to `.claude/state/review-calibration.jsonl` via `"${CLAUDE_SKILL_DIR}/../../scripts/record-review-calibration.sh"`, and the few-shot bank is updated via `"${CLAUDE_SKILL_DIR}/../../scripts/build-review-few-shot-bank.sh"`.
 
-### Step 3.5: Codex Parallel Review with --dual Flag
+### Step 4.1: Codex Parallel Review with --dual Flag
 
-When the `--dual` flag is specified, run a Codex review in parallel with the Claude review in Step 3, then merge the results.
+When the `--dual` flag is specified, run a Codex review in parallel with the Claude review in Step 4, then merge the results.
 
 1. Check Codex availability (`"${CLAUDE_SKILL_DIR}/../../scripts/codex-companion.sh" setup --json`)
 2. If available, launch `"${CLAUDE_SKILL_DIR}/../../scripts/codex-companion.sh" review --base "${BASE_REF:-HEAD~1}"`
@@ -196,7 +196,7 @@ When the `--dual` flag is specified, run a Codex review in parallel with the Cla
 
 For detailed procedures, output schema, and fallback specifications, see [`${CLAUDE_SKILL_DIR}/references/dual-review.md`](${CLAUDE_SKILL_DIR}/references/dual-review.md).
 
-### Step 3.6: Security-Only Review with --security Flag
+### Step 4.2: Security-Only Review with --security Flag
 
 When the `--security` flag is specified, **skip** the standard 5-perspective review and execute the security-only flow.
 
@@ -208,7 +208,7 @@ When the `--security` flag is specified, **skip** the standard 5-perspective rev
    ```
 2. Check all OWASP Top 10 categories against the change diff and related files
 3. Check authentication/authorization flows, secret handling, and dependency vulnerabilities
-4. Set `reviewer_profile: "security"` and output results (conforming to Step 3's JSON schema)
+4. Set `reviewer_profile: "security"` and output results (conforming to Step 4's JSON schema)
 5. Apply the Security mode verdict criteria (see end of security-profile.md)
 
 Choosing between standard Code Review and `--security`:
@@ -220,7 +220,7 @@ Choosing between standard Code Review and `--security`:
 | Tool restrictions | None | Read / Grep / Glob / read-only Bash only |
 | Use case | Pre-merge comprehensive check | Security-focused audit, additional pre-release verification |
 
-### Step 3.7: UI Rubric Scoring with --ui-rubric Flag
+### Step 4.3: UI Rubric Scoring with --ui-rubric Flag
 
 When the `--ui-rubric` flag is specified, run the 4-axis design quality scoring flow **in addition to** the standard review.
 
@@ -244,7 +244,7 @@ When the `--ui-rubric` flag is specified, run the 4-axis design quality scoring 
 
 4. UI rubric scores are informational — they do **not** affect the APPROVE/REQUEST_CHANGES verdict unless a `functionality` score of 3 or below is detected (indicates broken features).
 
-### Step 4: Commit Decision
+### Step 5: Commit Decision
 
 - **APPROVE**: Execute auto-commit (unless `--no-commit`)
 - **REQUEST_CHANGES**: Present critical/major findings and fix strategy. Auto-fix via `harness-work`'s fix loop followed by re-review (up to 3 times)
