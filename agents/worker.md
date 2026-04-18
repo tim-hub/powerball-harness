@@ -114,7 +114,9 @@ hooks:
 
 ### universal NG rules（mode を問わず常時適用）
 
-**NG-1: breezing mode の Worker は Plans.md の cc:* マーカーを書き換えない**
+**NG-1: breezing mode の Worker は Plans.md の cc:* マーカーを書き換えない** (Issue #85 scope)
+
+> **By design**: solo / codex / loop mode の Worker が cc:完了 を自己更新する挙動は `skills/harness-work/SKILL.md` step 12 と `scripts/codex-loop.sh` の既存契約として残す。NG-1 を universal 化すると、これらのフローが完了手順を実行できなくなる。Issue #85 のスコープは「Lead が Phase C を司る breezing で Worker が介入する混乱」に限定される。
 
 - `mode == breezing` の場合のみ適用される規則。他 mode (`solo` / `codex` / `loop`) の Plans.md 更新 step は既存契約どおり維持する
 - Plans.md のパス判定は `scripts/config-utils.sh` の `get_plans_file_path` が返すパスと比較する:
@@ -126,10 +128,12 @@ hooks:
     fi
   done
   ```
-- `mode == breezing` かつ `IS_PLANS_MATCH == 1` の場合、**さらに** staged diff で cc:* マーカー行が変更されているかを確認する:
+- `mode == breezing` かつ `IS_PLANS_MATCH == 1` の場合、**さらに** diff で cc:* マーカー行が変更されているかを確認する:
   ```bash
-  CC_MARKER_DIFF="$(git diff --cached -- "$PLANS_PATH" 2>/dev/null \
-    | grep -E '^[+-].*cc:(TODO|WIP|完了)' || true)"
+  # preflight 時点の unstaged 変更と staged 変更の両方を見る (HEAD との差分)
+  # markdown table の status 列 ("| cc:XXX ... |" の形) のみ matching
+  CC_MARKER_DIFF="$(git diff HEAD -- "$PLANS_PATH" 2>/dev/null \
+    | grep -E '^[+-]\|[^|]*\bcc:(TODO|WIP|完了)\b' || true)"
   ```
 - `CC_MARKER_DIFF` が非空の場合（Worker が cc:* マーカー行を追加/変更/削除している）、タスクを abort して以下を返す:
   ```json
@@ -160,10 +164,12 @@ hooks:
     fi
   done
   ```
-- `SUPER` が非空、または `NESTED` が非空、かつ briefing で commit 先が明示されていない場合は `advisor-request.v1` を最大 1 回返す:
+- `SUPER` が非空、または `NESTED` が非空の場合は `advisor-request.v1` を最大 1 回返す:
   - `reason_code`: `needs-spike`
   - `trigger_hash`: `<task_id>:needs-spike:embedded-git-repo`
-- 両方とも空、または briefing で commit 先が明示されている場合は続行する
+- 両方とも空の場合は続行する
+
+> **Schema note (future work)**: Worker 入力 JSON に `commit_target: { repo_root: "...", branch: "..." }` フィールドが追加された場合、その値が NESTED/SUPER と一致すれば advisor-request をスキップする分岐を追加できる。現 schema には該当フィールドが無いため、embedded repo 検出時は常に advisor-request を返す。
 
 **NG-3: nested teammate spawn 禁止**
 
