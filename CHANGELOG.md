@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.9.1...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.9.2...HEAD
+[4.9.2]: https://github.com/tim-hub/powerball-harness/compare/v4.9.1...v4.9.2
 [4.9.1]: https://github.com/tim-hub/powerball-harness/compare/v4.9.0...v4.9.1
 [4.9.0]: https://github.com/tim-hub/powerball-harness/compare/v4.8.2...v4.9.0
 [4.8.2]: https://github.com/tim-hub/powerball-harness/compare/v4.8.1...v4.8.2
@@ -17,7 +18,15 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
-### Phase 74: Code-space skill search POC (harness-review)
+## [4.9.2] - 2026-04-19
+
+### Theme: Code-space skill search POC — harness-review eval loop (Phase 74)
+
+**`harness-review` accuracy is now measurable and improvable via a repeatable eval loop. The Phase 74 POC promoted a v2 SKILL.md variant that scored 10/10 on a 10-case corpus, up from 9/10 for the baseline.**
+
+---
+
+#### 1. Phase 74: Code-space skill search POC (harness-review)
 
 **Before**: Improving a skill required hand-editing SKILL.md and guessing which criteria changes would improve review accuracy.
 
