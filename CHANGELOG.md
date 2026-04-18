@@ -21,14 +21,19 @@ Change history for claude-code-harness.
 
 **Before**: Improving a skill required hand-editing SKILL.md and guessing which criteria changes would improve review accuracy.
 
-**After**: A repeatable eval loop exists — `eval-skill.sh` scores a skill variant against a fixed corpus of golden-verdict PR diffs; `propose-skill-variants.sh` generates SKILL.md candidates informed by eval output. The Phase 74 POC ran the full loop on `harness-review`.
+**After**: A repeatable eval loop exists — `eval-skill.sh` scores a skill variant against a fixed corpus of golden-verdict PR diffs; `propose-skill-variants.sh` generates SKILL.md candidates informed by eval output. The Phase 74 POC ran two full loops on `harness-review` and promoted the winning variant.
 
-**POC result**: Null. Baseline scored 1.00/1.00 on 5 cases; all 3 generated variants scored 0.80 (false positives on clean diffs). **Baseline retained** — no variant promoted. Key finding documented in `patterns.md` P11: code-space search requires a failing baseline; with a perfect score the proposer has no signal and adds caution rather than improving calibration.
+**POC result**: **Loop 1 — null** (5-case corpus, baseline 1.00/1.00 → no signal → variants added caution → 0.80). **Loop 2 — success** (10-case corpus including 5 ambiguous edge cases, baseline 9/10=0.90 → v2 scored 10/10=1.00). **v2 promoted** to `harness/skills/harness-review/SKILL.md` (commit 747f999). Key insight from loop 1 documented as `patterns.md` P11: code-space search requires a failing baseline; a perfect corpus gives the proposer no improvement signal.
+
+**v2 changes (now in production)**:
+- Verdict Framework section moved before review steps — surfaces severity criteria upfront, preventing post-hoc severity rationalization
+- `critical_issues[]` / `major_issues[]` schema requires `severity_justification` per finding — forces explicit escalation reasoning
+- `observations[].severity` restricted to `"minor | recommendation"` — critical/major findings must escalate to their own arrays
 
 **Infrastructure shipped** (reusable for future iterations):
 - `local-scripts/eval-skill.sh` — golden-verdict evaluator (any skill, any suite)
 - `local-scripts/propose-skill-variants.sh` — SKILL.md variant proposer
-- `tests/skill-eval/harness-review/` — 5-case eval suite (bug01, bug02, clean01, clean02, scope01)
+- `tests/skill-eval/harness-review/` — 10-case eval suite (5 clear + 5 ambiguous edge cases)
 
 ## [4.9.1] - 2026-04-18
 
