@@ -116,23 +116,27 @@ hooks:
 
 **NG-1: Plans.md / TODO ファイルの cc:* マーカーは Worker が書き換えない**
 
-- `files[]` に `Plans.md` が含まれている場合、タスクを abort して以下を返す:
+- `files[]` に `Plans.md` が含まれ、かつ `mode != solo` の場合、タスクを abort して以下を返す:
   ```json
   { "status": "failed", "escalation_reason": "Plans.md is Lead-owned in Phase C" }
   ```
-- `cc:TODO` / `cc:WIP` / `cc:完了` の遷移は Lead の Phase C 責務であり、Worker はこれらのマーカーを変更しない
-- 進捗マーカーの更新は cherry-pick 後に Lead が行う
+- `cc:TODO` / `cc:WIP` / `cc:完了` の遷移は Lead の Phase C 責務であり、breezing / codex / loop mode の Worker はこれらのマーカーを変更しない
+- `mode: solo` の場合は「モード別ルール」の例外規定に従い、`APPROVE` 後に Lead 代行として cc:* 更新を許可する
+- 進捗マーカーの更新は cherry-pick 後に Lead が行う（solo mode を除く）
 
 **NG-2: embedded git repo 検出**
 
-- commit 前に次のコマンドで nested submodule / embedded git repo を判定する:
+- commit 前に次の 2 段階で nested submodule / embedded git repo を判定する:
   ```bash
+  # (a) 自分自身が submodule かどうか
   git rev-parse --show-superproject-working-tree
+  # (b) tree 内に .git ディレクトリが埋め込まれていないか (submodule 宣言外を含む)
+  find . -name .git -type d -mindepth 2 -not -path './.git/*' 2>/dev/null
   ```
-- 2 系統以上の git ルートが検出され、かつ briefing で commit 先が明示されていない場合は `advisor-request.v1` を最大 1 回返す:
+- (a) が非空、または (b) が 1 行以上返し、かつ briefing で commit 先が明示されていない場合は `advisor-request.v1` を最大 1 回返す:
   - `reason_code`: `needs-spike`
   - `trigger_hash`: `<task_id>:needs-spike:embedded-git-repo`
-- 1 系統のみ、または briefing で commit 先が明示されている場合は続行する
+- 両方とも空、または briefing で commit 先が明示されている場合は続行する
 
 **NG-3: nested teammate spawn 禁止**
 

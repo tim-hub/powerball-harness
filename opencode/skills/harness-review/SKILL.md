@@ -32,7 +32,7 @@ Harness の統合レビュースキル。
 <!-- AUTO-START CONTRACT: この 3 行は機械可読条件として最冒頭に固定する -->
 ```
 if $ARGUMENTS == "":
-  → git diff HEAD で対象を自動検出して Code Review を開始する
+  → Step 0.1 で BASE_REF を自動決定し BASE_REF..HEAD の差分で Code Review を開始する
   → 「タスクが不明確」「追加の指示を待つ」は禁止行動
 ```
 
