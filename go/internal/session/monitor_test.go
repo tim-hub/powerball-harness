@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -101,15 +102,15 @@ func TestMonitorHandler_ResumesExistingSession(t *testing.T) {
 
 	// 既存セッションを作成
 	existingSession := sessionStateJSON{
-		SessionID:   "session-existing",
-		State:       "running",
-		StateVersion: 1,
-		StartedAt:   "2026-04-05T10:00:00Z",
-		UpdatedAt:   "2026-04-05T10:00:00Z",
-		ResumeToken: "resume-token",
-		EventSeq:    5,
-		Plans:       plansStateJSON{Exists: false},
-		Git:         gitStateJSON{Branch: "main"},
+		SessionID:          "session-existing",
+		State:              "running",
+		StateVersion:       1,
+		StartedAt:          "2026-04-05T10:00:00Z",
+		UpdatedAt:          "2026-04-05T10:00:00Z",
+		ResumeToken:        "resume-token",
+		EventSeq:           5,
+		Plans:              plansStateJSON{Exists: false},
+		Git:                gitStateJSON{Branch: "main"},
 		ChangesThisSession: []interface{}{},
 	}
 	existingData, _ := json.MarshalIndent(existingSession, "", "  ")
@@ -209,15 +210,15 @@ func TestMonitorHandler_SymlinkStateDir(t *testing.T) {
 
 func TestMonitorHandler_ReadGitBranch(t *testing.T) {
 	dir := t.TempDir()
-	gitDir := filepath.Join(dir, ".git")
-	if err := os.MkdirAll(gitDir, 0700); err != nil {
+	runGitCmd(t, dir, "init", "-q")
+	runGitCmd(t, dir, "config", "user.name", "Test User")
+	runGitCmd(t, dir, "config", "user.email", "test@example.com")
+	if err := os.WriteFile(filepath.Join(dir, "README.md"), []byte("hello\n"), 0644); err != nil {
 		t.Fatal(err)
 	}
-
-	// HEAD ファイルを作成
-	if err := os.WriteFile(filepath.Join(gitDir, "HEAD"), []byte("ref: refs/heads/feat/test\n"), 0600); err != nil {
-		t.Fatal(err)
-	}
+	runGitCmd(t, dir, "add", "README.md")
+	runGitCmd(t, dir, "commit", "-qm", "init")
+	runGitCmd(t, dir, "checkout", "-qb", "feat/test")
 
 	h := &MonitorHandler{}
 	branch := h.readGitBranch(dir)
@@ -226,12 +227,48 @@ func TestMonitorHandler_ReadGitBranch(t *testing.T) {
 	}
 }
 
+func TestMonitorHandler_CollectGitState_Worktree(t *testing.T) {
+	repoDir := t.TempDir()
+	runGitCmd(t, repoDir, "init", "-q")
+	runGitCmd(t, repoDir, "config", "user.name", "Test User")
+	runGitCmd(t, repoDir, "config", "user.email", "test@example.com")
+	if err := os.WriteFile(filepath.Join(repoDir, "README.md"), []byte("hello\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runGitCmd(t, repoDir, "add", "README.md")
+	runGitCmd(t, repoDir, "commit", "-qm", "init")
+
+	worktreeDir := filepath.Join(t.TempDir(), "feature-worktree")
+	runGitCmd(t, repoDir, "worktree", "add", "-b", "feature/worktree", worktreeDir, "HEAD")
+
+	h := &MonitorHandler{}
+	gitState := h.collectGitState(worktreeDir)
+	if gitState.Branch != "feature/worktree" {
+		t.Fatalf("expected branch=feature/worktree, got %q", gitState.Branch)
+	}
+	if gitState.LastCommit == "none" || gitState.LastCommit == "unknown" || gitState.LastCommit == "" {
+		t.Fatalf("expected last_commit from worktree, got %q", gitState.LastCommit)
+	}
+}
+
+func runGitCmd(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+
+	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %s failed: %v\n%s", strings.Join(args, " "), err, output)
+	}
+	return strings.TrimSpace(string(output))
+}
+
 func TestMonitorHandler_WriteSummary(t *testing.T) {
 	h := &MonitorHandler{}
 	var out bytes.Buffer
 	h.writeSummary(&out, "my-project", gitStateJSON{Branch: "main"}, plansStateJSON{
-		Exists:   true,
-		WIPTasks: 2,
+		Exists:    true,
+		WIPTasks:  2,
 		TODOTasks: 3,
 	})
 

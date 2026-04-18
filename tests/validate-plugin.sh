@@ -663,6 +663,12 @@ else
     fail_test "harness sync の冪等性テストに失敗 — 'bash tests/test-sync-idempotent.sh' で詳細確認"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-reenter-worktree-json.sh" > /dev/null 2>&1; then
+    pass_test "reenter-worktree.sh は stdout に JSON だけを出力します (test-reenter-worktree-json.sh)"
+else
+    fail_test "reenter-worktree.sh の JSON 出力契約テストに失敗 — 'bash tests/test-reenter-worktree-json.sh' で詳細確認"
+fi
+
 echo ""
 echo "=========================================="
 echo "テスト結果サマリー"

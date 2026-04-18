@@ -66,7 +66,7 @@ See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md)
    - 最初の入力: `/breezing all`
    - 代替: `/harness-work all`
 3. 長時間実行や再入が前提
-   - 起動コマンド: `bash scripts/claude-longrun.sh`
+   - 起動コマンド: `ENABLE_PROMPT_CACHING_1H=1 claude`
    - 最初の入力: `/harness-loop all`
    - 代替: `/breezing all`
 
@@ -87,10 +87,16 @@ See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md)
 長時間系を勧める場合は、Claude Code セッション起動コマンドも併記する:
 
 ```text
-新しいセッションの起動コマンド: bash scripts/claude-longrun.sh
+新しいセッションの起動コマンド: ENABLE_PROMPT_CACHING_1H=1 claude
 起動後の最初の入力: /harness-loop all
 向いている場面: 5 分を超える待機や resume をまたぐ長時間タスクのため
 ```
+
+補足:
+
+- `scripts/claude-longrun.sh` はこのリポジトリの開発補助スクリプトで、plugin install 後の consumer 環境には配布されない
+- そのため、consumer 向け案内では常に `ENABLE_PROMPT_CACHING_1H=1 claude` の 1 行コマンドを優先する
+- リポジトリ開発中だけ同等のラッパーを使いたい場合、`bash scripts/claude-longrun.sh` はローカル checkout 上では利用してよい
 
 **CI モード** (`--ci`):
 ヒアリングなし。既存の Plans.md をそのまま利用してタスク分解のみ行う。

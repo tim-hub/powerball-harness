@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -32,28 +33,28 @@ type monitorInput struct {
 
 // sessionStateJSON は session.json の完全なスキーマ。
 type sessionStateJSON struct {
-	SessionID    string            `json:"session_id"`
-	ParentID     interface{}       `json:"parent_session_id"`
-	State        string            `json:"state"`
-	StateVersion int               `json:"state_version"`
-	StartedAt    string            `json:"started_at"`
-	UpdatedAt    string            `json:"updated_at"`
-	ResumeToken  string            `json:"resume_token"`
-	EventSeq     int               `json:"event_seq"`
-	LastEventID  string            `json:"last_event_id"`
-	ForkCount    int               `json:"fork_count"`
-	Orchestration orchestrationJSON `json:"orchestration"`
-	CWD          string            `json:"cwd"`
-	ProjectName  string            `json:"project_name"`
-	PromptSeq    int               `json:"prompt_seq"`
-	Git          gitStateJSON      `json:"git"`
-	Plans        plansStateJSON    `json:"plans"`
-	ChangesThisSession []interface{} `json:"changes_this_session"`
+	SessionID          string            `json:"session_id"`
+	ParentID           interface{}       `json:"parent_session_id"`
+	State              string            `json:"state"`
+	StateVersion       int               `json:"state_version"`
+	StartedAt          string            `json:"started_at"`
+	UpdatedAt          string            `json:"updated_at"`
+	ResumeToken        string            `json:"resume_token"`
+	EventSeq           int               `json:"event_seq"`
+	LastEventID        string            `json:"last_event_id"`
+	ForkCount          int               `json:"fork_count"`
+	Orchestration      orchestrationJSON `json:"orchestration"`
+	CWD                string            `json:"cwd"`
+	ProjectName        string            `json:"project_name"`
+	PromptSeq          int               `json:"prompt_seq"`
+	Git                gitStateJSON      `json:"git"`
+	Plans              plansStateJSON    `json:"plans"`
+	ChangesThisSession []interface{}     `json:"changes_this_session"`
 }
 
 type orchestrationJSON struct {
-	MaxStateRetries      int `json:"max_state_retries"`
-	RetryBackoffSeconds  int `json:"retry_backoff_seconds"`
+	MaxStateRetries     int `json:"max_state_retries"`
+	RetryBackoffSeconds int `json:"retry_backoff_seconds"`
 }
 
 type gitStateJSON struct {
@@ -63,36 +64,36 @@ type gitStateJSON struct {
 }
 
 type plansStateJSON struct {
-	Exists         bool   `json:"exists"`
-	LastModified   int64  `json:"last_modified"`
-	WIPTasks       int    `json:"wip_tasks"`
-	TODOTasks      int    `json:"todo_tasks"`
-	PendingTasks   int    `json:"pending_tasks"`
-	CompletedTasks int    `json:"completed_tasks"`
+	Exists         bool  `json:"exists"`
+	LastModified   int64 `json:"last_modified"`
+	WIPTasks       int   `json:"wip_tasks"`
+	TODOTasks      int   `json:"todo_tasks"`
+	PendingTasks   int   `json:"pending_tasks"`
+	CompletedTasks int   `json:"completed_tasks"`
 }
 
 // toolingPolicyJSON は tooling-policy.json のスキーマ（簡略版）。
 // LSP/MCP 検出の重い外部コマンド依存を避け、基本情報のみを生成する。
 type toolingPolicyJSON struct {
-	LSP     lspPolicyJSON     `json:"lsp"`
-	Plugins pluginPolicyJSON  `json:"plugins"`
-	MCP     mcpPolicyJSON     `json:"mcp"`
-	Skills  skillsPolicyJSON  `json:"skills"`
+	LSP     lspPolicyJSON    `json:"lsp"`
+	Plugins pluginPolicyJSON `json:"plugins"`
+	MCP     mcpPolicyJSON    `json:"mcp"`
+	Skills  skillsPolicyJSON `json:"skills"`
 }
 
 type lspPolicyJSON struct {
-	Available         bool              `json:"available"`
-	Plugins           string            `json:"plugins"`
-	AvailableByExt    map[string]bool   `json:"available_by_ext"`
-	LastUsedPromptSeq int               `json:"last_used_prompt_seq"`
-	LastUsedToolName  string            `json:"last_used_tool_name"`
+	Available           bool            `json:"available"`
+	Plugins             string          `json:"plugins"`
+	AvailableByExt      map[string]bool `json:"available_by_ext"`
+	LastUsedPromptSeq   int             `json:"last_used_prompt_seq"`
+	LastUsedToolName    string          `json:"last_used_tool_name"`
 	UsedSinceLastPrompt bool            `json:"used_since_last_prompt"`
 }
 
 type pluginPolicyJSON struct {
-	Installed       *int    `json:"installed"`
-	EnabledEstimate *int    `json:"enabled_estimate"`
-	Source          string  `json:"source"`
+	Installed       *int   `json:"installed"`
+	EnabledEstimate *int   `json:"enabled_estimate"`
+	Source          string `json:"source"`
 }
 
 type mcpPolicyJSON struct {
@@ -103,8 +104,8 @@ type mcpPolicyJSON struct {
 }
 
 type skillsPolicyJSON struct {
-	Index           []interface{} `json:"index"`
-	DecisionRequired bool         `json:"decision_required"`
+	Index            []interface{} `json:"index"`
+	DecisionRequired bool          `json:"decision_required"`
 }
 
 // Handle は stdin から SessionStart ペイロードを読み取り、
@@ -166,8 +167,7 @@ func (h *MonitorHandler) Handle(r io.Reader, w io.Writer) error {
 
 // collectGitState は git 情報を収集する。
 func (h *MonitorHandler) collectGitState(projectRoot string) gitStateJSON {
-	gitDir := filepath.Join(projectRoot, ".git")
-	if _, err := os.Stat(gitDir); err != nil {
+	if !isGitRepository(projectRoot) {
 		return gitStateJSON{
 			Branch:             "(no git)",
 			UncommittedChanges: 0,
@@ -175,79 +175,51 @@ func (h *MonitorHandler) collectGitState(projectRoot string) gitStateJSON {
 		}
 	}
 
-	// HEAD からブランチ名を読み取る
-	branch := h.readGitBranch(projectRoot)
 	return gitStateJSON{
-		Branch:             branch,
+		Branch:             h.readGitBranch(projectRoot),
 		UncommittedChanges: 0, // 重い操作を避けるため 0 固定
 		LastCommit:         h.readGitLastCommit(projectRoot),
 	}
 }
 
-// readGitBranch は .git/HEAD からブランチ名を読み取る。
+// readGitBranch は git コマンド経由でブランチ名を読み取る。
 func (h *MonitorHandler) readGitBranch(projectRoot string) string {
-	headFile := filepath.Join(projectRoot, ".git", "HEAD")
-	data, err := os.ReadFile(headFile)
-	if err != nil {
-		return "unknown"
+	branch, err := runGit(projectRoot, "rev-parse", "--abbrev-ref", "HEAD")
+	if err == nil && branch != "" {
+		return branch
 	}
-	line := strings.TrimSpace(string(data))
-	// "ref: refs/heads/<branch>"
-	if strings.HasPrefix(line, "ref: refs/heads/") {
-		return strings.TrimPrefix(line, "ref: refs/heads/")
-	}
-	// detached HEAD: SHA のみ
-	if len(line) >= 7 {
-		return line[:7]
+
+	sha, err := runGit(projectRoot, "rev-parse", "--short=7", "HEAD")
+	if err == nil && sha != "" {
+		return sha
 	}
 	return "unknown"
 }
 
-// readGitLastCommit は .git/refs/heads/<branch> から最新コミット SHA を読み取る。
+// readGitLastCommit は git コマンド経由で最新コミット SHA を読み取る。
 func (h *MonitorHandler) readGitLastCommit(projectRoot string) string {
-	headFile := filepath.Join(projectRoot, ".git", "HEAD")
-	data, err := os.ReadFile(headFile)
-	if err != nil {
-		return "none"
-	}
-	line := strings.TrimSpace(string(data))
-	if strings.HasPrefix(line, "ref: ") {
-		ref := strings.TrimPrefix(line, "ref: ")
-		refFile := filepath.Join(projectRoot, ".git", filepath.FromSlash(ref))
-		refData, err := os.ReadFile(refFile)
-		if err != nil {
-			// packed-refs をフォールバックで確認
-			return h.readPackedRef(projectRoot, ref)
-		}
-		sha := strings.TrimSpace(string(refData))
-		if len(sha) >= 7 {
-			return sha[:7]
-		}
+	sha, err := runGit(projectRoot, "rev-parse", "--short=7", "HEAD")
+	if err == nil && sha != "" {
 		return sha
-	}
-	// detached HEAD
-	if len(line) >= 7 {
-		return line[:7]
 	}
 	return "none"
 }
 
-// readPackedRef は .git/packed-refs から ref を検索する。
-func (h *MonitorHandler) readPackedRef(projectRoot, ref string) string {
-	packedFile := filepath.Join(projectRoot, ".git", "packed-refs")
-	data, err := os.ReadFile(packedFile)
+func isGitRepository(projectRoot string) bool {
+	if _, err := runGit(projectRoot, "rev-parse", "--git-dir"); err != nil {
+		return false
+	}
+	return true
+}
+
+func runGit(projectRoot string, args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = projectRoot
+	output, err := cmd.Output()
 	if err != nil {
-		return "none"
+		return "", err
 	}
-	for _, line := range strings.Split(string(data), "\n") {
-		if strings.HasSuffix(line, " "+ref) || strings.HasSuffix(line, "\t"+ref) {
-			parts := strings.Fields(line)
-			if len(parts) >= 1 && len(parts[0]) >= 7 {
-				return parts[0][:7]
-			}
-		}
-	}
-	return "none"
+	return strings.TrimSpace(string(output)), nil
 }
 
 // collectPlansState は Plans.md の状態を収集する。
@@ -336,11 +308,11 @@ func (h *MonitorHandler) generateSessionFile(
 				MaxStateRetries:     3,
 				RetryBackoffSeconds: 10,
 			},
-			CWD:          projectRoot,
-			ProjectName:  projectName,
-			PromptSeq:    0,
-			Git:          git,
-			Plans:        plans,
+			CWD:                projectRoot,
+			ProjectName:        projectName,
+			PromptSeq:          0,
+			Git:                git,
+			Plans:              plans,
 			ChangesThisSession: []interface{}{},
 		}
 	}
@@ -363,11 +335,11 @@ func (h *MonitorHandler) generateToolingPolicy(policyFile string) {
 
 	policy := toolingPolicyJSON{
 		LSP: lspPolicyJSON{
-			Available:         false,
-			Plugins:           "",
-			AvailableByExt:    map[string]bool{},
-			LastUsedPromptSeq: 0,
-			LastUsedToolName:  "",
+			Available:           false,
+			Plugins:             "",
+			AvailableByExt:      map[string]bool{},
+			LastUsedPromptSeq:   0,
+			LastUsedToolName:    "",
 			UsedSinceLastPrompt: false,
 		},
 		Plugins: pluginPolicyJSON{

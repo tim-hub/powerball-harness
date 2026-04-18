@@ -21,6 +21,17 @@ set -euo pipefail
 WORKTREE_PATH=""
 TASK_ID=""
 
+canonicalize_path() {
+    local target="$1"
+    if [[ -d "$target" ]]; then
+        (
+            cd "$target" >/dev/null 2>&1 && pwd -P
+        )
+        return
+    fi
+    printf '%s\n' "$target"
+}
+
 usage() {
     echo "Usage: $0 --path <worktree-path> [--task-id <id>]" >&2
     exit 1
@@ -60,8 +71,12 @@ if [[ ! -d "$WORKTREE_PATH" ]]; then
     exit 1
 fi
 
+CANONICAL_WORKTREE_PATH="$(canonicalize_path "$WORKTREE_PATH")"
+
 # git worktree list で登録確認
-if ! git worktree list --porcelain 2>/dev/null | grep -q "^worktree $WORKTREE_PATH$"; then
+if ! git worktree list --porcelain 2>/dev/null | awk '/^worktree / {sub(/^worktree /, ""); print}' | while IFS= read -r listed_path; do
+    [[ "$(canonicalize_path "$listed_path")" == "$CANONICAL_WORKTREE_PATH" ]] && exit 0
+done; then
     printf '{"decision":"deny","reason":"path is not a registered git worktree: %s"}\n' "$WORKTREE_PATH"
     exit 1
 fi
@@ -74,8 +89,8 @@ else
     REGISTERED_WORKER_ID=""
 fi
 
-# エージェント prompt 用の EnterWorktree path パラメータ例を出力（ドライラン的な確認）
-cat <<EOF
+print_guidance() {
+    cat >&2 <<EOF
 # EnterWorktree path 再入確認
 
 ## worktree 情報
@@ -98,6 +113,9 @@ Harness breezing の Lead が SendMessage でワーカーを resume する際、
 - git worktree list: OK (path 登録確認済み)
 - ディレクトリ存在: OK
 EOF
+}
+
+print_guidance
 
 # JSON 出力
 if command -v jq >/dev/null 2>&1; then
