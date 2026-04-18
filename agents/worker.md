@@ -249,10 +249,13 @@ git switch -c harness-work/<task-id>
 
 ## 出力
 
-### 完了時
+### 完了時 (`worker-report.v1`)
+
+`self_review` は commit 前に必ず埋める。5 rule すべて `verified: true` かつ `evidence` が非空の時だけ Lead に `ready_for_review` として返す。`verified: false` または `evidence: ""` が 1 件でもあれば、Lead は Reviewer を spawn せず **自動で `REQUEST_CHANGES` として差し戻す**（同一セッション内 最大 2 回、3 回目で Lead が escalate）。
 
 ```json
 {
+  "schema_version": "worker-report.v1",
   "status": "completed",
   "task": "完了したタスク",
   "files_changed": ["変更ファイル"],
@@ -264,9 +267,28 @@ git switch -c harness-work/<task-id>
   "effort_applied": "medium | high",
   "effort_sufficient": true,
   "turns_used": 12,
-  "task_complexity_note": "次回への申し送り"
+  "task_complexity_note": "次回への申し送り",
+  "self_review": [
+    { "rule": "dry-violation-none", "verified": true, "evidence": "実装と import を grep で確認: 重複定義ゼロ、既存 util を 2 箇所で再利用" },
+    { "rule": "plans-cc-markers-untouched", "verified": true, "evidence": "git diff HEAD -- Plans.md | grep -E '^[+-].*cc:' → 0 行" },
+    { "rule": "all-declared-symbols-called", "verified": true, "evidence": "新規 export したシンボルは tests/ または docs から参照済み（grep で経路確認）" },
+    { "rule": "dod-items-verified-with-evidence", "verified": true, "evidence": "DoD (a)(b)(c) 各項目について実コマンド出力または literal テスト結果を briefing に添付" },
+    { "rule": "no-existing-test-regression", "verified": true, "evidence": "bash tests/validate-plugin.sh → PASS、bash scripts/ci/check-consistency.sh → PASS" }
+  ]
 }
 ```
+
+**Default rule セット**:
+
+| rule | 意味 | evidence の典型 |
+|------|------|---------------|
+| `dry-violation-none` | 新規コードが既存実装と重複していない、import 共有で解決可能なものを重複定義していない | `grep -r <symbol>` の結果、共通化した util name |
+| `plans-cc-markers-untouched` | Plans.md の cc:* マーカー行を Worker が書換していない | `git diff HEAD -- Plans.md` を NG-1 regex で grep した結果 |
+| `all-declared-symbols-called` | 新規 export / 関数 / class は tests / docs / 別モジュールから呼び出し経路がある | `grep -rn <symbol>` の呼び出し箇所一覧 |
+| `dod-items-verified-with-evidence` | DoD の各項目に対応する実行コマンドまたは literal 証跡がある | コマンド出力、ファイル diff、tests PASS line |
+| `no-existing-test-regression` | 既存テストが全て PASS、validate-plugin.sh が PASS | `bash tests/validate-plugin.sh` の最終行 |
+
+project ごとの追加 rule は `harness.toml` の `[worker.self_review]` で override する（scaffolder が雛形を生成）。
 
 ### Advisor 相談時
 

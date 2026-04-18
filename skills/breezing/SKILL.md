@@ -175,7 +175,8 @@ Lead:
 Breezing モードでもレビューは **Codex exec 優先 → 内部 Reviewer フォールバック** の統一ポリシーに従う。
 詳細は `harness-work` の「レビューループ」セクションを参照。
 
-- Worker が worktree 内で実装・commit → Lead に結果返却
+- Worker が worktree 内で実装・commit → `worker-report.v1` (self_review 5 件) を Lead に返却
+- **self_review ゲート (Reviewer spawn 前)**: Lead が `self_review[].verified` と `evidence` を機械検証。1 件でも `verified:false` or `evidence:""` なら Reviewer を spawn せず Worker に自動差し戻し（同一セッション内 最大 2 回、3 回目で escalate）
 - Lead が Codex exec でレビュー（120s タイムアウト、フォールバック: Reviewer agent）
 - REQUEST_CHANGES → Lead が SendMessage で Worker に修正指示、Worker が amend（最大 `MAX_REVIEWS` 回。`MAX_REVIEWS = read_contract(contract_path, ".review.max_iterations") or 3`）
 - APPROVE → **Lead** が main に cherry-pick → Plans.md を `cc:完了 [{hash}]` に更新

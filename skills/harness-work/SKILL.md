@@ -255,6 +255,30 @@ for task in execution_order:
             message="advisor-response.v1: {advisor_result}"
         )
 
+    # B-3.5. self_review ゲート（Reviewer spawn 前、Lead が機械的に検証）
+    # Worker の worker-report.v1 に self_review[] が 5 件あり、全 verified=true かつ evidence 非空であること
+    # verified=false または evidence=="" が 1 件でもあれば Reviewer を spawn せず Worker に差し戻す
+    self_review_failures = 0
+    MAX_SELF_REVIEW_RETRIES = 2  # 3 回目 (retries=2) で Lead が escalate
+    while True:
+        unverified = [
+            r for r in worker_result.self_review
+            if (not r.get("verified")) or (not r.get("evidence"))
+        ]
+        if not unverified:
+            break  # 全 rule verified → B-4 (実レビュー) へ進む
+        self_review_failures += 1
+        if self_review_failures > MAX_SELF_REVIEW_RETRIES:
+            # 3 回目でも未確認項目あり → Lead に escalate
+            Plans.md: task.status = "cc:TODO"  # 着手前に戻す
+            raise EscalationError(f"self_review が 3 回の差し戻しでも未確認 (rules: {[u['rule'] for u in unverified]})")
+        # Worker に差し戻し (Reviewer spawn せず)
+        SendMessage(
+            to=worker_id,
+            message=f"self_review に未確認 rule があります: {[u['rule'] for u in unverified]}。各 rule の evidence を実コマンド出力または literal テスト結果で埋め、verified=true にしてから amend してください"
+        )
+        worker_result = wait_for_response(worker_id)
+
     # B-4. Lead がレビュー実行（Codex exec 優先）
     diff_text = git("-C", worker_result.worktreePath, "show", worker_result.commit)
     verdict = codex_exec_review(diff_text) or reviewer_agent_review(diff_text)
