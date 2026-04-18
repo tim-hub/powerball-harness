@@ -180,7 +180,7 @@ Purpose: Task Budgets を将来採用するための判断材料を整理する 
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 44.10.1 | `docs/task-budgets-research.md` (新設) に Task Budgets (public beta) の API 仕様、Harness 既存の `max_consults` / `/cost` との競合関係、採用するなら「どの skill で」「どの粒度で」を整理する。本 Phase では実装しない判断を rationale 付きで記録 | (a) docs 新設、(b) 採用判断の次サイクル回し | 44.5.1 | cc:TODO |
+| 44.10.1 | `docs/task-budgets-research.md` (新設) に Task Budgets (public beta) の API 仕様、Harness 既存の `max_consults` / `/cost` との競合関係、採用するなら「どの skill で」「どの粒度で」を整理する。本 Phase では実装しない判断を rationale 付きで記録 | (a) docs 新設、(b) 採用判断の次サイクル回し | 44.5.1 | cc:完了 [95d1b39b] |
 
 ---
 
