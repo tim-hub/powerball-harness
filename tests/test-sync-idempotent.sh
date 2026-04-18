@@ -9,14 +9,14 @@ set -euo pipefail
 PLUGIN_JSON=".claude-plugin/plugin.json"
 
 # 初回 sync
-bash bin/harness sync > /dev/null
+./bin/harness sync > /dev/null
 SHA1_INITIAL=$(shasum -a 256 "$PLUGIN_JSON" | awk '{print $1}')
 
 # 連続 2 回 sync
-bash bin/harness sync > /dev/null
+./bin/harness sync > /dev/null
 SHA1_AFTER_2ND=$(shasum -a 256 "$PLUGIN_JSON" | awk '{print $1}')
 
-bash bin/harness sync > /dev/null
+./bin/harness sync > /dev/null
 SHA1_AFTER_3RD=$(shasum -a 256 "$PLUGIN_JSON" | awk '{print $1}')
 
 # checksum 一致確認

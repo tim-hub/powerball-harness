@@ -284,6 +284,16 @@ def load_task_ids():
     return task_ids
 
 
+def to_tuple(value):
+    parts = []
+    for item in value.split("."):
+        try:
+            parts.append(int(item))
+        except ValueError:
+            parts.append(item)
+    return tuple(parts)
+
+
 def resolve_token(task_ids, token):
     if token in task_ids:
         return token
@@ -293,6 +303,22 @@ def resolve_token(task_ids, token):
     if len(matches) == 1:
         return matches[0]
     raise ValueError(f"selection token not found in Plans.md: {token}")
+
+
+def resolve_range_endpoint(task_ids, token, side):
+    """Resolve a range endpoint, accepting phase prefixes like 41.1 to mean
+    'first/last task whose ID starts with 41.1.'. Restores main-branch behavior
+    where harness codex-loop start 41.1-41.4 traversed all 41.1.x..41.4.x tasks.
+    """
+    try:
+        return resolve_token(task_ids, token)
+    except ValueError:
+        pass
+    token_tuple = to_tuple(token)
+    matching = [tid for tid in task_ids if to_tuple(tid)[: len(token_tuple)] == token_tuple]
+    if not matching:
+        raise ValueError(f"selection token not found in Plans.md: {token}")
+    return matching[0] if side == "start" else matching[-1]
 
 
 task_ids = load_task_ids()
@@ -323,8 +349,8 @@ start_raw, end_raw = [part.strip() for part in range_parts]
 if not start_raw or not end_raw:
     raise SystemExit(f"invalid selection range: {selection}")
 
-start_id = resolve_token(task_ids, start_raw)
-end_id = resolve_token(task_ids, end_raw)
+start_id = resolve_range_endpoint(task_ids, start_raw, "start")
+end_id = resolve_range_endpoint(task_ids, end_raw, "end")
 start_index = task_ids.index(start_id)
 end_index = task_ids.index(end_id)
 if start_index > end_index:
