@@ -1,0 +1,52 @@
+# PR: Refactor auth middleware to use class-based approach
+# Description: Convert function-based middleware to class for better extensibility
+
+--- a/auth/middleware.py
++++ b/auth/middleware.py
+@@ -1,28 +1,30 @@
+-def require_auth(f):
+-    def wrapper(request, *args, **kwargs):
+-        token = request.headers.get("Authorization", "").removeprefix("Bearer ")
+-        if not token:
+-            return Response(status=401)
+-        user = verify_token(token)
+-        if not user:
+-            return Response(status=403)
+-        request.user = user
+-        return f(request, *args, **kwargs)
+-    return wrapper
++class AuthMiddleware:
++    def __init__(self, app):
++        self.app = app
++
++    def __call__(self, request):
++        token = request.headers.get("Authorization", "").removeprefix("Bearer ")
++        if not token or not (user := verify_token(token)):
++            return Response(status=401)
++        request.user = user
++        return self.app(request)
+
+--- a/tests/test_middleware.py
++++ b/tests/test_middleware.py
+@@ -1,26 +1,14 @@
+-def test_missing_token_returns_401():
+-    response = require_auth(dummy_view)(make_request(token=None))
+-    assert response.status == 401
+-
+-def test_invalid_token_returns_403():
+-    response = require_auth(dummy_view)(make_request(token="bad"))
+-    assert response.status == 403
+-
+-def test_valid_token_sets_request_user():
+-    response = require_auth(dummy_view)(make_request(token="good"))
+-    assert response.status == 200
+-
+ def test_auth_middleware_allows_valid_token():
+     mw = AuthMiddleware(dummy_app)
+     response = mw(make_request(token="good"))
+     assert response.status == 200
++
++def test_auth_middleware_blocks_missing_token():
++    mw = AuthMiddleware(dummy_app)
++    response = mw(make_request(token=None))
++    assert response.status == 401

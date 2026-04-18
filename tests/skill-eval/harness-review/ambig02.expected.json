@@ -1,0 +1,1 @@
+{"verdict":"APPROVE","rationale":"the f-string builds the LIKE wildcard value (not embedded in SQL), and the query uses named parameters :query/:category — this correctly fixes SQL injection via SQLAlchemy parameterized execution"}

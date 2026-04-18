@@ -1,0 +1,1 @@
+{"verdict":"REQUEST_CHANGES","rationale":"except Exception: pass silently swallows all non-transient errors and returns None — a failed payment charge returning None instead of raising is a data-loss / silent-failure bug"}

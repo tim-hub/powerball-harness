@@ -1,0 +1,38 @@
+# PR: Harden user display name resolution
+# Description: Prevent crashes when user profile fields are partially populated
+
+--- a/components/UserAvatar.tsx
++++ b/components/UserAvatar.tsx
+@@ -1,18 +1,30 @@
+ import React from "react";
+
+-interface Props { user: User }
++interface Props {
++  user: User | null | undefined;
++  fallback?: string;
++}
+
+-export function UserAvatar({ user }: Props) {
+-  const name = user.profile.displayName || user.email;
+-  const initials = name.slice(0, 2).toUpperCase();
++export function UserAvatar({ user, fallback = "?" }: Props) {
++  const displayName =
++    user?.profile?.displayName?.trim() ||
++    user?.email?.split("@")[0] ||
++    fallback;
++
++  const initials = displayName
++    .split(" ")
++    .filter(Boolean)
++    .map((w) => w[0])
++    .join("")
++    .slice(0, 2)
++    .toUpperCase() || fallback[0]?.toUpperCase() || "?";
++
+   return (
+-    <div className="avatar">{initials}</div>
++    <div className="avatar" aria-label={displayName}>
++      {initials}
++    </div>
+   );
+ }

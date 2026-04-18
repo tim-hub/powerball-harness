@@ -1,0 +1,25 @@
+# PR: Switch product search to parameterized ORM query
+# Description: Replace raw SQL with SQLAlchemy ORM to prevent injection
+
+--- a/products/search.py
++++ b/products/search.py
+@@ -1,18 +1,22 @@
+-import sqlite3
++from sqlalchemy import text
++from db import session
+
+-def search_products(query, category=None):
+-    conn = sqlite3.connect("products.db")
+-    cur = conn.cursor()
+-    sql = f"SELECT * FROM products WHERE name LIKE '%{query}%'"
+-    if category:
+-        sql += f" AND category = '{category}'"
+-    cur.execute(sql)
+-    return cur.fetchall()
++def search_products(query, category=None):
++    filters = {"query": f"%{query}%"}
++    sql = "SELECT * FROM products WHERE name LIKE :query"
++    if category:
++        sql += " AND category = :category"
++        filters["category"] = category
++    return session.execute(text(sql), filters).fetchall()

@@ -1,0 +1,1 @@
+{"verdict":"APPROVE","rationale":"all optional chaining is correct, initials derivation handles edge cases properly, aria-label improves accessibility — verbose but strictly an improvement over the crash-prone original"}

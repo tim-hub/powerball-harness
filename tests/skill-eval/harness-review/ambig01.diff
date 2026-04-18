@@ -1,0 +1,25 @@
+# PR: Add retry logic to payment processor
+# Description: Wrap charge call in retry loop for transient failures
+
+--- a/payments/processor.py
++++ b/payments/processor.py
+@@ -12,8 +12,22 @@ class PaymentProcessor:
+     def __init__(self, gateway):
+         self.gateway = gateway
+
+-    def charge(self, amount, card_token):
+-        return self.gateway.charge(amount, card_token)
++    def charge(self, amount, card_token, retries=3):
++        last_error = None
++        for attempt in range(retries):
++            try:
++                return self.gateway.charge(amount, card_token)
++            except TransientError:
++                last_error = TransientError
++                continue
++            except Exception:
++                pass
++        return None
++
++    def _log_charge_attempt(self, attempt, amount):
++        pass  # TODO: implement logging

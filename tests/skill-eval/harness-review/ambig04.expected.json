@@ -1,0 +1,1 @@
+{"verdict":"REQUEST_CHANGES","rationale":"TOCTOU race: GET → compare → INCR are three separate operations; concurrent requests can all read count=99 and all increment past MAX_REQUESTS; needs atomic Redis Lua script or INCR+EXPIRE pipeline"}

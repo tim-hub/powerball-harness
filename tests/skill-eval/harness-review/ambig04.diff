@@ -1,0 +1,41 @@
+# PR: Add per-user API rate limiting with Redis
+# Description: Track request counts in Redis with a sliding 60s window
+
+--- a/api/rate_limit.js
++++ b/api/rate_limit.js
+@@ -0,0 +1,38 @@
++const redis = require("redis");
++const client = redis.createClient();
++
++const WINDOW_SECONDS = 60;
++const MAX_REQUESTS = 100;
++
++async function isRateLimited(userId) {
++  const key = `rate:${userId}`;
++  const count = await client.get(key);
++
++  if (count === null) {
++    await client.set(key, 1, { EX: WINDOW_SECONDS });
++    return false;
++  }
++
++  if (parseInt(count) >= MAX_REQUESTS) {
++    return true;
++  }
++
++  await client.incr(key);
++  return false;
++}
++
++async function rateLimitMiddleware(req, res, next) {
++  const userId = req.user?.id;
++  if (!userId) return next();
++
++  const limited = await isRateLimited(userId);
++  if (limited) {
++    return res.status(429).json({ error: "Rate limit exceeded" });
++  }
++  next();
++}
++
++module.exports = { rateLimitMiddleware };
