@@ -223,63 +223,95 @@ Purpose: 2026-04-17 の loop テストで発覚: harness の `agents/worker.md` 
 
 ---
 
-## Phase 45: sync.go pluginJSON struct 拡張 — Monitors strip 問題の恒久修正
+## Phase 45: Plugin Manifest 公式準拠 + sync デグレ修正 + dead config 整理 (Phase 44 follow-up)
 
-作成日: 2026-04-18
-目的: `go/cmd/harness/sync.go` line 93-112 の `pluginJSON` struct に `Monitors` field が存在せず、`harness sync` が走るたびに `.claude-plugin/plugin.json` から `monitors` manifest が黙って strip される。ca1e6e5d で monitors を restore しても次 sync で再消失するため、struct 側の恒久修正が必要。
+作成日: 2026-04-18 / 改訂: 2026-04-18 (公式 docs 確認後の方針転換)
+目的: Phase 44 リリース直前に発覚した複数問題を一括解決する。
+
+**当初の Phase 45 方針 (廃案)**: `pluginJSON` struct に `Monitors` / `Agents` field を追加して strip を防ぐ。
+
+**改訂後の方針 (本 Phase で実装)**: 公式 plugins-reference 確認の結果、以下が判明したため公式準拠路線に転換する。
+- `monitors` の公式 SSOT は `monitors/monitors.json` ファイル (plugin.json への直接記述ではない)
+- `agents` は `agents/` directory auto-discovery が公式手段 (plugin.json への明示宣言は redundant)
+- harness の独自 field (`id` / `autoArm`) は公式 schema 外 → `name` / `command` / `description` / `when` のみ使用
+- harness.toml の `[telemetry]` セクションと `Telemetry` Go struct はパース後どこからも読まれない dead config
 
 ### 背景
 
-- Phase 44.2.2 で `monitors` manifest を追加 → 2e8a3bb1 で誤って削除 → ca1e6e5d で restore、という流れで既に 2 度事故が起きている
-- 根本原因: `pluginJSON` struct に declared されていない field は `encoding/json` が marshal 時に drop する。sync は `plugin.json` を regenerate する方式のため、struct に無い field は毎回消える
-- Agents field も同様に struct に無いが、Phase 44.13.1 で agents は auto-discovery されることが確定したため strip されても実害なし。**Monitors は auto-discovery されないため strip が直接実害となる**
+- Phase 44.2.2 で `monitors` manifest を plugin.json に追加 → 2e8a3bb1 で誤って削除 → ca1e6e5d で restore → 36b73367 で再喪失、という流れで複数回事故が起きている
+- 根本原因の理解の更新: 公式 docs (https://code.claude.com/docs/en/plugins-reference#monitors) によれば monitors の公式 SSOT は `monitors/monitors.json` であり、plugin.json に直接書く形式は技術的にはサポートされるが推奨ではない。harness が plugin.json に書いている形式は (1) 公式スキーマ外の `id` / `autoArm` を含む、(2) `claude plugin validate` が "Invalid input" を返す、(3) `harness sync` の `pluginJSON` struct に field がないため strip されやすい、という三重の脆弱性を持つ
+- Agents 同様 `agents/` ディレクトリ auto-discovery が公式 SSOT。plugin.json の `agents` field は redundant declaration
 
-### 優先度マトリクス
+### 優先度マトリクス (改訂後)
 
 | 優先度 | Phase | 内容 | タスク数 | 依存 |
 |--------|-------|------|---------|------|
-| **Required** | 45.1 | `pluginJSON` struct に `Monitors` field 追加 + harness.toml → plugin.json 伝播 | 1 | なし |
-| **Recommended** | 45.2 | `Agents` field を struct に追加 (auto-discovery で optional だが明示 declaration として) + sync 後も保持 | 1 | 45.1 |
-| **Required** | 45.3 | regression テスト: `harness sync` 実行後も monitors / agents field が保持される | 1 | 45.1, 45.2 |
+| **Required** | 45.1 | monitors を `monitors/monitors.json` に公式準拠で移行 + plugin.json から削除 + sync.go で生成保証 | 1 | なし |
+| **Required** | 45.2 | plugin.json から `agents` 削除 (auto-discovery のみ) + sync.go の出力確定 | 1 | 45.1 |
+| **Required** | 45.3 | sync idempotent regression テスト (sync N 回後も plugin.json が安定) | 1 | 45.1, 45.2 |
+| **Recommended** | 45.4 | dead config 整理: `[telemetry]` セクション + `Telemetry` Go struct + `otel_endpoint`/`webhook_url` 削除 | 1 | なし |
+| **Recommended** | 45.5 | agent frontmatter 公式制限 (`hooks` / `permissionMode` 等が plugin agent では silently ignored) の調査記録 | 1 | なし |
 
-合計: **3 タスク** (Required 2 / Recommended 1)
+合計: **5 タスク** (Required 3 / Recommended 2)
 
 ### 完成基準 (Definition of Done)
 
 | # | 基準 | 検証方法 | 必須/推奨 |
 |---|------|---------|----------|
-| 1 | `pluginJSON` struct に `Monitors` field が宣言され、`harness sync` で `monitors` manifest が strip されない | `go test ./go/cmd/harness/...` + `.claude-plugin/plugin.json` の monitors field を diff 検証 | 必須 |
-| 2 | `harness.toml` に monitors 定義セクションが追加され、生成元として機能する | `harness sync` 実行後 `plugin.json` に monitors が出力される | 必須 |
-| 3 | `sync` を 3 回連続実行しても `plugin.json` の monitors / agents が保持される (idempotent) | 手動テスト + `tests/validate-plugin.sh` PASS | 必須 |
+| 1 | `monitors/monitors.json` が公式 schema (name/command/description/when) に準拠して存在 | docs URL https://code.claude.com/docs/en/plugins-reference#monitors と照合 | 必須 |
+| 2 | `.claude-plugin/plugin.json` から `monitors` と `agents` field が削除されている | `cat plugin.json` で目視 + `claude plugin validate` PASS | 必須 |
+| 3 | `harness sync` を 3 回連続実行しても `plugin.json` の checksum が不変 | `tests/test-sync-idempotent.sh` PASS | 必須 |
+| 4 | `harness.toml` から `[telemetry]` セクション削除、Go struct から `Telemetry` 削除、関連テスト調整 | `go test ./go/...` PASS | 推奨 |
+| 5 | `docs/agent-frontmatter-policy.md` (新設) に公式制限と現行 worker.md/reviewer.md/advisor.md/scaffolder.md の影響範囲を記録 | docs ファイル存在 + 修正方針記載 | 推奨 |
 
 ---
 
-### Phase 45.1: `pluginJSON` struct に Monitors field 追加 [P0]
+### Phase 45.1: monitors を公式 `monitors/monitors.json` に移行 [P0]
 
-Purpose: monitors manifest を sync で保持するための struct 拡張
+Purpose: 公式 plugins-reference の SSOT 形式に従い、monitors manifest の strip 問題を恒久解消する
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 45.1.1 | `go/cmd/harness/sync.go` の `pluginJSON` struct に `Monitors interface{} \`json:"monitors,omitempty"\`` を追加。あわせて `harness.toml` に `[project.monitors]` または類似セクションを追加して `config.Config` 経由で伝播できるようにする。`generatePluginJSON` 内で `p.Monitors = cfg.Project.Monitors()` 等の assignment を追加 | (a) struct に Monitors field あり、(b) harness.toml からの伝播動作、(c) `go build ./...` PASS、(d) `harness sync` 実行後 `.claude-plugin/plugin.json` に monitors が保持される | - | cc:TODO |
+| 45.1.1 | (a) `monitors/monitors.json` (新設) に公式 schema (`name` / `command` / `description` / `when`) で `harness-session-monitor` 1 entry を記述。`id` 廃止、`autoArm: ["plugin_enable", "skill_invoke"]` は `when: "always"` (default 動作と同じ) で明示。(b) `.claude-plugin/plugin.json` から `monitors` block を完全削除。(c) `go/cmd/harness/sync.go` の `pluginJSON` struct には Monitors field を **追加しない** (公式 SSOT が file 側になったため、plugin.json で manifest を持たない設計を選択)。(d) `harness sync` 実行後も plugin.json に monitors が再出現しないことを確認 | (a) `monitors/monitors.json` が公式 schema 準拠で存在、(b) plugin.json に monitors なし、(c) `bash bin/harness sync` 実行後 plugin.json が clean、(d) `tests/validate-plugin.sh` で `claude plugin validate` の monitors-related エラーゼロ | - | cc:TODO |
 
 ---
 
-### Phase 45.2: Agents field 追加 (明示 declaration) [P1]
+### Phase 45.2: plugin.json から agents 削除 (auto-discovery 一本化) [P0]
 
-Purpose: agents は auto-discovery で optional だが、plugin.json の可読性向上のため明示的に struct 宣言する
+Purpose: 公式 docs 通り `agents/` ディレクトリ auto-discovery のみで agents を expose する
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 45.2.1 | `pluginJSON` struct に `Agents []string \`json:"agents,omitempty"\`` を追加。harness.toml から直接または hardcode で `["./agents/"]` を出力。既に plugin.json に入っている `"agents": ["./agents/"]` が sync 後も保持されるようにする | (a) struct に Agents field あり、(b) sync 後も agents field が保持、(c) `tests/validate-plugin.sh` PASS | 45.1.1 | cc:TODO |
+| 45.2.1 | (a) `.claude-plugin/plugin.json` から `agents` field を削除。(b) `go/cmd/harness/sync.go` の `pluginJSON` struct に Agents field を **追加しない** (45.1.1 と同方針)。(c) auto-discovery で agents が `/agents` UI に表示されることをスモーク確認 (memory: `plugin_agent_auto_discovery.md` で marketplace install 経由動作確定済み) | (a) plugin.json に agents なし、(b) `harness sync` 後も agents が再出現しない、(c) `claude plugin validate` で agents-related エラーゼロ | 45.1.1 | cc:TODO |
 
 ---
 
 ### Phase 45.3: idempotent sync の regression テスト [P0]
 
-Purpose: sync を複数回実行しても plugin.json の manifest が不変であることを保証する
+Purpose: sync を複数回実行しても plugin.json が安定 (公式 SSOT 外の field が混入しない) ことを保証する
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 45.3.1 | `tests/test-sync-idempotent.sh` (新設) で (a) `harness sync` 初回実行、(b) `.claude-plugin/plugin.json` の checksum 記録、(c) `harness sync` を連続 2 回実行、(d) checksum が初回と一致することを検証する。同時に Go unit test `go/cmd/harness/sync_idempotent_test.go` (新設) で struct-level の round-trip 検証を追加 | (a) shell test PASS、(b) Go unit test PASS、(c) `tests/validate-plugin.sh` がこのテストを含む | 45.1.1, 45.2.1 | cc:TODO |
+| 45.3.1 | `tests/test-sync-idempotent.sh` (新設) で (a) plugin.json checksum 記録、(b) `bash bin/harness sync` を 3 回連続実行、(c) checksum が初回と一致、(d) `monitors` / `agents` field が plugin.json に存在しないことを assert。Go unit test `go/cmd/harness/sync_no_phantom_fields_test.go` (新設) で `pluginJSON` struct が monitors/agents を **emit しない** ことも検証。`tests/validate-plugin.sh` のセクション 9 か新セクションでこのテストを呼び出す | (a) shell test PASS、(b) Go unit test PASS、(c) `tests/validate-plugin.sh` PASS | 45.1.1, 45.2.1 | cc:TODO |
+
+---
+
+### Phase 45.4: dead config 整理 ([telemetry] セクション削除) [P1]
+
+Purpose: harness.toml の `[telemetry]` セクションと `Telemetry` Go struct はパース後どこからも参照されていない dead config。誤って toml に書けば動くと誤解する利用者を防ぐ
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 45.4.1 | (a) `harness.toml` から `[telemetry]` セクション (otel_endpoint, webhook_url コメントアウト含む) を削除。(b) `go/pkg/config/toml.go` から `TelemetryConfig` struct と `Telemetry` field を削除。(c) `go/pkg/config/toml_test.go` から telemetry 関連 test ケースを削除または「NOT 設定」前提に書き換え。(d) `go/cmd/harness/init.go` の scaffold template から `[telemetry]` セクション例を削除。(e) `webhook_url` は env 変数 `HARNESS_WEBHOOK_URL` 経由のみで設定される旨を `docs/long-running-harness.md` または `CLAUDE.md` に 1 行追記 | (a)-(e) 完了、(f) `go test ./go/...` PASS、(g) `tests/validate-plugin.sh` PASS、(h) `bash bin/harness sync` 動作 | - | cc:TODO |
+
+---
+
+### Phase 45.5: agent frontmatter 公式制限の調査記録 [P1]
+
+Purpose: 公式 plugins-reference によれば plugin agent では `hooks` / `mcpServers` / `permissionMode` は silently ignored される (security restriction)。harness の `worker.md` / `reviewer.md` / `advisor.md` / `scaffolder.md` がこれらを使用しているため、想定動作と実動作の乖離を docs に記録する。本 Phase では実装変更しない (調査と判断記録のみ)
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 45.5.1 | `docs/agent-frontmatter-policy.md` (新設) に以下を含める: (a) 公式 plugins-reference の plugin agent 対応 frontmatter 一覧 (name/description/model/effort/maxTurns/tools/disallowedTools/skills/memory/background/isolation のみ)、(b) harness の各 agent (worker/reviewer/advisor/scaffolder) で使用している全 frontmatter field のリストと、公式対応状況の表、(c) silently ignored される `hooks` / `permissionMode` の影響範囲分析 (例: Worker の bypassPermissions は実は効いていない可能性、PreToolUse hook も plugin agent では発火しない可能性)、(d) memory `worker_worktree_share.md` の現象との関連可能性、(e) 修正案 (例: `hooks` を `hooks/hooks.json` に SubagentStart matcher で外出し / `permissionMode` の代替案検討)、(f) 本 Phase で実装しない rationale (リスク評価とリリース優先度) | (a) docs 新設、(b) 各 agent の frontmatter 監査表あり、(c) 修正案 3 つ以上、(d) 本 Phase 見送り判断の rationale 明記 | - | cc:TODO |
 
 ---
