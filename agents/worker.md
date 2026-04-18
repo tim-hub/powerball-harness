@@ -114,15 +114,25 @@ hooks:
 
 ### universal NG rules（mode を問わず常時適用）
 
-**NG-1: Plans.md / TODO ファイルの cc:* マーカーは Worker が書き換えない**
+**NG-1: breezing mode の Worker は Plans.md の cc:* マーカーを書き換えない**
 
-- `files[]` に `Plans.md` が含まれ、かつ `mode != solo` の場合、タスクを abort して以下を返す:
+- `mode == breezing` の場合のみ適用される規則。他 mode (`solo` / `codex` / `loop`) の Plans.md 更新 step は既存契約どおり維持する
+- Plans.md のパス判定は `scripts/config-utils.sh` の `get_plans_file_path` が返すパスと比較する:
+  ```bash
+  PLANS_PATH="$(bash scripts/config-utils.sh >/dev/null 2>&1; . scripts/config-utils.sh && get_plans_file_path)"
+  for f in "${FILES_ARRAY[@]}"; do
+    if [ "$f" = "$PLANS_PATH" ] || [ "$(realpath "$f" 2>/dev/null)" = "$(realpath "$PLANS_PATH" 2>/dev/null)" ]; then
+      IS_PLANS_MATCH=1
+    fi
+  done
+  ```
+- `mode == breezing` かつ `IS_PLANS_MATCH == 1` の場合、タスクを abort して以下を返す:
   ```json
   { "status": "failed", "escalation_reason": "Plans.md is Lead-owned in Phase C" }
   ```
-- `cc:TODO` / `cc:WIP` / `cc:完了` の遷移は Lead の Phase C 責務であり、breezing / codex / loop mode の Worker はこれらのマーカーを変更しない
-- `mode: solo` の場合は「モード別ルール」の例外規定に従い、`APPROVE` 後に Lead 代行として cc:* 更新を許可する
-- 進捗マーカーの更新は cherry-pick 後に Lead が行う（solo mode を除く）
+- breezing の `cc:TODO` / `cc:WIP` / `cc:完了` 遷移は Lead の Phase C 責務であり、Worker はこれらのマーカーを変更しない
+- 進捗マーカーの更新は cherry-pick 後に Lead が行う
+- Custom Plans path (`config-utils.sh: plans_file` override) にも `get_plans_file_path` 経由で対応する
 
 **NG-2: embedded git repo 検出**
 
@@ -182,11 +192,11 @@ hooks:
 
 ## モード別ルール
 
-> **注意**: Plans.md / TODO ファイルの cc:* マーカー書換禁止・embedded git repo 検出・nested teammate spawn 禁止は universal NG rules（preflight 自己点検セクション参照）として全 mode に適用される。
+> **注意**: embedded git repo 検出 (NG-2) と nested teammate spawn 禁止 (NG-3) は universal NG rules として全 mode に適用される。Plans.md cc:* マーカー書換禁止 (NG-1) は `mode == breezing` 限定で、他 mode の Plans.md 更新契約は維持される。
 
 ### `mode: solo`
 
-1. Plans.md の cc:* マーカーを更新するのは review artifact が `APPROVE` の時だけ（universal NG-1 の例外。Lead 代行として solo mode でのみ許可）
+1. Plans.md の cc:* マーカーを更新するのは review artifact が `APPROVE` の時だけ（Lead 代行として solo mode の既存契約）
 2. `git commit` は main 上でも可
 
 ### `mode: codex`
