@@ -160,7 +160,7 @@ Purpose: Opus 4.7 付属の `/ultrareview` が Harness の `/harness-review` と
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 44.8.1 | `/ultrareview` の挙動を実環境で検証 (single-turn dedicated review session)。`/harness-review` との差分 (Harness は Plan-Work-Review の Plans.md 連動 + Codex adversarial + sprint contract 検証あり) を `docs/ultrareview-policy.md` (新設) に表で整理。決定: (A) 並立維持 + `/harness-review` 内で `/ultrareview` を opt-in サブステップとして呼ぶ or (B) `/harness-review` を優先し `/ultrareview` を触らない、のどちらかを選ぶ。選んだ方針に従い `skills/harness-review/SKILL.md` を更新 | (a) 決定が `docs/ultrareview-policy.md` に書かれる、(b) `skills/harness-review/SKILL.md` が方針に従って更新される、(c) mirror 同期 | 44.4.2 | cc:TODO |
+| 44.8.1 | `/ultrareview` の挙動を実環境で検証 (single-turn dedicated review session)。`/harness-review` との差分 (Harness は Plan-Work-Review の Plans.md 連動 + Codex adversarial + sprint contract 検証あり) を `docs/ultrareview-policy.md` (新設) に表で整理。決定: (A) 並立維持 + `/harness-review` 内で `/ultrareview` を opt-in サブステップとして呼ぶ or (B) `/harness-review` を優先し `/ultrareview` を触らない、のどちらかを選ぶ。選んだ方針に従い `skills/harness-review/SKILL.md` を更新 | (a) 決定が `docs/ultrareview-policy.md` に書かれる、(b) `skills/harness-review/SKILL.md` が方針に従って更新される、(c) mirror 同期 | 44.4.2 | cc:完了 [e24f7f99] |
 
 ---
 
