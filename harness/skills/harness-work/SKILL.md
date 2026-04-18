@@ -253,6 +253,8 @@ Execute the following **sequentially** for each task (in dependency order):
 > See the API mapping table in `team-composition.md` for details.
 
 ```
+universal_violations = []  # Accumulated across tasks; injected into next Worker briefing
+
 for task in execution_order:
     # B-1. Generate sprint-contract
     contract_path = bash("${CLAUDE_SKILL_DIR}/../../scripts/generate-sprint-contract.sh {task.number}")  # pseudocode — plugin-local
@@ -263,9 +265,13 @@ for task in execution_order:
     # Agent tool return value contains agentId — used for SendMessage in fix loop
     Plans.md: task.status = "cc:WIP"  # Update on start (unstarted tasks remain cc:TODO)
 
+    violation_preamble = ""
+    if universal_violations:
+        violation_preamble = "Universal violations from prior tasks in this session — do NOT repeat these:\n" + "\n".join(f"- {v}" for v in universal_violations) + "\n\n"
+
     worker_result = Agent(
         subagent_type="claude-code-harness:worker",
-        prompt="Task: {task.content}\nDoD: {task.DoD}\ncontract_path: {contract_path}\nmode: breezing",
+        prompt=f"{violation_preamble}Task: {task.content}\nDoD: {task.DoD}\ncontract_path: {contract_path}\nmode: breezing",
         isolation="worktree",
         run_in_background=false  # Foreground execution → wait for Worker completion
     )
@@ -308,6 +314,14 @@ for task in execution_order:
     if review_input != "review-output.json" and jq(review_input, ".verdict") == "DOWNGRADE_TO_STATIC":
         review_input = "review-output.json"  # Fall back to static review result
     bash("${CLAUDE_SKILL_DIR}/../../scripts/write-review-result.sh {review_input} {latest_commit}")  # pseudocode — plugin-local
+
+    # B-3.5. Collect universal violations (scope: universal findings → injected into next Worker)
+    # Reviewer memory updates may include a "scope" field: "universal" or "task-specific".
+    # Universal-scope findings are patterns that should never recur in ANY task in this session.
+    review_result = jq(".claude/state/review-result.json", ".")
+    for finding in review_result.get("observations", []) + review_result.get("major_issues", []):
+        if finding.get("scope") == "universal":
+            universal_violations.append(f"[{finding['category']}] {finding['issue']}")
 
     # B-4. Fix loop (on REQUEST_CHANGES, up to 3 times)
     # Worker has completed in foreground, but can be resumed via SendMessage
@@ -443,6 +457,31 @@ A `worker-report.v1` is **valid** iff:
 - Every `evidence` field is non-empty (non-empty string, not `""` or `null`)
 
 If any rule has `"verified": false` or an empty `evidence` field, the report is **invalid** — Lead sends an amendment request (see B-2.5 in the breezing flow). After 2 failed amendments, the task is escalated to the user; the Worker commit is not cherry-picked.
+
+## Universal Violations Session Injection
+
+In breezing mode, Reviewer findings can carry a `scope` field that controls whether the violation is injected into subsequent Workers in the same session.
+
+| `scope` value | Meaning | Effect |
+|---------------|---------|--------|
+| `task-specific` (default) | Violation is relevant only to this task | Not propagated |
+| `universal` | Violation is a pattern that must never recur in any task | Prepended to all subsequent Worker briefings in the session |
+
+**When to mark `universal`**: Use for structural violations that are likely to recur — e.g., "always use parameterized queries", "never hardcode API keys", "always validate input at system boundaries". Avoid over-labeling; only patterns with cross-task recurrence risk qualify.
+
+**Injection format** (prepended to Worker spawn prompt when `universal_violations` is non-empty):
+
+```
+Universal violations from prior tasks in this session — do NOT repeat these:
+- [Security] Raw SQL string concatenation used — always use parameterized queries
+- [AI Residuals] localhost hardcoded as connection target — use environment variable
+```
+
+**Lead behavior**:
+- Initialise `universal_violations = []` before Phase B begins
+- After each B-3 review, extract findings with `scope: universal` and append to the list
+- Before spawning each Worker in B-2, prepend the accumulated list as a preamble if non-empty
+- The list resets when the breezing session ends (not persisted across sessions)
 
 ## CI Failure Handling
 

@@ -167,7 +167,8 @@ bash "${CLAUDE_SKILL_DIR}/../../scripts/review-ai-residuals.sh" path/to/file.ts 
       "location": "filename:line_number",
       "issue": "issue description",
       "severity_justification": "Why this is major (reference severity framework)",
-      "suggestion": "fix suggestion"
+      "suggestion": "fix suggestion",
+      "scope": "task-specific | universal"
     }
   ],
   "observations": [
@@ -176,7 +177,8 @@ bash "${CLAUDE_SKILL_DIR}/../../scripts/review-ai-residuals.sh" path/to/file.ts 
       "category": "Security | Performance | Quality | Accessibility | AI Residuals",
       "location": "filename:line_number",
       "issue": "issue description",
-      "suggestion": "fix suggestion"
+      "suggestion": "fix suggestion",
+      "scope": "task-specific | universal"
     }
   ],
   "recommendations": ["non-mandatory improvement suggestions"],
