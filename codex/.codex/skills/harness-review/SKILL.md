@@ -158,7 +158,7 @@ echo "Auto-detected review type: ${REVIEW_TYPE}"
 | `/harness-review --dual` | `code`（自動） + Codex 並行 | Claude + Codex dual review |
 | `/harness-review --security` | Security Review | OWASP Top 10 専用セキュリティレビュー（read-only） |
 | `/harness-review --ui-rubric` | UI Rubric Review | デザイン品質の 4 軸採点レビュー |
-| `/ultrareview` | built-in slash | クラウド並列の広域レビュー。明示要求時だけ追加で使う |
+| `/ultrareview` | built-in slash | CC ネイティブのアドホックレビュー。**Harness flow 内では呼ばない**（後述参照） |
 
 ## オプション
 
@@ -484,6 +484,22 @@ fi
 
 Task ツール非対応のため、レビュー結果は標準出力にマークダウン形式で出力する。
 Lead エージェントまたはユーザーが結果を読み取り、次のアクションを判断する。
+
+## `/ultrareview` との関係（方針 B: Harness flow 内では呼ばない）
+
+CC 2.1.111 で追加された built-in `/ultrareview` は、ユーザーが CC に直接アドホックなレビューを
+求める operator entrypoint として設計されている（`.claude/rules/opus-4-7-prompt-audit.md` ルール 5 参照）。
+
+Harness の自動レビューフローは `/ultrareview` を**呼び出さない**。理由は以下の通り:
+
+- `/ultrareview` の出力スキーマは `review-result.v1` と非互換であり、Harness の修正ループ・
+  commit guard・sprint-contract 検証に接続できない
+- Harness flow 内のレビューは `codex-companion.sh review`（優先）と `reviewer` agent
+  （`review-result.v1` 出力・フォールバック）でカバーしており、追加の呼び出しパスは不要
+- `/ultrareview` を Harness 内部で呼ぶと `review-result.v1` の機械可読保証が失われる
+
+ユーザーがアドホックなレビューに `/ultrareview` を使う場合、Harness は干渉しない。
+詳細な差分・使い分けガイドは [`docs/ultrareview-policy.md`](../../docs/ultrareview-policy.md) を参照。
 
 ## 関連スキル
 
