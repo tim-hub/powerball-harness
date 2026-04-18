@@ -71,6 +71,8 @@ the optimal mode is automatically selected based on the number of target tasks:
 > enable `includeGitInstructions: false` in plugin settings to
 > reduce prompt token usage.
 
+> **1-Hour Prompt Cache** (breezing sessions > 30 min): `source harness/scripts/enable-1h-cache.sh` before starting. Exports `ANTHROPIC_CACHE_CONTROL=max-age=3600` so all spawned Workers, Reviewers, and hooks share a cached system prompt — reduces token cost and latency across long sessions.
+
 ## Scope Dialog (when no arguments provided)
 
 > **Note**: A lightweight drift check (`bash harness/scripts/plans-drift-check.sh`) runs before the scope dialog regardless of which option the user chooses. If stale markers are detected, the dialog is preceded by a drift summary and a confirmation prompt.
