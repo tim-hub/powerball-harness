@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.9.0...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.9.1...HEAD
+[4.9.1]: https://github.com/tim-hub/powerball-harness/compare/v4.9.0...v4.9.1
 [4.9.0]: https://github.com/tim-hub/powerball-harness/compare/v4.8.2...v4.9.0
 [4.8.2]: https://github.com/tim-hub/powerball-harness/compare/v4.8.1...v4.8.2
 [4.8.1]: https://github.com/tim-hub/powerball-harness/compare/v4.8.0...v4.8.1
@@ -15,6 +16,20 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.9.1] - 2026-04-18
+
+### Theme: Fix platform binary version embedding
+
+**`harness --version` now correctly reports `4.9.1` on all platforms. The v4.9.0 release shipped binaries that still embedded the `4.8.1` version string because the Go build step was omitted before tagging.**
+
+---
+
+#### 1. Rebuild platform binaries with correct version
+
+**Before**: `harness --version` reported `4.8.1` despite running the v4.9.0 release, because the three platform binaries (darwin-amd64, darwin-arm64, linux-amd64) were not rebuilt before the v4.9.0 tag was cut. The `-X main.version` ldflag was never applied.
+
+**After**: All three platform binaries rebuilt from source with `VERSION=4.9.1`. No source changes — only the embedded version string differs.
 
 ## [4.9.0] - 2026-04-18
 
