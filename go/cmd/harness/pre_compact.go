@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -49,12 +50,73 @@ func evaluatePreCompact(r io.Reader, w io.Writer) (int, error) {
 		return writePreCompactBlock(w, "long-running worker session is active; compact would interrupt owned work"), nil
 	}
 
-	plansPath := filepath.Join(projectRoot, "Plans.md")
+	plansPath := resolvePlansFilePath(projectRoot)
+	if plansPath == "" {
+		// No Plans.md anywhere — nothing to protect, allow compact.
+		return 0, nil
+	}
 	if isPlansDirty(projectRoot, plansPath) {
 		return writePreCompactBlock(w, "Plans.md has uncommitted edits; save or checkpoint before compacting"), nil
 	}
 
 	return 0, nil
+}
+
+// resolvePlansFilePath mirrors hookhandler.resolvePlansPath so PreCompact
+// honors the same plansDirectory configuration used elsewhere. Inlined here
+// to keep the cmd/harness package import-free of internal/hookhandler for
+// circular-dependency reasons.
+//
+// Resolution order:
+//  1. Read plansDirectory from .claude-code-harness.config.yaml at projectRoot
+//  2. If set, search baseDir = filepath.Join(projectRoot, plansDirectory)
+//  3. If not set, search baseDir = projectRoot
+//  4. Try Plans.md, plans.md, PLANS.md, PLANS.MD in order
+//  5. Return empty string if none exist (no-op block protection)
+func resolvePlansFilePath(projectRoot string) string {
+	plansDir := readPlansDirectoryFromHarnessConfig(projectRoot)
+	baseDir := projectRoot
+	if plansDir != "" {
+		baseDir = filepath.Join(projectRoot, plansDir)
+	}
+	for _, name := range []string{"Plans.md", "plans.md", "PLANS.md", "PLANS.MD"} {
+		full := filepath.Join(baseDir, name)
+		if _, err := os.Stat(full); err == nil {
+			return full
+		}
+	}
+	return ""
+}
+
+// readPlansDirectoryFromHarnessConfig parses the plansDirectory key from
+// .claude-code-harness.config.yaml without requiring a YAML dependency.
+// Mirrors hookhandler.readPlansDirectoryFromConfig including the security
+// rejections (absolute path, parent traversal).
+func readPlansDirectoryFromHarnessConfig(projectRoot string) string {
+	const configFile = ".claude-code-harness.config.yaml"
+	const key = "plansDirectory:"
+
+	f, err := os.Open(filepath.Join(projectRoot, configFile))
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if !strings.HasPrefix(line, key) {
+			continue
+		}
+		value := strings.TrimSpace(line[len(key):])
+		value = strings.Trim(value, `"'`)
+		value = strings.TrimSpace(value)
+		if value == "" || filepath.IsAbs(value) || strings.Contains(value, "..") {
+			return ""
+		}
+		return value
+	}
+	return ""
 }
 
 func readPreCompactInput(r io.Reader) (preCompactInput, error) {

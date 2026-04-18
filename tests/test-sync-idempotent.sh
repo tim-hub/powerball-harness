@@ -6,6 +6,13 @@
 
 set -euo pipefail
 
+# Resolve project root from script location so this test runs correctly
+# regardless of the caller's cwd. validate-plugin.sh invokes us by absolute
+# path, so we must not depend on $PWD.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
+
 PLUGIN_JSON=".claude-plugin/plugin.json"
 
 # Drift detection: capture pre-sync checksum so the test fails when the
