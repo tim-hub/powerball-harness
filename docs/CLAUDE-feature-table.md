@@ -1633,6 +1633,17 @@ CC 2.1.90 で PreToolUse フックが JSON を stdout に出力して exit code 
 - `pre-tool.sh` は deny 時に JSON + exit 2 パターンを使用しており、v2.1.90 以降で guardrail の deny がより確実に動作
 - 既存のガードレールが「deny を出したのにツールが実行された」ケースがあった場合、このバグが原因だった可能性
 
+### Built-in slash commands を Skill tool から呼ぶ際の Harness 影響 (v2.1.108)
+
+CC 2.1.108 以降、モデルが `Skill` tool を通じて `/init`、`/review`、`/security-review` などの
+built-in slash commands を呼び出せるようになった。これにより Harness スキルが CC の組み込み機能を
+内部から呼び出す構成が可能になるが、Harness 独自の `/harness-review` との役割重複に注意が必要。
+具体的には、`Skill` tool 経由で `/review` を呼び出した場合、Harness の guardrails（R01-R13）が
+適用されない CC ネイティブのレビューが実行される。Harness のレビューフローでは
+`/harness-review` または `codex-companion.sh review` を経由させることで guardrails の保護と
+`review-result.v1` 形式への正規化が維持される。built-in slash command の Skill tool 呼び出しは
+軽量な inline レビューや初期化処理に限定し、品質ゲートを要するレビューには使用しない。
+
 ## 関連ドキュメント
 
 - [CLAUDE.md](../CLAUDE.md) - 開発ガイド（Feature Table の要約版）
