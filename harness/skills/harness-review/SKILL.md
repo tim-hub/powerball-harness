@@ -76,6 +76,15 @@ The verdict is determined **solely** by the presence of critical or major findin
 
 ### Step 0: Reviewer Mode Auto-Detection (Browser vs Static)
 
+> **Fork context auto-start (`REVIEW_AUTOSTART`)**: When invoked in a forked session (context: fork), emit `REVIEW_AUTOSTART` as the very first output token before any other processing. This signals to the parent session that the fork has initialised correctly and auto-review has begun. A parent waiting on this marker can proceed; a parent that never sees it after 10 seconds should re-invoke.
+>
+> **Fork-context prohibition list** — the following 5 failure modes are forbidden and must never occur in fork context:
+> 1. Waiting for user confirmation before starting (auto-start is required — no prompts)
+> 2. Returning an empty output if the diff is empty (output `{"verdict":"APPROVE","rationale":"no changes detected"}` instead)
+> 3. Spawning a browser reviewer without first checking `reviewer_profile` in the sprint contract
+> 4. Writing to `Plans.md` or any `cc:*` marker (review is read-only with respect to Plans.md)
+> 5. Exiting without emitting a JSON verdict conforming to the Step 4 schema
+
 Before collecting the diff, determine whether to use the browser reviewer or static reviewer:
 
 ```
