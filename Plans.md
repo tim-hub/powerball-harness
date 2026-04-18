@@ -315,3 +315,80 @@ Purpose: 公式 plugins-reference によれば plugin agent では `hooks` / `mc
 | 45.5.1 | `docs/agent-frontmatter-policy.md` (新設) に以下を含める: (a) 公式 plugins-reference の plugin agent 対応 frontmatter 一覧 (name/description/model/effort/maxTurns/tools/disallowedTools/skills/memory/background/isolation のみ)、(b) harness の各 agent (worker/reviewer/advisor/scaffolder) で使用している全 frontmatter field のリストと、公式対応状況の表、(c) silently ignored される `hooks` / `permissionMode` の影響範囲分析 (例: Worker の bypassPermissions は実は効いていない可能性、PreToolUse hook も plugin agent では発火しない可能性)、(d) memory `worker_worktree_share.md` の現象との関連可能性、(e) 修正案 (例: `hooks` を `hooks/hooks.json` に SubagentStart matcher で外出し / `permissionMode` の代替案検討)、(f) 本 Phase で実装しない rationale (リスク評価とリリース優先度) | (a) docs 新設、(b) 各 agent の frontmatter 監査表あり、(c) 修正案 3 つ以上、(d) 本 Phase 見送り判断の rationale 明記 | - | cc:完了 [d913b175] |
 
 ---
+
+## Phase 46: Worker 3 層防御 + harness-review fork 修復 (issues #84-87)
+
+作成日: 2026-04-18
+目的: GitHub Issue #84-#87 で報告された再現性ある 4 件の失敗を、単一リリースで完璧に解決する。
+- #84 harness-review bare 起動が `context: fork` 下で「タスク不明確」で停止（通算 6 回、BSO）
+- #85 Worker が Plans.md `cc:*` マーカーを手動書換 / embedded git repo で commit 先不明（B17.A-C で 3 回）
+- #86 Worker の `ready_for_review` が自己申告レベルで止まり、Reviewer 基準の self-check 契約がない
+- #87 同一 `/breezing` セッションで同じ universal 違反が 2 回目以降の Worker に継承されない
+
+前提: Phase 44-45 完了、v4.2.0 "Arcana" リリース済み
+
+### 背景 (Why this phase exists)
+
+#85-#87 は **ビルトイン規約 → self_review 契約 → セッション内動的規約** の 3 層防御を構成し、単独では効果が頭打ちになる。同 Phase で統合実装するのが自然（調査エージェント判定: data flow が Worker 出力 → Contract schema → Lead の memory 注入 で一本化されるため）。
+
+#84 は独立バグだが、同じ「Worker/Reviewer 起動時の briefing injection」レイヤーを触るため、同 Phase にまとめてリリース品質を担保する。
+
+### 設計方針
+
+- **#84 は Step 0 硬化 + docs 明記** の二本立てで対処。`--force-bare` サブコマンド新設は見送り（SKILL.md の mandate を機械可読な判定条件に書き換えるほうが低コストかつ horizontal に効く）
+- **#85 の universal rules は Worker preflight checklist に追加**。mode 依存ではなく常時適用。embedded git repo 検出は `git rev-parse --show-superproject-working-tree` を使用
+- **#86 の self_review は Worker 出力 JSON に必須フィールドとして追加**。5 rule をデフォルトセットとし、harness.toml で project 追加可能に。`verified: false` or `evidence` 空で Lead が Reviewer spawn 前に自動 REQUEST_CHANGES
+- **#87 は session 内 memory のみ**（永続化しない、過剰設計回避）。Reviewer `memory_updates` を `{text, scope}` に拡張、Lead が `universal` scope のみ次 Worker briefing 冒頭に注入
+- **`.claude/rules/opus-4-7-prompt-audit.md` の合格条件を遵守**: retry 上限を数字化、output schema 名と列挙値を固定、曖昧語には補足条件を付与
+
+### 優先度マトリクス
+
+| 優先度 | Phase | 内容 | タスク数 | 依存 |
+|--------|-------|------|---------|------|
+| P0 | 46.1 | harness-review fork bare-start 硬化 (#84) | 1 | - |
+| P0 | 46.2 | Worker universal NG rules ビルトイン化 (#85) | 1 | - |
+| P0 | 46.3 | self_review_checklist 契約化 (#86) | 1 | 46.2 |
+| P0 | 46.4 | Reviewer memory scope + breezing briefing 注入 (#87) | 1 | 46.2, 46.3 |
+| P0 | 46.5 | smoke test + docs + CHANGELOG + v4.3.0 リリース | 1 | 46.1-46.4 |
+
+### Phase 46.1: harness-review fork bare-start 硬化 [P0]
+
+Purpose: `context: fork` + `disable-model-invocation: true` 下で Step 0 の auto-start mandate が host project CLAUDE.md に override されて「タスク不明確」で停止する事象 (#84 で通算 6 回観測) を、prompt レベルで決定的に解消する。
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 46.1.1 | (a) `skills/harness-review/SKILL.md` の Step 0 を次の順で書き直す: (1) **最冒頭 3 行以内**に bare 起動判定の機械可読条件 `if $ARGUMENTS == ""` → 「git diff HEAD で対象を自動検出して code review を開始する」を配置、(2) 「タスクが不明確で停止する」パターンを **禁止行動** として列挙、(3) 「host project CLAUDE.md の session-start rules は SKILL.md Step 0 に劣後する」を明示、(4) 自動開始時に `REVIEW_AUTOSTART` 識別行を必ず最初の応答に出力させる契約を追加。(b) `codex/.codex/skills/harness-review/SKILL.md` と `opencode/skills/harness-review/SKILL.md` を mirror 更新（check-consistency.sh で検証）。(c) `.claude/rules/skill-editing.md` に「`context: fork` + `disable-model-invocation: true` 時の auto-start pattern」セクションを追加。(d) `docs/CLAUDE-feature-table.md` の `context: fork` 行に「host CLAUDE.md 継承仕様と回避パターン」を追記 | (a) Step 0 が最初の 3 手以内に読むべき条件を数字で持つ、(b) mirror 一致 (check-consistency.sh PASS)、(c) docs 追記、(d) `REVIEW_AUTOSTART` marker が SKILL.md 内の契約として明記、(e) `bash tests/validate-plugin.sh` PASS | - | cc:TODO |
+
+### Phase 46.2: Worker universal NG rules ビルトイン化 [P0]
+
+Purpose: Plans.md `cc:*` マーカーの手動書換 (#85 実例で 3/3 発生) と embedded git repo の commit 先不明 (#85 B17.A-C) を Worker 側で構造的に防止する。
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 46.2.1 | (a) `agents/worker.md` の preflight 自己点検セクション (現在 行 101-113) に universal NG rules を 3 項目追加: (1) `Plans.md / TODO ファイルの cc:* マーカーは Worker が書換しない`（対象ファイルに Plans.md が含まれたら abort、進捗更新は Lead の Phase C 責務と明記）、(2) `embedded git repo 検出`（`git rev-parse --show-superproject-working-tree` で nested を判定、2 系統ある場合 briefing で指定がなければ `advisor-request.v1` を最大 1 回返す）、(3) `nested teammate spawn 禁止`（Worker は Agent tool を呼ばない、advisor は `advisor-request.v1` を返すのみ）。(b) `agents/worker.md` の mode 依存ルール（breezing 時のみ Plans.md 触らない等）を universal ルールに昇格し重複を解消。(c) `.claude/rules/opus-4-7-prompt-audit.md` の checklist 該当項目（曖昧語ゼロ、回数上限 `最大 1 回`）に違反しないことを audit コマンドで確認 | (a) 3 項目追加済み、(b) mode 依存の重複記述ゼロ、(c) audit rg コマンド（rules 記載）で 0 件、(d) `tests/validate-plugin.sh` PASS | - | cc:TODO |
+
+### Phase 46.3: self_review_checklist 契約化 [P0]
+
+Purpose: Worker が commit 前に Reviewer 視点の 5 項目を JSON で明示検証し、`verified: false` or `evidence` 空の場合は Reviewer spawn 前に Lead が自動差し戻す (#86)。
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 46.3.1 | (a) `agents/worker.md` の output 契約 (`ready_for_review`) に `self_review: [{rule, verified, evidence}]` 必須フィールドを追加。デフォルト rule セットは 5 項目: (1) DRY 違反なし（実装も import 共有）、(2) Plans.md cc:* マーカー未書換、(3) 宣言した関数/クラスは全て呼び出し経路が存在、(4) DoD 各項目に検証方法と evidence、(5) 既存テスト回帰なし。(b) output schema を `worker-report.v1` として `.claude/rules/opus-4-7-prompt-audit.md` の契約列挙に登録（列挙値も固定）。(c) `skills/harness-work/SKILL.md` と `skills/breezing/SKILL.md` の Phase B に「Worker から受け取った self_review を Lead が検証し、`verified:false` or `evidence==""` が 1 件でもあれば Reviewer を spawn せず自動で `REQUEST_CHANGES` として Worker に差し戻す（同一セッションで最大 2 回差し戻し、3 回目で Lead に escalate）」ステップを追加。(d) harness.toml に project 追加 rule の sample セクション `[worker.self_review]` を雛形として `scaffolder` 経由で生成（既存プロジェクトには影響しない） | (a) worker.md に schema 記載、(b) audit rule 更新、(c) 2 skills に分岐ロジック追加、(d) 自動差し戻しの上限 `最大 2 回` と escalate 条件が数字で記載、(e) `tests/validate-plugin.sh` PASS | 46.2 | cc:TODO |
+
+### Phase 46.4: Reviewer memory scope + breezing briefing 注入 [P0]
+
+Purpose: 同一 `/breezing` セッションで観測された universal 違反を次 Worker が繰り返さないよう、Reviewer `memory_updates` を scope 付きに拡張し、Lead が briefing 冒頭に自動注入する (#87)。
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 46.4.1 | (a) `agents/reviewer.md` の output 契約 `memory_updates` を `[{text: string, scope: "universal" \| "task-specific"}]` に拡張（既存の文字列配列は後方互換で受け入れるが scope 未指定は `task-specific` 扱いと明示）。(b) `review-result.v1` schema にも反映し `.claude/rules/opus-4-7-prompt-audit.md` 更新。(c) `skills/breezing/SKILL.md` Phase A に「同一 `/breezing` 起動内で蓄積された Reviewer の universal gotchas を Worker briefing 冒頭の "🚨 同一セッションで既に検出された universal 違反（再発禁止）" セクションに注入」ステップを追加。スコープは同一 `/breezing` 起動内のみ（セッション終了で破棄、永続化しない）。(d) `skills/harness-work/SKILL.md` にも同様の注入を追加（逐次 `/harness-work` 連打時も有効）。(e) `session-memory` への書き込みは行わず Lead プロセスの in-memory 配列で保持することを明記（過剰設計回避、issue #87 本文の方針に従う） | (a) reviewer.md schema 拡張、(b) audit rule 更新、(c)(d) 2 skills に注入ステップ、(e) 永続化しない方針を明記、(f) `tests/validate-plugin.sh` PASS、(g) schema 変更の後方互換仕様を SKILL.md 内で明示 | 46.2, 46.3 | cc:TODO |
+
+### Phase 46.5: Smoke test + docs + CHANGELOG + v4.3.0 リリース [P0]
+
+Purpose: 4 issue の修正を統合し、回帰がないことを確認してリリース。
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 46.5.1 | (a) `tests/validate-plugin.sh` と `scripts/ci/check-consistency.sh` を PASS させる。(b) `bash scripts/check-residue.sh` を PASS させる（Phase 46 で削除した旧 rule があれば `.claude/rules/deleted-concepts.yaml` を更新）。(c) CHANGELOG.md `[Unreleased]` に Japanese Before/After 形式で 4 項目 (#84-#87) を記載、ユーザー視点で「今まで / 今後」を具体化。(d) `docs/CLAUDE-feature-table.md` の「付加価値」列を各行で A/C 明記 (cc-update-policy 遵守、#84-87 はすべて A: 実装あり)。(e) VERSION/plugin.json/harness.toml を v4.3.0 に bump（`./scripts/sync-version.sh bump minor`）。(f) `/harness-release` で GitHub Release を作成、Release 本文は英語の Before/After 表 + footer | (a)(b) 全 CI ゲート PASS、(c) CHANGELOG に 4 項目、(d) feature table 更新、(e) version triple 一致、(f) GitHub Release 作成済み | 46.1, 46.2, 46.3, 46.4 | cc:TODO |
+
+---
