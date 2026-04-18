@@ -1,6 +1,7 @@
 #!/bin/bash
 # test-guardrails-r01-r13.sh
 # Guardrail rule table R01-R13 の Go テストをまとめて実行するスモーク。
+# Phase 44.3.1 拡張: CC 2.1.110 回帰テスト (TestCC2110_*) を追加。
 
 set -euo pipefail
 
@@ -19,4 +20,10 @@ echo "Running guardrail R01-R13 tests..."
   go test ./internal/guardrail -run '^TestR(0[1-9]|1[0-3])_'
 )
 
-echo "Guardrail R01-R13 tests passed."
+echo "Running CC 2.1.110 regression tests (Phase 44.3.1)..."
+(
+  cd "$GO_DIR"
+  go test ./internal/guardrail -run '^TestCC2110_' -v
+)
+
+echo "Guardrail R01-R13 and CC 2.1.110 regression tests passed."
