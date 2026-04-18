@@ -134,8 +134,18 @@ hooks:
   # markdown table の status 列 ("| cc:XXX ... |" の形) のみ matching
   # markdown table の最終カラムに cc:STATUS マーカーがある行のみマッチ
   # 形式: "| ... | cc:TODO |" / "| ... | cc:WIP |" / "| ... | cc:完了 [hash] |"
+  # セル境界は次の | で検出: "cc:STATUS" の後 | が来るまでの内容 ([^|]*) を permissive に許可
+  # これにより日付・注記・URL・ハッシュ以外の注記付き suffix を全て捕捉できる
+  # status enum は実在 4 種 (完了/不要/TODO/WIP) + 将来用 保留 を網羅
+  # 検証済みケース:
+  #   (1) "cc:完了 [2026-04-18 検証] — 別フォルダでの..." → マッチ ✓
+  #   (2) "cc:不要 [2026-04-18] — 44.13.1 で..." → マッチ ✓
+  #   (3) "cc:完了 [d3e5c8c7 — 45.1.1 と同 commit で副次的に達成、別 commit 不要]" → マッチ ✓
+  #   (4) DoD 内 "cc:完了" は中間 | に阻まれ [^|]*\|\s*$ 不成立 → マッチしない ✓
+  #   (5) "+ cc:TODO 状態の..." (自然文) → .*\| 不成立 → マッチしない ✓
+  #   (6) desc cell 内 "cc:TODO を..." → 最終 cell は cc: なし → マッチしない ✓
   CC_MARKER_DIFF="$(git diff HEAD -- "$PLANS_PATH" 2>/dev/null \
-    | grep -E '^[+-].*\|[[:space:]]*cc:(TODO|WIP|完了)([[:space:]]+\[[0-9a-f]+\])?[[:space:]]*\|[[:space:]]*$' || true)"
+    | grep -E '^[+-].*\|[[:space:]]*cc:(TODO|WIP|完了|不要|保留)[^|]*\|[[:space:]]*$' || true)"
   ```
 - `CC_MARKER_DIFF` が非空の場合（Worker が cc:* マーカー行を追加/変更/削除している）、タスクを abort して以下を返す:
   ```json

@@ -94,6 +94,16 @@ fi
 
 echo "Auto-detected BASE_REF: ${BASE_REF}"
 
+# untracked files は commits 有無に関わらず review 対象に含める必要がある
+# (git diff は untracked を出さないため、BASE_REF 決定直後に別 enumeration が必須)
+UNTRACKED_FILES="$(git ls-files --others --exclude-standard 2>/dev/null || true)"
+UNTRACKED_COUNT=0
+if [ -n "$UNTRACKED_FILES" ]; then
+  UNTRACKED_COUNT="$(printf '%s\n' "$UNTRACKED_FILES" | wc -l | tr -d ' ')"
+  echo "ℹ️ untracked files ${UNTRACKED_COUNT} 件を review scope に含めます:"
+  printf '%s\n' "$UNTRACKED_FILES" | sed 's/^/  - /'
+fi
+
 # 差分が存在することを確認 & スコープ上限チェック
 CHANGED_COUNT="$(git log --oneline "${BASE_REF}..HEAD" 2>/dev/null | wc -l | tr -d ' ')"
 
@@ -108,27 +118,17 @@ if [ "$CHANGED_COUNT" -eq 0 ]; then
     HAS_UNCOMMITTED=1
   fi
 
-  if [ "$HAS_UNCOMMITTED" -eq 1 ]; then
+  if [ "$HAS_UNCOMMITTED" -eq 1 ] || [ "$UNTRACKED_COUNT" -gt 0 ]; then
     echo "ℹ️ ${BASE_REF}..HEAD にコミット差分はありませんが、working tree に未コミット変更があります。それをレビュー対象にします。"
     # BASE_REF=HEAD のまま維持。後段の git diff は引数なし (working tree 対比) で動作する
     BASE_REF="HEAD"
     CHANGED_COUNT=1
-
-    # untracked files も enumeration に含める（git diff HEAD は untracked を含まない）
-    UNTRACKED_FILES="$(git ls-files --others --exclude-standard 2>/dev/null || true)"
-    if [ -n "$UNTRACKED_FILES" ]; then
-      UNTRACKED_COUNT="$(printf '%s\n' "$UNTRACKED_FILES" | wc -l | tr -d ' ')"
-      echo "ℹ️ untracked files ${UNTRACKED_COUNT} 件も review 対象に含めます:"
-      printf '%s\n' "$UNTRACKED_FILES" | sed 's/^/  - /'
-    else
-      UNTRACKED_COUNT=0
-    fi
+    # UNTRACKED_FILES / UNTRACKED_COUNT は既に計算済みなので再計算不要
   else
     echo "⚠️ ${BASE_REF}..HEAD に差分がなく、working tree も clean です。HEAD~5..HEAD にフォールバックします。"
     BASE_REF="HEAD~5"
     CHANGED_COUNT="$(git log --oneline "${BASE_REF}..HEAD" 2>/dev/null | wc -l | tr -d ' ')"
-    UNTRACKED_FILES=""
-    UNTRACKED_COUNT=0
+    # UNTRACKED_FILES は既に空文字 / UNTRACKED_COUNT は 0
   fi
 fi
 
@@ -266,6 +266,35 @@ AI_RESIDUALS_JSON="$(bash scripts/review-ai-residuals.sh --base-ref "${BASE_REF:
 
 # 対象ファイルを明示したい場合
 bash scripts/review-ai-residuals.sh path/to/file.ts path/to/config.sh
+```
+
+#### Step 1.5.b: untracked files を AI residuals 観点で追加スキャン
+
+`scripts/review-ai-residuals.sh` は `git diff --name-only` ベースで動作するため untracked files を走査しない。
+PR 途中で作成したが stage していないファイルに残る `TODO` / `test.skip` / ハードコード秘密値が
+「AI residuals なし」と誤判定されるのを防ぐため、Step 1.5.b で個別スキャンを実施する。
+
+```bash
+# Step 1.5.b: untracked files を AI residuals 観点で手動スキャン
+# (review-ai-residuals.sh は git diff ベースのため untracked を含まない)
+if [ "$UNTRACKED_COUNT" -gt 0 ]; then
+  echo "🔍 untracked files ${UNTRACKED_COUNT} 件を AI residuals 観点で追加スキャン"
+  # スキャンパターン: TODO/FIXME/XXX, test.skip/it.skip/describe.skip,
+  # eslint-disable, ハードコード秘密値 (sk-*, AKIA*, BEGIN PRIVATE KEY, password = "...")
+  UNTRACKED_RESIDUALS="$(printf '%s\n' "$UNTRACKED_FILES" | while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    [ ! -f "$f" ] && continue
+    grep -nE 'TODO|FIXME|XXX|\.skip\(|\.only\(|eslint-disable|sk-[A-Za-z0-9]{20,}|AKIA[A-Z0-9]{16}|BEGIN [A-Z ]*PRIVATE KEY|password[[:space:]]*=[[:space:]]*"[^"]+"' "$f" 2>/dev/null \
+      | sed "s|^|$f:|"
+  done || true)"
+  if [ -n "$UNTRACKED_RESIDUALS" ]; then
+    echo "⚠️ untracked files に AI residuals 候補が見つかりました:"
+    echo "$UNTRACKED_RESIDUALS"
+    echo ""
+    echo "上記ヒットは Step 2.2 の severity 判定表に従って critical/major/minor に分類し、"
+    echo "verdict に反映してください（major 以上が 1 件でも → REQUEST_CHANGES）。"
+  fi
+fi
 ```
 
 ### Step 2: 5観点でレビュー
