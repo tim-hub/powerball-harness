@@ -13,7 +13,7 @@
   <a href="docs/CLAUDE_CODE_COMPATIBILITY.md"><img src="https://img.shields.io/badge/Claude_Code-v2.1+-purple.svg" alt="Claude Code"></a>
   <img src="https://img.shields.io/badge/Skills-5_Verbs-orange.svg" alt="Skills">
   <img src="https://img.shields.io/badge/Core-Go_Native-00ADD8.svg" alt="Go Core">
-  <img src="https://img.shields.io/badge/v4.0-Hokage-FF4500.svg" alt="Hokage">
+  <img src="https://img.shields.io/badge/v4.2-Hokage-FF4500.svg" alt="Hokage">
 </p>
 
 <p align="center">
@@ -23,6 +23,37 @@
 <p align="center">
   <img src="docs/images/hokage/hokage-hero.jpg" alt="Hokage v4.0 — The Silent Blade" width="860">
 </p>
+
+---
+
+## v4.2 Update — Claude Code 2.1.99-110 + Opus 4.7
+
+> **Hokage line carries forward. Full Claude Code 2.1.99-2.1.110 + Opus 4.7 integration. Plugin manifest now matches the official `plugins-reference` schema.**
+
+Anthropic shipped Opus 4.7 with literal-instruction-following semantics, plus Claude Code 2.1.105 added the `PreCompact` hook and the `monitors/monitors.json` manifest. v4.2 makes Harness fit those changes precisely:
+
+| Area | Before (v4.1) | After (v4.2) |
+|---|---|---|
+| **Long-running workers** | Could be silently compacted mid-task | `PreCompact` hook blocks compaction while a worker is active or `Plans.md` is dirty |
+| **Plugin validation** | `claude plugin validate` rejected `monitors`/`agents` blocks | Public-spec compliant: `monitors/monitors.json` + `agents/` auto-discovery |
+| **Sync regression** | `harness sync` could silently strip declared blocks (4 prior incidents) | Two-layer guard: shell idempotency test + Go struct test for phantom fields |
+| **Long sessions** | Default 5-minute prompt cache only | `bash scripts/enable-1h-cache.sh` opt-in to 1-hour TTL (CC v2.1.108) |
+| **Reviewer/Advisor effort** | `medium` / `high` | `xhigh` (CC v2.1.111, Opus 4.7) — sharper review, with `high` fallback for other models |
+| **Agent prompts** | Worked on Opus 4.6 implicit semantics | Re-tuned for Opus 4.7 literal instruction following — explicit thresholds, schemas, command names |
+| **Guardrails (R01-R13)** | Conformed to CC 2.1.98 contract | Re-conformed to CC 2.1.110 (`PermissionRequest updatedInput`, `PreToolUse additionalContext`, Bash bypass closures) — 17 new regression tests |
+
+**What you'll notice:**
+- Long-running tasks no longer get cut off mid-flight by automatic compaction
+- `claude plugin validate` runs clean on Harness for the first time since `monitors` was added
+- `harness sync` stops mysteriously deleting your `monitors`/`agents` block
+- Reviewer agent gives sharper feedback (xhigh effort) when running on Opus 4.7
+
+Update with the usual flow:
+```
+/plugin update claude-code-harness
+```
+
+For detailed Before/After in Japanese, see `CHANGELOG.md` `[4.2.0]` entry.
 
 ---
 
@@ -81,6 +112,9 @@ Supported baseline and latest verified snapshot: see [Claude Code Compatibility]
 ## Requirements
 
 - **Claude Code v2.1+** ([Install Guide](https://docs.anthropic.com/claude-code))
+  - v2.1.105+ recommended (PreCompact hook + monitors manifest)
+  - v2.1.111+ for `xhigh` effort and Opus 4.7 support
+- **Opus 4.7** (`claude-opus-4-7`) recommended for full v4.2 benefit (literal instruction following, vision 2576px, xhigh effort)
 - **No Node.js required** (v4.0 Hokage uses Go-native engine)
 
 ---
