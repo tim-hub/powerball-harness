@@ -21,8 +21,18 @@ PLUGIN_JSON=".claude-plugin/plugin.json"
 # runs match, masking real drift.
 SHA1_PRE_SYNC=$(shasum -a 256 "$PLUGIN_JSON" | awk '{print $1}')
 
-# 初回 sync
-./bin/harness sync > /dev/null
+# 初回 sync — capture output to verify the platform binary actually ran.
+# bin/harness shim exits 0 with no output when no harness-${OS}-${ARCH} binary
+# is available, which would silently skip every sync below and falsely pass
+# this test. We require the "harness sync: done" marker to confirm execution.
+SYNC_OUTPUT="$(./bin/harness sync 2>&1)"
+if ! printf '%s\n' "$SYNC_OUTPUT" | grep -q "harness sync: done"; then
+  echo "FAIL: ./bin/harness sync did not produce expected output (silent no-op?)"
+  echo "  Got: $SYNC_OUTPUT"
+  echo "  This usually means the platform binary harness-\$(uname-os)-\$(uname-arch)"
+  echo "  is missing from bin/, so the shim exits 0 without dispatching."
+  exit 1
+fi
 SHA1_AFTER_1ST=$(shasum -a 256 "$PLUGIN_JSON" | awk '{print $1}')
 
 if [ "$SHA1_PRE_SYNC" != "$SHA1_AFTER_1ST" ]; then
