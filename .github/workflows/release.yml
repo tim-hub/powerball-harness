@@ -74,6 +74,22 @@ jobs:
           TAG="${GITHUB_REF_NAME}"
           VERSION="${TAG#v}"
 
+          # Re-check existence to close the TOCTOU race between the initial
+          # check and this step. Go build + upload takes ~1min; a concurrent
+          # actor (e.g. a manual `gh release create`) can create the release
+          # in that window. When that happens, fall through to the same
+          # binary-upload path the "exists=true" branch uses.
+          # Security note: $TAG comes from GITHUB_REF_NAME which GitHub
+          # constrains to valid git-ref characters — safe to interpolate.
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "⚠️ Release $TAG appeared since initial check — uploading binaries to existing release instead"
+            for bin in harness/bin/harness-darwin-arm64 harness/bin/harness-darwin-amd64 harness/bin/harness-linux-amd64; do
+              gh release upload "$TAG" "$bin" --clobber 2>/dev/null || true
+            done
+            echo "✅ Binaries synced to existing $TAG"
+            exit 0
+          fi
+
           gh release create "$TAG" \
             --title "$TAG" \
             --notes-file /tmp/release-body.md \
