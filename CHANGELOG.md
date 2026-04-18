@@ -5,7 +5,9 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.8.1...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.9.0...HEAD
+[4.9.0]: https://github.com/tim-hub/powerball-harness/compare/v4.8.2...v4.9.0
+[4.8.2]: https://github.com/tim-hub/powerball-harness/compare/v4.8.1...v4.8.2
 [4.8.1]: https://github.com/tim-hub/powerball-harness/compare/v4.8.0...v4.8.1
 [4.8.0]: https://github.com/tim-hub/powerball-harness/compare/v4.7.0...v4.8.0
 [4.7.0]: https://github.com/tim-hub/powerball-harness/compare/v4.6.1...v4.7.0
@@ -13,6 +15,38 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.9.0] - 2026-04-18
+
+### Theme: Advisor agent upgrade — scoped context loading and duplicate suppression (Phase 73)
+
+**The advisor agent can now load raw execution context (traces, git diffs, session log, patterns) on cache miss, weight sources by failure mode, and suppress redundant Opus calls via `history.jsonl` lookup — eliminating the blind-spot where re-planning happened without causal signal.**
+
+---
+
+#### 1. Optional `context_sources` input schema
+
+**Before**: The advisor reasoned entirely from `history.jsonl` (past decisions). When a task had multiple failed attempts with distinct errors, the advisor had no way to see *what was actually tried* — it could only detect duplicate error signatures, not novel failure trajectories.
+
+**After**: Callers may pass `context_sources: ["trace", "git_diff", "session_log", "patterns"]` alongside the standard trigger inputs. Each source is capped at ~10 KB of excerpts; total loaded context stays under ~20 KB. Missing files produce empty excerpts rather than errors.
+
+#### 2. Scoped context loader (`advisor-load-context.sh`)
+
+**Before**: No script existed to load the four context sources in a controlled, size-capped way. Any consumer would need to implement its own file reads, size trimming, and missing-file handling.
+
+**After**: `harness/scripts/advisor-load-context.sh` accepts a task ID and a comma-separated source list, loads each requested source with per-source excerpt caps, and emits a structured block the advisor can incorporate into reasoning. Integration tests cover all four sources plus missing-file and oversized-file edge cases.
+
+#### 3. Cache-check helper (`advisor-check-cache.sh`)
+
+**Before**: Duplicate suppression logic lived only in the advisor's markdown prompt. There was no lightweight way for a caller to check whether an identical `(task_id, reason_code, error_signature)` triple had already been answered before invoking the full Opus advisor.
+
+**After**: `harness/scripts/advisor-check-cache.sh` reads `.claude/state/advisor/history.jsonl`, matches the triple, and prints the cached decision + rationale if found (exit 0) or signals a cache miss (exit 1). Callers gate the advisor invocation on this check to avoid redundant Opus calls. Unit tests cover hit, miss, malformed JSON, and missing-file cases.
+
+#### 4. Reasoning Guidance section in advisor prompt
+
+**Before**: The advisor had a decision schema and trigger inputs, but no guidance on how to weight different context sources or when to prefer PLAN vs CORRECTION vs STOP given what the trace/diff shows.
+
+**After**: A "Reasoning Guidance" section documents source weighting by `reason_code` (e.g., `repeated_failure` → trace primary, git_diff secondary) and decision hints (e.g., two or more fix_attempts sharing the same error signature → prefer PLAN). Advisors cite which source informed the decision in `rationale` so history readers can reconstruct the chain of reasoning.
 
 ## [4.8.1] - 2026-04-18
 
