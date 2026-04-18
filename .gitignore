@@ -19,6 +19,7 @@ docs/design/
 .env
 .env.*
 !.env.example
+env.local
 
 # Local development
 .claude/*

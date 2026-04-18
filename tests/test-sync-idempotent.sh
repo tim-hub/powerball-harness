@@ -15,11 +15,24 @@ cd "$PROJECT_ROOT"
 
 PLUGIN_JSON=".claude-plugin/plugin.json"
 
+# Portable SHA256 helper: macOS has shasum (Perl), most Linux distros have
+# sha256sum but not shasum. Detect once and dispatch.
+sha256_of() {
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  elif command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  else
+    echo "FAIL: neither shasum nor sha256sum is available on PATH" >&2
+    exit 1
+  fi
+}
+
 # Drift detection: capture pre-sync checksum so the test fails when the
 # checked-in plugin.json differs from what `harness sync` produces. Without
 # this, the very first sync silently rewrites stale manifests and subsequent
 # runs match, masking real drift.
-SHA1_PRE_SYNC=$(shasum -a 256 "$PLUGIN_JSON" | awk '{print $1}')
+SHA1_PRE_SYNC=$(sha256_of "$PLUGIN_JSON")
 
 # 初回 sync — capture output to verify the platform binary actually ran.
 # bin/harness shim exits 0 with no output when no harness-${OS}-${ARCH} binary
@@ -33,7 +46,7 @@ if ! printf '%s\n' "$SYNC_OUTPUT" | grep -q "harness sync: done"; then
   echo "  is missing from bin/, so the shim exits 0 without dispatching."
   exit 1
 fi
-SHA1_AFTER_1ST=$(shasum -a 256 "$PLUGIN_JSON" | awk '{print $1}')
+SHA1_AFTER_1ST=$(sha256_of "$PLUGIN_JSON")
 
 if [ "$SHA1_PRE_SYNC" != "$SHA1_AFTER_1ST" ]; then
   echo "FAIL: plugin.json drift detected — checked-in version differs from sync output"
@@ -45,10 +58,10 @@ fi
 
 # 連続 2 回 sync — idempotency verification
 ./bin/harness sync > /dev/null
-SHA1_AFTER_2ND=$(shasum -a 256 "$PLUGIN_JSON" | awk '{print $1}')
+SHA1_AFTER_2ND=$(sha256_of "$PLUGIN_JSON")
 
 ./bin/harness sync > /dev/null
-SHA1_AFTER_3RD=$(shasum -a 256 "$PLUGIN_JSON" | awk '{print $1}')
+SHA1_AFTER_3RD=$(sha256_of "$PLUGIN_JSON")
 
 # checksum 一致確認 (idempotent across N runs)
 if [ "$SHA1_AFTER_1ST" != "$SHA1_AFTER_2ND" ] || [ "$SHA1_AFTER_1ST" != "$SHA1_AFTER_3RD" ]; then
