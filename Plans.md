@@ -292,7 +292,7 @@ Purpose: sync を複数回実行しても plugin.json が安定 (公式 SSOT 外
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 45.3.1 | `tests/test-sync-idempotent.sh` (新設) で (a) plugin.json checksum 記録、(b) `bash bin/harness sync` を 3 回連続実行、(c) checksum が初回と一致、(d) `monitors` / `agents` field が plugin.json に存在しないことを assert。Go unit test `go/cmd/harness/sync_no_phantom_fields_test.go` (新設) で `pluginJSON` struct が monitors/agents を **emit しない** ことも検証。`tests/validate-plugin.sh` のセクション 9 か新セクションでこのテストを呼び出す | (a) shell test PASS、(b) Go unit test PASS、(c) `tests/validate-plugin.sh` PASS | 45.1.1, 45.2.1 | cc:TODO |
+| 45.3.1 | `tests/test-sync-idempotent.sh` (新設) で (a) plugin.json checksum 記録、(b) `bash bin/harness sync` を 3 回連続実行、(c) checksum が初回と一致、(d) `monitors` / `agents` field が plugin.json に存在しないことを assert。Go unit test `go/cmd/harness/sync_no_phantom_fields_test.go` (新設) で `pluginJSON` struct が monitors/agents を **emit しない** ことも検証。`tests/validate-plugin.sh` のセクション 9 か新セクションでこのテストを呼び出す | (a) shell test PASS、(b) Go unit test PASS、(c) `tests/validate-plugin.sh` PASS | 45.1.1, 45.2.1 | cc:完了 [ef0eee75] |
 
 ---
 
