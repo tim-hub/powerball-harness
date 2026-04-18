@@ -17,6 +17,19 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Phase 74: Code-space skill search POC (harness-review)
+
+**Before**: Improving a skill required hand-editing SKILL.md and guessing which criteria changes would improve review accuracy.
+
+**After**: A repeatable eval loop exists — `eval-skill.sh` scores a skill variant against a fixed corpus of golden-verdict PR diffs; `propose-skill-variants.sh` generates SKILL.md candidates informed by eval output. The Phase 74 POC ran the full loop on `harness-review`.
+
+**POC result**: Null. Baseline scored 1.00/1.00 on 5 cases; all 3 generated variants scored 0.80 (false positives on clean diffs). **Baseline retained** — no variant promoted. Key finding documented in `patterns.md` P11: code-space search requires a failing baseline; with a perfect score the proposer has no signal and adds caution rather than improving calibration.
+
+**Infrastructure shipped** (reusable for future iterations):
+- `local-scripts/eval-skill.sh` — golden-verdict evaluator (any skill, any suite)
+- `local-scripts/propose-skill-variants.sh` — SKILL.md variant proposer
+- `tests/skill-eval/harness-review/` — 5-case eval suite (bug01, bug02, clean01, clean02, scope01)
+
 ## [4.9.1] - 2026-04-18
 
 ### Theme: Fix platform binary version embedding

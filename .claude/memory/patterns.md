@@ -421,3 +421,34 @@ PreToolUse  → pre-tool-batch  → [goroutine: guardrail] [goroutine: browser-g
 - schema: `.claude/memory/schemas/trace.v1.md`
 - files: `go/internal/trace/writer.go`, `go/internal/trace/errsig.go`, `go/internal/hookhandler/posttooluse_trace.go`, `harness/skills/maintenance/scripts/archive-traces.sh`
 - roadmap: Phase 73 (advisor consumes traces), Phase 74 (code-space proposer consumes traces)
+
+## P11: Code-space skill search requires failing baseline to generate useful variants #skills #eval #code-search
+
+**Problem**: Generating improved SKILL.md variants automatically (code-space search) — feeding the current skill + an eval corpus to a proposer LLM to discover better review criteria.
+
+**Solution attempted** (Phase 74 POC, 2026-04-18):
+- Golden-verdict eval suite: 5 fixed PR diffs with APPROVE/REQUEST_CHANGES labels
+- `eval-skill.sh`: passes each diff through the skill via `claude --print`, extracts verdict, computes score
+- `propose-skill-variants.sh`: generates 3 variants informed by eval JSON; each gets a distinct variation axis
+- End-to-end loop: baseline → variants → score → pick winner
+
+**Result**: Null — baseline scored 1.00, all 3 variants scored 0.80 (false positives on clean diffs).
+
+**Root cause of failure**: The proposer had no failure signal. When baseline is already perfect, the proposer has nothing specific to fix; generated variants add caution rather than better calibration. All three became over-strict reviewers despite one being described as "more lenient."
+
+### When to Apply (preconditions)
+
+- Baseline must fail on ≥1 eval case before code-space search can show improvement
+- Eval corpus must include genuinely ambiguous cases (edge cases, subtle bugs) — obvious cases give perfect baseline scores and leave no headroom
+- Proposer prompt should include specific failing cases with error type labels, not just aggregate score
+
+### When NOT to Apply
+
+- When baseline is already perfect on the corpus — the loop runs but produces no useful signal
+- When the corpus contains only obvious cases (the baseline model handles these trivially)
+
+### Notes
+
+- Tooling is in place: `local-scripts/eval-skill.sh`, `local-scripts/propose-skill-variants.sh`, `tests/skill-eval/harness-review/`
+- To get value from code-space search: first find cases where baseline fails (harder diffs, ambiguous scope), then run the loop
+- Multi-turn proposer (iterate with failing cases from each round) would outperform single-round generation
