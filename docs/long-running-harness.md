@@ -247,3 +247,5 @@ fixture は「この判定が今後も同じであるべき」という見本で
 - 実行フローの詳細: [skills/harness-loop/references/flow.md](../skills/harness-loop/references/flow.md)
 - コマンド入口: [skills/harness-loop/SKILL.md](../skills/harness-loop/SKILL.md)
 - Claude Code の機能一覧: [docs/CLAUDE-feature-table.md](CLAUDE-feature-table.md)
+
+> **Note (v4.2.0+)**: `HARNESS_WEBHOOK_URL` は env 変数として設定する。`harness.toml` の `[telemetry] webhook_url` は廃止された (2026-04-18 dead config 整理)。

@@ -27,6 +27,8 @@ func TestInit_CreatesHarnessToml(t *testing.T) {
 	content := string(data)
 
 	// Verify expected sections are present.
+	// Note: [telemetry] was removed in v4.2.0 dead config cleanup.
+	// HARNESS_WEBHOOK_URL is set via env variable, not harness.toml.
 	sections := []string{
 		"[project]",
 		"[agent]",
@@ -34,7 +36,6 @@ func TestInit_CreatesHarnessToml(t *testing.T) {
 		"[safety.permissions]",
 		"[safety.sandbox]",
 		"[safety.sandbox.filesystem]",
-		"[telemetry]",
 	}
 	for _, section := range sections {
 		if !strings.Contains(content, section) {

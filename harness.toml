@@ -80,6 +80,3 @@ allowRead = [
   "docs/**",
 ]
 
-[telemetry]
-# otel_endpoint = ""
-# webhook_url = ""

@@ -43,9 +43,6 @@ failIfUnavailable = true
 denyRead = [".env", "secrets/**", "**/*.pem"]
 allowRead = [".env.example", "docs/**"]
 
-[telemetry]
-otel_endpoint = ""
-webhook_url = ""
 `)
 
 func TestParse_Full(t *testing.T) {
@@ -114,10 +111,6 @@ func TestParse_Full(t *testing.T) {
 		t.Errorf("sandbox.filesystem.allowRead len = %d, want 2", len(cfg.Safety.Sandbox.Filesystem.AllowRead))
 	}
 
-	// [telemetry] is harness-internal — values parsed but should NOT affect CC output
-	if cfg.Telemetry.OtelEndpoint != "" {
-		t.Errorf("telemetry.otel_endpoint = %q, want empty", cfg.Telemetry.OtelEndpoint)
-	}
 }
 
 // ---------------------------------------------------------------------------
