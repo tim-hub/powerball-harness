@@ -67,7 +67,7 @@ if (cd "${TMP_REPO}" && bash "${TARGET_SCRIPT}" > /dev/null 2>&1); then
     fail_test "env.local が作成されなかった"
   fi
 
-  if grep -qE "^ENABLE_PROMPT_CACHING_1H=1$" "${TMP_REPO}/env.local"; then
+  if grep -qE "^export ENABLE_PROMPT_CACHING_1H=1$" "${TMP_REPO}/env.local"; then
     pass_test "ENABLE_PROMPT_CACHING_1H=1 が env.local に書き込まれた"
   else
     fail_test "ENABLE_PROMPT_CACHING_1H=1 が env.local に見つからない"
@@ -85,7 +85,7 @@ TMP_REPO="$(setup_tmp_repo)"
 (cd "${TMP_REPO}" && bash "${TARGET_SCRIPT}" > /dev/null 2>&1)
 (cd "${TMP_REPO}" && bash "${TARGET_SCRIPT}" > /dev/null 2>&1)
 
-COUNT=$(grep -cE "^ENABLE_PROMPT_CACHING_1H=1$" "${TMP_REPO}/env.local" 2>/dev/null || echo "0")
+COUNT=$(grep -cE "^export ENABLE_PROMPT_CACHING_1H=1$" "${TMP_REPO}/env.local" 2>/dev/null || echo "0")
 if [[ "${COUNT}" -eq 1 ]]; then
   pass_test "2 回実行後も ENABLE_PROMPT_CACHING_1H=1 は 1 行だけ（冪等）"
 else
@@ -107,7 +107,7 @@ else
   fail_test "既存キー SOME_OTHER_KEY が消えた"
 fi
 
-if grep -qE "^ENABLE_PROMPT_CACHING_1H=1$" "${TMP_REPO}/env.local"; then
+if grep -qE "^export ENABLE_PROMPT_CACHING_1H=1$" "${TMP_REPO}/env.local"; then
   pass_test "ENABLE_PROMPT_CACHING_1H=1 が追記された"
 else
   fail_test "ENABLE_PROMPT_CACHING_1H=1 が追記されなかった"
@@ -140,6 +140,15 @@ if [[ "${SOURCED_VALUE}" == "1" ]]; then
   pass_test "env.local を source すると ENABLE_PROMPT_CACHING_1H=1 が環境変数に設定される"
 else
   fail_test "env.local source 後の ENABLE_PROMPT_CACHING_1H が期待値 '1' でなく '${SOURCED_VALUE}'"
+fi
+
+# Critical: source した env.local が subprocess (claude 等) にも env として伝播するか
+# `export KEY=VALUE` 形式でないと subprocess には継承されない (shell-local 変数のまま)
+CHILD_VALUE=$(bash -c "source '${TMP_REPO}/env.local' 2>/dev/null; bash -c 'echo \"\${ENABLE_PROMPT_CACHING_1H:-UNSET}\"'")
+if [[ "${CHILD_VALUE}" == "1" ]]; then
+  pass_test "env.local source 後、subprocess (子 bash) にも ENABLE_PROMPT_CACHING_1H=1 が伝播 (export 確認)"
+else
+  fail_test "env.local source 後の subprocess で ENABLE_PROMPT_CACHING_1H が期待値 '1' でなく '${CHILD_VALUE}' — export 抜け"
 fi
 
 cleanup_tmp "${TMP_REPO}"

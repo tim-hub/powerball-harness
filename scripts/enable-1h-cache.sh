@@ -25,17 +25,20 @@ REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$(cd "$(dirname 
 ENV_LOCAL="${REPO_ROOT}/env.local"
 KEY="ENABLE_PROMPT_CACHING_1H"
 VALUE="1"
-ENTRY="${KEY}=${VALUE}"
+# Use `export KEY=VALUE` so that `source env.local` propagates the variable
+# to subprocesses (claude). Without `export`, `source env.local` only sets a
+# shell-local variable and the spawned `claude` process never sees it.
+ENTRY="export ${KEY}=${VALUE}"
 
 # すでに有効な設定行が存在するか確認（コメント行は無視）
-if grep -qE "^${KEY}=${VALUE}$" "${ENV_LOCAL}" 2>/dev/null; then
+if grep -qE "^export ${KEY}=${VALUE}$" "${ENV_LOCAL}" 2>/dev/null; then
   echo "[enable-1h-cache] ${ENTRY} はすでに ${ENV_LOCAL} に設定されています（変更なし）。"
   exit 0
 fi
 
 # 既存ファイルに同じキーで別の値がある場合は上書きせず警告して終了
-if grep -qE "^${KEY}=" "${ENV_LOCAL}" 2>/dev/null; then
-  existing_val=$(grep -E "^${KEY}=" "${ENV_LOCAL}" | tail -1)
+if grep -qE "^(export )?${KEY}=" "${ENV_LOCAL}" 2>/dev/null; then
+  existing_val=$(grep -E "^(export )?${KEY}=" "${ENV_LOCAL}" | tail -1)
   echo "[enable-1h-cache] 警告: ${ENV_LOCAL} に既存の設定 '${existing_val}' があります。" >&2
   echo "[enable-1h-cache] 手動で確認してから再実行してください。" >&2
   exit 1
