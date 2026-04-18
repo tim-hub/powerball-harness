@@ -19,6 +19,48 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Port upstream Worker/Reviewer contract improvements (Phase 75, PRs #88/#89)
+
+**Six behavioral tightenings ported from the upstream fork — Worker NG rules, fork-context auto-start handshake, Worker self-review gate, universal violation propagation, 1-hour prompt cache helper, and role-based PreCompact blocking.**
+
+---
+
+#### 1. Worker NG Rules (upstream issue #85)
+
+**Before**: Workers could accidentally modify `cc:*` markers in Plans.md, work inside embedded git repositories, or spawn nested teammate agents — all of which corrupt Lead-managed state.
+
+**After**: `harness-work/SKILL.md` now has an explicit "Worker NG Rules" section with three hard constraints (NG-1: Plans.md markers are Lead-owned; NG-2: embedded git repositories rejected; NG-3: nested spawning forbidden). Each rule includes a one-line rationale and check point.
+
+#### 2. `REVIEW_AUTOSTART` fork-context handshake (upstream issue #84)
+
+**Before**: `/harness-review` invoked in a forked session with no args would stall waiting for user input, since the fork context has no interactive prompt.
+
+**After**: Step 0 of `harness-review/SKILL.md` now defines the `REVIEW_AUTOSTART` handshake — the Reviewer emits the marker as its first output token in fork context and immediately proceeds. A five-item prohibition list codifies the failure modes that caused stalls (empty diff exit, waiting for confirmation, writing Plans.md markers, etc.).
+
+#### 3. Worker self-review gate — `worker-report.v1` schema (upstream issue #86)
+
+**Before**: Workers handed off diffs to the Reviewer without any self-check, so obvious DoD gaps and AI residuals reached the review step unnecessarily.
+
+**After**: Before the Lead spawns a Reviewer, Workers must emit a `worker-report.v1` JSON with five self-review verdicts (DoD addressed, no NG violations, tests pass, no AI residuals, commit self-contained) plus evidence strings per rule. The Lead rejects incomplete submissions and allows up to two amendment cycles before escalating.
+
+#### 4. Universal violations session injection (upstream issue #87)
+
+**Before**: When a Reviewer flagged a recurring problem (e.g. missing `severity_justification`), the next Worker in the same breezing session had no visibility into it and would repeat the violation.
+
+**After**: Review findings now carry a `scope: "task-specific | universal"` field. Universal-scope items are collected across tasks in a breezing session and prepended to each subsequent Worker's briefing, so systemic violations are suppressed after the first occurrence.
+
+#### 5. 1-hour prompt cache helper (upstream PR #88)
+
+**Before**: Long breezing sessions (>30 min) re-uploaded the full prompt context on every turn, increasing latency and cost.
+
+**After**: `harness/scripts/enable-1h-cache.sh` exports `ANTHROPIC_CACHE_CONTROL=max-age=3600`. Source it before starting a long session; all Harness subprocesses inherit the setting. Documented as a tip in `harness-work/SKILL.md`.
+
+#### 6. Role-based PreCompact blocking (upstream PR #88)
+
+**Before**: `pre-compact-save.js` only emitted a warning when a Worker session had `cc:WIP` tasks — compaction could still proceed, risking context loss mid-task.
+
+**After**: Worker sessions with active `cc:WIP` tasks now return `{ "continue": false }` to block compaction entirely. Reviewer and Advisor sessions always pass through. Role is detected from `HARNESS_SESSION_ROLE` env var with fallback to `sessionState.role`. Covered by a four-permutation test script.
+
 ## [4.9.3] - 2026-04-19
 
 ### Theme: harness-review SKILL.md step renumbering cleanup
