@@ -40,6 +40,9 @@ user-invocable: true
 > Opus 4.7 では literal に `/effort xhigh` が使える。
 > built-in `/ultrareview` は明示要求時だけ追加で使い、既定レビューは置き換えない。
 
+> **長時間セッション推奨 (CC 2.1.108+)**:
+> セッション長が 30 分を超える見込みの場合、開始前に `bash scripts/enable-1h-cache.sh` を実行して 1 時間 prompt cache を opt-in すること。
+
 ## Execution
 
 **このスキルは `harness-work` に委譲します。** 以下の設定で `harness-work` を実行してください:
