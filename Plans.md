@@ -130,7 +130,7 @@ Purpose: Opus 4.7 の新 `xhigh` effort を Harness の skill/agent frontmatter 
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 44.5.1 | Claude Code の `effort` frontmatter (v2.1.72 以降 `low/medium/high` 3段階) と Opus 4.7 API の `xhigh` の対応関係を検証する (CC が API に渡す実効値を確認)。対応が取れる場合は `skills/harness-review/SKILL.md`, `agents/reviewer.md`, `agents/advisor.md` の effort を `xhigh` に引き上げる。取れない場合は `docs/effort-level-policy.md` (新設) に「CC v2.1.X 対応まで `high` を維持」と rationale を書く。v2.1.94 以降 default effort が `medium→high` に上がっている点も反映 | (a) CC の effort と API effort の対応マトリクスが docs/effort-level-policy.md に明記、(b) 決定 (採用 or 見送り) に従い frontmatter 更新 or 維持、(c) `tests/validate-plugin.sh` PASS | 44.4.2 | cc:TODO |
+| 44.5.1 | Claude Code の `effort` frontmatter (v2.1.72 以降 `low/medium/high` 3段階) と Opus 4.7 API の `xhigh` の対応関係を検証する (CC が API に渡す実効値を確認)。対応が取れる場合は `skills/harness-review/SKILL.md`, `agents/reviewer.md`, `agents/advisor.md` の effort を `xhigh` に引き上げる。取れない場合は `docs/effort-level-policy.md` (新設) に「CC v2.1.X 対応まで `high` を維持」と rationale を書く。v2.1.94 以降 default effort が `medium→high` に上がっている点も反映 | (a) CC の effort と API effort の対応マトリクスが docs/effort-level-policy.md に明記、(b) 決定 (採用 or 見送り) に従い frontmatter 更新 or 維持、(c) `tests/validate-plugin.sh` PASS | 44.4.2 | cc:完了 [315de2b9] |
 
 ---
 
