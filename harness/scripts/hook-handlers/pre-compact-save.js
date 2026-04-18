@@ -251,6 +251,58 @@ function getSessionState(repoRoot) {
   return readJsonFile(sessionPath);
 }
 
+/**
+ * Detect the current session role from environment or session state.
+ * Lead sets HARNESS_SESSION_ROLE when spawning Workers/Reviewers/Advisors.
+ * @param {object|null} sessionState - Session state from session.json
+ * @returns {'worker'|'reviewer'|'advisor'|null} Role or null if unknown
+ */
+function getSessionRole(sessionState) {
+  const envRole = (process.env.HARNESS_SESSION_ROLE || '').toLowerCase().trim();
+  if (envRole === 'worker' || envRole === 'reviewer' || envRole === 'advisor') {
+    return envRole;
+  }
+  // Fall back to session state role field
+  const stateRole = (sessionState?.role || sessionState?.agent_role || '').toLowerCase().trim();
+  if (stateRole === 'worker' || stateRole === 'reviewer' || stateRole === 'advisor') {
+    return stateRole;
+  }
+  return null;
+}
+
+/**
+ * Decide whether to block compaction based on role and WIP task state.
+ *
+ * Decision matrix (4 permutations):
+ *   worker  + WIP tasks  → BLOCK  (mid-task compaction loses Worker context)
+ *   worker  + no WIP     → PASS   (nothing in flight, safe to compact)
+ *   reviewer/advisor + * → PASS   (review/advice sessions may compact freely)
+ *   unknown role + WIP   → WARN + PASS  (legacy behaviour, no role set)
+ *
+ * @param {'worker'|'reviewer'|'advisor'|null} role - Detected session role
+ * @param {string[]} wipTasks - WIP task titles from Plans.md
+ * @returns {{ block: boolean, reason: string }}
+ */
+function shouldBlockCompaction(role, wipTasks) {
+  if (role === 'worker' && wipTasks.length > 0) {
+    return {
+      block: true,
+      reason: `Worker session has ${wipTasks.length} WIP task(s) in progress: ${wipTasks.slice(0, 3).join(', ')}${wipTasks.length > 3 ? '...' : ''}. Compaction may lose implementation context. Complete or checkpoint tasks before compacting.`
+    };
+  }
+  if (role === 'worker' && wipTasks.length === 0) {
+    return { block: false, reason: 'Worker session: no WIP tasks, safe to compact.' };
+  }
+  if (role === 'reviewer' || role === 'advisor') {
+    return { block: false, reason: `${role} session: compaction always permitted.` };
+  }
+  // Unknown role — legacy warn-only behaviour
+  if (wipTasks.length > 0) {
+    return { block: false, reason: `Unknown role: ${wipTasks.length} WIP task(s) detected (warning only — set HARNESS_SESSION_ROLE=worker to enable blocking).` };
+  }
+  return { block: false, reason: 'No WIP tasks, compaction permitted.' };
+}
+
 function parsePositiveInt(value, fallback) {
   const parsed = Number.parseInt(String(value ?? ''), 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -765,6 +817,25 @@ function main() {
     // Save the canonical structured handoff artifact and the legacy snapshot alias.
     fs.writeFileSync(artifactPath, JSON.stringify(artifact, null, 2), { mode: 0o600 });
     fs.writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2), { mode: 0o600 });
+
+    // Role-based compaction gate (75.6: upgrade from warn-only to blocking for Workers)
+    const sessionState = artifact.previous_state?.session_state ?? null;
+    const role = getSessionRole(sessionState);
+    const { block, reason } = shouldBlockCompaction(role, artifact.wipTasks);
+
+    if (block) {
+      log(`Blocking compaction: ${reason}`);
+      console.log(JSON.stringify({
+        continue: false,
+        suppressOutput: false,
+        stopReason: reason
+      }));
+      return;
+    }
+
+    if (role === null && artifact.wipTasks.length > 0) {
+      log(`Warning: ${reason}`);
+    }
 
     // Output for hook feedback
     const result = {
