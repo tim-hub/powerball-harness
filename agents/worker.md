@@ -132,8 +132,10 @@ hooks:
   ```bash
   # preflight 時点の unstaged 変更と staged 変更の両方を見る (HEAD との差分)
   # markdown table の status 列 ("| cc:XXX ... |" の形) のみ matching
+  # markdown table の最終カラムに cc:STATUS マーカーがある行のみマッチ
+  # 形式: "| ... | cc:TODO |" / "| ... | cc:WIP |" / "| ... | cc:完了 [hash] |"
   CC_MARKER_DIFF="$(git diff HEAD -- "$PLANS_PATH" 2>/dev/null \
-    | grep -E '^[+-]\|[^|]*\bcc:(TODO|WIP|完了)\b' || true)"
+    | grep -E '^[+-].*\|[[:space:]]*cc:(TODO|WIP|完了)([[:space:]]+\[[0-9a-f]+\])?[[:space:]]*\|[[:space:]]*$' || true)"
   ```
 - `CC_MARKER_DIFF` が非空の場合（Worker が cc:* マーカー行を追加/変更/削除している）、タスクを abort して以下を返す:
   ```json

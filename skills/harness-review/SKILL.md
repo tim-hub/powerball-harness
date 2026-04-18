@@ -97,11 +97,27 @@ echo "Auto-detected BASE_REF: ${BASE_REF}"
 # 差分が存在することを確認 & スコープ上限チェック
 CHANGED_COUNT="$(git log --oneline "${BASE_REF}..HEAD" 2>/dev/null | wc -l | tr -d ' ')"
 
-# 下限フォールバック: 差分ゼロの時は HEAD~5 で再試行
+# 下限フォールバック: commit 差分ゼロの時は working tree の未コミット変更を確認
 if [ "$CHANGED_COUNT" -eq 0 ]; then
-  echo "⚠️ ${BASE_REF}..HEAD に差分がありません。HEAD~5..HEAD にフォールバックします。"
-  BASE_REF="HEAD~5"
-  CHANGED_COUNT="$(git log --oneline "${BASE_REF}..HEAD" 2>/dev/null | wc -l | tr -d ' ')"
+  # staged または unstaged の変更が working tree にあるか
+  HAS_UNCOMMITTED=0
+  if ! git diff --quiet HEAD 2>/dev/null; then
+    HAS_UNCOMMITTED=1
+  fi
+  if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+    HAS_UNCOMMITTED=1
+  fi
+
+  if [ "$HAS_UNCOMMITTED" -eq 1 ]; then
+    echo "ℹ️ ${BASE_REF}..HEAD にコミット差分はありませんが、working tree に未コミット変更があります。それをレビュー対象にします。"
+    # BASE_REF=HEAD のまま維持。後段の git diff は引数なし (working tree 対比) で動作する
+    BASE_REF="HEAD"
+    CHANGED_COUNT=1
+  else
+    echo "⚠️ ${BASE_REF}..HEAD に差分がなく、working tree も clean です。HEAD~5..HEAD にフォールバックします。"
+    BASE_REF="HEAD~5"
+    CHANGED_COUNT="$(git log --oneline "${BASE_REF}..HEAD" 2>/dev/null | wc -l | tr -d ' ')"
+  fi
 fi
 
 # 上限フォールバック: commits が 10 を超える時は HEAD~10 に絞る
