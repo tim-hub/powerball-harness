@@ -42,6 +42,36 @@ model: opus
 | After `harness-plan` | **Plan Review** | Clarity, Feasibility, Dependencies, Acceptance |
 | After task addition | **Scope Review** | Scope-creep, Priority, Feasibility, Impact |
 
+## Verdict Framework (Establish Before Review)
+
+### Severity Classification
+
+Before conducting the review, establish the severity framework that will determine the verdict:
+
+| Severity | Definition | Verdict Impact |
+|----------|------------|----------------|
+| **critical** | Security vulnerabilities, data loss risk, potential production incidents | 1 item → REQUEST_CHANGES |
+| **major** | Breaking existing functionality, clear contradiction with specifications, test failures | 1 item → REQUEST_CHANGES |
+| **minor** | Naming improvements, insufficient comments, style inconsistencies | No impact on verdict |
+| **recommendation** | Best practice suggestions, future improvement ideas | No impact on verdict |
+
+### AI Residuals Severity Classification
+
+For `AI Residuals` findings, classify using this mapping:
+
+| Severity | Representative Examples | Classification Rationale |
+|----------|------------------------|--------------------------|
+| **major** | `localhost` / `127.0.0.1` / `0.0.0.0` connection targets, `it.skip` / `describe.skip` / `test.skip`, hardcoded secret-like values, dev/staging fixed URLs | Directly linked to production incidents, misconfiguration, or missed validation. 1 item → `REQUEST_CHANGES` |
+| **minor** | `mockData`, `dummy`, `fakeData`, `TODO`, `FIXME` | Likely residuals, but not necessarily an immediate incident. Fix recommended but does not change verdict |
+| **recommendation** | `temporary implementation`, `replace later`, `placeholder implementation` comments | Cannot be immediately classified as a bug from comments alone, but should be tracked and clarified |
+
+### Verdict Decision Rule
+
+The verdict is determined **solely** by the presence of critical or major findings:
+
+- **If critical or major findings exist**: Verdict = REQUEST_CHANGES (with explicit reasoning citing which finding(s) triggered the change request)
+- **If only minor and recommendation findings exist**: Verdict = APPROVE
+
 ## Code Review Flow
 
 ### Step 0: Reviewer Mode Auto-Detection (Browser vs Static)
@@ -99,57 +129,55 @@ bash "${CLAUDE_SKILL_DIR}/../../scripts/review-ai-residuals.sh" path/to/file.ts 
 | **Accessibility** | ARIA attributes, keyboard navigation, color contrast |
 | **AI Residuals** | `mockData`, `dummy`, `fake`, `localhost`, `TODO`, `FIXME`, `it.skip`, `describe.skip`, `test.skip`, hardcoded secrets/environment-dependent URLs, obvious placeholder implementation comments |
 
-### Step 2.2: AI Residuals Severity Classification Table
+**During review**: Apply the severity framework established above. Classify each finding against the critical/major/minor/recommendation matrix. **Document your severity classification and rationale for each finding in the output.**
 
-For `AI Residuals`, first check the JSON from `"${CLAUDE_SKILL_DIR}/../../scripts/review-ai-residuals.sh"`, then make the final judgment of "is this truly a shipping risk?" from the diff context.
-
-| Severity | Representative Examples | Classification Rationale |
-|----------|------------------------|--------------------------|
-| **major** | `localhost` / `127.0.0.1` / `0.0.0.0` connection targets, `it.skip` / `describe.skip` / `test.skip`, hardcoded secret-like values, dev/staging fixed URLs | Directly linked to production incidents, misconfiguration, or missed validation. 1 item → `REQUEST_CHANGES` |
-| **minor** | `mockData`, `dummy`, `fakeData`, `TODO`, `FIXME` | Likely residuals, but not necessarily an immediate incident. Fix recommended but does not change verdict |
-| **recommendation** | `temporary implementation`, `replace later`, `placeholder implementation` comments | Cannot be immediately classified as a bug from comments alone, but should be tracked and clarified |
-
-### Step 2.5: Verdict Determination by Threshold Criteria
-
-Classify each finding by the following severity levels and determine the verdict **solely by these criteria**.
-
-| Severity | Definition | Verdict Impact |
-|----------|------------|----------------|
-| **critical** | Security vulnerabilities, data loss risk, potential production incidents | 1 item → REQUEST_CHANGES |
-| **major** | Breaking existing functionality, clear contradiction with specifications, test failures | 1 item → REQUEST_CHANGES |
-| **minor** | Naming improvements, insufficient comments, style inconsistencies | No impact on verdict |
-| **recommendation** | Best practice suggestions, future improvement ideas | No impact on verdict |
-
-> **Important**: When only minor / recommendation items exist, **always return APPROVE**.
-> "Nice-to-have improvements" are not grounds for REQUEST_CHANGES.
-> The same applies to `AI Residuals`. Only items that are "directly linked to shipping incidents or misconfiguration" are classified as `major`; mere residual candidates are kept at `minor` or `recommendation`.
-
-### Step 3: Review Result Output
+### Step 3: Review Result Output with Explicit Verdict Reasoning
 
 ```json
 {
   "schema_version": "review-result.v1",
   "verdict": "APPROVE | REQUEST_CHANGES",
-  "reviewer_profile": "static | runtime | browser",
-  "calibration": {
-    "label": "false_positive | false_negative | missed_bug | overstrict_rule",
-    "source": "manual | post-review | retrospective",
-    "notes": "observation memo",
-    "prompt_hint": "key points for few-shot",
-    "few_shot_ready": true
+  "verdict_reasoning": {
+    "rationale": "Explanation of why this verdict was selected (reference the severity framework above)",
+    "triggering_issues": ["List of critical/major findings that triggered REQUEST_CHANGES, if applicable"],
+    "confidence": "high | medium"
   },
-  "critical_issues": [],
-  "major_issues": [],
+  "reviewer_profile": "static | runtime | browser",
+  "critical_issues": [
+    {
+      "category": "Security | Performance | Quality | Accessibility | AI Residuals",
+      "location": "filename:line_number",
+      "issue": "issue description",
+      "severity_justification": "Why this is critical (reference severity framework)",
+      "suggestion": "fix suggestion"
+    }
+  ],
+  "major_issues": [
+    {
+      "category": "Security | Performance | Quality | Accessibility | AI Residuals",
+      "location": "filename:line_number",
+      "issue": "issue description",
+      "severity_justification": "Why this is major (reference severity framework)",
+      "suggestion": "fix suggestion"
+    }
+  ],
   "observations": [
     {
-      "severity": "critical | major | minor | recommendation",
+      "severity": "minor | recommendation",
       "category": "Security | Performance | Quality | Accessibility | AI Residuals",
       "location": "filename:line_number",
       "issue": "issue description",
       "suggestion": "fix suggestion"
     }
   ],
-  "recommendations": ["non-mandatory improvement suggestions"]
+  "recommendations": ["non-mandatory improvement suggestions"],
+  "calibration": {
+    "label": "false_positive | false_negative | missed_bug | overstrict_rule",
+    "source": "manual | post-review | retrospective",
+    "notes": "observation memo",
+    "prompt_hint": "key points for few-shot",
+    "few_shot_ready": true
+  }
 }
 ```
 
