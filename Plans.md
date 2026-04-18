@@ -170,7 +170,7 @@ Purpose: Opus 4.7 の 3 倍以上に増えた画像解像度対応を、`harness
 
 | Task | 内容 | DoD | Depends | Status |
 |------|------|-----|---------|--------|
-| 44.9.1 | `skills/harness-review/references/` に vision 高解像度フロー (PDF pages, 設計図画像レビュー) を 1 枚追加。`docs/opus-4-7-vision-usage.md` (新設) に「2576px まで安全」「超える場合は事前リサイズ」のガイドを書く。実装は skill references 追加のみで、新 API 呼び出しコードは不要 | (a) references 追加、(b) docs 追加、(c) `tests/validate-plugin.sh` PASS | 44.4.2 | cc:TODO |
+| 44.9.1 | `skills/harness-review/references/` に vision 高解像度フロー (PDF pages, 設計図画像レビュー) を 1 枚追加。`docs/opus-4-7-vision-usage.md` (新設) に「2576px まで安全」「超える場合は事前リサイズ」のガイドを書く。実装は skill references 追加のみで、新 API 呼び出しコードは不要 | (a) references 追加、(b) docs 追加、(c) `tests/validate-plugin.sh` PASS | 44.4.2 | cc:完了 [5949ee7d] |
 
 ---
 
