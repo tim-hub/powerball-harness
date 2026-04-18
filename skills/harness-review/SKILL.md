@@ -35,8 +35,9 @@ if $ARGUMENTS == "":
 <!-- 上記 3 行は AUTO-START CONTRACT。skill-editing.md の「最冒頭 3 行以内」ルールに従い fence / HTML コメントで押し下げない -->
 
 **REVIEW_AUTOSTART 契約**: 引数なし (`$ARGUMENTS == ""`) で呼ばれた場合、
-最初の応答に必ず `REVIEW_AUTOSTART: base_ref={自動決定したref}, type=code` を出力すること。
-この識別行は自動開始の確認マーカーであり、省略禁止。
+Step 1 開始前の handshake 行として `REVIEW_AUTOSTART: base_ref={自動決定したref}, type=code` を 1 行だけ出力する。
+この行は auto-start 確認マーカー専用であり、Step 3 の「結果サマリーを出力の最初に配置」ルールの『最初』は**レビュー結果提示時**に適用される（handshake 行はその前段に 1 行として存在する）。
+省略禁止だが、human-facing な summary/JSON は Step 3 の順序で出力する。
 
 **禁止行動リスト** (`context: fork` 下での override に対抗する明示制約):
 1. 「タスクが不明確です」と応答して停止する行為
@@ -156,6 +157,8 @@ echo "Auto-detected review type: ${REVIEW_TYPE}"
 
 #### ルール 2: 結果サマリーを出力の最初に配置
 
+> **注**: bare `/harness-review` 時の `REVIEW_AUTOSTART` handshake 行は本ルールの『最初』の対象外（Step 0 の auto-start マーカー契約を参照）。handshake 行を 1 行出力した後、本セクションで指定する結果サマリーを human-facing 出力の最初に置く。
+
 - ユーザーが最も知りたい情報 (**判定・主要指摘 3 件・次のアクション**) を**冒頭に日本語で** 出力
 - JSON 詳細や技術的根拠はサマリーの**後**に補足として配置
 - JSON を最初に出す、観点別評価の後に結論を添える、英語で書く — これらは**すべて NG**
@@ -261,7 +264,9 @@ bash scripts/review-ai-residuals.sh path/to/file.ts path/to/config.sh
 
 レビュー結果は**必ず以下の順序で出力**する:
 
-1. **🎯 結果サマリー** (日本語、必ず最初に出力)
+> **注**: bare 呼び出し時の `REVIEW_AUTOSTART` handshake 行（Step 0 の auto-start マーカー）は Step 3 の出力順序の対象外。handshake 行（1 行）を出力した後、以下の順序でレビュー結果を出力する。
+
+1. **🎯 結果サマリー** (日本語、レビュー結果の最初に出力)
 2. JSON 出力 (機械可読 schema-v1 形式、サマリーの後)
 3. 観点別評価の詳細 (任意、日本語)
 

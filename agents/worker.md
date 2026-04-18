@@ -126,10 +126,16 @@ hooks:
     fi
   done
   ```
-- `mode == breezing` かつ `IS_PLANS_MATCH == 1` の場合、タスクを abort して以下を返す:
-  ```json
-  { "status": "failed", "escalation_reason": "Plans.md is Lead-owned in Phase C" }
+- `mode == breezing` かつ `IS_PLANS_MATCH == 1` の場合、**さらに** staged diff で cc:* マーカー行が変更されているかを確認する:
+  ```bash
+  CC_MARKER_DIFF="$(git diff --cached -- "$PLANS_PATH" 2>/dev/null \
+    | grep -E '^[+-].*cc:(TODO|WIP|完了)' || true)"
   ```
+- `CC_MARKER_DIFF` が非空の場合（Worker が cc:* マーカー行を追加/変更/削除している）、タスクを abort して以下を返す:
+  ```json
+  { "status": "failed", "escalation_reason": "cc:* marker transitions are Lead-owned in Phase C (breezing mode)" }
+  ```
+- `CC_MARKER_DIFF` が空の場合（Plans.md に触れているが cc:* マーカーは変更していない、例: `plans-format-migrate.sh` のような format 変更）は続行する
 - breezing の `cc:TODO` / `cc:WIP` / `cc:完了` 遷移は Lead の Phase C 責務であり、Worker はこれらのマーカーを変更しない
 - 進捗マーカーの更新は cherry-pick 後に Lead が行う
 - Custom Plans path (`config-utils.sh: plans_file` override) にも `get_plans_file_path` 経由で対応する
