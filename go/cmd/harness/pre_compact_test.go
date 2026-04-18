@@ -95,3 +95,27 @@ func runGit(t *testing.T, dir string, args ...string) {
 		t.Fatalf("git %v failed: %v\n%s", args, err, string(out))
 	}
 }
+
+// TestResolvePreCompactRoot_WalksUpFromSubdir guards against the regression
+// where CC launched from a repository subdirectory would search for
+// .claude/state/locks/ and Plans.md inside that subdir instead of the
+// repository root, causing PreCompact protection to silently no-op for
+// monorepo or subpackage layouts.
+func TestResolvePreCompactRoot_WalksUpFromSubdir(t *testing.T) {
+	repoRoot := t.TempDir()
+	runGit(t, repoRoot, "init", "-q")
+	subdir := filepath.Join(repoRoot, "packages", "api")
+	if err := os.MkdirAll(subdir, 0o755); err != nil {
+		t.Fatalf("mkdir subdir: %v", err)
+	}
+
+	got := resolvePreCompactRoot(subdir)
+
+	// macOS prepends /private to t.TempDir(); compare via filepath.EvalSymlinks
+	wantResolved, _ := filepath.EvalSymlinks(repoRoot)
+	gotResolved, _ := filepath.EvalSymlinks(got)
+	if gotResolved != wantResolved {
+		t.Errorf("resolvePreCompactRoot(subdir) = %q (resolved %q), want repo root %q (resolved %q)",
+			got, gotResolved, repoRoot, wantResolved)
+	}
+}

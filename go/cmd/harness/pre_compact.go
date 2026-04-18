@@ -73,13 +73,25 @@ func readPreCompactInput(r io.Reader) (preCompactInput, error) {
 }
 
 func resolvePreCompactRoot(cwd string) string {
-	if strings.TrimSpace(cwd) != "" {
-		return cwd
+	start := strings.TrimSpace(cwd)
+	if start == "" {
+		if wd, err := os.Getwd(); err == nil {
+			start = wd
+		} else {
+			start = "."
+		}
 	}
-	if wd, err := os.Getwd(); err == nil {
-		return wd
+	// CC may launch from a repo subdirectory. Walk up to git toplevel so that
+	// .claude/state/locks/ and Plans.md are always discovered at repo root,
+	// not at the subdirectory the user happened to start CC from.
+	cmd := exec.Command("git", "-C", start, "rev-parse", "--show-toplevel")
+	out, err := cmd.Output()
+	if err == nil {
+		if root := strings.TrimSpace(string(out)); root != "" {
+			return root
+		}
 	}
-	return "."
+	return start
 }
 
 func normalizePreCompactRole(values ...string) string {
