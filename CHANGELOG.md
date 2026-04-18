@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.8.1...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.8.2...HEAD
+[4.8.2]: https://github.com/tim-hub/powerball-harness/compare/v4.8.1...v4.8.2
 [4.8.1]: https://github.com/tim-hub/powerball-harness/compare/v4.8.0...v4.8.1
 [4.8.0]: https://github.com/tim-hub/powerball-harness/compare/v4.7.0...v4.8.0
 [4.7.0]: https://github.com/tim-hub/powerball-harness/compare/v4.6.1...v4.7.0
@@ -13,6 +14,16 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.8.2] - 2026-04-18
+
+### Theme: Re-commit binaries so the Phase 72 trace hook actually runs
+
+**The Phase 72 trace-posttool hook was a silent no-op for users who installed v4.8.0 / v4.8.1 via the marketplace. Source updates landed but the platform binaries in `harness/bin/` were never rebuilt-and-committed alongside them — so `${CLAUDE_PLUGIN_ROOT}/bin/harness hook trace-posttool` hit an "unknown subcommand" branch and produced no trace files. v4.8.2 commits the binaries built at the v4.8.1 fix point so the dispatch case actually exists at install time.**
+
+**Fix**: re-stage `harness-darwin-arm64`, `harness-darwin-amd64`, `harness-linux-amd64` from the post-v4.8.1 build. `strings <binary> | grep trace-posttool` now returns matches; before this commit, it returned zero.
+
+**Why it wasn't caught**: CI rebuilds binaries from source for tests, so test runs always saw the new dispatch. Marketplace users get whatever's committed — a different code path that the test suite never exercises. Process improvement (committed-binary staleness gate in `release-preflight.sh`) is queued as a follow-up before the next release.
 
 ## [4.8.1] - 2026-04-18
 
