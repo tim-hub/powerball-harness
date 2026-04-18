@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.9.2...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.9.3...HEAD
+[4.9.3]: https://github.com/tim-hub/powerball-harness/compare/v4.9.2...v4.9.3
 [4.9.2]: https://github.com/tim-hub/powerball-harness/compare/v4.9.1...v4.9.2
 [4.9.1]: https://github.com/tim-hub/powerball-harness/compare/v4.9.0...v4.9.1
 [4.9.0]: https://github.com/tim-hub/powerball-harness/compare/v4.8.2...v4.9.0
@@ -17,6 +18,20 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.9.3] - 2026-04-19
+
+### Theme: harness-review SKILL.md step renumbering cleanup
+
+**Fixes inconsistent step numbers in `harness-review` SKILL.md left over from the v2 verdict framework restructure (Phase 74).**
+
+---
+
+#### 1. harness-review SKILL.md step renumbering
+
+**Before**: Step numbers had gaps (Step 1.5, Step 3.5/3.6/3.7) from the removal of Steps 2.2 and 2.5 during the v2 verdict framework promotion. Inline references in the doc (e.g. "Step 3 JSON schema", "Codex runs in parallel with Step 3") were stale.
+
+**After**: Steps renumbered sequentially — 1.5→2, 2→3, 3→4, 3.5/3.6/3.7→4.1/4.2/4.3, 4→5. All inline cross-references updated to match.
 
 ## [4.9.2] - 2026-04-19
 
