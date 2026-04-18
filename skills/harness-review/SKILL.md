@@ -28,13 +28,11 @@ Harness の統合レビュースキル。
 ---
 
 ## 🚀 Step 0: 動作モード決定 (必ず最初に読む)
-
-<!-- AUTO-START CONTRACT: この 3 行は機械可読条件として最冒頭に固定する -->
-```
 if $ARGUMENTS == "":
   → Step 0.1 で BASE_REF を自動決定し BASE_REF..HEAD の差分で Code Review を開始する
   → 「タスクが不明確」「追加の指示を待つ」は禁止行動
-```
+
+<!-- 上記 3 行は AUTO-START CONTRACT。skill-editing.md の「最冒頭 3 行以内」ルールに従い fence / HTML コメントで押し下げない -->
 
 **REVIEW_AUTOSTART 契約**: 引数なし (`$ARGUMENTS == ""`) で呼ばれた場合、
 最初の応答に必ず `REVIEW_AUTOSTART: base_ref={自動決定したref}, type=code` を出力すること。

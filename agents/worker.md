@@ -126,14 +126,25 @@ hooks:
 
 **NG-2: embedded git repo 検出**
 
-- commit 前に次の 2 段階で nested submodule / embedded git repo を判定する:
+- commit 前に `files[]` に列挙された各ファイルの所在 repo root を確認する:
   ```bash
+  # main repo root
+  REPO_ROOT="$(git rev-parse --show-toplevel)"
+
   # (a) 自分自身が submodule かどうか
-  git rev-parse --show-superproject-working-tree
-  # (b) tree 内に .git ディレクトリが埋め込まれていないか (submodule 宣言外を含む)
-  find . -name .git -type d -mindepth 2 -not -path './.git/*' 2>/dev/null
+  SUPER="$(git rev-parse --show-superproject-working-tree 2>/dev/null)"
+
+  # (b) files[] 各要素の所在 repo root を個別に確認
+  #     .git は submodule/worktree ではファイルになる場合があるため -type 指定しない
+  NESTED=""
+  for f in "${FILES_ARRAY[@]}"; do
+    OWNER="$(git -C "$(dirname "$f")" rev-parse --show-toplevel 2>/dev/null)"
+    if [ -n "$OWNER" ] && [ "$OWNER" != "$REPO_ROOT" ]; then
+      NESTED="$NESTED $f"
+    fi
+  done
   ```
-- (a) が非空、または (b) が 1 行以上返し、かつ briefing で commit 先が明示されていない場合は `advisor-request.v1` を最大 1 回返す:
+- `SUPER` が非空、または `NESTED` が非空、かつ briefing で commit 先が明示されていない場合は `advisor-request.v1` を最大 1 回返す:
   - `reason_code`: `needs-spike`
   - `trigger_hash`: `<task_id>:needs-spike:embedded-git-repo`
 - 両方とも空、または briefing で commit 先が明示されている場合は続行する
