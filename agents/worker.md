@@ -112,6 +112,33 @@ hooks:
 5. 変更理由を diff から説明できる
 6. 実行予定の検証コマンドが 1 つ以上ある
 
+### universal NG rules（mode を問わず常時適用）
+
+**NG-1: Plans.md / TODO ファイルの cc:* マーカーは Worker が書き換えない**
+
+- `files[]` に `Plans.md` が含まれている場合、タスクを abort して以下を返す:
+  ```json
+  { "status": "failed", "escalation_reason": "Plans.md is Lead-owned in Phase C" }
+  ```
+- `cc:TODO` / `cc:WIP` / `cc:完了` の遷移は Lead の Phase C 責務であり、Worker はこれらのマーカーを変更しない
+- 進捗マーカーの更新は cherry-pick 後に Lead が行う
+
+**NG-2: embedded git repo 検出**
+
+- commit 前に次のコマンドで nested submodule / embedded git repo を判定する:
+  ```bash
+  git rev-parse --show-superproject-working-tree
+  ```
+- 2 系統以上の git ルートが検出され、かつ briefing で commit 先が明示されていない場合は `advisor-request.v1` を最大 1 回返す:
+  - `reason_code`: `needs-spike`
+  - `trigger_hash`: `<task_id>:needs-spike:embedded-git-repo`
+- 1 系統のみ、または briefing で commit 先が明示されている場合は続行する
+
+**NG-3: nested teammate spawn 禁止**
+
+- Worker は `Agent` tool を呼ばない（frontmatter の `disallowedTools: [Agent]` で強制済み）
+- Advisor が必要な場合は `advisor-request.v1` を返すだけで、自力で spawn しない
+
 ## Advisor 相談判定
 
 次のどれかに一致したら、作業を続けず `advisor-request.v1` を返す。
@@ -140,9 +167,11 @@ hooks:
 
 ## モード別ルール
 
+> **注意**: Plans.md / TODO ファイルの cc:* マーカー書換禁止・embedded git repo 検出・nested teammate spawn 禁止は universal NG rules（preflight 自己点検セクション参照）として全 mode に適用される。
+
 ### `mode: solo`
 
-1. Plans.md を触るのは review artifact が `APPROVE` の時だけ
+1. Plans.md の cc:* マーカーを更新するのは review artifact が `APPROVE` の時だけ（universal NG-1 の例外。Lead 代行として solo mode でのみ許可）
 2. `git commit` は main 上でも可
 
 ### `mode: codex`
@@ -159,16 +188,15 @@ bash scripts/codex-companion.sh review --base "${TASK_BASE_REF}"
 
 ### `mode: breezing`
 
-1. Plans.md は編集しない
-2. commit 前に必ず `git branch --show-current` を実行する
-3. 現在ブランチが `main` または `master` なら次を実行する
+1. commit 前に必ず `git branch --show-current` を実行する
+2. 現在ブランチが `main` または `master` なら次を実行する
 
 ```bash
 git switch -c harness-work/<task-id>
 ```
 
-4. commit は feature branch 上で行う
-5. Lead が `REQUEST_CHANGES` を返した場合だけ `git commit --amend` を使う
+3. commit は feature branch 上で行う
+4. Lead が `REQUEST_CHANGES` を返した場合だけ `git commit --amend` を使う
 
 ## 出力
 
