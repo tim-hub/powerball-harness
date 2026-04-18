@@ -1,0 +1,8 @@
+[
+  {
+    "name": "harness-session-monitor",
+    "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook session-monitor",
+    "description": "Auto-arm session monitoring for harness-mem health, advisor/reviewer state, and Plans.md drift.",
+    "when": "always"
+  }
+]
