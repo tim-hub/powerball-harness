@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.9.3...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.9.4...HEAD
+[4.9.4]: https://github.com/tim-hub/powerball-harness/compare/v4.9.3...v4.9.4
 [4.9.3]: https://github.com/tim-hub/powerball-harness/compare/v4.9.2...v4.9.3
 [4.9.2]: https://github.com/tim-hub/powerball-harness/compare/v4.9.1...v4.9.2
 [4.9.1]: https://github.com/tim-hub/powerball-harness/compare/v4.9.0...v4.9.1
@@ -18,6 +19,8 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.9.4] - 2026-04-19
 
 ### Theme: Port upstream Worker/Reviewer contract improvements (Phase 75, PRs #88/#89)
 
