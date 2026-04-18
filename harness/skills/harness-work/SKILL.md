@@ -272,6 +272,20 @@ for task in execution_order:
     worker_id = worker_result.agentId  # Retain for SendMessage
     # worker_result contains {commit, worktreePath, files_changed, summary}
 
+    # B-2.5. Worker self-review gate (worker-report.v1)
+    # Worker must emit worker-report.v1 before Lead spawns Reviewer.
+    # Lead validates; up to 2 amendment cycles if the report is incomplete.
+    # See "Worker Self-Review Gate" section for schema details.
+    self_review = worker_result.worker_report  # JSON block emitted at end of Worker output
+    amendment_count = 0
+    while not is_valid_worker_report(self_review) and amendment_count < 2:
+        SendMessage(to=worker_id, message="worker-report.v1 incomplete — all 5 SR rules must have verified:true and non-empty evidence. Please re-emit.")
+        updated = wait_for_response(worker_id)
+        self_review = updated.worker_report
+        amendment_count++
+    if not is_valid_worker_report(self_review):
+        → Escalate: "Worker failed to produce valid self-review after 2 amendments" — stop task, do not cherry-pick
+
     # B-3. Lead executes review (Codex exec priority)
     diff_text = git("-C", worker_result.worktreePath, "show", worker_result.commit)
     verdict = codex_exec_review(diff_text) or reviewer_agent_review(diff_text)
@@ -375,6 +389,60 @@ Workers must not spawn Reviewer, Advisor, or other Worker agents. Team member sp
 **Why**: Claude Code v2.1.69+ prohibits nested teammate spawning at the platform level. Attempting it causes unpredictable behavior (silent drop or error). Even where technically possible, nested spawning creates untracked review loops that bypass the Lead's quality gate.
 
 **Check**: Worker prompts must not contain `Agent(subagent_type=...)` calls targeting harness agent types. The Lead validates this by reviewing the Worker's implementation plan before spawning.
+
+## Worker Self-Review Gate (worker-report.v1)
+
+Before the Lead spawns a Reviewer, the Worker must emit a `worker-report.v1` JSON block as the final output of its implementation turn. The Lead validates the report and rejects incomplete submissions with up to 2 amendment cycles before escalating.
+
+### Schema
+
+```json
+{
+  "schema": "worker-report.v1",
+  "task_id": "<task number>",
+  "self_review": [
+    {
+      "rule_id": "SR-1",
+      "rule": "All DoD items from the sprint contract are addressed",
+      "verified": true,
+      "evidence": "<what was done / test output / file reference>"
+    },
+    {
+      "rule_id": "SR-2",
+      "rule": "No NG rule violations: Plans.md untouched (NG-1), no embedded git repos (NG-2), no nested spawn (NG-3)",
+      "verified": true,
+      "evidence": "<git diff HEAD Plans.md output / find .git output>"
+    },
+    {
+      "rule_id": "SR-3",
+      "rule": "Tests pass or no test framework present and no regressions detected",
+      "verified": true,
+      "evidence": "<test run output or rationale>"
+    },
+    {
+      "rule_id": "SR-4",
+      "rule": "No AI residuals: no localhost/127.0.0.1, no it.skip/describe.skip/test.skip, no hardcoded secrets",
+      "verified": true,
+      "evidence": "<grep output or 'residuals scan: clean'>"
+    },
+    {
+      "rule_id": "SR-5",
+      "rule": "Commit is self-contained: no unrelated file changes, no debug artifacts, meaningful commit message",
+      "verified": true,
+      "evidence": "<git diff --stat output>"
+    }
+  ]
+}
+```
+
+### Validation Rules (Lead-side)
+
+A `worker-report.v1` is **valid** iff:
+- All 5 `rule_id` entries (SR-1 through SR-5) are present
+- Every entry has `"verified": true`
+- Every `evidence` field is non-empty (non-empty string, not `""` or `null`)
+
+If any rule has `"verified": false` or an empty `evidence` field, the report is **invalid** — Lead sends an amendment request (see B-2.5 in the breezing flow). After 2 failed amendments, the task is escalated to the user; the Worker commit is not cherry-picked.
 
 ## CI Failure Handling
 
