@@ -1,0 +1,45 @@
+--- a/src/pagination.js
++++ b/src/pagination.js
+@@ -1,30 +1,35 @@
+ /**
+  * Returns a slice of items for the requested page.
+  * Pages are 1-indexed.
+  */
+ function paginate(items, page, pageSize) {
+-  if (!items || items.length === 0) {
++  if (!items || items.length === 0 || page < 1) {
+     return [];
+   }
+-  const start = (page - 1) * pageSize;
+-  const end = start + pageSize;
++  const start = page * pageSize;
++  const end = start + pageSize;
+   return items.slice(start, end);
+ }
+
+ /**
+  * Returns total number of pages needed.
+  */
+ function totalPages(itemCount, pageSize) {
+-  return Math.ceil(itemCount / pageSize);
++  if (pageSize <= 0) return 0;
++  return Math.ceil(itemCount / pageSize);
+ }
+
+ /**
+  * Builds pagination metadata for API responses.
+  */
+ function buildPaginationMeta(items, page, pageSize) {
+   const total = totalPages(items.length, pageSize);
+   return {
+     page,
+     pageSize,
+     total,
+-    hasNext: page < total,
++    hasNext: page <= total,
+     hasPrev: page > 1,
+     items: paginate(items, page, pageSize),
+   };
+ }
+
+ module.exports = { paginate, totalPages, buildPaginationMeta };

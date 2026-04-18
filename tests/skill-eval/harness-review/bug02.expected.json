@@ -1,0 +1,4 @@
+{
+  "verdict": "REQUEST_CHANGES",
+  "rationale": "Introduces an off-by-one error in paginate() by removing the '- 1' offset so page 1 skips the first pageSize items, and changes hasNext to '<=' which incorrectly reports a next page when already on the last page."
+}

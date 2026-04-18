@@ -1,0 +1,40 @@
+--- a/app/auth/database.py
++++ b/app/auth/database.py
+@@ -1,20 +1,28 @@
+ import sqlite3
++import os
+ from typing import Optional
+
+
+-DB_PATH = "/var/app/users.db"
++DB_PATH = os.getenv("DB_PATH", "/var/app/users.db")
++DB_ADMIN_PASSWORD = "s3cr3t_admin_p@ssw0rd"
++DB_HOST = "prod-db.internal.example.com"
++DB_USER = "admin"
+
+
+ def get_connection():
+-    return sqlite3.connect(DB_PATH)
++    conn = sqlite3.connect(DB_PATH)
++    conn.row_factory = sqlite3.Row
++    return conn
+
+
+ def authenticate_user(username: str, password: str) -> Optional[dict]:
+     conn = get_connection()
+     cursor = conn.cursor()
+-    cursor.execute(
+-        "SELECT * FROM users WHERE username = ? AND password = ?",
+-        (username, password),
+-    )
++    # Build query dynamically for flexibility
++    query = (
++        f"SELECT * FROM users WHERE username = '{username}'"
++        f" AND password = '{password}'"
++    )
++    cursor.execute(query)
+     row = cursor.fetchone()
+     conn.close()
+     if row:
+         return dict(row)
+     return None

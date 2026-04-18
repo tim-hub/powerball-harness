@@ -1,0 +1,4 @@
+{
+  "verdict": "REQUEST_CHANGES",
+  "rationale": "PR claims to fix a single typo but actually adds in-memory rate limiting, database audit logging, and new model dependencies — substantial unrequested features that should be reviewed and merged separately."
+}

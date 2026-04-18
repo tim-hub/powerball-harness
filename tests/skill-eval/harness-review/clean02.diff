@@ -1,0 +1,57 @@
+--- a/src/utils/string_helpers.js
++++ b/src/utils/string_helpers.js
+@@ -14,6 +14,32 @@
+ function truncate(str, maxLength) {
+   if (typeof str !== "string") return "";
+   if (str.length <= maxLength) return str;
+   return str.slice(0, maxLength - 3) + "...";
+ }
+
++/**
++ * Converts a camelCase or PascalCase string to kebab-case.
++ *
++ * @param {string} str - The input string in camelCase or PascalCase.
++ * @returns {string} The kebab-case equivalent.
++ *
++ * @example
++ * toKebabCase("myVariableName")  // "my-variable-name"
++ * toKebabCase("HTTPSConnection") // "h-t-t-p-s-connection"
++ */
++function toKebabCase(str) {
++  if (typeof str !== "string" || str.length === 0) return "";
++  return str
++    .replace(/([A-Z])/g, (match) => `-${match.toLowerCase()}`)
++    .replace(/^-/, "");
++}
++
+ module.exports = { capitalize, truncate };
++module.exports = { capitalize, truncate, toKebabCase };
+--- a/src/utils/string_helpers.test.js
++++ b/src/utils/string_helpers.test.js
+@@ -20,3 +20,24 @@
+   test("returns empty string for non-string input", () => {
+     expect(truncate(null, 10)).toBe("");
+   });
+ });
++
++describe("toKebabCase", () => {
++  test("converts camelCase to kebab-case", () => {
++    expect(toKebabCase("myVariableName")).toBe("my-variable-name");
++  });
++
++  test("converts PascalCase to kebab-case", () => {
++    expect(toKebabCase("MyComponent")).toBe("my-component");
++  });
++
++  test("returns empty string for empty input", () => {
++    expect(toKebabCase("")).toBe("");
++  });
++
++  test("returns empty string for non-string input", () => {
++    expect(toKebabCase(42)).toBe("");
++  });
++
++  test("handles already lowercase string", () => {
++    expect(toKebabCase("hello")).toBe("hello");
++  });
++});

@@ -1,0 +1,54 @@
+--- a/lib/report_generator.py
++++ b/lib/report_generator.py
+@@ -1,42 +1,48 @@
+ from datetime import datetime
+ from typing import List, Dict
+
+
+-def gen_rpt(data: List[Dict], fmt: str = "text") -> str:
+-    """Generate a report from data rows."""
+-    lines = []
+-    ts = datetime.utcnow().isoformat()
+-    lines.append(f"Report generated at {ts}")
+-    lines.append("-" * 40)
+-    for row in data:
+-        if fmt == "text":
+-            line = ", ".join(f"{k}={v}" for k, v in row.items())
+-        else:
+-            line = str(row)
+-        lines.append(line)
+-    lines.append("-" * 40)
+-    lines.append(f"Total rows: {len(data)}")
+-    return "\n".join(lines)
+-
+-
+-def fmt_row_text(row: Dict) -> str:
+-    return ", ".join(f"{k}={v}" for k, v in row.items())
+-
+-
+-def fmt_row_repr(row: Dict) -> str:
+-    return str(row)
++def generate_report(data: List[Dict], fmt: str = "text") -> str:
++    """Generate a formatted report from a list of data rows.
++
++    Args:
++        data: List of row dictionaries to include in the report.
++        fmt: Output format; "text" for key=value pairs, anything else for repr.
++
++    Returns:
++        The formatted report as a single string.
++    """
++    timestamp = datetime.utcnow().isoformat()
++    header = f"Report generated at {timestamp}"
++    separator = "-" * 40
++    body_lines = [_format_row(row, fmt) for row in data]
++    footer = f"Total rows: {len(data)}"
++    sections = [header, separator, *body_lines, separator, footer]
++    return "\n".join(sections)
++
++
++def _format_row(row: Dict, fmt: str) -> str:
++    """Return a single row formatted according to fmt."""
++    if fmt == "text":
++        return ", ".join(f"{k}={v}" for k, v in row.items())
++    return repr(row)
