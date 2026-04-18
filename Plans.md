@@ -204,3 +204,82 @@ Purpose: 上記全タスクの統合動作を確認し、v4.1.1 → v4.2.0 "Arca
 | 44.12.2 | `CHANGELOG.md` の `[Unreleased]` セクションに v4.2.0 "Arcana" エントリを書く (日本語・「今まで / 今後」形式、CC 統合部分は「CC のアプデ → Harness での活用」形式)。`scripts/sync-version.sh bump minor` で `VERSION` / `.claude-plugin/plugin.json` / `harness.toml` を 4.2.0 に同期。GitHub Release notes は `.claude/rules/github-release.md` の英語フォーマットで下書き作成 | (a) CHANGELOG lint PASS、(b) 3 点バージョン同期、(c) `tests/validate-plugin.sh` + `scripts/ci/check-consistency.sh` + `scripts/check-residue.sh` 全 PASS、(d) GitHub Release 下書き保存 | 44.12.1 | cc:TODO |
 
 ---
+
+### Phase 44.13: Plugin agent expose 経路の確立 (Agent tool subagent_type 不在バグ) [P0]
+
+Purpose: 2026-04-17 の loop テストで発覚: harness の `agents/worker.md` / `reviewer.md` / `scaffolder.md` / `advisor.md` が CC runtime の Agent tool subagent_type enum に登録されておらず、`/harness-loop` / `/breezing` / `/harness-work` の Step 5 (worker spawn) が起動不可。
+
+**重要な事前確認結果**:
+- `claude plugin validate .claude-plugin/plugin.json` は `agents: Invalid input` `monitors: Invalid input` を返す → 公式 schema は両 field 不採用
+- 比較: codex plugin (marketplace install) は plugin.json に `agents` 宣言なしで `codex:codex-rescue` を expose → agents は **auto-discovery される**
+- `claude plugin list` に `claude-code-harness` が出ない → 本リポジトリは marketplace install ではなく **project-local** で load されている
+- skills は project-local でも expose されるが、agents は marketplace install 経由のみで expose される疑い
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 44.13.1 | claude-code-harness の agents が Agent tool subagent_type enum に出ない原因を特定する。具体的には: (a) `claude plugin install` 経由で local marketplace install を試して `claude-code-harness:worker` が enum に出るか確認、(b) marketplace install 不要で公式に agents を expose する方法（例: `.claude-plugin/agents/` 配下に置く / 特定の frontmatter フラグ）を Claude Code docs から特定、(c) 確定した方法を README または `docs/plugin-development.md` (新設) に手順化、(d) agents/team-composition.md は agent 定義ではないので mv または excludeルールを追加 | (a) Agent tool で `subagent_type="claude-code-harness:worker"` を含む 4 agent が dry-run spawn 可能、(b) 解決手順がドキュメント化されている、(c) team-composition.md の扱いが明確 | 44.1.1 | cc:完了 [2026-04-18 検証] — 別フォルダでの install テスト結果: cache v4.1.1 plugin.json は agents field 無しでも `/agents` に harness:* 5 つ (worker/reviewer/scaffolder/advisor/team-composition) が FQN で表示。agents は `agents/` ディレクトリから **auto-discovery される** ことが確定。source repo 内セッションで出ない現象は development mode 的な CC 挙動で、end user 環境には影響しない開発者 localized な UX 問題。memory: `plugin_agent_auto_discovery.md` / `source_repo_plugin_hide.md` |
+| 44.13.2 | `skills/harness-loop/SKILL.md` の frontmatter に `user-invocable: true` を追加。`Skill` tool 経由で直接 invoke 可能にする (短い名前 `harness-loop` で動作することを 2026-04-17 のテストで確認済み) | (a) `Skill(skill="harness-loop", args="...")` が動く、(b) `/loop /harness-loop ...` の dynamic mode も引き続き動作、(c) `tests/validate-plugin.sh` PASS | - | cc:完了 [skills/harness-loop/SKILL.md L7] |
+| 44.13.3 | 44.13.1 の解決手段が「marketplace install 必須」と判明した場合のフォールバック: skill (harness-loop, breezing, harness-work) の Step 5 worker spawn を `subagent_type="general-purpose"` + worker prompt embedding に書き換え可能か検討。trade-off: agent 専用文脈が失われるが、project-local dev でも動作するメリットあり。実施は 44.13.1 結果次第 | (a) 44.13.1 結果を踏まえた decision record を `.claude/memory/decisions.md` に記録、(b) 採用なら 3 skill ファイルを更新し test 通す、(c) 不採用なら理由を decision record に記録して close | 44.13.1 | cc:不要 [2026-04-18] — 44.13.1 で「marketplace install で agents は auto-discovery で正常 expose される」が確定。fallback 不要。end user は `/plugin install` するだけで全 agents が使える |
+
+---
+
+## Phase 45: sync.go pluginJSON struct 拡張 — Monitors strip 問題の恒久修正
+
+作成日: 2026-04-18
+目的: `go/cmd/harness/sync.go` line 93-112 の `pluginJSON` struct に `Monitors` field が存在せず、`harness sync` が走るたびに `.claude-plugin/plugin.json` から `monitors` manifest が黙って strip される。ca1e6e5d で monitors を restore しても次 sync で再消失するため、struct 側の恒久修正が必要。
+
+### 背景
+
+- Phase 44.2.2 で `monitors` manifest を追加 → 2e8a3bb1 で誤って削除 → ca1e6e5d で restore、という流れで既に 2 度事故が起きている
+- 根本原因: `pluginJSON` struct に declared されていない field は `encoding/json` が marshal 時に drop する。sync は `plugin.json` を regenerate する方式のため、struct に無い field は毎回消える
+- Agents field も同様に struct に無いが、Phase 44.13.1 で agents は auto-discovery されることが確定したため strip されても実害なし。**Monitors は auto-discovery されないため strip が直接実害となる**
+
+### 優先度マトリクス
+
+| 優先度 | Phase | 内容 | タスク数 | 依存 |
+|--------|-------|------|---------|------|
+| **Required** | 45.1 | `pluginJSON` struct に `Monitors` field 追加 + harness.toml → plugin.json 伝播 | 1 | なし |
+| **Recommended** | 45.2 | `Agents` field を struct に追加 (auto-discovery で optional だが明示 declaration として) + sync 後も保持 | 1 | 45.1 |
+| **Required** | 45.3 | regression テスト: `harness sync` 実行後も monitors / agents field が保持される | 1 | 45.1, 45.2 |
+
+合計: **3 タスク** (Required 2 / Recommended 1)
+
+### 完成基準 (Definition of Done)
+
+| # | 基準 | 検証方法 | 必須/推奨 |
+|---|------|---------|----------|
+| 1 | `pluginJSON` struct に `Monitors` field が宣言され、`harness sync` で `monitors` manifest が strip されない | `go test ./go/cmd/harness/...` + `.claude-plugin/plugin.json` の monitors field を diff 検証 | 必須 |
+| 2 | `harness.toml` に monitors 定義セクションが追加され、生成元として機能する | `harness sync` 実行後 `plugin.json` に monitors が出力される | 必須 |
+| 3 | `sync` を 3 回連続実行しても `plugin.json` の monitors / agents が保持される (idempotent) | 手動テスト + `tests/validate-plugin.sh` PASS | 必須 |
+
+---
+
+### Phase 45.1: `pluginJSON` struct に Monitors field 追加 [P0]
+
+Purpose: monitors manifest を sync で保持するための struct 拡張
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 45.1.1 | `go/cmd/harness/sync.go` の `pluginJSON` struct に `Monitors interface{} \`json:"monitors,omitempty"\`` を追加。あわせて `harness.toml` に `[project.monitors]` または類似セクションを追加して `config.Config` 経由で伝播できるようにする。`generatePluginJSON` 内で `p.Monitors = cfg.Project.Monitors()` 等の assignment を追加 | (a) struct に Monitors field あり、(b) harness.toml からの伝播動作、(c) `go build ./...` PASS、(d) `harness sync` 実行後 `.claude-plugin/plugin.json` に monitors が保持される | - | cc:TODO |
+
+---
+
+### Phase 45.2: Agents field 追加 (明示 declaration) [P1]
+
+Purpose: agents は auto-discovery で optional だが、plugin.json の可読性向上のため明示的に struct 宣言する
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 45.2.1 | `pluginJSON` struct に `Agents []string \`json:"agents,omitempty"\`` を追加。harness.toml から直接または hardcode で `["./agents/"]` を出力。既に plugin.json に入っている `"agents": ["./agents/"]` が sync 後も保持されるようにする | (a) struct に Agents field あり、(b) sync 後も agents field が保持、(c) `tests/validate-plugin.sh` PASS | 45.1.1 | cc:TODO |
+
+---
+
+### Phase 45.3: idempotent sync の regression テスト [P0]
+
+Purpose: sync を複数回実行しても plugin.json の manifest が不変であることを保証する
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 45.3.1 | `tests/test-sync-idempotent.sh` (新設) で (a) `harness sync` 初回実行、(b) `.claude-plugin/plugin.json` の checksum 記録、(c) `harness sync` を連続 2 回実行、(d) checksum が初回と一致することを検証する。同時に Go unit test `go/cmd/harness/sync_idempotent_test.go` (新設) で struct-level の round-trip 検証を追加 | (a) shell test PASS、(b) Go unit test PASS、(c) `tests/validate-plugin.sh` がこのテストを含む | 45.1.1, 45.2.1 | cc:TODO |
+
+---
