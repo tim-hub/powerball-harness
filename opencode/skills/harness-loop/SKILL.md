@@ -19,6 +19,9 @@ user-invocable: true
 > 人が戻ってきたら `/recap` で要約を取り直してから `/harness-loop status` を見る。
 > 長めの離席や再入が多い運用では `ENABLE_PROMPT_CACHING_1H=1` を優先する。
 
+> **長時間セッション推奨 (CC 2.1.108+)**:
+> セッション長が 30 分を超える見込みの場合、開始前に `bash scripts/enable-1h-cache.sh` を実行して 1 時間 prompt cache を opt-in すること。
+
 ## Quick Reference
 
 | 入力 | 動作 |
