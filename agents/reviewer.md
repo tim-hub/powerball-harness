@@ -11,7 +11,7 @@ disallowedTools:
   - Bash
   - Agent
 model: claude-sonnet-4-6
-effort: medium
+effort: xhigh
 maxTurns: 50
 permissionMode: bypassPermissions
 color: blue

@@ -1,72 +1,90 @@
 # Effort Level Policy
 
-ひとことで:
-Phase 44 の方針では、`xhigh` は見送りではなく正式対象です。ただし「どこで無条件に上げるか」ではなく、「どの役割に使うと得か」を分けて運用します。
+## 概要
 
-たとえると:
-料理で火力を上げる話に近いです。全部を強火にすると速い反面、焦げやすくもなります。`xhigh` は「ここだけ火を強くする」と決めて使うのが向いています。
+CC frontmatter の `effort` フィールドと Anthropic API の effort パラメータの対応関係、および Harness における採用方針を定義する。
 
-## 前提
+## CC Frontmatter と API Effort の対応マトリクス
 
-- Claude Code `2.1.111` で `xhigh` が追加された
-- 公開 changelog では、`xhigh` は Opus 4.7 専用で、他モデルでは `high` にフォールバックするとされている
-- Harness は「モデル側にあるから全面採用」ではなく、Plan / Work / Review の役割差で使い分ける
+CC v2.1.72 で `max` が廃止され、v2.1.111 で `xhigh` が追加された。
 
-## 対応マトリクス
+| CC frontmatter `effort` 値 | API effort 実効値 | Opus 4.7 での動作 | 非 Opus 4.7 での動作 |
+|----------------------------|------------------|-------------------|---------------------|
+| `low` | low | low | low |
+| `medium` | medium | medium | medium |
+| `high` | high | high | high |
+| `xhigh` | xhigh (extended thinking) | xhigh（最大 thinking budget） | `high` にフォールバック（changelog 明記） |
 
-| レイヤー | 指定値 | 実効値の考え方 | 方針 |
-|---------|--------|----------------|------|
-| Claude Code `/effort` | `low`, `medium`, `high`, `xhigh`, `max` | UI と CLI から指定可能 | `xhigh` を正式対象に含める |
-| `--effort` | 同上 | 実行時指定 | 長い review / advisory で有効 |
-| model picker | 同上 | Opus 4.7 利用時に意味がある | reviewer / advisor に相性が良い |
-| 非 Opus 4.7 モデル | `xhigh` 指定時でも `high` 相当へフォールバック | changelog 明記あり | docs で明示する |
+**注記**:
+- `xhigh` は CC v2.1.111 で frontmatter に追加された（`CLAUDE-feature-table.md` / `cc-2.1.99-2.1.111-impact.md` 参照）
+- `max` は CC v2.1.72 で廃止済み。frontmatter に書いても無効
+- `xhigh` を Opus 4.7 以外のモデル（Sonnet 系など）で指定した場合、CC が `high` に自動ダウングレードする
+
+### xhigh が CC 経由で API に渡せるかの判定
+
+**判定: 採用（xhigh を frontmatter で受け付ける証拠あり）**
+
+根拠:
+1. `docs/CLAUDE-feature-table.md` の v2.1.111 セクションに `xhigh effort` が `A: 明示追従対象` として記録されている
+2. 同ファイルの Opus 4.7 セクションにも `xhigh effort` が `A: 明示追従対象` として記録されている
+3. `docs/cc-2.1.99-2.1.111-impact.md` に v2.1.111 での `xhigh` 追加が文書化されている
+4. Harness の `opus-4-7-prompt-audit.md` にて「`xhigh`: 呼び出し側が選ぶ推論強度」と定義されている
+
+`xhigh` を frontmatter に書いた場合、CC は Anthropic API に extended thinking を有効にしたリクエストを送る。非 Opus 4.7 モデルではサイレントに `high` 相当へダウングレードされる。reject や error にはならない。
 
 ## Harness の採用方針
 
-| フロー | 推奨 effort | 理由 |
-|--------|-------------|------|
+| フロー | 採用 effort | 理由 |
+|--------|------------|------|
 | Plan | `high` | 速さと整理力のバランスが良い |
-| Work | `high` | 実装は長考より反復確認が重要 |
-| Review | `xhigh` | 比較・反証・抜け漏れ検知に向く |
-| Advisor | `xhigh` | correction / stop 判断の精度を優先したい |
-| Release / Setup | `high` | 手順遵守が中心で、常時 `xhigh` は過剰になりやすい |
+| Work (Worker agent) | `high` | 実装は長考より反復確認が重要 |
+| Review (Reviewer agent, harness-review) | `xhigh` | 比較・反証・抜け漏れ検知に thinking 増分の効果が出る |
+| Advisor | `xhigh` | PLAN / CORRECTION / STOP の判断精度を優先 |
+| Release / Setup | `high` | 手順遵守が中心で、常時 `xhigh` は過剰 |
 
-## 正式対象としての結論
+### frontmatter 更新対象
 
-### 採用するもの
-
-- `xhigh` は Harness docs 上の正式対象に含める
-- `/ultrareview` と組み合わせる review 文脈では、`xhigh` を前提に説明してよい
-- reviewer / advisor 系の説明では、`high` より一段重い選択肢として扱う
-
-### 採用しないもの
-
-- 全 skill / 全 agent を一律 `xhigh` にすること
-- Opus 4.7 以外でも常に `xhigh` と同じ結果が得られる前提で書くこと
+| ファイル | 変更前 | 変更後 | 理由 |
+|--------|--------|--------|------|
+| `agents/reviewer.md` | `effort: medium` | `effort: xhigh` | Review に xhigh を採用 |
+| `agents/advisor.md` | `effort: high` | `effort: xhigh` | Advisor に xhigh を採用 |
+| `skills/harness-review/SKILL.md` | `effort: high` | 変更なし | スキルの effort は呼び出し側が上書きするため high を維持 |
 
 ## 運用ルール
 
-1. review と advisory を優先して `xhigh` の対象にする  
-理由: バグ検知や反証は、実装そのものより thinking 増分の効果が出やすいからです。
+1. **review と advisory を優先して `xhigh` の対象にする**
+   理由: バグ検知や反証は、実装そのものより thinking 増分の効果が出やすい。
 
-2. work は既定 `high` を維持する  
-理由: 実装はトークン消費より、短いサイクルでの検証の方が効くことが多いからです。
+2. **work は既定 `high` を維持する**
+   理由: 実装はトークン消費より、短いサイクルでの検証の方が効くことが多い。
 
-3. docs では「Opus 4.7 以外は `high` へフォールバック」を毎回明記する  
-理由: 利用者が「`xhigh` と書いたのに効いていない」と誤解しやすいためです。
+3. **docs では「Opus 4.7 以外は `high` へフォールバック」を明記する**
+   理由: 利用者が「`xhigh` と書いたのに効いていない」と誤解しやすい。
 
-## 具体例
+4. **全 skill / 全 agent を一律 `xhigh` にしない**
+   理由: コストとレイテンシが無駄に増加する。役割差で使い分けること。
 
-具体例:
-大きい PR のレビューでは、`/harness-review` や `/ultrareview` を `xhigh` で回す価値があります。  
-一方で、単純な typo 修正や docs 整理まで `xhigh` にすると、待ち時間とコストだけ増えやすいです。
+## 見送り rationale（採用しないもの）
+
+以下は採用しない。見送り理由を明記する。
+
+| 項目 | 見送り理由 |
+|------|-----------|
+| Worker agent を `xhigh` にすること | 実装ループは長考より速い反復が重要。xhigh のコスト増分に見合う品質向上が得られない |
+| Setup / Release スキルを `xhigh` にすること | 手順遵守が中心で、judgment より recall が重要な場面が多い |
+| `max` の復活 | CC v2.1.72 で廃止済み。`xhigh` がその後継 |
 
 ## 注意点
 
-- `xhigh` は「賢くなる魔法」ではなく、より深く考えるための余白です
-- 曖昧な指示のままだと、深く考えてもズレた方向に精密化されることがあります
-- だからこそ Opus 4.7 では effort だけでなく、指示文の具体性も同時に必要です
+- `xhigh` は「賢くなる魔法」ではなく、より深く考えるための余白
+- 曖昧な指示のままだと、深く考えてもズレた方向に精密化される
+- Opus 4.7 以外のモデルでは `xhigh` を指定しても `high` 相当にフォールバックするため、期待した効果が出ない場合がある
+- `opus-4-7-prompt-audit.md` の合格条件 5: `xhigh` は「呼び出し側が選ぶ推論強度」であり、agent prompt が free-text marker から推測するものではない
 
-## なぜこのやり方か
+## 関連ファイル
 
-Harness は Plan → Work → Review の分業があるため、全部を同じ火力で動かすより、役割に合わせて火力を変える方が合理的だからです。
+- `docs/CLAUDE-feature-table.md` — v2.1.111 / Opus 4.7 の機能一覧
+- `docs/cc-2.1.99-2.1.111-impact.md` — xhigh 追加の詳細
+- `.claude/rules/opus-4-7-prompt-audit.md` — xhigh の運用ノブ定義
+- `agents/reviewer.md` — Reviewer effort 設定
+- `agents/advisor.md` — Advisor effort 設定
