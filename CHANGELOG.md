@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.9.4...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.9.5...HEAD
+[4.9.5]: https://github.com/tim-hub/powerball-harness/compare/v4.9.4...v4.9.5
 [4.9.4]: https://github.com/tim-hub/powerball-harness/compare/v4.9.3...v4.9.4
 [4.9.3]: https://github.com/tim-hub/powerball-harness/compare/v4.9.2...v4.9.3
 [4.9.2]: https://github.com/tim-hub/powerball-harness/compare/v4.9.1...v4.9.2
@@ -19,6 +20,8 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.9.5] - 2026-04-19
 
 ### Fix: WorktreeCreate Go handler — JSON-cwd guard parity (Phase 76)
 
