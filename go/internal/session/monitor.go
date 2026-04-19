@@ -165,6 +165,9 @@ func (h *MonitorHandler) Handle(r io.Reader, w io.Writer) error {
 	// Check for Plans.md drift and emit warning if thresholds exceeded
 	h.CheckPlansDrift(w, plansState, plansFile, projectRoot)
 
+	// Check for unanswered advisor/reviewer requests past TTL
+	h.CheckAdvisorDrift(w, stateDir, projectRoot)
+
 	return nil
 }
 
@@ -535,4 +538,132 @@ func formatInt(v int) *int {
 func atoi(s string) int {
 	v, _ := strconv.Atoi(strings.TrimSpace(s))
 	return v
+}
+
+// loadAdvisorTTLConfig reads the orchestration.advisor_ttl_seconds value from the config file.
+// If the file or key is absent, the default (600 seconds) is returned.
+func loadAdvisorTTLConfig(projectRoot string) int {
+	const defaultTTL = 600
+
+	configPath := filepath.Clean(filepath.Join(projectRoot, "harness", ".claude-code-harness.config.yaml"))
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return defaultTTL
+	}
+
+	// Lightweight scanner: find orchestration.advisor_ttl_seconds
+	inOrchestration := false
+	for _, raw := range strings.Split(string(data), "\n") {
+		line := strings.TrimRight(raw, "\r")
+		trimmed := strings.TrimSpace(line)
+
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+
+		indent := len(line) - len(strings.TrimLeft(line, " \t"))
+
+		// Top-level "orchestration:" key
+		if indent == 0 {
+			inOrchestration = strings.TrimRight(trimmed, ":") == "orchestration" && strings.HasSuffix(trimmed, ":")
+			continue
+		}
+
+		if !inOrchestration {
+			continue
+		}
+
+		// Second-level key: value pairs inside orchestration
+		parts := strings.SplitN(trimmed, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(parts[0])
+		val := strings.TrimSpace(parts[1])
+		if key == "advisor_ttl_seconds" {
+			if v := atoi(val); v > 0 {
+				return v
+			}
+		}
+	}
+
+	return defaultTTL
+}
+
+// readLastLines reads up to n lines from the end of the file at path.
+func readLastLines(path string, n int) ([]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	lines := strings.Split(strings.TrimRight(string(data), "\n"), "\n")
+	if len(lines) > n {
+		lines = lines[len(lines)-n:]
+	}
+	return lines, nil
+}
+
+// CheckAdvisorDrift scans the last 200 lines of session.events.jsonl for stale
+// advisor requests that have not received a response within the configured TTL.
+// It emits a warning line to w for each unanswered request that has exceeded the TTL.
+func (h *MonitorHandler) CheckAdvisorDrift(w io.Writer, stateDir string, projectRoot string) {
+	eventsFile := filepath.Join(stateDir, "session.events.jsonl")
+	ttl := loadAdvisorTTLConfig(projectRoot)
+
+	lines, err := readLastLines(eventsFile, 200)
+	if err != nil {
+		return // missing file = no drift (graceful)
+	}
+
+	type eventRecord struct {
+		EventType string `json:"event_type"`
+		RequestID string `json:"request_id"`
+		Timestamp string `json:"timestamp"`
+	}
+
+	// Track advisor requests without responses
+	advisorRequests := make(map[string]time.Time) // request_id → timestamp
+	responded := make(map[string]bool)            // request_id → true if responded
+
+	now := h.currentTime()
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		var ev eventRecord
+		if err := json.Unmarshal([]byte(line), &ev); err != nil {
+			continue
+		}
+		if ev.RequestID == "" {
+			continue
+		}
+
+		switch ev.EventType {
+		case "advisor-request.v1":
+			if t, err := time.Parse(time.RFC3339, ev.Timestamp); err == nil {
+				advisorRequests[ev.RequestID] = t
+			}
+		case "advisor-response.v1":
+			responded[ev.RequestID] = true
+		case "review-result.v1":
+			// Treat as a self-contained stale signal: mark as responded since the result IS present
+			if t, err := time.Parse(time.RFC3339, ev.Timestamp); err == nil {
+				advisorRequests["review:"+ev.RequestID] = t
+				responded["review:"+ev.RequestID] = true
+			}
+		}
+	}
+
+	// Emit warnings for unanswered advisor requests past TTL
+	for reqID, ts := range advisorRequests {
+		if responded[reqID] {
+			continue
+		}
+		elapsed := int(now.Sub(ts).Seconds())
+		if elapsed >= ttl {
+			fmt.Fprintf(w, "⚠️ advisor drift: request_id=%s, waiting %ds\n", reqID, elapsed)
+		}
+	}
 }

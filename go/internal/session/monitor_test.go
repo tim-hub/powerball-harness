@@ -248,6 +248,101 @@ func TestMonitorHandler_WriteSummary(t *testing.T) {
 	}
 }
 
+func TestMonitorHandler_AdvisorDrift(t *testing.T) {
+	// fixedNow is the reference time used in all table cases.
+	fixedNow := time.Date(2026, 4, 19, 10, 0, 0, 0, time.UTC)
+
+	cases := []struct {
+		name        string
+		events      string       // raw JSONL content for session.events.jsonl
+		ttlSeconds  int          // 0 = use default (600)
+		nowOffset   time.Duration // offset from fixedNow for h.now
+		wantOutput  bool
+		wantSubstr  string
+	}{
+		{
+			name: "miss_responded_within_ttl",
+			events: `{"event_type":"advisor-request.v1","request_id":"req-001","timestamp":"2026-04-19T10:00:00Z"}
+{"event_type":"advisor-response.v1","request_id":"req-001","timestamp":"2026-04-19T10:05:00Z"}`,
+			nowOffset:  6 * time.Minute,
+			wantOutput: false,
+		},
+		{
+			name: "hit_unanswered_past_ttl",
+			events: `{"event_type":"advisor-request.v1","request_id":"req-002","timestamp":"2026-04-19T08:00:00Z"}`,
+			nowOffset:  2 * time.Hour, // 7200s elapsed, TTL=600
+			wantOutput: true,
+			wantSubstr: "advisor drift: request_id=req-002",
+		},
+		{
+			name: "config_override_low_ttl",
+			events: `{"event_type":"advisor-request.v1","request_id":"req-003","timestamp":"2026-04-19T09:59:30Z"}`,
+			ttlSeconds: 5,
+			nowOffset:  30 * time.Second, // 30s elapsed, TTL=5 → triggers
+			wantOutput: true,
+			wantSubstr: "advisor drift: request_id=req-003",
+		},
+		{
+			name:       "file_missing_graceful",
+			events:     "", // no file will be written
+			nowOffset:  0,
+			wantOutput: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			stateDir := filepath.Join(dir, "state")
+			if err := os.MkdirAll(stateDir, 0700); err != nil {
+				t.Fatal(err)
+			}
+
+			// Write events file only when events content is provided
+			if tc.events != "" {
+				eventsFile := filepath.Join(stateDir, "session.events.jsonl")
+				if err := os.WriteFile(eventsFile, []byte(tc.events), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			// Write config file if custom TTL is specified
+			if tc.ttlSeconds > 0 {
+				configDir := filepath.Join(dir, "harness")
+				if err := os.MkdirAll(configDir, 0755); err != nil {
+					t.Fatal(err)
+				}
+				configContent := "orchestration:\n  advisor_ttl_seconds: " + strconv.Itoa(tc.ttlSeconds) + "\n"
+				if err := os.WriteFile(filepath.Join(configDir, ".claude-code-harness.config.yaml"), []byte(configContent), 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			h := &MonitorHandler{
+				now: func() time.Time { return fixedNow.Add(tc.nowOffset) },
+			}
+
+			var buf bytes.Buffer
+			h.CheckAdvisorDrift(&buf, stateDir, dir)
+
+			got := buf.String()
+			if tc.wantOutput {
+				if got == "" {
+					t.Errorf("expected advisor drift warning but got no output")
+					return
+				}
+				if tc.wantSubstr != "" && !strings.Contains(got, tc.wantSubstr) {
+					t.Errorf("expected output to contain %q, got: %q", tc.wantSubstr, got)
+				}
+			} else {
+				if got != "" {
+					t.Errorf("expected no output, got: %q", got)
+				}
+			}
+		})
+	}
+}
+
 func TestMonitorHandler_PlansDrift(t *testing.T) {
 	// fixedNow is the reference time used in all table cases.
 	fixedNow := time.Date(2026, 4, 19, 12, 0, 0, 0, time.UTC)
@@ -362,3 +457,4 @@ func TestMonitorHandler_PlansDrift(t *testing.T) {
 		})
 	}
 }
+

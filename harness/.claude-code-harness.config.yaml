@@ -39,6 +39,11 @@ monitor:
     # Emit a warning when Plans.md has not been modified for >= this many hours
     stale_hours: 24
 
+# Orchestration settings
+orchestration:
+  # TTL in seconds before an unanswered advisor/reviewer request is flagged as drift
+  advisor_ttl_seconds: 600
+
 # Advisor settings (Opus consultation strategy)
 advisor:
   enabled: true
