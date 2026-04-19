@@ -11,7 +11,7 @@
 A Claude Code plugin for autonomous **Plan → Work → Review** workflows, with a Go-native guardrail engine that protects your repo at runtime.
 
 <p align="center">
-  <img src="assets/readme-visuals-en/generated/why-harness-pillars.svg" alt="What changes with Claude Harness: shared plan, runtime guardrails, and rerunnable validation" width="860">
+  <img src="docs/assets/readme-visuals-en/generated/why-harness-pillars.svg" alt="What changes with Claude Harness: shared plan, runtime guardrails, and rerunnable validation" width="860">
 </p>
 
 ---
@@ -65,7 +65,7 @@ Run everything after plan approval:
 ## Security Guardrails
 
 <p align="center">
-  <img src="assets/readme-visuals-en/generated/safety-guardrails.svg" alt="Safety Protection System" width="640">
+  <img src="docs/assets/readme-visuals-en/generated/safety-guardrails.svg" alt="Safety Protection System" width="640">
 </p>
 
 Harness protects your codebase with a **Go-native guardrail engine** (`go/internal/guardrail/`) — 13 declarative rules (R01–R13) evaluated in priority order:
@@ -102,6 +102,14 @@ powerball-harness/
 ```
 
 > Deep dive into the guardrail engine — rules R01–R13, pre/post-tool pipelines, fail-safe design: **[go/README.md](go/README.md)**
+
+---
+
+## Inspiration
+
+**[Meta-Harness: End-to-End Optimization of Model Harnesses](https://arxiv.org/abs/2603.28052)** (arXiv:2603.28052)
+
+Phase 72–74 borrowed its core insight: compressed feedback loses causal signal — agents need raw execution history, not summaries, to reason about why past attempts failed. This drives the per-task `.claude/state/traces/` JSONL system and the `harness-review` eval loop.
 
 ---
 
