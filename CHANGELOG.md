@@ -21,6 +21,36 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Feature: Active Session Monitoring — Plans.md drift, advisor TTL, mem health (Phase 77)
+
+**Before**: The session monitor only reported static project state (branch, WIP/TODO counts). Drift conditions — too many WIP tasks, orphaned advisor requests, unhealthy harness-mem — were invisible until the user noticed manually.
+
+**After**: The session monitor now emits `⚠️` warnings at every SessionStart for three active drift conditions:
+
+#### 1. Plans.md Drift
+
+**Before**: No signal when Plans.md accumulated WIP tasks or went stale between sessions.
+
+**After**: On SessionStart, `bin/harness hook session-monitor` checks:
+- WIP task count >= `monitor.plans_drift.wip_threshold` (default 5)
+- Plans.md not modified in >= `monitor.plans_drift.stale_hours` hours (default 24h)
+
+Emits `⚠️ plans drift: WIP={n}, stale_for={h}h` when either threshold is exceeded.
+
+#### 2. Advisor/Reviewer Drift
+
+**Before**: Orphaned advisor requests (sent but never answered) accumulated silently in `session.events.jsonl`.
+
+**After**: The monitor scans the last 200 lines of `.claude/state/session.events.jsonl` for `advisor-request.v1` events without a matching response within `orchestration.advisor_ttl_seconds` (default 600s). Emits `⚠️ advisor drift: request_id={id}, waiting {elapsed}s`.
+
+#### 3. harness-mem Health (opt-in)
+
+**Before**: No way to check harness-mem installation health without reading config files manually.
+
+**After**: `bin/harness mem health` runs a two-stage probe: file integrity (`~/.claude-mem/settings.json`) then TCP daemon probe (`127.0.0.1:37888`, 500ms timeout). Returns `{"healthy":true}` or `{"healthy":false,"reason":"..."}` with exit 1 on failure.
+
+All thresholds are tunable in `harness/.claude-code-harness.config.yaml`. See `harness/docs/session-monitor-drift.md` for details.
+
 ## [4.9.5] - 2026-04-19
 
 ### Fix: WorktreeCreate Go handler — JSON-cwd guard parity (Phase 76)
