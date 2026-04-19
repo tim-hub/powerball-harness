@@ -66,7 +66,7 @@ Created: 2026-04-19
 |------|-------------|-----|---------|--------|
 | 76.1 | Port the shell handler's JSON-cwd guard to `go/internal/hookhandler/worktree_create.go`. After the empty-cwd check, reject cwd values whose first byte is `{` and return the approve response with reason `"WorktreeCreate: skipped (invalid JSON cwd)"`. Matches shell handler exactly | `worktree_create.go` has the guard immediately after the `input.CWD == ""` check; running with a JSON-string cwd returns the skip reason and does not create a directory | - | cc:Done [local] |
 | 76.2 | Add regression test `TestHandleWorktreeCreate_JSONCWDGuard` to `go/internal/hookhandler/worktree_create_test.go`. Feeds a payload whose `cwd` is the actual upstream hook output JSON; asserts the skip reason AND that no directory with that JSON name exists on disk | `go test ./go/internal/hookhandler/... -run TestHandleWorktreeCreate -race` passes all 7 tests including the new one | 76.1 | cc:Done [local] |
-| 76.3 | Commit fix + test with Conventional Commits message (`fix(hooks): guard against JSON cwd in WorktreeCreate Go handler`). Record Before/After entry under CHANGELOG `[Unreleased]` | Commit landed on master; CHANGELOG has a Before/After entry describing the symptom (JSON-named folders) and the fix (Go handler now matches shell parity) | 76.2 | cc:TODO |
+| 76.3 | Commit fix + test with Conventional Commits message (`fix(hooks): guard against JSON cwd in WorktreeCreate Go handler`). Record Before/After entry under CHANGELOG `[Unreleased]` | Commit landed on master; CHANGELOG has a Before/After entry describing the symptom (JSON-named folders) and the fix (Go handler now matches shell parity) | 76.2 | cc:Done [d87381f] |
 
 ---
 
