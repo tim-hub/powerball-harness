@@ -78,6 +78,8 @@ func main() {
 		runValidate(os.Args[2:])
 	case "doctor":
 		runDoctor(os.Args[2:])
+	case "mem":
+		runMem(os.Args[2:])
 	case "version":
 		fmt.Printf("%s (Hokage)\n", version)
 	case "--version", "-v":
@@ -120,6 +122,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  sync [root]             Generate CC files from harness.toml")
 	fmt.Fprintln(os.Stderr, "  validate [skills|agents|all] [root]  Validate SKILL.md / agent frontmatter")
 	fmt.Fprintln(os.Stderr, "  doctor [--migration] [root]          Health check; --migration shows hook migration status")
+	fmt.Fprintln(os.Stderr, "  mem health              Check harness-mem installation health (JSON output)")
 	fmt.Fprintln(os.Stderr, "  version                 Print version")
 }
 

@@ -171,6 +171,8 @@ deleted_concepts:
       - ".cursor/"  # Cursor IDE local settings
       - "docs/design/"  # UI design documents (old feature design depending on claude-mem)
       - "docs/research/"  # Research documents (includes claude-mem integration research)
+      - "go/cmd/harness/mem.go"  # harness mem health subcommand — checks ~/.claude-mem dir as the harness-mem install path
+      - "go/cmd/harness/mem_test.go"  # tests for mem.go — references .claude-mem as the target directory name
 
   - term: "skills/allow1"
     replacement: ".claude/skills/allow1"
