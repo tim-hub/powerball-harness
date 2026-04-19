@@ -45,3 +45,12 @@ cleanup:
     max_lines: 500
   claude_md:
     max_lines: 100
+
+# Session monitor thresholds (Phase 48)
+monitor:
+  plans_drift:
+    wip_threshold: 5
+    stale_hours: 24
+
+orchestration:
+  advisor_ttl_seconds: 600

@@ -81,6 +81,8 @@ func main() {
 		runDoctor(os.Args[2:])
 	case "codex-loop":
 		runCodexLoop(os.Args[2:])
+	case "mem":
+		runMem(os.Args[2:])
 	case "pre-compact":
 		runPreCompact(os.Args[2:])
 	case "version":
@@ -125,6 +127,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  validate [skills|agents|all] [root]  Validate SKILL.md / agent frontmatter")
 	fmt.Fprintln(os.Stderr, "  doctor [--migration] [root]          Health check; --migration shows hook migration status")
 	fmt.Fprintln(os.Stderr, "  codex-loop <start|status|stop> ...   Run the Codex-native long-running loop")
+	fmt.Fprintln(os.Stderr, "  mem health              Check harness-mem health (~/.claude-mem/)")
 	fmt.Fprintln(os.Stderr, "  pre-compact             Evaluate whether PreCompact should be blocked")
 	fmt.Fprintln(os.Stderr, "  version                 Print version")
 }

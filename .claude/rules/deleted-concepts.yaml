@@ -173,3 +173,8 @@ deleted_concepts:
       - ".cursor/"  # Cursor IDE ローカル設定
       - "docs/design/"  # UI 設計ドキュメント（claude-mem 依存の旧機能設計）
       - "docs/research/"  # リサーチドキュメント（claude-mem 統合調査を含む）
+      - "go/cmd/harness/mem.go"  # harness-mem health check 実装（~/.claude-mem/ パスを検査する正当な参照）
+      - "go/cmd/harness/mem_test.go"  # mem health テスト（~/.claude-mem/ を TempDir で模擬）
+      - "go/cmd/harness/main.go"  # harness mem サブコマンドの usage 表示
+      - "go/harness"  # ビルド済みバイナリ（mem.go のシンボルを含む）
+      - "bin/"  # ビルド済みバイナリディレクトリ

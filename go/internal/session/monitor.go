@@ -1,7 +1,10 @@
 package session
 
 import (
+	"bufio"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -23,6 +26,9 @@ type MonitorHandler struct {
 	PlansFile string
 	// now は現在時刻の注入関数（テスト用）。nil の場合は time.Now() を使う。
 	now func() time.Time
+	// MemHealthCommand は harness-mem ヘルスチェック関数（テスト注入用）。
+	// nil の場合は本番デフォルト実装（bin/harness mem health）を使う。
+	MemHealthCommand func(ctx context.Context) (healthy bool, reason string, err error)
 }
 
 // monitorInput は SessionStart フックの stdin JSON。
@@ -49,7 +55,15 @@ type sessionStateJSON struct {
 	PromptSeq          int               `json:"prompt_seq"`
 	Git                gitStateJSON      `json:"git"`
 	Plans              plansStateJSON    `json:"plans"`
+	HarnessMem         harnessMemJSON    `json:"harness_mem"`
 	ChangesThisSession []interface{}     `json:"changes_this_session"`
+}
+
+// harnessMemJSON は session.json の harness_mem フィールドのスキーマ。
+type harnessMemJSON struct {
+	Healthy     bool   `json:"healthy"`
+	LastChecked string `json:"last_checked"`
+	LastError   string `json:"last_error"`
 }
 
 type orchestrationJSON struct {
@@ -152,9 +166,20 @@ func (h *MonitorHandler) Handle(r io.Reader, w io.Writer) error {
 	gitState := h.collectGitState(projectRoot)
 	plansState := h.collectPlansState(plansFile)
 
+	// 48.1.1: harness-mem ヘルスチェック
+	memHealthy, memReason, _ := h.checkMemHealth(projectRoot)
+	memState := harnessMemJSON{
+		Healthy:     memHealthy,
+		LastChecked: nowStr,
+		LastError:   memReason,
+	}
+	if memHealthy {
+		memState.LastError = ""
+	}
+
 	// session.json を生成（resume/新規を判定）
 	sessionFile := filepath.Join(stateDir, "session.json")
-	h.generateSessionFile(sessionFile, projectRoot, projectName, nowStr, gitState, plansState)
+	h.generateSessionFile(sessionFile, projectRoot, projectName, nowStr, gitState, plansState, memState)
 
 	// tooling-policy.json を生成
 	policyFile := filepath.Join(stateDir, "tooling-policy.json")
@@ -162,6 +187,27 @@ func (h *MonitorHandler) Handle(r io.Reader, w io.Writer) error {
 
 	// サマリーを stdout に出力
 	h.writeSummary(w, projectName, gitState, plansState)
+
+	// 48.1.1: harness-mem unhealthy 警告
+	if !memHealthy {
+		reason := memReason
+		if reason == "" {
+			reason = "unknown"
+		}
+		fmt.Fprintf(w, "⚠️ harness-mem unhealthy: %s\n", reason)
+	}
+
+	// 48.1.2: advisor/reviewer drift 検知
+	driftLines := h.collectDrift(stateDir, projectRoot)
+	for _, line := range driftLines {
+		fmt.Fprintln(w, line)
+	}
+
+	// 48.1.3: Plans.md 閾値判定
+	if warning := h.checkPlansDrift(plansState, projectRoot); warning != "" {
+		fmt.Fprintln(w, warning)
+	}
+
 	return nil
 }
 
@@ -249,6 +295,7 @@ func (h *MonitorHandler) generateSessionFile(
 	sessionFile, projectRoot, projectName, nowStr string,
 	git gitStateJSON,
 	plans plansStateJSON,
+	mem harnessMemJSON,
 ) {
 	if isSymlink(sessionFile) {
 		return
@@ -282,6 +329,7 @@ func (h *MonitorHandler) generateSessionFile(
 		existing.UpdatedAt = nowStr
 		existing.Git = git
 		existing.Plans = plans
+		existing.HarnessMem = mem
 		existing.StateVersion = 1
 		sess = existing
 	} else {
@@ -313,6 +361,7 @@ func (h *MonitorHandler) generateSessionFile(
 			PromptSeq:          0,
 			Git:                git,
 			Plans:              plans,
+			HarnessMem:         mem,
 			ChangesThisSession: []interface{}{},
 		}
 	}
@@ -403,4 +452,389 @@ func formatInt(v int) *int {
 func atoi(s string) int {
 	v, _ := strconv.Atoi(strings.TrimSpace(s))
 	return v
+}
+
+// ---------------------------------------------------------------------------
+// 48.1.1: harness-mem ヘルスチェック
+// ---------------------------------------------------------------------------
+
+// resolveHarnessBinary は harness 実行バイナリの信頼可能なパスを返す。
+// 優先順位:
+//  1. os.Executable() — 現在実行中の harness binary（最も信頼可能）
+//  2. CLAUDE_PLUGIN_ROOT/bin/harness — plugin インストール済みパス
+//  3. exec.LookPath("harness") — PATH 上の harness
+//
+// projectRoot/bin/harness は信頼境界外（repo 内に悪意ある binary が混入する
+// 可能性がある）のため解決対象に含めない。
+func resolveHarnessBinary() (string, error) {
+	if exe, err := os.Executable(); err == nil && exe != "" {
+		return exe, nil
+	}
+	if root := os.Getenv("CLAUDE_PLUGIN_ROOT"); root != "" {
+		candidate := filepath.Join(root, "bin", "harness")
+		if _, statErr := os.Stat(candidate); statErr == nil {
+			return candidate, nil
+		}
+	}
+	if lookPath, lookErr := exec.LookPath("harness"); lookErr == nil {
+		return lookPath, nil
+	}
+	return "", errors.New("harness binary not found")
+}
+
+// checkMemHealth は harness-mem のヘルスを検査する。
+// h.MemHealthCommand が設定されている場合はそれを使う（テスト注入用）。
+// nil の場合は本番デフォルト実装（bin/harness mem health を exec）を使う。
+func (h *MonitorHandler) checkMemHealth(projectRoot string) (healthy bool, reason string, err error) {
+	if h.MemHealthCommand != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		return h.MemHealthCommand(ctx)
+	}
+	return h.defaultMemHealthCheck(projectRoot)
+}
+
+// defaultMemHealthCheck は bin/harness mem health を exec して結果を返す。
+// projectRoot 引数は signature 後方互換のため保持しているが使用しない。
+// 過去実装は projectRoot/bin/harness を exec していたが、repo 内に悪意ある
+// binary が混入した場合に guardrail を bypass されるリスクがあった。
+// v4.3.1 からは os.Executable() → CLAUDE_PLUGIN_ROOT/bin/harness → PATH
+// の優先順で解決する（いずれも信頼可能なインストール済みパス）。
+func (h *MonitorHandler) defaultMemHealthCheck(_ string) (healthy bool, reason string, err error) {
+	binaryPath, resolveErr := resolveHarnessBinary()
+	if resolveErr != nil {
+		// バイナリが見つからない場合はスキップ（監視全体は止めない）
+		return true, "", nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, binaryPath, "mem", "health")
+	output, cmdErr := cmd.Output()
+
+	// タイムアウト・exec 失敗
+	if ctx.Err() != nil {
+		return false, "timeout", ctx.Err()
+	}
+	if cmdErr != nil {
+		// exit code 1 は unhealthy を意味する（正常な失敗）
+		// JSON 出力があれば解析する
+		if len(output) > 0 {
+			var result struct {
+				Healthy bool   `json:"healthy"`
+				Reason  string `json:"reason"`
+			}
+			if jsonErr := json.Unmarshal(output, &result); jsonErr == nil {
+				return result.Healthy, result.Reason, nil
+			}
+		}
+		return false, cmdErr.Error(), cmdErr
+	}
+
+	// exit 0: JSON をパース
+	var result struct {
+		Healthy bool   `json:"healthy"`
+		Reason  string `json:"reason"`
+	}
+	if jsonErr := json.Unmarshal(output, &result); jsonErr != nil {
+		return true, "", nil // パース失敗は楽観的に healthy 扱い
+	}
+	return result.Healthy, result.Reason, nil
+}
+
+// ---------------------------------------------------------------------------
+// 48.1.2: advisor/reviewer drift 検知
+// ---------------------------------------------------------------------------
+
+// advisorEventJSON は session.events.jsonl の各行のスキーマ（最低限）。
+type advisorEventJSON struct {
+	SchemaVersion string `json:"schema_version"`
+	TaskID        string `json:"task_id"`
+	TriggerHash   string `json:"trigger_hash"`
+	Ts            string `json:"ts"`
+}
+
+// collectDrift は session.events.jsonl を末尾 200 行スキャンして
+// TTL 超過の未応答 advisor/reviewer request を検出し、警告行を返す。
+func (h *MonitorHandler) collectDrift(stateDir, projectRoot string) []string {
+	eventsFile := filepath.Join(stateDir, "session.events.jsonl")
+	ttl := h.readAdvisorTTL(projectRoot)
+	now := h.currentTime()
+
+	f, err := os.Open(eventsFile)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+
+	// 末尾 200 行を収集
+	var lines []string
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	if len(lines) > 200 {
+		lines = lines[len(lines)-200:]
+	}
+
+	// request と response を収集
+	type requestInfo struct {
+		ts    time.Time
+		hasTs bool
+		seq   int // ts がない場合の出現順
+	}
+	advisorRequests := make(map[string]requestInfo)  // key: task_id+trigger_hash
+	advisorResponses := make(map[string]bool)         // key: task_id+trigger_hash
+	reviewRequests := make(map[string]requestInfo)    // key: task_id+trigger_hash
+	reviewResponses := make(map[string]bool)          // key: task_id+trigger_hash
+
+	for seq, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		var ev advisorEventJSON
+		if err := json.Unmarshal([]byte(line), &ev); err != nil {
+			continue
+		}
+
+		key := makeEventKey(ev.TaskID, ev.TriggerHash)
+
+		var ts time.Time
+		hasTs := false
+		if ev.Ts != "" {
+			if parsed, parseErr := time.Parse(time.RFC3339, ev.Ts); parseErr == nil {
+				ts = parsed
+				hasTs = true
+			}
+		}
+
+		switch ev.SchemaVersion {
+		case "advisor-request.v1":
+			advisorRequests[key] = requestInfo{ts: ts, hasTs: hasTs, seq: seq}
+		case "advisor-response.v1":
+			advisorResponses[key] = true
+		case "worker-report.v1", "review-request.v1":
+			reviewRequests[key] = requestInfo{ts: ts, hasTs: hasTs, seq: seq}
+		case "review-result.v1":
+			reviewResponses[key] = true
+		}
+	}
+
+	var warnings []string
+
+	// advisor drift: 未応答 request で TTL 超過の最古 1 件のみ表示
+	var oldestAdvisorKey string
+	var oldestAdvisorElapsed int64 = -1
+	var oldestAdvisorID string
+
+	for key, req := range advisorRequests {
+		if advisorResponses[key] {
+			continue // 応答済みはスキップ
+		}
+		if !req.hasTs {
+			continue // ts がない場合はスキップ
+		}
+		elapsed := int64(now.Sub(req.ts).Seconds())
+		if elapsed <= ttl {
+			continue // TTL 未満はスキップ
+		}
+		if oldestAdvisorElapsed < 0 || elapsed > oldestAdvisorElapsed {
+			oldestAdvisorElapsed = elapsed
+			oldestAdvisorKey = key
+			// request_id: task_id か trigger_hash の short hash
+			parts := strings.SplitN(key, ":", 2)
+			if parts[0] != "" {
+				oldestAdvisorID = parts[0]
+			} else if len(parts) > 1 {
+				h := parts[1]
+				if len(h) > 7 {
+					h = h[:7]
+				}
+				oldestAdvisorID = h
+			}
+		}
+	}
+	_ = oldestAdvisorKey
+	if oldestAdvisorElapsed >= 0 {
+		warnings = append(warnings,
+			fmt.Sprintf("⚠️ advisor drift: request_id=%s, waiting %ds", oldestAdvisorID, oldestAdvisorElapsed))
+	}
+
+	// reviewer drift: 未応答 review request で TTL 超過
+	var oldestReviewerKey string
+	var oldestReviewerElapsed int64 = -1
+	var oldestReviewerID string
+
+	for key, req := range reviewRequests {
+		if reviewResponses[key] {
+			continue
+		}
+		if !req.hasTs {
+			continue
+		}
+		elapsed := int64(now.Sub(req.ts).Seconds())
+		if elapsed <= ttl {
+			continue
+		}
+		if oldestReviewerElapsed < 0 || elapsed > oldestReviewerElapsed {
+			oldestReviewerElapsed = elapsed
+			oldestReviewerKey = key
+			parts := strings.SplitN(key, ":", 2)
+			if parts[0] != "" {
+				oldestReviewerID = parts[0]
+			} else if len(parts) > 1 {
+				rh := parts[1]
+				if len(rh) > 7 {
+					rh = rh[:7]
+				}
+				oldestReviewerID = rh
+			}
+		}
+	}
+	_ = oldestReviewerKey
+	if oldestReviewerElapsed >= 0 {
+		warnings = append(warnings,
+			fmt.Sprintf("⚠️ reviewer drift: request_id=%s, waiting %ds", oldestReviewerID, oldestReviewerElapsed))
+	}
+
+	return warnings
+}
+
+// makeEventKey は task_id と trigger_hash からイベントキーを生成する。
+func makeEventKey(taskID, triggerHash string) string {
+	return taskID + ":" + triggerHash
+}
+
+// readAdvisorTTL は config.yaml から orchestration.advisor_ttl_seconds を読み取る。
+// 失敗時はデフォルト値 600 を返す。
+func (h *MonitorHandler) readAdvisorTTL(projectRoot string) int64 {
+	const defaultTTL = int64(600)
+
+	configPath := filepath.Clean(filepath.Join(projectRoot, ".claude-code-harness.config.yaml"))
+	f, err := os.Open(configPath)
+	if err != nil {
+		return defaultTTL
+	}
+	defer f.Close()
+
+	inOrchestration := false
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		trimmed := strings.TrimSpace(line)
+
+		// セクション検出（インデントなし）
+		if !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") {
+			inOrchestration = strings.TrimRight(trimmed, ":") == "orchestration"
+			continue
+		}
+
+		if !inOrchestration {
+			continue
+		}
+
+		if strings.Contains(trimmed, "advisor_ttl_seconds:") {
+			parts := strings.SplitN(trimmed, ":", 2)
+			if len(parts) == 2 {
+				val := strings.TrimSpace(parts[1])
+				if v, err := strconv.ParseInt(val, 10, 64); err == nil {
+					return v
+				}
+			}
+		}
+	}
+	return defaultTTL
+}
+
+// ---------------------------------------------------------------------------
+// 48.1.3: Plans.md 閾値判定
+// ---------------------------------------------------------------------------
+
+// checkPlansDrift は Plans.md の状態が閾値を超えているか検査し、
+// 超えていれば警告行（⚠️ plans drift: ...）を返す。超えていなければ空文字を返す。
+func (h *MonitorHandler) checkPlansDrift(plans plansStateJSON, projectRoot string) string {
+	if !plans.Exists {
+		return ""
+	}
+
+	wipThreshold, staleHours := h.readPlansDriftConfig(projectRoot)
+	now := h.currentTime()
+
+	wipHit := plans.WIPTasks >= wipThreshold
+
+	lastMod := time.Unix(plans.LastModified, 0)
+	elapsedHours := int64(now.Sub(lastMod).Hours())
+	staleHit := elapsedHours >= staleHours
+
+	if !wipHit && !staleHit {
+		return ""
+	}
+
+	return fmt.Sprintf("⚠️ plans drift: WIP=%d, stale_for=%dh", plans.WIPTasks, elapsedHours)
+}
+
+// readPlansDriftConfig は config.yaml から monitor.plans_drift セクションを読み取る。
+// 失敗時はデフォルト値（wip_threshold=5, stale_hours=24）を返す。
+func (h *MonitorHandler) readPlansDriftConfig(projectRoot string) (wipThreshold int, staleHours int64) {
+	wipThreshold = 5
+	staleHours = 24
+
+	configPath := filepath.Clean(filepath.Join(projectRoot, ".claude-code-harness.config.yaml"))
+	f, err := os.Open(configPath)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	inMonitor := false
+	inPlansDrift := false
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		trimmed := strings.TrimSpace(line)
+
+		// トップレベルセクション検出（インデントなし）
+		if !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") {
+			sectionName := strings.TrimRight(trimmed, ":")
+			inMonitor = sectionName == "monitor"
+			inPlansDrift = false
+			continue
+		}
+
+		if !inMonitor {
+			continue
+		}
+
+		// plans_drift サブセクション検出（1レベルインデント）
+		if strings.HasPrefix(line, "  ") && !strings.HasPrefix(line, "    ") {
+			subSection := strings.TrimRight(trimmed, ":")
+			inPlansDrift = subSection == "plans_drift"
+			continue
+		}
+
+		if !inPlansDrift {
+			continue
+		}
+
+		// 2レベルインデントのキー
+		if strings.Contains(trimmed, "wip_threshold:") {
+			parts := strings.SplitN(trimmed, ":", 2)
+			if len(parts) == 2 {
+				if v, err := strconv.Atoi(strings.TrimSpace(parts[1])); err == nil {
+					wipThreshold = v
+				}
+			}
+		} else if strings.Contains(trimmed, "stale_hours:") {
+			parts := strings.SplitN(trimmed, ":", 2)
+			if len(parts) == 2 {
+				if v, err := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 64); err == nil {
+					staleHours = v
+				}
+			}
+		}
+	}
+	return
 }

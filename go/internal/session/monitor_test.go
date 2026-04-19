@@ -2,7 +2,9 @@ package session
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -281,5 +283,465 @@ func TestMonitorHandler_WriteSummary(t *testing.T) {
 	}
 	if !strings.Contains(s, "WIP 2") {
 		t.Errorf("expected WIP count in summary, got:\n%s", s)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 48.1.1: harness-mem health 検知テスト
+// ---------------------------------------------------------------------------
+
+func TestMonitorHandler_HarnessMemHealthy(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		MemHealthCommand: func(_ context.Context) (bool, string, error) {
+			return true, "", nil
+		},
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// healthy の場合は警告なし
+	s := out.String()
+	if strings.Contains(s, "harness-mem unhealthy") {
+		t.Errorf("expected no unhealthy warning for healthy state, got:\n%s", s)
+	}
+
+	// session.json に harness_mem フィールドが書かれている
+	sessionFile := filepath.Join(stateDir, "session.json")
+	data, err := os.ReadFile(sessionFile)
+	if err != nil {
+		t.Fatalf("session.json not created: %v", err)
+	}
+	var sess sessionStateJSON
+	if err := json.Unmarshal(data, &sess); err != nil {
+		t.Fatalf("invalid session.json: %v", err)
+	}
+	if !sess.HarnessMem.Healthy {
+		t.Errorf("expected harness_mem.healthy=true in session.json")
+	}
+}
+
+func TestMonitorHandler_HarnessMemUnhealthy(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		MemHealthCommand: func(_ context.Context) (bool, string, error) {
+			return false, "not-initialized", nil
+		},
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	s := out.String()
+	if !strings.Contains(s, "harness-mem unhealthy") {
+		t.Errorf("expected unhealthy warning in output, got:\n%s", s)
+	}
+	if !strings.Contains(s, "not-initialized") {
+		t.Errorf("expected reason 'not-initialized' in warning, got:\n%s", s)
+	}
+
+	// session.json の harness_mem.healthy が false
+	sessionFile := filepath.Join(stateDir, "session.json")
+	data, err := os.ReadFile(sessionFile)
+	if err != nil {
+		t.Fatalf("session.json not created: %v", err)
+	}
+	var sess sessionStateJSON
+	if err := json.Unmarshal(data, &sess); err != nil {
+		t.Fatalf("invalid session.json: %v", err)
+	}
+	if sess.HarnessMem.Healthy {
+		t.Errorf("expected harness_mem.healthy=false in session.json")
+	}
+	if sess.HarnessMem.LastError != "not-initialized" {
+		t.Errorf("expected harness_mem.last_error=not-initialized, got %q", sess.HarnessMem.LastError)
+	}
+}
+
+func TestMonitorHandler_HarnessMemTimeout(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		MemHealthCommand: func(_ context.Context) (bool, string, error) {
+			return false, "timeout", fmt.Errorf("context deadline exceeded")
+		},
+	}
+
+	var out bytes.Buffer
+	// タイムアウト/エラー時もハンドラ全体は止まらない
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	s := out.String()
+	if !strings.Contains(s, "harness-mem unhealthy") {
+		t.Errorf("expected unhealthy warning for timeout, got:\n%s", s)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 48.1.2: advisor/reviewer drift 検知テスト
+// ---------------------------------------------------------------------------
+
+func TestMonitorHandler_AdvisorDrift_Hit(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, ".claude", "state")
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	// 600秒以上前の advisor-request を書く（TTL=600 を超える）
+	oldTime := time.Now().Add(-700 * time.Second).UTC().Format(time.RFC3339)
+	eventsFile := filepath.Join(stateDir, "session.events.jsonl")
+	line := fmt.Sprintf(`{"schema_version":"advisor-request.v1","task_id":"t1","trigger_hash":"abc123","ts":"%s"}`, oldTime)
+	if err := os.WriteFile(eventsFile, []byte(line+"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	now := time.Now()
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		now:       func() time.Time { return now },
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	s := out.String()
+	if !strings.Contains(s, "advisor drift") {
+		t.Errorf("expected advisor drift warning, got:\n%s", s)
+	}
+	if !strings.Contains(s, "waiting") {
+		t.Errorf("expected 'waiting' in advisor drift output, got:\n%s", s)
+	}
+}
+
+func TestMonitorHandler_AdvisorDrift_Miss(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, ".claude", "state")
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	// TTL 未満（50秒前）の advisor-request
+	recentTime := time.Now().Add(-50 * time.Second).UTC().Format(time.RFC3339)
+	eventsFile := filepath.Join(stateDir, "session.events.jsonl")
+	line := fmt.Sprintf(`{"schema_version":"advisor-request.v1","task_id":"t2","trigger_hash":"xyz789","ts":"%s"}`, recentTime)
+	if err := os.WriteFile(eventsFile, []byte(line+"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	now := time.Now()
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		now:       func() time.Time { return now },
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	s := out.String()
+	if strings.Contains(s, "advisor drift") {
+		t.Errorf("expected no advisor drift warning for TTL-miss, got:\n%s", s)
+	}
+}
+
+func TestMonitorHandler_AdvisorDrift_ConfigOverride(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, ".claude", "state")
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	// config.yaml で advisor_ttl_seconds=10 を設定
+	configContent := `orchestration:
+  advisor_ttl_seconds: 10
+`
+	if err := os.WriteFile(filepath.Join(dir, ".claude-code-harness.config.yaml"), []byte(configContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// 15秒前の advisor-request（TTL=10 を超える）
+	oldTime := time.Now().Add(-15 * time.Second).UTC().Format(time.RFC3339)
+	eventsFile := filepath.Join(stateDir, "session.events.jsonl")
+	line := fmt.Sprintf(`{"schema_version":"advisor-request.v1","task_id":"t3","trigger_hash":"cfg001","ts":"%s"}`, oldTime)
+	if err := os.WriteFile(eventsFile, []byte(line+"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	now := time.Now()
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		now:       func() time.Time { return now },
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	s := out.String()
+	if !strings.Contains(s, "advisor drift") {
+		t.Errorf("expected advisor drift warning with config override TTL=10, got:\n%s", s)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 48.2.1: reviewer drift テスト（Phase 48.2 follow-up）
+// reviewer drift は advisor drift と同一 TTL (orchestration.advisor_ttl_seconds) を共有する。
+// 検出対象スキーマは review-request.v1 / review-result.v1。
+// ---------------------------------------------------------------------------
+
+func TestMonitorHandler_ReviewerDrift_Hit(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, ".claude", "state")
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	// 700秒前の review-request（TTL=600 を超える）
+	oldTime := time.Now().Add(-700 * time.Second).UTC().Format(time.RFC3339)
+	eventsFile := filepath.Join(stateDir, "session.events.jsonl")
+	line := fmt.Sprintf(`{"schema_version":"review-request.v1","task_id":"rev1","trigger_hash":"rev0001","ts":"%s"}`, oldTime)
+	if err := os.WriteFile(eventsFile, []byte(line+"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	now := time.Now()
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		now:       func() time.Time { return now },
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	s := out.String()
+	if !strings.Contains(s, "reviewer drift") {
+		t.Errorf("expected reviewer drift warning, got:\n%s", s)
+	}
+	if !strings.Contains(s, "waiting") {
+		t.Errorf("expected 'waiting' in reviewer drift output, got:\n%s", s)
+	}
+}
+
+func TestMonitorHandler_ReviewerDrift_Miss(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, ".claude", "state")
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	// request は TTL 超過だが review-result.v1 が既に到着している → drift ではない
+	baseTime := time.Now().Add(-700 * time.Second).UTC().Format(time.RFC3339)
+	eventsFile := filepath.Join(stateDir, "session.events.jsonl")
+	reqLine := fmt.Sprintf(`{"schema_version":"review-request.v1","task_id":"rev2","trigger_hash":"rev0002","ts":"%s"}`, baseTime)
+	resLine := fmt.Sprintf(`{"schema_version":"review-result.v1","task_id":"rev2","trigger_hash":"rev0002","ts":"%s"}`, baseTime)
+	if err := os.WriteFile(eventsFile, []byte(reqLine+"\n"+resLine+"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	now := time.Now()
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		now:       func() time.Time { return now },
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	s := out.String()
+	if strings.Contains(s, "reviewer drift") {
+		t.Errorf("expected no reviewer drift warning when response exists, got:\n%s", s)
+	}
+}
+
+func TestMonitorHandler_ReviewerDrift_ConfigOverride(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, ".claude", "state")
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+
+	// config.yaml で advisor_ttl_seconds=10 を設定（reviewer drift も同 TTL を共有）
+	configContent := `orchestration:
+  advisor_ttl_seconds: 10
+`
+	if err := os.WriteFile(filepath.Join(dir, ".claude-code-harness.config.yaml"), []byte(configContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// 15秒前の review-request（TTL=10 を超える）
+	oldTime := time.Now().Add(-15 * time.Second).UTC().Format(time.RFC3339)
+	eventsFile := filepath.Join(stateDir, "session.events.jsonl")
+	line := fmt.Sprintf(`{"schema_version":"review-request.v1","task_id":"rev3","trigger_hash":"rev0003","ts":"%s"}`, oldTime)
+	if err := os.WriteFile(eventsFile, []byte(line+"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	now := time.Now()
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		now:       func() time.Time { return now },
+	}
+
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(`{"cwd":"`+dir+`"}`), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	s := out.String()
+	if !strings.Contains(s, "reviewer drift") {
+		t.Errorf("expected reviewer drift warning with config override TTL=10, got:\n%s", s)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 48.1.3: Plans.md 閾値判定テスト
+// ---------------------------------------------------------------------------
+
+func TestMonitorHandler_PlansDrift_WIPThresholdHit(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+
+	now := time.Now()
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		now:       func() time.Time { return now },
+	}
+
+	// WIPTasks=5 (default threshold)
+	plans := plansStateJSON{
+		Exists:       true,
+		WIPTasks:     5,
+		LastModified: now.Add(-1 * time.Hour).Unix(),
+	}
+
+	result := h.checkPlansDrift(plans, dir)
+	if result == "" {
+		t.Errorf("expected plans drift warning for WIP=5, got empty")
+	}
+	if !strings.Contains(result, "plans drift") {
+		t.Errorf("expected 'plans drift' in output, got: %s", result)
+	}
+}
+
+func TestMonitorHandler_PlansDrift_StaleHit(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+
+	now := time.Now()
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		now:       func() time.Time { return now },
+	}
+
+	// 25時間前の更新 (stale_hours=24 を超える)
+	staleTime := now.Add(-25 * time.Hour)
+	plans := plansStateJSON{
+		Exists:       true,
+		WIPTasks:     1,
+		LastModified: staleTime.Unix(),
+	}
+
+	result := h.checkPlansDrift(plans, dir)
+	if result == "" {
+		t.Errorf("expected plans drift warning for stale Plans.md, got empty")
+	}
+	if !strings.Contains(result, "plans drift") {
+		t.Errorf("expected 'plans drift' in output, got: %s", result)
+	}
+	if !strings.Contains(result, "stale_for=25h") {
+		t.Errorf("expected stale_for=25h in output, got: %s", result)
+	}
+}
+
+func TestMonitorHandler_PlansDrift_BelowThreshold(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+
+	now := time.Now()
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		now:       func() time.Time { return now },
+	}
+
+	// WIP=2（閾値5未満）、1時間前更新（stale_hours=24未満）
+	plans := plansStateJSON{
+		Exists:       true,
+		WIPTasks:     2,
+		LastModified: now.Add(-1 * time.Hour).Unix(),
+	}
+
+	result := h.checkPlansDrift(plans, dir)
+	if result != "" {
+		t.Errorf("expected no plans drift warning below threshold, got: %s", result)
+	}
+}
+
+func TestMonitorHandler_PlansDrift_ConfigOverride(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, "state")
+
+	// config.yaml で wip_threshold=3 を設定
+	configContent := `monitor:
+  plans_drift:
+    wip_threshold: 3
+    stale_hours: 48
+`
+	if err := os.WriteFile(filepath.Join(dir, ".claude-code-harness.config.yaml"), []byte(configContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	now := time.Now()
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		now:       func() time.Time { return now },
+	}
+
+	// WIP=3 (config threshold=3 を満たす)
+	plans := plansStateJSON{
+		Exists:       true,
+		WIPTasks:     3,
+		LastModified: now.Add(-1 * time.Hour).Unix(),
+	}
+
+	result := h.checkPlansDrift(plans, dir)
+	if result == "" {
+		t.Errorf("expected plans drift warning for WIP=3 with config threshold=3, got empty")
 	}
 }
