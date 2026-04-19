@@ -83,6 +83,24 @@ func TestHandleWorktreeCreate_WritesWorktreeInfo(t *testing.T) {
 	}
 }
 
+func TestHandleWorktreeCreate_JSONCWDGuard(t *testing.T) {
+	// CC sometimes feeds hook output JSON back as the cwd field. Verify we
+	// detect it and skip mkdir instead of creating a JSON-named directory.
+	jsonCWD := `{"decision":"approve","reason":"WorktreeCreate: initialized worktree state"}`
+	payload, _ := json.Marshal(map[string]string{"session_id": "s1", "cwd": jsonCWD})
+
+	var out bytes.Buffer
+	if err := HandleWorktreeCreate(bytes.NewReader(payload), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertWorktreeApprove(t, out.String(), "WorktreeCreate: skipped (invalid JSON cwd)")
+
+	// The JSON string must NOT have been created as a directory.
+	if _, err := os.Stat(jsonCWD); err == nil {
+		t.Errorf("directory with JSON name was created: %s", jsonCWD)
+	}
+}
+
 func TestHandleWorktreeCreate_Idempotent(t *testing.T) {
 	dir := t.TempDir()
 

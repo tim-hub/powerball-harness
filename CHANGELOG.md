@@ -20,6 +20,12 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Fix: WorktreeCreate Go handler — JSON-cwd guard parity (Phase 76)
+
+**Before**: Running `/harness-work` or `/harness-loop` would sometimes create a folder literally named `{"decision":"approve","reason":"WorktreeCreate: initialized worktree state"}` inside the project. Claude Code occasionally feeds the previous hook's JSON output back as the `cwd` field on a subsequent `WorktreeCreate` invocation; the shell handler caught this with a guard but the Go port did not, so `os.MkdirAll` silently created the JSON string as a directory path.
+
+**After**: `go/internal/hookhandler/worktree_create.go` now mirrors the shell handler's guard — if the `cwd` field starts with `{`, the handler returns early with `"WorktreeCreate: skipped (invalid JSON cwd)"` without touching the filesystem. A regression test (`TestHandleWorktreeCreate_JSONCWDGuard`) verifies both the skip response and that no JSON-named directory is created.
+
 ## [4.9.4] - 2026-04-19
 
 ### Theme: Port upstream Worker/Reviewer contract improvements (Phase 75, PRs #88/#89)

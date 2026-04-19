@@ -42,6 +42,13 @@ func HandleWorktreeCreate(in io.Reader, out io.Writer) error {
 		return writeWorktreeApprove(out, "WorktreeCreate: no cwd")
 	}
 
+	// Guard: CC sometimes feeds hook output JSON back as the cwd field on a
+	// subsequent invocation. Detect and skip to avoid creating a directory
+	// whose name is the literal JSON string.
+	if len(input.CWD) > 0 && input.CWD[0] == '{' {
+		return writeWorktreeApprove(out, "WorktreeCreate: skipped (invalid JSON cwd)")
+	}
+
 	stateDir := input.CWD + "/.claude/state"
 	if mkErr := os.MkdirAll(stateDir, 0o755); mkErr != nil {
 		// Non-fatal: log and continue.

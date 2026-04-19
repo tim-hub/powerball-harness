@@ -54,6 +54,22 @@ Created: 2026-04-19
 
 ---
 
+## Phase 76: Fix WorktreeCreate hook — JSON-cwd guard parity in Go handler
+
+Created: 2026-04-19
+
+**Problem**: Users running `/harness-work` / `/harness-loop` sometimes end up with a literal folder named `{"decision":"approve","reason":"WorktreeCreate: initialized worktree state"}` in their project. Root cause: Claude Code occasionally feeds the previous `WorktreeCreate` hook's JSON output back as the `cwd` field on a subsequent invocation. The shell handler (`harness/scripts/hook-handlers/worktree-create.sh:58-63`) has a guard that rejects cwd values starting with `{`, but the Go port at `go/internal/hookhandler/worktree_create.go` lacks it — so `os.MkdirAll` happily creates a directory named after the JSON payload.
+
+**Why it matters**: Silent filesystem pollution in user projects. No error, no warning, just a bizarrely-named folder that reappears on every worktree creation until someone notices.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 76.1 | Port the shell handler's JSON-cwd guard to `go/internal/hookhandler/worktree_create.go`. After the empty-cwd check, reject cwd values whose first byte is `{` and return the approve response with reason `"WorktreeCreate: skipped (invalid JSON cwd)"`. Matches shell handler exactly | `worktree_create.go` has the guard immediately after the `input.CWD == ""` check; running with a JSON-string cwd returns the skip reason and does not create a directory | - | cc:Done [local] |
+| 76.2 | Add regression test `TestHandleWorktreeCreate_JSONCWDGuard` to `go/internal/hookhandler/worktree_create_test.go`. Feeds a payload whose `cwd` is the actual upstream hook output JSON; asserts the skip reason AND that no directory with that JSON name exists on disk | `go test ./go/internal/hookhandler/... -run TestHandleWorktreeCreate -race` passes all 7 tests including the new one | 76.1 | cc:Done [local] |
+| 76.3 | Commit fix + test with Conventional Commits message (`fix(hooks): guard against JSON cwd in WorktreeCreate Go handler`). Record Before/After entry under CHANGELOG `[Unreleased]` | Commit landed on master; CHANGELOG has a Before/After entry describing the symptom (JSON-named folders) and the fix (Go handler now matches shell parity) | 76.2 | cc:TODO |
+
+---
+
 ## Future Considerations
 
 (none currently)
