@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.9.5...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.10.0...HEAD
+[4.10.0]: https://github.com/tim-hub/powerball-harness/compare/v4.9.5...v4.10.0
 [4.9.5]: https://github.com/tim-hub/powerball-harness/compare/v4.9.4...v4.9.5
 [4.9.4]: https://github.com/tim-hub/powerball-harness/compare/v4.9.3...v4.9.4
 [4.9.3]: https://github.com/tim-hub/powerball-harness/compare/v4.9.2...v4.9.3
@@ -20,6 +21,8 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.10.0] - 2026-04-19
 
 ### Feature: Active Session Monitoring — Plans.md drift, advisor TTL, mem health (Phase 77)
 
