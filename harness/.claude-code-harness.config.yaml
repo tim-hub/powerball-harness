@@ -31,6 +31,14 @@ cleanup:
   claude_md:
     max_lines: 100
 
+# Session monitor settings
+monitor:
+  plans_drift:
+    # Emit a warning when WIP task count is >= this value
+    wip_threshold: 5
+    # Emit a warning when Plans.md has not been modified for >= this many hours
+    stale_hours: 24
+
 # Advisor settings (Opus consultation strategy)
 advisor:
   enabled: true

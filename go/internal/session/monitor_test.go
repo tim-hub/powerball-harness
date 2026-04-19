@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -244,5 +245,120 @@ func TestMonitorHandler_WriteSummary(t *testing.T) {
 	}
 	if !strings.Contains(s, "WIP 2") {
 		t.Errorf("expected WIP count in summary, got:\n%s", s)
+	}
+}
+
+func TestMonitorHandler_PlansDrift(t *testing.T) {
+	// fixedNow is the reference time used in all table cases.
+	fixedNow := time.Date(2026, 4, 19, 12, 0, 0, 0, time.UTC)
+
+	cases := []struct {
+		name           string
+		wipCount       int
+		staleHours     int // hours since last modification
+		wipThreshold   int // 0 = use default (5)
+		staleThreshold int // 0 = use default (24)
+		wantOutput     bool
+		wantWIP        int
+		wantStale      int
+	}{
+		{
+			name:       "miss",
+			wipCount:   3,
+			staleHours: 2,
+			wantOutput: false,
+		},
+		{
+			name:       "wip_hit",
+			wipCount:   6,
+			staleHours: 0,
+			wantOutput: true,
+			wantWIP:    6,
+			wantStale:  0,
+		},
+		{
+			name:       "stale_hit",
+			wipCount:   1,
+			staleHours: 30,
+			wantOutput: true,
+			wantWIP:    1,
+			wantStale:  30,
+		},
+		{
+			name:           "config_override",
+			wipCount:       2,
+			staleHours:     0,
+			wipThreshold:   2,
+			staleThreshold: 24,
+			wantOutput:     true,
+			wantWIP:        2,
+			wantStale:      0,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+
+			// Build a Plans.md path (file doesn't need to exist for this test)
+			plansFile := filepath.Join(dir, "Plans.md")
+
+			// Compute LastModified from staleHours
+			lastMod := fixedNow.Add(-time.Duration(tc.staleHours) * time.Hour).Unix()
+
+			plans := plansStateJSON{
+				Exists:       true,
+				LastModified: lastMod,
+				WIPTasks:     tc.wipCount,
+			}
+
+			// If custom thresholds are needed, write a config file
+			configPath := filepath.Join(dir, "harness", ".claude-code-harness.config.yaml")
+			if tc.wipThreshold > 0 || tc.staleThreshold > 0 {
+				if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+					t.Fatal(err)
+				}
+				wip := tc.wipThreshold
+				if wip == 0 {
+					wip = 5
+				}
+				stale := tc.staleThreshold
+				if stale == 0 {
+					stale = 24
+				}
+				cfg := strings.Join([]string{
+					"monitor:",
+					"  plans_drift:",
+					"    wip_threshold: " + strconv.Itoa(wip),
+					"    stale_hours: " + strconv.Itoa(stale),
+				}, "\n") + "\n"
+				if err := os.WriteFile(configPath, []byte(cfg), 0644); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			h := &MonitorHandler{
+				now: func() time.Time { return fixedNow },
+			}
+
+			var buf bytes.Buffer
+			h.CheckPlansDrift(&buf, plans, plansFile, dir)
+
+			got := buf.String()
+			if tc.wantOutput {
+				if got == "" {
+					t.Errorf("expected drift warning but got no output")
+					return
+				}
+				wantLine := "⚠️ plans drift: WIP=" + strconv.Itoa(tc.wantWIP) + ", stale_for=" + strconv.Itoa(tc.wantStale) + "h"
+				if !strings.Contains(got, wantLine) {
+					t.Errorf("expected output to contain %q, got: %q", wantLine, got)
+				}
+			} else {
+				if got != "" {
+					t.Errorf("expected no output, got: %q", got)
+				}
+			}
+		})
 	}
 }

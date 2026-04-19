@@ -161,6 +161,10 @@ func (h *MonitorHandler) Handle(r io.Reader, w io.Writer) error {
 
 	// Write summary to stdout
 	h.writeSummary(w, projectName, gitState, plansState)
+
+	// Check for Plans.md drift and emit warning if thresholds exceeded
+	h.CheckPlansDrift(w, plansState, plansFile, projectRoot)
+
 	return nil
 }
 
@@ -393,6 +397,106 @@ func (h *MonitorHandler) generateToolingPolicy(policyFile string) {
 	}
 
 	_ = writeFileAtomic(policyFile, append(data, '\n'), 0644)
+}
+
+// plansDriftConfig holds the thresholds for Plans.md drift detection.
+type plansDriftConfig struct {
+	WIPThreshold   int // emit warning when WIP task count >= this value
+	StaleHours     int // emit warning when Plans.md has not been modified for >= this many hours
+}
+
+// defaultPlansDriftConfig returns the default drift detection thresholds.
+func defaultPlansDriftConfig() plansDriftConfig {
+	return plansDriftConfig{WIPThreshold: 5, StaleHours: 24}
+}
+
+// loadPlansDriftConfig reads the monitor.plans_drift section from the config file.
+// If the file or section is absent the defaults are returned.
+// projectRoot is used to locate harness/.claude-code-harness.config.yaml.
+func loadPlansDriftConfig(projectRoot string) plansDriftConfig {
+	cfg := defaultPlansDriftConfig()
+
+	configPath := filepath.Clean(filepath.Join(projectRoot, "harness", ".claude-code-harness.config.yaml"))
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return cfg
+	}
+
+	// Lightweight key-value scan: only care about wip_threshold and stale_hours
+	// inside the monitor.plans_drift block.
+	inMonitor := false
+	inPlansDrift := false
+	for _, raw := range strings.Split(string(data), "\n") {
+		line := strings.TrimRight(raw, "\r")
+		trimmed := strings.TrimSpace(line)
+
+		// Track indentation level by leading spaces
+		indent := len(line) - len(strings.TrimLeft(line, " \t"))
+
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+
+		// Top-level "monitor:" key
+		if indent == 0 {
+			inMonitor = strings.TrimRight(trimmed, ":") == "monitor" && strings.HasSuffix(trimmed, ":")
+			inPlansDrift = false
+			continue
+		}
+
+		if !inMonitor {
+			continue
+		}
+
+		// Second-level "plans_drift:" key
+		if indent > 0 && !inPlansDrift {
+			inPlansDrift = strings.TrimRight(trimmed, ":") == "plans_drift" && strings.HasSuffix(trimmed, ":")
+			continue
+		}
+
+		if !inPlansDrift {
+			continue
+		}
+
+		// Third-level key: value pairs
+		parts := strings.SplitN(trimmed, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(parts[0])
+		val := strings.TrimSpace(parts[1])
+		switch key {
+		case "wip_threshold":
+			if v := atoi(val); v > 0 {
+				cfg.WIPThreshold = v
+			}
+		case "stale_hours":
+			if v := atoi(val); v > 0 {
+				cfg.StaleHours = v
+			}
+		}
+	}
+
+	return cfg
+}
+
+// CheckPlansDrift emits a warning line to w when Plans.md has too many WIP tasks
+// or has not been modified recently enough.
+// projectRoot is used to locate the config file.
+func (h *MonitorHandler) CheckPlansDrift(w io.Writer, plans plansStateJSON, plansFile string, projectRoot string) {
+	if !plans.Exists {
+		return
+	}
+
+	cfg := loadPlansDriftConfig(projectRoot)
+
+	wipCount := plans.WIPTasks
+	now := h.currentTime()
+	staleFor := int(now.Unix()-plans.LastModified) / 3600
+
+	if wipCount >= cfg.WIPThreshold || staleFor >= cfg.StaleHours {
+		fmt.Fprintf(w, "⚠️ plans drift: WIP=%d, stale_for=%dh\n", wipCount, staleFor)
+	}
 }
 
 // writeSummary writes the session state summary to w.
