@@ -8,7 +8,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook pre-tool",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       },
@@ -18,7 +18,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook pre-tool-batch",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       },
@@ -28,7 +28,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook browser-guide",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -40,7 +40,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook permission",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       },
@@ -51,7 +51,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook permission",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -63,7 +63,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook session-init",
-            "timeout": 60,
+            "timeout": 3,
             "once": true
           }
         ]
@@ -74,7 +74,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook session-init",
-            "timeout": 60,
+            "timeout": 3,
             "once": true
           }
         ]
@@ -85,7 +85,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook setup-maintenance",
-            "timeout": 60,
+            "timeout": 3,
             "once": true
           }
         ]
@@ -98,13 +98,13 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook session-start",
-            "timeout": 15,
+            "timeout": 3,
             "once": true
           },
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge --mode=start",
-            "timeout": 30,
+            "timeout": 3,
             "once": true
           }
         ]
@@ -117,7 +117,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook subagent-start",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -128,7 +128,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook instructions-loaded",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -140,7 +140,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook subagent-stop",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -151,7 +151,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook post-tool-failure",
-            "timeout": 5
+            "timeout": 3
           }
         ]
       }
@@ -162,7 +162,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook teammate-idle",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -173,7 +173,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook task-completed-ext",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -184,7 +184,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook runtime-reactive",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -195,7 +195,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook worktree-create",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -206,7 +206,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook worktree-remove",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -217,12 +217,12 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook pre-compact-save",
-            "timeout": 30
+            "timeout": 3
           },
           {
-            "type": "agent",
-            "prompt": "Check Plans.md for tasks with status 'cc:WIP' before the context window is compacted. If any WIP tasks exist, include a warning in systemMessage: 'Warning: Compacting context with WIP tasks in progress: [list task IDs and titles]. Key context about these tasks may be lost after compaction. Consider completing or checkpointing them first.' If no WIP tasks, return nothing. Input: $ARGUMENTS",
-            "timeout": 30
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/check-wip-precompact.sh\"",
+            "timeout": 5
           }
         ]
       }
@@ -234,7 +234,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook post-compact",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -246,7 +246,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook elicitation",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -258,7 +258,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook elicitation-result",
-            "timeout": 5
+            "timeout": 3
           }
         ]
       }
@@ -269,7 +269,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook session-cleanup",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -281,27 +281,27 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge --mode=user-prompt",
-            "timeout": 10
+            "timeout": 3
           },
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook inject-policy",
-            "timeout": 30
+            "timeout": 3
           },
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook track-command",
-            "timeout": 10
+            "timeout": 3
           },
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook fix-proposal",
-            "timeout": 10
+            "timeout": 3
           },
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook breezing-signal",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -313,7 +313,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook post-tool",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       },
@@ -323,7 +323,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook trace-posttool",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       },
@@ -333,12 +333,12 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge --mode=post",
-            "timeout": 10
+            "timeout": 3
           },
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook log-toolname",
-            "timeout": 30
+            "timeout": 3
           }
         ]
       },
@@ -348,12 +348,12 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook commit-cleanup",
-            "timeout": 10
+            "timeout": 3
           },
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook ci-status",
-            "timeout": 30,
+            "timeout": 3,
             "async": true
           }
         ]
@@ -364,7 +364,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook usage-tracker",
-            "timeout": 30
+            "timeout": 3
           }
         ]
       },
@@ -374,7 +374,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook clear-pending",
-            "timeout": 5
+            "timeout": 3
           }
         ]
       },
@@ -384,7 +384,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook todo-sync",
-            "timeout": 30
+            "timeout": 3
           }
         ]
       },
@@ -394,7 +394,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook post-tool-batch",
-            "timeout": 120
+            "timeout": 3
           }
         ]
       }
@@ -405,7 +405,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook notification",
-            "timeout": 5
+            "timeout": 3
           }
         ]
       }
@@ -416,7 +416,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook config-change",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -427,7 +427,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook runtime-reactive",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -438,7 +438,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook runtime-reactive",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
@@ -449,22 +449,22 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook session-summary",
-            "timeout": 30
+            "timeout": 3
           },
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge --mode=stop",
-            "timeout": 30
+            "timeout": 3
           },
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook stop-evaluator",
-            "timeout": 30
+            "timeout": 3
           },
           {
-            "type": "agent",
-            "prompt": "Check if there are incomplete tasks before allowing session to stop. Read the Plans.md file and look for tasks with status 'cc:WIP'. If any WIP tasks exist, return JSON: {\"decision\": \"block\", \"reason\": \"WIP tasks remain: [list task numbers]. Consider completing them or marking as blocked before stopping.\"}. If no WIP tasks, return nothing (allow stop). Input: $ARGUMENTS",
-            "timeout": 30
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/check-wip-tasks.sh\"",
+            "timeout": 5
           }
         ]
       }
@@ -475,7 +475,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook permission-denied",
-            "timeout": 5
+            "timeout": 3
           }
         ]
       }
@@ -486,7 +486,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook stop-failure",
-            "timeout": 10
+            "timeout": 3
           }
         ]
       }
