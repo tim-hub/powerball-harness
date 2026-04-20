@@ -105,14 +105,6 @@ powerball-harness/
 
 ---
 
-## Inspiration
-
-**[Meta-Harness: End-to-End Optimization of Model Harnesses](https://arxiv.org/abs/2603.28052)** (arXiv:2603.28052)
-
-Phase 72–74 borrowed its core insight: compressed feedback loses causal signal — agents need raw execution history, not summaries, to reason about why past attempts failed. This drives the per-task `.claude/state/traces/` JSONL system and the `harness-review` eval loop.
-
----
-
 ## Advisor Strategy
 
 The **Advisor** is a read-only consultation agent (model: Opus) that Workers can consult during task execution. It never writes code or executes tools — it only returns structured guidance.
@@ -191,3 +183,5 @@ Forked from [claude-code-harness](https://github.com/Chachamaru127/claude-code-h
 - Use English for wider audience and consistency with code/comments
 - No binrary files committed to repo — use setup script to either build from go source or download from GitHub Releases instead
 - Fix [a couple of issues and anti-patterns](https://github.com/tim-hub/powerball-harness/blob/master/CHANGELOG.md#403---2026-04-13).
+- Inspired by **[Meta-Harness: End-to-End Optimization of Model Harnesses](https://arxiv.org/abs/2603.28052)** (arXiv:2603.28052): compressed feedback loses causal signal — agents need raw execution history, not summaries. This drives the per-task `.claude/state/traces/` JSONL system and the `harness-review` eval loop.
+- Inspired by **[Natural-Language Agent Harnesses](https://arxiv.org/abs/2603.25723)** (arXiv:2603.25723): named failure modes drive recovery strategies. The Failure Taxonomy (`FT-*` IDs) in `.claude/rules/failure-taxonomy.md` is a direct implementation of this element.

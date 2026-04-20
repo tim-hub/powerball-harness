@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.11.2...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.11.3...HEAD
+[4.11.3]: https://github.com/tim-hub/powerball-harness/compare/v4.11.2...v4.11.3
 [4.11.2]: https://github.com/tim-hub/powerball-harness/compare/v4.11.1...v4.11.2
 [4.11.1]: https://github.com/tim-hub/powerball-harness/compare/v4.11.0...v4.11.1
 [4.11.0]: https://github.com/tim-hub/powerball-harness/compare/v4.10.1...v4.11.0
@@ -25,6 +26,31 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.11.3] - 2026-04-21
+
+### Changed: Agent effort levels raised + three new reusable patterns (refactor)
+
+#### 1. Agent effort levels
+
+**Before**: Advisor and Reviewer effort was set to `high`; Worker effort to `medium`. These did not reflect the actual cognitive complexity required for trace-based decision making.
+
+**After**: Advisor and Reviewer effort raised to `xhigh`; Worker effort raised to `high`. Aligns effort declarations with the complexity of multi-trace reasoning introduced in Phase 72–74.
+
+#### 2. Replay-based observability patterns (P10–P12)
+
+**Before**: No documented pattern for replay-style task trace logging, no standard for evaluating code-space skills, and no guidance on when generic "reader" agents are appropriate.
+
+**After**: Three new reusable patterns added to `.claude/memory/patterns.md`:
+- **P10**: Replay-style task trace logging — advisors load `.claude/state/traces/<task_id>.jsonl` for observability rather than relying on summaries
+- **P11**: Code-space skill evaluation requires a failing baseline — skills without a known-failing test case cannot demonstrate meaningful improvement
+- **P12**: Reject generic reader agents — Explore subagents (Haiku) already cover read-only exploration; new agents need a typed schema + harness integration story
+
+### Changed: README academic references moved to Origin section
+
+**Before**: Meta-Harness paper reference lived in a standalone `## Inspiration` section mid-page. The NL Agent Harnesses paper (which shaped Phase 79 Failure Taxonomy) had no README mention.
+
+**After**: Both papers referenced in the `### What changed?` section under Origin, alongside the fork attribution. `## Inspiration` section removed.
 
 ## [4.11.2] - 2026-04-20
 
