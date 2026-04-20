@@ -12,6 +12,14 @@ import (
 // Protected path detection
 // ---------------------------------------------------------------------------
 
+// allowedPathPatterns lists paths that look like protected names but are safe
+// to write (e.g. templates and examples that must not contain real secrets).
+var allowedPathPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`(?:^|/)\.env\.example$`),
+	regexp.MustCompile(`(?:^|/)\.env\.template$`),
+	regexp.MustCompile(`(?:^|/)\.env\.sample$`),
+}
+
 var protectedPathPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`^\.git/`),
 	regexp.MustCompile(`/\.git/`),
@@ -86,7 +94,23 @@ func (c *resolvedPathCache) set(key, val string) {
 // If EvalSymlinks returns an error (symlink loop, broken link, etc.),
 // the function returns true (fail-safe: deny the operation).
 // Successful EvalSymlinks resolutions are cached (bounded to 256 entries, FIFO eviction).
+// isAllowedPath reports whether filePath is explicitly allowed despite matching
+// a protected pattern (e.g. .env.example is safe to write).
+func isAllowedPath(filePath string) bool {
+	for _, p := range allowedPathPatterns {
+		if p.MatchString(filePath) {
+			return true
+		}
+	}
+	return false
+}
+
 func isProtectedPath(filePath string) bool {
+	// Allowlist takes precedence: safe templates/examples are never protected.
+	if isAllowedPath(filePath) {
+		return false
+	}
+
 	// Direct match
 	if matchesProtectedPatterns(filePath) {
 		return true
