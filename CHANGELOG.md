@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.10.0...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.10.1...HEAD
+[4.10.1]: https://github.com/tim-hub/powerball-harness/compare/v4.10.0...v4.10.1
 [4.10.0]: https://github.com/tim-hub/powerball-harness/compare/v4.9.5...v4.10.0
 [4.9.5]: https://github.com/tim-hub/powerball-harness/compare/v4.9.4...v4.9.5
 [4.9.4]: https://github.com/tim-hub/powerball-harness/compare/v4.9.3...v4.9.4
@@ -21,6 +22,8 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.10.1] - 2026-04-20
 
 ### Added: Plans.md ordering convention — newest-first + archive footer (Phase 78)
 
