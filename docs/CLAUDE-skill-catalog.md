@@ -70,7 +70,6 @@ harness/skills/
 | `harness-loop` | Autonomous loop runtime with ScheduleWakeup and sprint-contracts | "loop", "autonomous run", "harness-loop" |
 | `breezing` | Full auto-run with parallel Agent Teams | "run with team", "breezing", "all tasks" |
 | `harness-remember` | SSOT management, decisions.md, patterns.md | "SSOT", "decisions", "memory search" |
-| `remember-this` | Project-specific spec sync — Plans.md markers, PM/Impl handoff routes (this repo only) | "sync project specs", "align markers", "remember-this" |
 | `maintenance` | Periodic housekeeping — log pruning, stale state, worktrees | "prune logs", "clean state", "/maintenance" |
 | `session` | Session lifecycle: list, inbox, broadcast | "/session", "session status" |
 | `session-init` | Session start check — Plans.md overview, env readiness | (auto-triggered on session start) |
