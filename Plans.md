@@ -8,12 +8,13 @@ Last release: v4.11.2 on 2026-04-20 (mem health tri-state fix + active-watching 
 
 Created: 2026-04-21
 
-**Goal**: (A) Rename `harness/skills/memory/` to `harness/skills/harness-remember/` to avoid collision with Claude Code's built-in `/memory` command. (B) Extract the plugin-specific `sync-project-specs.md` from harness-remember into a new `.claude/skills/remember-this/` project-level skill. (C) Fix stale phase references in `.claude/skills/release-this/SKILL.md` Step 6 that still list old Phases 4-5 (marketplace.json, codex symlinks) removed in Phase 81.
+**Goal**: (A) Rename `harness/skills/memory/` to `harness/skills/harness-remember/` to avoid collision with Claude Code's built-in `/memory` command. (B) Fix stale phase references in `.claude/skills/release-this/SKILL.md` Step 6 that still list old Phases 4-5 (marketplace.json, codex symlinks) removed in Phase 81.
 
 **Motivation**:
 - The `memory` skill name collides with Claude Code's built-in memory system — the auto-loader may route to the wrong one.
-- `sync-project-specs.md` references `powerball-harness` operations — plugin-specific, same pattern as the harness-release split in Phase 81.
 - release-this was created before the harness-release refactor landed, so its Step 6 description is stale.
+
+**Note**: `sync-project-specs.md` (sync-across subcommand) was initially extracted into a project-level `remember-this` skill but reverted — the PM/Impl marker alignment workflow is generic and useful to all Harness users, not specific to this repo.
 
 **Agent names**: NOT changing. `claude-code-harness:worker`, `claude-code-harness:reviewer`, `powerball-harness:advisor` are part of the distributed plugin and work correctly as-is.
 
@@ -23,8 +24,8 @@ Created: 2026-04-21
 | 82.2 | ~~**Create `.claude/skills/remember-this/`**~~ — reverted: `sync-project-specs.md` is generic (usable by any project). Keeping `sync-across` in `harness-remember`. | N/A | 82.1 | pm:confirmed (reverted) |
 | 82.3 | ~~**Update harness-remember to drop sync-across**~~ — reverted along with 82.2. `sync-across` row and `argument-hint` restored to original. | N/A | 82.2 | pm:confirmed (reverted) |
 | 82.4 | **Fix release-this SKILL.md Step 6 description**: Step 6 currently lists harness-release phases that no longer exist (Phase 4: marketplace.json sync, Phase 5: codex symlinks). Update to match actual current harness-release phases: Phase 0 (preflight), Phase 1-2 (version), Phase 3 (CHANGELOG), Phase 4 (commit & tag), Phase 5 (push), Phase 6 (GitHub Release). Also remove the "second pass" codex symlink note — codex symlinks are already checked in release-this Step 4 | Step 6 accurately reflects current harness-release phases 0-6; no mention of marketplace.json or codex symlinks in Step 6; `grep "marketplace.json\|Codex symlink" .claude/skills/release-this/SKILL.md` returns 0 matches in Step 6 section | - | cc:Done [a591ff1] |
-| 82.5 | **Update documentation**: CLAUDE.md skills table (`memory` → `harness-remember`). docs/CLAUDE-skill-catalog.md entry update. CHANGELOG.md [Unreleased] rename entry. Update any doc that says "use `/memory`" → "use `/harness-remember`" | CLAUDE.md skills table lists `harness-remember` (not `memory`); CHANGELOG [Unreleased] has Before/After for rename only; docs/CLAUDE-skill-catalog.md updated | 82.1, 82.4 | cc:WIP |
-| 82.6 | **Validation**: `make test`, `make check`, `./tests/validate-plugin.sh`. Verify skill auto-loads with new name. Verify old name no longer appears in skill listings (except CHANGELOG/archive) | `make test` passes; `make check` passes; `validate-plugin.sh` passes; `grep -r 'name: memory' harness/skills/` returns 0 matches | 82.5 | cc:WIP |
+| 82.5 | **Update documentation**: CLAUDE.md skills table (`memory` → `harness-remember`). docs/CLAUDE-skill-catalog.md entry update. CHANGELOG.md [Unreleased] rename entry. Update any doc that says "use `/memory`" → "use `/harness-remember`" | CLAUDE.md skills table lists `harness-remember` (not `memory`); CHANGELOG [Unreleased] has Before/After for rename only; docs/CLAUDE-skill-catalog.md updated | 82.1, 82.4 | cc:Done [3e0bc25] |
+| 82.6 | **Validation**: `make test`, `make check`, `./tests/validate-plugin.sh`. Verify skill auto-loads with new name. Verify old name no longer appears in skill listings (except CHANGELOG/archive) | `make test` passes; `make check` passes; `validate-plugin.sh` passes; `grep -r 'name: memory' harness/skills/` returns 0 matches | 82.5 | cc:Done — make test: all passed; make check: all passed; validate-plugin.sh: 39/0; name: memory: 0 matches |
 
 ---
 
