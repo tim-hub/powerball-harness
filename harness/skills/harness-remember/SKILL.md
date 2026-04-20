@@ -3,7 +3,7 @@ name: harness-remember
 description: "Manages SSOT memory — decisions.md, patterns.md, and cross-session learnings. Use when recording decisions, searching memory, or promoting learnings."
 when_to_use: "record decision, search memory, update patterns, SSOT, promote learning, decisions.md"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "mcp__harness__harness_mem_*"]
-argument-hint: "[ssot|sync|sync-across|migrate|merge|search|record]"
+argument-hint: "[ssot|sync|migrate|merge|search|record]"
 context: fork
 model: opus
 effort: high
@@ -19,13 +19,14 @@ SSOT (Single Source of Truth) and cross-tool memory management for Harness.
 |------------|------------|----------|
 | "Init SSOT" / `memory ssot` | `ssot` | Bootstrap `.claude/memory/decisions.md` + `patterns.md` (see `references/ssot-initialization.md`) |
 | "Save what we learned" / "promote to SSOT" / `memory sync` | `sync` | Pull learnings from Claude Code auto memory (Layer 1) into SSOT (Layer 2) decisions/patterns (see `references/sync-ssot-from-memory.md`) |
-| "Sync across agents" / `memory sync-across` | `sync-across` | Reconcile memory artifacts across agent workspaces / project specs (see `references/sync-project-specs.md`) |
 | "Migrate from AGENTS.md" / `memory migrate` | `migrate` | Run interactive workflow migration (see `references/workflow-migration.md`) |
 | "Merge Plans.md" / `memory merge` | `merge` | Consolidate multiple Plans.md files (see `references/plans-merging.md`) |
 | "Search memory for X" / `memory search <term>` | `search` | Keyword/regex search; local first, MCP extends (see `references/search.md`) |
 | "Record this decision" / `memory record` | `record` | Validate SSOT-worthiness, write local first, MCP mirrors (see `references/record.md`) |
 
 > For `search` and `record`, local SSOT is authoritative and MCP extends reach — see each reference file for the full contract.
+
+> **Project-specific spec sync**: If you need to align Plans.md markers, PM/Impl handoff routes, or AGENTS.md with powerball-harness conventions, use `.claude/skills/remember-this/` (`sync-across` subcommand) instead — that workflow is specific to this plugin repo.
 
 ## Execution Steps
 
