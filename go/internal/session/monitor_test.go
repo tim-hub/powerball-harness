@@ -745,3 +745,114 @@ func TestMonitorHandler_PlansDrift_ConfigOverride(t *testing.T) {
 		t.Errorf("expected plans drift warning for WIP=3 with config threshold=3, got empty")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Issue #94 Item 3: collectDrift の bounded memory (container/ring) 契約テスト
+// ---------------------------------------------------------------------------
+
+// TestCollectDrift_TailWindowBoundary は末尾 driftTailWindow (=200) 行のみが
+// drift 判定対象となる境界を固定する回帰テスト。
+//
+// 500 行の events.jsonl のうち、末尾 200 行の内側の advisor-request だけが検出され、
+// 外側 (先頭寄り) の advisor-request は無視されることを確認する。
+// ring buffer 化後もこの境界を維持していることを保証する。
+func TestCollectDrift_TailWindowBoundary(t *testing.T) {
+	dir := t.TempDir()
+	stateDir := filepath.Join(dir, ".claude", "state")
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	eventsFile := filepath.Join(stateDir, "session.events.jsonl")
+
+	oldTime := time.Now().Add(-700 * time.Second).UTC().Format(time.RFC3339)
+	var buf bytes.Buffer
+
+	// line 1..299: 無関係イベント (末尾 200 行の外側)
+	for i := 0; i < 299; i++ {
+		fmt.Fprintf(&buf, `{"schema_version":"other","task_id":"noise%d","trigger_hash":"nh%d","ts":"%s"}`+"\n", i, i, oldTime)
+	}
+	// line 300: outside の advisor-request → window 外なので検出されない期待
+	fmt.Fprintf(&buf, `{"schema_version":"advisor-request.v1","task_id":"t_outside","trigger_hash":"outside","ts":"%s"}`+"\n", oldTime)
+	// line 301..499: 無関係イベント (末尾 200 行 = line 301..500)
+	for i := 0; i < 199; i++ {
+		fmt.Fprintf(&buf, `{"schema_version":"other","task_id":"tail%d","trigger_hash":"th%d","ts":"%s"}`+"\n", i, i, oldTime)
+	}
+	// line 500: inside の advisor-request → window 内なので検出される期待
+	fmt.Fprintf(&buf, `{"schema_version":"advisor-request.v1","task_id":"t_inside","trigger_hash":"inside","ts":"%s"}`+"\n", oldTime)
+
+	if err := os.WriteFile(eventsFile, buf.Bytes(), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	now := time.Now()
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		now:       func() time.Time { return now },
+	}
+
+	warnings := h.collectDrift(stateDir, dir)
+	joined := strings.Join(warnings, " | ")
+
+	if !strings.Contains(joined, "t_inside") {
+		t.Errorf("expected t_inside advisor drift warning (inside tail %d), got:\n%s", driftTailWindow, joined)
+	}
+	if strings.Contains(joined, "t_outside") {
+		t.Errorf("expected NO t_outside advisor drift warning (outside tail %d), got:\n%s", driftTailWindow, joined)
+	}
+}
+
+// benchCollectDrift は session.events.jsonl の行数を変えながら collectDrift の
+// メモリ/時間コストを計測するためのヘルパー。
+//
+// Issue #94 Item 3 の Exit criteria「benchmark showing bounded growth with N lines」を
+// 満たすため、`go test -bench=BenchmarkCollectDrift -benchmem` で N=200 と N=10000 を
+// 並べて実行すると、ring buffer 化により **後段 retention** (`lines` slice 展開) が
+// N に比例せず driftTailWindow (=200) に bounded であることを手動で確認できる。
+// (scanner.Text() 由来の短命 string alloc は両実装共通で N に比例するが、
+//  ピーク in-use はリングで固定される)。
+func benchCollectDrift(b *testing.B, numLines int) {
+	dir := b.TempDir()
+	stateDir := filepath.Join(dir, ".claude", "state")
+	if err := os.MkdirAll(stateDir, 0700); err != nil {
+		b.Fatal(err)
+	}
+	eventsFile := filepath.Join(stateDir, "session.events.jsonl")
+
+	f, err := os.Create(eventsFile)
+	if err != nil {
+		b.Fatal(err)
+	}
+	padding := strings.Repeat("x", 150)
+	for i := 0; i < numLines; i++ {
+		fmt.Fprintf(f, `{"schema_version":"other","task_id":"t%d","trigger_hash":"h%d","ts":"2026-01-01T00:00:00Z","padding":"%s"}`+"\n", i, i, padding)
+	}
+	if err := f.Close(); err != nil {
+		b.Fatal(err)
+	}
+
+	now := time.Now()
+	h := &MonitorHandler{
+		StateDir:  stateDir,
+		PlansFile: filepath.Join(dir, "Plans.md"),
+		now:       func() time.Time { return now },
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = h.collectDrift(stateDir, dir)
+	}
+}
+
+// BenchmarkCollectDrift_200Lines は末尾 window サイズ (=200) ちょうどの入力での基準値。
+func BenchmarkCollectDrift_200Lines(b *testing.B) {
+	benchCollectDrift(b, 200)
+}
+
+// BenchmarkCollectDrift_10000Lines は window の 50 倍の入力。
+// ring buffer 化後、最終的に確保される lines slice は常に 200 要素 bounded のため、
+// "final retained allocation" が 200-line ベンチと同オーダーにとどまることを showing する。
+func BenchmarkCollectDrift_10000Lines(b *testing.B) {
+	benchCollectDrift(b, 10000)
+}

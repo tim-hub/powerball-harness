@@ -2,6 +2,7 @@ package session
 
 import (
 	"bufio"
+	"container/ring"
 	"context"
 	"encoding/json"
 	"errors"
@@ -14,6 +15,10 @@ import (
 	"strings"
 	"time"
 )
+
+// driftTailWindow は collectDrift が参照する末尾行数。
+// session.events.jsonl が肥大化しても bounded memory (window × 1 行分) に保つため。
+const driftTailWindow = 200
 
 // MonitorHandler は SessionStart フックハンドラ（プロジェクト状態収集）。
 // セッション開始時にプロジェクト状態を収集し、session.json と tooling-policy.json を生成する。
@@ -568,15 +573,36 @@ func (h *MonitorHandler) collectDrift(stateDir, projectRoot string) []string {
 	}
 	defer f.Close()
 
-	// 末尾 200 行を収集
-	var lines []string
+	// 末尾 driftTailWindow 行を container/ring で収集する。
+	// 全行を slice に積んでから後で切り詰める旧実装は file 行数に比例してメモリが膨らむため、
+	// 固定サイズ ring buffer で bounded memory に切り替える。
+	// scanner.Err() も必ずチェックし、I/O エラー時は drift 検知を諦めて nil を返す
+	// (session monitor 本体は止めない契約)。
+	r := ring.New(driftTailWindow)
+	lineCount := 0
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
+		r.Value = scanner.Text()
+		r = r.Next()
+		lineCount++
 	}
-	if len(lines) > 200 {
-		lines = lines[len(lines)-200:]
+	if err := scanner.Err(); err != nil {
+		return nil
 	}
+
+	// ring を「最古→最新」順で []string に展開する。
+	// lineCount < driftTailWindow のときは前半に nil が残るので type assertion で skip。
+	// lineCount >= driftTailWindow のときは r が最古位置を指しているため、そのまま 1 周する。
+	window := lineCount
+	if window > driftTailWindow {
+		window = driftTailWindow
+	}
+	lines := make([]string, 0, window)
+	r.Do(func(v any) {
+		if s, ok := v.(string); ok {
+			lines = append(lines, s)
+		}
+	})
 
 	// request と response を収集
 	type requestInfo struct {

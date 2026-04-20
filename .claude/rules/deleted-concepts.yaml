@@ -177,4 +177,4 @@ deleted_concepts:
       - "go/cmd/harness/mem_test.go"  # mem health テスト（~/.claude-mem/ を TempDir で模擬）
       - "go/cmd/harness/main.go"  # harness mem サブコマンドの usage 表示
       - "go/harness"  # ビルド済みバイナリ（mem.go のシンボルを含む）
-      - "bin/"  # ビルド済みバイナリディレクトリ
+      - "bin/harness"  # ビルド済み harness 本体と platform variant（harness-darwin-amd64 等は prefix match で同時にカバー）。bin/claude-mem 等の旧 binary は allowlist 外として検出対象のままにする。
