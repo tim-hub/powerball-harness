@@ -10,35 +10,36 @@ import (
 
 type tamperingPattern struct {
 	ID           string
+	TaxonomyID   string // FT-TAMPER-NN stable ID; see .claude/rules/failure-taxonomy.md
 	Description  string
 	Pattern      *regexp.Regexp
 	TestFileOnly bool
 }
 
 var tamperingPatterns = []tamperingPattern{
-	{ID: "T01:it-skip", Description: "Test skipping via it.skip / describe.skip",
+	{ID: "T01:it-skip", TaxonomyID: "FT-TAMPER-01", Description: "Test skipping via it.skip / describe.skip",
 		Pattern: regexp.MustCompile(`(?:it|test|describe|context)\.skip\s*\(`), TestFileOnly: true},
-	{ID: "T02:xit-xdescribe", Description: "Test disabling via xit / xdescribe",
+	{ID: "T02:xit-xdescribe", TaxonomyID: "FT-TAMPER-02", Description: "Test disabling via xit / xdescribe",
 		Pattern: regexp.MustCompile(`\b(?:xit|xtest|xdescribe)\s*\(`), TestFileOnly: true},
-	{ID: "T03:pytest-skip", Description: "Test skipping via pytest.mark.skip",
+	{ID: "T03:pytest-skip", TaxonomyID: "FT-TAMPER-03", Description: "Test skipping via pytest.mark.skip",
 		Pattern: regexp.MustCompile(`@pytest\.mark\.(?:skip|xfail)\b`), TestFileOnly: true},
-	{ID: "T04:go-skip", Description: "Test skipping via t.Skip()",
+	{ID: "T04:go-skip", TaxonomyID: "FT-TAMPER-04", Description: "Test skipping via t.Skip()",
 		Pattern: regexp.MustCompile(`\bt\.Skip(?:f|Now)?\s*\(`), TestFileOnly: true},
-	{ID: "T05:expect-removed", Description: "expect / assert may have been removed (commented out)",
+	{ID: "T05:expect-removed", TaxonomyID: "FT-TAMPER-05", Description: "expect / assert may have been removed (commented out)",
 		Pattern: regexp.MustCompile(`//\s*expect\s*\(`), TestFileOnly: true},
-	{ID: "T06:assert-commented", Description: "assert call was commented out",
+	{ID: "T06:assert-commented", TaxonomyID: "FT-TAMPER-06", Description: "assert call was commented out",
 		Pattern: regexp.MustCompile(`//\s*assert(?:Equal|NotEqual|True|False|Nil|Error)?\s*\(`), TestFileOnly: true},
-	{ID: "T07:todo-assert", Description: "Assertion replaced by a TODO comment",
+	{ID: "T07:todo-assert", TaxonomyID: "FT-TAMPER-07", Description: "Assertion replaced by a TODO comment",
 		Pattern: regexp.MustCompile(`(?i)//\s*TODO.*assert|//\s*TODO.*expect`), TestFileOnly: true},
-	{ID: "T08:eslint-disable", Description: "Lint rule disabled via eslint-disable",
+	{ID: "T08:eslint-disable", TaxonomyID: "FT-TAMPER-08", Description: "Lint rule disabled via eslint-disable",
 		Pattern: regexp.MustCompile(`(?m)(?://\s*eslint-disable(?:-next-line|-line)?(?:\s+[^\n]+)?$|/\*\s*eslint-disable\b[^*]*\*/)`), TestFileOnly: false},
-	{ID: "T09:ci-continue-on-error", Description: "CI failure ignored via continue-on-error: true",
+	{ID: "T09:ci-continue-on-error", TaxonomyID: "FT-TAMPER-09", Description: "CI failure ignored via continue-on-error: true",
 		Pattern: regexp.MustCompile(`continue-on-error\s*:\s*true`), TestFileOnly: false},
-	{ID: "T10:ci-if-always", Description: "CI step forced to run via if: always()",
+	{ID: "T10:ci-if-always", TaxonomyID: "FT-TAMPER-10", Description: "CI step forced to run via if: always()",
 		Pattern: regexp.MustCompile(`if\s*:\s*always\s*\(\s*\)`), TestFileOnly: false},
-	{ID: "T11:hardcoded-answer", Description: "Hardcoded test expected values (dictionary return)",
+	{ID: "T11:hardcoded-answer", TaxonomyID: "FT-TAMPER-11", Description: "Hardcoded test expected values (dictionary return)",
 		Pattern: regexp.MustCompile(`answers?_for_tests?\s*=\s*\{`), TestFileOnly: true},
-	{ID: "T12:return-hardcoded", Description: "Pattern of directly returning test case values",
+	{ID: "T12:return-hardcoded", TaxonomyID: "FT-TAMPER-12", Description: "Pattern of directly returning test case values",
 		Pattern: regexp.MustCompile(`(?i)return\s+(?:"[^"]*"|'[^']*'|\d+)\s*;\s*//.*(?:test|spec|expect)`), TestFileOnly: true},
 }
 
@@ -88,6 +89,7 @@ func isConfigFile(filePath string) bool {
 
 type tamperingWarning struct {
 	PatternID   string
+	TaxonomyID  string // FT-TAMPER-NN; stable ID for trace events and advisor history
 	Description string
 	MatchedText string
 }
@@ -106,6 +108,7 @@ func detectTampering(text string, isTest bool) []tamperingWarning {
 			}
 			warnings = append(warnings, tamperingWarning{
 				PatternID:   tp.ID,
+				TaxonomyID:  tp.TaxonomyID,
 				Description: tp.Description,
 				MatchedText: matched,
 			})

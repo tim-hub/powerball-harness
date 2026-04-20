@@ -1,6 +1,7 @@
 package guardrail
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -140,11 +141,14 @@ func EvaluatePostTool(input hookproto.HookInput) hookproto.HookResult {
 					fileType = "CI/config file"
 				}
 				var lines []string
+				var taxonomyIDs []string
 				for _, w := range warnings {
-					lines = append(lines, fmt.Sprintf("- [%s] %s\n  Detected at: %s", w.PatternID, w.Description, w.MatchedText))
+					lines = append(lines, fmt.Sprintf("- [%s|%s] %s\n  Detected at: %s", w.TaxonomyID, w.PatternID, w.Description, w.MatchedText))
+					taxonomyIDs = append(taxonomyIDs, w.TaxonomyID)
 				}
-				msg := fmt.Sprintf("[v4] Test tampering warning\n\nSuspicious pattern detected in %s `%s`:\n\n%s\n\n[Please verify]\nCheck that this change does not intentionally disable tests or lower implementation quality.\nIf tampering is determined, revert the change.",
-					fileType, filePath, strings.Join(lines, "\n"))
+				taxonomyJSON, _ := json.Marshal(taxonomyIDs)
+				msg := fmt.Sprintf("[v4] Test tampering warning\n\nSuspicious pattern detected in %s `%s`:\n\n%s\n\n{\"taxonomy_ids\":%s}\n\n[Please verify]\nCheck that this change does not intentionally disable tests or lower implementation quality.\nIf tampering is determined, revert the change.",
+					fileType, filePath, strings.Join(lines, "\n"), taxonomyJSON)
 				systemMessages = append(systemMessages, msg)
 			}
 		}

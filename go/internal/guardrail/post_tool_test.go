@@ -126,6 +126,64 @@ func TestHasSuspiciousContent(t *testing.T) {
 	}
 }
 
+func TestPostTool_TamperingWarningIncludesTaxonomyID(t *testing.T) {
+	input := hookproto.HookInput{
+		ToolName: "Write",
+		ToolInput: map[string]interface{}{
+			"file_path": "src/utils.test.ts",
+			"content":   "it.skip('broken test', () => {});",
+		},
+	}
+	result := EvaluatePostTool(input)
+	if !strings.Contains(result.SystemMessage, "FT-TAMPER-01") {
+		t.Errorf("expected FT-TAMPER-01 in warning, got: %s", result.SystemMessage)
+	}
+	if !strings.Contains(result.SystemMessage, `"taxonomy_ids"`) {
+		t.Errorf("expected taxonomy_ids JSON field in warning, got: %s", result.SystemMessage)
+	}
+}
+
+func TestDetectTampering_TaxonomyIDPopulated(t *testing.T) {
+	tests := []struct {
+		name       string
+		content    string
+		isTest     bool
+		wantFTID   string
+		wantExists bool
+	}{
+		{"it.skip → FT-TAMPER-01", "it.skip('x', () => {})", true, "FT-TAMPER-01", true},
+		{"xdescribe → FT-TAMPER-02", "xdescribe('x', () => {})", true, "FT-TAMPER-02", true},
+		{"pytest.mark.skip → FT-TAMPER-03", "@pytest.mark.skip", true, "FT-TAMPER-03", true},
+		{"t.Skip → FT-TAMPER-04", "t.Skip()", true, "FT-TAMPER-04", true},
+		{"//expect( → FT-TAMPER-05", "// expect(x)", true, "FT-TAMPER-05", true},
+		{"//assert( → FT-TAMPER-06", "// assertEqual(a, b)", true, "FT-TAMPER-06", true},
+		{"eslint-disable → FT-TAMPER-08", "// eslint-disable", false, "FT-TAMPER-08", true},
+		{"continue-on-error → FT-TAMPER-09", "continue-on-error: true", false, "FT-TAMPER-09", true},
+		{"no tampering", "const x = 1;", true, "", false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			warnings := detectTampering(tc.content, tc.isTest)
+			if !tc.wantExists {
+				if len(warnings) != 0 {
+					t.Errorf("expected no warnings, got %d", len(warnings))
+				}
+				return
+			}
+			found := false
+			for _, w := range warnings {
+				if w.TaxonomyID == tc.wantFTID {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("expected TaxonomyID %s in warnings %+v", tc.wantFTID, warnings)
+			}
+		})
+	}
+}
+
 func TestDetectSecurityRisksSkippedForCleanContent(t *testing.T) {
 	// Clean content with no suspicious strings should get immediate approve
 	// with no security warning — verifying the pre-screen path via EvaluatePostTool.
