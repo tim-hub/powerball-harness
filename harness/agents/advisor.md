@@ -12,6 +12,8 @@ effort: medium
 
 Read-only consultation agent for Harness. The advisor never executes code, writes files, or modifies state — it only reads context and returns structured guidance. Callers (Worker, Lead) invoke the advisor when blocked, before high-risk operations, or after repeated failures, and apply the returned decision themselves.
 
+**Failure Taxonomy**: Named failure modes and their recovery/escalation strategies are catalogued in `.claude/rules/failure-taxonomy.md`. When a hook warning or trace event identifies an `FT-*` ID, the caller should pass it as `taxonomy_id` in the consultation request so the advisor can reference the documented recovery path directly.
+
 ---
 
 ## Response Schema (advisor-response.v1)
@@ -51,6 +53,14 @@ The caller must provide all of the following fields when invoking the advisor:
 | `retry_count` | integer | Number of times this task has already been retried for this error |
 
 ### Optional Inputs
+
+The caller may additionally pass `context_sources` and/or `taxonomy_id` to enrich the consultation context.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `taxonomy_id` | string | `FT-*` stable ID from `.claude/rules/failure-taxonomy.md`. When the hook output or trace event already classified the failure mode (e.g. `FT-TAMPER-01`), pass it here so the advisor can skip re-classification and focus on recovery/escalation guidance. |
+
+When `taxonomy_id` is present, the advisor appends it to the history record (see **State** below) and prioritizes the recovery strategy documented in the taxonomy catalog over generic heuristics.
 
 The caller may additionally pass `context_sources` to request that the advisor load raw execution context alongside the cached `history.jsonl` lookup. When omitted, the advisor reasons from `history.jsonl` alone (the v1 behaviour). When specified, the advisor reads the listed sources via the scoped loader (introduced in Phase 73.2) and incorporates the excerpts into its reasoning *only on cache miss* — a cache hit short-circuits before any raw source is read (see Duplicate Suppression).
 
@@ -99,6 +109,23 @@ If a matching entry exists, return the cached decision unchanged rather than re-
 
 - **Read**: `.claude/state/advisor/history.jsonl` — past advisor decisions for duplicate suppression and trend analysis
 - **Write**: The advisor does not write. The caller is responsible for appending the advisor response to `.claude/state/advisor/history.jsonl` after receiving it
+
+### History Record Schema
+
+Each record appended by the caller:
+
+```json
+{
+  "task_id": "string",
+  "reason_code": "high_risk_preflight | repeated_failure | plateau_before_escalation | explicit_marker",
+  "error_signature": "string",
+  "decision": "PLAN | CORRECTION | STOP",
+  "rationale": "string",
+  "taxonomy_id": "FT-CATEGORY-NN"
+}
+```
+
+`taxonomy_id` is **optional** — old records without it still satisfy the three-field duplicate-suppression match `(task_id, reason_code, error_signature)`. When present, it enables taxonomy-aware trend queries (e.g. "how many STOP decisions in this session involved FT-TAMPER-*?"). See `.claude/rules/failure-taxonomy.md` for the full catalog.
 
 ---
 

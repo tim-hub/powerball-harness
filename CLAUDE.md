@@ -10,6 +10,7 @@
 - **CHANGELOG**: Record changes under `[Unreleased]` in Before/After format. Details: [.claude/rules/changelog.md](.claude/rules/changelog.md)
 - **Code style**: Clear names, comments for complex logic, single-responsibility skills/agents
 - **Test tampering**: Absolutely prohibited. Details: [.claude/rules/test-quality.md](.claude/rules/test-quality.md)
+- **Failure taxonomy**: Named `FT-*` IDs for detection, recovery, and escalation: [.claude/rules/failure-taxonomy.md](.claude/rules/failure-taxonomy.md)
 - [Repository structure](docs/repository-structure.md)
 - Contributing guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)
 

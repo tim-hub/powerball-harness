@@ -23,6 +23,19 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Added: Failure Taxonomy — named FT-* IDs across all detection systems (Phase 79)
+
+**Before**: Failure-handling logic was spread across four places with no shared vocabulary. Go tampering patterns used internal IDs like `T01:it-skip`, advisor history records had no failure-mode field, worker retry logic escalated by count only, and CI fixer categories existed only in prose. Agents had no way to reference the same failure mode consistently across detection, recovery, and trace events.
+
+**After**: A stable catalog at `.claude/rules/failure-taxonomy.md` assigns permanent `FT-<CATEGORY>-<NN>` IDs to 23 named failure modes across four source systems:
+
+- **FT-TAMPER-01 – FT-TAMPER-12** (`go/internal/guardrail/tampering.go`): each tampering pattern now carries a `TaxonomyID` field; hook output includes `{"taxonomy_ids":["FT-TAMPER-NN"]}` for structured trace correlation
+- **FT-ADVISE-01 – FT-ADVISE-03** (`harness/agents/advisor.md`): advisor history records accept an optional `taxonomy_id` field — backward-compatible with old records (duplicate-suppression still uses the three-field `task_id + reason_code + error_signature` key)
+- **FT-RETRY-01 – FT-RETRY-03** (`harness/skills/harness-work/SKILL.md`): review loop exhaustion, CI retry limit, and worker self-review gate failure
+- **FT-CI-01 – FT-CI-05** (`harness/agents/ci-cd-fixer.md`): TypeScript errors, test failures, dependency resolution, environment/secrets, and lint violations
+
+Worker agents extract `taxonomy_id` from hook warnings and pass it to advisor consultations so the advisor can reference the documented recovery path directly rather than re-classifying the failure. ID stability rule: IDs are never reused on removal.
+
 ## [4.10.1] - 2026-04-20
 
 ### Added: Plans.md ordering convention — newest-first + archive footer (Phase 78)

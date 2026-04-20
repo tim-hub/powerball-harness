@@ -179,10 +179,14 @@ When enabled in config (`advisor.enabled: true`), consult the Advisor agent befo
 | Repeated failure | Same error signature on ≥ `retry_threshold` retries | `repeated_failure` |
 | Plateau | Task restarted without new commits (stall detected) | `plateau_before_escalation` |
 
+### Failure Taxonomy Integration
+
+When a PostToolUse hook warning includes a `taxonomy_ids` JSON field (e.g. `{"taxonomy_ids":["FT-TAMPER-01"]}`), extract the first ID and pass it as `taxonomy_id` in the advisor consultation request. This lets the advisor reference the pre-classified recovery strategy from `.claude/rules/failure-taxonomy.md` without re-classifying the failure mode.
+
 ### Consultation Flow
 
 1. Check `advisor.enabled` in `harness/.claude-code-harness.config.yaml`
-2. If enabled, invoke `powerball-harness:advisor` subagent with: `task_id`, `reason_code`, normalized `error_signature`, `retry_count`
+2. If enabled, invoke `powerball-harness:advisor` subagent with: `task_id`, `reason_code`, normalized `error_signature`, `retry_count`, and `taxonomy_id` if available from hook output
 3. Parse response `decision` field:
    - **`PLAN`** — adopt the `suggested_approach` and replan; continue execution
    - **`CORRECTION`** — apply the provided fix directly; continue execution
