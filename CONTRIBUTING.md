@@ -119,7 +119,7 @@ Use a version bump only when you are intentionally cutting a release.
 ### Release-only Versioning Policy
 
 - Normal PRs: do not edit `VERSION`, `harness.toml`, or `template-registry.json`; add notes under `[Unreleased]`
-- Release work: run `./harness/skills/harness-release/scripts/sync-version.sh bump`, add a versioned `CHANGELOG.md` entry, then create the tag / GitHub Release
+- Release work: use `/release-this [patch|minor|major]` to release this plugin. It runs `make build-all`, consistency checks, validate-plugin.sh, then delegates to `/harness-release` for version bump, CHANGELOG, tag, and GitHub Release.
 - The repo pre-commit hook only syncs version files when you intentionally edit release metadata; it does not auto-bump patch versions
 
 ### Version Consistency Checks
