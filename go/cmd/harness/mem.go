@@ -86,25 +86,32 @@ func runMemHealthCheck() {
 }
 
 // checkMemHealth performs a two-stage health check:
-//  1. File integrity: ~/.claude-mem directory and settings.json validity
+//  1. File integrity: ~/.claude-mem directory + settings.json OR supervisor.json validity
 //  2. Daemon TCP probe: connect to HARNESS_MEM_HOST:HARNESS_MEM_PORT
+//
+// Absent ~/.claude-mem/ means harness-mem is not installed (opt-in), not a failure.
 func checkMemHealth() memHealthResult {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return memHealthResult{Healthy: false, Reason: "cannot-resolve-home"}
+		return memHealthResult{Healthy: true, Reason: "not-configured"}
 	}
 
 	memDir := filepath.Join(homeDir, ".claude-mem")
 
-	// Stage 1: file integrity
+	// Stage 1a: missing directory means harness-mem is not installed — healthy opt-out.
 	if _, err := os.Stat(memDir); os.IsNotExist(err) {
-		return memHealthResult{Healthy: false, Reason: "not-initialized"}
+		return memHealthResult{Healthy: true, Reason: "not-configured"}
 	}
 
-	settingsFile := filepath.Join(memDir, "settings.json")
-	data, err := os.ReadFile(settingsFile)
-	if err != nil || !json.Valid(data) {
-		return memHealthResult{Healthy: false, Reason: "corrupted-settings"}
+	// Stage 1b: accept settings.json OR supervisor.json (either valid JSON suffices).
+	validJSON := func(path string) bool {
+		data, err := os.ReadFile(path)
+		return err == nil && json.Valid(data)
+	}
+	settingsOK := validJSON(filepath.Join(memDir, "settings.json"))
+	supervisorOK := validJSON(filepath.Join(memDir, "supervisor.json"))
+	if !settingsOK && !supervisorOK {
+		return memHealthResult{Healthy: false, Reason: "corrupted"}
 	}
 
 	// Stage 2: daemon TCP probe
