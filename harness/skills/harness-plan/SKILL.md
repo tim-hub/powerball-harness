@@ -59,7 +59,9 @@ Adds a new task to Plans.md.
 harness-plan add task-name: detailed description [--phase phase-number]
 ```
 
-Tasks are added with the `cc:TODO` marker.
+Tasks are added with the `cc:TODO` marker. **Insertion point**: the new phase block goes immediately after the `---` header separator, above all existing `## Phase` blocks (newest phase on top). Never append at the bottom.
+
+See [references/plans-md-template.md](${CLAUDE_SKILL_DIR}/references/plans-md-template.md) for ordering rules and full format.
 
 ### update — Update Marker
 
@@ -107,12 +109,16 @@ Moves fully-completed phases out of Plans.md into `.claude/memory/archive/` to k
 2. Write the completed phases to `.claude/memory/archive/Plans-YYYY-MM-DD-phaseX-Y.md` (using today's date and the range of archived phase numbers)
 3. Remove those phases from Plans.md
 4. Update the `Last archive:` line at the top of Plans.md to record the date and archive filename
+5. Add a new row (newest at top) to the `## Archive` footer table at the bottom of Plans.md
+6. Verify remaining phases are still non-ascending after removal
 
 **What stays in Plans.md**: 
 - Any phase with at least one task that is `cc:TODO`, `cc:WIP`, or `blocked`.
 - The 10 most recent completed phases, even if they are fully `cc:done` / `pm:confirmed`, to maintain recent history and context.
 
 **Naming convention**: `Plans-YYYY-MM-DD-phaseX-Y.md` where X is the lowest and Y the highest archived phase number. Example: `Plans-2026-04-15-phase35-48.md`.
+
+See [references/plans-md-template.md](${CLAUDE_SKILL_DIR}/references/plans-md-template.md) for the `## Archive` footer format.
 
 ### session-log — Split session-log.md by Month
 
@@ -149,27 +155,13 @@ Reference:
 
 ## Plans.md Format Conventions
 
-### Format
+See [references/plans-md-template.md](${CLAUDE_SKILL_DIR}/references/plans-md-template.md) for the full canonical template, ordering rules, and field definitions.
 
-```markdown
-# [Project Name] Plans.md
-
-Created: YYYY-MM-DD
-
----
-
-## Phase N: Phase Name
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| N.1  | Description | Tests pass | - | cc:TODO |
-| N.2  | Description | 0 lint errors | N.1 | cc:WIP |
-| N.3  | Description | Migration executable | N.1, N.2 | cc:done |
-```
-
-**DoD (Definition of Done)**: Write a verifiable completion condition in one line. Vague criteria like "looks good" or "works properly" are prohibited. Must be answerable with Yes/No.
-
-**Depends**: Dependencies between tasks. `-` (no dependencies), task number (`N.1`), comma-separated (`N.1, N.2`), or phase dependency (`Phase N`).
+**Key rules (summary)**:
+- **Newest phase on top** — insert above all existing `## Phase` blocks, never at the bottom
+- **Non-ascending order** — phase numbers decrease top-to-bottom; gaps are allowed (archived phases removed)
+- **Archive footer last** — `## Archive` section stays at the very bottom with a link table to `.claude/memory/archive/`
+- **DoD must be verifiable** — yes/no answerable; banned: "looks good", "works properly"
 
 ### optional briefs / manifest
 

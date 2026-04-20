@@ -5,68 +5,45 @@ Last release: v4.9.1 on 2026-04-18 (fix platform binary version embedding)
 
 ---
 
-## Phase 74: Code-space skill search — proof-of-concept on `harness-review`
+## Phase 79: Explicit Failure Taxonomy (borrowed from NL-Agent-Harnesses paper)
 
-Created: 2026-04-17
+Created: 2026-04-20
 
-**Goal**: Borrow Meta-Harness's code-space search idea (arxiv 2603.28052) — instead of hand-editing `SKILL.md`, generate variants and score them against an evaluation suite. Scope: one skill (`harness-review`), 3-5 variants, measurable outcome. If the POC improves the skill, formalize the loop; if not, record why and discard.
+**Goal**: Consolidate scattered failure-handling logic into a single SSOT catalog, inspired by the "Failure Taxonomy" element (one of 8 NLAH elements) in *Natural-Language Agent Harnesses* ([arXiv:2603.25723v1](https://arxiv.org/abs/2603.25723)). Failure handling is currently spread across Go tampering patterns T01–T12 (`go/internal/hookhandler/post_tool.go`), Advisor error signatures (`harness/agents/advisor.md`), the Worker 3-retry-then-reticket loop (`harness-work` Phase 13), and CI fixer rules. Stable IDs (`FT-*`) give agents a shared vocabulary for detection, recovery, and escalation — and compose naturally with Phase 72 traces (trace events can cite taxonomy IDs for richer post-hoc audit).
 
-**Depends on**: Phase 72 (traces provide failure signal for the proposer) + Phase 73 (advisor pattern reusable for proposer scaffolding).
+**Paper prescription**: "Named failure modes drive recovery strategies." Turning tacit practice into an inspectable, referenceable artifact improves auditability and enables future ablation study (paper RQ2).
 
-**Score function** (decided 2026-04-18): **golden verdict / pass-fail** — each test case has an expected APPROVE or REQUEST_CHANGES; score = correct / total. Binary, automatable, CI-friendly.
+**Depends on**: Phase 72 (trace events in `.claude/state/traces/<task_id>.jsonl` are the richest emission point for `FT-*` IDs; 79.2 wires them in).
+
+**Non-goals**: Replacing advisor history duplicate suppression, tampering detection logic, or CI fixer rules — only naming and cross-referencing them.
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 74.1 | Define score function + build eval runner `local-scripts/eval-skill.sh <skill-dir> <eval-suite-dir>`. Runs fixed inputs through the skill, captures outputs, emits JSON score report | `eval-skill.sh harness/skills/harness-review tests/skill-eval/harness-review` prints a reproducible score | 72.1 | cc:Done [8ed646c] |
-| 74.2 | Build evaluation suite for `harness-review` at `tests/skill-eval/harness-review/` — 5 PR diffs (2 with real bugs, 2 clean, 1 scope-creep) + expected verdicts | `ls tests/skill-eval/harness-review/*.{diff,expected.json}` shows 10 files; running baseline skill against suite produces a score | 74.1 | cc:Done [cbbe5af] |
-| 74.3 | Write proposer script `local-scripts/propose-skill-variants.sh <skill-dir>`. Given SKILL.md + eval output + recent traces, generates 3 SKILL.md variants to `/tmp/skill-variants/harness-review-v{1,2,3}/SKILL.md` via Claude subagent | Running against a broken baseline (intentionally degraded `harness-review`) produces 3 syntactically valid SKILL.md files with meaningful diffs | 74.1 | cc:Done [9ef0a1e] |
-| 74.4 | Run end-to-end search loop: baseline → generate 3 variants → score each → pick winner. Emit report at `.claude/state/code-search/harness-review-<YYYY-MM-DD>.md` with scores, diffs, chosen winner | Report exists; winner's score ≥ baseline's score; report includes rationale | 74.2, 74.3 | cc:Done [local] |
-| 74.5 | Decision gate: if winner beats baseline by ≥10%, promote to main and add pattern to `patterns.md`. Otherwise document the null result. Update CHANGELOG [Unreleased] | Either a commit promoting the variant OR a patterns.md entry "code-space search POC attempted; no gain — reasons X, Y" | 74.4 | cc:Done [747f999] |
+| 79.1 | Create `.claude/rules/failure-taxonomy.md` with columns `ID \| category \| mode \| detector \| recovery \| escalation \| source`. Inventory all modes across four source systems: Go tampering (T01–T12), Advisor error signatures, Worker retry patterns, CI fixer rules. Assign stable IDs `FT-<CATEGORY>-<NN>` (e.g. `FT-TAMPER-01`, `FT-RETRY-01`, `FT-ADVISE-01`). Document ID stability rule: never reuse an ID on removal | File exists; ≥15 modes catalogued covering all four sources; every row has non-empty detector + recovery; ID stability rule stated | - | cc:TODO |
+| 79.2 | Annotate Go tampering patterns in `go/internal/hookhandler/post_tool.go` (+ tests) to emit `FT-TAMPER-*` IDs in hook output and error messages. Include `taxonomy_id` in the `error` event payload emitted to Phase 72 traces | `grep -rn "FT-TAMPER" go/` matches all T01–T12 patterns; `go test ./go/internal/hookhandler/...` passes; sample trace event contains `taxonomy_id` field | 79.1, 72.2 | cc:TODO |
+| 79.3 | Update `harness/agents/advisor.md` and `harness/agents/worker.md` to reference taxonomy IDs in error signatures. Extend advisor history schema: add optional `taxonomy_id` field to `.claude/state/advisor/history.jsonl` records (backward compat — old records without the field still match duplicate-suppression) | Both agent files cite `.claude/rules/failure-taxonomy.md`; advisor history schema documents `taxonomy_id`; duplicate-suppression logic handles mixed old/new records | 79.1 | cc:TODO |
+| 79.4 | CHANGELOG `[Unreleased]` Before/After entry under "Added" per `.claude/rules/changelog.md`; link taxonomy from CLAUDE.md rules index | CHANGELOG entry in Before/After format; CLAUDE.md rules section links to `failure-taxonomy.md`; `./tests/validate-plugin.sh` passes | 79.1 | cc:TODO |
 
 ---
 
-## Phase 75: Port upstream Worker contract improvements (PR #88, #89)
+## Phase 78: Plans.md ordering convention — newest-first + archive footer
 
-Created: 2026-04-19
+Created: 2026-04-20
 
-**Source**: Chachamaru127/claude-code-harness PRs #88 (v4.2.0, Hokage) / #89 (v4.3.0, Arcana) / #90 (release marker, no code).
+**Goal**: Make the implicit "newest phase on top" convention explicit and enforced, and add a persistent archive navigation footer at the bottom of Plans.md. Currently: insertion order is undocumented in `harness-plan/SKILL.md`, no rule file states the convention, and a reader who scrolls to the bottom of Plans.md has no link to older phases in `.claude/memory/archive/`.
 
-**Goal**: Bring in the portable behavioral improvements from the upstream fork without rebasing — their v4.2/v4.3 diverged significantly from our line (we're at v4.9.3 with a different Go-native architecture). We cherry-pick what's a clean, low-coupling improvement and skip what our infra already covers differently.
-
-**Investigation summary**:
-- **PR #88** is a CC 2.1.99-110 + Opus 4.7 integration release. Most of it is CC-version-specific (guardrail rule refresh, agent frontmatter migration, plugin schema migration to `plugins-reference`) — we're already past it structurally. Two portable items: `scripts/enable-1h-cache.sh` (opt-in 1-hour prompt cache) and a role-based PreCompact decision (our `pre-compact-save.js` only warns; upstream's `pre_compact.go` blocks compaction for Worker sessions).
-- **PR #89** is the high-value one: four independent Worker/Reviewer contract tightenings (#84–#87). All directly applicable.
-- **PR #90** is a release-completion marker with no code changes — skip.
-
-**What we already have and are NOT porting**:
-- PreCompact hook: we have `pre-compact-save.js` warning on `cc:WIP` tasks. Upstream's role-based blocking is a nice-to-have but not urgent — deferred to 75.6 as optional.
-- Guardrail engine: our Go-native `bin/harness` already covers bypass detection.
-- Plugin schema: our v4.9 architecture is already past upstream's `plugins-reference` migration.
+**Scope**:
+1. Update `harness-plan/SKILL.md` to make insertion point and archive footer explicit
+2. Fix current Plans.md phase ordering (74–77 are ascending; reorder to 77→76→75→74)
+3. Add a persistent `## Archive` footer to Plans.md linking to `.claude/memory/archive/`
+4. Extend `plans-format-check.sh` to validate non-ascending phase-number order
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 75.1 | Add Worker NG rules to `harness-work` SKILL.md (upstream issue #85). NG-1: Plans.md `cc:*` markers are Lead-owned — Workers must not modify. NG-2: embedded git repositories inside the worktree are rejected. NG-3: nested teammate spawning is forbidden (reinforce the platform-level block with an explicit contract clause) | `harness-work/SKILL.md` has a "Worker NG Rules" section listing all three; each rule has a one-line rationale and a check point (manual or scripted). Optional: pre-delegate preflight script | - | cc:Done [6030060] |
-| 75.2 | Add `REVIEW_AUTOSTART` handshake to `harness-review` SKILL.md Step 0 (upstream issue #84). Purpose: fix the fork-mode stall where `/harness-review` with no args waits forever for input. First 3 lines of Step 0 emit/detect `REVIEW_AUTOSTART` marker; add a prohibition list for 5 fork-context failure modes | `harness-review/SKILL.md` Step 0 top-matter includes the handshake marker and the prohibition list; a smoke test (`bash` or manual) confirms no stall when invoked in fork context with no args | - | cc:Done [390a473] |
-| 75.3 | Add Worker self-review gate (`worker-report.v1` JSON schema) to `harness-work` SKILL.md (upstream issue #86). Before the Lead spawns a Reviewer, the Worker must emit a `worker-report.v1` JSON with 5 self-review rule verdicts + evidence fields. Lead rejects incomplete submissions; up to 2 amendment cycles before escalation | `worker-report.v1` schema documented in `harness-work/SKILL.md` or `references/`; Lead flow updated to validate and either accept or reject with amendment loop; schema has `rule_id`, `verified: bool`, `evidence: string` per entry | 75.1 | cc:Done [37b87cf] |
-| 75.4 | Add universal violations session injection to `breezing` mode (upstream issue #87). Reviewer memory updates gain a `scope: universal \| task-specific` field; universal-scope items are collected and prepended to the next Worker's briefing within the same breezing session. Prevents repeat violations across tasks | Reviewer memory schema has `scope` field; breezing Phase B prepends universal items to Worker spawn prompt; documented in `harness-work/SKILL.md` breezing section | 75.3 | cc:Done [9d08753] |
-| 75.5 | Port `scripts/enable-1h-cache.sh` (upstream PR #88). Opt-in shell script that exports Anthropic's 1-hour prompt cache setting for sessions expected to exceed 30 minutes. Uses `export` format so subprocesses inherit the setting | `harness/scripts/enable-1h-cache.sh` exists and is executable; `source`-able or `eval`-able from a parent shell; a short usage note in `harness-work/SKILL.md` or `docs/` explains when to use it | - | cc:Done [ae36e86] |
-| 75.6 | (Optional, lower priority) Upgrade `pre-compact-save.js` from warn-only to role-based blocking (upstream PR #88 `pre_compact.go`). Worker sessions with `cc:WIP` tasks in Plans.md block compaction; Reviewer / Advisor roles pass through. Requires session-role detection in the hook | `pre-compact-save.js` detects session role from session-state and blocks compaction for Worker+WIP combo; test covers all 4 role × state permutations | - | cc:Done [84b0429] |
-
----
-
-## Phase 76: Fix WorktreeCreate hook — JSON-cwd guard parity in Go handler
-
-Created: 2026-04-19
-
-**Problem**: Users running `/harness-work` / `/harness-loop` sometimes end up with a literal folder named `{"decision":"approve","reason":"WorktreeCreate: initialized worktree state"}` in their project. Root cause: Claude Code occasionally feeds the previous `WorktreeCreate` hook's JSON output back as the `cwd` field on a subsequent invocation. The shell handler (`harness/scripts/hook-handlers/worktree-create.sh:58-63`) has a guard that rejects cwd values starting with `{`, but the Go port at `go/internal/hookhandler/worktree_create.go` lacks it — so `os.MkdirAll` happily creates a directory named after the JSON payload.
-
-**Why it matters**: Silent filesystem pollution in user projects. No error, no warning, just a bizarrely-named folder that reappears on every worktree creation until someone notices.
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 76.1 | Port the shell handler's JSON-cwd guard to `go/internal/hookhandler/worktree_create.go`. After the empty-cwd check, reject cwd values whose first byte is `{` and return the approve response with reason `"WorktreeCreate: skipped (invalid JSON cwd)"`. Matches shell handler exactly | `worktree_create.go` has the guard immediately after the `input.CWD == ""` check; running with a JSON-string cwd returns the skip reason and does not create a directory | - | cc:Done [local] |
-| 76.2 | Add regression test `TestHandleWorktreeCreate_JSONCWDGuard` to `go/internal/hookhandler/worktree_create_test.go`. Feeds a payload whose `cwd` is the actual upstream hook output JSON; asserts the skip reason AND that no directory with that JSON name exists on disk | `go test ./go/internal/hookhandler/... -run TestHandleWorktreeCreate -race` passes all 7 tests including the new one | 76.1 | cc:Done [local] |
-| 76.3 | Commit fix + test with Conventional Commits message (`fix(hooks): guard against JSON cwd in WorktreeCreate Go handler`). Record Before/After entry under CHANGELOG `[Unreleased]` | Commit landed on master; CHANGELOG has a Before/After entry describing the symptom (JSON-named folders) and the fix (Go handler now matches shell parity) | 76.2 | cc:Done [d87381f] |
+| 78.1 | Update `harness/skills/harness-plan/SKILL.md` `add` subcommand section: state insertion point explicitly ("Insert new phase block immediately after the `---` header separator, above any existing phase"). Update `archive` subcommand section: state it must maintain the `## Archive` footer after archiving | SKILL.md `add` section contains "insert above existing phases"; `archive` section mentions footer maintenance; `./tests/validate-plugin.sh` passes | - | cc:done |
+| 78.2 | Fix current Plans.md: reorder phases 74–77 into non-ascending order (77 → 76 → 75 → 74) so all phases read newest-first. Add `## Archive` footer section at bottom of Plans.md with links to all existing archive files in `.claude/memory/archive/` | `grep -n "^## Phase" Plans.md` numbers are non-ascending top-to-bottom (gaps allowed); `## Archive` section exists at end of file with ≥1 link | - | cc:done |
+| 78.3 | Extend `harness/scripts/plans-format-check.sh` with a phase-order check: extract all `## Phase N` numbers top-to-bottom, assert each number is strictly less than the previous one (non-ascending, gaps allowed), exit non-zero with "phase order violation: Phase M appears after Phase N" if not | `bash harness/scripts/plans-format-check.sh Plans.md` passes on correct file (e.g. 78,77,76); fails on ascending file (e.g. 74,75,76); gaps (78,76,74) pass | - | cc:done |
+| 78.4 | CHANGELOG `[Unreleased]` Before/After entry under "Added"; update `archive` subcommand in `harness-plan/references/create.md` if it contains a Plans.md template that needs the footer | CHANGELOG entry present in Before/After format; no Plans.md template omits the `## Archive` footer | - | cc:done |
 
 ---
 
@@ -117,8 +94,89 @@ Created: 2026-04-19
 
 ---
 
+## Phase 76: Fix WorktreeCreate hook — JSON-cwd guard parity in Go handler
+
+Created: 2026-04-19
+
+**Problem**: Users running `/harness-work` / `/harness-loop` sometimes end up with a literal folder named `{"decision":"approve","reason":"WorktreeCreate: initialized worktree state"}` in their project. Root cause: Claude Code occasionally feeds the previous `WorktreeCreate` hook's JSON output back as the `cwd` field on a subsequent invocation. The shell handler (`harness/scripts/hook-handlers/worktree-create.sh:58-63`) has a guard that rejects cwd values starting with `{`, but the Go port at `go/internal/hookhandler/worktree_create.go` lacks it — so `os.MkdirAll` happily creates a directory named after the JSON payload.
+
+**Why it matters**: Silent filesystem pollution in user projects. No error, no warning, just a bizarrely-named folder that reappears on every worktree creation until someone notices.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 76.1 | Port the shell handler's JSON-cwd guard to `go/internal/hookhandler/worktree_create.go`. After the empty-cwd check, reject cwd values whose first byte is `{` and return the approve response with reason `"WorktreeCreate: skipped (invalid JSON cwd)"`. Matches shell handler exactly | `worktree_create.go` has the guard immediately after the `input.CWD == ""` check; running with a JSON-string cwd returns the skip reason and does not create a directory | - | cc:Done [local] |
+| 76.2 | Add regression test `TestHandleWorktreeCreate_JSONCWDGuard` to `go/internal/hookhandler/worktree_create_test.go`. Feeds a payload whose `cwd` is the actual upstream hook output JSON; asserts the skip reason AND that no directory with that JSON name exists on disk | `go test ./go/internal/hookhandler/... -run TestHandleWorktreeCreate -race` passes all 7 tests including the new one | 76.1 | cc:Done [local] |
+| 76.3 | Commit fix + test with Conventional Commits message (`fix(hooks): guard against JSON cwd in WorktreeCreate Go handler`). Record Before/After entry under CHANGELOG `[Unreleased]` | Commit landed on master; CHANGELOG has a Before/After entry describing the symptom (JSON-named folders) and the fix (Go handler now matches shell parity) | 76.2 | cc:Done [d87381f] |
+
+---
+
+## Phase 75: Port upstream Worker contract improvements (PR #88, #89)
+
+Created: 2026-04-19
+
+**Source**: Chachamaru127/claude-code-harness PRs #88 (v4.2.0, Hokage) / #89 (v4.3.0, Arcana) / #90 (release marker, no code).
+
+**Goal**: Bring in the portable behavioral improvements from the upstream fork without rebasing — their v4.2/v4.3 diverged significantly from our line (we're at v4.9.3 with a different Go-native architecture). We cherry-pick what's a clean, low-coupling improvement and skip what our infra already covers differently.
+
+**Investigation summary**:
+- **PR #88** is a CC 2.1.99-110 + Opus 4.7 integration release. Most of it is CC-version-specific (guardrail rule refresh, agent frontmatter migration, plugin schema migration to `plugins-reference`) — we're already past it structurally. Two portable items: `scripts/enable-1h-cache.sh` (opt-in 1-hour prompt cache) and a role-based PreCompact decision (our `pre-compact-save.js` only warns; upstream's `pre_compact.go` blocks compaction for Worker sessions).
+- **PR #89** is the high-value one: four independent Worker/Reviewer contract tightenings (#84–#87). All directly applicable.
+- **PR #90** is a release-completion marker with no code changes — skip.
+
+**What we already have and are NOT porting**:
+- PreCompact hook: we have `pre-compact-save.js` warning on `cc:WIP` tasks. Upstream's role-based blocking is a nice-to-have but not urgent — deferred to 75.6 as optional.
+- Guardrail engine: our Go-native `bin/harness` already covers bypass detection.
+- Plugin schema: our v4.9 architecture is already past upstream's `plugins-reference` migration.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 75.1 | Add Worker NG rules to `harness-work` SKILL.md (upstream issue #85). NG-1: Plans.md `cc:*` markers are Lead-owned — Workers must not modify. NG-2: embedded git repositories inside the worktree are rejected. NG-3: nested teammate spawning is forbidden (reinforce the platform-level block with an explicit contract clause) | `harness-work/SKILL.md` has a "Worker NG Rules" section listing all three; each rule has a one-line rationale and a check point (manual or scripted). Optional: pre-delegate preflight script | - | cc:Done [6030060] |
+| 75.2 | Add `REVIEW_AUTOSTART` handshake to `harness-review` SKILL.md Step 0 (upstream issue #84). Purpose: fix the fork-mode stall where `/harness-review` with no args waits forever for input. First 3 lines of Step 0 emit/detect `REVIEW_AUTOSTART` marker; add a prohibition list for 5 fork-context failure modes | `harness-review/SKILL.md` Step 0 top-matter includes the handshake marker and the prohibition list; a smoke test (`bash` or manual) confirms no stall when invoked in fork context with no args | - | cc:Done [390a473] |
+| 75.3 | Add Worker self-review gate (`worker-report.v1` JSON schema) to `harness-work` SKILL.md (upstream issue #86). Before the Lead spawns a Reviewer, the Worker must emit a `worker-report.v1` JSON with 5 self-review rule verdicts + evidence fields. Lead rejects incomplete submissions; up to 2 amendment cycles before escalation | `worker-report.v1` schema documented in `harness-work/SKILL.md` or `references/`; Lead flow updated to validate and either accept or reject with amendment loop; schema has `rule_id`, `verified: bool`, `evidence: string` per entry | 75.1 | cc:Done [37b87cf] |
+| 75.4 | Add universal violations session injection to `breezing` mode (upstream issue #87). Reviewer memory updates gain a `scope: universal \| task-specific` field; universal-scope items are collected and prepended to the next Worker's briefing within the same breezing session. Prevents repeat violations across tasks | Reviewer memory schema has `scope` field; breezing Phase B prepends universal items to Worker spawn prompt; documented in `harness-work/SKILL.md` breezing section | 75.3 | cc:Done [9d08753] |
+| 75.5 | Port `scripts/enable-1h-cache.sh` (upstream PR #88). Opt-in shell script that exports Anthropic's 1-hour prompt cache setting for sessions expected to exceed 30 minutes. Uses `export` format so subprocesses inherit the setting | `harness/scripts/enable-1h-cache.sh` exists and is executable; `source`-able or `eval`-able from a parent shell; a short usage note in `harness-work/SKILL.md` or `docs/` explains when to use it | - | cc:Done [ae36e86] |
+| 75.6 | (Optional, lower priority) Upgrade `pre-compact-save.js` from warn-only to role-based blocking (upstream PR #88 `pre_compact.go`). Worker sessions with `cc:WIP` tasks in Plans.md block compaction; Reviewer / Advisor roles pass through. Requires session-role detection in the hook | `pre-compact-save.js` detects session role from session-state and blocks compaction for Worker+WIP combo; test covers all 4 role × state permutations | - | cc:Done [84b0429] |
+
+---
+
+## Phase 74: Code-space skill search — proof-of-concept on `harness-review`
+
+Created: 2026-04-17
+
+**Goal**: Borrow Meta-Harness's code-space search idea (arxiv 2603.28052) — instead of hand-editing `SKILL.md`, generate variants and score them against an evaluation suite. Scope: one skill (`harness-review`), 3-5 variants, measurable outcome. If the POC improves the skill, formalize the loop; if not, record why and discard.
+
+**Depends on**: Phase 72 (traces provide failure signal for the proposer) + Phase 73 (advisor pattern reusable for proposer scaffolding).
+
+**Score function** (decided 2026-04-18): **golden verdict / pass-fail** — each test case has an expected APPROVE or REQUEST_CHANGES; score = correct / total. Binary, automatable, CI-friendly.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 74.1 | Define score function + build eval runner `local-scripts/eval-skill.sh <skill-dir> <eval-suite-dir>`. Runs fixed inputs through the skill, captures outputs, emits JSON score report | `eval-skill.sh harness/skills/harness-review tests/skill-eval/harness-review` prints a reproducible score | 72.1 | cc:Done [8ed646c] |
+| 74.2 | Build evaluation suite for `harness-review` at `tests/skill-eval/harness-review/` — 5 PR diffs (2 with real bugs, 2 clean, 1 scope-creep) + expected verdicts | `ls tests/skill-eval/harness-review/*.{diff,expected.json}` shows 10 files; running baseline skill against suite produces a score | 74.1 | cc:Done [cbbe5af] |
+| 74.3 | Write proposer script `local-scripts/propose-skill-variants.sh <skill-dir>`. Given SKILL.md + eval output + recent traces, generates 3 SKILL.md variants to `/tmp/skill-variants/harness-review-v{1,2,3}/SKILL.md` via Claude subagent | Running against a broken baseline (intentionally degraded `harness-review`) produces 3 syntactically valid SKILL.md files with meaningful diffs | 74.1 | cc:Done [9ef0a1e] |
+| 74.4 | Run end-to-end search loop: baseline → generate 3 variants → score each → pick winner. Emit report at `.claude/state/code-search/harness-review-<YYYY-MM-DD>.md` with scores, diffs, chosen winner | Report exists; winner's score ≥ baseline's score; report includes rationale | 74.2, 74.3 | cc:Done [local] |
+| 74.5 | Decision gate: if winner beats baseline by ≥10%, promote to main and add pattern to `patterns.md`. Otherwise document the null result. Update CHANGELOG [Unreleased] | Either a commit promoting the variant OR a patterns.md entry "code-space search POC attempted; no gain — reasons X, Y" | 74.4 | cc:Done [747f999] |
+
+---
+
 ## Future Considerations
 
 (none currently)
 
 ---
+
+## Archive
+
+Older phases have been moved to `.claude/memory/archive/` to keep this file lean.
+
+| Archive file | Phases | Date |
+|---|---|---|
+| [Plans-2026-04-18-phase62-73.md](.claude/memory/archive/Plans-2026-04-18-phase62-73.md) | Phase 62–73 | 2026-04-18 |
+| [Plans-2026-04-17-phase59-61.md](.claude/memory/archive/Plans-2026-04-17-phase59-61.md) | Phase 59–61 | 2026-04-17 |
+| [Plans-2026-04-17-phase57-58.md](.claude/memory/archive/Plans-2026-04-17-phase57-58.md) | Phase 57–58 | 2026-04-17 |
+| [Plans-2026-04-16-phase55-56.md](.claude/memory/archive/Plans-2026-04-16-phase55-56.md) | Phase 55–56 | 2026-04-16 |
+| [Plans-2026-04-16-phase53-54.md](.claude/memory/archive/Plans-2026-04-16-phase53-54.md) | Phase 53–54 | 2026-04-16 |
+| [Plans-2026-04-16-phase52.md](.claude/memory/archive/Plans-2026-04-16-phase52.md) | Phase 52 | 2026-04-16 |
+| [Plans-2026-04-16-phase49-51.md](.claude/memory/archive/Plans-2026-04-16-phase49-51.md) | Phase 49–51 | 2026-04-16 |
+| [Plans-2026-04-15-phase35-48.md](.claude/memory/archive/Plans-2026-04-15-phase35-48.md) | Phase 35–48 | 2026-04-15 |
+| [Plans-2026-04-12-phase25-34.md](.claude/memory/archive/Plans-2026-04-12-phase25-34.md) | Phase 25–34 | 2026-04-12 |

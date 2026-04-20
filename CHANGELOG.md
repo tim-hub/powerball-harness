@@ -22,6 +22,18 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Added: Plans.md ordering convention — newest-first + archive footer (Phase 78)
+
+**Before**: The "newest phase on top" ordering was an unwritten convention. `harness-plan add` had no documented insertion point, `harness-plan archive` had no obligation to maintain a navigation footer, `plans-format-check.sh` did not detect ascending phase order, and Plans.md had no persistent link to archived phases.
+
+**After**: The convention is now explicit and enforced end-to-end:
+
+- `harness-plan/SKILL.md` `add` subcommand: documents the insertion point ("new phase block goes immediately after the `---` header separator, above all existing `## Phase` blocks — never at the bottom")
+- `harness-plan/SKILL.md` `archive` subcommand: documents that it must add a new row to the `## Archive` footer table (newest at top) and verify remaining phases are still non-ascending after removal
+- `harness/scripts/plans-format-check.sh`: new check extracts `## Phase N` numbers top-to-bottom and exits non-zero with a `"Phase order violation"` message if any number is ≥ its predecessor
+- `Plans.md`: `## Archive` footer added at the bottom with links to all 9 existing archive files — readers can navigate full project history without guessing filenames
+- `harness/skills/harness-plan/references/plans-md-template.md` (new): canonical template + ordering rules table used as reference by `harness-plan` `add`/`archive`/`create`
+
 ## [4.10.0] - 2026-04-19
 
 ### Feature: Active Session Monitoring — Plans.md drift, advisor TTL, mem health (Phase 77)

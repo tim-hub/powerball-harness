@@ -57,6 +57,16 @@ if ! grep -qE 'cc:(TODO|WIP|WORK|DONE|done|blocked)|pm:(pending|confirmed)|curso
   fi
 fi
 
+# 4. Check phase ordering: numbers must be non-ascending top-to-bottom (gaps allowed)
+prev_phase=999999
+while IFS= read -r phase_num; do
+  if (( phase_num >= prev_phase )); then
+    ISSUES+=("\"Phase order violation: Phase $phase_num appears after Phase $prev_phase (phases must be non-ascending, newest first).\"")
+    break
+  fi
+  prev_phase=$phase_num
+done < <(grep -oE '^## Phase [0-9]+' "$PLANS_FILE" | grep -oE '[0-9]+$')
+
 # Output result
 if [ ${#ISSUES[@]} -eq 0 ]; then
   output_json "ok" "Plans.md format is up to date" "false"

@@ -220,11 +220,14 @@ When inference confidence is low, set to `-` and request user confirmation.
 ```markdown
 # [Project Name] Plans.md
 
-Created: YYYY-MM-DD
+Last archive: (none yet)
+Last release: (none yet)
 
 ---
 
 ## Phase 1: [Phase Name]
+
+Created: YYYY-MM-DD
 
 Purpose: [Phase purpose (optional)]
 
@@ -232,6 +235,21 @@ Purpose: [Phase purpose (optional)]
 |------|-------------|-----|---------|--------|
 | 1.1  | [Task description] [feature:security] | [Verifiable completion criteria] | - | cc:TODO |
 | 1.2  | [Task description] | [Verifiable completion criteria] | 1.1 | cc:TODO |
+
+---
+
+## Future Considerations
+
+(none currently)
+
+---
+
+## Archive
+
+Older phases have been moved to `.claude/memory/archive/` to keep this file lean.
+
+| Archive file | Phases | Date |
+|---|---|---|
 ```
 
 **Purpose line**:
