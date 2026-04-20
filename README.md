@@ -49,10 +49,8 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, with
 | `/harness-setup` | Project initialization (eg, creates `CLAUDE.md` and `Plans.md`) |
 | `/harness-plan` | Ideas → `Plans.md` with acceptance criteria |
 | `/harness-work` | Parallel implementation (auto-detects task count) |
-| `/harness-loop` | Poll a command on a recurring interval (e.g., `harness-loop 5m /harness-work`) |
 | `/harness-review` | 4-perspective code review (security, perf, quality, a11y) |
 | `/harness-release` | CHANGELOG, tag, and GitHub Release |
-| `/harness-remember` | SSOT (Single Source of Truth) management — decisions, patterns, and session log |
 
 Run everything after plan approval:
 
@@ -61,6 +59,13 @@ Run everything after plan approval:
 ```
 
 > **Note**: `/harness-setup` is only needed when onboarding a brand new project that doesn't yet have `CLAUDE.md` or `Plans.md`. If your project already has those, or if you're just using the skills directly, you can skip it entirely.
+
+### Supporting Skills
+
+| Command | What it does |
+|---------|-------------|
+| `/harness-loop` | Poll a command on a recurring interval (e.g., `/harness-loop 5m /harness-work` to iterate work every 5 minutes) |
+| `/harness-remember` | SSOT (Single Source of Truth) management — maintain decisions, patterns, and session logs |
 
 ---
 
