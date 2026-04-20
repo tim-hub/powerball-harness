@@ -29,6 +29,18 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+#### 2. Rename memory skill → harness-remember; create remember-this project skill
+
+**Before**: The Harness `memory` skill conflicted with Claude Code's built-in `/memory` command — the auto-loader could route to the wrong one. The `sync-across` subcommand (Plans.md marker alignment, PM/Impl handoff routes) was inside the generic plugin skill, mixing powerball-harness-specific logic into a distributed skill.
+
+**After**: Skill renamed to `harness-remember` (no naming collision). Project-specific `sync-across` workflow extracted into `.claude/skills/remember-this/` — a project-level skill that lives alongside `release-this`, `port-upstream`, etc. Use `/harness-remember` for generic SSOT operations; use `/remember-this sync-across` for Plans.md marker sync specific to this repo.
+
+Key changes:
+- `harness/skills/memory/` → `harness/skills/harness-remember/` (`name: harness-remember`)
+- `sync-project-specs.md` moved to `.claude/skills/remember-this/references/`
+- `harness-remember` Quick Reference: `sync-across` row removed; pointer note added
+- CLAUDE.md and skill catalog updated with new entries
+
 #### 1. Split harness-release into generic engine + project-specific release-this
 
 **Before**: `harness/skills/harness-release/` contained both generic release logic (version bump, CHANGELOG, git tag, GitHub Release) and plugin-specific checks (check-consistency.sh with 13 harness-specific validations, codex symlink verification, marketplace.json sync). Any project using the Harness plugin had these plugin-specific checks in their release flow.
