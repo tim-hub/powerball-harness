@@ -23,7 +23,7 @@ flowchart LR
         direction TB
         HP["skill: harness-plan\n/harness-plan create|add"]
         SYNC0["skill: harness-sync\n(drift check, retrospective)"]
-        MEM["skill: memory\n(decisions.md, patterns.md)"]
+        MEM["skill: harness-remember\n(decisions.md, patterns.md)"]
         HP --> MEM
     end
 
@@ -202,7 +202,7 @@ flowchart LR
         AT[".claude/state/agent-trace.jsonl\nsession-level tool calls"]
         TT[".claude/state/traces/&lt;task&gt;.jsonl\nper-task causal history (trace.v1)"]
     end
-    subgraph L1["Layer 1 · Project SSOT (skill: memory)"]
+    subgraph L1["Layer 1 · Project SSOT (skill: harness-remember)"]
         DEC2["decisions.md\n(why decisions were made)"]
         PAT["patterns.md\n(reusable implementation patterns)"]
         SL["session-log.md\n(per-session notes)"]
@@ -213,8 +213,8 @@ flowchart LR
 
     AT -->|promoted by session-memory| L1
     TT -->|archived after 30d by /maintenance| TT
-    L1 -->|sync via /memory sync-across| L2
-    L2 -->|recalled via /memory search| L1
+    L1 -->|sync via /harness-remember sync-across| L2
+    L2 -->|recalled via /harness-remember search| L1
 ```
 
 **L0 has two trace streams**:

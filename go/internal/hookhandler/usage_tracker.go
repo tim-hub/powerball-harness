@@ -121,9 +121,9 @@ func (h *UsageTrackerHandler) trackSkill(inp usageTrackerInput, projectRoot stri
 	// "claude-code-harness:impl" → "impl"
 	baseName := extractBaseName(toolIn.Skill, ":")
 
-	if baseName == "sync-ssot-from-memory" || baseName == "memory" ||
+	if baseName == "sync-ssot-from-memory" || baseName == "harness-remember" ||
 		strings.Contains(toolIn.Skill, "sync-ssot-from-memory") ||
-		strings.Contains(toolIn.Skill, ":memory") {
+		strings.Contains(toolIn.Skill, ":harness-remember") {
 		h.touchSSOTFlag(projectRoot)
 	}
 
@@ -151,7 +151,7 @@ func (h *UsageTrackerHandler) trackSlashCommand(inp usageTrackerInput, projectRo
 
 	baseName := strings.TrimPrefix(cmdName, "/")
 
-	if strings.Contains(baseName, "sync-ssot-from-memory") || baseName == "memory" {
+	if strings.Contains(baseName, "sync-ssot-from-memory") || baseName == "harness-remember" {
 		h.touchSSOTFlag(projectRoot)
 	}
 
