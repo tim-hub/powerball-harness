@@ -2,7 +2,7 @@
 name: release-this
 description: "Orchestrates the full powerball-harness plugin release with build, validation, and version checks. Use when releasing this plugin."
 when_to_use: "release this plugin, release harness, cut a release, publish harness, ship harness, release-this"
-allowed-tools: ["Read", "Write", "Edit", "Bash"]
+allowed-tools: ["Read", "Write", "Edit", "Bash", "Skill"]
 argument-hint: "[patch|minor|major|--dry-run|--complete]"
 model: sonnet
 effort: low
