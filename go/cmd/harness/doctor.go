@@ -24,7 +24,7 @@ import (
 //   - bin/harness PATH resolution
 //
 // With --migration: additionally shows hook migration status (Go vs shell).
-// With --residue: calls scripts/check-residue.sh to detect v3 migration remnants.
+// With --residue: calls scripts/check-residue.py to detect v3 migration remnants.
 //
 // Both flags are independent and can be combined.
 func runDoctor(args []string) {
@@ -596,7 +596,7 @@ func sortedKeys(m map[string][]hookGroup) []string {
 // Residue check (Phase 40 — Migration Residue Scanner)
 // ---------------------------------------------------------------------------
 
-// runResidueCheck calls scripts/check-residue.sh as a subprocess and
+// runResidueCheck calls scripts/check-residue.py as a subprocess and
 // transparently streams its output to stdout/stderr.
 //
 // Return values:
@@ -608,16 +608,16 @@ func runResidueCheck(projectRoot string) int {
 	fmt.Println()
 
 	// Try harness/skills path first (current layout), fall back to local-scripts
-	script := filepath.Join(projectRoot, "harness", "skills", "harness-release", "scripts", "check-residue.sh")
+	script := filepath.Join(projectRoot, "harness", "skills", "harness-release", "scripts", "check-residue.py")
 	if _, err := os.Stat(script); err != nil {
-		script = filepath.Join(projectRoot, "local-scripts", "check-residue.sh")
+		script = filepath.Join(projectRoot, "local-scripts", "check-residue.py")
 	}
 	if _, err := os.Stat(script); err != nil {
-		fmt.Fprintf(os.Stderr, "  scanner failed: check-residue.sh not found\n")
+		fmt.Fprintf(os.Stderr, "  scanner failed: check-residue.py not found\n")
 		return 2
 	}
 
-	cmd := exec.Command("bash", script)
+	cmd := exec.Command("python3", script)
 	// Pipe scanner output directly to this process's stdout/stderr so that
 	// file paths, line numbers, and counts appear transparently to the user.
 	cmd.Stdout = os.Stdout

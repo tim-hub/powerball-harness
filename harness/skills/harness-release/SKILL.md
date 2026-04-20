@@ -293,7 +293,7 @@ Verify the following regressions before release:
 - [ ] **VERSION sync** — `bash "${CLAUDE_SKILL_DIR}/scripts/sync-version.sh" check` (VERSION matches marketplace.json)
 - [ ] **Guardrails** — R01-R13 in `go/internal/guardrail/rules.go` (Go rule health)
 - [ ] **Tag continuity** — `git tag --sort=-version:refname | head -5` (no missing tags)
-- [ ] **Migration residue** — `bash "${CLAUDE_SKILL_DIR}/scripts/check-residue.sh"` (no deleted-concept references)
+- [ ] **Migration residue** — `python3 "${CLAUDE_SKILL_DIR}/scripts/check-residue.py"` (no deleted-concept references)
 
 ## CI Safety Net
 
