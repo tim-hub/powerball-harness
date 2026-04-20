@@ -4,7 +4,7 @@ description: "Use when implementing tasks in breezing/parallel mode — TDD, imp
 tools: [Read, Write, Edit, Bash, Grep, Glob]
 disallowedTools: [Agent]
 model: sonnet  # balanced capability/cost for implementation; haiku lacks depth for complex tasks
-effort: medium
+effort: high
 maxTurns: 100
 permissionMode: bypassPermissions
 color: yellow

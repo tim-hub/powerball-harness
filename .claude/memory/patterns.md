@@ -14,6 +14,9 @@ Record the **problem, solution, and applicability conditions** so the same decis
 - P7: Optional-tool extraction for skills #skills #conditional-load #codex
 - P8: Go declarative guardrail rule table #guardrails #go
 - P9: Concurrent hook fan-out with deny-wins merge #hooks #concurrency
+- P10: Replay-style task trace logging #observability #advisor
+- P11: Code-space skill search requires failing baseline #skills #eval
+- P12: Reject generic "reader" agents — Explore subagent covers read-only exploration #agents #anti-pattern
 
 ---
 
@@ -452,3 +455,43 @@ PreToolUse  → pre-tool-batch  → [goroutine: guardrail] [goroutine: browser-g
 - Tooling is in place: `local-scripts/eval-skill.sh`, `local-scripts/propose-skill-variants.sh`, `tests/skill-eval/harness-review/`
 - To get value from code-space search: first find cases where baseline fails (harder diffs, ambiguous scope), then run the loop
 - Multi-turn proposer (iterate with failing cases from each round) would outperform single-round generation
+
+## P12: Reject generic "reader" agents — Explore subagent covers read-only exploration #agents #anti-pattern #subagents
+
+### Problem
+
+- Contributors occasionally propose a dedicated "reader" or "read-only explorer" agent — typically framed as a lightweight helper for file/code exploration
+- Such agents overlap entirely with existing capability: Haiku-powered Explore subagents and inline Lead use of Glob/Grep/Read already handle generic read-only exploration
+- Adding them inflates the agent catalog, duplicates routing surface, and dilutes the "single responsibility per agent" principle (D1)
+
+### Solution
+
+- **Reject** proposals for generic reader/explorer agents by default
+- Accept only when the proposed agent clears both of these bars:
+  1. **Typed response schema**: returns a structured payload (not free-form prose) that a downstream agent/skill actually consumes — e.g. `{findings[], score, taxonomy_id}` style, not "here is some text about the code"
+  2. **Clear harness integration story**: explicit caller in a skill/agent, defined trigger, and documented consumer of the typed output (Plans.md marker, trace event, advisor input, reviewer gate, etc.)
+- If the proposal only offers "faster/cheaper reading" or "Haiku-powered exploration," point the contributor to the existing Explore subagent pattern and inline Glob/Grep/Read usage from the Lead
+
+### When to Apply
+
+- Reviewing any new agent proposal whose stated purpose is reading, exploring, scanning, or summarising a codebase without writes
+- PR review for new files under `harness/agents/` that describe themselves as read-only helpers
+- Advisor/Reviewer/Lead design discussions where someone suggests factoring read operations into a dedicated agent
+
+### When NOT to Apply
+
+- Agents with side effects (workers, scaffolders, CI fixers) — they're governed by D1's single-responsibility rule, not this anti-pattern
+- Specialized read-only agents that DO meet both bars: e.g. an agent that returns a typed `review-output.schema.json` payload consumed by a reviewer gate is legitimate even though it only reads
+
+### Rationale
+
+- Explore subagents (Haiku) already provide cheap, parallel, read-only exploration with lower context cost than a dedicated agent would
+- The Lead retains Glob/Grep/Read and is expected to use them directly for targeted lookups
+- A typed response schema is what makes a subagent worth spawning — otherwise the Lead could have done the same reading inline and saved a round-trip
+- Keeping the agent catalog lean preserves routing clarity (D1) and reduces auto-loader overhead
+
+### Related
+
+- D1: 5-verb skills + 7-agent consolidation (architectural precedent for rejecting redundant agents)
+- Explore subagent pattern (Haiku-powered, generic read-only exploration)
+- `harness/agents/team-composition.md` — single source for which agents exist and why

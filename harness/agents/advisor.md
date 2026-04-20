@@ -5,7 +5,7 @@ model: opus
 allowed-tools: ["Read", "Grep", "Glob"]
 disallowedTools: ["Write", "Edit", "Bash", "Task", "Agent"]
 maxTurns: 10
-effort: medium
+effort: xhigh
 ---
 
 # Advisor Agent

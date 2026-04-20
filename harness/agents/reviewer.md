@@ -4,7 +4,7 @@ description: "Use when rendering APPROVE/REQUEST_CHANGES verdicts against a spri
 tools: [Read, Grep, Glob]
 disallowedTools: [Write, Edit, Bash, Agent]
 model: opus  # needs nuance for critical/major classification; haiku under-flags
-effort: medium
+effort: xhigh
 maxTurns: 50
 permissionMode: bypassPermissions
 color: blue
