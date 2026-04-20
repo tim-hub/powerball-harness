@@ -21,7 +21,7 @@ jq -e '
 ' "${OUTPUT_JSON}" >/dev/null
 
 jq -e '
-  any(.skills[]; .name == "harness-plan" and (.allowed_tools | index("Read")) != null and (.allowed_tools | index("Task")) != null and .effort == "medium" and .surface == "skills" and (.when_to_use | type == "string") and (.when_to_use | contains("create a plan")))
+  any(.skills[]; .name == "harness-plan" and (.allowed_tools | index("Read")) != null and (.allowed_tools | index("Task")) != null and .effort == "xhigh" and .surface == "skills" and (.when_to_use | type == "string") and (.when_to_use | contains("create a plan")))
 ' "${OUTPUT_JSON}" >/dev/null
 
 echo "test-generate-skill-manifest: ok"
