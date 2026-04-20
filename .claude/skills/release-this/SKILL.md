@@ -40,10 +40,8 @@ Fail immediately if `make build-all` exits non-zero. Do not proceed to step 2.
 Run the 13 plugin-specific consistency checks. These verify symlink integrity, template consistency, version alignment, and structural invariants.
 
 ```bash
-bash harness/skills/harness-release/scripts/check-consistency.sh
+bash "${CLAUDE_SKILL_DIR}/scripts/check-consistency.sh"
 ```
-
-Note: This script will move to `.claude/skills/release-this/scripts/check-consistency.sh` in a future task (81.5). Use the path above until then.
 
 ### Step 3: Full plugin validation
 
