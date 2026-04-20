@@ -25,10 +25,9 @@ Runs all plugin-specific checks (build, consistency, validation, symlinks, versi
 
 ## Execution Flow
 
-### Step 1: Cross-platform binary build
+### Step 1: Cross-platform binary build if there are changes in `go/` since the last release
 
-Run `make build-all` to compile darwin-arm64, darwin-amd64, and linux-amd64 binaries.
-Running this first ensures build failures are caught before any validation work begins.
+Run `make build-all` to compile darwin-arm64, darwin-amd64, and linux-amd64 binaries unless there are no changes in `go/` source files since the last release. This ensures that any build issues are caught before proceeding with release validation or publishing steps.
 
 ```bash
 make build-all
