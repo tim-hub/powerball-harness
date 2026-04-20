@@ -42,6 +42,26 @@ func TestIsProtectedPath_NormalFile(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// Allowlist: .env.example / .env.template / .env.sample are writable
+// ---------------------------------------------------------------------------
+
+func TestIsProtectedPath_EnvExample(t *testing.T) {
+	for _, p := range []string{".env.example", "/project/.env.example", ".env.template", ".env.sample"} {
+		if isProtectedPath(p) {
+			t.Errorf("%s should NOT be protected (safe template)", p)
+		}
+	}
+}
+
+func TestIsProtectedPath_EnvLocalStillProtected(t *testing.T) {
+	for _, p := range []string{".env.local", ".env.production", ".env.staging"} {
+		if !isProtectedPath(p) {
+			t.Errorf("%s should still be protected", p)
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Task 38.1.1: .husky protection (CC 2.1.90)
 // ---------------------------------------------------------------------------
 
