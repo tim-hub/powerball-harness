@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.11.1...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.11.2...HEAD
+[4.11.2]: https://github.com/tim-hub/powerball-harness/compare/v4.11.1...v4.11.2
 [4.11.1]: https://github.com/tim-hub/powerball-harness/compare/v4.11.0...v4.11.1
 [4.11.0]: https://github.com/tim-hub/powerball-harness/compare/v4.10.1...v4.11.0
 [4.10.1]: https://github.com/tim-hub/powerball-harness/compare/v4.10.0...v4.10.1
@@ -24,6 +25,22 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.11.2] - 2026-04-20
+
+### Fixed: `bin/harness mem health` no longer exits 1 when harness-mem is not installed (Phase 80)
+
+#### 1. Tri-state health check for harness-mem
+
+**Before**: When `~/.claude-mem/` was absent (harness-mem not installed), `bin/harness mem health` returned `{"healthy":false,"reason":"not-initialized"}` and exited 1. Any script checking health would incorrectly treat "not installed" as a failure. The file-integrity check required `settings.json` specifically; if only `supervisor.json` was present, it would flag the state as corrupted.
+
+**After**: When `~/.claude-mem/` is absent or `os.UserHomeDir()` fails, the command returns `{"healthy":true,"reason":"not-configured"}` and exits 0. harness-mem is an opt-in component — absence is not a failure. The file-integrity check now accepts either `settings.json` or `supervisor.json` as valid; corrupted is only reported when neither file contains valid JSON. Reason strings renamed: `not-initialized` → `not-configured`, `corrupted-settings` → `corrupted`.
+
+#### 2. Active-watching test policy for daemon-probing features
+
+**Before**: No documented convention for writing tests against features that probe optional external daemons. Test names and exit-code expectations varied across the codebase.
+
+**After**: `.claude/rules/active-watching-test-policy.md` codifies the tri-state test requirement: every daemon-probing feature must cover `_NotConfigured` (dependency absent → `healthy: true`, exit 0), `_Unreachable` (dependency installed but unreachable → `healthy: false`), and `_Corrupted` (dependency installed but malformed → `healthy: false`). Probes must be package-level `var` for test injection. `CLAUDE.md` links to the new rule.
 
 ## [4.11.1] - 2026-04-20
 
