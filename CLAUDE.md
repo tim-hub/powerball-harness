@@ -11,6 +11,7 @@
 - **Code style**: Clear names, comments for complex logic, single-responsibility skills/agents
 - **Test tampering**: Absolutely prohibited. Details: [.claude/rules/test-quality.md](.claude/rules/test-quality.md)
 - **Failure taxonomy**: Named `FT-*` IDs for detection, recovery, and escalation: [.claude/rules/failure-taxonomy.md](.claude/rules/failure-taxonomy.md)
+- **Active-watching test policy**: [.claude/rules/active-watching-test-policy.md](.claude/rules/active-watching-test-policy.md)
 - [Repository structure](docs/repository-structure.md)
 - Contributing guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)
 
