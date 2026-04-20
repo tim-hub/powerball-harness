@@ -189,7 +189,7 @@ If the user wants to commit, chain into `/commit` — but don't do it implicitly
 
 ## Related
 
-- `skills/memory/SKILL.md` — entry point for the `record` subcommand
+- `skills/harness-remember/SKILL.md` — entry point for the `record` subcommand
 - `references/ssot-initialization.md` — bootstrap files when they don't exist yet
 - `references/sync-ssot-from-memory.md` — promote Layer 1 observations into SSOT
 - `.claude/memory/decisions.md` / `.claude/memory/patterns.md` — the target files
