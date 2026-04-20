@@ -218,9 +218,8 @@ When inference confidence is low, set to `-` and request user confirmation.
 **Generation template**:
 
 ```markdown
-# [Project Name] Plans.md
+# [Project Name] — Plans.md
 
-Last archive: (none yet)
 Last release: (none yet)
 
 ---
@@ -246,10 +245,8 @@ Purpose: [Phase purpose (optional)]
 
 ## Archive
 
-Older phases have been moved to `.claude/memory/archive/` to keep this file lean.
-
-| Archive file | Phases | Date |
-|---|---|---|
+- Last archive: (none yet)
+- Other older phases have been moved to `.claude/memory/archive/` to keep this file lean.
 ```
 
 **Purpose line**:

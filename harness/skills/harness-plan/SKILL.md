@@ -27,7 +27,7 @@ Consolidates the following 3 legacy skills:
 | "where am I?" / "check progress" | `sync` | Compare implementation with Plans.md and sync |
 | `harness-plan sync` / "sync status" | `sync` | Progress check via harness-plan's embedded sync subcommand |
 | `harness-plan create` | `create` | Create plan |
-| "archive old phases" / `harness-plan archive` | `archive` | Archive phases in Plans.md to `.claude/memory/archive/`; update `Last archive:` header |
+| "archive old phases" / `harness-plan archive` | `archive` | Archive phases in Plans.md to `.claude/memory/archive/`; update `Last archive:` line in the `## Archive` footer |
 | "session log too big" / `harness-plan session-log` | `session-log` | Split session-log.md by month; move older months to `.claude/memory/session-log-YYYY-MM.md` |
 
 ## Subcommand Details
@@ -108,9 +108,8 @@ Moves fully-completed phases out of Plans.md into `.claude/memory/archive/` to k
 1. Read Plans.md and identify phases where all tasks are `cc:done` / `pm:confirmed`
 2. Write the completed phases to `.claude/memory/archive/Plans-YYYY-MM-DD-phaseX-Y.md` (using today's date and the range of archived phase numbers)
 3. Remove those phases from Plans.md
-4. Update the `Last archive:` line at the top of Plans.md to record the date and archive filename
-5. Add a new row (newest at top) to the `## Archive` footer table at the bottom of Plans.md
-6. Verify remaining phases are still non-ascending after removal
+4. Update the `Last archive:` bullet in the `## Archive` footer at the bottom of Plans.md to record the date and archive filename
+5. Verify remaining phases are still non-ascending after removal
 
 **What stays in Plans.md**: 
 - Any phase with at least one task that is `cc:TODO`, `cc:WIP`, or `blocked`.

@@ -39,7 +39,7 @@ Phase numbers must decrease top-to-bottom. Gaps are allowed because archiving re
 ### 3. Archive footer stays at the bottom
 
 The `## Archive` section is the **last section** in Plans.md, below `## Future Considerations`.
-After every `harness-plan archive` run, update the archive table with a new row for the archived file.
+After every `harness-plan archive` run, update the `Last archive:` bullet in the `## Archive` footer with the new date and archive filename.
 
 ### 4. Future Considerations section
 
@@ -54,14 +54,13 @@ Always present, even when empty. Use `(none currently)` as placeholder text — 
 ```
 # [Project Name] — Plans.md
 
-Last archive: YYYY-MM-DD (Phase X–Y → path)
 Last release: vA.B.C on YYYY-MM-DD (description)
 
 ---
 ```
 
-- `Last archive`: updated by `harness-plan archive` after each run
 - `Last release`: updated by `harness-release` after each release
+- `Last archive`: lives in the `## Archive` footer (bottom of file), updated by `harness-plan archive` after each run
 
 ### Phase block (one per phase)
 
@@ -99,8 +98,6 @@ Created: YYYY-MM-DD
 - Last archive: YYYY-MM-DD (Phase X–Y → `.claude/memory/archive/Plans-YYYY-MM-DD-phaseX-Y.md`)
 - Other older phases have been moved to `.claude/memory/archive/` to keep this file lean.
 ```
-
-Add one row per archive file, newest archive at the top of the table.
 
 ---
 
