@@ -5,8 +5,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DEFAULT_ROOT="$(cd "$SCRIPT_DIR/../../../" && pwd)"  # plugin-local: harness plugin root
-PLUGIN_ROOT="${HARNESS_RELEASE_PLUGIN_ROOT:-$DEFAULT_ROOT}"
+# project-root: use git repo root for generic project-root resolution
+if [ -n "${HARNESS_RELEASE_PLUGIN_ROOT:-}" ]; then
+  PLUGIN_ROOT="$HARNESS_RELEASE_PLUGIN_ROOT"
+else
+  PLUGIN_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+  if [ -z "$PLUGIN_ROOT" ]; then
+    PLUGIN_ROOT="$(pwd)"
+  fi
+fi
 
 if [ "${1:-}" = "--help" ]; then
   cat <<'EOF'
@@ -208,18 +215,35 @@ check_runtime_residuals() {
   local files=()
   local file
 
+  # Use HARNESS_RELEASE_RESIDUAL_DIRS env var if set, otherwise scan all git-tracked files
+  if [ -n "${HARNESS_RELEASE_RESIDUAL_DIRS:-}" ]; then
+    SCAN_DIRS="$HARNESS_RELEASE_RESIDUAL_DIRS"
+  else
+    # Generic default: scan all git-tracked files (no directory filter)
+    SCAN_DIRS="."
+  fi
+
   while IFS= read -r -d '' file; do
-    case "$file" in
-      agents/*|core/*|hooks/*|scripts/*)
-        if [ "$file" = "scripts/release-preflight.sh" ]; then
-          continue
-        fi
-        files+=("$file")
-        ;;
-      *)
+    # Skip this script itself to avoid self-matching on residual pattern examples
+    if [ "$file" = "harness/skills/harness-release/scripts/release-preflight.sh" ]; then
+      continue
+    fi
+    # Apply directory filter if SCAN_DIRS is not "."
+    if [ "$SCAN_DIRS" != "." ]; then
+      local matched=0
+      for dir in $SCAN_DIRS; do
+        case "$file" in
+          "$dir"/*|"$dir")
+            matched=1
+            break
+            ;;
+        esac
+      done
+      if [ "$matched" -eq 0 ]; then
         continue
-        ;;
-    esac
+      fi
+    fi
+    files+=("$file")
   done < <(git ls-files -z)
 
   if [ "${#files[@]}" -eq 0 ]; then
@@ -242,13 +266,15 @@ check_runtime_residuals() {
 }
 
 check_sprint_contract_schema() {
-  local contract_dir="${GIT_ROOT}/.claude/state/contracts"  # project-root: sprint contracts
+  local contracts_dir="${GIT_ROOT}/.claude/state/contracts"  # project-root: sprint contracts
 
-  if [ ! -d "$contract_dir" ]; then
-    warn "sprint-contract schema scan skipped"
-    return
+  # Skip gracefully when no sprint contracts directory exists (not a harness project)
+  if [ ! -d "$contracts_dir" ]; then
+    pass "sprint-contract schema (skipped — no contracts directory)"
+    return 0
   fi
 
+  local contract_dir="$contracts_dir"
   local contract_files=()
   local file
   while IFS= read -r file; do
