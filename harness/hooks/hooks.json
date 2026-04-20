@@ -459,7 +459,7 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook stop-evaluator",
-            "timeout": 3
+            "timeout": 30
           },
           {
             "type": "command",
