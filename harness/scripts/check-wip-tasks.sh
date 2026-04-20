@@ -9,15 +9,15 @@ if [[ ! -f "$PLANS" ]]; then
   exit 0
 fi
 
-# Grep for cc:WIP lines, extract task identifiers
-wip_tasks=$(grep -n 'cc:WIP' "$PLANS" | sed 's/:.*//') # line numbers
+# Match cc:WIP only in the status column (last field before trailing |)
+wip_tasks=$(awk -F'|' 'NF > 2 && $(NF-1) ~ /cc:WIP/' "$PLANS")
 
 if [[ -z "$wip_tasks" ]]; then
   exit 0
 fi
 
-# Format task list for the reason message
-wip_list=$(grep 'cc:WIP' "$PLANS" | head -5 | sed 's/^[[:space:]]*//' | tr '\n' '; ')
+# Extract task IDs from first column (up to 5)
+wip_list=$(awk -F'|' 'NF > 2 && $(NF-1) ~ /cc:WIP/ {gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}' "$PLANS" | head -5 | tr '\n' '; ')
 
 echo "{\"decision\":\"block\",\"reason\":\"WIP tasks remain: ${wip_list}Consider completing them or marking as blocked before stopping.\"}"
 exit 2

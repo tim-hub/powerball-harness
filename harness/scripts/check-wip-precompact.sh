@@ -9,8 +9,9 @@ if [[ ! -f "$PLANS" ]]; then
   exit 0
 fi
 
-# Collect WIP task lines (up to 5)
-wip_lines=$(grep 'cc:WIP' "$PLANS" | head -5 | sed 's/^[[:space:]]*//' | tr '\n' '; ')
+# Match cc:WIP only in the status column (last field before trailing |)
+# Extract task IDs from first column (up to 5)
+wip_lines=$(awk -F'|' 'NF > 2 && $(NF-1) ~ /cc:WIP/ {gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}' "$PLANS" | head -5 | tr '\n' '; ')
 
 if [[ -z "$wip_lines" ]]; then
   exit 0
