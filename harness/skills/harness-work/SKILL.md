@@ -5,6 +5,7 @@ when_to_use: "implement task, run task, execute plans, work on task, run all tas
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[all|task-number|range|--codex|--parallel N|--no-commit|--resume id|--breezing|--auto-mode|--advisor|--no-advisor]"
 effort: high
+model: sonnet
 ---
 
 # Harness Work

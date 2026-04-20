@@ -4,7 +4,7 @@ description: "Plans and tracks tasks in Plans.md. Use when creating plans, addin
 when_to_use: "create a plan, add a task, mark task done, where am I, check progress, sync plans, archive phases"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "Task"]
 argument-hint: "[create|add|update|sync|archive|session-log|sync --no-retro|--ci]"
-effort: medium
+effort: xhigh
 model: opus
 ---
 

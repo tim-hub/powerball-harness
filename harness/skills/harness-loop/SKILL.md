@@ -4,6 +4,8 @@ description: "Runs Plans.md tasks in a long-running autonomous loop with Schedul
 when_to_use: "autonomous loop, overnight run, scheduled loop, continuous execution, long-running loop"
 allowed-tools: ["Read", "Edit", "Bash", "Task", "ScheduleWakeup", "mcp__harness__harness_mem_resume_pack", "mcp__harness__harness_mem_record_checkpoint"]
 argument-hint: "[all|N-M|--max-cycles N|--pacing worker|ci|plateau|night|--advisor|--no-advisor]"
+model: sonnet
+effort: medium
 ---
 
 # Harness Loop

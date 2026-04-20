@@ -5,8 +5,9 @@ when_to_use: "review code, review plan, review PR, security audit, pre-merge che
 allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[code|plan|scope|--dual|--security|--ui-rubric]"
 context: fork
-effort: high
+effort: xhigh
 model: opus
+agent: reviewer
 ---
 
 # Harness Review
