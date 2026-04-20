@@ -8,7 +8,6 @@ For ordering rules, field definitions, and what `harness-plan` must do, see [pla
 ```markdown
 # [Project Name] — Plans.md
 
-Last archive: YYYY-MM-DD (Phase X–Y → `.claude/memory/archive/Plans-YYYY-MM-DD-phaseX-Y.md`)
 Last release: vA.B.C on YYYY-MM-DD (short description)
 
 ---
@@ -51,9 +50,6 @@ Created: YYYY-MM-DD
 
 ## Archive
 
-Older phases have been moved to `.claude/memory/archive/` to keep this file lean.
-
-| Archive file | Phases | Date |
-|---|---|---|
-| [Plans-YYYY-MM-DD-phaseX-Y.md](.claude/memory/archive/Plans-YYYY-MM-DD-phaseX-Y.md) | Phase X–Y | YYYY-MM-DD |
+- Last archive: YYYY-MM-DD (Phase X–Y → `.claude/memory/archive/Plans-YYYY-MM-DD-phaseX-Y.md`)
+- Other older phases have been moved to `.claude/memory/archive/` to keep this file lean.
 ```

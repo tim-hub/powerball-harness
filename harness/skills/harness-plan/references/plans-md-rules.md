@@ -96,11 +96,8 @@ Created: YYYY-MM-DD
 ```markdown
 ## Archive
 
-Older phases have been moved to `.claude/memory/archive/` to keep this file lean.
-
-| Archive file | Phases | Date |
-|---|---|---|
-| [Plans-2026-04-18-phase62-73.md](.claude/memory/archive/Plans-2026-04-18-phase62-73.md) | Phase 62–73 | 2026-04-18 |
+- Last archive: YYYY-MM-DD (Phase X–Y → `.claude/memory/archive/Plans-YYYY-MM-DD-phaseX-Y.md`)
+- Other older phases have been moved to `.claude/memory/archive/` to keep this file lean.
 ```
 
 Add one row per archive file, newest archive at the top of the table.
@@ -120,9 +117,8 @@ Add one row per archive file, newest archive at the top of the table.
 1. Identify phases where all tasks are `cc:done` or `pm:confirmed`
 2. Retain the 10 most recently completed phases in Plans.md
 3. Write archived phases to `.claude/memory/archive/Plans-YYYY-MM-DD-phaseX-Y.md`
-4. Update `Last archive:` in the header
-5. Add a new row to the `## Archive` footer table (newest at top)
-6. Verify remaining phases are still non-ascending after removal
+4. Update `Last archive:` in the footer
+5. Verify remaining phases are still non-ascending after removal
 
 ### `create` — generate new Plans.md
 

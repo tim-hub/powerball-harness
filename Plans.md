@@ -1,6 +1,5 @@
 # Powerball Harness — Plans.md
 
-Last archive: 2026-04-18 (Phase 62–73 → `.claude/memory/archive/Plans-2026-04-18-phase62-73.md`)
 Last release: v4.9.1 on 2026-04-18 (fix platform binary version embedding)
 
 ---
@@ -194,16 +193,5 @@ Created: 2026-04-17
 
 ## Archive
 
-Older phases have been moved to `.claude/memory/archive/` to keep this file lean.
-
-| Archive file | Phases | Date |
-|---|---|---|
-| [Plans-2026-04-18-phase62-73.md](.claude/memory/archive/Plans-2026-04-18-phase62-73.md) | Phase 62–73 | 2026-04-18 |
-| [Plans-2026-04-17-phase59-61.md](.claude/memory/archive/Plans-2026-04-17-phase59-61.md) | Phase 59–61 | 2026-04-17 |
-| [Plans-2026-04-17-phase57-58.md](.claude/memory/archive/Plans-2026-04-17-phase57-58.md) | Phase 57–58 | 2026-04-17 |
-| [Plans-2026-04-16-phase55-56.md](.claude/memory/archive/Plans-2026-04-16-phase55-56.md) | Phase 55–56 | 2026-04-16 |
-| [Plans-2026-04-16-phase53-54.md](.claude/memory/archive/Plans-2026-04-16-phase53-54.md) | Phase 53–54 | 2026-04-16 |
-| [Plans-2026-04-16-phase52.md](.claude/memory/archive/Plans-2026-04-16-phase52.md) | Phase 52 | 2026-04-16 |
-| [Plans-2026-04-16-phase49-51.md](.claude/memory/archive/Plans-2026-04-16-phase49-51.md) | Phase 49–51 | 2026-04-16 |
-| [Plans-2026-04-15-phase35-48.md](.claude/memory/archive/Plans-2026-04-15-phase35-48.md) | Phase 35–48 | 2026-04-15 |
-| [Plans-2026-04-12-phase25-34.md](.claude/memory/archive/Plans-2026-04-12-phase25-34.md) | Phase 25–34 | 2026-04-12 |
+- Last archive: 2026-04-18 (Phase 62–73 → `.claude/memory/archive/Plans-2026-04-18-phase62-73.md`)
+- Other older phases have been moved to `.claude/memory/archive/` to keep this file lean.
