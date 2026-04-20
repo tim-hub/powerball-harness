@@ -86,14 +86,12 @@ Delegate to the generic release skill using the same argument provided by the us
 ```
 
 The `harness-release` skill handles:
-- Phase 0 preflight (`release-preflight.sh`)
-- Phase 1–2: Version calculation and bump
+- Phase 0: Pre-flight checks (`release-preflight.sh`)
+- Phase 1–2: Version display and bump
 - Phase 3: CHANGELOG update (`[Unreleased]` → versioned entry)
-- Phase 4: Version file sync (VERSION + marketplace.json)
-- Phase 5: Codex symlink verification (second pass, inside harness-release)
-- Phase 6: Commit and tag (`chore: release vX.Y.Z`)
-- Phase 7: Push branch and tags
-- Phase 8: GitHub Release creation
+- Phase 4: Commit and tag (`chore: release vX.Y.Z`)
+- Phase 5: Push branch and tags
+- Phase 6: GitHub Release creation
 
 Wait for `harness-release` to complete successfully before proceeding to step 7.
 
