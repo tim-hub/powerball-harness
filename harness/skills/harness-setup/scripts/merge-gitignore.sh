@@ -28,13 +28,10 @@ cat >> "$TARGET" <<'BLOCK'
 # Claude Code / Harness runtime files
 .claude/sessions/
 .claude/logs/
-.claude/state/agent-trace.jsonl
-.claude/state/pending-fix-proposals.jsonl
+.claude/state/
 .claude/worktrees/
-logs/
-settings.local.json
-states/
-out/
+.claude/settings.local.json
+
 
 # Force-track Harness configuration (do not ignore these)
 !.claude/memory/
