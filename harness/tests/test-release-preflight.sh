@@ -63,11 +63,6 @@ EOF
 echo "ready"
 EOF
 
-  cat > "$repo/scripts/release-preflight.sh" <<'EOF'
-#!/bin/bash
-local residual_patterns="${HARNESS_RELEASE_RESIDUAL_PATTERNS:-mockData|dummy|fakeData|localhost|TODO|FIXME}"
-EOF
-
   git -C "$repo" add .
   git -C "$repo" commit -qm "initial"
 }
