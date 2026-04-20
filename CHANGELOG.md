@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.11.4...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.11.5...HEAD
+[4.11.5]: https://github.com/tim-hub/powerball-harness/compare/v4.11.4...v4.11.5
 [4.11.4]: https://github.com/tim-hub/powerball-harness/compare/v4.11.3...v4.11.4
 [4.11.3]: https://github.com/tim-hub/powerball-harness/compare/v4.11.2...v4.11.3
 [4.11.2]: https://github.com/tim-hub/powerball-harness/compare/v4.11.1...v4.11.2
@@ -27,6 +28,14 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.11.5] - 2026-04-21
+
+### Fixed: stop-evaluator timeout restored to 30s
+
+**Before**: The `810cefc` timeout optimization sweep incorrectly reduced `stop-evaluator` to 3s alongside lightweight binary hooks. The Stop hook test guard failed as a result.
+
+**After**: `stop-evaluator` timeout restored to 30s, consistent with the Stop hook policy (≥20s) and the test guard requirement (≥30s).
 
 ## [4.11.4] - 2026-04-21
 
