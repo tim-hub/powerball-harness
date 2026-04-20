@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.11.3...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.11.4...HEAD
+[4.11.4]: https://github.com/tim-hub/powerball-harness/compare/v4.11.3...v4.11.4
 [4.11.3]: https://github.com/tim-hub/powerball-harness/compare/v4.11.2...v4.11.3
 [4.11.2]: https://github.com/tim-hub/powerball-harness/compare/v4.11.1...v4.11.2
 [4.11.1]: https://github.com/tim-hub/powerball-harness/compare/v4.11.0...v4.11.1
@@ -26,6 +27,36 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.11.4] - 2026-04-21
+
+### Fixed: Guardrail false positives on safe config template files
+
+#### 1. Allow writing `.env.example` / `.env.template` / `.env.sample`
+
+**Before**: The guardrail blocked writing any file matching `.env*`, including harmless template files that contain placeholder values and are explicitly intended for version control.
+
+**After**: `.env.example`, `.env.template`, and `.env.sample` are allowlisted. Real config files (`.env`, `.env.local`, `.env.production`) remain protected.
+
+#### 2. WIP detection now checks status column only
+
+**Before**: `check-wip-tasks.sh` and `check-wip-precompact.sh` used `grep cc:WIP` against the full Plans.md line, causing false positives when a task *description* mentioned `cc:WIP` (e.g. "Port Plans.md drift monitor — currently cc:WIP upstream").
+
+**After**: Both scripts use `awk -F'|'` to extract the status column before checking for the marker, eliminating description-text false positives.
+
+### Changed: Hook reliability and script cleanup
+
+#### 3. WIP agent hooks replaced with deterministic shell scripts
+
+**Before**: Stop and PreCompact hooks used LLM agent hooks to detect in-progress tasks. Agent hooks do not fire on `PreCompact`, are slower (~15–30s), and non-deterministic.
+
+**After**: Both hooks replaced with `check-wip-tasks.sh` (Stop, 5s) and `check-wip-precompact.sh` (PreCompact, 5s). Hook timeouts for compiled `bin/harness` subcommands reduced from 10–120s to 3s.
+
+#### 4. `check-residue.sh` wrapper removed; callers use Python directly
+
+**Before**: All callers invoked `check-residue.sh`, a thin bash wrapper that delegated to `check-residue.py`. The indirection added a shell layer with no benefit.
+
+**After**: `check-residue.sh` removed. `validate-plugin.sh`, `harness-release SKILL.md`, `doctor.go`, and `doctor_test.go` all call `python3 check-residue.py` directly.
 
 ## [4.11.3] - 2026-04-21
 
