@@ -13,7 +13,7 @@
 #   1. When new deleted paths/concepts arise, update this file at the time of deletion
 #   2. Allowlist is applied using prefix matching (historical documents are explicitly excluded)
 #   3. The reason field is required. Describe "why it was deleted"
-#   4. Scans are run via scripts/check-residue.sh
+#   4. Scans are run via scripts/check-residue.py
 #   5. Update deleted_in when the version changes
 #
 # Allowlist Design Principles:
@@ -124,7 +124,7 @@ deleted_concepts:
     deleted_in: "v4.0.0"
     reason: "Adding (v3) suffix to SKILL.md H1 titles has been discontinued. v4 does not append version suffixes to H1 headings"
     # Note: This term is too generic to use.
-    # Instead, check-residue.sh performs pattern matching limited to H1 lines
+    # Instead, check-residue.py performs pattern matching limited to H1 lines
     # (search with: grep -rn "^# .*(v3)" skills/ agents/)
     # This concept is recorded as a comment but excluded from term-based scanning
     _scan_disabled: true
