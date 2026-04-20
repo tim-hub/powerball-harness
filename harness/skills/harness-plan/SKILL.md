@@ -61,7 +61,7 @@ harness-plan add task-name: detailed description [--phase phase-number]
 
 Tasks are added with the `cc:TODO` marker. **Insertion point**: the new phase block goes immediately after the `---` header separator, above all existing `## Phase` blocks (newest phase on top). Never append at the bottom.
 
-See [references/plans-md-template.md](${CLAUDE_SKILL_DIR}/references/plans-md-template.md) for ordering rules and full format.
+See [references/plans-md-template.md](${CLAUDE_SKILL_DIR}/references/plans-md-template.md) for the full template structure and [references/plans-md-rules.md](${CLAUDE_SKILL_DIR}/references/plans-md-rules.md) for ordering rules.
 
 ### update — Update Marker
 
@@ -118,7 +118,7 @@ Moves fully-completed phases out of Plans.md into `.claude/memory/archive/` to k
 
 **Naming convention**: `Plans-YYYY-MM-DD-phaseX-Y.md` where X is the lowest and Y the highest archived phase number. Example: `Plans-2026-04-15-phase35-48.md`.
 
-See [references/plans-md-template.md](${CLAUDE_SKILL_DIR}/references/plans-md-template.md) for the `## Archive` footer format.
+See [references/plans-md-rules.md](${CLAUDE_SKILL_DIR}/references/plans-md-rules.md) for the `## Archive` footer format and ordering verification rules.
 
 ### session-log — Split session-log.md by Month
 
@@ -155,7 +155,7 @@ Reference:
 
 ## Plans.md Format Conventions
 
-See [references/plans-md-template.md](${CLAUDE_SKILL_DIR}/references/plans-md-template.md) for the full canonical template, ordering rules, and field definitions.
+See [references/plans-md-template.md](${CLAUDE_SKILL_DIR}/references/plans-md-template.md) for the canonical template and [references/plans-md-rules.md](${CLAUDE_SKILL_DIR}/references/plans-md-rules.md) for ordering rules and field definitions.
 
 **Key rules (summary)**:
 - **Newest phase on top** — insert above all existing `## Phase` blocks, never at the bottom
