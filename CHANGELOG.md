@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.11.5...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.11.6...HEAD
+[4.11.6]: https://github.com/tim-hub/powerball-harness/compare/v4.11.5...v4.11.6
 [4.11.5]: https://github.com/tim-hub/powerball-harness/compare/v4.11.4...v4.11.5
 [4.11.4]: https://github.com/tim-hub/powerball-harness/compare/v4.11.3...v4.11.4
 [4.11.3]: https://github.com/tim-hub/powerball-harness/compare/v4.11.2...v4.11.3
@@ -29,15 +30,13 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
-#### 2. Rename memory skill → harness-remember
+## [4.11.6] - 2026-04-21
 
-**Before**: The Harness `memory` skill name conflicted with Claude Code's built-in `/memory` command — the auto-loader could route to the wrong one.
+### Theme: Release tooling separation and memory skill rename (Phase 81 + 82)
 
-**After**: Skill renamed to `harness-remember`. No naming collision. All subcommands (ssot, sync, sync-across, migrate, merge, search, record) preserved. Use `/harness-remember` to access SSOT operations.
+**`harness-release` is now a generic engine for any project; use `/release-this` to release this plugin. The `memory` skill is renamed to `harness-remember` to avoid collision with Claude Code's built-in `/memory` command.**
 
-Key changes:
-- `harness/skills/memory/` → `harness/skills/harness-remember/` (`name: harness-remember`)
-- All external references updated (CLAUDE.md, docs, README, scripts, workflows)
+---
 
 #### 1. Split harness-release into generic engine + project-specific release-this
 
@@ -51,6 +50,17 @@ Key changes:
 - `harness/skills/harness-release/scripts/sync-version.sh`: harness.toml sync made optional via `HARNESS_RELEASE_EXTRA_VERSION_FILES`
 - `check-consistency.sh` moved from `harness/skills/harness-release/scripts/` to `.claude/skills/release-this/scripts/`
 - New skill: `.claude/skills/release-this/SKILL.md`
+
+#### 2. Rename memory skill → harness-remember
+
+**Before**: The Harness `memory` skill name conflicted with Claude Code's built-in `/memory` command — the auto-loader could route to the wrong one.
+
+**After**: Skill renamed to `harness-remember`. No naming collision. All subcommands (ssot, sync, sync-across, migrate, merge, search, record) preserved. Use `/harness-remember` to access SSOT operations.
+
+Key changes:
+- `harness/skills/memory/` → `harness/skills/harness-remember/` (`name: harness-remember`)
+- All external references updated (CLAUDE.md, docs, README, scripts, workflows)
+- `go/internal/hookhandler/usage_tracker.go`: skill detection updated to match `harness-remember`
 
 ## [4.11.5] - 2026-04-21
 
