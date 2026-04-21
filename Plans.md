@@ -4,6 +4,30 @@ Last release: v4.11.2 on 2026-04-20 (mem health tri-state fix + active-watching 
 
 ---
 
+## Phase 82: Rename memory → harness-remember, create remember-this, fix release-this stale refs
+
+Created: 2026-04-21
+
+**Goal**: (A) Rename `harness/skills/memory/` to `harness/skills/harness-remember/` to avoid collision with Claude Code's built-in `/memory` command. (B) Extract the plugin-specific `sync-project-specs.md` from harness-remember into a new `.claude/skills/remember-this/` project-level skill. (C) Fix stale phase references in `.claude/skills/release-this/SKILL.md` Step 6 that still list old Phases 4-5 (marketplace.json, codex symlinks) removed in Phase 81.
+
+**Motivation**:
+- The `memory` skill name collides with Claude Code's built-in memory system — the auto-loader may route to the wrong one.
+- `sync-project-specs.md` references `powerball-harness` operations — plugin-specific, same pattern as the harness-release split in Phase 81.
+- release-this was created before the harness-release refactor landed, so its Step 6 description is stale.
+
+**Agent names**: NOT changing. `claude-code-harness:worker`, `claude-code-harness:reviewer`, `powerball-harness:advisor` are part of the distributed plugin and work correctly as-is.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 82.1 | **Rename `harness/skills/memory/` → `harness/skills/harness-remember/`**: `mv` the directory. Update the `name:` field in SKILL.md frontmatter from `memory` to `harness-remember`. Update all external references: CLAUDE.md skills table, docs/CLAUDE-skill-catalog.md, harness/README.md, scripts referencing `skills/memory`, session-memory SKILL.md, workflows/default/init.yaml, and any other files found by `grep -r "skills/memory" . --include="*.{md,sh,json,yaml}"`. Preserve all subcommands (ssot, sync, sync-across, migrate, merge, search, record) | Directory at new path; old path gone; `name: harness-remember` in frontmatter; `grep -r "skills/memory" . --include="*.md" --include="*.sh" --include="*.json" --include="*.yaml"` returns 0 matches (excluding CHANGELOG/archive); skill auto-loads under new name | - | cc:Done [8068374] |
+| 82.2 | **Create `.claude/skills/remember-this/SKILL.md`**: New project-level skill for this repo's memory operations. Move `sync-project-specs.md` from `harness/skills/harness-remember/references/` to `.claude/skills/remember-this/references/`. The SKILL.md should document the `sync-across` subcommand with references to this repo's specific workflows (powerball-harness operations, Plans.md marker conventions, AGENTS.md PM/Impl roles). Frontmatter follows skill-description.md rules | Skill exists at `.claude/skills/remember-this/SKILL.md`; `sync-project-specs.md` at `.claude/skills/remember-this/references/`; old copy removed from harness-remember; frontmatter ≤300 chars; description contains "Use when" | 82.1 | cc:WIP |
+| 82.3 | **Update harness-remember to drop sync-across**: Remove or update the `sync-across` row in harness-remember's Quick Reference table — it now points to `remember-this` instead. Add a note: "For project-specific spec sync, see `.claude/skills/remember-this/`". Keep all other subcommands (ssot, sync, migrate, merge, search, record) | harness-remember SKILL.md no longer references `sync-project-specs.md`; Quick Reference table updated; all other subcommands intact | 82.2 | cc:TODO |
+| 82.4 | **Fix release-this SKILL.md Step 6 description**: Step 6 currently lists harness-release phases that no longer exist (Phase 4: marketplace.json sync, Phase 5: codex symlinks). Update to match actual current harness-release phases: Phase 0 (preflight), Phase 1-2 (version), Phase 3 (CHANGELOG), Phase 4 (commit & tag), Phase 5 (push), Phase 6 (GitHub Release). Also remove the "second pass" codex symlink note — codex symlinks are already checked in release-this Step 4 | Step 6 accurately reflects current harness-release phases 0-6; no mention of marketplace.json or codex symlinks in Step 6; `grep "marketplace.json\|Codex symlink" .claude/skills/release-this/SKILL.md` returns 0 matches in Step 6 section | - | cc:Done [a591ff1] |
+| 82.5 | **Update documentation**: CLAUDE.md skills table (`memory` → `harness-remember`, add `remember-this`). docs/CLAUDE-skill-catalog.md entry update. CHANGELOG.md [Unreleased] Before/After entry. Update any doc that says "use `/memory`" → "use `/harness-remember`" | CLAUDE.md skills table lists `harness-remember` (not `memory`); CHANGELOG [Unreleased] has Before/After; docs/CLAUDE-skill-catalog.md updated; no docs reference `/memory` as the way to access harness SSOT | 82.1, 82.2, 82.3, 82.4 | cc:TODO |
+| 82.6 | **Validation**: `make test`, `make check`, `./tests/validate-plugin.sh`. Verify skill auto-loads with new name. Verify old name no longer appears in skill listings (except CHANGELOG/archive) | `make test` passes; `make check` passes; `validate-plugin.sh` passes; `grep -r 'name: memory' harness/skills/` returns 0 matches | 82.5 | cc:TODO |
+
+---
+
 ## Phase 81: Split harness-release into generic core + project-specific release-this
 
 Created: 2026-04-21
