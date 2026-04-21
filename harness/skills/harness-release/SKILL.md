@@ -4,7 +4,6 @@ description: "Manages version bumps, CHANGELOG, git tags, and GitHub Releases. U
 when_to_use: "release, bump version, update CHANGELOG, create tag, GitHub release, patch release, minor release"
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[patch|minor|major|--dry-run]"
-context: fork
 effort: medium
 model: sonnet
 ---

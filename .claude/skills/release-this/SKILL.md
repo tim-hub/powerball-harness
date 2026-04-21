@@ -1,10 +1,11 @@
 ---
 name: release-this
-description: "Orchestrates the full claude-code-harness plugin release with build, validation, and version checks. Use when releasing this plugin."
+description: "Orchestrates the full powerball-harness plugin release with build, validation, and version checks. Use when releasing this plugin."
 when_to_use: "release this plugin, release harness, cut a release, publish harness, ship harness, release-this"
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 argument-hint: "[patch|minor|major|--dry-run|--complete]"
-context: fork
+model: sonnet
+effort: low
 ---
 
 # Release This Plugin
@@ -126,6 +127,8 @@ git push origin "$(git rev-parse --abbrev-ref HEAD)"
 - `harness-release` — Generic release engine (delegated at step 6)
 - `harness-review` — Run before release to catch issues early
 - `harness-plan` — Plan the next release tasks
+- `harness-work` — Work on tasks
+- `harness-loop` — Run review-work iterations on release tasks
 
 ## Related Rules
 
