@@ -4,7 +4,7 @@
 #   make              → show this help
 #   make test         → run validate + consistency check (recommended pre-commit)
 #   make validate     → full plugin validation (tests/validate-plugin.sh)
-#   make check        → consistency check (local-scripts/check-consistency.sh)
+#   make check        → consistency check (.claude/skills/release-this/scripts/check-consistency.sh)
 #   make lint         → migration residue + skill description audit
 #   make build        → build Go guardrail binary for current platform (into harness/bin/)
 #   make build-all    → cross-compile for darwin-arm64, darwin-amd64, linux-amd64
@@ -24,7 +24,7 @@ help:
 	@echo ""
 	@echo "  make test          Run validate + check (recommended before commit)"
 	@echo "  make validate      Full plugin validation (tests/validate-plugin.sh)"
-	@echo "  make check         Consistency check (harness/skills/harness-release/scripts/check-consistency.sh)"
+	@echo "  make check         Consistency check (.claude/skills/release-this/scripts/check-consistency.sh)"
 	@echo "  make lint          Residue scan + skill description audit"
 	@echo "  make build         Build Go binary for current platform (into harness/bin/)"
 	@echo "  make build-all     Cross-compile for darwin-arm64, darwin-amd64, linux-amd64"
@@ -77,7 +77,7 @@ validate:
 # Consistency check: templates, versions, skill references, docs
 check:
 	@echo "▶ Running check-consistency.sh…"
-	bash ./harness/skills/harness-release/scripts/check-consistency.sh
+	bash ./.claude/skills/release-this/scripts/check-consistency.sh
 
 # Lint: migration residue scan + skill description format audit
 lint:

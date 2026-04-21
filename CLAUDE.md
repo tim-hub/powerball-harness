@@ -22,7 +22,7 @@
 1. **Plan**: `/harness-plan` to add tasks to Plans.md
 2. **Implement**: `/harness-work` (single task or parallel workers)
 3. **Review**: `/harness-review` (runs automatically after work; manual trigger available)
-4. **Validate**: `./tests/validate-plugin.sh` and `./harness/skills/harness-release/scripts/check-consistency.sh`
+4. **Validate**: `./tests/validate-plugin.sh` and `./.claude/skills/release-this/scripts/check-consistency.sh`
 
 ## Skills
 

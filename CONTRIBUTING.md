@@ -125,7 +125,7 @@ Use a version bump only when you are intentionally cutting a release.
 ### Version Consistency Checks
 
 - **Local (recommended)**: run `make check-version` (or `./harness/skills/harness-release/scripts/sync-version.sh check`) before committing
-- **CI (recommended)**: run `make test` (or `./tests/validate-plugin.sh` and `./harness/skills/harness-release/scripts/check-consistency.sh`) on PRs
+- **CI (recommended)**: run `make test` (or `./tests/validate-plugin.sh` and `./.claude/skills/release-this/scripts/check-consistency.sh`) on PRs
 
 ## CHANGELOG Rules (Required)
 
@@ -182,7 +182,7 @@ Before submitting:
 
    ```bash
    ./tests/validate-plugin.sh
-   ./harness/skills/harness-release/scripts/check-consistency.sh
+   ./.claude/skills/release-this/scripts/check-consistency.sh
    ```
 
    Other useful targets: `make build` (Go binary), `make bench` (breezing benchmark), `make check-version` (VERSION sync check). Run `make` with no arguments to see all targets.

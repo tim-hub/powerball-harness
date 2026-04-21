@@ -2,14 +2,16 @@
 # check-consistency.sh
 # Plugin consistency check
 #
-# Usage: bash harness/skills/harness-release/scripts/check-consistency.sh
+# Usage: bash .claude/skills/release-this/scripts/check-consistency.sh
 # Exit codes:
 #   0 - All checks passed
 #   1 - Inconsistencies found
 
 set -euo pipefail
 
-PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"  # project-root: repo root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"  # skill-local: this script's directory
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"              # project-root: user's git repository root
+PLUGIN_ROOT="$PROJECT_ROOT"
 HARNESS_ROOT="$PLUGIN_ROOT/harness"
 ERRORS=0
 
@@ -177,7 +179,7 @@ for target in "${START_TASK_TARGETS[@]}"; do
       | grep -v "削除" | grep -v "廃止" | grep -v "Removed" \
       | grep -v "相当" | grep -v "統合" | grep -v "従来" | grep -v "吸収" \
       | grep -v "改善" | grep -v "使い分け" | grep -v "CHANGELOG" \
-      | grep -v "harness-release/scripts/check-consistency.sh" \
+      | grep -v "release-this/scripts/check-consistency.sh" \
       || true)
     if [ -n "$REFS" ]; then
       echo "  ❌ /start-task reference still present: $target"
@@ -209,7 +211,7 @@ for target in "${DOCS_TARGETS[@]}"; do
   if [ -d "$PLUGIN_ROOT/$target" ]; then
     # Search for root-level references to proposal.md / technical-spec.md / priority_matrix.md
     # Detect those without docs/ prefix
-    REFS=$(grep -rn "proposal.md\|technical-spec.md\|priority_matrix.md" "$PLUGIN_ROOT/$target" 2>/dev/null | grep -v "docs/" | grep -v "\.template" | grep -v "harness-release/scripts/check-consistency.sh" || true)
+    REFS=$(grep -rn "proposal.md\|technical-spec.md\|priority_matrix.md" "$PLUGIN_ROOT/$target" 2>/dev/null | grep -v "docs/" | grep -v "\.template" | grep -v "release-this/scripts/check-consistency.sh" || true)
     if [ -n "$REFS" ]; then
       echo "  ❌ Reference without docs/ prefix: $target"
       echo "$REFS" | head -3 | sed 's/^/      /'
