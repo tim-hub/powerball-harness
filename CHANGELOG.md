@@ -29,6 +29,19 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+#### 1. Split harness-release into generic engine + project-specific release-this
+
+**Before**: `harness/skills/harness-release/` contained both generic release logic (version bump, CHANGELOG, git tag, GitHub Release) and plugin-specific checks (check-consistency.sh with 13 harness-specific validations, codex symlink verification, marketplace.json sync). Any project using the Harness plugin had these plugin-specific checks in their release flow.
+
+**After**: `harness-release` is now a clean generic release engine usable by any project. Plugin-specific orchestration moved to `.claude/skills/release-this/`, which runs `make build-all` → `check-consistency.sh` → `validate-plugin.sh` → version sync check → then delegates to `harness-release` for the actual release. Use `/release-this [patch|minor|major]` to release this plugin.
+
+Key changes:
+- `harness/skills/harness-release/SKILL.md`: Phases 4 (marketplace.json sync), 5 (codex symlinks), 9 (completion marker) removed; generic phases 0-3, 6-8 preserved
+- `harness/skills/harness-release/scripts/release-preflight.sh`: PLUGIN_ROOT now uses `git rev-parse --show-toplevel`; sprint contract check conditional; residuals scan configurable via `HARNESS_RELEASE_RESIDUAL_DIRS`
+- `harness/skills/harness-release/scripts/sync-version.sh`: harness.toml sync made optional via `HARNESS_RELEASE_EXTRA_VERSION_FILES`
+- `check-consistency.sh` moved from `harness/skills/harness-release/scripts/` to `.claude/skills/release-this/scripts/`
+- New skill: `.claude/skills/release-this/SKILL.md`
+
 ## [4.11.5] - 2026-04-21
 
 ### Fixed: stop-evaluator timeout restored to 30s

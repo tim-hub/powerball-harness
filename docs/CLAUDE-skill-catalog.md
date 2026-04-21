@@ -30,7 +30,7 @@ harness/skills/
 ├── harness-work/          # Task implementation (Plans.md tasks, parallel workers, breezing)
 ├── harness-plan/          # Plans.md authoring — create tasks, add acceptance criteria
 ├── harness-review/        # Code/plan/scope review — pre-merge quality gate, security, performance
-├── harness-release/       # Version bumps, CHANGELOG, git tags, GitHub Releases
+├── harness-release/       # Generic release engine: version bumps, CHANGELOG, git tags, GitHub Releases (any project)
 ├── harness-setup/         # Project init, CI/Codex/memory config, binary download
 ├── harness-sync/          # Plans.md ↔ implementation drift detection and marker updates
 ├── harness-loop/          # Autonomous ScheduleWakeup-based loop runtime with sprint-contracts
@@ -63,7 +63,8 @@ harness/skills/
 | `harness-work` | Task implementation (auto-scope detection, parallel workers) | "implement", "do it all", "/harness-work" |
 | `harness-plan` | Create/update Plans.md with tasks and acceptance criteria | "plan", "add task", "/harness-plan" |
 | `harness-review` | Code review, quality checks, security audit | "review this", "security", "performance" |
-| `harness-release` | Version bump, CHANGELOG, tag, GitHub Release | "release", "tag", "publish" |
+| `harness-release` | Generic release engine: version bump, CHANGELOG, tag, GitHub Release (usable by any project) | "release", "tag", "publish" |
+| `release-this` | Plugin-specific release: build-all → checks → harness-release (use this to release THIS plugin) | "release this", "release plugin", "publish harness" |
 | `harness-setup` | Project init, binary download, CI config | "setup", "initialize", "install binary" |
 | `harness-sync` | Drift detection between Plans.md and implementation | "sync", "check drift", "update markers" |
 | `harness-loop` | Autonomous loop runtime with ScheduleWakeup and sprint-contracts | "loop", "autonomous run", "harness-loop" |
