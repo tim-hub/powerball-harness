@@ -53,9 +53,9 @@ case "$TOOL_NAME" in
       BASE_NAME=$(echo "$SKILL_NAME" | sed 's/.*://')
       node "$RECORD_USAGE" skill "$BASE_NAME" >/dev/null 2>&1 || true
 
-      # Create session flag for SSOT sync execution (memory skill or legacy sync-ssot-from-memory)
+      # Create session flag for SSOT sync execution (harness-remember skill or legacy sync-ssot-from-memory)
       # This flag is checked by auto-cleanup-hook.sh before Plans.md cleanup
-      if [[ "$BASE_NAME" == "sync-ssot-from-memory" ]] || [[ "$SKILL_NAME" == *"sync-ssot-from-memory"* ]] || [[ "$BASE_NAME" == "memory" ]] || [[ "$SKILL_NAME" == *":memory"* ]]; then
+      if [[ "$BASE_NAME" == "sync-ssot-from-memory" ]] || [[ "$SKILL_NAME" == *"sync-ssot-from-memory"* ]] || [[ "$BASE_NAME" == "harness-remember" ]] || [[ "$SKILL_NAME" == *":harness-remember"* ]]; then
         CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null)
         CWD="${CWD:-$(pwd)}"  # Fallback to pwd if empty
 
@@ -79,8 +79,8 @@ case "$TOOL_NAME" in
       node "$RECORD_USAGE" command "$BASE_NAME" >/dev/null 2>&1 || true
 
       # Create session flag for SSOT sync execution (same as Skill branch)
-      # This handles /sync-ssot-from-memory, /memory sync, and qualified names
-      if [[ "$BASE_NAME" == *"sync-ssot-from-memory"* ]] || [[ "$BASE_NAME" == "memory" ]]; then
+      # This handles /sync-ssot-from-memory, /harness-remember sync, and qualified names
+      if [[ "$BASE_NAME" == *"sync-ssot-from-memory"* ]] || [[ "$BASE_NAME" == "harness-remember" ]]; then
         CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null)
         CWD="${CWD:-$(pwd)}"  # Fallback to pwd if empty
 

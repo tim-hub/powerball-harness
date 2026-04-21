@@ -95,9 +95,9 @@ steps:
     mode: required
 
   # Step 4.5: Initialize memory (SSOT)
-  # Handled by memory skill
+  # Handled by harness-remember skill
   - id: init-memory-ssot
-    skill: memory
+    skill: harness-remember
     input:
       templates:
         - templates/memory/decisions.md.template

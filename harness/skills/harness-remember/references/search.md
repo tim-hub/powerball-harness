@@ -99,6 +99,6 @@ Use your judgement — the user's intent should drive it:
 
 ## Related
 
-- `skills/memory/SKILL.md` — entry point
+- `skills/harness-remember/SKILL.md` — entry point
 - `references/harness-mem-mcp.md` — full MCP tool catalog
 - `references/record.md` — writes follow the same local-first / MCP-extension contract

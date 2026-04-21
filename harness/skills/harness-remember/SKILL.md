@@ -1,5 +1,5 @@
 ---
-name: memory
+name: harness-remember
 description: "Manages SSOT memory — decisions.md, patterns.md, and cross-session learnings. Use when recording decisions, searching memory, or promoting learnings."
 when_to_use: "record decision, search memory, update patterns, SSOT, promote learning, decisions.md"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "mcp__harness__harness_mem_*"]

@@ -126,6 +126,6 @@ Don't bypass `record` validation just because the observation came from MCP. The
 
 ## Related
 
-- `skills/memory/SKILL.md` — entry point (SSOT authoring layer)
+- `skills/harness-remember/SKILL.md` — entry point (SSOT authoring layer)
 - `references/record.md` — the validation gate that runs before any SSOT write
 - `references/sync-ssot-from-memory.md` — Layer 1 → Layer 2 promotion flow

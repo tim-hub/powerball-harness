@@ -35,7 +35,7 @@ harness/skills/
 ├── harness-sync/          # Plans.md ↔ implementation drift detection and marker updates
 ├── harness-loop/          # Autonomous ScheduleWakeup-based loop runtime with sprint-contracts
 ├── breezing/              # Full team end-to-end run with parallel Workers (auto-detects task count)
-├── memory/                # SSOT management — decisions.md, patterns.md, memory search
+├── harness-remember/      # SSOT management — decisions.md, patterns.md, memory search
 ├── maintenance/           # Periodic cleanup — session log pruning, stale state, cache purge
 ├── session/               # Session lifecycle: list, inbox checks, broadcast
 ├── session-init/          # Session start — status check, Plans.md overview, env readiness
@@ -69,7 +69,7 @@ harness/skills/
 | `harness-sync` | Drift detection between Plans.md and implementation | "sync", "check drift", "update markers" |
 | `harness-loop` | Autonomous loop runtime with ScheduleWakeup and sprint-contracts | "loop", "autonomous run", "harness-loop" |
 | `breezing` | Full auto-run with parallel Agent Teams | "run with team", "breezing", "all tasks" |
-| `memory` | SSOT management, decisions.md, patterns.md | "SSOT", "decisions", "memory search" |
+| `harness-remember` | SSOT management, decisions.md, patterns.md | "SSOT", "decisions", "memory search" |
 | `maintenance` | Periodic housekeeping — log pruning, stale state, worktrees | "prune logs", "clean state", "/maintenance" |
 | `session` | Session lifecycle: list, inbox, broadcast | "/session", "session status" |
 | `session-init` | Session start check — Plans.md overview, env readiness | (auto-triggered on session start) |

@@ -37,7 +37,7 @@ Before starting work, check if a relevant skill exists and launch it with the Sk
 | `harness-release` | Generic CHANGELOG, tag, GitHub Release engine (any project) |
 | `release-this` | Full plugin release: build + checks → harness-release |
 | `harness-setup` | Project initialization |
-| `memory` | SSOT management (decisions.md, patterns.md) |
+| `harness-remember` | SSOT management (decisions.md, patterns.md) |
 | `update-changelog` | Generate CHANGELOG entries after version bump |
 
 Full catalog: [docs/CLAUDE-skill-catalog.md](docs/CLAUDE-skill-catalog.md)

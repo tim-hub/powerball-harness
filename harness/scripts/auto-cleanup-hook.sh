@@ -66,7 +66,7 @@ if [[ "$FILE_PATH" == *"Plans.md"* ]] || [[ "$FILE_PATH" == *"plans.md"* ]]; the
     fi
 
     # SSOT sync check when Plans.md cleanup (archive move) is detected
-    # Confirm that /memory sync has been run before editing the archive section
+    # Confirm that /harness-remember sync has been run before editing the archive section
     if grep -q "📦 Archive\|## Archive\|Archive" "$FILE_PATH" 2>/dev/null; then
       # Resolve repository root for consistent state directory lookup
       CWD="${CWD:-$(pwd)}"  # Fallback to pwd if empty
@@ -77,7 +77,7 @@ if [[ "$FILE_PATH" == *"Plans.md"* ]] || [[ "$FILE_PATH" == *"plans.md"* ]]; the
 
       if [ ! -f "$SSOT_FLAG" ]; then
         # If flag is missing, add a warning prompting SSOT sync
-        SSOT_WARNING="**Please run /memory sync before cleaning up Plans.md** - Important decisions and learnings may not yet be reflected in SSOT (decisions.md/patterns.md)."
+        SSOT_WARNING="**Please run /harness-remember sync before cleaning up Plans.md** - Important decisions and learnings may not yet be reflected in SSOT (decisions.md/patterns.md)."
 
         if [ -n "$FEEDBACK" ]; then
           FEEDBACK="${FEEDBACK} | ${SSOT_WARNING}"

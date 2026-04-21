@@ -240,7 +240,7 @@ flowchart LR
 | **Review** | `harness-review` | `/harness-review code\|plan\|scope` |
 | **Release** | `writing-changelog` | before release, drafting entries |
 | **Release** | `harness-release` | `/harness-release patch\|minor\|major` |
-| **Memory** | `memory` | `/memory ssot\|sync\|search\|record` |
+| **Memory** | `harness-remember` | `/harness-remember ssot\|sync\|search\|record` |
 | **Session** | `session-init` | auto — every session start |
 | **Session** | `session-control` | auto — resume / fork flags |
 | **Session** | `session-memory` | auto — session end recording |
