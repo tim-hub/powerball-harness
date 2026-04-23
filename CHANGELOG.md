@@ -40,6 +40,8 @@ Change history for claude-code-harness.
 
 **Codex sandbox / exec policy**: `docs/codex-sandbox-execution-policy.md` を追加し、Codex `0.123.0` の `remote_sandbox_config` を `requirements.toml` の host-specific sandbox policy として整理した。remote devbox / ephemeral CI runner / shared host ごとの `allowed_sandbox_modes` 比較表を置き、`codex exec` の root-level shared flags 継承は Codex 本体の自動継承として扱う方針を固定した。Harness wrapper は重複した `--approval-policy` / `--sandbox` pairs を追加せず、`task --write` の `workspace-write` 変換のような Harness workflow intent だけを exec-local flag として残す。
 
+**Codex automatic bug fix inheritance**: Codex `0.123.0` の `/copy` rollback、manual shell follow-up queue、Unicode / dead-key input、stale proxy env、VS Code WSL keyboard、review prompt leak は、長時間作業 UX に効く `C: 自動継承` として snapshot に整理した。Harness は copy wrapper、manual shell queue shim、proxy snapshot scrubber を追加せず、本体修正をそのまま受け取る。
+
 #### Phase 52: upstream update skill merge hardening + 2026-04-21 snapshot
 
 | Before | After |

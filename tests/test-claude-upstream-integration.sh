@@ -709,6 +709,48 @@ grep -Fq 'does not add duplicate --approval-policy / --sandbox pairs' "${ROOT_DI
   exit 1
 }
 
+# Phase 53.2.5: Codex automatic bug fixes must stay C/self-inherited without Harness workarounds
+grep -q '53.2.5 Codex automatic bug fix inheritance policy' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot is missing the 53.2.5 Codex automatic bug fix inheritance policy"
+  exit 1
+}
+grep -q 'Codex `0.123.0` の `/copy` after rollback、manual shell follow-up queue、Unicode / dead-key input、stale proxy env、VS Code WSL keyboard は `C: 自動継承`' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must classify the Codex 0.123.0 bug fixes as C automatic inheritance"
+  exit 1
+}
+grep -q '直接実装しない理由は、本体修正を自動継承するため' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must say these fixes are not implemented because Harness inherits the upstream fix"
+  exit 1
+}
+grep -q 'Harness workaround、copy wrapper、manual shell queue shim、proxy snapshot scrubber は追加しない' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must explicitly reject Harness workarounds for Codex automatic bug fixes"
+  exit 1
+}
+grep -q 'Codex 0.123.0 automatic bug fixes.*C: Codex 自動継承' "${ROOT_DIR}/docs/CLAUDE-feature-table.md" || {
+  echo "Feature Table must mark 53.2.5 automatic bug fixes as Codex automatic inheritance"
+  exit 1
+}
+grep -q 'Codex automatic bug fix inheritance' "${ROOT_DIR}/CHANGELOG.md" || {
+  echo "CHANGELOG must mention Codex automatic bug fix inheritance"
+  exit 1
+}
+grep -q 'Codex 0.123.0 automatic bug fix inheritance' "${ROOT_DIR}/skills/harness-loop/SKILL.md" || {
+  echo "shared harness-loop skill must document Codex automatic bug fix inheritance for long-running UX"
+  exit 1
+}
+grep -q 'manual shell follow-up queue' "${ROOT_DIR}/skills/harness-loop/SKILL.md" || {
+  echo "shared harness-loop skill must mention manual shell follow-up queue inheritance"
+  exit 1
+}
+grep -q 'stale proxy env' "${ROOT_DIR}/skills/session/SKILL.md" || {
+  echo "session skill must mention stale proxy env inheritance for shell snapshots"
+  exit 1
+}
+grep -q 'Unicode / dead-key' "${ROOT_DIR}/skills/session/SKILL.md" || {
+  echo "session skill must mention Unicode / dead-key input inheritance for WSL terminals"
+  exit 1
+}
+
 for hooks_file in "${HOOK_FILES[@]}"; do
   MCP_TOOL_COUNT="$(jq '[.. | objects | select(.type? == "mcp_tool")] | length' "${hooks_file}")"
   if [ "${MCP_TOOL_COUNT}" -eq 0 ]; then

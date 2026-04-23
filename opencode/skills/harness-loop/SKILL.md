@@ -22,6 +22,11 @@ user-invocable: true
 > **長時間セッション推奨 (CC 2.1.108+)**:
 > セッション長が 30 分を超える見込みの場合、開始前に `bash scripts/enable-1h-cache.sh` を実行して 1 時間 prompt cache を opt-in すること。
 
+> **Codex 0.123.0 automatic bug fix inheritance**:
+> manual shell follow-up queue と `/copy` after rollback は Codex 本体の TUI 修正として自動継承する。
+> loop runner は追加入力 queue、copy wrapper、rollback workaround を追加しない。
+> 長時間作業中に manual shell へ follow-up を投げた時の queueing は Codex runtime に任せる。
+
 ## Quick Reference
 
 | 入力 | 動作 |

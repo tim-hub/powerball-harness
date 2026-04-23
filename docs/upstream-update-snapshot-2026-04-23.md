@@ -414,6 +414,43 @@ automatic inheritance として残す項目:
 - `tests/test-codex-package.sh` で Codex README に sandbox / exec policy と `remote_sandbox_config` guidance があることを検出する。
 - `bash -n scripts/codex-companion.sh scripts/codex/codex-exec-wrapper.sh` で wrapper comment 追加後の shell 構文を確認する。
 
+## 53.2.5 Codex automatic bug fix inheritance policy
+
+対象:
+
+- Codex `0.123.0` の `/copy` after rollback
+- manual shell follow-up queue
+- Unicode / dead-key input
+- stale proxy env
+- VS Code WSL keyboard
+- review prompt leak
+
+今回の判断:
+
+- Codex `0.123.0` の `/copy` after rollback、manual shell follow-up queue、Unicode / dead-key input、stale proxy env、VS Code WSL keyboard は `C: 自動継承` として扱う。
+- `/copy` after rollback は TUI の表示中 assistant message を正しくコピーする修正であり、Harness は clipboard / rollback state を直接管理していない。
+- manual shell follow-up queue は、manual shell 中に次の入力を送った時の Codex TUI queueing 修正であり、`harness-loop` や `codex-loop` が独自 queue を重ねる領域ではない。
+- Unicode / dead-key input と VS Code WSL keyboard は terminal input layer の修正であり、Harness skill / wrapper が key event を変換しない方が安全。
+- stale proxy env は shell snapshot から古い proxy environment を復元しない修正であり、Harness session docs では「本体挙動を信頼し、proxy scrubber を追加しない」方針だけを記録する。
+- review prompt leak は Codex review runtime の transcript hygiene 修正であり、Harness reviewer surface とは別に本体修正を受け取る。
+
+直接実装しない理由:
+
+- 直接実装しない理由は、本体修正を自動継承するため。
+- これらは clipboard、TUI queue、terminal input、shell snapshot restore、review transcript の runtime bug fix であり、Harness の Plan / Work / Review orchestration policy とは責務が違う。
+- Harness workaround、copy wrapper、manual shell queue shim、proxy snapshot scrubber は追加しない。
+- 無理な wrapper を追加すると、Codex 本体修正後も古い挙動や platform-specific 例外を Harness 側に残してしまう。
+
+Harness docs に反映する範囲:
+
+- `skills/harness-loop/SKILL.md` には、manual shell follow-up queue と `/copy` rollback は長時間作業 UX として自動継承し、loop runner が追加入力 queue を持たないことだけを記録する。
+- `skills/session/SKILL.md` には、stale proxy env、Unicode / dead-key、VS Code WSL keyboard を session shell / terminal input の自動継承として短く記録する。
+- Feature Table と CHANGELOG は入口に留め、判断根拠はこの snapshot section に集約する。
+
+検証:
+
+- `tests/test-claude-upstream-integration.sh` で、この section、`C: 自動継承` 判定、直接実装しない理由、workaround を追加しない方針、Feature Table / CHANGELOG / long-running / session docs の反映を grep 固定する。
+
 ## Harness judgement
 
 53.1.1 では snapshot を作るだけに留め、後続 task の実装を先取りしない。
