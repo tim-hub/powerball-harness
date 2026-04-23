@@ -82,7 +82,7 @@ resolve_plugin_dir() {
 backup_path() {
   local target="$1"
   local backup_root="$2"
-  if [ -e "$target" ]; then
+  if [ -e "$target" ] || [ -L "$target" ]; then
     local ts
     local base
     local dst
@@ -90,9 +90,81 @@ backup_path() {
     base="$(basename "$target")"
     mkdir -p "$backup_root"
     dst="$backup_root/${base}.${ts}.$$"
+    local suffix=1
+    while [ -e "$dst" ] || [ -L "$dst" ]; do
+      dst="$backup_root/${base}.${ts}.$$.$suffix"
+      suffix=$((suffix + 1))
+    done
     mv "$target" "$dst"
     echo "Backed up $target to $dst"
   fi
+}
+
+same_physical_path() {
+  local left="$1"
+  local right="$2"
+
+  [ -e "$left" ] || return 1
+  [ -e "$right" ] || return 1
+
+  local left_real
+  local right_real
+  left_real="$(physical_path "$left")"
+  right_real="$(physical_path "$right")"
+
+  [ "$left_real" = "$right_real" ]
+}
+
+physical_path() {
+  local path="$1"
+
+  if [ -d "$path" ]; then
+    (cd "$path" && pwd -P)
+    return 0
+  fi
+
+  if [ -L "$path" ]; then
+    local link_target
+    link_target="$(readlink "$path")" || return 1
+    case "$link_target" in
+      /*)
+        physical_path "$link_target"
+        ;;
+      *)
+        physical_path "$(dirname "$path")/$link_target"
+        ;;
+    esac
+    return $?
+  fi
+
+  (cd "$(dirname "$path")" && printf '%s/%s\n' "$(pwd -P)" "$(basename "$path")")
+}
+
+copy_sync_entry() {
+  local src="$1"
+  local dst_dir="$2"
+
+  cp -R -L "$src" "$dst_dir/"
+}
+
+sync_entry_to_path() {
+  local src="$1"
+  local dst_path="$2"
+  local dst_dir="$3"
+  local backup_root="$4"
+
+  if [ -L "$dst_path" ]; then
+    if same_physical_path "$src" "$dst_path"; then
+      return 1
+    fi
+    backup_path "$dst_path" "$backup_root"
+    copy_sync_entry "$src" "$dst_dir"
+    return 0
+  fi
+
+  backup_path "$dst_path" "$backup_root"
+  copy_sync_entry "$src" "$dst_dir"
+  return 0
 }
 
 should_skip_sync_entry() {
@@ -258,20 +330,24 @@ merge_dir_recursive() {
 
   local entry
   for entry in "$src_dir"/*; do
-    [ -e "$entry" ] || continue
+    [ -e "$entry" ] || [ -L "$entry" ] || continue
     local name
     name="$(basename "$entry")"
     local dst_path="$dst_dir/$name"
 
-    if [ ! -e "$dst_path" ]; then
-      cp -R -L "$entry" "$dst_dir/"
+    if [ ! -e "$dst_path" ] && [ ! -L "$dst_path" ]; then
+      copy_sync_entry "$entry" "$dst_dir"
       eval "$_copied_ref=\$((\$$_copied_ref + 1))"
+    elif [ -L "$dst_path" ]; then
+      if sync_entry_to_path "$entry" "$dst_path" "$dst_dir" "$backup_root"; then
+        eval "$_updated_ref=\$((\$$_updated_ref + 1))"
+      fi
     elif [ -d "$entry" ] && [ -d "$dst_path" ]; then
       merge_dir_recursive "$entry" "$dst_path" "$backup_root" "$_copied_ref" "$_updated_ref"
     else
-      backup_path "$dst_path" "$backup_root"
-      cp -R -L "$entry" "$dst_dir/"
-      eval "$_updated_ref=\$((\$$_updated_ref + 1))"
+      if sync_entry_to_path "$entry" "$dst_path" "$dst_dir" "$backup_root"; then
+        eval "$_updated_ref=\$((\$$_updated_ref + 1))"
+      fi
     fi
   done
 }
@@ -291,7 +367,7 @@ sync_named_children() {
   local preserved=0
   local entry
   for entry in "$src_dir"/*; do
-    [ -e "$entry" ] || continue
+    [ -e "$entry" ] || [ -L "$entry" ] || continue
     local name
     name="$(basename "$entry")"
     if should_skip_sync_entry "$name"; then
@@ -300,20 +376,26 @@ sync_named_children() {
     fi
     local dst_path="$dst_dir/$name"
 
-    if [ ! -e "$dst_path" ]; then
-      cp -R -L "$entry" "$dst_dir/"
+    if [ ! -e "$dst_path" ] && [ ! -L "$dst_path" ]; then
+      copy_sync_entry "$entry" "$dst_dir"
       copied=$((copied + 1))
+    elif [ -L "$dst_path" ]; then
+      if sync_entry_to_path "$entry" "$dst_path" "$dst_dir" "$backup_root"; then
+        updated=$((updated + 1))
+      else
+        preserved=$((preserved + 1))
+      fi
     elif [ -d "$entry" ] && [ -d "$dst_path" ]; then
       merge_dir_recursive "$entry" "$dst_path" "$backup_root" "copied" "updated"
     else
-      backup_path "$dst_path" "$backup_root"
-      cp -R -L "$entry" "$dst_dir/"
-      updated=$((updated + 1))
+      if sync_entry_to_path "$entry" "$dst_path" "$dst_dir" "$backup_root"; then
+        updated=$((updated + 1))
+      fi
     fi
   done
 
   for entry in "$dst_dir"/*; do
-    [ -e "$entry" ] || continue
+    [ -e "$entry" ] || [ -L "$entry" ] || continue
     local name
     name="$(basename "$entry")"
     if should_skip_sync_entry "$name"; then

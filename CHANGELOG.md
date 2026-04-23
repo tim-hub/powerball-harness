@@ -8,6 +8,7 @@ Change history for claude-code-harness.
 
 ### Fixed
 
+- `codex-setup-local.sh` now treats existing skill symlinks as links instead of recursing into their targets. User-level Codex setup can safely preserve a symlink that already points at the current Harness source, or replace a stale symlink without moving files out of the source tree. Backup names also get a collision-safe suffix so repeated basenames such as `SKILL.md` are not overwritten within one run.
 - Claude Code hook command resolution now falls back safely when `CLAUDE_PLUGIN_ROOT` is missing or invalid. Hook commands validate the resolved `claude-code-harness` plugin root before executing `bin/harness`, preventing empty plugin roots from becoming `/bin/harness` and producing `hook exited with code 127`.
 - `sync-plugin-cache.sh` now validates the plugin root and updates an installed local marketplace copy when present, so stale marketplace hook definitions do not keep using raw `${CLAUDE_PLUGIN_ROOT}` commands after the versioned cache is fixed.
 - Sprint-contract generation now omits inactive pointer fields such as `review.rubric_target`, preventing release preflight from rejecting non-UI contracts that previously serialized those fields as `null`.
