@@ -208,6 +208,9 @@ Details: `docs/codex-sandbox-execution-policy.md`.
 - Codex should be driven from the `harness-*` skill names, not legacy aliases like `$work`, `$plan-with-agent`, or `$verify`.
 - `$harness-work` and `$breezing` use Codex native multi-agent orchestration.
 - `$harness-loop` uses a real background runner behind `harness codex-loop start/status/stop`.
+- `$harness-loop` defaults to a Breezing executor: each cycle runs the current ready batch, not just one task.
+- `$harness-loop --max-workers N` caps the ready batch concurrency; `--max-workers max` uses all currently ready tasks in the selected range.
+- `$harness-loop --executor task` is the escape hatch for the older one-task-per-cycle local worker path.
 - Native flow uses `spawn_agent`, `wait`, `send_input`, `resume_agent`, `close_agent`.
 - `breezing` keeps Lead/Worker/Reviewer separation while reusing Codex-native subagents instead of older teammate-only wording.
 
@@ -218,7 +221,8 @@ Harness treats those deltas as context, not as a reason to post extra progress m
 
 Use this split:
 
-- `$harness-loop` should normally report once per cycle, plus blocked / validation / review / advisor stop events.
+- `$harness-loop` should normally report once per ready batch cycle, plus blocked / validation / review / advisor stop events.
+- `$harness-loop` may also surface Breezing Lead progress feed updates when task completion counts change inside the batch.
 - `$breezing` should normally report once per completed task through the Lead progress feed.
 - Worker / Advisor / Reviewer agents should stay silent when transcript deltas do not change task status, review verdict, or advisor decision.
 - Advisor / reviewer drift, plateau, and contract readiness failures are never hidden by silence policy.

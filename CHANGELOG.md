@@ -14,6 +14,12 @@ Change history for claude-code-harness.
 
 ### Added
 
+#### Phase 54: Codex Breezing defaults + loop batch execution
+
+**Codex harness-loop docs**: Codex 用 `harness-loop` guidance を、旧来の「1 cycle = 1 task」から「1 cycle = ready batch を Breezing で実行」に更新した。`--max-workers N|max` で batch 内の並列数を制御し、問題切り分けや危険な直列作業では `--executor task` で従来の one-task-per-cycle local worker path に逃がせることを明記した。
+
+**Silence policy compatibility**: `harness-loop` の silence policy は「1 ready batch cycle につき最終報告 1 回」を基本に更新し、Breezing Lead の task-level progress feed は batch 内の完了数が動いた時だけ出す扱いにした。advisor / reviewer drift、plateau、contract readiness failure は引き続き silence 対象にしない。
+
 #### Phase 53: Claude Code 2.1.117-2.1.118 / Codex 0.123.0 upstream snapshot
 
 **Snapshot**: `docs/upstream-update-snapshot-2026-04-23.md` に、2026-04-23 確認の Claude Code `2.1.117` / `2.1.118` と Codex `0.123.0` の一次情報 URL、version-by-version 分解表、A/C/P 判定、`B: 書いただけ` が 0 件である理由を保存した。

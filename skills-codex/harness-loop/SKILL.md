@@ -1,10 +1,10 @@
 ---
 name: harness-loop
-description: "HAR: Codex 専用の長時間ループ実行。バックグラウンドランナーで 1 サイクルずつ実務を進め、status / stop で監視できる。長時間、loop、ループ、autonomous、background、Codex で起動。Do NOT load for: 単発の実装、通常レビュー、リリース。"
-description-en: "HAR: Codex-native long-running loop runner. Uses a real background runner, one cycle at a time, with status/stop controls. Trigger: long-running, loop, autonomous, background, Codex. Do NOT load for: one-shot implementation, normal review, release."
-description-ja: "HAR: Codex 専用の長時間ループ実行。実際のバックグラウンドランナーが 1 サイクルずつ仕事を進め、status / stop で監視できる。長時間、loop、ループ、autonomous、background、Codex で起動。"
+description: "HAR: Codex 専用の長時間ループ実行。バックグラウンドランナーで ready batch を Breezing 実行し、status / stop で監視できる。長時間、loop、ループ、autonomous、background、Codex で起動。Do NOT load for: 単発の実装、通常レビュー、リリース。"
+description-en: "HAR: Codex-native long-running loop runner. Uses a real background runner that executes one ready batch per cycle through Breezing by default, with status/stop controls. Trigger: long-running, loop, autonomous, background, Codex. Do NOT load for: one-shot implementation, normal review, release."
+description-ja: "HAR: Codex 専用の長時間ループ実行。実際のバックグラウンドランナーが ready batch を Breezing で進め、status / stop で監視できる。長時間、loop、ループ、autonomous、background、Codex で起動。"
 allowed-tools: ["Read", "Bash"]
-argument-hint: "[all|TASK|START-END|START..END] [--max-cycles N] [--pacing worker|ci|plateau|night]"
+argument-hint: "[all|TASK|START-END|START..END] [--max-cycles N] [--max-workers N|max] [--executor breezing|task] [--pacing worker|ci|plateau|night]"
 disable-model-invocation: true
 ---
 
@@ -16,12 +16,15 @@ Codex 版の `harness-loop` は、説明だけの擬似ループではなく、
 ## ひとことで
 
 `$harness-loop` は、1 回だけの実装依頼ではなく、
-「未完了タスクを 1 件ずつ、自動で回していく当番」を起動する入口。
+「今すぐ実行できる未完了タスクのまとまりを、Breezing で自動実行し続ける当番」を起動する入口。
+
+ここでいう `ready batch` は、Depends が満たされていて、今すぐ並列実行できる `cc:TODO` / `cc:WIP` のまとまり。
+1 cycle は 1 task ではなく、原則として 1 ready batch を処理する。
 
 ## たとえると
 
 人が横でずっと見張る代わりに、
-「次の作業を見つける → Codex に任せる → 結果を確認する → 次へ進む」
+「同時に進められる作業をまとめて見つける → Breezing に任せる → 結果を確認する → 次のまとまりへ進む」
 を繰り返す監督係を、裏で常駐させるイメージ。
 
 ## Quick Reference
@@ -32,6 +35,9 @@ Codex 版の `harness-loop` は、説明だけの擬似ループではなく、
 | `$harness-loop 41.1-41.4` | 範囲を絞って開始 |
 | `$harness-loop JLB3R-02..JLB3R-08` | Plans.md の task ID 順で範囲を絞って開始 |
 | `$harness-loop all --max-cycles 3` | 最大 3 サイクルで停止 |
+| `$harness-loop all --max-workers 4` | 1 cycle の ready batch を最大 4 worker までに制限 |
+| `$harness-loop all --max-workers max` | ready batch 内で実行可能なタスク数を上限として並列化 |
+| `$harness-loop all --executor task` | 旧来の 1 task per cycle local worker 実行へ逃がす |
 | `$harness-loop all --pacing night` | サイクル間の待機を長めにする |
 | `$harness-loop status` | 現在の実行状況を確認 |
 | `$harness-loop stop` | 進行中ジョブを止めてループ停止要求を出す |
@@ -49,11 +55,18 @@ harness codex-loop start all
 ```bash
 harness codex-loop start 41.1-41.4 --max-cycles 5 --pacing worker
 harness codex-loop start JLB3R-02..JLB3R-08 --max-cycles 5 --pacing worker
+harness codex-loop start all --max-workers max --pacing worker
+harness codex-loop start all --executor task --max-cycles 5
 ```
 
 `START..END` は、`Plans.md` に並んでいる task ID をそのまま使う範囲指定。
 英字やハイフンを含む task ID は `..` を優先する。
 `41.1-41.4` のような従来の数値レンジも引き続き使える。
+
+`--max-workers` は、Breezing が 1 cycle で同時に動かす worker 数の上限。
+`max` は、選択範囲内で Depends が満たされた ready task の数をそのまま上限にする。
+`--executor task` は、Breezing ではなく local worker に 1 task だけ渡す互換用の逃げ道。
+問題切り分けや、並列実行したくない危険な作業で使う。
 
 ### 状態確認
 
@@ -72,12 +85,13 @@ harness codex-loop stop
 
 1. `.claude/state/codex-loop/` に実行状態を書き出す
 2. 受け取った selection を Plans.md から正規化する
-3. Plans.md から次の `cc:TODO` / `cc:WIP` を見つける
-4. `generate-sprint-contract.js` など既存の Harness 資産で準備する
-5. 既定では local worker が `codex exec` を起動する（`CODEX_LOOP_TASK_DRIVER=companion` の時だけ `scripts/codex-companion.sh task --background --write ...` を使う）
-6. 高リスク task / 2 回目失敗 / plateau 直前では advisor consult を挟む
-7. ジョブ完了後に review / checkpoint / plateau 判定を行う
-8. まだ対象タスクが残っていれば、待機後に次サイクルへ進む
+3. Plans.md から Depends が満たされた `cc:TODO` / `cc:WIP` を集め、ready batch を作る
+4. `--max-workers` で ready batch の同時実行数を制限する
+5. 既定では Breezing executor が ready batch を Lead / Worker / Reviewer 分離で実行する
+6. `--executor task` の時だけ、互換用 local worker が 1 task per cycle で `codex exec` を起動する（`CODEX_LOOP_TASK_DRIVER=companion` の時だけ `scripts/codex-companion.sh task --background --write ...` を使う）
+7. 高リスク task / 2 回目失敗 / plateau 直前では advisor consult を挟む
+8. ready batch 完了後に review / checkpoint / plateau 判定を行う
+9. まだ対象タスクが残っていれば、待機後に次サイクルへ進む
 
 ## Realtime Handoff / Silence Policy
 
@@ -91,7 +105,8 @@ Codex `0.123.0` 以降の background agent は realtime handoff で transcript d
 報告してよいタイミング:
 
 - loop 開始、停止、`already running`、`stop` 受理など、ユーザー操作に関わる lifecycle 境界
-- 1 サイクルの最終結果、commit、`RESULT: APPROVED` / `RESULT: BLOCKED`
+- 1 ready batch cycle の最終結果、commit、`RESULT: APPROVED` / `RESULT: BLOCKED`
+- Breezing Lead が task 完了を progress feed としてまとめて出す時
 - task が blocked、validation failure、review `REQUEST_CHANGES`、plateau、advisor `STOP` で止まる時
 - user が `status` を実行した時、または明示的に途中状況を聞いた時
 - advisor / reviewer drift、contract readiness failure など、放置すると品質判定がずれる時
@@ -104,7 +119,8 @@ Codex `0.123.0` 以降の background agent は realtime handoff で transcript d
 
 途中報告の頻度:
 
-- default は「1 cycle につき最終報告 1 回」。
+- default は「1 ready batch cycle につき最終報告 1 回」。
+- Breezing の task-level progress feed は、batch 内の完了数が動いた時だけ出す。
 - 長い cycle でも、material state change がない限り heartbeat は出さない。
 - 詳細な流れは `harness codex-loop status --json` と `.claude/state/codex-loop/runner.log` に寄せ、会話側には要点だけ出す。
 
@@ -163,6 +179,7 @@ decision は 3 種だけ。
 
 - これは **本当に裏で動く**。説明だけ返して終わるスキルではない。
 - 同時に 2 本は起動できない。既に走っている場合は `already running` で止まる。
+- 既定 executor は Breezing。旧来の 1 task per cycle 挙動が必要な時だけ `--executor task` を使う。
 - 失敗したタスクを無理に飛ばして次へ進めるのではなく、基本はその場で止まって理由を残す。
 - `status` と `runner.log` を見れば、今どこで止まっているか追いやすい。
 
@@ -171,7 +188,7 @@ decision は 3 種だけ。
 「Phase 41 の残タスクを、今日の間は自動で回したい」なら:
 
 ```bash
-harness codex-loop start 41.1-41.4 --max-cycles 8 --pacing worker
+harness codex-loop start 41.1-41.4 --max-cycles 8 --max-workers max --pacing worker
 ```
 
 途中で様子を見る:
@@ -189,6 +206,7 @@ harness codex-loop stop
 ## なぜこの形か
 
 Codex では Claude の `/loop` と同じ wake-up 機構をそのまま使えない。
-その代わり、**Codex companion の background job** を土台にして、
-Harness 側で状態管理と再入制御を持つと、
-長時間タスクでも「止める」「再開する」「今の状態を見る」が素直になる。
+その代わり、**Codex loop runner** を土台にして、
+Harness 側で状態管理と再入制御を持ち、実作業は Breezing の batch 実行に寄せる。
+そうすると、長時間タスクでも「止める」「再開する」「今の状態を見る」が素直になり、
+依存関係を満たした作業だけを安全にまとめて進められる。

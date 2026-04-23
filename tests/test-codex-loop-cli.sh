@@ -224,6 +224,7 @@ STATE_DIR="${workdir}/companion-state"
 mkdir -p "\${STATE_DIR}"
 JOB_FILE="\${STATE_DIR}/job.json"
 COUNTER_FILE="\${STATE_DIR}/status-count"
+PROMPT_FILE_STATE="\${STATE_DIR}/prompt-file"
 MODE="${mode}"
 
 read_json() {
@@ -254,12 +255,32 @@ PY
 }
 
 complete_task() {
-  python3 - "\${PROJECT_ROOT}/Plans.md" <<'PY'
+  python3 - "\${PROJECT_ROOT}/Plans.md" "\${PROMPT_FILE_STATE}" <<'PY'
 from pathlib import Path
 import sys
 path = Path(sys.argv[1])
+prompt_state = Path(sys.argv[2])
 text = path.read_text(encoding="utf-8")
-text = text.replace("cc:TODO", "cc:完了 [fake]", 1)
+targets = []
+if prompt_state.exists():
+    prompt_path = Path(prompt_state.read_text(encoding="utf-8").strip())
+    if prompt_path.exists():
+        for line in prompt_path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("Target tasks:"):
+                targets = [item.strip() for item in line.split(":", 1)[1].split(",") if item.strip()]
+                break
+if targets:
+    lines = []
+    for raw in text.splitlines():
+        line = raw
+        if line.startswith("|"):
+            cells = [cell.strip() for cell in line.strip("|").split("|")]
+            if cells and cells[0] in targets and "cc:完了" not in cells[-1]:
+                line = raw.rsplit("|", 2)[0] + "| cc:完了 [fake] |"
+        lines.append(line)
+    text = "\n".join(lines) + ("\n" if text.endswith("\n") else "")
+else:
+    text = text.replace("cc:TODO", "cc:完了 [fake]", 1)
 path.write_text(text, encoding="utf-8")
 PY
   git -C "\${PROJECT_ROOT}" add Plans.md >/dev/null 2>&1
@@ -270,6 +291,19 @@ cmd="\${1:-}"
 shift || true
 case "\${cmd}" in
   task)
+    prompt_file=""
+    while [ \$# -gt 0 ]; do
+      case "\$1" in
+        --prompt-file)
+          prompt_file="\${2:-}"
+          shift 2
+          ;;
+        *)
+          shift
+          ;;
+      esac
+    done
+    printf '%s\n' "\${prompt_file}" > "\${PROMPT_FILE_STATE}"
     write_job "queued"
     printf '0' > "\${COUNTER_FILE}"
     printf '{"jobId":"fake-job-1","status":"queued","title":"Codex Task","logFile":"%s"}\n' "\${STATE_DIR}/job.log"
@@ -391,6 +425,25 @@ setup_named_repo() {
 | JLB3R-02 | fake task 02 | done | - | cc:TODO |
 | JLB3R-03 | fake task 03 | done | - | cc:TODO |
 | JLB3R-08 | fake task 08 | done | - | cc:TODO |
+EOF
+  git -C "${repo}" init >/dev/null 2>&1
+  git -C "${repo}" config user.email "loop-test@example.com"
+  git -C "${repo}" config user.name "Loop Test"
+  git -C "${repo}" add Plans.md
+  git -C "${repo}" commit -m "initial" >/dev/null 2>&1
+}
+
+setup_batch_repo() {
+  local repo="$1"
+  mkdir -p "${repo}/.claude/state"
+  cat > "${repo}/Plans.md" <<'EOF'
+# Plans
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 1 | ready task 1 | done | - | cc:TODO |
+| 2 | ready task 2 | done | - | cc:TODO |
+| 3 | dependent task 3 | done | 1 | cc:TODO |
 EOF
   git -C "${repo}" init >/dev/null 2>&1
   git -C "${repo}" config user.email "loop-test@example.com"
@@ -632,7 +685,7 @@ run_cross_repo_case() {
     CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
     CODEX_LOOP_CHECKPOINT_SCRIPT="${tmp}/bin/fake-checkpoint.sh" \
     CODEX_LOOP_POLL_INTERVAL_SEC=1 \
-    "${install_root}/bin/harness" codex-loop start all --max-cycles 1 --pacing worker >/dev/null
+    "${install_root}/bin/harness" codex-loop start all --max-cycles 1 --pacing worker --executor task >/dev/null
   )
 
   if poll_for_status "${repo}/.claude/state/codex-loop/run.json" "completed"; then
@@ -734,7 +787,7 @@ run_named_selection_case() {
   CODEX_LOOP_MEM_CLIENT="${tmp}/bin/fake-mem.sh" \
   CODEX_LOOP_GENERATE_CONTRACT_SCRIPT="${tmp}/bin/fake-generate-contract.sh" \
   CODEX_LOOP_POLL_INTERVAL_SEC=1 \
-  bash "${LOOP_SCRIPT}" start JLB3R-02..JLB3R-08 --max-cycles 1 --pacing worker >/dev/null
+  bash "${LOOP_SCRIPT}" start JLB3R-02..JLB3R-08 --max-cycles 1 --pacing worker --executor task >/dev/null
 
   poll_for_status "${repo}/.claude/state/codex-loop/run.json" "completed" || fail "named selection case: run did not finish"
 
@@ -754,6 +807,95 @@ PY
     pass "named selection case: Plans.md-aware range selection works"
   else
     fail "named selection case: range selection did not target expected tasks"
+  fi
+
+  cleanup_tmp "${tmp}"
+}
+
+run_breezing_batch_case() {
+  local tmp
+  tmp="$(mktemp -d)"
+  local repo="${tmp}/repo"
+  mkdir -p "${repo}"
+  setup_batch_repo "${repo}"
+  setup_fake_tools "${tmp}" "complete"
+
+  PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
+  CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+  CODEX_LOOP_VALIDATE_SCRIPT="${tmp}/bin/fake-validate.sh" \
+  CODEX_LOOP_ENRICH_CONTRACT_SCRIPT="${tmp}/bin/fake-enrich-contract.sh" \
+  CODEX_LOOP_ENSURE_CONTRACT_SCRIPT="${tmp}/bin/fake-ensure-contract.sh" \
+  CODEX_LOOP_RUNTIME_REVIEW_SCRIPT="${tmp}/bin/fake-runtime-review.sh" \
+  CODEX_LOOP_WRITE_REVIEW_RESULT_SCRIPT="${tmp}/bin/fake-write-review-result.sh" \
+  CODEX_LOOP_PLATEAU_SCRIPT="${tmp}/bin/fake-plateau.sh" \
+  CODEX_LOOP_CHECKPOINT_SCRIPT="${tmp}/bin/fake-checkpoint.sh" \
+  CODEX_LOOP_MEM_CLIENT="${tmp}/bin/fake-mem.sh" \
+  CODEX_LOOP_GENERATE_CONTRACT_SCRIPT="${tmp}/bin/fake-generate-contract.sh" \
+  CODEX_LOOP_POLL_INTERVAL_SEC=1 \
+  bash "${LOOP_SCRIPT}" start all --max-cycles 1 --pacing worker --max-workers 2 >/dev/null
+
+  poll_for_status "${repo}/.claude/state/codex-loop/run.json" "completed" || fail "breezing batch case: run did not finish"
+
+  jq -e '.executor == "breezing" and .max_workers == "2" and .last_batch_ids == "1,2"' \
+    "${repo}/.claude/state/codex-loop/run.json" >/dev/null \
+    && pass "breezing batch case: run state records executor and capped batch" \
+    || fail "breezing batch case: run state did not record expected executor/batch"
+
+  if grep '^| 1 ' "${repo}/Plans.md" | grep -q 'cc:完了' && \
+     grep '^| 2 ' "${repo}/Plans.md" | grep -q 'cc:完了' && \
+     grep '^| 3 ' "${repo}/Plans.md" | grep -q 'cc:TODO'; then
+    pass "breezing batch case: ready batch completed without dependency leak"
+  else
+    fail "breezing batch case: Plans.md statuses were not expected"
+  fi
+
+  if grep -q '"executor":"breezing"' "${repo}/.claude/state/codex-loop/cycles.jsonl" && \
+     grep -q '"task_ids":"1,2"' "${repo}/.claude/state/codex-loop/cycles.jsonl"; then
+    pass "breezing batch case: cycle log records breezing batch"
+  else
+    fail "breezing batch case: cycle log missing breezing batch"
+  fi
+
+  cleanup_tmp "${tmp}"
+}
+
+run_breezing_blocked_case() {
+  local tmp
+  tmp="$(mktemp -d)"
+  local repo="${tmp}/repo"
+  mkdir -p "${repo}"
+  setup_batch_repo "${repo}"
+  setup_fake_tools "${tmp}" "retry"
+
+  set +e
+  PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
+  CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+  CODEX_LOOP_VALIDATE_SCRIPT="${tmp}/bin/fake-validate.sh" \
+  CODEX_LOOP_ENRICH_CONTRACT_SCRIPT="${tmp}/bin/fake-enrich-contract.sh" \
+  CODEX_LOOP_ENSURE_CONTRACT_SCRIPT="${tmp}/bin/fake-ensure-contract.sh" \
+  CODEX_LOOP_RUNTIME_REVIEW_SCRIPT="${tmp}/bin/fake-runtime-review.sh" \
+  CODEX_LOOP_WRITE_REVIEW_RESULT_SCRIPT="${tmp}/bin/fake-write-review-result.sh" \
+  CODEX_LOOP_PLATEAU_SCRIPT="${tmp}/bin/fake-plateau.sh" \
+  CODEX_LOOP_CHECKPOINT_SCRIPT="${tmp}/bin/fake-checkpoint.sh" \
+  CODEX_LOOP_MEM_CLIENT="${tmp}/bin/fake-mem.sh" \
+  CODEX_LOOP_GENERATE_CONTRACT_SCRIPT="${tmp}/bin/fake-generate-contract.sh" \
+  CODEX_LOOP_POLL_INTERVAL_SEC=1 \
+  bash "${LOOP_SCRIPT}" start all --max-cycles 2 --pacing worker --max-workers 2 >/dev/null
+  set -e
+
+  poll_for_status "${repo}/.claude/state/codex-loop/run.json" "failed" || fail "breezing blocked case: run should fail"
+
+  jq -e '.exit_reason == "task_blocked" and .last_batch_ids == "1,2" and .cycle_count == 1' \
+    "${repo}/.claude/state/codex-loop/run.json" >/dev/null \
+    && pass "breezing blocked case: blocked batch stops loop" \
+    || fail "breezing blocked case: loop did not stop on blocked batch"
+
+  if grep '^| 3 ' "${repo}/Plans.md" | grep -q 'cc:TODO'; then
+    pass "breezing blocked case: dependent follow-up was not advanced"
+  else
+    fail "breezing blocked case: dependent follow-up advanced unexpectedly"
   fi
 
   cleanup_tmp "${tmp}"
@@ -1084,6 +1226,8 @@ run_cross_repo_case
 run_state_corrupt_case
 run_plain_status_case
 run_named_selection_case
+run_breezing_batch_case
+run_breezing_blocked_case
 run_start_reset_case
 run_advisor_preflight_case
 run_advisor_duplicate_case
