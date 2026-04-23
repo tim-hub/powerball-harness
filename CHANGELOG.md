@@ -47,6 +47,8 @@ Change history for claude-code-harness.
 
 **Codex automatic bug fix inheritance**: Codex `0.123.0` の `/copy` rollback、manual shell follow-up queue、Unicode / dead-key input、stale proxy env、VS Code WSL keyboard、review prompt leak は、長時間作業 UX に効く `C: 自動継承` として snapshot に整理した。Harness は copy wrapper、manual shell queue shim、proxy snapshot scrubber を追加せず、本体修正をそのまま受け取る。
 
+**Phase 53 closeout**: Phase 53 の upstream 追従は `docs/upstream-update-snapshot-2026-04-23.md`、Feature Table、CHANGELOG、upstream integration test、validate-plugin で整合を確認した。Codex-native skill audit の広い mirror / path drift は Phase 51.2 の既存 TODO に残し、今回の `0.123.0` 追従とは分離した。
+
 #### Phase 52: upstream update skill merge hardening + 2026-04-21 snapshot
 
 | Before | After |

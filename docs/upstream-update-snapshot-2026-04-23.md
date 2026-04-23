@@ -451,6 +451,24 @@ Harness docs に反映する範囲:
 
 - `tests/test-claude-upstream-integration.sh` で、この section、`C: 自動継承` 判定、直接実装しない理由、workaround を追加しない方針、Feature Table / CHANGELOG / long-running / session docs の反映を grep 固定する。
 
+## 53.3.1 Phase 53 closeout / Phase 51.2 dependency note
+
+Phase 53 の A/C/P 反映はここで閉じる。
+
+完了確認:
+
+- Feature Table は Phase 53 追補テーブルとして、Claude Code `2.1.117-2.1.118` と Codex `0.123.0` の各項目を `A` / `C` / `P` に分類済み。
+- CHANGELOG `[Unreleased]` は Phase 53 の user-facing change を snapshot、MCP hook safety、plugin tag、Auto Mode、managed settings、Codex provider / MCP / realtime / sandbox / bug-fix inheritance まで記録済み。
+- `tests/test-claude-upstream-integration.sh` は Phase 53 snapshot と主要 guidance を grep 固定済み。
+- `tests/validate-plugin.sh` は Phase 53 closeout 時点で PASS。既存 warning は script executable bit と `IMPLEMENTATION_GUIDE.md` 推奨欠落のみ。
+
+Phase 51.2 との重複整理:
+
+- Phase 53 は upstream `0.123.0` の具体差分を取り込む周期であり、Codex-native skill audit 全体の片付けではない。
+- 53.2.3 の realtime handoff silence と 53.2.4 の sandbox / exec policy は、`harness-loop` / `breezing` / `harness-setup` の必要最小 guidance と mirror 同期だけを扱った。
+- Phase 51.2.1-51.2.4 に残る Codex-native tool model、memory/session path drift、review / loop / release mirror path policy、media skill metadata は引き続き Phase 51.2 の owns とする。
+- 今後 mirror / path drift を広く直す場合は Phase 51.2 側で扱い、Phase 53 の upstream snapshot 追従と混ぜない。
+
 ## Harness judgement
 
 53.1.1 では snapshot を作るだけに留め、後続 task の実装を先取りしない。

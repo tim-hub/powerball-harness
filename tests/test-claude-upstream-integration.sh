@@ -751,6 +751,20 @@ grep -q 'Unicode / dead-key' "${ROOT_DIR}/skills/session/SKILL.md" || {
   exit 1
 }
 
+# Phase 53.3.1: closeout must keep Phase 51.2 audit ownership separate
+grep -q '53.3.1 Phase 53 closeout / Phase 51.2 dependency note' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot is missing the 53.3.1 closeout / Phase 51.2 dependency note"
+  exit 1
+}
+grep -q 'Phase 51.2.1-51.2.4 に残る Codex-native tool model、memory/session path drift、review / loop / release mirror path policy、media skill metadata は引き続き Phase 51.2 の owns とする' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must keep broad Codex-native skill audit ownership in Phase 51.2"
+  exit 1
+}
+grep -q 'Phase 53 closeout では、Codex mirror / path drift の広い棚卸しを Phase 51.2 の Codex-native skill audit TODO に残します' "${ROOT_DIR}/docs/CLAUDE-feature-table.md" || {
+  echo "Feature Table must record Phase 53 closeout dependency on Phase 51.2"
+  exit 1
+}
+
 for hooks_file in "${HOOK_FILES[@]}"; do
   MCP_TOOL_COUNT="$(jq '[.. | objects | select(.type? == "mcp_tool")] | length' "${hooks_file}")"
   if [ "${MCP_TOOL_COUNT}" -eq 0 ]; then
