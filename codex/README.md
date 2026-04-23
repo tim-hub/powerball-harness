@@ -110,6 +110,29 @@ cp claude-code-harness/codex/.codex/config.toml "$CODEX_HOME/config.toml"
 - Setup scripts always ensure `multi_agent` + role defaults in target `config.toml`
 - Setup scripts keep backups in `$CODEX_HOME/backups/*` and move removed Harness skills out of `skills/` so Codex does not keep listing stale commands
 
+## Provider And Model Policy
+
+Codex `0.123.0` adds a built-in `amazon-bedrock` provider with AWS profile support.
+Harness documents that path, but does not force it into the shipped `config.toml`.
+
+Use Bedrock only in the user or project config that actually needs it:
+
+```toml
+model_provider = "amazon-bedrock"
+
+[model_providers.amazon-bedrock.aws]
+profile = "codex-bedrock"
+```
+
+Harness does not write AWS credentials, Bedrock endpoints, or provider secrets.
+Claude Code Bedrock settings such as `CLAUDE_CODE_USE_BEDROCK`, Anthropic model overrides, and `modelOverrides` are separate from Codex `model_provider`.
+
+Codex `0.123.0` also refreshes bundled model metadata, including the current `gpt-5.4` default.
+Harness therefore leaves `model` unset in the distributed Codex config and avoids old fixed model samples such as `gpt-5.2-codex`.
+Pin `model = "gpt-5.4"` only in your own config when reproducibility or an organization allowlist requires it.
+
+Details: `docs/codex-provider-setup-policy.md`.
+
 ## Runtime Behavior
 
 - `$harness-plan`, `$harness-sync`, `$harness-work`, `$breezing`, `$harness-review`, and `$harness-loop` are the primary Codex-facing workflow surfaces.

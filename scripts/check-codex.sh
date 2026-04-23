@@ -103,7 +103,8 @@ cat << 'EOF'
 review:
   codex:
     enabled: true
-    model: gpt-5.2-codex  # 推奨モデル
+    # model は通常省略し、Codex CLI の current default metadata に任せる
+    # 固定が必要な検証や組織 allowlist がある場合だけ明示する
 ```
 
 または `/codex-review` で個別に Codex レビューを実行

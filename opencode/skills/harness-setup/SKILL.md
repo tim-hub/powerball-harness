@@ -138,6 +138,29 @@ TIMEOUT=$(command -v timeout || command -v gtimeout || echo "")
 > **注意**: Harness v4.0 本体（`harness` コマンド）は Node.js 不要の Go バイナリ。
 > Codex CLI（`codex` コマンド）は別ツールであり、引き続き Node.js が必要。
 
+### Codex provider / model metadata policy (0.123.0+)
+
+Codex `0.123.0` 以降の provider / model guidance は
+`docs/codex-provider-setup-policy.md` を正本として扱う。
+
+要点:
+
+- Bedrock を使う場合は、Codex built-in provider の `amazon-bedrock` を使う。
+- AWS profile は user / project の Codex config で `[model_providers.amazon-bedrock.aws]` に置く。
+- Harness は AWS credential や provider endpoint を書き込まない。
+- Harness の配布用 Codex config には `model = "gpt-5.4"` を setup default として固定しない。
+- `gpt-5.4` は Codex 本体の current model metadata として扱い、古い `gpt-5.2-codex` などを推奨 sample として残さない。
+- Claude Code 側の `CLAUDE_CODE_USE_BEDROCK` / `ANTHROPIC_DEFAULT_*` / `modelOverrides` guidance と、Codex の `model_provider = "amazon-bedrock"` は混ぜない。
+
+Bedrock を使う user / project だけが、必要に応じて次を追加する:
+
+```toml
+model_provider = "amazon-bedrock"
+
+[model_providers.amazon-bedrock.aws]
+profile = "codex-bedrock"
+```
+
 **使用パターン**（公式プラグイン経由）:
 ```bash
 bash scripts/codex-companion.sh task --write "タスク内容"

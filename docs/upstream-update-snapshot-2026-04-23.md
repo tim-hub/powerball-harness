@@ -235,6 +235,53 @@ Harness wrapper を追加しない理由:
 
 - `tests/test-claude-upstream-integration.sh` で、この section、`/usage` primary entrypoint、legacy shortcut の扱い、`--agent` + `mcpServers` follow-up、external build flag を default にしない方針、native search / high effort default の自動継承、Feature Table の `C/P` 表記を固定する。
 
+## 53.2.1 Codex provider and model metadata setup policy
+
+対象:
+
+- Codex `0.123.0` の built-in `amazon-bedrock` model provider
+- `model_providers.amazon-bedrock.aws.profile`
+- Codex `0.123.0` の bundled model metadata refresh と current `gpt-5.4` default
+- 古い固定 model slug の setup guidance 残留
+- Claude Code 側 Bedrock guidance との切り分け
+
+今回の判断:
+
+- `docs/codex-provider-setup-policy.md` を新設し、Codex provider / model metadata setup guidance の正本として扱う。
+- Bedrock を使う user / project だけが `model_provider = "amazon-bedrock"` と `[model_providers.amazon-bedrock.aws] profile = "codex-bedrock"` を自分の Codex config に追加する。
+- Harness の配布用 `codex/.codex/config.toml` には、`amazon-bedrock` の説明コメントだけを置く。実際の `model_provider` default は設定しない。
+- Harness は AWS credential、temporary token、secret key、Bedrock endpoint override を書き込まない。
+- `gpt-5.4` は Codex `0.123.0` の current bundled model metadata として扱う。Harness setup は `model = "gpt-5.4"` を default として固定しない。
+- `scripts/check-codex.sh` の古い `gpt-5.2-codex` 推奨 sample は削除し、通常は Codex CLI の current default metadata に任せる説明へ変更する。
+- Claude Code 側の Bedrock guidance は `CLAUDE_CODE_USE_BEDROCK`、`ANTHROPIC_DEFAULT_*`、`modelOverrides` の領域として残す。Codex の `model_provider = "amazon-bedrock"` と混ぜない。
+
+Bedrock config example:
+
+```toml
+model_provider = "amazon-bedrock"
+
+[model_providers.amazon-bedrock.aws]
+profile = "codex-bedrock"
+```
+
+古い固定 model slug の点検:
+
+```bash
+rg -n "gpt-5\.2-codex|gpt-5-codex|gpt-5\.1|codex-mini|gpt-5\.3-codex|gpt-5\.4" \
+  docs skills codex skills-codex scripts tests templates .claude-plugin opencode .agents -u
+```
+
+結果の扱い:
+
+- `scripts/check-codex.sh` の `gpt-5.2-codex` sample は setup guidance として古いため削除する。
+- `scripts/codex-loop.sh`、`scripts/config-utils.sh`、advisor contract tests の `gpt-5.4` は Advisor Strategy の model policy / fixture であり、Codex setup default ではないため今回は維持する。
+- `docs/CLAUDE-feature-table.md` の過去 version 説明にある Bedrock / model 名は履歴説明として維持する。
+- 新規 setup docs / skill / Codex README では、古い model slug を推奨値として追加しない。
+
+検証:
+
+- `tests/test-claude-upstream-integration.sh` で、provider policy docs、`harness-setup` pointer、Codex README / config note、古い `gpt-5.2-codex` sample 削除、Feature Table の 53.2.1 完了表記を grep 固定する。
+
 ## Harness judgement
 
 53.1.1 では snapshot を作るだけに留め、後続 task の実装を先取りしない。

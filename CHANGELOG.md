@@ -32,6 +32,8 @@ Change history for claude-code-harness.
 
 **Plugin managed settings policy**: `docs/plugin-managed-settings-policy.md` を追加し、plugin `themes/` directory、`DISABLE_UPDATES` と `DISABLE_AUTOUPDATER` の違い、`blockedMarketplaces` / `strictKnownMarketplaces` の managed settings 専用運用、plugin dependency auto-resolve / missing dependency hints を setup guidance として整理した。通常ユーザー向け default に企業向け marketplace restriction を過剰適用せず、dependency resolution は Harness 独自 resolver を重ねず Claude Code 本体に任せる。
 
+**Codex provider setup policy**: `docs/codex-provider-setup-policy.md` を追加し、Codex `0.123.0` の built-in `amazon-bedrock` provider、`model_providers.amazon-bedrock.aws.profile`、current `gpt-5.4` default metadata の扱いを setup guidance として整理した。Harness 配布 config では `model` / `model_provider` を固定せず、Bedrock 利用者だけが user / project config に追加する方針にした。古い `gpt-5.2-codex` 推奨 sample は削除した。
+
 #### Phase 52: upstream update skill merge hardening + 2026-04-21 snapshot
 
 | Before | After |

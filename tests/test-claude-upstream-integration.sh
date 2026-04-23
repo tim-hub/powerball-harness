@@ -422,6 +422,61 @@ grep -q '`/usage` usage / cost / stats view' "${ROOT_DIR}/docs/CLAUDE-feature-ta
   exit 1
 }
 
+# Phase 53.2.1: Codex Bedrock provider and model metadata setup policy
+CODEX_PROVIDER_POLICY_DOC="${ROOT_DIR}/docs/codex-provider-setup-policy.md"
+[ -f "${CODEX_PROVIDER_POLICY_DOC}" ] || {
+  echo "${CODEX_PROVIDER_POLICY_DOC} does not exist"
+  exit 1
+}
+grep -q 'model_provider = "amazon-bedrock"' "${CODEX_PROVIDER_POLICY_DOC}" || {
+  echo "Codex provider policy doc must show the amazon-bedrock provider id"
+  exit 1
+}
+grep -q 'model_providers.amazon-bedrock.aws' "${CODEX_PROVIDER_POLICY_DOC}" || {
+  echo "Codex provider policy doc must document the AWS profile config path"
+  exit 1
+}
+grep -q 'Harness の配布用 `codex/.codex/config.toml` には `model = "gpt-5.4"` を default として書かない' "${CODEX_PROVIDER_POLICY_DOC}" || {
+  echo "Codex provider policy doc must not pin gpt-5.4 in shipped setup defaults"
+  exit 1
+}
+grep -q 'Claude Code 側の Bedrock guidance' "${CODEX_PROVIDER_POLICY_DOC}" || {
+  echo "Codex provider policy doc must separate Claude Code Bedrock guidance from Codex provider config"
+  exit 1
+}
+grep -q 'docs/codex-provider-setup-policy.md' "${ROOT_DIR}/skills/harness-setup/SKILL.md" || {
+  echo "harness-setup must link to Codex provider setup policy"
+  exit 1
+}
+grep -q 'amazon-bedrock' "${ROOT_DIR}/skills/harness-setup/SKILL.md" || {
+  echo "harness-setup must mention the amazon-bedrock provider"
+  exit 1
+}
+grep -q 'model_provider = "amazon-bedrock"' "${ROOT_DIR}/codex/README.md" || {
+  echo "codex/README.md must show the amazon-bedrock provider setup"
+  exit 1
+}
+grep -q 'model_provider = "amazon-bedrock"' "${ROOT_DIR}/codex/.codex/config.toml" || {
+  echo "codex/.codex/config.toml must include a commented amazon-bedrock setup note"
+  exit 1
+}
+if grep -q 'gpt-5.2-codex  # 推奨モデル' "${ROOT_DIR}/scripts/check-codex.sh"; then
+  echo "check-codex.sh must not recommend the stale gpt-5.2-codex model slug"
+  exit 1
+fi
+grep -q '53.2.1 Codex provider and model metadata setup policy' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot is missing the 53.2.1 Codex provider/model policy"
+  exit 1
+}
+grep -q '古い固定 model slug の点検' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must record the fixed model slug rg inspection"
+  exit 1
+}
+grep -q 'Codex 0.123.0 provider / model metadata.*A: docs 化済み' "${ROOT_DIR}/docs/CLAUDE-feature-table.md" || {
+  echo "Feature Table must mark 53.2.1 provider/model metadata guidance as done"
+  exit 1
+}
+
 for hooks_file in "${HOOK_FILES[@]}"; do
   MCP_TOOL_COUNT="$(jq '[.. | objects | select(.type? == "mcp_tool")] | length' "${hooks_file}")"
   if [ "${MCP_TOOL_COUNT}" -eq 0 ]; then
