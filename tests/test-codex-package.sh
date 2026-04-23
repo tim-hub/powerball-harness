@@ -381,6 +381,15 @@ else
   log_fail "Setup script duplicate-skill guards are missing"
 fi
 
+log_test "codex-setup-local handles symlinked skill installs safely"
+if bash tests/test-codex-setup-local.sh >/tmp/codex-setup-symlink.$$ 2>&1; then
+  log_pass "Symlinked skill installs are safe"
+else
+  cat /tmp/codex-setup-symlink.$$ | sed 's/^/  /'
+  log_fail "Symlinked skill install safety check failed"
+fi
+rm -f /tmp/codex-setup-symlink.$$ || true
+
 # Test 1.7b: setup-codex should not inject stale notify config
 log_test "setup-codex.sh avoids stale notify config"
 if rg -q '^\[notify\]' "scripts/setup-codex.sh"; then
