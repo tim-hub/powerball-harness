@@ -252,4 +252,55 @@ grep -q 'Claude Code `2.1.116` 以降の UX / 運用改善' "${UPSTREAM_UPDATE_S
   exit 1
 }
 
+# Phase 53: snapshot doc and MCP hook safety decision
+PHASE53_SNAPSHOT_DOC="${ROOT_DIR}/docs/upstream-update-snapshot-2026-04-23.md"
+[ -f "${PHASE53_SNAPSHOT_DOC}" ] || {
+  echo "${PHASE53_SNAPSHOT_DOC} does not exist"
+  exit 1
+}
+for referencing_file in \
+  "${ROOT_DIR}/CHANGELOG.md" \
+  "${ROOT_DIR}/docs/CLAUDE-feature-table.md" \
+  "${ROOT_DIR}/Plans.md"; do
+  grep -q 'upstream-update-snapshot-2026-04-23' "${referencing_file}" || {
+    echo "${referencing_file} is missing the expected upstream-update-snapshot-2026-04-23 reference"
+    exit 1
+  }
+done
+grep -q '53.1.2 MCP tool hook decision' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot is missing the 53.1.2 MCP tool hook decision"
+  exit 1
+}
+grep -q 'hooks/hooks.json` / `.claude-plugin/hooks.json` は今回は no-op' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must record that hook manifests are no-op for 53.1.2"
+  exit 1
+}
+grep -q '読み取り専用の MCP health / resource list 診断' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must document the intended read-only MCP diagnostic use case"
+  exit 1
+}
+grep -q '書き込み系 MCP tool は hook から呼ばない' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must forbid write-capable MCP tools from hooks"
+  exit 1
+}
+
+for hooks_file in "${HOOK_FILES[@]}"; do
+  MCP_TOOL_COUNT="$(jq '[.. | objects | select(.type? == "mcp_tool")] | length' "${hooks_file}")"
+  if [ "${MCP_TOOL_COUNT}" -eq 0 ]; then
+    continue
+  fi
+
+  jq -e '
+    [.. | objects | select(.type? == "mcp_tool")] |
+    all(
+      ((.tool // .tool_name // .name // "") | test("(health|list|read|get|status|diagnostic|resource)"; "i"))
+      and
+      ((.tool // .tool_name // .name // "") | test("(write|create|update|delete|remove|record|mutate|set|insert|upsert|patch)"; "i") | not)
+    )
+  ' "${hooks_file}" >/dev/null || {
+    echo "${hooks_file} has an mcp_tool hook that is not clearly read-only"
+    exit 1
+  }
+done
+
 echo "OK"

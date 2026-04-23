@@ -24,6 +24,8 @@ Change history for claude-code-harness.
 
 **B 判定の扱い**: Phase 53 では `B: 書いただけ` を分類として使わず、全項目を `A: 実装`, `C: 自動継承`, `P: 将来タスク` のいずれかへ固定した。`A` は具体的な Phase 53 task に接続し、`C` は Harness が wrapper を重ねない理由を記録している。
 
+**MCP tool hook safety**: Claude Code `type: "mcp_tool"` hooks は、読み取り専用の MCP health / resource list 診断候補として評価した。2026-04-23 時点では必須 field 仕様と常設 read-only diagnostic tool を配布 plugin 側で固定できないため、`hooks/hooks.json` / `.claude-plugin/hooks.json` は no-op とし、書き込み系 MCP tool を hook から呼ばない方針を snapshot と upstream integration test で固定した。
+
 #### Phase 52: upstream update skill merge hardening + 2026-04-21 snapshot
 
 | Before | After |

@@ -32,7 +32,7 @@
 | Claude Code 2.1.118 | Vim visual mode / visual-line mode | キーボードだけで選択と編集がしやすくなる | C | TUI usage | Harness 側の wrapper は不要。Claude Code 本体の editor UX として自動継承 |
 | Claude Code 2.1.118 | `/cost` と `/stats` が `/usage` に統合され、旧コマンドは relevant tab を開く typing shortcut になる | 利用量確認の入口が 1 つにまとまり、迷いにくくなる | C | docs / session guidance | 53.1.6 で古い `/cost` / `/stats` 中心の説明があれば `/usage` 中心へ寄せる。挙動は本体を自動継承 |
 | Claude Code 2.1.118 | `/theme` で named custom themes を作成 / 切替でき、JSON 手編集と plugin `themes/` directory に対応 | plugin が見た目の初期値を配れる余地ができる | P | plugin setup / design policy | 53.1.5 で setup docs に用途を記録する。Harness plugin に theme を同梱するかは今回は決めず、推測実装しない |
-| Claude Code 2.1.118 | Hooks can invoke MCP tools directly via `type: "mcp_tool"` | shell script を挟まない読み取り診断 hook を作れる可能性がある | A | hooks / MCP diagnostics / tests | 53.1.2 で読み取り専用 MCP health/resource 診断に限定して検証する。書き込み系 MCP tool は hook から呼ばない |
+| Claude Code 2.1.118 | Hooks can invoke MCP tools directly via `type: "mcp_tool"` | shell script を挟まない読み取り診断 hook を作れる可能性がある | A | hooks / MCP diagnostics / tests | 53.1.2 で読み取り専用 MCP health/resource 診断に限定して検証した。今回の配布 hooks manifest は no-op とし、書き込み系 MCP tool を hook から呼ばないことを test で固定 |
 | Claude Code 2.1.118 | `DISABLE_UPDATES` blocks all update paths, including manual `claude update` | 企業管理環境で手動更新まで止められる | A | setup docs / plugin policy | 53.1.5 で `DISABLE_AUTOUPDATER` との差を説明する。Harness 独自 updater block は追加しない |
 | Claude Code 2.1.118 | WSL can inherit Windows-side managed settings via `wslInheritsWindowsSettings` | Windows / WSL 混在環境の管理設定が揃いやすくなる | P | enterprise setup docs | 53.1.5 の managed settings 整理に含める。Harness default には過剰適用しない |
 | Claude Code 2.1.118 | Auto Mode `autoMode.allow` / `soft_deny` / `environment` can include `"$defaults"` to extend built-ins | 既定安全ルールを消さずに独自ルールを足せる | A | permissions / sandbox docs / settings template | 53.1.4 で「置換」ではなく「`"$defaults"` へ追加」として guidance と test を固定する |
@@ -88,13 +88,34 @@
 | Codex 0.123.0 | App-server protocol docs updated for threadless MCP resource reads and namespaced dynamic tools | MCP resource read / dynamic tool の説明が増える | P | future MCP / app-server docs | 53.2.2 の scope 外で必要になったら扱う。release body 以上の推測実装はしない |
 | Codex 0.123.0 | Dependency alerts fixed, Rust dev debug-info reduced, Python app-server SDK types refreshed | 配布物と開発体験が安定する | C | dependency / build runtime | Harness 側の直接変更なし |
 
+## 53.1.2 MCP tool hook decision
+
+対象 hook の用途:
+
+- 将来の読み取り専用の MCP health / resource list 診断に限定する。
+- たとえば、MCP server の疎通状態、公開 resources の一覧、resource template の有無などを、shell script を増やさず hook から直接確認する用途。
+- 外部状態を書き換える audit log、checkpoint 記録、issue 作成、database 更新、ファイル書き込みは対象外。
+
+今回の判断:
+
+- `hooks/hooks.json` / `.claude-plugin/hooks.json` は今回は no-op として変更しない。
+- 理由は、2026-04-23 時点で公式 changelog は `type: "mcp_tool"` を告知している一方、Hooks reference の hook handler field 表はまだ `command` / `http` / `prompt` / `agent` 中心で、`mcp_tool` の必須 field 名と入力展開規約が安定仕様として読み取れないため。
+- もう 1 つの理由は、配布 plugin の hooks は有効化された全環境で読まれるため、常に存在する読み取り専用 MCP diagnostic tool をまだ前提にできないため。環境依存の MCP tool を manifest に直接入れると、未設定環境で hook error を増やす可能性がある。
+
+安全条件:
+
+- 書き込み系 MCP tool は hook から呼ばない。
+- 将来 `type: "mcp_tool"` を manifest に入れる場合でも、tool 名は `health` / `list` / `read` / `get` / `status` / `diagnostic` / `resource` など読み取り診断と分かるものに限定する。
+- `write` / `create` / `update` / `delete` / `remove` / `record` / `mutate` / `set` / `insert` / `upsert` / `patch` を含む tool 名は hook から呼ばない。
+- この方針は `tests/test-claude-upstream-integration.sh` で固定する。現時点は no-op を検出し、将来 `mcp_tool` hook が追加された場合は読み取り専用名であることを jq check する。
+
 ## Harness judgement
 
 53.1.1 では snapshot を作るだけに留め、後続 task の実装を先取りしない。
 
 実装候補として確定したもの:
 
-- `type: "mcp_tool"` hook: 53.1.2
+- `type: "mcp_tool"` hook: 53.1.2 で no-op + safety test として完了。manifest 追加は必須 field 仕様と常設 read-only diagnostic tool が揃った後に行う
 - `claude plugin tag`: 53.1.3
 - Auto Mode `"$defaults"`: 53.1.4
 - plugin themes / managed settings / update controls / dependency auto-resolve docs: 53.1.5
