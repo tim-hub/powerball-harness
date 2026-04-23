@@ -131,6 +131,52 @@
 - `--dry-run` は tag を作らず、release plan に実行コマンドを表示する目的で使う。
 - この guidance は `tests/test-claude-upstream-integration.sh` で grep 固定する。
 
+## 53.1.4 Auto Mode "$defaults" permission and sandbox policy
+
+対象:
+
+- Claude Code `2.1.118` の Auto Mode `autoMode.allow` / `autoMode.soft_deny` / `autoMode.environment`
+- Harness の `.claude-plugin/settings.json`
+- Project-level template: `templates/claude/settings.security.json.template`
+
+今回の判断:
+
+- Auto Mode built-in defaults stay in place through "$defaults"。
+- Harness は、Claude Code 組み込みの Auto Mode default を置き換えない。
+- Project / enterprise 側で `autoMode.allow` / `autoMode.soft_deny` / `autoMode.environment` を追加する場合だけ、各配列に `"$defaults"` を入れ、その後ろに project-specific / organization-specific entry を足す。
+- 配布 plugin の `.claude-plugin/settings.json` には、この task では `autoMode` object を追加しない。理由は、組み込み default の中身と更新責務は Claude Code 本体が持つべきで、Harness が空の置換設定を配ると upstream default とのズレを作りやすいため。
+- Project-level template には、`autoMode` を追加する時の注意書きだけを置く。実際の追加 entry はプロジェクトごとに異なるため、Harness が推測して固定しない。
+
+追加時の形:
+
+```json
+{
+  "autoMode": {
+    "allow": ["$defaults", "<project-specific allow entry>"],
+    "soft_deny": ["$defaults", "<project-specific soft deny entry>"],
+    "environment": ["$defaults", "<project-specific environment entry>"]
+  }
+}
+```
+
+安全条件:
+
+- `"$defaults"` を削らない。
+- `"$defaults"` を「Harness が考える default 一覧」に展開して書き直さない。
+- 既存の `permissions.deny` / `permissions.ask` / `sandbox.failIfUnavailable` / `sandbox.network.deniedDomains` / `sandbox.filesystem` は維持する。
+- Auto Mode entry を追加する場合も、deny / ask / sandbox を緩める理由にはしない。
+
+R05 guardrail and sandbox.network.deniedDomains are not duplicated by Auto Mode:
+
+- R05 は Go guardrail 側の危険操作検出で、`sudo` wrapper、`find -delete` / `find -exec rm ...`、macOS dangerous removal path などをコマンド文字列から検出する。Auto Mode は自動承認の分類層であり、R05 のような Harness 固有の二層目ガードとは責務が違う。
+- `sandbox.network.deniedDomains` は metadata endpoint への到達を sandbox の network 境界で止める。Auto Mode の `environment` guidance は「どの環境条件なら自動化しやすいか」の分類であり、network deny list の代替ではない。
+- `permissions.deny` / `permissions.ask` は、明示的な拒否・確認ルールとして残す。Claude Code 側の deny precedence と Harness の guardrail を重ねることで、Auto Mode default が更新されても破壊的操作や機密読み取りの防御を緩めない。
+
+検証:
+
+- `tests/test-claude-upstream-integration.sh` で、この section、template note、`.claude-plugin/settings.json` の既存 deny / ask / deniedDomains 維持を固定する。
+- 将来 `.claude-plugin/settings.json` に `autoMode` を追加する場合は、`allow` / `soft_deny` / `environment` の各 entry に `"$defaults"` が含まれることを同 test の jq check が要求する。
+
 ## Harness judgement
 
 53.1.1 では snapshot を作るだけに留め、後続 task の実装を先取りしない。

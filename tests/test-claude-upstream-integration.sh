@@ -307,6 +307,48 @@ grep -q 'claude plugin tag .claude-plugin --dry-run' "${PHASE53_SNAPSHOT_DOC}" |
   exit 1
 }
 
+# Phase 53.1.4: Auto Mode policy must extend built-in defaults instead of replacing them
+grep -Fq '53.1.4 Auto Mode "$defaults" permission and sandbox policy' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot is missing the 53.1.4 Auto Mode defaults policy"
+  exit 1
+}
+grep -Fq 'Auto Mode built-in defaults stay in place through "$defaults"' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo 'Phase 53 snapshot must say Auto Mode built-in defaults are extended with $defaults'
+  exit 1
+}
+grep -Fq 'R05 guardrail and sandbox.network.deniedDomains are not duplicated by Auto Mode' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must explain why R05 / deniedDomains remain separate guardrails"
+  exit 1
+}
+jq -e '._harness_auto_mode_note | contains("Auto Mode guidance: keep \"$defaults\" and append only project-specific entries")' "${SECURITY_TEMPLATE}" >/dev/null || {
+  echo 'settings.security.json.template must document additive Auto Mode $defaults guidance'
+  exit 1
+}
+if jq -e 'has("autoMode")' "${SETTINGS_FILE}" >/dev/null; then
+  jq -e '
+    .autoMode
+    | [
+        to_entries[]
+        | select(.key == "allow" or .key == "soft_deny" or .key == "environment")
+        | (.value | type == "array" and index("$defaults") != null)
+      ]
+    | all
+  ' "${SETTINGS_FILE}" >/dev/null || {
+    echo 'settings.json autoMode allow/soft_deny/environment entries must include $defaults when present'
+    exit 1
+  }
+fi
+jq -e '
+  (.permissions.deny | index("Bash(sudo:*)") != null and index("Bash(rm -rf:*)") != null and index("Bash(rm -fr:*)") != null)
+  and
+  (.permissions.ask | index("Bash(git reset --hard:*)") != null and index("Bash(git push --force:*)") != null)
+  and
+  (.sandbox.network.deniedDomains | index("169.254.169.254") != null and index("metadata.google.internal") != null and index("metadata.azure.com") != null)
+' "${SETTINGS_FILE}" >/dev/null || {
+  echo "settings.json must preserve existing deny, ask, and deniedDomains guardrails"
+  exit 1
+}
+
 for hooks_file in "${HOOK_FILES[@]}"; do
   MCP_TOOL_COUNT="$(jq '[.. | objects | select(.type? == "mcp_tool")] | length' "${hooks_file}")"
   if [ "${MCP_TOOL_COUNT}" -eq 0 ]; then

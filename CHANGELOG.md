@@ -28,6 +28,8 @@ Change history for claude-code-harness.
 
 **Plugin tag release flow**: `harness-release` に Claude plugin project 用の `claude plugin tag` 導線を追加した。`VERSION` と `.claude-plugin/plugin.json` の version が不一致なら tag に進まず、`--dry-run` / preflight で `claude plugin tag .claude-plugin --dry-run` を表示する。release commit 後は `claude plugin tag .claude-plugin --push --remote origin` で plugin version validation 付きの `{plugin-name}--v{version}` tag を作れる。
 
+**Auto Mode `$defaults` policy**: Auto Mode の `autoMode.allow` / `autoMode.soft_deny` / `autoMode.environment` は built-in default を置換せず、`"$defaults"` に project-specific entry を足す方針として整理した。`.claude-plugin/settings.json` の deny / ask / sandbox guardrails は緩めず、R05 guardrail と `sandbox.network.deniedDomains` が Auto Mode と二重責務にならない理由を snapshot と template note に記録し、upstream integration test で固定した。
+
 #### Phase 52: upstream update skill merge hardening + 2026-04-21 snapshot
 
 | Before | After |
