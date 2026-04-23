@@ -109,6 +109,28 @@
 - `write` / `create` / `update` / `delete` / `remove` / `record` / `mutate` / `set` / `insert` / `upsert` / `patch` を含む tool 名は hook から呼ばない。
 - この方針は `tests/test-claude-upstream-integration.sh` で固定する。現時点は no-op を検出し、将来 `mcp_tool` hook が追加された場合は読み取り専用名であることを jq check する。
 
+## 53.1.3 plugin tag release flow decision
+
+対象:
+
+- Claude Code `2.1.118` の `claude plugin tag`
+- `harness-release` の release flow
+
+今回の判断:
+
+- `skills/harness-release/SKILL.md` に Claude plugin project 用の tag preflight を追加する。
+- `.claude-plugin/plugin.json` がある project では、`VERSION` と `.claude-plugin/plugin.json` の version が一致しない限り tag に進まない。
+- Pre-Gate と `--dry-run` では `claude plugin tag .claude-plugin --dry-run` を実行し、作られる plugin tag 名と内部の tag / push 相当コマンドを見える化する。
+- Post-Gate では release commit 後に再度 version sync を確認し、`claude plugin tag .claude-plugin --push --remote origin` で `{plugin-name}--v{version}` tag を作る。
+- 既存の GitHub Release automation が `vX.Y.Z` tag を前提にしている project では、plugin tag とは別に semver tag を作る。plugin 配布 tag は `claude plugin tag` に任せ、手動 `git tag` だけに依存しない。
+
+安全条件:
+
+- `claude plugin validate .claude-plugin/plugin.json` が失敗した場合は tag を作らない。
+- `VERSION` と `.claude-plugin/plugin.json` が不一致の場合は tag を作らない。
+- `--dry-run` は tag を作らず、release plan に実行コマンドを表示する目的で使う。
+- この guidance は `tests/test-claude-upstream-integration.sh` で grep 固定する。
+
 ## Harness judgement
 
 53.1.1 では snapshot を作るだけに留め、後続 task の実装を先取りしない。

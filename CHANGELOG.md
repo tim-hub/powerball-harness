@@ -26,6 +26,8 @@ Change history for claude-code-harness.
 
 **MCP tool hook safety**: Claude Code `type: "mcp_tool"` hooks は、読み取り専用の MCP health / resource list 診断候補として評価した。2026-04-23 時点では必須 field 仕様と常設 read-only diagnostic tool を配布 plugin 側で固定できないため、`hooks/hooks.json` / `.claude-plugin/hooks.json` は no-op とし、書き込み系 MCP tool を hook から呼ばない方針を snapshot と upstream integration test で固定した。
 
+**Plugin tag release flow**: `harness-release` に Claude plugin project 用の `claude plugin tag` 導線を追加した。`VERSION` と `.claude-plugin/plugin.json` の version が不一致なら tag に進まず、`--dry-run` / preflight で `claude plugin tag .claude-plugin --dry-run` を表示する。release commit 後は `claude plugin tag .claude-plugin --push --remote origin` で plugin version validation 付きの `{plugin-name}--v{version}` tag を作れる。
+
 #### Phase 52: upstream update skill merge hardening + 2026-04-21 snapshot
 
 | Before | After |

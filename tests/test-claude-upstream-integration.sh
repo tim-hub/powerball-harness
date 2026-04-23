@@ -284,6 +284,29 @@ grep -q '書き込み系 MCP tool は hook から呼ばない' "${PHASE53_SNAPSH
   exit 1
 }
 
+# Phase 53.1.3: claude plugin tag must be visible in release preflight / dry-run guidance
+HARNESS_RELEASE_SKILL="${ROOT_DIR}/skills/harness-release/SKILL.md"
+grep -q 'claude plugin tag .claude-plugin --dry-run' "${HARNESS_RELEASE_SKILL}" || {
+  echo "harness-release is missing claude plugin tag dry-run guidance"
+  exit 1
+}
+grep -q 'claude plugin tag .claude-plugin --push --remote origin' "${HARNESS_RELEASE_SKILL}" || {
+  echo "harness-release is missing claude plugin tag push guidance"
+  exit 1
+}
+grep -q 'VERSION と .claude-plugin/plugin.json が不一致なら tag に進まない' "${HARNESS_RELEASE_SKILL}" || {
+  echo "harness-release must stop before tagging when VERSION and plugin.json disagree"
+  exit 1
+}
+grep -q '53.1.3 plugin tag release flow decision' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot is missing the 53.1.3 plugin tag release flow decision"
+  exit 1
+}
+grep -q 'claude plugin tag .claude-plugin --dry-run' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must record the claude plugin tag dry-run command"
+  exit 1
+}
+
 for hooks_file in "${HOOK_FILES[@]}"; do
   MCP_TOOL_COUNT="$(jq '[.. | objects | select(.type? == "mcp_tool")] | length' "${hooks_file}")"
   if [ "${MCP_TOOL_COUNT}" -eq 0 ]; then
