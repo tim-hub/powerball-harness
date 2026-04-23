@@ -10,6 +10,7 @@ Change history for claude-code-harness.
 
 - Claude Code hook command resolution now falls back safely when `CLAUDE_PLUGIN_ROOT` is missing or invalid. Hook commands validate the resolved `claude-code-harness` plugin root before executing `bin/harness`, preventing empty plugin roots from becoming `/bin/harness` and producing `hook exited with code 127`.
 - `sync-plugin-cache.sh` now validates the plugin root and updates an installed local marketplace copy when present, so stale marketplace hook definitions do not keep using raw `${CLAUDE_PLUGIN_ROOT}` commands after the versioned cache is fixed.
+- Sprint-contract generation now omits inactive pointer fields such as `review.rubric_target`, preventing release preflight from rejecting non-UI contracts that previously serialized those fields as `null`.
 
 ### Added
 
