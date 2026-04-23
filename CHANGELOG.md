@@ -8,6 +8,34 @@ Change history for claude-code-harness.
 
 ### Added
 
+#### Phase 52: upstream update skill merge hardening + 2026-04-21 snapshot
+
+| Before | After |
+|--------|-------|
+| `cc-update-review` が diff 未提供でも進行し、`B: 書いただけ 0 件` を推定で断言する余地があった | diff source が呼び出し元提供または read-only git inspection で確定しているかを前提チェックで強制 |
+| `claude-codex-upstream-update` は必ず `A` を作る前提で、C/P 中心の回でも無理な wrapper を書きがちだった | 公式差分が妥当に `C` / `P` だけなら no-op adaptation で完了できる契約に変更 |
+| upstream 分類の見出しが `3 カテゴリ` / `A/B/C` / `A/B/C/P` で揺れていた | `A/B/C/P` に統一し、integration test で grep 固定 |
+| upstream skill 2 種の `skills/` / `codex/.codex/skills/` / `.agents/skills/` mirror drift が test で検出されなかった | `tests/test-claude-upstream-integration.sh` に mirror drift + snapshot 参照整合 check を追加 |
+| upstream cycle の判断経緯が CHANGELOG / Feature Table に要約するだけで、一次情報と version-by-version の根拠が残らなかった | `docs/upstream-update-snapshot-2026-04-21.md` に URL・分解表・no-op 根拠・follow-up を恒久化 |
+
+**公式確認**: Claude Code docs / GitHub changelog で `2.1.116` を確認し、Codex releases で stable `0.122.0` と pre-release `0.123.0-alpha.2` を確認した。
+
+**Version-by-version 分解**:
+
+| Version | Harness 判定 | Action |
+|---------|--------------|--------|
+| Claude Code 2.1.116 | `/resume` 高速化、MCP startup deferred loading、plugin dependency auto-install、dangerous-path safety、Agent frontmatter hooks、`gh` rate-limit hint は主に `C/P` | 本体改善は自動継承し、plugin dependency policy / agent hooks / `gh` backoff guidance は後続候補 |
+| Codex 0.122.0 | `/side`、fresh-context Plan Mode、plugin workflows、deny-read glob、tool discovery / image default-on は `P` | Phase 51.2 の Codex-native skill audit / plugin mirror policy と一緒に扱う |
+| Codex 0.123.0-alpha.2 | release body が薄い pre-release のため `P` | stable 化または release notes 充実後に再確認。compare から推測実装しない |
+
+**Harness での活用**: `cc-update-review` を diff-aware review として強化し、呼び出し元 diff が無い場合は read-only git inspection（`git status`, `git diff -- docs/CLAUDE-feature-table.md`, `git diff --name-only` 等）で確認するよう明記した。あわせて分類見出しを `A/B/C/P` に統一し、`B: 書いただけ 0 件` を diff 未確認のまま推定しないようにした。
+
+**No-op adaptation 対応**: `claude-codex-upstream-update` は「必ず `A` を作る」運用をやめ、公式差分が妥当に `C` / `P` だけなら no-op adaptation として完了できるようにした。これにより、Claude 2.1.116 のように本体 UX 改善が中心の回でも、無理な wrapper 実装や二重責務を作らずに済む。
+
+**検証 hardening**: `tests/test-claude-upstream-integration.sh` に upstream skill 2 種の mirror drift check を追加し、`skills/` / `codex/.codex/skills/` / `.agents/skills/` の同期崩れを検出するようにした。さらに diff-aware guidance、A/B/C/P 見出し、no-op adaptation、Claude 2.1.116+ / Codex 0.122.0+ watchlist を grep で固定した。
+
+**Snapshot**: `docs/upstream-update-snapshot-2026-04-21.md` に、今回の一次情報 URL、version-by-version 分解表、直接実装しない理由、follow-up candidates を保存した。
+
 #### Phase 51: Claude Code / Codex upstream 追従 — AskUserQuestion `updatedInput.answers` bridge
 
 **CC のアプデ**: Claude Code hooks docs で `AskUserQuestion` の `tool_input` schema が `questions` + optional `answers` と明文化され、`PreToolUse` hook が `permissionDecision: "allow"` + `updatedInput` を返すことで headless / SDK UI 側の回答を注入できるようになっている。あわせて 2.1.113 / 2.1.114 では permission / sandbox / Agent Teams permission dialog 周りの hardening が進んだ。

@@ -4,7 +4,7 @@ description: "Claude/Codex upstream update 統合の品質ガードレール。F
 description-en: "Quality guardrail for Claude/Codex update integration. Detects doc-only Feature Table additions and requires implementation or explicit planning. Internal use only."
 description-ja: "Claude/Codex upstream update 統合の品質ガードレール。Feature Table 追加時に「書いただけ」を検出し、実装または Plans 化を強制する。内部専用。"
 user-invocable: false
-allowed-tools: ["Read", "Grep", "Glob"]
+allowed-tools: ["Read", "Grep", "Glob", "Bash"]
 ---
 
 # Claude/Codex Update Review ガードレール
@@ -27,10 +27,22 @@ Feature Table への追加が実装・検証・明示的な将来タスク化を
 - Feature Table / upstream 追従に関係しない変更
 - セットアップ・初期化作業
 
+## 差分入力の取得
+
+このスキルは diff-aware review 専用のため、必ず以下のどちらかでレビュー対象差分を確定する。
+
+1. 呼び出し元の `/harness-review` が PR diff / changed files / Feature Table 追加行を渡す
+2. このスキル自身が read-only Bash で `git status --short`, `git diff --name-only`, `git diff -- docs/CLAUDE-feature-table.md`, `git show --stat --name-only` などを実行して確認する
+
+Bash は read-only git inspection のみに使う。テスト実行、format、生成、network access、ファイル変更を伴うコマンドは実行しない。
+diff が取得できない場合は `B: 書いただけ 0 件` と推定せず、「差分未提供のため分類不能」としてレビューを止める。
+
 ## 前提チェック
 
 レビュー冒頭で必ず確認する:
 
+- diff source が呼び出し元提供または read-only git inspection のどちらかで確定しているか
+- `skills/` や `hooks/` を編集した PR の場合、直後に `/reload-plugins` を実行して runtime cache を更新したか（`{skills,hooks}/**` ガイドライン準拠）
 - upstream のバージョン別分解表があるか
 - Claude Code の一次情報 URL が `anthropics/claude-code` または公式 docs になっているか
 - Codex の一次情報 URL が `openai/codex/releases` または OpenAI 公式記事になっているか
@@ -46,9 +58,9 @@ Feature Table への追加が実装・検証・明示的な将来タスク化を
 - 旧 Codex state directory を現行正本として扱う記述
 - 存在しない Anthropic 側 Codex repo URL
 
-## 3 カテゴリ分類
+## A/B/C/P 分類
 
-Feature Table に追加された各項目を、以下の 3 カテゴリに分類する。
+Feature Table に追加された各項目を、以下の A/B/C/P のいずれかに分類する。
 
 ### (A) 実装あり
 
@@ -146,6 +158,7 @@ Feature Table に追加された各項目を、以下の 3 カテゴリに分類
 ## Claude/Codex update 統合チェックリスト
 
 ### 1. 一次情報と分解表
+- [ ] diff source が呼び出し元提供または read-only git inspection のどちらかで確定している
 - [ ] Claude / Codex の公式 URL を確認した
 - [ ] Version / Upstream item / Category / Harness surface / Action の表がある
 - [ ] alpha / stable / docs-only の区別がある

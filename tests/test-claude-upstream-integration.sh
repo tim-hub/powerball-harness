@@ -18,6 +18,10 @@ SKILL_FILES=(
   "${ROOT_DIR}/skills/harness-review/SKILL.md"
   "${ROOT_DIR}/skills/harness-plan/SKILL.md"
 )
+UPSTREAM_SKILL_NAMES=(
+  "cc-update-review"
+  "claude-codex-upstream-update"
+)
 AGENT_FILES=(
   "${ROOT_DIR}/agents/worker.md"
   "${ROOT_DIR}/agents/reviewer.md"
@@ -177,5 +181,75 @@ if [ -x "${HARNESS_BIN}" ]; then
 else
   echo "skip: bin/harness is not executable, skipping end-to-end ask-user-question-normalize exercise"
 fi
+
+# Phase 52: snapshot doc referenced from CHANGELOG / Feature Table / Plans must exist
+UPSTREAM_SNAPSHOT_DOC="${ROOT_DIR}/docs/upstream-update-snapshot-2026-04-21.md"
+[ -f "${UPSTREAM_SNAPSHOT_DOC}" ] || {
+  echo "${UPSTREAM_SNAPSHOT_DOC} does not exist (referenced from CHANGELOG, Feature Table, and Plans)"
+  exit 1
+}
+for referencing_file in \
+  "${ROOT_DIR}/CHANGELOG.md" \
+  "${ROOT_DIR}/docs/CLAUDE-feature-table.md" \
+  "${ROOT_DIR}/Plans.md"; do
+  grep -q 'upstream-update-snapshot-2026-04-21' "${referencing_file}" || {
+    echo "${referencing_file} is missing the expected upstream-update-snapshot-2026-04-21 reference"
+    exit 1
+  }
+done
+
+# Phase 52: upstream update skill review contract and mirror drift checks
+for skill_name in "${UPSTREAM_SKILL_NAMES[@]}"; do
+  CANONICAL_SKILL="${ROOT_DIR}/skills/${skill_name}/SKILL.md"
+  CODEX_SKILL="${ROOT_DIR}/codex/.codex/skills/${skill_name}/SKILL.md"
+  LOCAL_AGENT_SKILL="${ROOT_DIR}/.agents/skills/${skill_name}/SKILL.md"
+
+  [ -f "${CANONICAL_SKILL}" ] || {
+    echo "${CANONICAL_SKILL} does not exist"
+    exit 1
+  }
+  [ -f "${CODEX_SKILL}" ] || {
+    echo "${CODEX_SKILL} does not exist"
+    exit 1
+  }
+  cmp -s "${CANONICAL_SKILL}" "${CODEX_SKILL}" || {
+    echo "${skill_name} skill mirror drift: skills/ and codex/.codex/ differ"
+    exit 1
+  }
+  if [ -f "${LOCAL_AGENT_SKILL}" ]; then
+    cmp -s "${CANONICAL_SKILL}" "${LOCAL_AGENT_SKILL}" || {
+      echo "${skill_name} skill mirror drift: skills/ and .agents/ differ"
+      exit 1
+    }
+  fi
+done
+
+CC_UPDATE_REVIEW="${ROOT_DIR}/skills/cc-update-review/SKILL.md"
+grep -q 'allowed-tools: \["Read", "Grep", "Glob", "Bash"\]' "${CC_UPDATE_REVIEW}" || {
+  echo "cc-update-review must allow read-only Bash for git diff inspection"
+  exit 1
+}
+grep -q 'git diff -- docs/CLAUDE-feature-table.md' "${CC_UPDATE_REVIEW}" || {
+  echo "cc-update-review is missing explicit Feature Table diff inspection guidance"
+  exit 1
+}
+grep -q '## A/B/C/P 分類' "${CC_UPDATE_REVIEW}" || {
+  echo "cc-update-review must name the actual A/B/C/P classification model"
+  exit 1
+}
+
+UPSTREAM_UPDATE_SKILL="${ROOT_DIR}/skills/claude-codex-upstream-update/SKILL.md"
+grep -q 'no-op adaptation' "${UPSTREAM_UPDATE_SKILL}" || {
+  echo "claude-codex-upstream-update must allow documented no-op adaptation cycles"
+  exit 1
+}
+grep -q 'Codex `0.122.0` 以降で確認する項目' "${UPSTREAM_UPDATE_SKILL}" || {
+  echo "claude-codex-upstream-update is missing Codex 0.122.0+ watchlist"
+  exit 1
+}
+grep -q 'Claude Code `2.1.116` 以降の UX / 運用改善' "${UPSTREAM_UPDATE_SKILL}" || {
+  echo "claude-codex-upstream-update is missing Claude Code 2.1.116+ watchlist"
+  exit 1
+}
 
 echo "OK"

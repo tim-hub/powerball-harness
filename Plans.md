@@ -93,3 +93,16 @@ Purpose: Claude Code `2.1.112-2.1.114` と Codex `0.121.0` の一次情報を確
 | 51.2.4 | media / announcement 系 Skills の metadata と対話 tool 前提を整理する。`generate-slide`, `generate-video`, `x-announce`, `x-article` の `user-invocable`, `disable-model-invocation`, `allowed-tools`, `AskUserQuestion` / Codex `request_user_input` 相当の扱いを実起動面に合わせる | (a) metadata と本文トリガーが矛盾しない、(b) Claude Code と Codex の対話入力 tool 差分が明記、(c) user-invocable false の skill がユーザー発話トリガー前提になっていない | 51.2.3 | cc:TODO |
 
 ---
+
+## Phase 52: upstream update skill merge hardening 2026-04-21 [P1]
+
+Purpose: Claude Code `2.1.116` と Codex `0.122.0` / `0.123.0-alpha.2` の一次情報を確認し、Phase 51 の upstream update skills を「実装を無理に作らず、diff-aware に分類できる」形へ統合強化する。Review findings 3 件（diff 取得不能、no-op cycle 不可、A/B/C/P 表記揺れ）を潰し、依存関係・デグレ・矛盾を snapshot と test で固定する。
+
+| Task | 内容 | DoD | Depends | Status |
+|------|------|-----|---------|--------|
+| 52.1.1 | `cc-update-review` を diff-aware review として強化する。`Bash` は read-only git inspection のみに使う前提を明記し、呼び出し元 diff が無い場合は自力で `git status` / `git diff -- docs/CLAUDE-feature-table.md` / `git diff --name-only` を確認する。分類見出しを A/B/C/P に揃える | (a) `allowed-tools` に `Bash` がある、(b) read-only git inspection 以外を禁止、(c) diff 未取得時に `B: 0` と推定しない、(d) `3カテゴリ` 表記が消えて A/B/C/P 表記に統一、(e) 3 mirror が同期 | 51.1.5 |  |
+| 52.1.2 | `claude-codex-upstream-update` を no-op adaptation 対応にする。公式差分が全て妥当な `C` / `P` の場合、`A` を捏造せず、公式 URL・分解表・理由・Plans 化で完了できるようにする | (a) Skill 本文が no-op adaptation を許可、(b) 実装 / Plans / Feature Table / CHANGELOG / tests の更新対象が分類条件付きになっている、(c) Claude Code 2.1.116+ と Codex 0.122.0+ の確認観点がある、(d) 3 mirror が同期 | 51.1.5 |  |
+| 52.1.3 | 2026-04-21 upstream snapshot を残す。Claude Code 2.1.116 と Codex 0.122.0 stable / 0.123.0-alpha.2 を version-by-version で分類し、Harness UX への直接実装・自動継承・Plans 化の判断を明記する | (a) `docs/upstream-update-snapshot-2026-04-21.md` がある、(b) 公式 URL と version-by-version table がある、(c) Claude 2.1.116 は主に C/P、Codex 0.122.0 は Phase 51.2 と連動する P、0.123.0-alpha.2 は推測実装しない P として記録、(d) Feature Table / CHANGELOG から参照される | 52.1.1, 52.1.2 |  |
+| 52.1.4 | upstream integration test を拡張し、skill mirror drift と review findings の再発を検出する | (a) `tests/test-claude-upstream-integration.sh` が upstream skill 2 種の `skills/` / `codex/.codex/skills/` / `.agents/skills/` drift を検出、(b) diff-aware Bash guidance、A/B/C/P 見出し、no-op adaptation、2.1.116+ / 0.122.0+ watchlist を grep で固定、(c) upstream integration test が PASS | 52.1.3 |  |
+
+---

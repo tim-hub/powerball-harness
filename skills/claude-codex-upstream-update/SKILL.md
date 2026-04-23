@@ -42,6 +42,8 @@ Claude Code と OpenAI Codex の upstream 更新を、Harness の実装差分ま
 - `P`: 今回は実装しないが、Plans に次回候補として切る
 
 `B: Feature Table に書いただけ` は不可。`cc-update-review` の基準で必ず潰す。
+ただし `A` を無理に作らない。公式差分を分解した結果、全項目が妥当に `C` または `P` なら、no-op adaptation として完了してよい。
+その場合は、公式 URL、バージョン別分解表、`A` が不要な理由、次回拾う `P` の Plans task を残す。
 
 ## 一次情報
 
@@ -97,7 +99,7 @@ Claude Code と OpenAI Codex の upstream 更新を、Harness の実装差分ま
 Claude Code の permission / sandbox / Bash hardening は、CC 本体の自動継承だけで終わらせない。
 Harness 独自の settings / guardrail / tests に影響がないか必ず見る。
 
-Claude Code `2.1.113` で必ず確認する項目:
+Claude Code `2.1.113+` で必ず確認する項目:
 
 - `sandbox.network.deniedDomains`
 - Bash deny rule が `env`, `sudo`, `watch`, `ionice`, `setsid` などの wrapper 経由でも効くか
@@ -108,12 +110,21 @@ Claude Code `2.1.113` で必ず確認する項目:
 - `/ultrareview` と `/harness-review` の役割分担
 - stalled subagent timeout と Harness の advisor / reviewer drift 検知
 
+Claude Code `2.1.116` 以降の UX / 運用改善で確認する項目:
+
+- `/resume` 高速化と大容量 session / dead-fork の扱いが Harness の resume/fork guidance と矛盾しないか
+- MCP startup の deferred `resources/templates/list` が `@` mention / MCP tool discovery guidance と矛盾しないか
+- `/reload-plugins` と background plugin auto-update の dependency auto-install が Harness plugin setup / marketplace docs と衝突しないか
+- sandbox auto-allow の dangerous-path safety が Harness guardrail と二重化または矛盾しないか
+- Agent frontmatter `hooks:` が main-thread `--agent` 実行でも発火する変更を、Harness agents / skills docs に反映すべきか
+- `gh` rate-limit hint を CI / release / review skills の retry 方針へ反映すべきか
+
 ### 3. Codex は比較軸として残す
 
 Codex 側は、安定版と alpha を分けて扱う。
 alpha release は release body が薄い場合、compare から推測実装せず `P` に留める。
 
-Codex `0.121.0` 以降で確認する項目:
+Codex `0.121.0+` で確認する項目:
 
 - marketplace / app-server source
 - MCP Apps tool calls / namespaced MCP / parallel-call opt-in
@@ -123,16 +134,23 @@ Codex `0.121.0` 以降で確認する項目:
 - resume summaries / MCP status endpoints
 - app-server / realtime / transcript / thread lifecycle
 
+Codex `0.122.0` 以降で確認する項目:
+
+- `/side` conversations と queued slash / `!` shell prompt を Harness の long-running work guidance に取り込む価値があるか
+- Plan Mode の fresh-context implementation が `/plan-with-agent` / `/work --codex` の handoff と矛盾しないか
+- Plugin workflow の tabbed browsing / enable-disable / remote-cross-repo-local marketplace source が Harness plugin mirror policy と衝突しないか
+- deny-read glob policy / managed deny-read / isolated `codex exec` が Harness sandbox policy と重複・不足・デグレを起こさないか
+- Tool discovery と image generation default-on が Codex mirror skill metadata / allowed-tools と噛み合うか
+- app-server stale prompt dismissal / token usage replay が session resume / heartbeat automation の UX を改善できるか
+
 ### 4. 実装と記録を同期する
 
-最低限、次を更新する。
+更新対象は分類に応じて決める。`A` は実装と検証まで行い、`P` は Plans 化し、`C` は理由を記録する。
 
-- `Plans.md`
-- `docs/CLAUDE-feature-table.md`
-- `CHANGELOG.md`
-- `tests/test-claude-upstream-integration.sh`
-- 実装対象の hook / settings / Go / script / skill
-- 必要なら `tests/validate-plugin.sh`
+- `A`: 実装対象の hook / settings / Go / script / skill と、対象 unit test または `tests/test-claude-upstream-integration.sh`
+- `P`: `Plans.md` と必要なら調査 snapshot docs
+- `C`: `docs/CLAUDE-feature-table.md` または CHANGELOG に、Harness 変更不要な理由を短く記録
+- Skill 自体を直した場合: `skills/`, `codex/.codex/skills/`, `.agents/skills/` の mirror を同期し、drift test を更新し、直後に `/reload-plugins` を実行して runtime cache を更新する
 
 書き方の基準:
 
@@ -140,6 +158,7 @@ Codex `0.121.0` 以降で確認する項目:
 - Harness は何を取り込んだか
 - ユーザー体験がどう変わるか
 - `A / C / P` のどれか
+- no-op adaptation の場合は「なぜ `A` を作らないか」を明記する
 
 ## Mirror ルール
 
@@ -162,10 +181,11 @@ Codex `0.121.0` 以降で確認する項目:
 
 - Claude / Codex の一次情報確認が済んでいる
 - バージョン別分解表がある
-- Claude 側で少なくとも 1 件は実装または検証強化まで終わっている
-- Feature Table と CHANGELOG が「意味のある改善」として読める
-- Plans に将来対応が残っている
-- `validate-plugin` 系または対象テストを実行している
+- `A` がある場合は実装または検証強化まで終わっている
+- `A` がない場合は no-op adaptation として、全項目が `C` / `P` で妥当な理由が記録されている
+- Feature Table / CHANGELOG / Plans / snapshot docs のうち、分類上必要な記録が更新されている
+- `P` がある場合は Plans に将来対応が残っている
+- `A` または Skill 変更がある場合は `validate-plugin` 系または対象テストを実行している
 
 ## 保存しておく実装メモ
 
