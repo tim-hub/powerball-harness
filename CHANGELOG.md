@@ -8,6 +8,22 @@ Change history for claude-code-harness.
 
 ### Added
 
+#### Phase 53: Claude Code 2.1.117-2.1.118 / Codex 0.123.0 upstream snapshot
+
+**Snapshot**: `docs/upstream-update-snapshot-2026-04-23.md` に、2026-04-23 確認の Claude Code `2.1.117` / `2.1.118` と Codex `0.123.0` の一次情報 URL、version-by-version 分解表、A/C/P 判定、`B: 書いただけ` が 0 件である理由を保存した。
+
+**公式確認**: Claude Code docs / GitHub changelog で `2.1.117-2.1.118` を確認し、OpenAI Codex releases で stable `0.123.0` と `rust-v0.123.0` tag を確認した。
+
+**Version-by-version 分解**:
+
+| Version | Harness 判定 | Action |
+|---------|--------------|--------|
+| Claude Code 2.1.118 | `type: "mcp_tool"` hooks、Auto Mode `"$defaults"`、`claude plugin tag`、update controls は `A`、plugin themes / WSL managed settings は `P`、MCP OAuth・credential・fork・keyboard・Remote Control fixes は `C` | 53.1.2-53.1.5 で実装 / docs 化し、本体修正は自動継承 |
+| Claude Code 2.1.117 | plugin dependency auto-resolve と managed marketplace settings は `A`、main-thread `--agent` の `mcpServers` と external forked subagent は `P`、stale large session summary、native `bfs` / `ugrep`、高 effort default、runtime fixes は `C` | 53.1.5-53.1.6 で guidance と後続候補に整理。wrapper は追加しない |
+| Codex 0.123.0 | built-in `amazon-bedrock` provider、`/mcp verbose`、`.mcp.json` loading、realtime handoff silence、`remote_sandbox_config`、`codex exec` shared flags は `A`、bug fixes は `C` | 53.2.1-53.2.5 で setup / long-running / sandbox guidance に落とす |
+
+**B 判定の扱い**: Phase 53 では `B: 書いただけ` を分類として使わず、全項目を `A: 実装`, `C: 自動継承`, `P: 将来タスク` のいずれかへ固定した。`A` は具体的な Phase 53 task に接続し、`C` は Harness が wrapper を重ねない理由を記録している。
+
 #### Phase 52: upstream update skill merge hardening + 2026-04-21 snapshot
 
 | Before | After |

@@ -252,6 +252,23 @@ Phase 51 でも `B: 書いただけ` は `0` 件です。Codex 0.121.0 の大き
 **注記**:
 Phase 52 でも `B: 書いただけ` は `0` 件です。Claude / Codex 本体が自然に改善する UX は `C` とし、Harness に重ねると二重責務になるものは `P` として後続の Codex-native skill audit / plugin policy に接続しました。直接実装は review findings の再発防止に絞り、skill mirror drift と no-op adaptation を test で固定しています。
 
+## Phase 53 追補テーブル
+
+この追補セクションでは、Claude Code `2.1.117-2.1.118` と Codex `0.123.0` の一次情報から、Harness に直接実装するべきか、自動継承 / Plans 化に留めるべきかを分類します。詳細は `docs/upstream-update-snapshot-2026-04-23.md` に記録しています。
+
+| 機能 | 活用スキル / 領域 | 用途 | 付加価値 |
+|------|-------------------|------|----------|
+| **Claude Code `type: "mcp_tool"` hooks** | hooks, MCP diagnostics, tests | shell script を増やさず、読み取り専用の MCP health / resource 診断 hook を小さく検証する | `A: 実装予定`。53.1.2 で書き込み系 MCP tool を呼ばないことまで固定 |
+| **Claude Code `claude plugin tag`** | harness-release, plugin release | `VERSION` と `.claude-plugin/plugin.json` の同期確認後に plugin version validation 付き tag を作る | `A: 実装予定`。53.1.3 で release flow / dry-run / test guidance に追加 |
+| **Auto Mode `"$defaults"` extension** | permissions, sandbox, settings docs | built-in default を置き換えず、Harness 独自ルールを追加する形へ guidance を更新する | `A: 実装予定`。53.1.4 で既存 guardrail と二重責務にならない理由を記録 |
+| **Plugin themes / managed settings / dependency auto-resolve** | setup, plugin policy, enterprise docs | `themes/`, `DISABLE_UPDATES`, `blockedMarketplaces`, `strictKnownMarketplaces`, dependency hints を管理環境向けに整理する | `A: docs 化予定`。53.1.5 で Harness 独自 resolver を重ねない方針を明記し、theme 同梱判断は snapshot 側で `P` として残す |
+| **Claude Code UX / runtime fixes** | session, agents, MCP, search, effort | `/usage` 統合、`/resume` `/add-dir` 対応、`--agent` + `mcpServers`、stale session summary、native `bfs` / `ugrep`、高 effort default を整理する | `C: 自動継承`。53.1.6 で wrapper を追加しない理由を記録し、agent audit 候補は snapshot 側で `P` として残す |
+| **Codex 0.123.0 provider / MCP / sandbox changes** | Codex setup, troubleshoot, long-running, sandbox | built-in `amazon-bedrock` provider、`/mcp verbose`、`.mcp.json` loading、realtime silence、`remote_sandbox_config`、`codex exec` shared flags を追従する | `A: 実装予定`。53.2.1-53.2.4 で setup / guidance に落とす |
+| **Codex 0.123.0 automatic bug fixes** | Codex long-running UX, session shell, review privacy | `/copy` rollback、manual shell follow-up queue、Unicode / dead-key、stale proxy env、VS Code WSL keyboard、review prompt leak を記録する | `C: Codex 自動継承`。53.2.5 で workaround を追加しない理由を明記 |
+
+**注記**:
+Phase 53 でも `B: 書いただけ` は `0` 件です。Feature Table は入口に留め、公式 URL と version-by-version の判断根拠は `docs/upstream-update-snapshot-2026-04-23.md` に集約しました。`A` は Phase 53 の具体 task に接続し、`C` は本体修正の自動継承、`P` は推測実装しない将来判断として扱います。
+
 ## 機能詳細
 
 ### Task tool メトリクス
