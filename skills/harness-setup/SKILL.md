@@ -200,6 +200,31 @@ top-level server map 形式:
 }
 ```
 
+### Codex sandbox / execution policy (0.123.0+)
+
+Codex `0.123.0` 以降の `remote_sandbox_config` と `codex exec` shared flags guidance は
+`docs/codex-sandbox-execution-policy.md` を正本として扱う。
+
+要点:
+
+- `remote_sandbox_config` は `requirements.toml` の host-specific sandbox policy として案内する。
+- remote devbox / ephemeral CI runner / shared host のように、remote environment ごとの `allowed_sandbox_modes` を比較して決める。
+- host matching は便利な分類だが、強い device authentication ではない。高リスク環境では broad wildcard を避ける。
+- Harness の配布用 `codex/.codex/config.toml` には organization-specific な `remote_sandbox_config` を書かない。
+- Codex `0.123.0` 以降は `codex exec` が root-level shared flags を継承するため、wrapper 側で重複した `--approval-policy` / `--sandbox` pairs を追加しない。
+- `scripts/codex-companion.sh task --write` が `--sandbox workspace-write` を付けるのは、Harness の「書き込みタスク」という意図を exec-local に変換しているためであり、root shared flags の重複転送ではない。
+- `scripts/codex/codex-exec-wrapper.sh` の `--full-auto` は 53.2.4 では維持する。変更する場合は別 task で approval / sandbox behavior の回帰テストを追加する。
+
+requirements example:
+
+```toml
+allowed_sandbox_modes = ["read-only"]
+
+[[remote_sandbox_config]]
+hostname_patterns = ["devbox-*.corp.example.com"]
+allowed_sandbox_modes = ["read-only", "workspace-write"]
+```
+
 **使用パターン**（公式プラグイン経由）:
 ```bash
 bash scripts/codex-companion.sh task --write "タスク内容"

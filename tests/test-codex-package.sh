@@ -423,6 +423,42 @@ else
   log_fail "codex README MCP guidance is incomplete"
 fi
 
+log_test "codex README documents sandbox and exec policy"
+readme_sandbox_ok=true
+if ! rg -q --fixed-strings 'Codex `0.123.0` adds host-specific `remote_sandbox_config` requirements' "codex/README.md"; then
+  echo "  missing: remote_sandbox_config guidance"
+  readme_sandbox_ok=false
+fi
+if ! rg -q --fixed-strings 'requirements.toml' "codex/README.md"; then
+  echo "  missing: requirements.toml policy placement"
+  readme_sandbox_ok=false
+fi
+if ! rg -q --fixed-strings 'hostname_patterns' "codex/README.md"; then
+  echo "  missing: hostname_patterns example"
+  readme_sandbox_ok=false
+fi
+if ! rg -q --fixed-strings 'allowed_sandbox_modes' "codex/README.md"; then
+  echo "  missing: allowed_sandbox_modes example"
+  readme_sandbox_ok=false
+fi
+if ! rg -q --fixed-strings 'root-level shared flags' "codex/README.md"; then
+  echo "  missing: codex exec shared flags inheritance guidance"
+  readme_sandbox_ok=false
+fi
+if ! rg -q --fixed-strings 'duplicate `--approval-policy` / `--sandbox` pairs' "codex/README.md"; then
+  echo "  missing: duplicate approval/sandbox flag guidance"
+  readme_sandbox_ok=false
+fi
+if ! rg -q --fixed-strings 'docs/codex-sandbox-execution-policy.md' "codex/README.md"; then
+  echo "  missing: sandbox execution policy docs pointer"
+  readme_sandbox_ok=false
+fi
+if $readme_sandbox_ok; then
+  log_pass "codex README documents sandbox and exec policy"
+else
+  log_fail "codex README sandbox/exec guidance is incomplete"
+fi
+
 # Test 1.8: codex-setup-local should cleanup duplicate frontmatter names
 log_test "codex-setup-local cleans duplicate frontmatter skill aliases"
 if PROJECT_ROOT="$PROJECT_ROOT" bash -lc '

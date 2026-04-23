@@ -618,6 +618,97 @@ grep -q 'Codex realtime handoff silence policy' "${ROOT_DIR}/CHANGELOG.md" || {
   exit 1
 }
 
+# Phase 53.2.4: Codex remote_sandbox_config and exec shared flags policy
+CODEX_SANDBOX_POLICY_DOC="${ROOT_DIR}/docs/codex-sandbox-execution-policy.md"
+[ -f "${CODEX_SANDBOX_POLICY_DOC}" ] || {
+  echo "${CODEX_SANDBOX_POLICY_DOC} does not exist"
+  exit 1
+}
+grep -q '53.2.4 Codex sandbox / execution policy' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot is missing the 53.2.4 sandbox / execution policy"
+  exit 1
+}
+grep -q 'remote environment ごとの sandbox 要件比較' "${ROOT_DIR}/docs/CLAUDE-feature-table.md" || {
+  echo "Feature Table must record the 53.2.4 remote sandbox comparison"
+  exit 1
+}
+grep -q 'Codex 0.123.0 sandbox / exec changes.*A: docs 化済み' "${ROOT_DIR}/docs/CLAUDE-feature-table.md" || {
+  echo "Feature Table must mark 53.2.4 sandbox / exec changes as docs done"
+  exit 1
+}
+grep -q 'Codex sandbox / exec policy' "${ROOT_DIR}/CHANGELOG.md" || {
+  echo "CHANGELOG must mention Codex sandbox / exec policy"
+  exit 1
+}
+grep -q 'remote_sandbox_config' "${CODEX_SANDBOX_POLICY_DOC}" || {
+  echo "Codex sandbox policy doc must mention remote_sandbox_config"
+  exit 1
+}
+grep -q 'requirements.toml' "${CODEX_SANDBOX_POLICY_DOC}" || {
+  echo "Codex sandbox policy doc must place remote_sandbox_config in requirements.toml"
+  exit 1
+}
+grep -q 'hostname_patterns' "${CODEX_SANDBOX_POLICY_DOC}" || {
+  echo "Codex sandbox policy doc must show hostname_patterns"
+  exit 1
+}
+grep -q 'allowed_sandbox_modes' "${CODEX_SANDBOX_POLICY_DOC}" || {
+  echo "Codex sandbox policy doc must show allowed_sandbox_modes"
+  exit 1
+}
+grep -q 'Remote environment' "${CODEX_SANDBOX_POLICY_DOC}" || {
+  echo "Codex sandbox policy doc must include the remote environment comparison table"
+  exit 1
+}
+grep -q 'best-effort classification' "${CODEX_SANDBOX_POLICY_DOC}" || {
+  echo "Codex sandbox policy doc must explain host matching is best-effort"
+  exit 1
+}
+grep -q 'Source precedence still matters' "${CODEX_SANDBOX_POLICY_DOC}" || {
+  echo "Codex sandbox policy doc must preserve requirements source precedence"
+  exit 1
+}
+grep -q 'Do not add duplicate `--approval-policy` / `--sandbox` pairs' "${CODEX_SANDBOX_POLICY_DOC}" || {
+  echo "Codex sandbox policy doc must forbid duplicate approval/sandbox flag pairs"
+  exit 1
+}
+grep -q 'No runtime wrapper behavior changes in this task' "${CODEX_SANDBOX_POLICY_DOC}" || {
+  echo "Codex sandbox policy doc must record the no-runtime-change wrapper decision"
+  exit 1
+}
+grep -q 'automatic inheritance として残す項目' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must record codex exec shared flags as automatic inheritance"
+  exit 1
+}
+grep -q '53.2.4 では runtime wrapper behavior は変更しない' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must record no runtime wrapper behavior change for 53.2.4"
+  exit 1
+}
+grep -q 'Codex sandbox / execution policy (0.123.0+)' "${ROOT_DIR}/skills/harness-setup/SKILL.md" || {
+  echo "harness-setup must link to Codex sandbox / execution policy"
+  exit 1
+}
+grep -q 'docs/codex-sandbox-execution-policy.md' "${ROOT_DIR}/skills/harness-setup/SKILL.md" || {
+  echo "harness-setup must point to docs/codex-sandbox-execution-policy.md"
+  exit 1
+}
+grep -q 'Codex `0.123.0` adds host-specific `remote_sandbox_config` requirements' "${ROOT_DIR}/codex/README.md" || {
+  echo "codex/README.md must document remote_sandbox_config"
+  exit 1
+}
+grep -q 'Details: `docs/codex-sandbox-execution-policy.md`' "${ROOT_DIR}/codex/README.md" || {
+  echo "codex/README.md must point to codex sandbox execution policy docs"
+  exit 1
+}
+grep -Fq 'Codex 0.123.0+ inherits root-level shared flags for `codex exec`' "${ROOT_DIR}/scripts/codex-companion.sh" || {
+  echo "codex-companion must document codex exec shared flags inheritance"
+  exit 1
+}
+grep -Fq 'does not add duplicate --approval-policy / --sandbox pairs' "${ROOT_DIR}/scripts/codex/codex-exec-wrapper.sh" || {
+  echo "codex-exec-wrapper must document no duplicate approval/sandbox flag pairs"
+  exit 1
+}
+
 for hooks_file in "${HOOK_FILES[@]}"; do
   MCP_TOOL_COUNT="$(jq '[.. | objects | select(.type? == "mcp_tool")] | length' "${hooks_file}")"
   if [ "${MCP_TOOL_COUNT}" -eq 0 ]; then

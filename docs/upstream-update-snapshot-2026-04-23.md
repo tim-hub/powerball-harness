@@ -374,6 +374,46 @@ advisor / reviewer drift と矛盾しない理由:
 - `tests/test-codex-package.sh` で、Codex README と Codex skill mirror に realtime handoff / silence policy があることを検出する。
 - `./scripts/sync-skill-mirrors.sh --check` で `skills-codex` と Codex mirror の drift がないことを確認する。
 
+## 53.2.4 Codex sandbox / execution policy
+
+対象:
+
+- Codex `0.123.0` の host-specific `remote_sandbox_config`
+- `requirements.toml` の `allowed_sandbox_modes`
+- `codex exec` の root-level shared flags 継承
+- `scripts/codex-companion.sh`
+- `scripts/codex/codex-exec-wrapper.sh`
+
+今回の判断:
+
+- `docs/codex-sandbox-execution-policy.md` を新設し、Codex sandbox / execution policy の正本として扱う。
+- `remote_sandbox_config` は user / project `config.toml` ではなく、管理者が制約する `requirements.toml` の host-specific policy として案内する。
+- remote devbox / ephemeral CI runner / shared host / unknown host の比較表を置き、host class ごとの `allowed_sandbox_modes` を整理する。
+- host matching は FQDN 優先、kernel hostname fallback の best-effort classification として扱う。強い device authentication ではないため、persistent host には broad wildcard を使わない。
+- 各 requirements source は最初に一致した `remote_sandbox_config` を merge 前に適用し、source precedence を維持する。低優先 source の host rule が高優先 source の `allowed_sandbox_modes` を弱める前提にはしない。
+- Codex `0.123.0` 以降は `codex exec` が root-level shared flags を継承するため、Harness wrapper 側で同じ sandbox / model / approval policy を重ねて転送しない。
+- 53.2.4 では runtime wrapper behavior は変更しない。
+
+wrapper flag 削減可否:
+
+| Wrapper | 確認結果 | 判断 |
+|---------|----------|------|
+| `scripts/codex-companion.sh` structured task mode | `task --write` を `--sandbox workspace-write` へ変換し、明示 `--sandbox` / `-s` / `--full-auto` / bypass flag がある時は caller intent を保存する | 維持。これは root shared flags の重複転送ではなく、Harness workflow intent の exec-local 変換 |
+| `scripts/codex/codex-exec-wrapper.sh` | `codex exec - --full-auto` の単一 policy で hardening prompt を実行し、別途 `--approval-policy` / `--sandbox` pair は重ねていない | 維持。`--full-auto` の変更は approval / sandbox behavior を変えるため、別 task と focused regression test が必要 |
+| docs / setup guidance | 古い `--approval-policy` / `--sandbox` 二重指定を増やす必要はない | docs では「一 call 一 source of truth」を明記 |
+
+automatic inheritance として残す項目:
+
+- `codex exec` が root-level shared flags を継承する挙動そのものは Codex 本体の fix として自動継承する。
+- Harness はその fix を再実装しない。
+- Harness が行うのは、重複 flag を増やさない guidance、既存 wrapper の意図の明文化、remote sandbox policy の置き場所の整理。
+
+検証:
+
+- `tests/test-claude-upstream-integration.sh` で policy docs、snapshot section、Feature Table 完了表記、CHANGELOG、harness-setup pointer、wrapper comments を grep 固定する。
+- `tests/test-codex-package.sh` で Codex README に sandbox / exec policy と `remote_sandbox_config` guidance があることを検出する。
+- `bash -n scripts/codex-companion.sh scripts/codex/codex-exec-wrapper.sh` で wrapper comment 追加後の shell 構文を確認する。
+
 ## Harness judgement
 
 53.1.1 では snapshot を作るだけに留め、後続 task の実装を先取りしない。

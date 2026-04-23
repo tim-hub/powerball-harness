@@ -104,6 +104,8 @@ echo "[codex-exec-wrapper] codex exec 実行中（timeout=${TIMEOUT_SEC}s）..."
 EXIT_CODE=0
 # stdin 経由でプロンプトを渡す（ARG_MAX 超過を回避）
 # "-" は codex exec の公式 stdin 入力指定
+# Codex 0.123.0+ inherits root-level shared flags for exec. This wrapper keeps
+# a single exec-local `--full-auto` policy for its hardening flow and does not add duplicate --approval-policy / --sandbox pairs around it.
 if [ -n "${TIMEOUT}" ]; then
   cat "${TMP_PROMPT}" | ${TIMEOUT} "${TIMEOUT_SEC}" codex exec - --full-auto > "${TMP_OUT}" 2>>/tmp/harness-codex-$$.log || EXIT_CODE=$?
 else

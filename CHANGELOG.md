@@ -38,6 +38,8 @@ Change history for claude-code-harness.
 
 **Codex realtime handoff silence policy**: Codex `0.123.0` の background agent transcript delta / explicit silence 改善を、`harness-loop` と `breezing` の長時間実行 guidance に反映した。`harness-loop` は原則 1 cycle につき最終報告 1 回、`breezing` は task 完了ごとに progress feed 1 回を基本にし、細かな stdout や delta は status / log 側へ寄せる。advisor / reviewer drift、plateau、contract readiness failure は silence 対象にせず、品質判定の役割分離を維持する。
 
+**Codex sandbox / exec policy**: `docs/codex-sandbox-execution-policy.md` を追加し、Codex `0.123.0` の `remote_sandbox_config` を `requirements.toml` の host-specific sandbox policy として整理した。remote devbox / ephemeral CI runner / shared host ごとの `allowed_sandbox_modes` 比較表を置き、`codex exec` の root-level shared flags 継承は Codex 本体の自動継承として扱う方針を固定した。Harness wrapper は重複した `--approval-policy` / `--sandbox` pairs を追加せず、`task --write` の `workspace-write` 変換のような Harness workflow intent だけを exec-local flag として残す。
+
 #### Phase 52: upstream update skill merge hardening + 2026-04-21 snapshot
 
 | Before | After |

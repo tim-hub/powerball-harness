@@ -170,6 +170,38 @@ This is Codex plugin loading guidance, not Claude Code `claude mcp` or `.claude/
 
 Details: `docs/codex-mcp-diagnostics.md`.
 
+## Sandbox And Exec Policy
+
+Codex `0.123.0` adds host-specific `remote_sandbox_config` requirements for remote environments.
+Use this in admin-managed `requirements.toml` when different hosts need different allowed sandbox modes.
+Do not copy organization host policy into the shipped Harness `codex/.codex/config.toml`.
+
+Example shape:
+
+```toml
+allowed_sandbox_modes = ["read-only"]
+
+[[remote_sandbox_config]]
+hostname_patterns = ["devbox-*.corp.example.com"]
+allowed_sandbox_modes = ["read-only", "workspace-write"]
+
+[[remote_sandbox_config]]
+hostname_patterns = ["runner-*.ci.example.com"]
+allowed_sandbox_modes = ["read-only", "danger-full-access"]
+```
+
+Use a narrow hostname pattern for each remote class:
+
+- remote devboxes usually allow `workspace-write`;
+- ephemeral CI runners may allow broader modes only when the host is disposable and isolated;
+- shared or unknown hosts should fall back to stricter top-level `allowed_sandbox_modes`.
+
+Codex `0.123.0` also makes `codex exec` inherit root-level shared flags such as sandbox and model options.
+Harness therefore avoids adding duplicate `--approval-policy` / `--sandbox` pairs in wrapper docs.
+`scripts/codex-companion.sh` still maps Harness `task --write` to an exec-local `--sandbox workspace-write`, because that is Harness workflow intent rather than duplicate root flag forwarding.
+
+Details: `docs/codex-sandbox-execution-policy.md`.
+
 ## Runtime Behavior
 
 - `$harness-plan`, `$harness-sync`, `$harness-work`, `$breezing`, `$harness-review`, and `$harness-loop` are the primary Codex-facing workflow surfaces.

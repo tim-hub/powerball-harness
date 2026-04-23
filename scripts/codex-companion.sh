@@ -39,6 +39,10 @@ run_structured_task_exec() {
   local saw_sandbox=0
   local current=""
 
+  # Codex 0.123.0+ inherits root-level shared flags for `codex exec`.
+  # These exec-local sandbox defaults are kept only to encode Harness task intent:
+  # `task --write` means workspace-write, and read-only remains the safe default.
+  # If the caller provides --sandbox/-s/--full-auto/bypass explicitly, preserve it.
   shift || true # drop "task"
   while [ $# -gt 0 ]; do
     current="$1"
