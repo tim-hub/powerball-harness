@@ -142,6 +142,84 @@ test_no_forbidden_prompt_usage() {
 }
 
 # ==================================================
+# Test 6: CLAUDE_PLUGIN_ROOT 空時に /bin/harness へ落ちないか
+# ==================================================
+test_no_raw_plugin_root_harness_paths() {
+  local hooks_file="$PROJECT_ROOT/hooks/hooks.json"
+  local plugin_hooks_file="$PROJECT_ROOT/.claude-plugin/hooks.json"
+  local violations=""
+
+  for file in "$hooks_file" "$plugin_hooks_file"; do
+    if jq -e '.. | objects | select(.command? | strings | test("^\"\\\\$\\\\{CLAUDE_PLUGIN_ROOT\\\\}/bin/harness\"|^bash \"\\\\$\\\\{CLAUDE_PLUGIN_ROOT\\\\}/scripts/"))' "$file" >/dev/null 2>&1; then
+      violations="${violations}${file}, "
+    fi
+  done
+
+  if [ -n "$violations" ]; then
+    echo "    Error: raw CLAUDE_PLUGIN_ROOT hook command remains in: ${violations%, }"
+    echo "    These commands become /bin/harness when CLAUDE_PLUGIN_ROOT is empty."
+    return 1
+  fi
+
+  return 0
+}
+
+# ==================================================
+# Test 7: CLAUDE_PLUGIN_ROOT 未設定でも hook command が root 解決できるか
+# ==================================================
+test_hook_command_resolves_without_plugin_root() {
+  local hooks_file="$PROJECT_ROOT/hooks/hooks.json"
+  local command
+  local script_command
+  local tmp_dir
+  local output
+  local script_status
+
+  command="$(jq -r '.hooks.PreToolUse[] | select(.matcher=="Write|Edit|MultiEdit|Bash|Read") | .hooks[] | select(.type=="command") | .command' "$hooks_file" | head -n 1)"
+  if [ -z "$command" ] || [ "$command" = "null" ]; then
+    echo "    Error: could not extract PreToolUse command"
+    return 1
+  fi
+
+  tmp_dir="$(mktemp -d)"
+  output="$(
+    cd "$tmp_dir" && \
+      env -u CLAUDE_PLUGIN_ROOT CLAUDE_PROJECT_DIR="$PROJECT_ROOT" /bin/sh -c "$command" </dev/null 2>/dev/null
+  )"
+  rm -rf "$tmp_dir"
+
+  echo "$output" | jq -e '.decision == "approve"' >/dev/null 2>&1 || {
+    echo "    Error: hook command did not resolve harness without CLAUDE_PLUGIN_ROOT"
+    echo "    Output: ${output}"
+    return 1
+  }
+
+  script_command="$(jq -r '.hooks.UserPromptSubmit[] | select(.matcher=="*") | .hooks[] | select(.type=="command" and (.command | contains("userprompt-inject-policy.sh"))) | .command' "$hooks_file" | head -n 1)"
+  if [ -z "$script_command" ] || [ "$script_command" = "null" ]; then
+    echo "    Error: could not extract UserPromptSubmit script command"
+    return 1
+  fi
+
+  tmp_dir="$(mktemp -d)"
+  set +e
+  (
+    cd "$tmp_dir" && \
+      env -u CLAUDE_PLUGIN_ROOT CLAUDE_PROJECT_DIR="$PROJECT_ROOT" /bin/sh -c "$script_command" </dev/null >/dev/null 2>/dev/null
+  )
+  script_status=$?
+  set -e
+  rm -rf "$tmp_dir"
+
+  if [ "$script_status" -ne 0 ]; then
+    echo "    Error: shell script hook did not resolve root without CLAUDE_PLUGIN_ROOT"
+    echo "    Exit status: ${script_status}"
+    return 1
+  fi
+
+  return 0
+}
+
+# ==================================================
 # メイン実行
 # ==================================================
 echo ""
@@ -161,6 +239,8 @@ run_test "hooks.json の内容が同一" test_files_identical
 run_test "JSON が有効" test_valid_json
 run_test "必須フックイベントが存在" test_required_hook_events
 run_test "禁止された prompt 使用がない" test_no_forbidden_prompt_usage
+run_test "CLAUDE_PLUGIN_ROOT 空時に /bin/harness へ落ちない" test_no_raw_plugin_root_harness_paths
+run_test "CLAUDE_PLUGIN_ROOT 未設定でも hook command が root 解決できる" test_hook_command_resolves_without_plugin_root
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

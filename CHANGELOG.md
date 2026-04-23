@@ -6,6 +6,10 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Fixed
+
+- Claude Code hook command resolution now falls back safely when `CLAUDE_PLUGIN_ROOT` is missing or invalid. Hook commands validate the resolved `claude-code-harness` plugin root before executing `bin/harness`, preventing empty plugin roots from becoming `/bin/harness` and producing `hook exited with code 127`.
+
 ### Added
 
 #### Phase 53: Claude Code 2.1.117-2.1.118 / Codex 0.123.0 upstream snapshot
