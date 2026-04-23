@@ -114,6 +114,11 @@ claude --resume "テストを追加"
 
 > 💡 メモリ効率が大幅に改善されたため、セッション再開を積極的に活用してください。
 
+### Codex 0.123.0 の session shell / terminal 修正
+
+Codex 0.123.0 では stale proxy env が shell snapshot から復元されにくくなり、VS Code WSL terminal の Unicode / dead-key input と keyboard 入力も本体側で修正されています。
+Harness は proxy snapshot scrubber や key input wrapper を追加せず、本体修正を自動継承します。
+
 ---
 
 ## When to Use

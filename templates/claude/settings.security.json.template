@@ -3,6 +3,7 @@
   "_harness_template": "claude/settings.security.json.template",
   "_harness_version": "3.17.1",
   "_harness_note": "Project-level settings template. Plugin defaults (.claude-plugin/settings.json) provide baseline deny/ask; this template adds defense-in-depth at project scope.",
+  "_harness_auto_mode_note": "Auto Mode guidance: keep \"$defaults\" and append only project-specific entries. Do not replace built-in Auto Mode defaults or relax permissions.deny, permissions.ask, or sandbox guardrails.",
   "language": "japanese",
   "permissions": {
     "allow": [

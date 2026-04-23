@@ -91,11 +91,11 @@ type sprintContractReview struct {
 	Status          string          `json:"status"`
 	ReviewerProfile string          `json:"reviewer_profile"`
 	MaxIterations   int             `json:"max_iterations"`
-	RubricTarget    *uiRubricTarget `json:"rubric_target"`
-	BrowserMode     *string         `json:"browser_mode"`
-	Route           *string         `json:"route"`
+	RubricTarget    *uiRubricTarget `json:"rubric_target,omitempty"`
+	BrowserMode     *string         `json:"browser_mode,omitempty"`
+	Route           *string         `json:"route,omitempty"`
 	ReviewerNotes   []string        `json:"reviewer_notes"`
-	ApprovedAt      *string         `json:"approved_at"`
+	ApprovedAt      *string         `json:"approved_at,omitempty"`
 	Gaps            []string        `json:"gaps"`
 	Followups       []string        `json:"followups"`
 }

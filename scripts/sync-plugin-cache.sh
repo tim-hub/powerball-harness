@@ -8,7 +8,25 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+DEFAULT_PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+is_harness_root() {
+  local candidate="${1:-}"
+  [ -n "$candidate" ] &&
+    [ -x "$candidate/bin/harness" ] &&
+    [ -f "$candidate/.claude-plugin/plugin.json" ] &&
+    grep -q '"name"[[:space:]]*:[[:space:]]*"claude-code-harness"' "$candidate/.claude-plugin/plugin.json"
+}
+
+PROJECT_ROOT="${CLAUDE_PLUGIN_ROOT:-$DEFAULT_PROJECT_ROOT}"
+if ! is_harness_root "$PROJECT_ROOT"; then
+  if is_harness_root "$DEFAULT_PROJECT_ROOT"; then
+    PROJECT_ROOT="$DEFAULT_PROJECT_ROOT"
+  else
+    echo "Error: could not resolve claude-code-harness plugin root." >&2
+    exit 1
+  fi
+fi
 
 # --- Step 1: Run harness sync (Go binary) ---
 # Best-effort: if the binary is unavailable (e.g. in CI before build), skip
@@ -28,14 +46,28 @@ PLUGIN_NAME="claude-code-harness"
 MARKETPLACE_NAME="claude-code-harness-marketplace"
 SOURCE_VERSION="$(tr -d '[:space:]' < "${PROJECT_ROOT}/VERSION")"
 CACHE_DIR="${HOME}/.claude/plugins/cache/${MARKETPLACE_NAME}/${PLUGIN_NAME}/${SOURCE_VERSION}"
+MARKETPLACE_DIR="${HOME}/.claude/plugins/marketplaces/${MARKETPLACE_NAME}"
 
-sync_file() {
+sync_file_to_dir() {
   local rel_path="$1"
+  local target_dir="$2"
   local src="${PROJECT_ROOT}/${rel_path}"
-  local dst="${CACHE_DIR}/${rel_path}"
+  local dst="${target_dir}/${rel_path}"
   if [ -f "$src" ]; then
     mkdir -p "$(dirname "$dst")"
     cp "$src" "$dst"
+  fi
+}
+
+sync_file() {
+  local rel_path="$1"
+
+  sync_file_to_dir "$rel_path" "$CACHE_DIR"
+
+  # If a local marketplace checkout is installed, keep its hook definitions in
+  # lockstep too. Claude may load hooks from this path before the versioned cache.
+  if [ -d "$MARKETPLACE_DIR" ]; then
+    sync_file_to_dir "$rel_path" "$MARKETPLACE_DIR"
   fi
 }
 

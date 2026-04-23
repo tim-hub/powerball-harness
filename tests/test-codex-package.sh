@@ -240,6 +240,18 @@ if ! rg -q --fixed-strings 'harness codex-loop start/status/stop' "codex/README.
   echo "  missing: codex-loop runtime note"
   workflow_surface_ok=false
 fi
+if ! rg -q --fixed-strings 'Realtime Handoff / Silence Policy' "codex/.codex/skills/harness-loop/SKILL.md" "codex/.codex/skills/breezing/SKILL.md"; then
+  echo "  missing: realtime handoff silence policy in Codex skills"
+  workflow_surface_ok=false
+fi
+if ! rg -q --fixed-strings 'Advisor / Reviewer drift' "codex/.codex/skills/harness-loop/SKILL.md"; then
+  echo "  missing: Advisor / Reviewer drift exception in harness-loop silence policy"
+  workflow_surface_ok=false
+fi
+if ! rg -q --fixed-strings 'Realtime Handoff And Silence Policy' "codex/README.md"; then
+  echo "  missing: realtime handoff silence policy in codex/README.md"
+  workflow_surface_ok=false
+fi
 if ! rg -q --fixed-strings 'spawn_agent' "codex/README.md" "codex/.codex/skills/breezing/SKILL.md"; then
   echo "  missing: spawn_agent native orchestration note"
   workflow_surface_ok=false
@@ -377,6 +389,74 @@ if $readme_update_path_ok; then
   log_pass "codex README points users to the reliable update path"
 else
   log_fail "codex README update-path guidance is incomplete"
+fi
+
+log_test "codex README documents MCP verbose diagnostics and .mcp.json loading"
+readme_mcp_ok=true
+if ! rg -q --fixed-strings 'Codex `0.123.0` keeps the normal `/mcp` view fast' "codex/README.md"; then
+  echo "  missing: plain /mcp fast-path guidance"
+  readme_mcp_ok=false
+fi
+if ! rg -q --fixed-strings '/mcp verbose' "codex/README.md"; then
+  echo "  missing: /mcp verbose guidance"
+  readme_mcp_ok=false
+fi
+if ! rg -q --fixed-strings 'diagnostics, resources, and resource templates' "codex/README.md"; then
+  echo "  missing: diagnostics/resources/resource templates guidance"
+  readme_mcp_ok=false
+fi
+if ! rg -q --fixed-strings '"mcpServers"' "codex/README.md"; then
+  echo "  missing: mcpServers .mcp.json example"
+  readme_mcp_ok=false
+fi
+if ! rg -q --fixed-strings 'top-level server map' "codex/README.md"; then
+  echo "  missing: top-level server map loading guidance"
+  readme_mcp_ok=false
+fi
+if ! rg -q --fixed-strings 'not Claude Code `claude mcp` or `.claude/mcp.json` guidance' "codex/README.md"; then
+  echo "  missing: Codex vs Claude Code MCP terminology boundary"
+  readme_mcp_ok=false
+fi
+if $readme_mcp_ok; then
+  log_pass "codex README documents MCP diagnostics and plugin loading"
+else
+  log_fail "codex README MCP guidance is incomplete"
+fi
+
+log_test "codex README documents sandbox and exec policy"
+readme_sandbox_ok=true
+if ! rg -q --fixed-strings 'Codex `0.123.0` adds host-specific `remote_sandbox_config` requirements' "codex/README.md"; then
+  echo "  missing: remote_sandbox_config guidance"
+  readme_sandbox_ok=false
+fi
+if ! rg -q --fixed-strings 'requirements.toml' "codex/README.md"; then
+  echo "  missing: requirements.toml policy placement"
+  readme_sandbox_ok=false
+fi
+if ! rg -q --fixed-strings 'hostname_patterns' "codex/README.md"; then
+  echo "  missing: hostname_patterns example"
+  readme_sandbox_ok=false
+fi
+if ! rg -q --fixed-strings 'allowed_sandbox_modes' "codex/README.md"; then
+  echo "  missing: allowed_sandbox_modes example"
+  readme_sandbox_ok=false
+fi
+if ! rg -q --fixed-strings 'root-level shared flags' "codex/README.md"; then
+  echo "  missing: codex exec shared flags inheritance guidance"
+  readme_sandbox_ok=false
+fi
+if ! rg -q --fixed-strings 'duplicate `--approval-policy` / `--sandbox` pairs' "codex/README.md"; then
+  echo "  missing: duplicate approval/sandbox flag guidance"
+  readme_sandbox_ok=false
+fi
+if ! rg -q --fixed-strings 'docs/codex-sandbox-execution-policy.md' "codex/README.md"; then
+  echo "  missing: sandbox execution policy docs pointer"
+  readme_sandbox_ok=false
+fi
+if $readme_sandbox_ok; then
+  log_pass "codex README documents sandbox and exec policy"
+else
+  log_fail "codex README sandbox/exec guidance is incomplete"
 fi
 
 # Test 1.8: codex-setup-local should cleanup duplicate frontmatter names

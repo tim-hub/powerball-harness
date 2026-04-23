@@ -110,6 +110,98 @@ cp claude-code-harness/codex/.codex/config.toml "$CODEX_HOME/config.toml"
 - Setup scripts always ensure `multi_agent` + role defaults in target `config.toml`
 - Setup scripts keep backups in `$CODEX_HOME/backups/*` and move removed Harness skills out of `skills/` so Codex does not keep listing stale commands
 
+## Provider And Model Policy
+
+Codex `0.123.0` adds a built-in `amazon-bedrock` provider with AWS profile support.
+Harness documents that path, but does not force it into the shipped `config.toml`.
+
+Use Bedrock only in the user or project config that actually needs it:
+
+```toml
+model_provider = "amazon-bedrock"
+
+[model_providers.amazon-bedrock.aws]
+profile = "codex-bedrock"
+```
+
+Harness does not write AWS credentials, Bedrock endpoints, or provider secrets.
+Claude Code Bedrock settings such as `CLAUDE_CODE_USE_BEDROCK`, Anthropic model overrides, and `modelOverrides` are separate from Codex `model_provider`.
+
+Codex `0.123.0` also refreshes bundled model metadata, including the current `gpt-5.4` default.
+Harness therefore leaves `model` unset in the distributed Codex config and avoids old fixed model samples such as `gpt-5.2-codex`.
+Pin `model = "gpt-5.4"` only in your own config when reproducibility or an organization allowlist requires it.
+
+Details: `docs/codex-provider-setup-policy.md`.
+
+## MCP Diagnostics And Plugin Loading
+
+Codex `0.123.0` keeps the normal `/mcp` view fast and adds `/mcp verbose` for full MCP diagnostics.
+
+Use this split:
+
+- Run `/mcp` for the usual lightweight server status check.
+- Run `/mcp verbose` only when a server is missing, a startup error is unclear, or you need to inspect diagnostics, resources, and resource templates.
+
+Codex plugin MCP loading accepts both supported `.mcp.json` shapes:
+
+```json
+{
+  "mcpServers": {
+    "docs": {
+      "command": "node",
+      "args": ["server.js"]
+    }
+  }
+}
+```
+
+```json
+{
+  "docs": {
+    "command": "node",
+    "args": ["server.js"]
+  }
+}
+```
+
+Prefer `mcpServers` for new plugin files because it is easier to share with other tools.
+Keep existing top-level server map files when they already work.
+This is Codex plugin loading guidance, not Claude Code `claude mcp` or `.claude/mcp.json` guidance.
+
+Details: `docs/codex-mcp-diagnostics.md`.
+
+## Sandbox And Exec Policy
+
+Codex `0.123.0` adds host-specific `remote_sandbox_config` requirements for remote environments.
+Use this in admin-managed `requirements.toml` when different hosts need different allowed sandbox modes.
+Do not copy organization host policy into the shipped Harness `codex/.codex/config.toml`.
+
+Example shape:
+
+```toml
+allowed_sandbox_modes = ["read-only"]
+
+[[remote_sandbox_config]]
+hostname_patterns = ["devbox-*.corp.example.com"]
+allowed_sandbox_modes = ["read-only", "workspace-write"]
+
+[[remote_sandbox_config]]
+hostname_patterns = ["runner-*.ci.example.com"]
+allowed_sandbox_modes = ["read-only", "danger-full-access"]
+```
+
+Use a narrow hostname pattern for each remote class:
+
+- remote devboxes usually allow `workspace-write`;
+- ephemeral CI runners may allow broader modes only when the host is disposable and isolated;
+- shared or unknown hosts should fall back to stricter top-level `allowed_sandbox_modes`.
+
+Codex `0.123.0` also makes `codex exec` inherit root-level shared flags such as sandbox and model options.
+Harness therefore avoids adding duplicate `--approval-policy` / `--sandbox` pairs in wrapper docs.
+`scripts/codex-companion.sh` still maps Harness `task --write` to an exec-local `--sandbox workspace-write`, because that is Harness workflow intent rather than duplicate root flag forwarding.
+
+Details: `docs/codex-sandbox-execution-policy.md`.
+
 ## Runtime Behavior
 
 - `$harness-plan`, `$harness-sync`, `$harness-work`, `$breezing`, `$harness-review`, and `$harness-loop` are the primary Codex-facing workflow surfaces.
@@ -118,6 +210,21 @@ cp claude-code-harness/codex/.codex/config.toml "$CODEX_HOME/config.toml"
 - `$harness-loop` uses a real background runner behind `harness codex-loop start/status/stop`.
 - Native flow uses `spawn_agent`, `wait`, `send_input`, `resume_agent`, `close_agent`.
 - `breezing` keeps Lead/Worker/Reviewer separation while reusing Codex-native subagents instead of older teammate-only wording.
+
+## Realtime Handoff And Silence Policy
+
+Codex `0.123.0` lets background agents receive transcript deltas during realtime handoff.
+Harness treats those deltas as context, not as a reason to post extra progress messages.
+
+Use this split:
+
+- `$harness-loop` should normally report once per cycle, plus blocked / validation / review / advisor stop events.
+- `$breezing` should normally report once per completed task through the Lead progress feed.
+- Worker / Advisor / Reviewer agents should stay silent when transcript deltas do not change task status, review verdict, or advisor decision.
+- Advisor / reviewer drift, plateau, and contract readiness failures are never hidden by silence policy.
+
+Detailed progress belongs in `harness codex-loop status --json`, runner logs, job logs, and review artifacts.
+The chat should show the decisions a user can act on.
 
 ## State Path
 

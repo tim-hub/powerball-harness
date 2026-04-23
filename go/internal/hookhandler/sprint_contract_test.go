@@ -52,6 +52,22 @@ func TestSprintContractGenerator_RuntimeContract(t *testing.T) {
 	if len(doc.Advisor.Triggers) != 0 {
 		t.Fatalf("expected no advisor triggers, got %+v", doc.Advisor.Triggers)
 	}
+
+	data, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatalf("marshal runtime contract: %v", err)
+	}
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		t.Fatalf("unmarshal runtime contract: %v", err)
+	}
+	review, ok := raw["review"].(map[string]any)
+	if !ok {
+		t.Fatalf("review block missing from marshaled contract: %s", data)
+	}
+	if _, exists := review["rubric_target"]; exists {
+		t.Fatalf("runtime contracts must omit rubric_target unless ui-rubric is active: %s", data)
+	}
 }
 
 func TestSprintContractGenerator_UIRubricDefaults(t *testing.T) {

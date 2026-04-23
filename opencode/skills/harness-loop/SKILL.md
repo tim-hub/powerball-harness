@@ -22,6 +22,11 @@ user-invocable: true
 > **長時間セッション推奨 (CC 2.1.108+)**:
 > セッション長が 30 分を超える見込みの場合、開始前に `bash scripts/enable-1h-cache.sh` を実行して 1 時間 prompt cache を opt-in すること。
 
+> **Codex 0.123.0 automatic bug fix inheritance**:
+> manual shell follow-up queue と `/copy` after rollback は Codex 本体の TUI 修正として自動継承する。
+> loop runner は追加入力 queue、copy wrapper、rollback workaround を追加しない。
+> 長時間作業中に manual shell へ follow-up を投げた時の queueing は Codex runtime に任せる。
+
 ## Quick Reference
 
 | 入力 | 動作 |
@@ -153,6 +158,27 @@ wake-up
 
 `--max-cycles 3` 指定時は 3 サイクル完了後に停止する。
 default（`--max-cycles 8`）時は 8 サイクルで停止する。
+
+## 途中報告 / Silence Policy
+
+長時間 loop では、途中報告は「安心のための heartbeat」ではなく「判断が変わった時の通知」として扱う。
+Codex `0.123.0` の background agent が transcript delta を受け取れる環境では、delta 到着だけを理由に返答せず、必要ない時は明示的に沈黙する。
+
+報告するもの:
+
+- cycle 完了、上限到達、全完了、blocked
+- validation failure、review `REQUEST_CHANGES`、plateau、advisor `STOP`
+- advisor / reviewer drift、contract readiness failure
+- user が `status` を求めた時の要約
+
+沈黙してよいもの:
+
+- transcript delta だけが増え、task / review / advisor の状態が変わっていない時
+- log に残る細かな stdout だけが増えた時
+- 次 wake-up までの pacing 待機中
+
+default は「1 cycle につき最終報告 1 回」。
+ただし Advisor request 未応答、Reviewer result 未到着、plateau 直前の警告は silence policy より優先して報告する。
 
 ## /loop との連携
 

@@ -79,6 +79,41 @@ harness codex-loop stop
 7. ジョブ完了後に review / checkpoint / plateau 判定を行う
 8. まだ対象タスクが残っていれば、待機後に次サイクルへ進む
 
+## Realtime Handoff / Silence Policy
+
+Codex `0.123.0` 以降の background agent は realtime handoff で transcript delta を受け取れる。
+この delta は「状況把握用の追記」であり、毎回ユーザーへ返答する合図ではない。
+
+ひとことで: background agent は、必要な時だけ報告し、何も判断が変わらない時は明示的に沈黙する。
+
+たとえると、見張り役が廊下でずっと実況するのではなく、異常・完了・判断待ちだけを知らせる形。
+
+報告してよいタイミング:
+
+- loop 開始、停止、`already running`、`stop` 受理など、ユーザー操作に関わる lifecycle 境界
+- 1 サイクルの最終結果、commit、`RESULT: APPROVED` / `RESULT: BLOCKED`
+- task が blocked、validation failure、review `REQUEST_CHANGES`、plateau、advisor `STOP` で止まる時
+- user が `status` を実行した時、または明示的に途中状況を聞いた時
+- advisor / reviewer drift、contract readiness failure など、放置すると品質判定がずれる時
+
+沈黙するタイミング:
+
+- transcript delta を受け取っただけで、task / review / advisor の状態が変わっていない時
+- `runner.log` / `jobs/*.log` に既に残る細かな stdout だけが増えた時
+- `pacing` 待機中で、次 cycle まで新しい判断材料がない時
+
+途中報告の頻度:
+
+- default は「1 cycle につき最終報告 1 回」。
+- 長い cycle でも、material state change がない限り heartbeat は出さない。
+- 詳細な流れは `harness codex-loop status --json` と `.claude/state/codex-loop/runner.log` に寄せ、会話側には要点だけ出す。
+
+Advisor / Reviewer drift との関係:
+
+- silence policy は drift 検知を弱めるためのものではない。
+- `advisor-request.v1` に response がない、`review-result.v1` が返らない、contract が未承認などの異常は必ず state / log に残し、必要ならユーザーへ報告する。
+- Advisor は `PLAN` / `CORRECTION` / `STOP` の相談役、Reviewer は最終品質判定役のまま分離する。
+
 ## pacing
 
 | 値 | 用途 | 待機秒数 |

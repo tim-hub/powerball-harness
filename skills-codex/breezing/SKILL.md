@@ -94,6 +94,41 @@ Worker は generic な subagent を増やさない。
 - plateau により `PIVOT_REQUIRED` を返す直前
 - 同じ `trigger_hash` は 1 回だけ。task ごとの相談回数は最大 3 回
 
+## Realtime Handoff / Silence Policy
+
+Codex `0.123.0` 以降では、background agent が realtime handoff の transcript delta を受け取れる。
+Breezing ではこの仕組みを「余計な通知を増やす入口」ではなく、「必要な時だけ判断を更新するための入力」として扱う。
+
+ひとことで: Worker / Advisor / Reviewer は、状態が変わらない transcript delta には反応せず、Lead への報告は material state change に絞る。
+
+たとえると、複数人の作業部屋で全員が独り言を実況するのではなく、担当作業が終わった時、詰まった時、判断待ちの時だけ声をかける形。
+
+報告するもの:
+
+- Worker の完了 JSON、blocked 理由、必要な `advisor-request.v1`
+- Advisor の `PLAN` / `CORRECTION` / `STOP`
+- Reviewer の `APPROVE` / `REQUEST_CHANGES`
+- validation failure、contract readiness failure、plateau、drift 検知
+- Lead が出す task 完了単位の progress feed
+
+沈黙してよいもの:
+
+- transcript delta を受け取っただけで、task status、review verdict、advisor decision が変わっていない場合
+- tool stdout の細かな増分で、job log に残っていれば十分なもの
+- parallel spawn 中の待機 heartbeat。待機は `wait_agent` / job status に任せる
+
+途中報告の頻度:
+
+- Lead の progress feed は task 完了ごとに 1 回を基本にする。
+- Worker / Reviewer は「完了・差し戻し・ブロック」の結果だけを返し、delta ごとの小報告は避ける。
+- user が明示的に status を求めた場合だけ、Lead がまとめて現在地を返す。
+
+Advisor / Reviewer drift との関係:
+
+- silence policy は Advisor / Reviewer を黙らせる免除ではない。
+- `advisor-request.v1` 送信後に response が返らない、reviewer profile に必要な result がない、review loop が plateau した場合は drift として扱う。
+- Advisor は方針助言、Reviewer は品質判定という役割分離を維持し、沈黙は「不要な通知を出さない」ためだけに使う。
+
 ### Phase 0: Planning Discussion（構造化 3 問チェック）
 
 全タスク実行前に、以下の 3 問で計画の健全性を確認する。
