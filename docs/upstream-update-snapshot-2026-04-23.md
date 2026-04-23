@@ -335,6 +335,45 @@ Claude Code 側 MCP guidance と混ぜない理由:
 - `tests/test-claude-upstream-integration.sh` で、`docs/codex-mcp-diagnostics.md`、`harness-setup` pointer、Codex README guidance、`/mcp verbose`、diagnostics / resources / resource templates、`mcpServers` 形式、top-level server map 形式、Claude Code 側 MCP guidance と混ぜない方針、Feature Table の 53.2.2 完了表記を grep 固定する。
 - `tests/test-codex-package.sh` で、Codex README の `/mcp verbose` と `.mcp.json` loading guidance を検出する。
 
+## 53.2.3 Codex realtime handoff silence policy
+
+対象:
+
+- Codex `0.123.0` の realtime handoff
+- background agents が受け取る transcript delta
+- `harness-loop` の background runner
+- `breezing` の Worker / Advisor / Reviewer
+- advisor / reviewer drift 検知
+
+今回の判断:
+
+- Codex `0.123.0` の realtime handoff 改善は `A: docs / guidance 化済み` として取り込む。
+- background agent が transcript delta を受け取れることは、途中通知を増やす理由ではなく、必要な時だけ判断を更新できる前提として扱う。
+- `skills-codex/harness-loop/SKILL.md` と Codex mirror `codex/.codex/skills/harness-loop/SKILL.md` に `Realtime Handoff / Silence Policy` を追加する。
+- `skills-codex/breezing/SKILL.md` と Codex mirror `codex/.codex/skills/breezing/SKILL.md` に、Worker / Advisor / Reviewer の silence policy を追加する。
+- 共有 `skills/breezing/SKILL.md` と `skills/harness-loop/SKILL.md` には、長時間実行時の通知整理として同じ考え方を反映する。
+- `scripts/codex-loop.sh` が生成する 1-cycle prompt に、transcript delta だけで余計な途中報告を出さない指示を追加する。
+
+silence policy:
+
+- 報告するのは cycle / task 完了、blocked、validation failure、review `REQUEST_CHANGES`、advisor `STOP`、plateau、contract readiness failure、user が明示的に status を求めた時。
+- `advisor-request.v1` 未応答、`review-result.v1` 未到着、review loop plateau などの advisor / reviewer drift は silence 対象にしない。
+- transcript delta を受け取っただけで task status、review verdict、advisor decision が変わっていない場合は明示的に沈黙する。
+- tool stdout の細かな増分は log / status 側に寄せる。
+- default は `harness-loop` では「1 cycle につき最終報告 1 回」、`breezing` では「task 完了ごとに progress feed 1 回」。
+
+advisor / reviewer drift と矛盾しない理由:
+
+- silence policy は「不要な通知を減らす」ための方針であり、品質判定や停止条件を弱めるものではない。
+- Advisor は `PLAN` / `CORRECTION` / `STOP` の相談役、Reviewer は `APPROVE` / `REQUEST_CHANGES` の品質判定役として分離したままにする。
+- drift は `.claude/state/session.events.jsonl` / contract / review artifact の欠落として扱い、会話上の沈黙とは別の異常として検出する。
+
+検証:
+
+- `tests/test-claude-upstream-integration.sh` で、snapshot、Codex harness-loop / breezing、共有 harness-loop / breezing、`scripts/codex-loop.sh` に silence policy と drift 例外があることを grep 固定する。
+- `tests/test-codex-package.sh` で、Codex README と Codex skill mirror に realtime handoff / silence policy があることを検出する。
+- `./scripts/sync-skill-mirrors.sh --check` で `skills-codex` と Codex mirror の drift がないことを確認する。
+
 ## Harness judgement
 
 53.1.1 では snapshot を作るだけに留め、後続 task の実装を先取りしない。

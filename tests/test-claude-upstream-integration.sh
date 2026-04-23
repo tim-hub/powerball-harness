@@ -564,6 +564,60 @@ grep -q 'Codex 0.123.0 MCP diagnostics / plugin loading.*A: docs 化済み' "${R
   exit 1
 }
 
+# Phase 53.2.3: Codex realtime handoff / background agent silence policy
+grep -q '53.2.3 Codex realtime handoff silence policy' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot is missing the 53.2.3 realtime handoff silence policy"
+  exit 1
+}
+grep -q 'transcript delta を受け取っただけで task status、review verdict、advisor decision が変わっていない場合は明示的に沈黙する' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must define silence for unchanged transcript deltas"
+  exit 1
+}
+grep -q 'advisor / reviewer drift は silence 対象にしない' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must keep advisor / reviewer drift outside silence policy"
+  exit 1
+}
+grep -q 'Realtime Handoff / Silence Policy' "${ROOT_DIR}/skills-codex/harness-loop/SKILL.md" || {
+  echo "Codex harness-loop skill must document realtime handoff silence policy"
+  exit 1
+}
+grep -q 'Realtime Handoff / Silence Policy' "${ROOT_DIR}/codex/.codex/skills/harness-loop/SKILL.md" || {
+  echo "Codex harness-loop mirror must document realtime handoff silence policy"
+  exit 1
+}
+grep -q 'Realtime Handoff / Silence Policy' "${ROOT_DIR}/skills-codex/breezing/SKILL.md" || {
+  echo "Codex breezing skill must document realtime handoff silence policy"
+  exit 1
+}
+grep -q 'Realtime Handoff / Silence Policy' "${ROOT_DIR}/codex/.codex/skills/breezing/SKILL.md" || {
+  echo "Codex breezing mirror must document realtime handoff silence policy"
+  exit 1
+}
+grep -q 'Silence Policy（長時間実行の通知整理）' "${ROOT_DIR}/skills/breezing/SKILL.md" || {
+  echo "shared breezing skill must document long-running silence policy"
+  exit 1
+}
+grep -q '途中報告 / Silence Policy' "${ROOT_DIR}/skills/harness-loop/SKILL.md" || {
+  echo "shared harness-loop skill must document long-running silence policy"
+  exit 1
+}
+grep -q 'advisor / reviewer drift、plateau、contract readiness failure' "${ROOT_DIR}/skills/breezing/SKILL.md" || {
+  echo "shared breezing silence policy must not suppress drift / plateau / contract failures"
+  exit 1
+}
+grep -q 'Stay silent unless there is a material state change, a block/failure, an advisor/reviewer drift risk' "${ROOT_DIR}/scripts/codex-loop.sh" || {
+  echo "codex-loop prompt must tell background agents when to stay silent"
+  exit 1
+}
+grep -q 'Codex 0.123.0 realtime handoff silence.*A: docs 化済み' "${ROOT_DIR}/docs/CLAUDE-feature-table.md" || {
+  echo "Feature Table must mark 53.2.3 realtime handoff silence guidance as done"
+  exit 1
+}
+grep -q 'Codex realtime handoff silence policy' "${ROOT_DIR}/CHANGELOG.md" || {
+  echo "CHANGELOG must mention Codex realtime handoff silence policy"
+  exit 1
+}
+
 for hooks_file in "${HOOK_FILES[@]}"; do
   MCP_TOOL_COUNT="$(jq '[.. | objects | select(.type? == "mcp_tool")] | length' "${hooks_file}")"
   if [ "${MCP_TOOL_COUNT}" -eq 0 ]; then

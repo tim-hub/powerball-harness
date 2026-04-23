@@ -154,6 +154,27 @@ wake-up
 `--max-cycles 3` 指定時は 3 サイクル完了後に停止する。
 default（`--max-cycles 8`）時は 8 サイクルで停止する。
 
+## 途中報告 / Silence Policy
+
+長時間 loop では、途中報告は「安心のための heartbeat」ではなく「判断が変わった時の通知」として扱う。
+Codex `0.123.0` の background agent が transcript delta を受け取れる環境では、delta 到着だけを理由に返答せず、必要ない時は明示的に沈黙する。
+
+報告するもの:
+
+- cycle 完了、上限到達、全完了、blocked
+- validation failure、review `REQUEST_CHANGES`、plateau、advisor `STOP`
+- advisor / reviewer drift、contract readiness failure
+- user が `status` を求めた時の要約
+
+沈黙してよいもの:
+
+- transcript delta だけが増え、task / review / advisor の状態が変わっていない時
+- log に残る細かな stdout だけが増えた時
+- 次 wake-up までの pacing 待機中
+
+default は「1 cycle につき最終報告 1 回」。
+ただし Advisor request 未応答、Reviewer result 未到着、plateau 直前の警告は silence policy より優先して報告する。
+
 ## /loop との連携
 
 このスキルは CC の `/loop`（dynamic mode）と組み合わせて使用する。

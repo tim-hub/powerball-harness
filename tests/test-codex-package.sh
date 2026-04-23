@@ -240,6 +240,18 @@ if ! rg -q --fixed-strings 'harness codex-loop start/status/stop' "codex/README.
   echo "  missing: codex-loop runtime note"
   workflow_surface_ok=false
 fi
+if ! rg -q --fixed-strings 'Realtime Handoff / Silence Policy' "codex/.codex/skills/harness-loop/SKILL.md" "codex/.codex/skills/breezing/SKILL.md"; then
+  echo "  missing: realtime handoff silence policy in Codex skills"
+  workflow_surface_ok=false
+fi
+if ! rg -q --fixed-strings 'Advisor / Reviewer drift' "codex/.codex/skills/harness-loop/SKILL.md"; then
+  echo "  missing: Advisor / Reviewer drift exception in harness-loop silence policy"
+  workflow_surface_ok=false
+fi
+if ! rg -q --fixed-strings 'Realtime Handoff And Silence Policy' "codex/README.md"; then
+  echo "  missing: realtime handoff silence policy in codex/README.md"
+  workflow_surface_ok=false
+fi
 if ! rg -q --fixed-strings 'spawn_agent' "codex/README.md" "codex/.codex/skills/breezing/SKILL.md"; then
   echo "  missing: spawn_agent native orchestration note"
   workflow_surface_ok=false

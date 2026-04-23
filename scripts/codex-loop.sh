@@ -1414,6 +1414,8 @@ Important:
 - Be honest about failures.
 - Do not revert unrelated user changes.
 - Keep all work inside this repository.
+- Codex realtime handoff may deliver transcript deltas to background agents. Treat deltas as context, not as a reason to emit extra progress.
+- Stay silent unless there is a material state change, a block/failure, an advisor/reviewer drift risk, an explicit status request, or the final RESULT line.
 EOF
 }
 

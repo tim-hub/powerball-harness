@@ -179,6 +179,21 @@ Details: `docs/codex-mcp-diagnostics.md`.
 - Native flow uses `spawn_agent`, `wait`, `send_input`, `resume_agent`, `close_agent`.
 - `breezing` keeps Lead/Worker/Reviewer separation while reusing Codex-native subagents instead of older teammate-only wording.
 
+## Realtime Handoff And Silence Policy
+
+Codex `0.123.0` lets background agents receive transcript deltas during realtime handoff.
+Harness treats those deltas as context, not as a reason to post extra progress messages.
+
+Use this split:
+
+- `$harness-loop` should normally report once per cycle, plus blocked / validation / review / advisor stop events.
+- `$breezing` should normally report once per completed task through the Lead progress feed.
+- Worker / Advisor / Reviewer agents should stay silent when transcript deltas do not change task status, review verdict, or advisor decision.
+- Advisor / reviewer drift, plateau, and contract readiness failures are never hidden by silence policy.
+
+Detailed progress belongs in `harness codex-loop status --json`, runner logs, job logs, and review artifacts.
+The chat should show the decisions a user can act on.
+
 ## State Path
 
 Harness runtime state is written under:

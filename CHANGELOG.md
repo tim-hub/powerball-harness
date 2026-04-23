@@ -36,6 +36,8 @@ Change history for claude-code-harness.
 
 **Codex MCP diagnostics / plugin loading**: `docs/codex-mcp-diagnostics.md` を追加し、Codex `0.123.0` の `/mcp verbose` と plugin `.mcp.json` loading 改善を setup guidance として整理した。普段は軽量な `/mcp`、困った時だけ `/mcp verbose` で diagnostics / resources / resource templates を見る手順にし、plugin `.mcp.json` は `mcpServers` 形式と top-level server map 形式の両方を許す前提へ更新した。Claude Code 側の `claude mcp` / `.claude/mcp.json` / hook `type: "mcp_tool"` guidance とは別 surface として扱う。
 
+**Codex realtime handoff silence policy**: Codex `0.123.0` の background agent transcript delta / explicit silence 改善を、`harness-loop` と `breezing` の長時間実行 guidance に反映した。`harness-loop` は原則 1 cycle につき最終報告 1 回、`breezing` は task 完了ごとに progress feed 1 回を基本にし、細かな stdout や delta は status / log 側へ寄せる。advisor / reviewer drift、plateau、contract readiness failure は silence 対象にせず、品質判定の役割分離を維持する。
+
 #### Phase 52: upstream update skill merge hardening + 2026-04-21 snapshot
 
 | Before | After |
