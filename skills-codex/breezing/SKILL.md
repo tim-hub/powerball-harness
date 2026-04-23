@@ -20,9 +20,10 @@ effort: high
 
 ```bash
 breezing                        # スコープを聞いてから実行
-breezing all                    # Plans.md 全タスクを完走
-breezing 3-6                    # タスク3〜6を完走
-breezing --max-workers 2 all     # 独立タスクの同時 spawn 上限を2に
+breezing all                    # ready task を既定 max worker で完走
+breezing 3-6                    # タスク3〜6を既定 max worker で完走
+breezing --max-workers 2 all     # ready task の同時 spawn 上限を2に
+breezing --max-workers 1 all     # 旧来の直列挙動に戻す
 breezing --no-discuss all       # 計画議論スキップで全タスク完走
 ```
 
@@ -32,7 +33,7 @@ breezing --no-discuss all       # 計画議論スキップで全タスク完走
 |--------|-------------|---------|
 | `all` | 全未完了タスクを対象 | - |
 | `N` or `N-M` | タスク番号/範囲指定 | - |
-| `--max-workers N` | 独立タスクの同時 spawn 数上限（breezing 固有オプション） | 1（直列） |
+| `--max-workers N` | ready task の同時 spawn 数上限（breezing 固有オプション）。`1` で旧来の直列挙動 | max |
 | `--no-commit` | 非対応（Breezing では Worker の一時 commit と Lead の cherry-pick が必須） | - |
 | `--no-discuss` | 計画議論スキップ | false |
 
@@ -43,6 +44,15 @@ breezing --no-discuss all       # 計画議論スキップで全タスク完走
 1. **引数を `harness-work --breezing` に渡す**（`--max-workers N` は breezing 固有オプションとして解釈し、`harness-work` の `--parallel` とは別概念）
 2. **チーム実行モードを強制** — Lead → Worker spawn → 必要時 Advisor → companion review Reviewer の四者分離
 3. **Lead は delegate 専念** — コードを直接書かない
+
+既定の worker 数は **max**。
+ここでの max は「対象スコープ内で Depends が満たされ、今すぐ実行できる ready task の最大数」を意味する。
+無制限に Worker を spawn する意味ではない。
+依存待ちのタスクは、前段タスクが完了して ready になるまで spawn しない。
+旧来の 1 件ずつ進める直列挙動に戻したい場合は `--max-workers 1` を指定する。
+
+Worker の実装は並列化できるが、レビューと main への cherry-pick は直列で行う。
+これは同じ main worktree への書き込み競合を避けるため。
 
 ### `harness-work` との違い
 
@@ -246,9 +256,11 @@ for task in execution_order:
     print("📊 Progress: Task {completed}/{total} 完了 — {task.内容}")
 ```
 
-### 独立タスクの並列 spawn（`--max-workers N` 指定時）
+### ready task の並列 spawn（既定 max / `--max-workers N` 指定時）
 
-依存のないタスクが複数ある場合、`--max-workers N` で同時 spawn 数を制御:
+Depends が満たされた ready task が複数ある場合、既定では ready task の数まで同時 spawn する。
+`--max-workers N` を指定すると、同時 spawn 数を N 件までに制限する。
+`--max-workers 1` は旧来の直列挙動に戻す escape hatch。
 
 > **`wait_agent` のセマンティクス**: `wait_agent({ids: [a, b]})` は最初に完了した1つを返す（全完了待ちではない）。
 > したがって、全 Worker の完了を待つにはループで個別に `wait_agent` を呼ぶ。
@@ -269,7 +281,8 @@ for worker_id in [worker_a, worker_b]:
         cherry-pick → Plans.md 更新
 ```
 
-> **制約**: 並列化できるのは Depends が `-` の独立タスクのみ。
+> **制約**: 並列化できるのは Depends が満たされた ready task のみ。
+> max は ready task 数の上限であり、無制限 spawn ではない。
 > レビュー → cherry-pick は直列実行（main への書き込みが競合するため）。
 
 ### Worker の出力契約

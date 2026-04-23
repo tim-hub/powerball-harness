@@ -256,6 +256,22 @@ if ! rg -q --fixed-strings 'spawn_agent' "codex/README.md" "codex/.codex/skills/
   echo "  missing: spawn_agent native orchestration note"
   workflow_surface_ok=false
 fi
+if ! rg -q --fixed-strings '| `--max-workers N` | ready task の同時 spawn 数上限' "codex/.codex/skills/breezing/SKILL.md"; then
+  echo "  missing: breezing default max-workers guidance"
+  workflow_surface_ok=false
+fi
+if ! rg -q --fixed-strings 'breezing --max-workers 1 all' "codex/.codex/skills/breezing/SKILL.md"; then
+  echo "  missing: breezing serial escape hatch"
+  workflow_surface_ok=false
+fi
+if ! rg -q --fixed-strings 'ready batch' "codex/README.md" "codex/.codex/skills/harness-loop/SKILL.md"; then
+  echo "  missing: harness-loop ready batch guidance"
+  workflow_surface_ok=false
+fi
+if ! rg -q --fixed-strings -- '--executor task' "codex/README.md" "codex/.codex/skills/harness-loop/SKILL.md"; then
+  echo "  missing: harness-loop task executor escape hatch"
+  workflow_surface_ok=false
+fi
 if ! rg -q --fixed-strings -- '--codex' "codex/.codex/skills/harness-work/SKILL.md"; then
   echo "  missing: --codex in harness-work/SKILL.md"
   workflow_surface_ok=false

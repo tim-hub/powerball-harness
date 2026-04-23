@@ -60,7 +60,7 @@ fi
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/codex-loop.sh start <all|N|N-M> [--max-cycles N] [--pacing worker|ci|plateau|night]
+  scripts/codex-loop.sh start <all|N|N-M> [--max-cycles N] [--pacing worker|ci|plateau|night] [--executor breezing|task] [--max-workers N|max]
   scripts/codex-loop.sh status [--json]
   scripts/codex-loop.sh stop
   scripts/codex-loop.sh run --run-id <id>
@@ -540,6 +540,138 @@ for task_id, status in rows:
         raise SystemExit(0)
 
 raise SystemExit(1)
+PY
+}
+
+next_ready_batch_ids() {
+  local selection="$1"
+  local plans_file="$2"
+  local max_workers="${3:-max}"
+  python_json "${plans_file}" "${selection}" "${max_workers}" <<'PY'
+import sys
+
+plans_path = sys.argv[1]
+selection = sys.argv[2]
+max_workers = sys.argv[3]
+
+
+def parse_rows():
+    rows = []
+    with open(plans_path, "r", encoding="utf-8") as fh:
+        for raw_line in fh:
+            stripped = raw_line.strip()
+            if not stripped.startswith("|"):
+                continue
+            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+            if len(cells) < 5:
+                continue
+            task_id = cells[0]
+            if not task_id or task_id.lower() == "task" or set(task_id) <= {"-"}:
+                continue
+            rows.append({
+                "id": task_id,
+                "depends": cells[-2],
+                "status": cells[-1],
+            })
+    return rows
+
+
+def selected_ids(rows):
+    ordered = [row["id"] for row in rows]
+    if selection == "all":
+        return set(ordered)
+    if ".." in selection:
+        start, end = [part.strip() for part in selection.split("..", 1)]
+        return set(ordered[ordered.index(start): ordered.index(end) + 1])
+    if "-" in selection and selection not in ordered:
+        start, end = [part.strip() for part in selection.split("-", 1)]
+        return set(ordered[ordered.index(start): ordered.index(end) + 1])
+    return {selection}
+
+
+def is_complete(status):
+    return "cc:完了" in status or "pm:確認済" in status
+
+
+def is_active(status):
+    return "cc:TODO" in status or "cc:WIP" in status
+
+
+def depends_ready(depends, status_by_id):
+    raw = (depends or "").strip()
+    if not raw or raw == "-":
+        return True
+    for token in [part.strip() for part in raw.replace("、", ",").split(",") if part.strip()]:
+        if token == "-":
+            continue
+        dep_status = status_by_id.get(token)
+        if dep_status is None:
+            # Phase-level or external dependency notation is not a concrete row.
+            continue
+        if not is_complete(dep_status):
+            return False
+    return True
+
+
+rows = parse_rows()
+selected = selected_ids(rows)
+status_by_id = {row["id"]: row["status"] for row in rows}
+ready = [
+    row["id"]
+    for row in rows
+    if row["id"] in selected
+    and is_active(row["status"])
+    and depends_ready(row["depends"], status_by_id)
+]
+
+if max_workers != "max":
+    try:
+        limit = int(max_workers)
+    except ValueError:
+        raise SystemExit(f"invalid --max-workers value: {max_workers}")
+    if limit < 1:
+        raise SystemExit("--max-workers must be >= 1 or max")
+    ready = ready[:limit]
+
+if not ready:
+    raise SystemExit(1)
+
+print(",".join(ready))
+PY
+}
+
+tasks_complete() {
+  local plans_file="$1"
+  local task_ids="$2"
+  python_json "${plans_file}" "${task_ids}" <<'PY'
+import sys
+
+plans_path = sys.argv[1]
+targets = {item.strip() for item in sys.argv[2].split(",") if item.strip()}
+statuses = {}
+
+with open(plans_path, "r", encoding="utf-8") as fh:
+    for raw_line in fh:
+        stripped = raw_line.strip()
+        if not stripped.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if len(cells) < 2:
+            continue
+        task_id = cells[0]
+        if task_id in targets:
+            statuses[task_id] = cells[-1]
+
+missing = targets - statuses.keys()
+if missing:
+    raise SystemExit(1)
+
+for task_id in targets:
+    status = statuses.get(task_id, "")
+    if "cc:完了" not in status and "pm:確認済" not in status:
+        raise SystemExit(1)
+
+raise SystemExit(0)
 PY
 }
 
@@ -1419,6 +1551,37 @@ Important:
 EOF
 }
 
+create_breezing_cycle_prompt() {
+  local task_ids="$1"
+  local max_workers="$2"
+  local result_file="$3"
+  cat > "${result_file}" <<EOF
+You are running one Codex loop breezing cycle inside ${PROJECT_ROOT}.
+
+Target tasks: ${task_ids}
+Executor: harness-work --breezing
+Max workers: ${max_workers}
+
+Do exactly one ready-task batch.
+1. Read Plans.md and work only on the target tasks listed above.
+2. Run the equivalent of \`harness-work --breezing --max-workers ${max_workers} ${task_ids}\` inside this repository.
+3. Use parallel workers only for independent tasks. Keep review and cherry-pick/integration serial.
+4. If every target task reaches a good state, update Plans.md for each target task to \`cc:完了 [<commit>]\` and create a commit.
+5. If any target task is blocked or not ready to approve, do not fake completion. Leave a clear explanation in the final message.
+6. In all cases, end with a short summary that starts with either:
+   - RESULT: APPROVED
+   - RESULT: BLOCKED
+
+Important:
+- Be honest about failures.
+- Do not revert unrelated user changes.
+- Keep all work inside this repository.
+- Do not start another long-running loop or background runner.
+- Codex realtime handoff may deliver transcript deltas to background agents. Treat deltas as context, not as a reason to emit extra progress.
+- Stay silent unless there is a material state change, a block/failure, an advisor/reviewer drift risk, an explicit status request, or the final RESULT line.
+EOF
+}
+
 build_review_input() {
   local output_file="$1"
   local verdict="$2"
@@ -1451,11 +1614,13 @@ cleanup_current_job() {
   rm -f "${CURRENT_JOB_JSON}" 2>/dev/null || true
   run_state_patch '{
     "current_task_id": null,
+    "current_batch_ids": null,
     "current_cycle": null,
     "current_job_id": null,
     "current_job_status": null,
     "current_job_phase": null,
-    "current_job_log": null
+    "current_job_log": null,
+    "current_executor": null
   }'
 }
 
@@ -1806,6 +1971,191 @@ EOF
   return 0
 }
 
+perform_breezing_cycle() {
+  local run_id="$1"
+  local task_ids="$2"
+  local cycle_number="$3"
+  local max_workers="$4"
+  local cycle_started_at
+  cycle_started_at="$(timestamp_utc)"
+
+  log_line "cycle ${cycle_number} starting executor=breezing batch=${task_ids} max_workers=${max_workers}"
+  if ! validate_quick >> "${RUNNER_LOG}" 2>&1; then
+    log_line "cycle ${cycle_number} failed validation"
+    return 20
+  fi
+
+  resume_pack_best_effort
+
+  local prompt_file review_input_file review_result_file
+  prompt_file="${PROMPTS_DIR}/${run_id}-cycle-${cycle_number}.breezing.md"
+  review_input_file="${RESULTS_DIR}/${run_id}-cycle-${cycle_number}.breezing.review-input.json"
+  review_result_file="${RESULTS_DIR}/${run_id}-cycle-${cycle_number}.breezing.review-result.json"
+
+  local pre_head post_head job_id job_log job_status job_phase summary
+  pre_head="$(cd "${PROJECT_ROOT}" && git rev-parse --short HEAD 2>/dev/null || true)"
+  create_breezing_cycle_prompt "${task_ids}" "${max_workers}" "${prompt_file}"
+
+  local task_launch_json
+  task_launch_json="$(start_background_task "${prompt_file}")"
+  job_id="$(python_json "${task_launch_json}" <<'PY'
+import json, sys
+print(json.loads(sys.argv[1]).get("jobId", ""))
+PY
+)"
+  job_log="$(python_json "${task_launch_json}" <<'PY'
+import json, sys
+print(json.loads(sys.argv[1]).get("logFile", ""))
+PY
+)"
+  [ -n "${job_id}" ] || {
+    log_line "cycle ${cycle_number} missing job id"
+    return 21
+  }
+
+  write_current_job_state "$(cat <<EOF
+{
+  "run_id": $(json_escape "${run_id}"),
+  "cycle": ${cycle_number},
+  "executor": "breezing",
+  "task_ids": $(json_escape "${task_ids}"),
+  "job_id": $(json_escape "${job_id}"),
+  "log_file": $(json_escape "${job_log}"),
+  "started_at": $(json_escape "${cycle_started_at}")
+}
+EOF
+)"
+  run_state_patch "$(cat <<EOF
+{
+  "status": "running",
+  "updated_at": $(json_escape "$(timestamp_utc)"),
+  "current_task_id": $(json_escape "${task_ids}"),
+  "current_batch_ids": $(json_escape "${task_ids}"),
+  "current_cycle": ${cycle_number},
+  "current_job_id": $(json_escape "${job_id}"),
+  "current_job_status": "queued",
+  "current_job_phase": "queued",
+  "current_job_log": $(json_escape "${job_log}"),
+  "current_executor": "breezing"
+}
+EOF
+)"
+
+  local stop_cancelled=0
+  local status_json
+  while true; do
+    status_json="$(companion_status_json "${job_id}" 2>/dev/null || true)"
+    local status_payload="${status_json}"
+    [ -n "${status_payload}" ] || status_payload='{}'
+    job_status="$(python_json "${status_payload}" <<'PY'
+import json, sys
+try:
+    payload = json.loads(sys.argv[1]) if sys.argv[1] else {}
+except json.JSONDecodeError:
+    payload = {}
+job = payload.get("job", {})
+print(job.get("status", "unknown"))
+PY
+)"
+    job_phase="$(python_json "${status_payload}" <<'PY'
+import json, sys
+try:
+    payload = json.loads(sys.argv[1]) if sys.argv[1] else {}
+except json.JSONDecodeError:
+    payload = {}
+job = payload.get("job", {})
+print(job.get("phase", "unknown"))
+PY
+)"
+
+    run_state_patch "$(cat <<EOF
+{
+  "updated_at": $(json_escape "$(timestamp_utc)"),
+  "current_job_status": $(json_escape "${job_status}"),
+  "current_job_phase": $(json_escape "${job_phase}")
+}
+EOF
+)"
+
+    if stop_requested && [ "${stop_cancelled}" -eq 0 ] && { [ "${job_status}" = "queued" ] || [ "${job_status}" = "running" ]; }; then
+      log_line "stop requested: cancelling ${job_id}"
+      companion_cancel_json "${job_id}" >> "${RUNNER_LOG}" 2>&1 || true
+      stop_cancelled=1
+    fi
+
+    if [ "${job_status}" != "queued" ] && [ "${job_status}" != "running" ]; then
+      break
+    fi
+    sleep "${POLL_INTERVAL_SEC}"
+  done
+
+  local result_json result_payload
+  result_json="$(companion_result_json "${job_id}" 2>/dev/null || true)"
+  result_payload="${result_json}"
+  [ -n "${result_payload}" ] || result_payload='{}'
+  summary="$(python_json "${result_payload}" <<'PY'
+import json, sys
+try:
+    payload = json.loads(sys.argv[1]) if sys.argv[1] else {}
+except json.JSONDecodeError:
+    payload = {}
+stored = payload.get("storedJob", {}) or {}
+result = stored.get("result", {}) or {}
+raw = result.get("rawOutput", "") or stored.get("rendered", "") or ""
+for line in str(raw).splitlines():
+    if line.strip():
+        print(line.strip())
+        break
+else:
+    print("")
+PY
+)"
+
+  post_head="$(cd "${PROJECT_ROOT}" && git rev-parse --short HEAD 2>/dev/null || true)"
+  local final_verdict="REQUEST_CHANGES"
+  if [ -n "${post_head}" ] && [ "${post_head}" != "${pre_head}" ] && tasks_complete "$(plans_file_path)" "${task_ids}"; then
+    final_verdict="APPROVE"
+  fi
+
+  build_review_input "${review_input_file}" "${final_verdict}" "static" "${task_ids}" "Breezing batch ${task_ids}" "${summary}"
+  write_review_result "${review_input_file}" "${post_head}" "${review_result_file}" >> "${RUNNER_LOG}" 2>&1 || true
+
+  local checkpoint_status="skipped"
+  if [ -n "${post_head}" ] && [ "${final_verdict}" = "APPROVE" ] && [ -f "${review_result_file}" ]; then
+    if run_checkpoint "${task_ids}" "${post_head}" "" "${review_result_file}" >> "${RUNNER_LOG}" 2>&1; then
+      checkpoint_status="ok"
+    else
+      checkpoint_status="failed"
+    fi
+  fi
+
+  append_jsonl "${CYCLES_JSONL}" "$(cat <<EOF
+{"run_id":$(json_escape "${run_id}"),"cycle":${cycle_number},"executor":"breezing","task_ids":$(json_escape "${task_ids}"),"job_id":$(json_escape "${job_id}"),"job_status":$(json_escape "${job_status}"),"verdict":$(json_escape "${final_verdict}"),"commit_hash":$( [ -n "${post_head}" ] && json_escape "${post_head}" || printf 'null' ),"summary":$(json_escape "${summary}"),"checkpoint":$(json_escape "${checkpoint_status}"),"started_at":$(json_escape "${cycle_started_at}"),"finished_at":$(json_escape "$(timestamp_utc)")}
+EOF
+)"
+
+  run_state_patch "$(cat <<EOF
+{
+  "cycle_count": ${cycle_number},
+  "last_task_id": $(json_escape "${task_ids}"),
+  "last_batch_ids": $(json_escape "${task_ids}"),
+  "last_job_id": $(json_escape "${job_id}"),
+  "last_verdict": $(json_escape "${final_verdict}"),
+  "updated_at": $(json_escape "$(timestamp_utc)")
+}
+EOF
+)"
+  cleanup_current_job
+
+  if stop_requested; then
+    return 30
+  fi
+  if [ "${final_verdict}" != "APPROVE" ]; then
+    return 21
+  fi
+  return 0
+}
+
 cmd_start() {
   local selection="${1:-}"
   shift || true
@@ -1816,6 +2166,8 @@ cmd_start() {
 
   local max_cycles="8"
   local pacing="worker"
+  local executor="breezing"
+  local max_workers="max"
   while [ $# -gt 0 ]; do
     case "$1" in
       --max-cycles)
@@ -1826,12 +2178,49 @@ cmd_start() {
         pacing="${2:-}"
         shift 2
         ;;
+      --executor)
+        executor="${2:-}"
+        shift 2
+        ;;
+      --max-workers|--max-wokers)
+        if [ $# -lt 2 ] || [[ "${2:-}" == --* ]]; then
+          max_workers="max"
+          shift
+        else
+          max_workers="${2:-}"
+          shift 2
+        fi
+        ;;
       *)
         echo "Unknown option: $1" >&2
         exit 2
         ;;
     esac
   done
+
+  case "${executor}" in
+    breezing|task) ;;
+    *)
+      echo "--executor must be breezing or task" >&2
+      exit 2
+      ;;
+  esac
+  if [ -z "${max_workers}" ]; then
+    echo "--max-workers requires a value (N or max)" >&2
+    exit 2
+  fi
+  if [ "${max_workers}" != "max" ]; then
+    case "${max_workers}" in
+      ''|*[!0-9]*)
+        echo "--max-workers must be a positive integer or max" >&2
+        exit 2
+        ;;
+      0)
+        echo "--max-workers must be >= 1 or max" >&2
+        exit 2
+        ;;
+    esac
+  fi
 
   local plans_file
   plans_file="$(plans_file_path)"
@@ -1869,6 +2258,8 @@ cmd_start() {
   "selection": "$(printf '%s' "${selection}")",
   "max_cycles": ${max_cycles},
   "pacing": "$(printf '%s' "${pacing}")",
+  "executor": "$(printf '%s' "${executor}")",
+  "max_workers": "$(printf '%s' "${max_workers}")",
   "delay_seconds": ${delay_seconds},
   "cycle_count": 0,
   "consultations": 0,
@@ -1995,12 +2386,21 @@ print(f"codex-loop: {run.get('status', 'unknown')}")
 selection = run.get("selection")
 if selection:
     print(f"  selection: {selection}")
+executor = run.get("executor")
+if executor:
+    print(f"  executor: {executor}")
+max_workers = run.get("max_workers")
+if max_workers:
+    print(f"  max workers: {max_workers}")
 cycles = run.get("cycle_count")
 max_cycles = run.get("max_cycles")
 if cycles is not None and max_cycles is not None:
     print(f"  cycles: {cycles}/{max_cycles}")
+batch_ids = run.get("current_batch_ids")
 task_id = run.get("current_task_id")
-if task_id:
+if batch_ids:
+    print(f"  current batch: {batch_ids}")
+elif task_id:
     print(f"  current task: {task_id}")
 job_state = run.get("current_job_status")
 if job_state:
@@ -2108,10 +2508,12 @@ cmd_run() {
   fi
   trap 'release_lock' EXIT
 
-  local selection max_cycles pacing delay_seconds plans_file
+  local selection max_cycles pacing delay_seconds plans_file executor max_workers
   selection="$(json_get_file "${RUN_JSON}" "selection" "all")"
   max_cycles="$(json_get_file "${RUN_JSON}" "max_cycles" "8")"
   pacing="$(json_get_file "${RUN_JSON}" "pacing" "worker")"
+  executor="$(json_get_file "${RUN_JSON}" "executor" "breezing")"
+  max_workers="$(json_get_file "${RUN_JSON}" "max_workers" "max")"
   delay_seconds="$(json_get_file "${RUN_JSON}" "delay_seconds" "270")"
   plans_file="$(json_get_file "${RUN_JSON}" "plans_file" "$(plans_file_path)")"
   run_state_patch "$(cat <<EOF
@@ -2140,8 +2542,13 @@ EOF
       exit 0
     fi
 
-    local task_id=""
-    task_id="$(next_task_id "${selection}" "${plans_file}" 2>/dev/null || true)"
+    local task_id="" batch_ids=""
+    if [ "${executor}" = "breezing" ]; then
+      batch_ids="$(next_ready_batch_ids "${selection}" "${plans_file}" "${max_workers}" 2>/dev/null || true)"
+      task_id="${batch_ids}"
+    else
+      task_id="$(next_task_id "${selection}" "${plans_file}" 2>/dev/null || true)"
+    fi
     if [ -z "${task_id}" ]; then
       finalize_run "completed" "no_remaining_tasks"
       exit 0
@@ -2150,11 +2557,20 @@ EOF
     local next_cycle
     next_cycle=$((cycle_count + 1))
     local cycle_status=0
-    bash "${SELF_SCRIPT}" run-cycle --run-id "${run_id}" --task-id "${task_id}" --cycle "${next_cycle}" || cycle_status=$?
+    if [ "${executor}" = "breezing" ]; then
+      if [[ "${batch_ids}" == *,* ]]; then
+        bash "${SELF_SCRIPT}" run-cycle --run-id "${run_id}" --task-id "${batch_ids}" --cycle "${next_cycle}" --executor breezing --max-workers "${max_workers}" || cycle_status=$?
+      else
+        log_line "cycle ${next_cycle} starting executor=breezing batch=${batch_ids} max_workers=${max_workers}"
+        bash "${SELF_SCRIPT}" run-cycle --run-id "${run_id}" --task-id "${batch_ids}" --cycle "${next_cycle}" --executor task || cycle_status=$?
+      fi
+    else
+      bash "${SELF_SCRIPT}" run-cycle --run-id "${run_id}" --task-id "${task_id}" --cycle "${next_cycle}" --executor task || cycle_status=$?
+    fi
     if [ "${cycle_status}" -ne 0 ]; then
       case "${cycle_status}" in
-        21) finalize_run "failed" "task_blocked" "Task ${task_id} did not reach approval" ;;
-        22) finalize_run "failed" "pivot_required" "Plateau detected for task ${task_id}" ;;
+        21) finalize_run "failed" "task_blocked" "Task(s) ${task_id} did not reach approval" ;;
+        22) finalize_run "failed" "pivot_required" "Plateau detected for task(s) ${task_id}" ;;
         30) finalize_run "stopped" "user_stop" ;;
         *) finalize_run "failed" "cycle_error" "Cycle ${next_cycle} failed for task ${task_id}" ;;
       esac
@@ -2171,7 +2587,11 @@ EOF
     fi
 
     local remaining=""
-    remaining="$(next_task_id "${selection}" "${plans_file}" 2>/dev/null || true)"
+    if [ "${executor}" = "breezing" ]; then
+      remaining="$(next_ready_batch_ids "${selection}" "${plans_file}" "${max_workers}" 2>/dev/null || true)"
+    else
+      remaining="$(next_task_id "${selection}" "${plans_file}" 2>/dev/null || true)"
+    fi
     if [ -z "${remaining}" ]; then
       finalize_run "completed" "no_remaining_tasks"
       exit 0
@@ -2184,7 +2604,7 @@ EOF
 }
 EOF
 )"
-    log_line "cycle ${next_cycle} finished; sleeping ${delay_seconds}s before next task"
+    log_line "cycle ${next_cycle} finished; sleeping ${delay_seconds}s before next ${executor} cycle"
     local slept=0
     while [ "${slept}" -lt "${delay_seconds}" ]; do
       if stop_requested; then
@@ -2199,7 +2619,7 @@ EOF
 }
 
 cmd_run_cycle() {
-  local run_id="" task_id="" cycle_number=""
+  local run_id="" task_id="" cycle_number="" executor="task" max_workers="max"
   while [ $# -gt 0 ]; do
     case "$1" in
       --run-id)
@@ -2214,6 +2634,19 @@ cmd_run_cycle() {
         cycle_number="${2:-}"
         shift 2
         ;;
+      --executor)
+        executor="${2:-}"
+        shift 2
+        ;;
+      --max-workers|--max-wokers)
+        if [ $# -lt 2 ] || [[ "${2:-}" == --* ]]; then
+          max_workers="max"
+          shift
+        else
+          max_workers="${2:-}"
+          shift 2
+        fi
+        ;;
       *)
         echo "Unknown option: $1" >&2
         exit 2
@@ -2224,7 +2657,14 @@ cmd_run_cycle() {
     echo "run-cycle requires --run-id, --task-id, and --cycle" >&2
     exit 2
   }
-  perform_cycle "${run_id}" "${task_id}" "${cycle_number}"
+  case "${executor}" in
+    breezing) perform_breezing_cycle "${run_id}" "${task_id}" "${cycle_number}" "${max_workers}" ;;
+    task) perform_cycle "${run_id}" "${task_id}" "${cycle_number}" ;;
+    *)
+      echo "--executor must be breezing or task" >&2
+      exit 2
+      ;;
+  esac
 }
 
 subcommand="${1:-}"
