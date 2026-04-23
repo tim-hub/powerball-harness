@@ -205,6 +205,36 @@ R05 guardrail and sandbox.network.deniedDomains are not duplicated by Auto Mode:
 - Harness は説明・release guidance・検証 grep に留め、信頼境界そのものを再実装しない。
 - この guidance は `tests/test-claude-upstream-integration.sh` で、policy docs の存在、`DISABLE_UPDATES` / marketplace policy / dependency resolver / themes decision の記述、Feature Table の完了表記を固定する。
 
+## 53.1.6 Claude Code UX automatic inheritance policy
+
+対象:
+
+- Claude Code `2.1.118` の `/cost` / `/stats` から `/usage` への統合
+- Claude Code `2.1.118` の `/continue` / `/resume` が `/add-dir` で追加された current directory の session を見つける改善
+- Claude Code `2.1.117` の main-thread `--agent` + agent frontmatter `mcpServers` 読み込み
+- Claude Code `2.1.117` の `CLAUDE_CODE_FORK_SUBAGENT=1` external build flag
+- Claude Code `2.1.117` の stale large session summary、native `bfs` / `ugrep` search、高 effort default
+
+今回の判断:
+
+- `/usage` を利用量・コスト・統計の primary entrypoint として扱う。
+- `/cost` / `/stats` は legacy typing shortcut として扱う。古い docs でコスト確認や統計確認の入口を説明する場合は、まず `/usage` を案内し、必要な tab を開く shortcut として `/cost` / `/stats` を補足する。
+- `/resume` が `/add-dir` session を見つける改善と stale large session summary は Claude Code 本体の session discovery / summary logic を自動継承する。Harness は duplicate resume index、独自 stale-session summarizer、transcript 再読 wrapper を追加しない。
+- `--agent` + `mcpServers` は agents audit の後続候補に残す。main-thread agent で MCP 前提の agent frontmatter がどう読まれるかは、既存 agent definitions と MCP setup guidance の棚卸しが必要なため、今回の task では `P` として記録する。
+- `CLAUDE_CODE_FORK_SUBAGENT=1` は Harness default に強制しない。external build で forked subagent を検証するための upstream flag として扱い、配布 plugin の settings / skill default / environment template には入れない。
+- native `bfs` / `ugrep` search は wrapper を追加しない。検索の高速化は Claude Code native macOS / Linux build が Bash 経由で提供する領域で、Harness が別 search shim を重ねると path 解決、glob 差異、fallback 差異を増やす。
+- 高 effort default は Claude Code 本体の model/account policy として自動継承する。Harness の `harness-work` effort scoring は、複雑な task に `ultrathink` や `high` を上乗せする局所 policy に留め、Pro / Max subscriber 向けの built-in default を固定値で上書きしない。
+
+Harness wrapper を追加しない理由:
+
+- これらは UI command routing、session discovery、agent frontmatter loading、native search、model/account default のように Claude Code 本体が runtime で判断する領域。
+- Harness が同じ判断を wrapper として再実装すると、upstream 側の修正後も古い挙動を抱えたり、ユーザーの managed settings / account policy / platform-specific build と衝突したりする。
+- Harness の責務は、古い説明を `/usage` 中心へ更新し、`C` は自動継承として記録し、agent audit が必要な `--agent` + `mcpServers` と external build flag は `P` として後続候補に残すこと。
+
+検証:
+
+- `tests/test-claude-upstream-integration.sh` で、この section、`/usage` primary entrypoint、legacy shortcut の扱い、`--agent` + `mcpServers` follow-up、external build flag を default にしない方針、native search / high effort default の自動継承、Feature Table の `C/P` 表記を固定する。
+
 ## Harness judgement
 
 53.1.1 では snapshot を作るだけに留め、後続 task の実装を先取りしない。

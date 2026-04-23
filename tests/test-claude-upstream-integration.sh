@@ -384,6 +384,44 @@ grep -q 'Plugin themes / managed settings / dependency auto-resolve.*A: docs 化
   exit 1
 }
 
+# Phase 53.1.6: Claude Code UX updates must stay documented as automatic inheritance / follow-up only
+grep -q '53.1.6 Claude Code UX automatic inheritance policy' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot is missing the 53.1.6 Claude Code UX automatic inheritance policy"
+  exit 1
+}
+grep -q '`/usage` を利用量・コスト・統計の primary entrypoint として扱う' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must make /usage the primary usage/cost/statistics entrypoint"
+  exit 1
+}
+grep -q '`/cost` / `/stats` は legacy typing shortcut として扱う' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must treat /cost and /stats as legacy shortcuts"
+  exit 1
+}
+grep -q '`--agent` + `mcpServers` は agents audit の後続候補に残す' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must keep --agent + mcpServers as an agents audit follow-up"
+  exit 1
+}
+grep -q 'CLAUDE_CODE_FORK_SUBAGENT=1` は Harness default に強制しない' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must not force CLAUDE_CODE_FORK_SUBAGENT by default"
+  exit 1
+}
+grep -q 'native `bfs` / `ugrep` search は wrapper を追加しない' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must not add wrappers around native bfs / ugrep search"
+  exit 1
+}
+grep -q '高 effort default は Claude Code 本体の model/account policy として自動継承する' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must inherit high effort defaults from Claude Code"
+  exit 1
+}
+grep -q 'Claude Code UX / runtime fixes.*C/P: 自動継承 + Plans 化' "${ROOT_DIR}/docs/CLAUDE-feature-table.md" || {
+  echo "Feature Table must mark 53.1.6 UX runtime fixes as C/P"
+  exit 1
+}
+grep -q '`/usage` usage / cost / stats view' "${ROOT_DIR}/docs/CLAUDE-feature-table.md" || {
+  echo "Feature Table must use /usage as the current usage/cost/stats view"
+  exit 1
+}
+
 for hooks_file in "${HOOK_FILES[@]}"; do
   MCP_TOOL_COUNT="$(jq '[.. | objects | select(.type? == "mcp_tool")] | length' "${hooks_file}")"
   if [ "${MCP_TOOL_COUNT}" -eq 0 ]; then
