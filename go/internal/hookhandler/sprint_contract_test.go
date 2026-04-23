@@ -183,6 +183,39 @@ func TestSprintContractGenerator_AdvisorTriggers(t *testing.T) {
 	}
 }
 
+func TestSprintContractGenerator_HeadingTask(t *testing.T) {
+	dir := t.TempDir()
+	plansPath := filepath.Join(dir, "Plans.md")
+	if err := os.WriteFile(plansPath, []byte("# Plans\n\n"+
+		"#### 6G-6: Mount Mode 音声ルーティング UI / 構成チェック `cc:TODO`\n\n"+
+		"- [ ] 自分にも音を聞かせるための出力先を UI で選べるようにする\n"+
+		"- [ ] 起動前チェックで AI が聞ける / 自分が聞ける / LINE に返せるを判定する\n"+
+		"Depends: 6G-1, 6G-2\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	g := &SprintContractGenerator{ProjectRoot: dir, PlansFile: plansPath}
+	doc, err := g.Generate("6G-6")
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	if doc.Task.ID != "6G-6" {
+		t.Fatalf("unexpected task id: %s", doc.Task.ID)
+	}
+	if doc.Task.Title != "Mount Mode 音声ルーティング UI / 構成チェック" {
+		t.Fatalf("unexpected heading title: %q", doc.Task.Title)
+	}
+	if len(doc.Task.DependsOn) != 2 || doc.Task.DependsOn[0] != "6G-1" || doc.Task.DependsOn[1] != "6G-2" {
+		t.Fatalf("unexpected depends: %+v", doc.Task.DependsOn)
+	}
+	if doc.Task.StatusAtGeneration != "cc:TODO" {
+		t.Fatalf("unexpected status: %s", doc.Task.StatusAtGeneration)
+	}
+	if doc.Task.DefinitionOfDone == "" || doc.Task.DefinitionOfDone == doc.Task.Title {
+		t.Fatalf("expected checklist-derived DoD, got %q", doc.Task.DefinitionOfDone)
+	}
+}
+
 func TestSprintContractGenerator_WriteRoundTrip(t *testing.T) {
 	dir := t.TempDir()
 	plansPath := filepath.Join(dir, "Plans.md")
