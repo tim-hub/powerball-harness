@@ -177,6 +177,34 @@ R05 guardrail and sandbox.network.deniedDomains are not duplicated by Auto Mode:
 - `tests/test-claude-upstream-integration.sh` で、この section、template note、`.claude-plugin/settings.json` の既存 deny / ask / deniedDomains 維持を固定する。
 - 将来 `.claude-plugin/settings.json` に `autoMode` を追加する場合は、`allow` / `soft_deny` / `environment` の各 entry に `"$defaults"` が含まれることを同 test の jq check が要求する。
 
+## 53.1.5 plugin / managed settings policy
+
+対象:
+
+- Claude Code `2.1.118` の plugin `themes/` directory
+- `DISABLE_UPDATES` と既存 `DISABLE_AUTOUPDATER`
+- Claude Code `2.1.117` の `blockedMarketplaces` / `strictKnownMarketplaces`
+- plugin dependency auto-resolve / missing dependency hints
+- Windows / WSL managed settings 継承 (`wslInheritsWindowsSettings`)
+
+今回の判断:
+
+- `docs/plugin-managed-settings-policy.md` を新設し、setup / plugin policy docs の正本として扱う。
+- `skills/harness-setup/SKILL.md` から同 docs へ pointer を追加し、setup 時に marketplace policy と dependency policy を迷わないようにする。
+- `DISABLE_AUTOUPDATER` は自動更新停止、`DISABLE_UPDATES` は手動 `claude update` まで止める企業管理向けの強い停止として区別する。
+- `blockedMarketplaces` / `strictKnownMarketplaces` は managed settings 専用の管理環境向け policy として扱い、通常ユーザー向け default には過剰適用しない。
+- 通常の team onboarding では `extraKnownMarketplaces` を優先し、strict allowlist が必要な企業だけが managed settings で `strictKnownMarketplaces` を使う。
+- plugin dependency auto-resolve と missing dependency hints は Claude Code 本体に任せる。Harness 独自の dependency resolver、cache 直接編集、marketplace policy 迂回は追加しない。
+- plugin `themes/` directory は今回は `P` に留める。Harness は運用安全性の plugin であり、theme 同梱には brand / accessibility / terminal compatibility の別レビューが必要なため推測実装しない。
+- `wslInheritsWindowsSettings` は Windows / WSL 混在企業環境向けの managed settings 候補として記録し、Harness default には入れない。
+
+安全条件:
+
+- `.claude-plugin/settings.json` に `DISABLE_UPDATES`、`blockedMarketplaces`、`strictKnownMarketplaces` を default として追加しない。
+- managed settings の最上位 precedence と Claude Code 本体の install / update / refresh / auto-update enforcement を信頼する。
+- Harness は説明・release guidance・検証 grep に留め、信頼境界そのものを再実装しない。
+- この guidance は `tests/test-claude-upstream-integration.sh` で、policy docs の存在、`DISABLE_UPDATES` / marketplace policy / dependency resolver / themes decision の記述、Feature Table の完了表記を固定する。
+
 ## Harness judgement
 
 53.1.1 では snapshot を作るだけに留め、後続 task の実装を先取りしない。

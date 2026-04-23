@@ -349,6 +349,41 @@ jq -e '
   exit 1
 }
 
+# Phase 53.1.5: plugin / managed settings policy docs must stay explicit
+PLUGIN_POLICY_DOC="${ROOT_DIR}/docs/plugin-managed-settings-policy.md"
+[ -f "${PLUGIN_POLICY_DOC}" ] || {
+  echo "${PLUGIN_POLICY_DOC} does not exist"
+  exit 1
+}
+grep -q 'DISABLE_UPDATES は手動 `claude update` まで止める' "${PLUGIN_POLICY_DOC}" || {
+  echo "plugin policy doc must explain DISABLE_UPDATES vs DISABLE_AUTOUPDATER"
+  exit 1
+}
+grep -q '通常ユーザー向け default には入れない' "${PLUGIN_POLICY_DOC}" || {
+  echo "plugin policy doc must not over-apply managed marketplace restrictions to normal defaults"
+  exit 1
+}
+grep -q 'Harness 独自の dependency resolver は追加しない' "${PLUGIN_POLICY_DOC}" || {
+  echo "plugin policy doc must leave dependency resolution to Claude Code"
+  exit 1
+}
+grep -q 'plugin `themes/` directory は今回は P' "${PLUGIN_POLICY_DOC}" || {
+  echo "plugin policy doc must record the themes decision"
+  exit 1
+}
+grep -q 'plugin-managed-settings-policy.md' "${ROOT_DIR}/skills/harness-setup/SKILL.md" || {
+  echo "harness-setup must link to plugin managed settings policy"
+  exit 1
+}
+grep -q '53.1.5 plugin / managed settings policy' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot is missing the 53.1.5 plugin managed settings policy"
+  exit 1
+}
+grep -q 'Plugin themes / managed settings / dependency auto-resolve.*A: docs 化済み' "${ROOT_DIR}/docs/CLAUDE-feature-table.md" || {
+  echo "Feature Table must mark 53.1.5 plugin policy docs as done"
+  exit 1
+}
+
 for hooks_file in "${HOOK_FILES[@]}"; do
   MCP_TOOL_COUNT="$(jq '[.. | objects | select(.type? == "mcp_tool")] | length' "${hooks_file}")"
   if [ "${MCP_TOOL_COUNT}" -eq 0 ]; then
