@@ -161,6 +161,45 @@ model_provider = "amazon-bedrock"
 profile = "codex-bedrock"
 ```
 
+### Codex MCP diagnostics / plugin loading (0.123.0+)
+
+Codex `0.123.0` 以降の MCP diagnostics / plugin MCP loading guidance は
+`docs/codex-mcp-diagnostics.md` を正本として扱う。
+
+要点:
+
+- Codex TUI では、普段は `/mcp` で軽量に server 状態だけ確認する。
+- MCP server が見えない、resources が出ない、resource templates が読めない時だけ `/mcp verbose` を使う。
+- `/mcp verbose` では diagnostics / resources / resource templates を確認する。
+- plugin 内 `.mcp.json` は `mcpServers` 形式と top-level server map 形式の両方を受け取れる前提で案内する。
+- 新規 plugin では共有しやすい `mcpServers` 形式を優先する。
+- 既存 plugin が top-level server map 形式なら、Codex 側の loading 改善を利用し、不要な書き換えを避ける。
+- Claude Code 側の `claude mcp ...`、`.claude/mcp.json`、hook `type: "mcp_tool"` guidance と混ぜない。
+
+`mcpServers` 形式:
+
+```json
+{
+  "mcpServers": {
+    "docs": {
+      "command": "node",
+      "args": ["server.js"]
+    }
+  }
+}
+```
+
+top-level server map 形式:
+
+```json
+{
+  "docs": {
+    "command": "node",
+    "args": ["server.js"]
+  }
+}
+```
+
 **使用パターン**（公式プラグイン経由）:
 ```bash
 bash scripts/codex-companion.sh task --write "タスク内容"

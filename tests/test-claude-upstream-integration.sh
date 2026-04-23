@@ -477,6 +477,93 @@ grep -q 'Codex 0.123.0 provider / model metadata.*A: docs 化済み' "${ROOT_DIR
   exit 1
 }
 
+# Phase 53.2.2: Codex /mcp verbose diagnostics and plugin .mcp.json loading policy
+CODEX_MCP_DIAGNOSTICS_DOC="${ROOT_DIR}/docs/codex-mcp-diagnostics.md"
+[ -f "${CODEX_MCP_DIAGNOSTICS_DOC}" ] || {
+  echo "${CODEX_MCP_DIAGNOSTICS_DOC} does not exist"
+  exit 1
+}
+grep -q 'Codex MCP diagnostics / plugin loading' "${ROOT_DIR}/CHANGELOG.md" || {
+  echo "CHANGELOG must mention Codex MCP diagnostics / plugin loading"
+  exit 1
+}
+grep -q '53.2.2 Codex MCP diagnostics and plugin loading policy' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot is missing the 53.2.2 Codex MCP diagnostics policy"
+  exit 1
+}
+grep -q '普段の Codex TUI では `/mcp` を軽量な server 状態確認として使う' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must preserve the plain /mcp fast-path guidance"
+  exit 1
+}
+grep -q '`/mcp verbose` は diagnostics、resources、resource templates を見る troubleshoot 用の入口' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must preserve the /mcp verbose troubleshoot guidance"
+  exit 1
+}
+grep -q 'Claude Code 側の `claude mcp ...`、`.claude/mcp.json`、hook `type: "mcp_tool"` は別 surface' "${PHASE53_SNAPSHOT_DOC}" || {
+  echo "Phase 53 snapshot must separate Codex MCP guidance from Claude Code MCP guidance"
+  exit 1
+}
+grep -q 'Codex `0.123.0` 以降の MCP diagnostics / plugin MCP loading guidance' "${ROOT_DIR}/skills/harness-setup/SKILL.md" || {
+  echo "harness-setup must link to Codex MCP diagnostics guidance"
+  exit 1
+}
+grep -q '/mcp verbose' "${ROOT_DIR}/skills/harness-setup/SKILL.md" || {
+  echo "harness-setup must mention /mcp verbose"
+  exit 1
+}
+grep -q 'docs/codex-mcp-diagnostics.md' "${ROOT_DIR}/skills/harness-setup/SKILL.md" || {
+  echo "harness-setup must point to docs/codex-mcp-diagnostics.md"
+  exit 1
+}
+grep -q 'Codex `0.123.0` keeps the normal `/mcp` view fast' "${ROOT_DIR}/codex/README.md" || {
+  echo "codex/README.md must document the fast plain /mcp behavior"
+  exit 1
+}
+grep -q '/mcp verbose' "${ROOT_DIR}/codex/README.md" || {
+  echo "codex/README.md must mention /mcp verbose"
+  exit 1
+}
+grep -q 'diagnostics, resources, and resource templates' "${ROOT_DIR}/codex/README.md" || {
+  echo "codex/README.md must mention diagnostics/resources/resource templates"
+  exit 1
+}
+grep -q '"mcpServers"' "${ROOT_DIR}/codex/README.md" || {
+  echo "codex/README.md must show the mcpServers .mcp.json shape"
+  exit 1
+}
+grep -q 'top-level server map' "${ROOT_DIR}/codex/README.md" || {
+  echo "codex/README.md must mention top-level server map .mcp.json loading"
+  exit 1
+}
+grep -q 'This is Codex plugin loading guidance, not Claude Code `claude mcp` or `.claude/mcp.json` guidance' "${ROOT_DIR}/codex/README.md" || {
+  echo "codex/README.md must keep Codex and Claude Code MCP terminology separate"
+  exit 1
+}
+grep -q '`/mcp verbose` は、困った時だけ使う' "${CODEX_MCP_DIAGNOSTICS_DOC}" || {
+  echo "Codex MCP diagnostics doc must say /mcp verbose is for troubleshooting"
+  exit 1
+}
+grep -q 'diagnostics、resources、resource templates' "${CODEX_MCP_DIAGNOSTICS_DOC}" || {
+  echo "Codex MCP diagnostics doc must mention diagnostics/resources/resource templates"
+  exit 1
+}
+grep -q '`mcpServers` 形式' "${CODEX_MCP_DIAGNOSTICS_DOC}" || {
+  echo "Codex MCP diagnostics doc must document mcpServers shape"
+  exit 1
+}
+grep -q 'top-level server map 形式' "${CODEX_MCP_DIAGNOSTICS_DOC}" || {
+  echo "Codex MCP diagnostics doc must document top-level server map shape"
+  exit 1
+}
+grep -q 'Claude Code 側の `claude mcp`、`.claude/mcp.json`、hook `type: "mcp_tool"` の話とは混ぜない' "${CODEX_MCP_DIAGNOSTICS_DOC}" || {
+  echo "Codex MCP diagnostics doc must separate Codex and Claude Code MCP guidance"
+  exit 1
+}
+grep -q 'Codex 0.123.0 MCP diagnostics / plugin loading.*A: docs 化済み' "${ROOT_DIR}/docs/CLAUDE-feature-table.md" || {
+  echo "Feature Table must mark 53.2.2 MCP diagnostics/plugin loading guidance as done"
+  exit 1
+}
+
 for hooks_file in "${HOOK_FILES[@]}"; do
   MCP_TOOL_COUNT="$(jq '[.. | objects | select(.type? == "mcp_tool")] | length' "${hooks_file}")"
   if [ "${MCP_TOOL_COUNT}" -eq 0 ]; then

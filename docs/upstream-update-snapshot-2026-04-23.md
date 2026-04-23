@@ -282,6 +282,59 @@ rg -n "gpt-5\.2-codex|gpt-5-codex|gpt-5\.1|codex-mini|gpt-5\.3-codex|gpt-5\.4" \
 
 - `tests/test-claude-upstream-integration.sh` で、provider policy docs、`harness-setup` pointer、Codex README / config note、古い `gpt-5.2-codex` sample 削除、Feature Table の 53.2.1 完了表記を grep 固定する。
 
+## 53.2.2 Codex MCP diagnostics and plugin loading policy
+
+対象:
+
+- Codex `0.123.0` の `/mcp verbose`
+- Codex `0.123.0` の plugin `.mcp.json` loading
+- plugin `.mcp.json` の `mcpServers` 形式
+- plugin `.mcp.json` の top-level server map 形式
+
+今回の判断:
+
+- `docs/codex-mcp-diagnostics.md` を新設し、Codex MCP diagnostics / plugin MCP loading guidance の正本として扱う。
+- 普段の Codex TUI では `/mcp` を軽量な server 状態確認として使う。
+- MCP server が見えない、起動エラーが分からない、resources / resource templates の有無を見たい時だけ `/mcp verbose` を使う。
+- `/mcp verbose` は diagnostics、resources、resource templates を見る troubleshoot 用の入口として案内する。
+- plugin 内 `.mcp.json` は `mcpServers` 形式と top-level server map 形式の両方を受け取れる前提に更新する。
+- 新規 plugin では、他 tool と共有しやすい `mcpServers` 形式を優先する。
+- 既存 plugin が top-level server map 形式なら、Codex 側の loading 改善を利用し、不要な migration を要求しない。
+
+`.mcp.json` examples:
+
+```json
+{
+  "mcpServers": {
+    "docs": {
+      "command": "node",
+      "args": ["server.js"]
+    }
+  }
+}
+```
+
+```json
+{
+  "docs": {
+    "command": "node",
+    "args": ["server.js"]
+  }
+}
+```
+
+Claude Code 側 MCP guidance と混ぜない理由:
+
+- Codex TUI の `/mcp` / `/mcp verbose` は Codex runtime の診断入口。
+- Codex plugin `.mcp.json` loading は Codex plugin 側の読み込み改善。
+- Claude Code 側の `claude mcp ...`、`.claude/mcp.json`、hook `type: "mcp_tool"` は別 surface。
+- 53.1.2 の `type: "mcp_tool"` hook safety decision は Claude Code hooks の話であり、53.2.2 の Codex `/mcp verbose` guidance とは責務を分ける。
+
+検証:
+
+- `tests/test-claude-upstream-integration.sh` で、`docs/codex-mcp-diagnostics.md`、`harness-setup` pointer、Codex README guidance、`/mcp verbose`、diagnostics / resources / resource templates、`mcpServers` 形式、top-level server map 形式、Claude Code 側 MCP guidance と混ぜない方針、Feature Table の 53.2.2 完了表記を grep 固定する。
+- `tests/test-codex-package.sh` で、Codex README の `/mcp verbose` と `.mcp.json` loading guidance を検出する。
+
 ## Harness judgement
 
 53.1.1 では snapshot を作るだけに留め、後続 task の実装を先取りしない。

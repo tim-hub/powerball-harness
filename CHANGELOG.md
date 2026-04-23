@@ -34,6 +34,8 @@ Change history for claude-code-harness.
 
 **Codex provider setup policy**: `docs/codex-provider-setup-policy.md` を追加し、Codex `0.123.0` の built-in `amazon-bedrock` provider、`model_providers.amazon-bedrock.aws.profile`、current `gpt-5.4` default metadata の扱いを setup guidance として整理した。Harness 配布 config では `model` / `model_provider` を固定せず、Bedrock 利用者だけが user / project config に追加する方針にした。古い `gpt-5.2-codex` 推奨 sample は削除した。
 
+**Codex MCP diagnostics / plugin loading**: `docs/codex-mcp-diagnostics.md` を追加し、Codex `0.123.0` の `/mcp verbose` と plugin `.mcp.json` loading 改善を setup guidance として整理した。普段は軽量な `/mcp`、困った時だけ `/mcp verbose` で diagnostics / resources / resource templates を見る手順にし、plugin `.mcp.json` は `mcpServers` 形式と top-level server map 形式の両方を許す前提へ更新した。Claude Code 側の `claude mcp` / `.claude/mcp.json` / hook `type: "mcp_tool"` guidance とは別 surface として扱う。
+
 #### Phase 52: upstream update skill merge hardening + 2026-04-21 snapshot
 
 | Before | After |

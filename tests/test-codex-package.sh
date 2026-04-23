@@ -379,6 +379,38 @@ else
   log_fail "codex README update-path guidance is incomplete"
 fi
 
+log_test "codex README documents MCP verbose diagnostics and .mcp.json loading"
+readme_mcp_ok=true
+if ! rg -q --fixed-strings 'Codex `0.123.0` keeps the normal `/mcp` view fast' "codex/README.md"; then
+  echo "  missing: plain /mcp fast-path guidance"
+  readme_mcp_ok=false
+fi
+if ! rg -q --fixed-strings '/mcp verbose' "codex/README.md"; then
+  echo "  missing: /mcp verbose guidance"
+  readme_mcp_ok=false
+fi
+if ! rg -q --fixed-strings 'diagnostics, resources, and resource templates' "codex/README.md"; then
+  echo "  missing: diagnostics/resources/resource templates guidance"
+  readme_mcp_ok=false
+fi
+if ! rg -q --fixed-strings '"mcpServers"' "codex/README.md"; then
+  echo "  missing: mcpServers .mcp.json example"
+  readme_mcp_ok=false
+fi
+if ! rg -q --fixed-strings 'top-level server map' "codex/README.md"; then
+  echo "  missing: top-level server map loading guidance"
+  readme_mcp_ok=false
+fi
+if ! rg -q --fixed-strings 'not Claude Code `claude mcp` or `.claude/mcp.json` guidance' "codex/README.md"; then
+  echo "  missing: Codex vs Claude Code MCP terminology boundary"
+  readme_mcp_ok=false
+fi
+if $readme_mcp_ok; then
+  log_pass "codex README documents MCP diagnostics and plugin loading"
+else
+  log_fail "codex README MCP guidance is incomplete"
+fi
+
 # Test 1.8: codex-setup-local should cleanup duplicate frontmatter names
 log_test "codex-setup-local cleans duplicate frontmatter skill aliases"
 if PROJECT_ROOT="$PROJECT_ROOT" bash -lc '

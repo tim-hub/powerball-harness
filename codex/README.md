@@ -133,6 +133,43 @@ Pin `model = "gpt-5.4"` only in your own config when reproducibility or an organ
 
 Details: `docs/codex-provider-setup-policy.md`.
 
+## MCP Diagnostics And Plugin Loading
+
+Codex `0.123.0` keeps the normal `/mcp` view fast and adds `/mcp verbose` for full MCP diagnostics.
+
+Use this split:
+
+- Run `/mcp` for the usual lightweight server status check.
+- Run `/mcp verbose` only when a server is missing, a startup error is unclear, or you need to inspect diagnostics, resources, and resource templates.
+
+Codex plugin MCP loading accepts both supported `.mcp.json` shapes:
+
+```json
+{
+  "mcpServers": {
+    "docs": {
+      "command": "node",
+      "args": ["server.js"]
+    }
+  }
+}
+```
+
+```json
+{
+  "docs": {
+    "command": "node",
+    "args": ["server.js"]
+  }
+}
+```
+
+Prefer `mcpServers` for new plugin files because it is easier to share with other tools.
+Keep existing top-level server map files when they already work.
+This is Codex plugin loading guidance, not Claude Code `claude mcp` or `.claude/mcp.json` guidance.
+
+Details: `docs/codex-mcp-diagnostics.md`.
+
 ## Runtime Behavior
 
 - `$harness-plan`, `$harness-sync`, `$harness-work`, `$breezing`, `$harness-review`, and `$harness-loop` are the primary Codex-facing workflow surfaces.
