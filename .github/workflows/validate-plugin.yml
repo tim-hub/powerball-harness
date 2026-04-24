@@ -27,6 +27,14 @@ jobs:
       - name: Install ripgrep
         run: sudo apt-get install -y ripgrep
 
+      - name: Check i18n regression suite
+        run: |
+          bash ./scripts/i18n/check-translations.sh
+          bash ./tests/test-i18n-default-language.sh
+          bash ./tests/test-i18n-skill-frontmatter.sh
+          bash ./tests/test-i18n-locale-roundtrip.sh
+          bash ./tests/test-setup-language-rendering.sh
+
       - name: Validate plugin structure
         run: |
           bash ./tests/validate-plugin.sh

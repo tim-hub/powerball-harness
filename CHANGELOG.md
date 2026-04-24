@@ -22,6 +22,8 @@ Change history for claude-code-harness.
 
 **Japanese UX preservation**: Added a regression pass for Japanese opt-in surfaces: `set-locale.sh ja` skill descriptions, `README_ja.md`, Japanese setup templates, Japanese hook messages, `templates/modes/harness--ja.json`, and the English-default boundary for Japanese creative skills such as `x-announce` and `x-article`.
 
+**Distribution gate closeout**: Added the i18n regression suite to `scripts/ci/check-consistency.sh` and the `validate-plugin` GitHub Actions workflow. `docs/issue-105-response-draft.md` captures the Issue #105 reply, Japanese UX preservation statement, verification commands, migration invariants, rollback notes, and abort conditions for pre-release review.
+
 #### Phase 54: Codex Breezing defaults + loop batch execution
 
 **Codex harness-loop docs**: Codex 用 `harness-loop` guidance を、旧来の「1 cycle = 1 task」から「1 cycle = ready batch を Breezing で実行」に更新した。`--max-workers N|max` で batch 内の並列数を制御し、問題切り分けや危険な直列作業では `--executor task` で従来の one-task-per-cycle local worker path に逃がせることを明記した。
