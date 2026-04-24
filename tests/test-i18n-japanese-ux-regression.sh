@@ -41,11 +41,15 @@ copy_dir codex/.codex/skills
 copy_dir opencode/skills
 copy_dir .agents/skills
 
-(
+locale_log="$tmpdir/i18n-japanese-ux-locale.log"
+if ! (
   cd "$tmpdir/repo"
-  bash scripts/i18n/set-locale.sh ja >/tmp/i18n-japanese-ux-locale.$$ 2>&1
-)
-rm -f /tmp/i18n-japanese-ux-locale.$$
+  bash scripts/i18n/set-locale.sh ja
+) >"$locale_log" 2>&1; then
+  echo "set-locale.sh ja failed:" >&2
+  cat "$locale_log" >&2
+  exit 1
+fi
 
 python3 - "$tmpdir/repo" <<'PY'
 import sys

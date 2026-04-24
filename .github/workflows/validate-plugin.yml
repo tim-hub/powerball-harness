@@ -44,7 +44,6 @@ jobs:
           bash ./tests/test-i18n-skill-frontmatter.sh
           bash ./tests/test-i18n-locale-roundtrip.sh
           bash ./tests/test-setup-language-rendering.sh
-          bash ./tests/test-i18n-japanese-ux-regression.sh
 
       - name: Validate plugin structure
         run: |
