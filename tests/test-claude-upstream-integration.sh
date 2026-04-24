@@ -765,6 +765,66 @@ grep -q 'Phase 53 closeout では、Codex mirror / path drift の広い棚卸し
   exit 1
 }
 
+# Phase 56: Claude Code 2.1.119 / Codex 0.124.0 snapshot and no-op adaptation
+PHASE56_SNAPSHOT_DOC="${ROOT_DIR}/docs/upstream-update-snapshot-2026-04-25.md"
+[ -f "${PHASE56_SNAPSHOT_DOC}" ] || {
+  echo "${PHASE56_SNAPSHOT_DOC} does not exist"
+  exit 1
+}
+for referencing_file in \
+  "${ROOT_DIR}/CHANGELOG.md" \
+  "${ROOT_DIR}/docs/CLAUDE-feature-table.md" \
+  "${ROOT_DIR}/Plans.md"; do
+  grep -q 'upstream-update-snapshot-2026-04-25' "${referencing_file}" || {
+    echo "${referencing_file} is missing the expected upstream-update-snapshot-2026-04-25 reference"
+    exit 1
+  }
+done
+grep -q 'Claude Code `2.1.119`' "${PHASE56_SNAPSHOT_DOC}" || {
+  echo "Phase 56 snapshot must include Claude Code 2.1.119"
+  exit 1
+}
+grep -q 'Codex `0.124.0` stable' "${PHASE56_SNAPSHOT_DOC}" || {
+  echo "Phase 56 snapshot must include Codex 0.124.0 stable"
+  exit 1
+}
+grep -q 'Codex `0.125.0-alpha.2` pre-release' "${PHASE56_SNAPSHOT_DOC}" || {
+  echo "Phase 56 snapshot must include Codex 0.125.0-alpha.2 pre-release"
+  exit 1
+}
+grep -q 'PostToolUse` and `PostToolUseFailure` inputs include `duration_ms`' "${PHASE56_SNAPSHOT_DOC}" || {
+  echo "Phase 56 snapshot must classify PostToolUse duration_ms"
+  exit 1
+}
+grep -q 'Status line stdin JSON includes `effort.level` and `thinking.enabled`' "${PHASE56_SNAPSHOT_DOC}" || {
+  echo "Phase 56 snapshot must classify status line effort/thinking fields"
+  exit 1
+}
+grep -q 'Hooks are stable, configurable inline in `config.toml` and managed `requirements.toml`' "${PHASE56_SNAPSHOT_DOC}" || {
+  echo "Phase 56 snapshot must classify Codex stable hooks"
+  exit 1
+}
+grep -q 'alpha から推測実装しない' "${PHASE56_SNAPSHOT_DOC}" || {
+  echo "Phase 56 snapshot must forbid speculative alpha implementation"
+  exit 1
+}
+grep -q 'B: 書いただけ 0 件の理由' "${PHASE56_SNAPSHOT_DOC}" || {
+  echo "Phase 56 snapshot must explain why B is zero"
+  exit 1
+}
+grep -q 'Phase 56 Claude Code 2.1.119 / Codex 0.124.0 snapshot' "${ROOT_DIR}/docs/CLAUDE-feature-table.md" || {
+  echo "Feature Table must include the Phase 56 upstream snapshot row"
+  exit 1
+}
+grep -q 'Phase 56: Claude Code 2.1.119 / Codex 0.124.0 upstream snapshot' "${ROOT_DIR}/CHANGELOG.md" || {
+  echo "CHANGELOG must include the Phase 56 upstream snapshot"
+  exit 1
+}
+grep -q '56.2.2 | Codex `0.124.0` stable hooks' "${ROOT_DIR}/Plans.md" || {
+  echo "Plans.md must keep the Codex 0.124.0 hooks follow-up task"
+  exit 1
+}
+
 for hooks_file in "${HOOK_FILES[@]}"; do
   MCP_TOOL_COUNT="$(jq '[.. | objects | select(.type? == "mcp_tool")] | length' "${hooks_file}")"
   if [ "${MCP_TOOL_COUNT}" -eq 0 ]; then
