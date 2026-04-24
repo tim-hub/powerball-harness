@@ -101,7 +101,7 @@ func (h *AutoCleanupHandler) Handle(r io.Reader, w io.Writer) error {
 		absPath = filepath.Join(cwd, filePath)
 	}
 
-	feedback := h.checkFile(filePath, absPath, plansMax, sessionMax, claudeMax, cwd)
+	feedback := h.checkFile(filePath, absPath, plansMax, sessionMax, claudeMax, cwd, resolveHarnessLocale(cwd))
 	if feedback == "" {
 		return nil
 	}
@@ -110,24 +110,24 @@ func (h *AutoCleanupHandler) Handle(r io.Reader, w io.Writer) error {
 }
 
 // checkFile はファイルを判別してサイズチェックを行い、フィードバック文字列を返す。
-func (h *AutoCleanupHandler) checkFile(relPath, absPath string, plansMax, sessionMax, claudeMax int, cwd string) string {
+func (h *AutoCleanupHandler) checkFile(relPath, absPath string, plansMax, sessionMax, claudeMax int, cwd, locale string) string {
 	lower := strings.ToLower(relPath)
 	var feedback string
 
 	switch {
 	case strings.Contains(lower, "plans.md"):
-		feedback = h.checkPlans(absPath, plansMax, cwd)
+		feedback = h.checkPlans(absPath, plansMax, cwd, locale)
 	case strings.Contains(lower, "session-log.md"):
-		feedback = h.checkSessionLog(absPath, sessionMax)
+		feedback = h.checkSessionLog(absPath, sessionMax, locale)
 	case strings.Contains(lower, "claude.md"):
-		feedback = h.checkClaudeMd(absPath, claudeMax)
+		feedback = h.checkClaudeMd(absPath, claudeMax, locale)
 	}
 
 	return feedback
 }
 
 // checkPlans は Plans.md の行数をチェックし、アーカイブ検知も行う。
-func (h *AutoCleanupHandler) checkPlans(absPath string, maxLines int, cwd string) string {
+func (h *AutoCleanupHandler) checkPlans(absPath string, maxLines int, cwd, locale string) string {
 	lines, err := countLines(absPath)
 	if err != nil {
 		return ""
@@ -135,7 +135,9 @@ func (h *AutoCleanupHandler) checkPlans(absPath string, maxLines int, cwd string
 
 	var feedback string
 	if lines > maxLines {
-		feedback = fmt.Sprintf("⚠️ Plans.md が %d 行です（上限: %d行）。/maintenance で古いタスクをアーカイブすることを推奨します。", lines, maxLines)
+		feedback = localizedHarnessMessage(locale,
+			fmt.Sprintf("Warning: Plans.md has %d lines (limit: %d). Consider archiving old tasks with /maintenance.", lines, maxLines),
+			fmt.Sprintf("⚠️ Plans.md が %d 行です（上限: %d行）。/maintenance で古いタスクをアーカイブすることを推奨します。", lines, maxLines))
 	}
 
 	// アーカイブセクション検知 + SSOT フラグチェック
@@ -149,11 +151,13 @@ func (h *AutoCleanupHandler) checkPlans(absPath string, maxLines int, cwd string
 		ssotFlag := filepath.Join(stateDir, ".ssot-synced-this-session")
 
 		if !fileExists(ssotFlag) {
-			ssotWarning := "**Plans.md クリーンアップ前に /memory sync を実行してください** - 重要な決定や学習事項が SSOT (decisions.md/patterns.md) に反映されていない可能性があります。"
+			ssotWarning := localizedHarnessMessage(locale,
+				"**Run /memory sync before cleaning up Plans.md** - important decisions or learnings may not be reflected in the SSOT (decisions.md/patterns.md).",
+				"**Plans.md クリーンアップ前に /memory sync を実行してください** - 重要な決定や学習事項が SSOT (decisions.md/patterns.md) に反映されていない可能性があります。")
 			if feedback != "" {
-				feedback = feedback + " | ⚠️ " + ssotWarning
+				feedback = feedback + localizedHarnessMessage(locale, " | Warning: ", " | ⚠️ ") + ssotWarning
 			} else {
-				feedback = "⚠️ " + ssotWarning
+				feedback = localizedHarnessMessage(locale, "Warning: ", "⚠️ ") + ssotWarning
 			}
 		}
 	}
@@ -162,25 +166,29 @@ func (h *AutoCleanupHandler) checkPlans(absPath string, maxLines int, cwd string
 }
 
 // checkSessionLog は session-log.md の行数をチェックする。
-func (h *AutoCleanupHandler) checkSessionLog(absPath string, maxLines int) string {
+func (h *AutoCleanupHandler) checkSessionLog(absPath string, maxLines int, locale string) string {
 	lines, err := countLines(absPath)
 	if err != nil {
 		return ""
 	}
 	if lines > maxLines {
-		return fmt.Sprintf("⚠️ session-log.md が %d 行です（上限: %d行）。/maintenance で月別に分割することを推奨します。", lines, maxLines)
+		return localizedHarnessMessage(locale,
+			fmt.Sprintf("Warning: session-log.md has %d lines (limit: %d). Consider splitting it by month with /maintenance.", lines, maxLines),
+			fmt.Sprintf("⚠️ session-log.md が %d 行です（上限: %d行）。/maintenance で月別に分割することを推奨します。", lines, maxLines))
 	}
 	return ""
 }
 
 // checkClaudeMd は CLAUDE.md の行数をチェックする。
-func (h *AutoCleanupHandler) checkClaudeMd(absPath string, maxLines int) string {
+func (h *AutoCleanupHandler) checkClaudeMd(absPath string, maxLines int, locale string) string {
 	lines, err := countLines(absPath)
 	if err != nil {
 		return ""
 	}
 	if lines > maxLines {
-		return fmt.Sprintf("⚠️ CLAUDE.md が %d 行です。.claude/rules/ への分割、または docs/ に移動して @docs/filename.md で参照することを検討してください。", lines)
+		return localizedHarnessMessage(locale,
+			fmt.Sprintf("Warning: CLAUDE.md has %d lines. Consider splitting rules into .claude/rules/ or moving long content to docs/ and referencing it with @docs/filename.md.", lines),
+			fmt.Sprintf("⚠️ CLAUDE.md が %d 行です。.claude/rules/ への分割、または docs/ に移動して @docs/filename.md で参照することを検討してください。", lines))
 	}
 	return ""
 }

@@ -13,6 +13,7 @@
   ],
   "properties": {
     "schema_version": {
+      "type": "string",
       "const": "advisor-response.v1"
     },
     "decision": {

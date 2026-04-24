@@ -147,6 +147,20 @@ claude
 
 That's it. Start with `/harness-plan`.
 
+### Language
+
+Harness now ships with English as the default setup language. Japanese remains
+fully supported as an explicit opt-in:
+
+```yaml
+i18n:
+  language: ja
+```
+
+You can also start a temporary Japanese setup with
+`CLAUDE_CODE_HARNESS_LANG=ja claude`. The Japanese README is
+[README_ja.md](README_ja.md).
+
 ---
 
 ## 🪄 TL;DR: Verified Work All

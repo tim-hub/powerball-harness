@@ -1,6 +1,6 @@
 ---
 name: claude-codex-upstream-update
-description: "Claude Code changelog と Codex releases を調査し、Harness に実装価値のある差分だけを取り込むためのローカル専用スキル。Use when checking upstream updates, integrating Claude updates into Harness, comparing Claude vs Codex upgrade impact, or preparing the next upstream adaptation cycle. Do NOT use for public release copy or generic changelog summarization."
+description: "Local-only skill for researching Claude Code and Codex upstream releases, selecting high-value adaptations, and implementing meaningful Harness upgrades. Not for distribution."
 description-ja: "Claude Code changelog と Codex releases を調査し、Harness に実装価値のある差分だけを取り込むためのローカル専用スキル。公開配布しない。"
 description-en: "Local-only skill for researching Claude Code and Codex upstream releases, selecting high-value adaptations, and implementing meaningful Harness upgrades. Not for distribution."
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch"]

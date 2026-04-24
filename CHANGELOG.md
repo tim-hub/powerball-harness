@@ -8,12 +8,21 @@ Change history for claude-code-harness.
 
 ### Fixed
 
+- `harness codex-loop start` now accepts heading-style Plans tasks such as `6G-6` and human line references such as `Plans.md:546`. Hyphenated task IDs are resolved as exact IDs before range parsing, so Codex `harness-loop` no longer requires users to rewrite heading tasks into table rows before starting a loop.
 - `codex-setup-local.sh` now treats existing skill symlinks as links instead of recursing into their targets. User-level Codex setup can safely preserve a symlink that already points at the current Harness source, or replace a stale symlink without moving files out of the source tree. Backup names also get a collision-safe suffix so repeated basenames such as `SKILL.md` are not overwritten within one run.
 - Claude Code hook command resolution now falls back safely when `CLAUDE_PLUGIN_ROOT` is missing or invalid. Hook commands validate the resolved `claude-code-harness` plugin root before executing `bin/harness`, preventing empty plugin roots from becoming `/bin/harness` and producing `hook exited with code 127`.
 - `sync-plugin-cache.sh` now validates the plugin root and updates an installed local marketplace copy when present, so stale marketplace hook definitions do not keep using raw `${CLAUDE_PLUGIN_ROOT}` commands after the versioned cache is fixed.
 - Sprint-contract generation now omits inactive pointer fields such as `review.rubric_target`, preventing release preflight from rejecting non-UI contracts that previously serialized those fields as `null`.
 
 ### Added
+
+#### Phase 55: Issue #105 English default no-regression tests
+
+**I18n regression coverage**: Added shell tests for English default config/schema surfaces, shipped skill frontmatter, temp-copy `ja -> en` locale roundtrip, and setup-facing language rendering. `scripts/i18n/check-translations.sh` now checks `skills/`, `skills-codex/`, `codex/.codex/skills/`, and `opencode/skills/`, requiring shipped `description` to match `description-en` while preserving `description-ja`.
+
+**Japanese UX preservation**: Added a regression pass for Japanese opt-in surfaces: `set-locale.sh ja` skill descriptions, `README_ja.md`, Japanese setup templates, Japanese hook messages, `templates/modes/harness--ja.json`, and the English-default boundary for Japanese creative skills such as `x-announce` and `x-article`.
+
+**Distribution gate closeout**: Added the i18n regression suite to `scripts/ci/check-consistency.sh` and the `validate-plugin` GitHub Actions workflow. `docs/issue-105-response-draft.md` captures the Issue #105 reply, Japanese UX preservation statement, verification commands, migration invariants, rollback notes, and abort conditions for pre-release review.
 
 #### Phase 54: Codex Breezing defaults + loop batch execution
 

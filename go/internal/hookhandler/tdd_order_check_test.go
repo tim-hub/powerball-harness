@@ -186,6 +186,77 @@ func TestHandleTDDOrderCheck_WarningEmitted(t *testing.T) {
 	}
 }
 
+func TestHandleTDDOrderCheck_WarningLocaleDefaultEnglish(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "")
+	t.Setenv("HARNESS_PROJECT_ROOT", "")
+	t.Setenv("PROJECT_ROOT", "")
+
+	result := runTDDWarningForLocaleTest(t, "")
+	if result.Decision != "approve" {
+		t.Fatalf("decision = %q, want approve", result.Decision)
+	}
+	if !strings.Contains(result.SystemMessage, "TDD is enabled by default") {
+		t.Fatalf("default systemMessage should be English, got %q", result.SystemMessage)
+	}
+	if strings.Contains(result.SystemMessage, "テストを先に") {
+		t.Fatalf("default systemMessage should not be Japanese, got %q", result.SystemMessage)
+	}
+}
+
+func TestHandleTDDOrderCheck_WarningLocaleJapaneseEnv(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "ja")
+	t.Setenv("HARNESS_PROJECT_ROOT", "")
+	t.Setenv("PROJECT_ROOT", "")
+
+	result := runTDDWarningForLocaleTest(t, "")
+	if result.Decision != "approve" {
+		t.Fatalf("decision = %q, want approve", result.Decision)
+	}
+	if !strings.Contains(result.SystemMessage, "TDD はデフォルトで有効です") {
+		t.Fatalf("ja env systemMessage should be Japanese, got %q", result.SystemMessage)
+	}
+}
+
+func TestHandleTDDOrderCheck_WarningLocaleJapaneseConfig(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "en")
+	t.Setenv("HARNESS_PROJECT_ROOT", "")
+	t.Setenv("PROJECT_ROOT", "")
+
+	result := runTDDWarningForLocaleTest(t, "i18n:\n  language: ja\n")
+	if !strings.Contains(result.SystemMessage, "TDD はデフォルトで有効です") {
+		t.Fatalf("config ja systemMessage should be Japanese, got %q", result.SystemMessage)
+	}
+}
+
+func runTDDWarningForLocaleTest(t *testing.T, config string) tddOutput {
+	t.Helper()
+	tmpDir := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	if config != "" {
+		if err := os.WriteFile(harnessConfigFileName, []byte(config), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile("Plans.md", []byte("| Task | Implement | DoD | - | cc:WIP |\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	input := `{"tool_name":"Write","tool_input":{"file_path":"src/main.ts"}}`
+	var out bytes.Buffer
+	if err := HandleTDDOrderCheck(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	return parseTDDOutput(t, &out)
+}
+
 func TestHandleTDDOrderCheck_TestAlreadyEdited(t *testing.T) {
 	tmpDir := t.TempDir()
 	origDir, err := os.Getwd()

@@ -1,0 +1,100 @@
+# .claude-code-harness.config.yaml
+# claude-code-harness settings file
+#
+# This file lets you customize cleanup thresholds.
+# If omitted, default values are used.
+
+# Language settings
+# 日本語テンプレートを明示選択した場合の設定です。
+i18n:
+  language: ja
+
+# Plans.md の配置場所（デフォルト: "." = プロジェクトルート）
+# 例: ".claude/memory" にすると SSOT と統一配置
+plansDirectory: "."
+
+advisor:
+  # Executor が必要なときだけ相談役を呼ぶ
+  enabled: true
+  mode: on-demand
+  max_consults_per_task: 3
+  retry_threshold: 2
+  consult_before_user_escalation: true
+  claude_model: opus
+  codex_model: gpt-5.4
+
+cleanup:
+  plans:
+    archive_after_days: 7
+    max_lines: 200
+    archive_max_items: 50
+    split_to_monthly: true
+
+  session_log:
+    archive_after_days: 30
+    max_lines: 500
+    archive_path: ".claude/memory/archive/sessions/"
+
+  claude_md:
+    max_lines: 100
+    warn_only: true
+
+  # - session_start: check at session start
+  # - manual: only when /cleanup runs
+  # - hook: check on PostToolUse hook
+  auto_run: hook
+
+# Commit guard: require /harness-review before git commit
+# When enabled, git commit will be blocked until review is completed
+commit_guard: true
+
+# Context budget (estimated tooling overhead)
+context_budget:
+  enabled: true
+  max_enabled_mcps: 10
+  max_installed_plugins: 10
+
+# Optional quality automation pack (PostToolUse)
+quality_pack:
+  enabled: false
+  mode: warn         # warn | run
+  prettier: true
+  tsc: true
+  console_log: true
+
+# Review settings (commit judgment + Codex mode)
+review:
+  # Review mode: default (Claude only) or codex (GPT experts delegation)
+  mode: codex
+
+  # Commit judgment settings
+  judgment:
+    # Output APPROVE/REQUEST CHANGES/REJECT verdict
+    enabled: true
+    # Auto-fix on REQUEST CHANGES
+    auto_fix: true
+    # Max retry count for auto-fix loop
+    max_retries: 3
+
+  # Codex integration for parallel expert reviews
+  codex:
+    # Enable Codex mode (GPT experts delegation)
+    enabled: true
+    # Auto-run without confirmation
+    auto: true
+    # Individual expert toggles
+    experts:
+      security: true        # OWASP Top 10, auth/authz
+      accessibility: true   # WCAG 2.1 AA
+      performance: true     # Rendering, DB queries
+      quality: true         # Readability, maintainability
+      seo: true             # Meta tags, structured data
+      architect: true       # Architecture decisions (from claude-delegator)
+      plan_reviewer: true   # Plan completeness (from claude-delegator)
+      scope_analyst: true   # Requirements clarity (from claude-delegator)
+
+hooks:
+  enabled: true
+  post_tool_use:
+    - matcher: "Edit|Write"
+      script: "~/.claude/scripts/auto-cleanup-hook.sh"

@@ -3,8 +3,8 @@
   "version": "1.0",
 
   "i18n": {
-    "language": "ja",
-    "comment": "ja: 日本語 / en: 英語 - 生成物・ドキュメント・対話の言語を統一"
+    "language": "en",
+    "comment": "en: English default / ja: Japanese opt-in - keep generated files, docs, and messages aligned"
   },
 
   "constitution": {
@@ -75,5 +75,4 @@
     "max_files_to_modify": 20
   }
 }
-
 

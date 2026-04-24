@@ -35,6 +35,69 @@ updated=0
 skipped=0
 errors=0
 
+extract_frontmatter_value() {
+  local file="$1"
+  local key="$2"
+
+  awk -v key="$key" '
+    NR == 1 {
+      if ($0 != "---") {
+        exit 3
+      }
+      next
+    }
+    $0 == "---" {
+      exit 2
+    }
+    index($0, key ":") == 1 {
+      value = substr($0, length(key) + 2)
+      sub(/^[[:space:]]*/, "", value)
+      print value
+      exit 0
+    }
+    NR > 80 {
+      exit 4
+    }
+  ' "$file"
+}
+
+replace_description() {
+  local skill_file="$1"
+  local value="$2"
+  local tmp
+  tmp="$(mktemp)"
+
+  awk -v value="$value" '
+    /^description: / && replaced == 0 {
+      print "description: " value
+      replaced = 1
+      next
+    }
+    { print }
+  ' "$skill_file" > "$tmp"
+  cat "$tmp" > "$skill_file"
+  rm -f "$tmp"
+}
+
+insert_description_en() {
+  local skill_file="$1"
+  local value="$2"
+  local tmp
+  tmp="$(mktemp)"
+
+  awk -v value="$value" '
+    /^description: / && inserted == 0 {
+      print
+      print "description-en: " value
+      inserted = 1
+      next
+    }
+    { print }
+  ' "$skill_file" > "$tmp"
+  cat "$tmp" > "$skill_file"
+  rm -f "$tmp"
+}
+
 process_skill_dir() {
   local skills_dir="$1"
   local label="$2"
@@ -76,15 +139,13 @@ process_skill_dir() {
       has_en=$(grep -c "^description-en:" "$skill_file" 2>/dev/null || true)
       if [[ "$has_en" -eq 0 ]]; then
         local en_value
-        en_value=$(grep "^description:" "$skill_file" | sed 's/^description: *//')
+        en_value="$(extract_frontmatter_value "$skill_file" "description" || true)"
         # Insert description-en after description line
-        sed -i '' "/^description: /a\\
-description-en: ${en_value}
-" "$skill_file"
+        insert_description_en "$skill_file" "$en_value"
       fi
 
       # Replace description with Japanese value
-      sed -i '' "s|^description: .*|description: ${ja_value}|" "$skill_file"
+      replace_description "$skill_file" "$ja_value"
       echo -e "  ${GREEN}✓${NC} $relative_path → ja"
       updated=$((updated + 1))
 
@@ -95,8 +156,8 @@ description-en: ${en_value}
 
       if [[ "$has_en" -gt 0 ]]; then
         local en_value
-        en_value=$(grep "^description-en:" "$skill_file" | sed 's/^description-en: *//')
-        sed -i '' "s|^description: .*|description: ${en_value}|" "$skill_file"
+        en_value="$(extract_frontmatter_value "$skill_file" "description-en" || true)"
+        replace_description "$skill_file" "$en_value"
         echo -e "  ${GREEN}✓${NC} $relative_path → en"
         updated=$((updated + 1))
       else
@@ -109,9 +170,11 @@ description-en: ${en_value}
 
 # Process all skill directories
 process_skill_dir "$PROJECT_ROOT/skills" "skills"
-# skills/ が SSOT
+process_skill_dir "$PROJECT_ROOT/skills-codex" "skills-codex"
+# skills/ and skills-codex/ are the source-of-truth surfaces.
 process_skill_dir "$PROJECT_ROOT/opencode/skills" "opencode/skills"
 process_skill_dir "$PROJECT_ROOT/codex/.codex/skills" "codex/.codex/skills"
+process_skill_dir "$PROJECT_ROOT/.agents/skills" ".agents/skills"
 process_skill_dir "$PROJECT_ROOT/.opencode/skills" ".opencode/skills"
 
 echo ""

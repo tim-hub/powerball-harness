@@ -1,6 +1,6 @@
 #!/bin/bash
 # sync-skill-mirrors.sh
-# Sync skills from skills/ (SSOT) to Codex/OpenCode mirrors.
+# Sync skills from skills/ (SSOT) to local and packaged mirrors.
 #
 # Why:
 #   Windows checkout with core.symlinks=false turns repository symlinks into
@@ -9,6 +9,7 @@
 #   repair hooks can run.
 #
 # This script keeps skills as real directories in:
+#   - .agents/skills/
 #   - codex/.codex/skills/
 #   - opencode/skills/
 #
@@ -33,8 +34,9 @@ PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SHARED_SSOT_DIR="$PLUGIN_ROOT/skills"
 CODEX_SSOT_DIR="$PLUGIN_ROOT/skills-codex"
 
-# Mirror roots (codex and opencode only — skills/ is the SSOT, not a mirror)
+# Mirror roots (skills/ is the SSOT, not a mirror)
 MIRROR_ROOTS=(
+  ".agents/skills"
   "codex/.codex/skills"
   "opencode/skills"
 )

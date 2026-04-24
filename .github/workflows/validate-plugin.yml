@@ -24,8 +24,26 @@ jobs:
         run: |
           bash ./scripts/ci/check-version-bump.sh
 
-      - name: Install ripgrep
-        run: sudo apt-get install -y ripgrep
+      - name: Install command-line dependencies
+        run: sudo apt-get update && sudo apt-get install -y jq ripgrep
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+
+      - name: Build harness binary for validation scripts
+        working-directory: go
+        run: go build -o ../bin/harness-linux-amd64 ./cmd/harness/
+
+      - name: Check i18n regression suite
+        run: |
+          bash ./scripts/i18n/check-translations.sh
+          bash ./tests/test-i18n-default-language.sh
+          bash ./tests/test-i18n-skill-frontmatter.sh
+          bash ./tests/test-i18n-locale-roundtrip.sh
+          bash ./tests/test-setup-language-rendering.sh
 
       - name: Validate plugin structure
         run: |

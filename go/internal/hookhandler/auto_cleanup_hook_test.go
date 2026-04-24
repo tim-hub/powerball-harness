@@ -80,6 +80,7 @@ func TestAutoCleanupHandler_Plansmd_UnderThreshold(t *testing.T) {
 }
 
 func TestAutoCleanupHandler_PlansmdOverThreshold(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "")
 	dir := t.TempDir()
 	h := &AutoCleanupHandler{ProjectRoot: dir, PlansMaxLines: 200}
 
@@ -115,6 +116,92 @@ func TestAutoCleanupHandler_PlansmdOverThreshold(t *testing.T) {
 	if !strings.Contains(ctx, "250") {
 		t.Errorf("expected line count 250 in warning, got %q", ctx)
 	}
+}
+
+func TestAutoCleanupHandler_LocaleDefaultEnglish(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "")
+	dir := t.TempDir()
+	h := &AutoCleanupHandler{ProjectRoot: dir, PlansMaxLines: 2}
+
+	fpath := filepath.Join(dir, "Plans.md")
+	_ = os.WriteFile(fpath, []byte("one\ntwo\nthree\n"), 0600)
+
+	input := `{"tool_name":"Write","tool_input":{"file_path":"` + fpath + `"},"cwd":"` + dir + `"}`
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	ctx := parseAutoCleanupContext(t, &out)
+	if !strings.Contains(ctx, "Warning: Plans.md has 3 lines") {
+		t.Fatalf("default additionalContext should be English, got %q", ctx)
+	}
+	if strings.Contains(ctx, "行です") {
+		t.Fatalf("default additionalContext should not be Japanese, got %q", ctx)
+	}
+}
+
+func TestAutoCleanupHandler_LocaleJapaneseEnv(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "ja")
+	dir := t.TempDir()
+	h := &AutoCleanupHandler{ProjectRoot: dir, PlansMaxLines: 2}
+
+	fpath := filepath.Join(dir, "Plans.md")
+	_ = os.WriteFile(fpath, []byte("one\ntwo\nthree\n"), 0600)
+
+	input := `{"tool_name":"Write","tool_input":{"file_path":"` + fpath + `"},"cwd":"` + dir + `"}`
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	ctx := parseAutoCleanupContext(t, &out)
+	if !strings.Contains(ctx, "Plans.md が 3 行です") {
+		t.Fatalf("ja env additionalContext should be Japanese, got %q", ctx)
+	}
+}
+
+func TestAutoCleanupHandler_LocaleJapaneseConfig(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "en")
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, harnessConfigFileName), []byte("i18n:\n  language: ja\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	h := &AutoCleanupHandler{ProjectRoot: dir, SessionLogMaxLines: 2}
+
+	fpath := filepath.Join(dir, "session-log.md")
+	_ = os.WriteFile(fpath, []byte("one\ntwo\nthree\n"), 0600)
+
+	input := `{"tool_name":"Write","tool_input":{"file_path":"` + fpath + `"},"cwd":"` + dir + `"}`
+	var out bytes.Buffer
+	if err := h.Handle(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	ctx := parseAutoCleanupContext(t, &out)
+	if !strings.Contains(ctx, "session-log.md が 3 行です") {
+		t.Fatalf("config ja additionalContext should be Japanese, got %q", ctx)
+	}
+}
+
+func parseAutoCleanupContext(t *testing.T, out *bytes.Buffer) string {
+	t.Helper()
+	if out.Len() == 0 {
+		t.Fatal("expected warning output, got nothing")
+	}
+	var result struct {
+		HookSpecificOutput struct {
+			HookEventName     string `json:"hookEventName"`
+			AdditionalContext string `json:"additionalContext"`
+		} `json:"hookSpecificOutput"`
+	}
+	if err := json.Unmarshal(bytes.TrimRight(out.Bytes(), "\n"), &result); err != nil {
+		t.Fatalf("invalid JSON: %s", out.String())
+	}
+	if result.HookSpecificOutput.HookEventName != "PostToolUse" {
+		t.Fatalf("hookEventName = %q, want PostToolUse", result.HookSpecificOutput.HookEventName)
+	}
+	return result.HookSpecificOutput.AdditionalContext
 }
 
 func TestAutoCleanupHandler_SessionLog_OverThreshold(t *testing.T) {

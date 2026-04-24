@@ -49,8 +49,9 @@ if ! grep -qE '## マーカー凡例|## Marker Legend' "$PLANS_FILE" 2>/dev/null
 fi
 
 # 3. 有効なハーネスマーカーの存在チェック
-# 新フォーマット: cc:TODO, cc:WIP, cc:WORK, cc:DONE, cc:完了, cc:blocked, pm:依頼中, pm:確認済, cursor:依頼中, cursor:確認済
-if ! grep -qE 'cc:(TODO|WIP|WORK|DONE|完了|blocked)|pm:(依頼中|確認済)|cursor:(依頼中|確認済)' "$PLANS_FILE" 2>/dev/null; then
+# Canonical protocol: cc:TODO, cc:WIP, cc:完了, pm:依頼中, pm:確認済, blocked
+# Read-compatible aliases: cursor:依頼中, cursor:確認済, cc:done, pm:requested, pm:approved
+if ! grep -qE 'cc:(TODO|WIP|WORK|DONE|done|完了|blocked)|pm:(依頼中|確認済|requested|approved)|cursor:(依頼中|確認済)|(^|[^A-Za-z0-9_:.-])blocked([^A-Za-z0-9_:.-]|$)' "$PLANS_FILE" 2>/dev/null; then
   # 旧フォーマット（cursor:WIP/完了）もチェック
   if ! grep -qE 'cursor:(WIP|完了)' "$PLANS_FILE" 2>/dev/null; then
     ISSUES+=("\"ハーネスマーカー（cc:TODO, cc:WIP 等）が見つかりません。\"")

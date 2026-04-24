@@ -433,6 +433,25 @@ EOF
   git -C "${repo}" commit -m "initial" >/dev/null 2>&1
 }
 
+setup_heading_repo() {
+  local repo="$1"
+  mkdir -p "${repo}/.claude/state"
+  cat > "${repo}/Plans.md" <<'EOF'
+# Plans
+
+#### 6G-6: Mount Mode 音声ルーティング UI / 構成チェック `cc:TODO`
+
+- [ ] 自分にも音を聞かせるための出力先を UI で選べるようにする
+- [ ] 起動前チェックで AI が聞ける / 自分が聞ける / LINE に返せるを判定する
+Depends: 6G-1, 6G-2
+EOF
+  git -C "${repo}" init >/dev/null 2>&1
+  git -C "${repo}" config user.email "loop-test@example.com"
+  git -C "${repo}" config user.name "Loop Test"
+  git -C "${repo}" add Plans.md
+  git -C "${repo}" commit -m "initial" >/dev/null 2>&1
+}
+
 setup_batch_repo() {
   local repo="$1"
   mkdir -p "${repo}/.claude/state"
@@ -467,7 +486,7 @@ poll_for_status() {
   local run_json="$1"
   local expected="$2"
   local tries=0
-  while [ "${tries}" -lt 40 ]; do
+  while [ "${tries}" -lt 80 ]; do
     if [ -f "${run_json}" ]; then
       local status
       status="$(python3 - "${run_json}" <<'PY'
@@ -807,6 +826,80 @@ PY
     pass "named selection case: Plans.md-aware range selection works"
   else
     fail "named selection case: range selection did not target expected tasks"
+  fi
+
+  cleanup_tmp "${tmp}"
+}
+
+run_heading_selection_case() {
+  local tmp
+  tmp="$(mktemp -d)"
+  local repo="${tmp}/repo"
+  mkdir -p "${repo}"
+  setup_heading_repo "${repo}"
+  setup_fake_tools "${tmp}" "complete"
+
+  PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
+  CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+  CODEX_LOOP_VALIDATE_SCRIPT="${tmp}/bin/fake-validate.sh" \
+  CODEX_LOOP_ENRICH_CONTRACT_SCRIPT="${tmp}/bin/fake-enrich-contract.sh" \
+  CODEX_LOOP_ENSURE_CONTRACT_SCRIPT="${tmp}/bin/fake-ensure-contract.sh" \
+  CODEX_LOOP_RUNTIME_REVIEW_SCRIPT="${tmp}/bin/fake-runtime-review.sh" \
+  CODEX_LOOP_WRITE_REVIEW_RESULT_SCRIPT="${tmp}/bin/fake-write-review-result.sh" \
+  CODEX_LOOP_PLATEAU_SCRIPT="${tmp}/bin/fake-plateau.sh" \
+  CODEX_LOOP_CHECKPOINT_SCRIPT="${tmp}/bin/fake-checkpoint.sh" \
+  CODEX_LOOP_MEM_CLIENT="${tmp}/bin/fake-mem.sh" \
+  CODEX_LOOP_GENERATE_CONTRACT_SCRIPT="${tmp}/bin/fake-generate-contract.sh" \
+  CODEX_LOOP_POLL_INTERVAL_SEC=1 \
+  bash "${LOOP_SCRIPT}" start 6G-6 --max-cycles 1 --pacing worker --executor task >/dev/null
+
+  poll_for_status "${repo}/.claude/state/codex-loop/run.json" "completed" || fail "heading selection case: run did not finish"
+
+  local selection heading_line
+  selection="$(jq -r '.selection' "${repo}/.claude/state/codex-loop/run.json")"
+  heading_line="$(grep '^#### 6G-6:' "${repo}/Plans.md" || true)"
+  if [ "${selection}" = "6G-6" ] && [[ "${heading_line}" == *"cc:完了"* ]]; then
+    pass "heading selection case: hyphenated heading task id is accepted as exact task"
+  else
+    fail "heading selection case: heading task selection failed"
+  fi
+
+  cleanup_tmp "${tmp}"
+}
+
+run_line_ref_selection_case() {
+  local tmp
+  tmp="$(mktemp -d)"
+  local repo="${tmp}/repo"
+  mkdir -p "${repo}"
+  setup_heading_repo "${repo}"
+  setup_fake_tools "${tmp}" "complete"
+
+  PROJECT_ROOT="${repo}" \
+  CODEX_LOOP_TASK_DRIVER=companion \
+  CODEX_LOOP_COMPANION="${tmp}/bin/fake-companion.sh" \
+  CODEX_LOOP_VALIDATE_SCRIPT="${tmp}/bin/fake-validate.sh" \
+  CODEX_LOOP_ENRICH_CONTRACT_SCRIPT="${tmp}/bin/fake-enrich-contract.sh" \
+  CODEX_LOOP_ENSURE_CONTRACT_SCRIPT="${tmp}/bin/fake-ensure-contract.sh" \
+  CODEX_LOOP_RUNTIME_REVIEW_SCRIPT="${tmp}/bin/fake-runtime-review.sh" \
+  CODEX_LOOP_WRITE_REVIEW_RESULT_SCRIPT="${tmp}/bin/fake-write-review-result.sh" \
+  CODEX_LOOP_PLATEAU_SCRIPT="${tmp}/bin/fake-plateau.sh" \
+  CODEX_LOOP_CHECKPOINT_SCRIPT="${tmp}/bin/fake-checkpoint.sh" \
+  CODEX_LOOP_MEM_CLIENT="${tmp}/bin/fake-mem.sh" \
+  CODEX_LOOP_GENERATE_CONTRACT_SCRIPT="${tmp}/bin/fake-generate-contract.sh" \
+  CODEX_LOOP_POLL_INTERVAL_SEC=1 \
+  bash "${LOOP_SCRIPT}" start Plans.md:2 --max-cycles 1 --pacing worker --executor task >/dev/null
+
+  poll_for_status "${repo}/.claude/state/codex-loop/run.json" "completed" || fail "line ref selection case: run did not finish"
+
+  local selection heading_line
+  selection="$(jq -r '.selection' "${repo}/.claude/state/codex-loop/run.json")"
+  heading_line="$(grep '^#### 6G-6:' "${repo}/Plans.md" || true)"
+  if [ "${selection}" = "6G-6" ] && [[ "${heading_line}" == *"cc:完了"* ]]; then
+    pass "line ref selection case: Plans.md:line resolves nearby heading task"
+  else
+    fail "line ref selection case: Plans.md:line did not resolve heading task"
   fi
 
   cleanup_tmp "${tmp}"
@@ -1226,6 +1319,8 @@ run_cross_repo_case
 run_state_corrupt_case
 run_plain_status_case
 run_named_selection_case
+run_heading_selection_case
+run_line_ref_selection_case
 run_breezing_batch_case
 run_breezing_blocked_case
 run_start_reset_case

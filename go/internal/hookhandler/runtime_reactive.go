@@ -149,7 +149,7 @@ func HandleRuntimeReactive(in io.Reader, out io.Writer) error {
 	}
 
 	// イベントごとのメッセージ生成
-	message := buildReactiveMessage(eventName, filePath)
+	message := buildReactiveMessage(eventName, filePath, resolveHarnessLocale(projectRoot))
 
 	if message != "" {
 		return writeReactiveHookOutput(out, eventName, message)
@@ -159,12 +159,14 @@ func HandleRuntimeReactive(in io.Reader, out io.Writer) error {
 
 // buildReactiveMessage はイベントと変更パスに応じたメッセージを生成する。
 // runtime-reactive.sh の case 文に対応。
-func buildReactiveMessage(eventName, filePath string) string {
+func buildReactiveMessage(eventName, filePath, locale string) string {
 	switch eventName {
 	case "FileChanged":
-		return buildFileChangedMessage(filePath)
+		return buildFileChangedMessage(filePath, locale)
 	case "CwdChanged":
-		return "作業ディレクトリが切り替わりました。別リポジトリや worktree に移動した場合は AGENTS.md、Plans.md、ローカルルールを再確認してください。"
+		return localizedHarnessMessage(locale,
+			"The working directory changed. If you moved to another repository or worktree, re-read AGENTS.md, Plans.md, and local rules before continuing.",
+			"作業ディレクトリが切り替わりました。別リポジトリや worktree に移動した場合は AGENTS.md、Plans.md、ローカルルールを再確認してください。")
 	case "TaskCreated":
 		// TaskCreated はログ記録のみ（メッセージなし）
 		return ""
@@ -173,15 +175,19 @@ func buildReactiveMessage(eventName, filePath string) string {
 }
 
 // buildFileChangedMessage は FileChanged イベントのメッセージを生成する。
-func buildFileChangedMessage(filePath string) string {
+func buildFileChangedMessage(filePath, locale string) string {
 	// Plans.md の変更
 	if filePath == "Plans.md" || strings.HasSuffix(filePath, "/Plans.md") {
-		return "Plans.md が更新されました。次の実装やレビュー前に最新のタスク状態を読み直してください。"
+		return localizedHarnessMessage(locale,
+			"Plans.md was updated. Re-read the latest task status before the next implementation or review step.",
+			"Plans.md が更新されました。次の実装やレビュー前に最新のタスク状態を読み直してください。")
 	}
 
 	// AGENTS.md, CLAUDE.md, .claude/rules/, hooks.json, settings.json の変更
 	if isRuleOrConfigFile(filePath) {
-		return "作業ルールまたは Harness 設定が更新されました。次の操作では最新ルールを前提に進めてください。"
+		return localizedHarnessMessage(locale,
+			"Working rules or Harness settings were updated. Use the latest rules for the next operation.",
+			"作業ルールまたは Harness 設定が更新されました。次の操作では最新ルールを前提に進めてください。")
 	}
 
 	return ""

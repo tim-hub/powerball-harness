@@ -7,6 +7,7 @@
 
 | 機能 | 活用スキル | 用途 |
 |------|-----------|------|
+| **Issue #105 English default + Japanese opt-in CI gate** | setup, harness-work, CI | New distribution surfaces default to English while Japanese opt-in UX, bilingual skill metadata, setup rendering, and mirror consistency are locked by the i18n regression suite. |
 | **Task tool メトリクス** | parallel-workflows | サブエージェントのトークン/ツール/時間を集計 |
 | **`/debug` コマンド** | troubleshoot | 複雑なセッション問題の診断 |
 | **PDF ページ範囲** | notebookLM, harness-review | 大型ドキュメントの効率的な処理 |

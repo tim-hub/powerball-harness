@@ -122,6 +122,9 @@ var (
 	stateMigrationRe    = regexp.MustCompile(`(?i)migration|schema|state|resume|session|artifact|マイグレーション|セッション|再開`)
 	uxRegressionRe      = regexp.MustCompile(`(?i)browser|ui|layout|responsive|playwright|chrome|画面|レイアウト`)
 	advisorRequiredRe   = regexp.MustCompile(`(?is)<!--\s*advisor:required\s*-->`)
+	headingTaskRe       = regexp.MustCompile(`^\s{0,3}(#{2,6})\s+([A-Za-z0-9][A-Za-z0-9_.-]*)(?:\s*[:：]\s*|\s+)(.*)$`)
+	headingStatusRe     = regexp.MustCompile(`\b(?:cc:TODO|cc:WIP|cc:完了|pm:依頼中|pm:確認済|cursor:依頼中|cursor:確認済|cc:done|pm:requested|pm:approved|cc:blocked|blocked)(?:\s*\[[^\]]+\])?`)
+	headingDependsRe    = regexp.MustCompile(`(?i)^\s*(?:depends|依存)\s*[:：]\s*(.+?)\s*$`)
 )
 
 var profileMaxIterations = map[string]int{
@@ -374,7 +377,73 @@ func parseSprintTaskRow(markdown, targetTaskID string) (*sprintTaskRow, error) {
 		}, nil
 	}
 
+	if row := parseSprintHeadingTaskRow(lines, targetTaskID); row != nil {
+		return row, nil
+	}
+
 	return nil, fmt.Errorf("task row not found in Plans.md: %s", targetTaskID)
+}
+
+func parseSprintHeadingTaskRow(lines []string, targetTaskID string) *sprintTaskRow {
+	for i, line := range lines {
+		match := headingTaskRe.FindStringSubmatch(line)
+		if len(match) < 4 || match[2] != targetTaskID {
+			continue
+		}
+
+		level := len(match[1])
+		title := cleanSprintHeadingText(match[3])
+		status := headingStatusRe.FindString(line)
+		depends := "-"
+		body := []string{}
+
+		for _, bodyLine := range lines[i+1:] {
+			if next := headingTaskRe.FindStringSubmatch(bodyLine); len(next) >= 4 && len(next[1]) <= level {
+				break
+			}
+			trimmed := strings.TrimSpace(bodyLine)
+			if trimmed == "" {
+				continue
+			}
+			if depMatch := headingDependsRe.FindStringSubmatch(trimmed); len(depMatch) >= 2 {
+				depends = strings.TrimSpace(depMatch[1])
+				continue
+			}
+			if strings.HasPrefix(trimmed, "- [ ]") || strings.HasPrefix(trimmed, "- [x]") || strings.HasPrefix(trimmed, "- [X]") {
+				body = append(body, strings.TrimSpace(trimmed[5:]))
+				continue
+			}
+			if strings.HasPrefix(trimmed, "- ") {
+				body = append(body, strings.TrimSpace(trimmed[2:]))
+			}
+		}
+
+		dod := strings.Join(body, "; ")
+		if title == "" {
+			title = targetTaskID
+		}
+		if status == "" {
+			status = "cc:TODO"
+		}
+		if dod == "" {
+			dod = title
+		}
+
+		return &sprintTaskRow{
+			TaskID:  targetTaskID,
+			Title:   title,
+			DoD:     dod,
+			Depends: depends,
+			Status:  status,
+		}
+	}
+	return nil
+}
+
+func cleanSprintHeadingText(value string) string {
+	cleaned := headingStatusRe.ReplaceAllString(value, "")
+	cleaned = strings.ReplaceAll(cleaned, "`", "")
+	return strings.TrimSpace(cleaned)
 }
 
 func sprintToList(value string) []string {

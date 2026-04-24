@@ -1,6 +1,6 @@
 ---
 name: x-article
-description: "X の記事機能向けに、タイトル設計、ヘッダー画像、差し込み画像、品質チェック、公開後の拡散導線まで含めた長文記事パッケージを作成。Use when user mentions: X article, Xの記事, 記事として投稿, 長文記事, article header image, inline image, 記事カバー. Do NOT load for: short X post, tweet, thread-only announcement, GitHub release notes."
+description: "Create a full X Articles package with title options, header image, inline images, article draft, quality checks, and promotion plan. Use when user mentions: X article, longform article, article header image, inline image. Do NOT load for: short tweet, thread-only announcement, GitHub release notes."
 description-en: "Create a full X Articles package with title options, header image, inline images, article draft, quality checks, and promotion plan. Use when user mentions: X article, longform article, article header image, inline image. Do NOT load for: short tweet, thread-only announcement, GitHub release notes."
 description-ja: "X の記事機能向けに、タイトル設計、ヘッダー画像、差し込み画像、品質チェック、公開後の拡散導線まで含めた長文記事パッケージを作成。短いポストではなく、X の記事機能で出す前提のときに使う。"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "AskUserQuestion"]

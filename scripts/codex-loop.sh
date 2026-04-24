@@ -353,27 +353,97 @@ normalize_selection() {
   local plans_file="$1"
   local selection="$2"
   python_json "${plans_file}" "${selection}" <<'PY'
+import pathlib
+import re
 import sys
 
 plans_path = sys.argv[1]
 selection = sys.argv[2].strip()
 
 
-def load_task_ids():
-    task_ids = []
+HEADING_RE = re.compile(r"^\s{0,3}#{2,6}\s+(.+?)\s*$")
+TASK_ID_RE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9_.-]*)(?=\s|:|：|$)")
+LINE_REF_RE = re.compile(r"^(?P<path>.+):(?P<line>[0-9]+)$")
+
+
+def status_from_text(value):
+    markers = (
+        "cc:TODO",
+        "cc:WIP",
+        "cc:完了",
+        "pm:確認済",
+        "pm:依頼中",
+        "cursor:依頼中",
+        "cursor:確認済",
+        "cc:done",
+        "pm:approved",
+        "pm:requested",
+        "cc:blocked",
+        "blocked",
+    )
+    for marker in markers:
+        if marker == "blocked":
+            if re.search(r"(?<![A-Za-z0-9_:.-])blocked(?![A-Za-z0-9_:.-])", value):
+                return marker
+        elif marker in value:
+            return marker
+    return ""
+
+
+def load_task_entries():
+    entries = []
+    lines = []
     with open(plans_path, "r", encoding="utf-8") as fh:
-        for raw_line in fh:
+        for line_no, raw_line in enumerate(fh, start=1):
+            lines.append(raw_line.rstrip("\n"))
             stripped = raw_line.strip()
-            if not stripped.startswith("|"):
+            if stripped.startswith("|"):
+                cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+                if len(cells) >= 2:
+                    task_id = cells[0]
+                    if task_id and task_id.lower() != "task" and not set(task_id) <= {"-"}:
+                        entries.append({"id": task_id, "line": line_no, "status": cells[-1] if cells else ""})
                 continue
-            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
-            if len(cells) < 2:
+
+            heading = HEADING_RE.match(raw_line)
+            if not heading:
                 continue
-            task_id = cells[0]
-            if not task_id or task_id.lower() == "task" or set(task_id) <= {"-"}:
+            title = heading.group(1).strip()
+            match = TASK_ID_RE.match(title)
+            if not match:
                 continue
-            task_ids.append(task_id)
-    return task_ids
+            entries.append({"id": match.group(1), "line": line_no, "status": status_from_text(title)})
+    return entries, lines
+
+
+def resolve_line_ref(entries, lines, token):
+    match = LINE_REF_RE.match(token)
+    if not match:
+        return None
+
+    ref_path = pathlib.Path(match.group("path"))
+    plans = pathlib.Path(plans_path)
+    if ref_path.name != plans.name:
+        return None
+
+    target_line = int(match.group("line"))
+    exact = [entry for entry in entries if entry["line"] == target_line]
+    if exact:
+        return exact[0]["id"]
+
+    following = [entry for entry in entries if entry["line"] >= target_line]
+    previous = [entry for entry in entries if entry["line"] <= target_line]
+    line_text = lines[target_line - 1].strip() if 1 <= target_line <= len(lines) else ""
+
+    # Human line references are often copied from the blank line immediately
+    # above a task heading. Treat that as selecting the following task.
+    if not line_text and following and following[0]["line"] - target_line <= 3:
+        return following[0]["id"]
+    if previous:
+        return previous[-1]["id"]
+    if following:
+        return following[0]["id"]
+    return None
 
 
 def to_tuple(value):
@@ -413,12 +483,18 @@ def resolve_range_endpoint(task_ids, token, side):
     return matching[0] if side == "start" else matching[-1]
 
 
-task_ids = load_task_ids()
+entries, lines = load_task_entries()
+task_ids = [entry["id"] for entry in entries]
 if not task_ids:
     raise SystemExit("no task ids found in Plans.md")
 
 if selection == "all":
     print("all")
+    raise SystemExit(0)
+
+line_ref = resolve_line_ref(entries, lines, selection)
+if line_ref:
+    print(line_ref)
     raise SystemExit(0)
 
 try:
@@ -475,7 +551,16 @@ def to_tuple(value):
 if selection == "all":
     raise SystemExit(0)
 
-if "-" in selection:
+if selection == task:
+    raise SystemExit(0)
+
+if ".." in selection:
+    start, end = selection.split("..", 1)
+    if to_tuple(start) <= to_tuple(task) <= to_tuple(end):
+        raise SystemExit(0)
+    raise SystemExit(1)
+
+if "-" in selection and selection != task:
     start, end = selection.split("-", 1)
     if to_tuple(start) <= to_tuple(task) <= to_tuple(end):
         raise SystemExit(0)
@@ -489,10 +574,42 @@ next_task_id() {
   local selection="$1"
   local plans_file="$2"
   python_json "${plans_file}" "${selection}" <<'PY'
+import re
 import sys
 
 plans_path = sys.argv[1]
 selection = sys.argv[2]
+
+HEADING_RE = re.compile(r"^\s{0,3}#{2,6}\s+(.+?)\s*$")
+TASK_ID_RE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9_.-]*)(?=\s|:|：|$)")
+
+
+def status_from_text(value):
+    markers = (
+        "cc:TODO",
+        "cc:WIP",
+        "cc:完了",
+        "pm:確認済",
+        "pm:依頼中",
+        "cursor:依頼中",
+        "cursor:確認済",
+        "cc:done",
+        "pm:approved",
+        "pm:requested",
+        "cc:blocked",
+        "blocked",
+    )
+    for marker in markers:
+        if marker == "blocked":
+            if re.search(r"(?<![A-Za-z0-9_:.-])blocked(?![A-Za-z0-9_:.-])", value):
+                return marker
+        elif marker in value:
+            return marker
+    return ""
+
+
+def has_any_status(value, markers):
+    return any(marker in value for marker in markers)
 
 
 def parse_task_rows():
@@ -500,15 +617,23 @@ def parse_task_rows():
     with open(plans_path, "r", encoding="utf-8") as fh:
         for raw_line in fh:
             stripped = raw_line.strip()
-            if not stripped.startswith("|"):
+            if stripped.startswith("|"):
+                cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+                if len(cells) < 2:
+                    continue
+                task_id = cells[0]
+                if not task_id or task_id.lower() == "task" or set(task_id) <= {"-"}:
+                    continue
+                rows.append((task_id, cells[-1]))
                 continue
-            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
-            if len(cells) < 2:
+
+            heading = HEADING_RE.match(raw_line)
+            if not heading:
                 continue
-            task_id = cells[0]
-            if not task_id or task_id.lower() == "task" or set(task_id) <= {"-"}:
-                continue
-            rows.append((task_id, cells[-1]))
+            title = heading.group(1).strip()
+            match = TASK_ID_RE.match(title)
+            if match:
+                rows.append((match.group(1), status_from_text(title)))
     return rows
 
 
@@ -524,7 +649,7 @@ elif ".." in selection:
     start_index = ordered_ids.index(start)
     end_index = ordered_ids.index(end)
     selected_ids = set(ordered_ids[start_index : end_index + 1])
-elif "-" in selection:
+elif "-" in selection and selection not in ordered_ids:
     start, end = selection.split("-", 1)
     start = start.strip()
     end = end.strip()
@@ -534,8 +659,9 @@ elif "-" in selection:
 else:
     selected_ids = {selection}
 
+active_markers = ("cc:TODO", "cc:WIP", "pm:依頼中", "cursor:依頼中", "pm:requested")
 for task_id, status in rows:
-    if task_id in selected_ids and ("cc:TODO" in status or "cc:WIP" in status):
+    if task_id in selected_ids and has_any_status(status, active_markers):
         print(task_id)
         raise SystemExit(0)
 
@@ -548,11 +674,39 @@ next_ready_batch_ids() {
   local plans_file="$2"
   local max_workers="${3:-max}"
   python_json "${plans_file}" "${selection}" "${max_workers}" <<'PY'
+import re
 import sys
 
 plans_path = sys.argv[1]
 selection = sys.argv[2]
 max_workers = sys.argv[3]
+
+HEADING_RE = re.compile(r"^\s{0,3}#{2,6}\s+(.+?)\s*$")
+TASK_ID_RE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9_.-]*)(?=\s|:|：|$)")
+
+
+def status_from_text(value):
+    markers = (
+        "cc:TODO",
+        "cc:WIP",
+        "cc:完了",
+        "pm:確認済",
+        "pm:依頼中",
+        "cursor:依頼中",
+        "cursor:確認済",
+        "cc:done",
+        "pm:approved",
+        "pm:requested",
+        "cc:blocked",
+        "blocked",
+    )
+    for marker in markers:
+        if marker == "blocked":
+            if re.search(r"(?<![A-Za-z0-9_:.-])blocked(?![A-Za-z0-9_:.-])", value):
+                return marker
+        elif marker in value:
+            return marker
+    return ""
 
 
 def parse_rows():
@@ -560,19 +714,31 @@ def parse_rows():
     with open(plans_path, "r", encoding="utf-8") as fh:
         for raw_line in fh:
             stripped = raw_line.strip()
-            if not stripped.startswith("|"):
+            if stripped.startswith("|"):
+                cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+                if len(cells) < 2:
+                    continue
+                task_id = cells[0]
+                if not task_id or task_id.lower() == "task" or set(task_id) <= {"-"}:
+                    continue
+                rows.append({
+                    "id": task_id,
+                    "depends": cells[-2] if len(cells) >= 5 else "-",
+                    "status": cells[-1],
+                })
                 continue
-            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
-            if len(cells) < 5:
+
+            heading = HEADING_RE.match(raw_line)
+            if not heading:
                 continue
-            task_id = cells[0]
-            if not task_id or task_id.lower() == "task" or set(task_id) <= {"-"}:
-                continue
-            rows.append({
-                "id": task_id,
-                "depends": cells[-2],
-                "status": cells[-1],
-            })
+            title = heading.group(1).strip()
+            match = TASK_ID_RE.match(title)
+            if match:
+                rows.append({
+                    "id": match.group(1),
+                    "depends": "-",
+                    "status": status_from_text(title),
+                })
     return rows
 
 
@@ -590,11 +756,11 @@ def selected_ids(rows):
 
 
 def is_complete(status):
-    return "cc:完了" in status or "pm:確認済" in status
+    return any(marker in status for marker in ("cc:完了", "pm:確認済", "cursor:確認済", "cc:done", "pm:approved"))
 
 
 def is_active(status):
-    return "cc:TODO" in status or "cc:WIP" in status
+    return any(marker in status for marker in ("cc:TODO", "cc:WIP", "pm:依頼中", "cursor:依頼中", "pm:requested"))
 
 
 def depends_ready(depends, status_by_id):
@@ -644,23 +810,60 @@ tasks_complete() {
   local plans_file="$1"
   local task_ids="$2"
   python_json "${plans_file}" "${task_ids}" <<'PY'
+import re
 import sys
 
 plans_path = sys.argv[1]
 targets = {item.strip() for item in sys.argv[2].split(",") if item.strip()}
 statuses = {}
 
+HEADING_RE = re.compile(r"^\s{0,3}#{2,6}\s+(.+?)\s*$")
+TASK_ID_RE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9_.-]*)(?=\s|:|：|$)")
+
+
+def status_from_text(value):
+    markers = (
+        "cc:TODO",
+        "cc:WIP",
+        "cc:完了",
+        "pm:確認済",
+        "pm:依頼中",
+        "cursor:依頼中",
+        "cursor:確認済",
+        "cc:done",
+        "pm:approved",
+        "pm:requested",
+        "cc:blocked",
+        "blocked",
+    )
+    for marker in markers:
+        if marker == "blocked":
+            if re.search(r"(?<![A-Za-z0-9_:.-])blocked(?![A-Za-z0-9_:.-])", value):
+                return marker
+        elif marker in value:
+            return marker
+    return ""
+
+
 with open(plans_path, "r", encoding="utf-8") as fh:
     for raw_line in fh:
         stripped = raw_line.strip()
-        if not stripped.startswith("|"):
+        if stripped.startswith("|"):
+            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+            if len(cells) < 2:
+                continue
+            task_id = cells[0]
+            if task_id in targets:
+                statuses[task_id] = cells[-1]
             continue
-        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
-        if len(cells) < 2:
+
+        heading = HEADING_RE.match(raw_line)
+        if not heading:
             continue
-        task_id = cells[0]
-        if task_id in targets:
-            statuses[task_id] = cells[-1]
+        title = heading.group(1).strip()
+        match = TASK_ID_RE.match(title)
+        if match and match.group(1) in targets:
+            statuses[match.group(1)] = status_from_text(title)
 
 missing = targets - statuses.keys()
 if missing:
@@ -668,7 +871,7 @@ if missing:
 
 for task_id in targets:
     status = statuses.get(task_id, "")
-    if "cc:完了" not in status and "pm:確認済" not in status:
+    if not any(marker in status for marker in ("cc:完了", "pm:確認済", "cursor:確認済", "cc:done", "pm:approved")):
         raise SystemExit(1)
 
 raise SystemExit(0)
@@ -679,26 +882,63 @@ task_status_value() {
   local plans_file="$1"
   local task_id="$2"
   python_json "${plans_file}" "${task_id}" <<'PY'
+import re
 import sys
 
 plans_path = sys.argv[1]
 target = sys.argv[2]
 
+HEADING_RE = re.compile(r"^\s{0,3}#{2,6}\s+(.+?)\s*$")
+TASK_ID_RE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9_.-]*)(?=\s|:|：|$)")
+
+
+def status_from_text(value):
+    markers = (
+        "cc:TODO",
+        "cc:WIP",
+        "cc:完了",
+        "pm:確認済",
+        "pm:依頼中",
+        "cursor:依頼中",
+        "cursor:確認済",
+        "cc:done",
+        "pm:approved",
+        "pm:requested",
+        "cc:blocked",
+        "blocked",
+    )
+    for marker in markers:
+        if marker == "blocked":
+            if re.search(r"(?<![A-Za-z0-9_:.-])blocked(?![A-Za-z0-9_:.-])", value):
+                return marker
+        elif marker in value:
+            return marker
+    return ""
+
+
 with open(plans_path, "r", encoding="utf-8") as fh:
     for raw_line in fh:
         stripped = raw_line.strip()
-        if not stripped.startswith("|"):
+        if stripped.startswith("|"):
+            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+            if len(cells) < 2:
+                continue
+            task_id = cells[0]
+            if not task_id or task_id.lower() == "task" or set(task_id) <= {"-"}:
+                continue
+            if task_id != target:
+                continue
+            print(cells[-1])
+            raise SystemExit(0)
+
+        heading = HEADING_RE.match(raw_line)
+        if not heading:
             continue
-        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
-        if len(cells) < 2:
-            continue
-        task_id = cells[0]
-        if not task_id or task_id.lower() == "task" or set(task_id) <= {"-"}:
-            continue
-        if task_id != target:
-            continue
-        print(cells[-1])
-        raise SystemExit(0)
+        title = heading.group(1).strip()
+        match = TASK_ID_RE.match(title)
+        if match and match.group(1) == target:
+            print(status_from_text(title))
+            raise SystemExit(0)
 
 raise SystemExit(1)
 PY
@@ -1506,10 +1746,21 @@ payload = {
 path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 PY
 
+  local advisor_exit=0
   bash "$(advisor_script_path)" \
     --request-file "${request_file}" \
     --response-file "${response_file}" \
-    --model "${model}" >> "${RUNNER_LOG}" 2>&1
+    --model "${model}" >> "${RUNNER_LOG}" 2>&1 || advisor_exit=$?
+
+  if [ "${advisor_exit}" -ne 0 ]; then
+    log_line "advisor consultation failed for ${task_id} reason=${reason_code} exit=${advisor_exit}"
+    return "${advisor_exit}"
+  fi
+
+  if [ ! -f "${response_file}" ]; then
+    log_line "advisor consultation produced no response for ${task_id} reason=${reason_code}"
+    return 1
+  fi
 
   local decision
   decision="$(json_get_file "${response_file}" "decision" "")"
@@ -1847,7 +2098,7 @@ PY
     task_status="$(task_status_value "$(plans_file_path)" "${task_id}" 2>/dev/null || true)"
 
     static_verdict="REQUEST_CHANGES"
-    if [ -n "${post_head}" ] && [ "${post_head}" != "${pre_head}" ] && printf '%s' "${task_status}" | grep -q 'cc:完了'; then
+    if [ -n "${post_head}" ] && [ "${post_head}" != "${pre_head}" ] && printf '%s' "${task_status}" | grep -Eq 'cc:完了|pm:確認済|cursor:確認済|cc:done|pm:approved'; then
       static_verdict="APPROVE"
     fi
 
@@ -2668,6 +2919,10 @@ cmd_run_cycle() {
 }
 
 subcommand="${1:-}"
+if [ "${HARNESS_CODEX_LOOP_SOURCE_ONLY:-0}" = "1" ]; then
+  return 0 2>/dev/null || exit 0
+fi
+
 case "${subcommand}" in
   start)
     shift

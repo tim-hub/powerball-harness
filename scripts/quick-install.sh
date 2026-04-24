@@ -8,6 +8,9 @@
 # Or with dev tools:
 #   curl -fsSL https://raw.githubusercontent.com/Chachamaru127/claude-code-harness/main/scripts/quick-install.sh | bash -s -- --with-dev-tools
 #
+# Japanese setup templates:
+#   curl -fsSL https://raw.githubusercontent.com/Chachamaru127/claude-code-harness/main/scripts/quick-install.sh | bash -s -- --locale ja
+#
 
 set -e
 
@@ -20,6 +23,7 @@ NC='\033[0m' # No Color
 
 # Flags
 WITH_DEV_TOOLS=false
+LOCALE="en"
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -28,11 +32,29 @@ while [[ $# -gt 0 ]]; do
       WITH_DEV_TOOLS=true
       shift
       ;;
+    --locale)
+      if [ $# -lt 2 ]; then
+        LOCALE="en"
+        shift
+      else
+        LOCALE="$2"
+        shift 2
+      fi
+      ;;
+    --locale=*)
+      LOCALE="${1#--locale=}"
+      shift
+      ;;
     *)
       shift
       ;;
   esac
 done
+
+case "$LOCALE" in
+  ja|en) ;;
+  *) LOCALE="en" ;;
+esac
 
 echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${BLUE}  Claude Harness - Quick Install${NC}"
@@ -117,10 +139,19 @@ echo "  1. Start Claude Code in your project:"
 echo "     ${YELLOW}cd /path/to/your-project && claude${NC}"
 echo
 echo "  2. Initialize Harness:"
-echo "     ${YELLOW}/harness-init${NC}"
+if [ "$LOCALE" = "ja" ]; then
+  echo "     ${YELLOW}CLAUDE_CODE_HARNESS_LANG=ja claude${NC}"
+  echo "     ${YELLOW}/harness-setup${NC}"
+else
+  echo "     ${YELLOW}/harness-setup${NC}"
+fi
 echo
 echo "  3. Create your first plan:"
 echo "     ${YELLOW}/plan-with-agent${NC}"
+echo
+echo "  Language: English is the default. For Japanese, set"
+echo "  ${YELLOW}i18n.language: ja${NC} in .claude-code-harness.config.yaml"
+echo "  or start Claude with ${YELLOW}CLAUDE_CODE_HARNESS_LANG=ja${NC}."
 echo
 echo "  Note: Default security permissions (deny/ask rules) are applied"
 echo "  automatically via plugin settings. No manual configuration needed."

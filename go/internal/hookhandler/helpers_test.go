@@ -210,3 +210,65 @@ func TestResolveProjectRoot_GitFallback(t *testing.T) {
 		t.Errorf("resolveProjectRoot() = %q, want absolute path", got)
 	}
 }
+
+func TestResolveHarnessLocale_DefaultEnNoConfig(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "")
+
+	got := resolveHarnessLocale(dir)
+	if got != "en" {
+		t.Errorf("resolveHarnessLocale() = %q, want en", got)
+	}
+}
+
+func TestResolveHarnessLocale_EnvJapanese(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "ja")
+
+	got := resolveHarnessLocale(dir)
+	if got != "ja" {
+		t.Errorf("resolveHarnessLocale() = %q, want ja", got)
+	}
+}
+
+func TestResolveHarnessLocale_ConfigPriorityOverEnv(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "en")
+	config := "i18n:\n  language: ja\n"
+	if err := os.WriteFile(filepath.Join(dir, harnessConfigFileName), []byte(config), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := resolveHarnessLocale(dir)
+	if got != "ja" {
+		t.Errorf("resolveHarnessLocale() = %q, want ja from config", got)
+	}
+}
+
+func TestResolveHarnessLocale_InvalidValuesNormalizeToEn(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "ja")
+	config := "i18n:\n  language: fr\n"
+	if err := os.WriteFile(filepath.Join(dir, harnessConfigFileName), []byte(config), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := resolveHarnessLocale(dir)
+	if got != "en" {
+		t.Errorf("resolveHarnessLocale() = %q, want invalid config normalized to en", got)
+	}
+}
+
+func TestResolveHarnessLocale_ExplicitPriority(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "ja")
+	config := "i18n:\n  language: ja\n"
+	if err := os.WriteFile(filepath.Join(dir, harnessConfigFileName), []byte(config), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := resolveHarnessLocale(dir, "en")
+	if got != "en" {
+		t.Errorf("resolveHarnessLocale(explicit en) = %q, want en", got)
+	}
+}
