@@ -367,8 +367,25 @@ LINE_REF_RE = re.compile(r"^(?P<path>.+):(?P<line>[0-9]+)$")
 
 
 def status_from_text(value):
-    for marker in ("cc:TODO", "cc:WIP", "cc:完了", "pm:確認済"):
-        if marker in value:
+    markers = (
+        "cc:TODO",
+        "cc:WIP",
+        "cc:完了",
+        "pm:確認済",
+        "pm:依頼中",
+        "cursor:依頼中",
+        "cursor:確認済",
+        "cc:done",
+        "pm:approved",
+        "pm:requested",
+        "cc:blocked",
+        "blocked",
+    )
+    for marker in markers:
+        if marker == "blocked":
+            if re.search(r"(?<![A-Za-z0-9_:.-])blocked(?![A-Za-z0-9_:.-])", value):
+                return marker
+        elif marker in value:
             return marker
     return ""
 
@@ -568,10 +585,31 @@ TASK_ID_RE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9_.-]*)(?=\s|:|：|$)")
 
 
 def status_from_text(value):
-    for marker in ("cc:TODO", "cc:WIP", "cc:完了", "pm:確認済"):
-        if marker in value:
+    markers = (
+        "cc:TODO",
+        "cc:WIP",
+        "cc:完了",
+        "pm:確認済",
+        "pm:依頼中",
+        "cursor:依頼中",
+        "cursor:確認済",
+        "cc:done",
+        "pm:approved",
+        "pm:requested",
+        "cc:blocked",
+        "blocked",
+    )
+    for marker in markers:
+        if marker == "blocked":
+            if re.search(r"(?<![A-Za-z0-9_:.-])blocked(?![A-Za-z0-9_:.-])", value):
+                return marker
+        elif marker in value:
             return marker
     return ""
+
+
+def has_any_status(value, markers):
+    return any(marker in value for marker in markers)
 
 
 def parse_task_rows():
@@ -621,8 +659,9 @@ elif "-" in selection and selection not in ordered_ids:
 else:
     selected_ids = {selection}
 
+active_markers = ("cc:TODO", "cc:WIP", "pm:依頼中", "cursor:依頼中", "pm:requested")
 for task_id, status in rows:
-    if task_id in selected_ids and ("cc:TODO" in status or "cc:WIP" in status):
+    if task_id in selected_ids and has_any_status(status, active_markers):
         print(task_id)
         raise SystemExit(0)
 
@@ -647,8 +686,25 @@ TASK_ID_RE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9_.-]*)(?=\s|:|：|$)")
 
 
 def status_from_text(value):
-    for marker in ("cc:TODO", "cc:WIP", "cc:完了", "pm:確認済"):
-        if marker in value:
+    markers = (
+        "cc:TODO",
+        "cc:WIP",
+        "cc:完了",
+        "pm:確認済",
+        "pm:依頼中",
+        "cursor:依頼中",
+        "cursor:確認済",
+        "cc:done",
+        "pm:approved",
+        "pm:requested",
+        "cc:blocked",
+        "blocked",
+    )
+    for marker in markers:
+        if marker == "blocked":
+            if re.search(r"(?<![A-Za-z0-9_:.-])blocked(?![A-Za-z0-9_:.-])", value):
+                return marker
+        elif marker in value:
             return marker
     return ""
 
@@ -700,11 +756,11 @@ def selected_ids(rows):
 
 
 def is_complete(status):
-    return "cc:完了" in status or "pm:確認済" in status
+    return any(marker in status for marker in ("cc:完了", "pm:確認済", "cursor:確認済", "cc:done", "pm:approved"))
 
 
 def is_active(status):
-    return "cc:TODO" in status or "cc:WIP" in status
+    return any(marker in status for marker in ("cc:TODO", "cc:WIP", "pm:依頼中", "cursor:依頼中", "pm:requested"))
 
 
 def depends_ready(depends, status_by_id):
@@ -766,8 +822,25 @@ TASK_ID_RE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9_.-]*)(?=\s|:|：|$)")
 
 
 def status_from_text(value):
-    for marker in ("cc:TODO", "cc:WIP", "cc:完了", "pm:確認済"):
-        if marker in value:
+    markers = (
+        "cc:TODO",
+        "cc:WIP",
+        "cc:完了",
+        "pm:確認済",
+        "pm:依頼中",
+        "cursor:依頼中",
+        "cursor:確認済",
+        "cc:done",
+        "pm:approved",
+        "pm:requested",
+        "cc:blocked",
+        "blocked",
+    )
+    for marker in markers:
+        if marker == "blocked":
+            if re.search(r"(?<![A-Za-z0-9_:.-])blocked(?![A-Za-z0-9_:.-])", value):
+                return marker
+        elif marker in value:
             return marker
     return ""
 
@@ -798,7 +871,7 @@ if missing:
 
 for task_id in targets:
     status = statuses.get(task_id, "")
-    if "cc:完了" not in status and "pm:確認済" not in status:
+    if not any(marker in status for marker in ("cc:完了", "pm:確認済", "cursor:確認済", "cc:done", "pm:approved")):
         raise SystemExit(1)
 
 raise SystemExit(0)
@@ -820,8 +893,25 @@ TASK_ID_RE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9_.-]*)(?=\s|:|：|$)")
 
 
 def status_from_text(value):
-    for marker in ("cc:TODO", "cc:WIP", "cc:完了", "pm:確認済"):
-        if marker in value:
+    markers = (
+        "cc:TODO",
+        "cc:WIP",
+        "cc:完了",
+        "pm:確認済",
+        "pm:依頼中",
+        "cursor:依頼中",
+        "cursor:確認済",
+        "cc:done",
+        "pm:approved",
+        "pm:requested",
+        "cc:blocked",
+        "blocked",
+    )
+    for marker in markers:
+        if marker == "blocked":
+            if re.search(r"(?<![A-Za-z0-9_:.-])blocked(?![A-Za-z0-9_:.-])", value):
+                return marker
+        elif marker in value:
             return marker
     return ""
 
@@ -2008,7 +2098,7 @@ PY
     task_status="$(task_status_value "$(plans_file_path)" "${task_id}" 2>/dev/null || true)"
 
     static_verdict="REQUEST_CHANGES"
-    if [ -n "${post_head}" ] && [ "${post_head}" != "${pre_head}" ] && printf '%s' "${task_status}" | grep -q 'cc:完了'; then
+    if [ -n "${post_head}" ] && [ "${post_head}" != "${pre_head}" ] && printf '%s' "${task_status}" | grep -Eq 'cc:完了|pm:確認済|cursor:確認済|cc:done|pm:approved'; then
       static_verdict="APPROVE"
     fi
 
@@ -2829,6 +2919,10 @@ cmd_run_cycle() {
 }
 
 subcommand="${1:-}"
+if [ "${HARNESS_CODEX_LOOP_SOURCE_ONLY:-0}" = "1" ]; then
+  return 0 2>/dev/null || exit 0
+fi
+
 case "${subcommand}" in
   start)
     shift

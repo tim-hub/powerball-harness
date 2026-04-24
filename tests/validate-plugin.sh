@@ -446,6 +446,12 @@ else
     fail_test "Claude Code 2.1.80-2.1.86 の統合ポイントに欠落があります"
 fi
 
+if bash "$PLUGIN_ROOT/tests/test-plans-status-markers.sh" >/dev/null 2>&1; then
+    pass_test "Plans.md status marker protocol の互換性が保たれています"
+else
+    fail_test "Plans.md status marker protocol の互換性に問題があります"
+fi
+
 echo ""
 echo "6. スクリプトの検証"
 echo "----------------------------------------"

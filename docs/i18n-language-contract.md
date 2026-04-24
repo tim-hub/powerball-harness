@@ -82,12 +82,35 @@ These markers remain internal protocol values:
 | `blocked` | Work is blocked. |
 
 Do not translate these markers as part of English-default UX work. They are
-parsed by Plans.md tooling and loop scripts.
+parsed by Plans.md tooling and loop scripts. Treat them as state protocol, not
+as display strings: surrounding labels, help text, and templates may be
+localized, but the marker stored in `Plans.md` remains the protocol value.
 
-English aliases such as `cc:done`, `pm:approved`, or `pm:requested` may be added
-only after tests prove that parsers accept both the existing markers and the
-aliases. Writers must not switch canonical output until compatibility is proven
-and documented.
+The canonical writer output remains:
+
+| State | Canonical writer output | Read-compatible aliases |
+| --- | --- | --- |
+| Requested | `pm:依頼中` | `cursor:依頼中`, `pm:requested` |
+| Queued | `cc:TODO` | none |
+| In progress | `cc:WIP` | none |
+| Done | `cc:完了` | `cc:done` |
+| Approved | `pm:確認済` | `cursor:確認済`, `pm:approved` |
+| Blocked | `blocked` | `cc:blocked` |
+
+Aliases are read-compatibility only. They allow English-facing or legacy
+fixtures to be parsed without data loss, but Harness writers must keep emitting
+the canonical markers above unless a future migration task explicitly changes
+the protocol.
+
+The state contract for marker parsing is intentionally narrow:
+
+| Checkpoint | Required invariant |
+| --- | --- |
+| Input | Existing `Plans.md` rows and heading-style tasks may contain canonical markers, cursor aliases, or the English aliases listed above. |
+| Storage | `Plans.md` remains the source of truth; parser checks must not rewrite it during validation or dry-run paths. |
+| Update trigger | Writers update task state only when executing an approved workflow such as work completion or PM confirmation. |
+| Readers | `codex-loop`, sprint-contract generation, Plans issue bridge, and format checks must accept canonical markers and aliases. |
+| Rollback | Because alias support is read-only, rollback is removing parser alias recognition; no data migration or backup restore is required. |
 
 ## Skill Metadata Contract
 

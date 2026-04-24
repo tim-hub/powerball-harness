@@ -123,7 +123,7 @@ var (
 	uxRegressionRe      = regexp.MustCompile(`(?i)browser|ui|layout|responsive|playwright|chrome|画面|レイアウト`)
 	advisorRequiredRe   = regexp.MustCompile(`(?is)<!--\s*advisor:required\s*-->`)
 	headingTaskRe       = regexp.MustCompile(`^\s{0,3}(#{2,6})\s+([A-Za-z0-9][A-Za-z0-9_.-]*)(?:\s*[:：]\s*|\s+)(.*)$`)
-	headingStatusRe     = regexp.MustCompile(`\b(?:cc:TODO|cc:WIP|cc:完了|pm:確認済)(?:\s*\[[^\]]+\])?`)
+	headingStatusRe     = regexp.MustCompile(`\b(?:cc:TODO|cc:WIP|cc:完了|pm:依頼中|pm:確認済|cursor:依頼中|cursor:確認済|cc:done|pm:requested|pm:approved|cc:blocked|blocked)(?:\s*\[[^\]]+\])?`)
 	headingDependsRe    = regexp.MustCompile(`(?i)^\s*(?:depends|依存)\s*[:：]\s*(.+?)\s*$`)
 )
 

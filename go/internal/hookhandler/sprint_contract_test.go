@@ -216,6 +216,42 @@ func TestSprintContractGenerator_HeadingTask(t *testing.T) {
 	}
 }
 
+func TestSprintContractGenerator_StatusMarkerAliases(t *testing.T) {
+	dir := t.TempDir()
+	plansPath := filepath.Join(dir, "Plans.md")
+	if err := os.WriteFile(plansPath, []byte("# Plans\n\n"+
+		"#### H-1: Requested alias `pm:requested`\n\n"+
+		"- [ ] Requested aliases are accepted.\n\n"+
+		"#### H-2: Done alias `cc:done`\n\n"+
+		"- [x] Done aliases are accepted.\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	g := &SprintContractGenerator{ProjectRoot: dir, PlansFile: plansPath}
+
+	requested, err := g.Generate("H-1")
+	if err != nil {
+		t.Fatalf("Generate requested alias: %v", err)
+	}
+	if requested.Task.StatusAtGeneration != "pm:requested" {
+		t.Fatalf("expected pm:requested, got %s", requested.Task.StatusAtGeneration)
+	}
+	if requested.Task.Title != "Requested alias" {
+		t.Fatalf("expected status marker to be removed from title, got %q", requested.Task.Title)
+	}
+
+	done, err := g.Generate("H-2")
+	if err != nil {
+		t.Fatalf("Generate done alias: %v", err)
+	}
+	if done.Task.StatusAtGeneration != "cc:done" {
+		t.Fatalf("expected cc:done, got %s", done.Task.StatusAtGeneration)
+	}
+	if done.Task.Title != "Done alias" {
+		t.Fatalf("expected status marker to be removed from title, got %q", done.Task.Title)
+	}
+}
+
 func TestSprintContractGenerator_WriteRoundTrip(t *testing.T) {
 	dir := t.TempDir()
 	plansPath := filepath.Join(dir, "Plans.md")

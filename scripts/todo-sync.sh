@@ -8,7 +8,7 @@
 #   TodoWrite状態     → Plans.mdマーカー
 #   pending          → cc:TODO
 #   in_progress      → cc:WIP
-#   completed        → cc:done
+#   completed        → cc:完了
 
 set +e  # エラーで停止しない
 
