@@ -189,6 +189,13 @@ func resolveHarnessLocale(projectRoot string, explicitLocale ...string) string {
 	return "en"
 }
 
+func localizedHarnessMessage(locale, en, ja string) string {
+	if normalizeHarnessLocale(locale) == "ja" {
+		return ja
+	}
+	return en
+}
+
 // readPlansDirectoryFromConfig は projectRoot 配下の設定ファイルから
 // plansDirectory の値を返す。設定がない・読めない場合は空文字を返す。
 //

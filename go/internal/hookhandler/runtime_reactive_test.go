@@ -93,6 +93,7 @@ func TestHandleRuntimeReactive_FileChanged_PlansmdWithPath(t *testing.T) {
 }
 
 func TestHandleRuntimeReactive_FileChanged_AgentsMd(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "")
 	dir := t.TempDir()
 
 	payload := `{"hook_event_name":"FileChanged","file_path":"AGENTS.md","cwd":"` + dir + `"}`
@@ -100,10 +101,11 @@ func TestHandleRuntimeReactive_FileChanged_AgentsMd(t *testing.T) {
 	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertReactiveHookOutput(t, out.String(), "FileChanged", "Harness 設定")
+	assertReactiveHookOutput(t, out.String(), "FileChanged", "Working rules")
 }
 
 func TestHandleRuntimeReactive_FileChanged_ClaudeRules(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "")
 	dir := t.TempDir()
 
 	payload := `{"hook_event_name":"FileChanged","file_path":".claude/rules/test.md","cwd":"` + dir + `"}`
@@ -111,10 +113,11 @@ func TestHandleRuntimeReactive_FileChanged_ClaudeRules(t *testing.T) {
 	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertReactiveHookOutput(t, out.String(), "FileChanged", "Harness 設定")
+	assertReactiveHookOutput(t, out.String(), "FileChanged", "Working rules")
 }
 
 func TestHandleRuntimeReactive_FileChanged_HooksJson(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "")
 	dir := t.TempDir()
 
 	payload := `{"hook_event_name":"FileChanged","file_path":"hooks/hooks.json","cwd":"` + dir + `"}`
@@ -122,10 +125,11 @@ func TestHandleRuntimeReactive_FileChanged_HooksJson(t *testing.T) {
 	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertReactiveHookOutput(t, out.String(), "FileChanged", "Harness 設定")
+	assertReactiveHookOutput(t, out.String(), "FileChanged", "Working rules")
 }
 
 func TestHandleRuntimeReactive_FileChanged_SettingsJson(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "")
 	dir := t.TempDir()
 
 	payload := `{"hook_event_name":"FileChanged","file_path":".claude-plugin/settings.json","cwd":"` + dir + `"}`
@@ -133,7 +137,7 @@ func TestHandleRuntimeReactive_FileChanged_SettingsJson(t *testing.T) {
 	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertReactiveHookOutput(t, out.String(), "FileChanged", "Harness 設定")
+	assertReactiveHookOutput(t, out.String(), "FileChanged", "Working rules")
 }
 
 func TestHandleRuntimeReactive_FileChanged_UnrelatedFile(t *testing.T) {
@@ -149,6 +153,7 @@ func TestHandleRuntimeReactive_FileChanged_UnrelatedFile(t *testing.T) {
 }
 
 func TestHandleRuntimeReactive_CwdChanged(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "")
 	dir := t.TempDir()
 
 	payload := `{"hook_event_name":"CwdChanged","previous_cwd":"/old/path","cwd":"` + dir + `"}`
@@ -156,7 +161,7 @@ func TestHandleRuntimeReactive_CwdChanged(t *testing.T) {
 	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertReactiveHookOutput(t, out.String(), "CwdChanged", "作業ディレクトリが切り替わりました")
+	assertReactiveHookOutput(t, out.String(), "CwdChanged", "working directory changed")
 }
 
 func TestHandleRuntimeReactive_TaskCreated(t *testing.T) {
@@ -196,10 +201,38 @@ func TestHandleRuntimeReactive_WritesLogFile(t *testing.T) {
 }
 
 func TestHandleRuntimeReactive_AlternativeFieldNames(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "")
 	dir := t.TempDir()
 
 	// event_name と path の代替フィールドを使う
 	payload := `{"event_name":"FileChanged","path":"CLAUDE.md","project_root":"` + dir + `"}`
+	var out bytes.Buffer
+	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertReactiveHookOutput(t, out.String(), "FileChanged", "Working rules")
+}
+
+func TestHandleRuntimeReactive_LocaleJapaneseEnv(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "ja")
+	dir := t.TempDir()
+
+	payload := `{"hook_event_name":"CwdChanged","previous_cwd":"/old/path","cwd":"` + dir + `"}`
+	var out bytes.Buffer
+	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	assertReactiveHookOutput(t, out.String(), "CwdChanged", "作業ディレクトリが切り替わりました")
+}
+
+func TestHandleRuntimeReactive_LocaleJapaneseConfig(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_HARNESS_LANG", "en")
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, harnessConfigFileName), []byte("i18n:\n  language: ja\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	payload := `{"hook_event_name":"FileChanged","file_path":"AGENTS.md","cwd":"` + dir + `"}`
 	var out bytes.Buffer
 	if err := HandleRuntimeReactive(strings.NewReader(payload), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -209,9 +242,9 @@ func TestHandleRuntimeReactive_AlternativeFieldNames(t *testing.T) {
 
 func TestNormalizeReactivePath(t *testing.T) {
 	tests := []struct {
-		rawPath    string
+		rawPath     string
 		projectRoot string
-		want       string
+		want        string
 	}{
 		{"Plans.md", "", "Plans.md"},
 		{"", "/some/root", ""},

@@ -353,6 +353,8 @@ msg() {
   # msg <key> [arg]
   local key="$1"
   local arg="${2:-}"
+  local arg2="${3:-}"
+  local arg3="${4:-}"
 
   if [ "$LANG_CODE" = "en" ]; then
     case "$key" in
@@ -366,12 +368,70 @@ msg() {
       deny_codex_mode) echo "[Codex Mode] Claude is the PM. Direct Edit/Write is prohibited. Delegate implementation to Codex Worker via codex exec (CLI)." ;;
       deny_breezing_codex_mode) echo "[Breezing-Codex] Direct Edit/Write is prohibited in codex impl mode. Implementation must go through codex exec (CLI)." ;;
       deny_codex_mcp) echo "Blocked: Codex MCP is deprecated. Use 'codex exec' (Bash) instead. See .claude/rules/codex-cli-only.md" ;;
+      codex_plans_symlink) echo "[Codex Mode] Symbolic links are not allowed for Plans.md" ;;
+      breezing_codex_symlink) echo "[Breezing-Codex] Symbolic links are not allowed" ;;
+      breezing_reviewer_readonly) echo "[Breezing] Reviewer is read-only. Code changes are the Implementer's responsibility." ;;
+      breezing_owns_outside) echo "[Breezing] This file is outside the owns scope: $arg" ;;
+      breezing_reviewer_bash_write) echo "[Breezing] Reviewer cannot run write-like Bash commands." ;;
+      breezing_reviewer_file_ops) echo "[Breezing] Reviewer cannot run file operation commands." ;;
+      breezing_reviewer_git_mutation) echo "[Breezing] Reviewer cannot run git mutation commands." ;;
+      breezing_implementer_git_commit) echo "[Breezing] Implementer cannot run git commit. Lead commits changes during the completion stage." ;;
+      breezing_implementer_git_push) echo "[Breezing] Implementer cannot run git push." ;;
+      breezing_codex_file_ops) echo "[Breezing-Codex] File operation commands are prohibited in codex impl mode." ;;
+      breezing_codex_git_mutation) echo "[Breezing-Codex] Git mutation commands are prohibited in codex impl mode." ;;
+      codex_ask_file_ops) echo "[Codex Mode] Run file operations (mv/cp) in PM mode? Delegating implementation to Codex Worker is recommended." ;;
+      codex_ask_rm_rf) echo "[Codex Mode] Run rm -rf in PM mode? Delegating implementation to Codex Worker is recommended. ($arg)" ;;
+      codex_ask_rm) echo "[Codex Mode] Run rm in PM mode? Delegating implementation to Codex Worker is recommended." ;;
+      cost_limit_total) echo "[Cost Control] Session tool-call limit reached ($arg). Start a new session." ;;
+      cost_limit_edit) echo "[Cost Control] Edit/Write call limit reached ($arg)." ;;
+      cost_limit_bash) echo "[Cost Control] Bash call limit reached ($arg)." ;;
+      cost_warning_total) echo "[Cost Warning] Total tool calls: ${arg}/${arg2} (over ${arg3}%)" ;;
+      cost_warning_edit) echo "[Cost Warning] Edit/Write: ${arg}/${arg2}" ;;
+      cost_warning_bash) echo "[Cost Warning] Bash: ${arg}/${arg2}" ;;
+      test_quality_guideline) cat <<'EOF'
+[Test Quality Guideline]
+- Do not change tests to it.skip() / test.skip()
+- Do not remove or weaken assertions
+- Do not add eslint-disable comments
+EOF
+        ;;
+      impl_quality_guideline) cat <<'EOF'
+[Implementation Quality Guideline]
+- Do not hard-code test expectations
+- Do not add stubs, mocks, or empty implementations as the final fix
+- Implement meaningful logic
+EOF
+        ;;
+      skills_gate) cat <<EOF
+[Skills Gate] Use a skill before editing code.
+
+Skills Gate is enabled for this project.
+Before changing code, call an appropriate skill with the Skill tool.
+
+Available skills: ${arg}
+
+Example: call 'impl' or 'harness-review' with the Skill tool.
+
+After using a skill, run Write/Edit again.
+EOF
+        ;;
+      lsp_gate) cat <<'EOF'
+[LSP Policy] Analyze the impact with LSP tools before changing code.
+
+Recommended LSP tools:
+- Go-to-definition to inspect symbol definitions
+- Find-references to inspect usage sites
+- Diagnostics to detect type errors
+
+After checking the impact with LSP tools, run Write/Edit again.
+EOF
+        ;;
       *) echo "$key $arg" ;;
     esac
     return 0
   fi
 
-  # ja (default)
+  # ja
   case "$key" in
     deny_path_traversal) echo "ブロック: パストラバーサルの疑い（file_path: $arg）" ;;
     ask_write_outside_project) echo "確認: プロジェクト外への書き込み（file_path: $arg）" ;;
@@ -383,6 +443,64 @@ msg() {
     deny_codex_mode) echo "[Codex Mode] --codex モードでは Claude は PM 役です。直接の Edit/Write は禁止されています。実装は codex exec (CLI) 経由で Codex Worker に委譲してください。" ;;
     deny_breezing_codex_mode) echo "[Breezing-Codex] codex 実装モードでは直接の Edit/Write は禁止されています。実装は codex exec (CLI) 経由で行ってください。" ;;
     deny_codex_mcp) echo "ブロック: Codex MCP は廃止されました。代わりに 'codex exec' (Bash) を使用してください。詳細: .claude/rules/codex-cli-only.md" ;;
+    codex_plans_symlink) echo "[Codex Mode] Plans.md にシンボリックリンクは使用できません。" ;;
+    breezing_codex_symlink) echo "[Breezing-Codex] シンボリックリンクは使用できません。" ;;
+    breezing_reviewer_readonly) echo "[Breezing] Reviewer は Read-only です。コードの修正は Implementer の責務です。" ;;
+    breezing_owns_outside) echo "[Breezing] このファイルは owns 範囲外です: $arg" ;;
+    breezing_reviewer_bash_write) echo "[Breezing] Reviewer は書き込み系 Bash コマンドを実行できません。" ;;
+    breezing_reviewer_file_ops) echo "[Breezing] Reviewer はファイル操作コマンドを実行できません。" ;;
+    breezing_reviewer_git_mutation) echo "[Breezing] Reviewer は git 変更コマンドを実行できません。" ;;
+    breezing_implementer_git_commit) echo "[Breezing] Implementer は git commit を実行できません。コミットは Lead が完了ステージで一括実行します。" ;;
+    breezing_implementer_git_push) echo "[Breezing] Implementer は git push を実行できません。" ;;
+    breezing_codex_file_ops) echo "[Breezing-Codex] codex 実装モードではファイル操作コマンドは禁止されています。" ;;
+    breezing_codex_git_mutation) echo "[Breezing-Codex] codex 実装モードでは git 変更コマンドは禁止されています。" ;;
+    codex_ask_file_ops) echo "[Codex Mode] PM モードでファイル操作（mv/cp）を実行しますか？実装は Codex Worker に委譲を推奨します。" ;;
+    codex_ask_rm_rf) echo "[Codex Mode] PM モードで rm -rf を実行しますか？実装は Codex Worker に委譲を推奨します。($arg)" ;;
+    codex_ask_rm) echo "[Codex Mode] PM モードで rm を実行しますか？実装は Codex Worker に委譲を推奨します。" ;;
+    cost_limit_total) echo "[Cost Control] セッションのツール呼び出し上限 ($arg) に達しました。新しいセッションを開始してください。" ;;
+    cost_limit_edit) echo "[Cost Control] Edit/Write 呼び出し上限 ($arg) に達しました。" ;;
+    cost_limit_bash) echo "[Cost Control] Bash 呼び出し上限 ($arg) に達しました。" ;;
+    cost_warning_total) echo "[Cost Warning] 総ツール呼び出し: ${arg}/${arg2} (${arg3}%超過)" ;;
+    cost_warning_edit) echo "[Cost Warning] Edit/Write: ${arg}/${arg2}" ;;
+    cost_warning_bash) echo "[Cost Warning] Bash: ${arg}/${arg2}" ;;
+    test_quality_guideline) cat <<'EOF'
+【テスト品質ガイドライン】
+- it.skip() / test.skip() への変更禁止
+- アサーションの削除・緩和禁止
+- eslint-disable コメントの追加禁止
+EOF
+      ;;
+    impl_quality_guideline) cat <<'EOF'
+【実装品質ガイドライン】
+- テスト期待値のハードコード禁止
+- スタブ・モック・空実装禁止
+- 意味のあるロジックを実装すること
+EOF
+      ;;
+    skills_gate) cat <<EOF
+[Skills Gate] コード編集前にスキルを使用してください。
+
+このプロジェクトでは Skills Gate が有効です。
+コード変更前に Skill ツールで適切なスキルを呼び出してください。
+
+利用可能なスキル: ${arg}
+
+例: Skill ツールで 'impl' や 'harness-review' を呼び出す
+
+スキルを使用後、再度 Write/Edit を実行してください。
+EOF
+      ;;
+    lsp_gate) cat <<'EOF'
+[LSP Policy] コード変更前にLSPツールを使って影響範囲を分析してください。
+
+推奨LSPツール:
+- Go-to-definition でシンボルの定義を確認
+- Find-references で使用箇所を確認
+- Diagnostics で型エラーを検出
+
+LSPツールを使って変更の影響範囲を把握してから、再度 Write/Edit を実行してください。
+EOF
+      ;;
     *) echo "$key $arg" ;;
   esac
 }
@@ -507,20 +625,20 @@ check_cost_control() {
 
     # 上限チェック
     if [ "$total_calls" -ge "$total_limit" ]; then
-      echo "[Cost Control] セッションのツール呼び出し上限 ($total_limit) に達しました。新しいセッションを開始してください。"
+      msg cost_limit_total "$total_limit"
       return 1
     fi
 
     case "$tool" in
       Write|Edit)
         if [ "$edit_calls" -ge "$edit_limit" ]; then
-          echo "[Cost Control] Edit/Write 呼び出し上限 ($edit_limit) に達しました。"
+          msg cost_limit_edit "$edit_limit"
           return 1
         fi
         ;;
       Bash)
         if [ "$bash_calls" -ge "$bash_limit" ]; then
-          echo "[Cost Control] Bash 呼び出し上限 ($bash_limit) に達しました。"
+          msg cost_limit_bash "$bash_limit"
           return 1
         fi
         ;;
@@ -533,17 +651,17 @@ check_cost_control() {
 
     local warnings=""
     if [ "$total_calls" -ge "$warn_total" ] && [ "$total_calls" -lt "$total_limit" ]; then
-      warnings="${warnings}[Cost Warning] 総ツール呼び出し: ${total_calls}/${total_limit} (${warn_percent}%超過)\n"
+      warnings="${warnings}$(msg cost_warning_total "$total_calls" "$total_limit" "$warn_percent")\n"
     fi
     case "$tool" in
       Write|Edit)
         if [ "$edit_calls" -ge "$warn_edit" ] && [ "$edit_calls" -lt "$edit_limit" ]; then
-          warnings="${warnings}[Cost Warning] Edit/Write: ${edit_calls}/${edit_limit}\n"
+          warnings="${warnings}$(msg cost_warning_edit "$edit_calls" "$edit_limit")\n"
         fi
         ;;
       Bash)
         if [ "$bash_calls" -ge "$warn_bash" ] && [ "$bash_calls" -lt "$bash_limit" ]; then
-          warnings="${warnings}[Cost Warning] Bash: ${bash_calls}/${bash_limit}\n"
+          warnings="${warnings}$(msg cost_warning_bash "$bash_calls" "$bash_limit")\n"
         fi
         ;;
     esac
@@ -629,15 +747,9 @@ fi
 # ===== additionalContext ガイドライン生成 (Claude Code v2.1.9+) =====
 # Write/Edit 操作時にファイルパスに応じたガイドラインを返す
 
-TEST_QUALITY_GUIDELINE="【テスト品質ガイドライン】
-- it.skip() / test.skip() への変更禁止
-- アサーションの削除・緩和禁止
-- eslint-disable コメントの追加禁止"
+TEST_QUALITY_GUIDELINE="$(msg test_quality_guideline)"
 
-IMPL_QUALITY_GUIDELINE="【実装品質ガイドライン】
-- テスト期待値のハードコード禁止
-- スタブ・モック・空実装禁止
-- 意味のあるロジックを実装すること"
+IMPL_QUALITY_GUIDELINE="$(msg impl_quality_guideline)"
 
 # ファイルパスに応じたガイドラインを返す
 # 引数: $1 = ファイルパス（相対または絶対）
@@ -774,7 +886,7 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
     # パターンを厳格化: 正確に "Plans.md" で終わる場合のみ許可
     # シンボリックリンクは拒否（セキュリティ対策）
     if [ -L "$FILE_PATH" ]; then
-      emit_deny "[Codex Mode] Symbolic links are not allowed for Plans.md"
+      emit_deny "$(msg codex_plans_symlink)"
       exit 0
     fi
     # 関数外なので local は使わない
@@ -790,7 +902,7 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
   # ===== Breezing-Codex Mode: 直接の Edit/Write をブロック =====
   if [ "$BREEZING_CODEX_MODE" = "true" ]; then
     if [ -L "$FILE_PATH" ]; then
-      emit_deny "[Breezing-Codex] Symbolic links are not allowed"
+      emit_deny "$(msg breezing_codex_symlink)"
       exit 0
     fi
     # 許可リスト: breezing 関連 state, review state, *.md (ドキュメント)
@@ -818,7 +930,7 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
       case "$FILE_PATH" in
         .claude/state/*|*/.claude/state/*) ;; # state ファイルは許可
         *)
-          emit_deny "[Breezing] Reviewer は Read-only です。コードの修正は Implementer の責務です。"
+          emit_deny "$(msg breezing_reviewer_readonly)"
           exit 0
           ;;
       esac
@@ -858,7 +970,7 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
           fi
 
           if [ "$BREEZING_FILE_ALLOWED" = "false" ]; then
-            emit_deny "[Breezing] このファイルは owns 範囲外です: $FILE_PATH"
+            emit_deny "$(msg breezing_owns_outside "$FILE_PATH")"
             exit 0
           fi
           ;;
@@ -987,16 +1099,7 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
           if [ "$SKILL_USED_THIS_SESSION" = "false" ]; then
             # スキル未使用 → ブロック
             AVAILABLE_SKILLS=$(jq -r '.skills // [] | join(", ")' "$SKILLS_CONFIG_FILE" 2>/dev/null || echo "impl, harness-review")
-            DENY_MSG="[Skills Gate] コード編集前にスキルを使用してください。
-
-このプロジェクトでは Skills Gate が有効です。
-コード変更前に Skill ツールで適切なスキルを呼び出してください。
-
-利用可能なスキル: ${AVAILABLE_SKILLS}
-
-例: Skill ツールで 'impl' や 'harness-review' を呼び出す
-
-スキルを使用後、再度 Write/Edit を実行してください。"
+            DENY_MSG="$(msg skills_gate "$AVAILABLE_SKILLS")"
             emit_deny "$DENY_MSG"
             exit 0
           fi
@@ -1018,14 +1121,7 @@ if [ "$TOOL_NAME" = "Write" ] || [ "$TOOL_NAME" = "Edit" ]; then
 
       if [ "$INTENT" = "semantic" ] && [ "$LSP_AVAILABLE" = "true" ] && [ "$LSP_AVAILABLE_FOR_EXT" = "true" ]; then
         if [ "$LSP_LAST_USED_SEQ" != "$CURRENT_PROMPT_SEQ" ]; then
-          DENY_MSG="[LSP Policy] コード変更前にLSPツールを使って影響範囲を分析してください。
-
-推奨LSPツール:
-- Go-to-definition でシンボルの定義を確認
-- Find-references で使用箇所を確認
-- Diagnostics で型エラーを検出
-
-LSPツールを使って変更の影響範囲を把握してから、再度 Write/Edit を実行してください。"
+          DENY_MSG="$(msg lsp_gate)"
           emit_deny "$DENY_MSG"
           exit 0
         fi
@@ -1061,15 +1157,15 @@ if [ "$TOOL_NAME" = "Bash" ]; then
       # 2>&1（stderr→stdout）は読み取り安全なので除外
       BREEZING_SANITIZED_CMD=$(echo "$COMMAND" | sed 's/2>&1//g; s/>&2//g')
       if echo "$BREEZING_SANITIZED_CMD" | grep -Eq '(>|>>|2>|&>|(^|[[:space:]])tee([[:space:]]|$)|sed[[:space:]]+-i)'; then
-        emit_deny "[Breezing] Reviewer は書き込み系 Bash コマンドを実行できません。"
+        emit_deny "$(msg breezing_reviewer_bash_write)"
         exit 0
       fi
       if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])(mv|cp|rm|mkdir|touch)[[:space:]]'; then
-        emit_deny "[Breezing] Reviewer はファイル操作コマンドを実行できません。"
+        emit_deny "$(msg breezing_reviewer_file_ops)"
         exit 0
       fi
       if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+(commit|push|add|checkout|reset|rebase|merge|cherry-pick)([[:space:]]|$)'; then
-        emit_deny "[Breezing] Reviewer は git 変更コマンドを実行できません。"
+        emit_deny "$(msg breezing_reviewer_git_mutation)"
         exit 0
       fi
     fi
@@ -1077,11 +1173,11 @@ if [ "$TOOL_NAME" = "Bash" ]; then
     # Implementer: git commit をブロック（コミットは Lead のみ）
     if [ "$BREEZING_ROLE" = "implementer" ]; then
       if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+commit([[:space:]]|$)'; then
-        emit_deny "[Breezing] Implementer は git commit を実行できません。コミットは Lead が完了ステージで一括実行します。"
+        emit_deny "$(msg breezing_implementer_git_commit)"
         exit 0
       fi
       if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+push([[:space:]]|$)'; then
-        emit_deny "[Breezing] Implementer は git push を実行できません。"
+        emit_deny "$(msg breezing_implementer_git_push)"
         exit 0
       fi
     fi
@@ -1097,12 +1193,12 @@ if [ "$TOOL_NAME" = "Bash" ]; then
     fi
     # ファイル操作コマンドをブロック
     if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])(mv|cp|rm|mkdir|touch)[[:space:]]'; then
-      emit_deny "[Breezing-Codex] File operation commands are prohibited in codex impl mode."
+      emit_deny "$(msg breezing_codex_file_ops)"
       exit 0
     fi
     # git 変更コマンドをブロック
     if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])git[[:space:]]+(commit|push|add|checkout|reset|rebase|merge|cherry-pick|apply|am|switch|restore|stash|pull|clean|rm|mv|submodule)([[:space:]]|$)'; then
-      emit_deny "[Breezing-Codex] Git mutation commands are prohibited in codex impl mode."
+      emit_deny "$(msg breezing_codex_git_mutation)"
       exit 0
     fi
   fi
@@ -1125,7 +1221,7 @@ if [ "$TOOL_NAME" = "Bash" ]; then
     # mv, cp は確認を求める（ask）
     # rm は後の rm -rf ホワイトリストで処理（順序問題を回避）
     if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])(mv|cp)[[:space:]]'; then
-      emit_ask "[Codex Mode] PM モードでファイル操作（mv/cp）を実行しますか？実装は Codex Worker に委譲を推奨します。"
+      emit_ask "$(msg codex_ask_file_ops)"
       exit 0
     fi
   fi
@@ -1274,7 +1370,7 @@ if [ "$TOOL_NAME" = "Bash" ]; then
     if [ "$RM_AUTO_APPROVE" != "true" ]; then
       # Codex モード時は PM 用のメッセージを追加
       if [ "$CODEX_MODE" = "true" ]; then
-        emit_ask "[Codex Mode] PM モードで rm -rf を実行しますか？実装は Codex Worker に委譲を推奨します。($COMMAND)"
+        emit_ask "$(msg codex_ask_rm_rf "$COMMAND")"
       else
         emit_ask "$(msg ask_rm_rf "$COMMAND")"
       fi
@@ -1286,7 +1382,7 @@ if [ "$TOOL_NAME" = "Bash" ]; then
   # ===== Codex Mode: 単純な rm（-r なし）も確認 =====
   if [ "$CODEX_MODE" = "true" ]; then
     if echo "$COMMAND" | grep -Eiq '(^|[[:space:]])rm[[:space:]]'; then
-      emit_ask "[Codex Mode] PM モードで rm を実行しますか？実装は Codex Worker に委譲を推奨します。"
+      emit_ask "$(msg codex_ask_rm)"
       exit 0
     fi
   fi
