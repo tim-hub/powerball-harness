@@ -27,7 +27,7 @@
 
 ## Version-by-version breakdown
 
-| Version | Upstream item | こうよくなる | Category | Harness surface | Harness action |
+| Version | Upstream item | どうよくなる | Category | Harness surface | Harness action |
 |---------|---------------|--------------|----------|-----------------|----------------|
 | Claude Code 2.1.119 | `/config` settings persist to `~/.claude/settings.json` and join project/local/policy precedence | 手元の theme / editor / verbose 設定が再起動後も残り、managed settings との優先順位が分かりやすくなる | P | setup / managed settings docs | Phase 53 の plugin-managed-settings policy と重複するため、次回 setup docs の precedence 表へ統合する |
 | Claude Code 2.1.119 | `prUrlTemplate` customizes footer PR badge URLs | GitHub Enterprise / GitLab / Bitbucket review URL を使うチームでも footer から正しいレビュー面へ飛びやすい | P | review / release docs | GitHub 固定の PR guidance を点検し、企業 git host 対応として後続候補に残す |

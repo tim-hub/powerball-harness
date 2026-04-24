@@ -24,6 +24,10 @@ Change history for claude-code-harness.
 
 **今後**: Phase 56 は fresh main から分離し、Claude Code `2.1.119` の `PostToolUse.duration_ms`、status line `effort.level` / `thinking.enabled`、`prUrlTemplate`、multi-host `--from-pr`、Codex `0.124.0` stable hooks / multi-environment app-server を、即時実装ではなく `A: 検証強化`, `C: 自動継承`, `P: 将来タスク` に分類して追跡する。Codex `0.125.0-alpha.2` は tag 存在のみ記録し、compare から推測実装しない。
 
+| Before | After |
+|--------|-------|
+| Upstream snapshot は Phase 53 の Claude Code `2.1.118` / Codex `0.123.0` までで、i18n 大差分と混ぜるとレビューしづらかった | Phase 56 を fresh main から分離し、Claude Code `2.1.119` / Codex `0.124.0` / `0.125.0-alpha.2` を A/C/P 分類と follow-up task で固定 |
+
 #### Phase 55: Issue #105 English default no-regression tests
 
 **I18n regression coverage**: Added shell tests for English default config/schema surfaces, shipped skill frontmatter, temp-copy `ja -> en` locale roundtrip, and setup-facing language rendering. `scripts/i18n/check-translations.sh` now checks `skills/`, `skills-codex/`, `codex/.codex/skills/`, and `opencode/skills/`, requiring shipped `description` to match `description-en` while preserving `description-ja`.
