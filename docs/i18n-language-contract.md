@@ -150,13 +150,13 @@ checked before Issue #105 is closed:
 | `docs/constitution.md` | Any language guidance aligns with this contract. |
 | `opencode/README.md` and `codex/README.md` | Runtime-specific docs do not contradict the contract. |
 
-Known current drift after 55.1.1 test hardening:
+Known current drift after 55.2.2 setup hardening:
 
 - `scripts/pretooluse-guard.sh` defaults to Japanese when no environment
   variable is set.
 - Runtime shell / Go messages are not yet fully locale-aware.
-- Default setup content templates still need the broader English-default /
-  Japanese-opt-in rendering pass planned for 55.2.2.
+- Setup content templates now ship English defaults with Japanese opt-in copies
+  under `templates/locales/ja/`.
 
 These are implementation targets for later Phase 55 tasks, not blockers for
 this contract task.

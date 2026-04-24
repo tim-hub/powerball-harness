@@ -145,6 +145,19 @@ claude
 
 これだけ。`/harness-plan` から始めよう。
 
+### 言語設定
+
+配布時の既定言語は English です。日本語で使う場合は、明示的に opt-in します。
+
+```yaml
+i18n:
+  language: ja
+```
+
+一時的に日本語セットアップで起動する場合は
+`CLAUDE_CODE_HARNESS_LANG=ja claude` を使えます。英語版 README は
+[README.md](README.md) です。
+
 ---
 
 ## 🪄 説明が長い？ならこれ: 検証前提の /work all

@@ -1,22 +1,20 @@
 # .claude-code-harness.config.yaml
 # claude-code-harness settings file
 #
-# This file lets you customize Harness behavior.
+# This file lets you customize cleanup thresholds.
 # If omitted, default values are used.
 
-# Language settings.
-# Distributed installs default to English. Set to "ja" for Japanese output
-# and Japanese setup templates.
+# Language settings
+# 日本語テンプレートを明示選択した場合の設定です。
 i18n:
-  language: en
+  language: ja
 
-# Plans.md location.
-# Default: "." means the project root.
-# Example: ".claude/memory" keeps Plans.md next to SSOT memory files.
+# Plans.md の配置場所（デフォルト: "." = プロジェクトルート）
+# 例: ".claude/memory" にすると SSOT と統一配置
 plansDirectory: "."
 
 advisor:
-  # Call the advisor only when the executor needs help.
+  # Executor が必要なときだけ相談役を呼ぶ
   enabled: true
   mode: on-demand
   max_consults_per_task: 3
@@ -46,17 +44,17 @@ cleanup:
   # - hook: check on PostToolUse hook
   auto_run: hook
 
-# Commit guard: require /harness-review before git commit.
-# When enabled, git commit is blocked until review is completed.
+# Commit guard: require /harness-review before git commit
+# When enabled, git commit will be blocked until review is completed
 commit_guard: true
 
-# Context budget (estimated tooling overhead).
+# Context budget (estimated tooling overhead)
 context_budget:
   enabled: true
   max_enabled_mcps: 10
   max_installed_plugins: 10
 
-# Optional quality automation pack (PostToolUse).
+# Optional quality automation pack (PostToolUse)
 quality_pack:
   enabled: false
   mode: warn         # warn | run
@@ -64,25 +62,27 @@ quality_pack:
   tsc: true
   console_log: true
 
-# Review settings (commit judgment + Codex mode).
+# Review settings (commit judgment + Codex mode)
 review:
-  # Review mode: default (Claude only) or codex (GPT experts delegation).
+  # Review mode: default (Claude only) or codex (GPT experts delegation)
   mode: codex
 
+  # Commit judgment settings
   judgment:
-    # Output APPROVE / REQUEST CHANGES / REJECT verdict.
+    # Output APPROVE/REQUEST CHANGES/REJECT verdict
     enabled: true
-    # Auto-fix on REQUEST CHANGES.
+    # Auto-fix on REQUEST CHANGES
     auto_fix: true
-    # Max retry count for the auto-fix loop.
+    # Max retry count for auto-fix loop
     max_retries: 3
 
+  # Codex integration for parallel expert reviews
   codex:
-    # Enable Codex mode (GPT experts delegation).
+    # Enable Codex mode (GPT experts delegation)
     enabled: true
-    # Auto-run without confirmation.
+    # Auto-run without confirmation
     auto: true
-    # Individual expert toggles.
+    # Individual expert toggles
     experts:
       security: true        # OWASP Top 10, auth/authz
       accessibility: true   # WCAG 2.1 AA

@@ -1,88 +1,91 @@
 ---
 _harness_template: "Plans.md.template"
-_harness_version: "2.5.27"
+_harness_version: "4.3.3"
 ---
 
-# Plans.md - タスク管理
+# Plans.md - Task Tracking
 
-> **プロジェクト**: {{PROJECT_NAME}}
-> **最終更新**: {{DATE}}
-> **更新者**: Claude Code
-
----
-
-## 🔴 進行中のタスク
-
-<!-- cc:WIP のタスクをここに記載 -->
-
-（現在なし）
+> **Project**: {{PROJECT_NAME}}
+> **Last updated**: {{DATE}}
+> **Updated by**: Claude Code
 
 ---
 
-## 🟡 未着手のタスク
+## In Progress
 
-<!-- cc:TODO, pm:依頼中（互換: cursor:依頼中） のタスクをここに記載 -->
+<!-- Add tasks with cc:WIP here. -->
 
-- [ ] プロジェクト初期セットアップ `cc:TODO`
-  - 基本的なディレクトリ構造の作成
-  - 依存関係のインストール
+(none)
 
 ---
 
-## 🟢 完了タスク
+## Not Started
 
-<!-- cc:完了, pm:確認済（互換: cursor:確認済） のタスクをここに記載 -->
+<!-- Add tasks with cc:TODO or pm:依頼中 here. -->
 
-- [x] 2-Agent / 2-Claude ワークフロー導入 `pm:確認済` ({{DATE}})
-
----
-
-## 📦 アーカイブ
-
-<!-- 古い完了タスクはここに移動 -->
+- [ ] Initial project setup `cc:TODO`
+  - Create the basic directory structure
+  - Install dependencies
 
 ---
 
-## マーカー凡例
+## Completed
 
-| マーカー | 意味 |
-|---------|------|
-| `pm:依頼中` | PM から依頼されたタスク（ソロPM Claude / Cursor PM 共通） |
-| `cc:TODO` | Claude Code 未着手 |
-| `cc:WIP` | Claude Code 作業中 |
-| `cc:完了` | Claude Code 完了（確認待ち） |
-| `pm:確認済` | PM 確認完了 |
-| `cursor:依頼中` | （互換）`pm:依頼中` と同義 |
-| `cursor:確認済` | （互換）`pm:確認済` と同義 |
-| `blocked` | ブロック中（理由を併記） |
+<!-- Add tasks with cc:完了 or pm:確認済 here. -->
+
+- [x] Introduce the 2-Agent / 2-Claude workflow `pm:確認済` ({{DATE}})
 
 ---
 
-## 拡張記法（オプション）
+## Archive
 
-大規模タスクの管理には、以下の記法を**オプションで**使用できます。
+<!-- Move older completed tasks here. -->
 
-### タスク ID / 依存関係 / 並列可
+---
+
+## Status Marker Legend
+
+These markers are protocol values used by Harness tooling. Keep them unchanged
+unless the project has tested parser aliases.
+
+| Marker | Meaning |
+|--------|---------|
+| `pm:依頼中` | PM requested work |
+| `cc:TODO` | Not started by Claude Code |
+| `cc:WIP` | Claude Code is working |
+| `cc:完了` | Claude Code completed the task and is awaiting confirmation |
+| `pm:確認済` | PM confirmed completion |
+| `cursor:依頼中` | Compatibility alias for `pm:依頼中` |
+| `cursor:確認済` | Compatibility alias for `pm:確認済` |
+| `blocked` | Blocked; include the reason next to the task |
+
+---
+
+## Optional Extended Syntax
+
+For larger plans, you may add task IDs, dependencies, and parallel markers.
+
+### Task ID / Dependency / Parallel Marker
 
 ```markdown
-- [ ] T001: 認証機能 `cc:TODO`
-- [ ] T002: ユーザーAPI `cc:TODO` depends:T001
-- [ ] T003: 商品API `cc:TODO` [P]
-- [ ] T004: 注文API `cc:TODO` depends:T001,T003
+- [ ] T001: Authentication `cc:TODO`
+- [ ] T002: User API `cc:TODO` depends:T001
+- [ ] T003: Product API `cc:TODO` [P]
+- [ ] T004: Order API `cc:TODO` depends:T001,T003
 ```
 
-| 記法 | 意味 | 例 |
-|------|------|-----|
-| `T001:` | タスクID（任意） | 参照・依存指定に利用 |
-| `depends:ID` | 依存タスク | `depends:T001,T002` |
-| `[P]` | 並列可（Parallelizable） | 他タスクと同時実行可 |
+| Syntax | Meaning | Example |
+|--------|---------|---------|
+| `T001:` | Optional task ID | Used for references and dependencies |
+| `depends:ID` | Dependency task | `depends:T001,T002` |
+| `[P]` | Parallelizable | Can run at the same time as other ready tasks |
 
-**注意**: これらはオプションです。従来形式（ID/depends/[P] なし）でも問題なく動作します。
+**Note**: Extended syntax is optional. The plain checklist format still works.
 
 ---
 
-## 最終更新情報
+## Last Update
 
-- **更新日時**: {{DATE}}
-- **最終セッション担当**: Claude Code
-- **ブランチ**: main
+- **Updated at**: {{DATE}}
+- **Last session owner**: Claude Code
+- **Branch**: main

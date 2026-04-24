@@ -2,7 +2,7 @@
 # setup-existing-project.sh
 # 既存プロジェクトにclaude-code-harnessを適用するセットアップスクリプト
 #
-# Usage: ./scripts/setup-existing-project.sh [project_path]
+# Usage: ./scripts/setup-existing-project.sh [--locale en|ja] [project_path]
 #
 # Cross-platform: Supports Windows (Git Bash/MSYS2/Cygwin/WSL), macOS, Linux
 
@@ -17,7 +17,62 @@ if [ -f "$SCRIPT_DIR/path-utils.sh" ]; then
   source "$SCRIPT_DIR/path-utils.sh"
 fi
 
-PROJECT_PATH="${1:-.}"
+usage() {
+    cat <<EOF
+Usage: $0 [--locale en|ja] [project_path]
+
+Options:
+  --locale en|ja   Render setup templates in English (default) or Japanese.
+  -h, --help       Show this help.
+EOF
+}
+
+PROJECT_PATH="."
+REQUESTED_LOCALE="${CLAUDE_CODE_HARNESS_LANG:-en}"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --locale)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: --locale requires en or ja" >&2
+                exit 1
+            fi
+            REQUESTED_LOCALE="$2"
+            shift 2
+            ;;
+        --locale=*)
+            REQUESTED_LOCALE="${1#--locale=}"
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            PROJECT_PATH="$1"
+            shift
+            ;;
+    esac
+done
+
+normalize_setup_locale() {
+    local value="${1:-en}"
+    if [ -f "$SCRIPT_DIR/config-utils.sh" ]; then
+        # shellcheck source=./config-utils.sh
+        source "$SCRIPT_DIR/config-utils.sh"
+        normalize_harness_locale "$value"
+        return 0
+    fi
+
+    value="$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')"
+    case "$value" in
+        en|ja) printf '%s\n' "$value" ;;
+        *) printf '%s\n' "en" ;;
+    esac
+}
+
+HARNESS_LOCALE="$(normalize_setup_locale "$REQUESTED_LOCALE")"
+
 # Normalize project path for cross-platform compatibility
 if type normalize_path &>/dev/null; then
   PROJECT_PATH="$(normalize_path "$PROJECT_PATH")"
@@ -64,8 +119,9 @@ if [ -f "$HARNESS_ROOT/VERSION" ]; then
     HARNESS_VERSION="$(cat "$HARNESS_ROOT/VERSION" | tr -d ' \n\r')"
 fi
 
-# テンプレート埋め用（後で analyze-project の結果で上書きされる場合あり）
-LANGUAGE="unknown"
+# テンプレート埋め用。言語は自然言語 locale を表す。
+LANGUAGE="$HARNESS_LOCALE"
+PRIMARY_TECHNOLOGY="unknown"
 
 # Gitリポジトリかチェック
 if [ ! -d ".git" ]; then
@@ -157,8 +213,7 @@ if [ -f "$HARNESS_ROOT/scripts/analyze-project.sh" ]; then
         FRAMEWORKS=$(echo "$ANALYSIS_RESULT" | jq -r '.frameworks[]?' 2>/dev/null || true)
         TESTING=$(echo "$ANALYSIS_RESULT" | jq -r '.testing[]?' 2>/dev/null || true)
 
-        # LANGUAGE の簡易推定（テンプレートの {{LANGUAGE}} 埋め用）
-        LANGUAGE=$(echo "$ANALYSIS_RESULT" | jq -r '.technologies[0] // "unknown"' 2>/dev/null || echo "unknown")
+        PRIMARY_TECHNOLOGY=$(echo "$ANALYSIS_RESULT" | jq -r '.technologies[0] // "unknown"' 2>/dev/null || echo "unknown")
 
         if [ -n "${TECHNOLOGIES}${FRAMEWORKS}${TESTING}" ]; then
             echo "検出結果:"
@@ -203,17 +258,21 @@ CONFIG_PATH=".claude-code-harness/config.json"
 if [ -f "$CONFIG_PATH" ]; then
     echo -e "${YELLOW}⚠${NC}  設定ファイルは既に存在します（上書きしません）: $CONFIG_PATH"
 else
+    existing_docs_json=""
+    if [ ${#FOUND_DOCS[@]} -gt 0 ]; then
+        existing_docs_json=$(
+            for doc in "${FOUND_DOCS[@]}"; do
+                echo "    \"$doc\","
+            done | sed '$ s/,$//'
+        )
+    fi
     cat > "$CONFIG_PATH" << EOF
 {
   "version": "$HARNESS_VERSION",
   "setup_date": "$SETUP_DATE_ISO",
   "project_type": "existing",
   "existing_documents": [
-$(
-    for doc in "${FOUND_DOCS[@]}"; do
-        echo "    \"$doc\","
-    done | sed '$ s/,$//'
-)
+$existing_docs_json
   ],
   "harness_path": "$HARNESS_ROOT"
 }
@@ -228,12 +287,21 @@ if [ ${#FOUND_DOCS[@]} -gt 0 ]; then
     if [ -f "$SUMMARY_PATH" ]; then
         echo -e "${YELLOW}⚠${NC}  既存ドキュメントサマリーは既に存在します（上書きしません）: $SUMMARY_PATH"
     else
+        if [ "$HARNESS_LOCALE" = "ja" ]; then
         cat > "$SUMMARY_PATH" << EOF
 # 既存ドキュメント一覧
 
 このプロジェクトには以下の既存ドキュメントがあります：
 
 EOF
+        else
+        cat > "$SUMMARY_PATH" << EOF
+# Existing Documents
+
+This project already contains the following documents:
+
+EOF
+        fi
 
         for doc in "${FOUND_DOCS[@]}"; do
             echo "## $doc" >> "$SUMMARY_PATH"
@@ -297,11 +365,24 @@ render_template_if_missing() {
     echo -e "${GREEN}✓${NC} ${label} を作成: $dest_path"
 }
 
+template_for_locale() {
+    local relative_path="$1"
+    local localized_path="$TEMPLATE_DIR/locales/$HARNESS_LOCALE/$relative_path"
+
+    if [ "$HARNESS_LOCALE" = "ja" ] && [ -f "$localized_path" ]; then
+        printf '%s\n' "$localized_path"
+        return 0
+    fi
+
+    printf '%s\n' "$TEMPLATE_DIR/$relative_path"
+}
+
 # 既存プロジェクト向けのProject Rulesを作成（既存があれば上書きしない）
 RULES_PATH=".claude/rules/harness.md"
 if [ -f "$RULES_PATH" ]; then
     echo -e "${YELLOW}⚠${NC}  Project Rules は既に存在します（上書きしません）: $RULES_PATH"
 else
+    if [ "$HARNESS_LOCALE" = "ja" ]; then
     cat > "$RULES_PATH" << EOF
 # Claude harness - Project Rules
 
@@ -315,7 +396,7 @@ else
 
 1. **既存のドキュメントを優先**
    - 既存の仕様書、README、計画書がある場合は、それらを最優先で参照する
-   - `.claude-code-harness/existing-docs-summary.md` に既存ドキュメントの一覧がある
+   - .claude-code-harness/existing-docs-summary.md に既存ドキュメントの一覧がある
 
 2. **既存のコードスタイルを維持**
    - 既存のコーディング規約、フォーマット設定を尊重する
@@ -328,27 +409,27 @@ else
 ## 利用可能なコマンド
 
 ### コア（Plan → Work → Review）
-- `/plan-with-agent` - プロジェクト計画の作成・更新（既存ドキュメントを考慮）
-- `/work` - 機能実装（並列実行対応、既存コードとの整合性を保つ）
-- `/harness-review` - コードレビュー
+- /plan-with-agent - プロジェクト計画の作成・更新（既存ドキュメントを考慮）
+- /work - 機能実装（並列実行対応、既存コードとの整合性を保つ）
+- /harness-review - コードレビュー
 
 ### 品質/運用
-- `/validate` - 納品前検証
-- `/cleanup` - Plans.md等の自動整理
-- `/sync-status` - 進捗確認→次アクション提案
-- `/refactor` - 安全なリファクタリング
+- /validate - 納品前検証
+- /cleanup - Plans.md等の自動整理
+- /sync-status - 進捗確認→次アクション提案
+- /refactor - 安全なリファクタリング
 
 ### 実装支援
-- `/crud` - CRUD機能生成
-- `/ci-setup` - CI/CD設定
+- /crud - CRUD機能生成
+- /ci-setup - CI/CD設定
 
 ### スキル（会話で自動起動）
-- `component` - 「ヒーローを作って」→ UIコンポーネント実装
-- `auth` - 「ログイン機能を付けて」→ 認証実装
-- `payments` - 「Stripeで決済を」→ 決済統合
-- `deploy-setup` - 「Vercelにデプロイしたい」→ デプロイ設定
-- `analytics` - 「アクセス解析を入れて」→ アナリティクス統合
-- `auto-fix` - 「指摘を修正して」→ 自動修正
+- component - 「ヒーローを作って」→ UIコンポーネント実装
+- auth - 「ログイン機能を付けて」→ 認証実装
+- payments - 「Stripeで決済を」→ 決済統合
+- deploy-setup - 「Vercelにデプロイしたい」→ デプロイ設定
+- analytics - 「アクセス解析を入れて」→ アナリティクス統合
+- auto-fix - 「指摘を修正して」→ 自動修正
 
 ## 既存プロジェクトでの注意点
 
@@ -368,8 +449,78 @@ else
 
 - セットアップ日: $SETUP_DATE_SHORT
 - ハーネスバージョン: $HARNESS_VERSION
-- 設定ファイル: `.claude-code-harness/config.json`
+- 設定ファイル: .claude-code-harness/config.json
 EOF
+    else
+    cat > "$RULES_PATH" << EOF
+# Claude Harness - Project Rules
+
+This project uses **claude-code-harness**.
+
+## Applying Harness To An Existing Project
+
+This project already had code and documents before Harness was installed.
+
+### Respect Existing Assets
+
+1. **Prefer existing documents**
+   - Read existing specifications, README files, and plans first.
+   - .claude-code-harness/existing-docs-summary.md lists discovered documents.
+
+2. **Keep the existing code style**
+   - Follow the project's current formatting and conventions.
+   - New code should look like it belongs in this repository.
+
+3. **Improve gradually**
+   - Do not rewrite everything at once.
+   - Check behavior frequently so existing workflows keep working.
+
+## Available Commands
+
+### Core Loop (Plan -> Work -> Review)
+- /plan-with-agent - Create or update the project plan with existing docs in mind.
+- /work - Implement tasks while preserving existing code behavior.
+- /harness-review - Review code quality and risk.
+
+### Quality / Operations
+- /validate - Run delivery validation.
+- /cleanup - Organize Plans.md and related files.
+- /sync-status - Check progress and suggest next actions.
+- /refactor - Run safe refactoring.
+
+### Implementation Support
+- /crud - Generate CRUD features.
+- /ci-setup - Configure CI/CD.
+
+### Conversation-Triggered Skills
+- component - "Build a hero section" -> UI component implementation.
+- auth - "Add login" -> authentication implementation.
+- payments - "Add Stripe payments" -> payment integration.
+- deploy-setup - "Deploy to Vercel" -> deployment setup.
+- analytics - "Add analytics" -> analytics integration.
+- auto-fix - "Fix the review comments" -> automatic fix workflow.
+
+## Notes For Existing Projects
+
+1. **Read existing specs first**
+   - Check project documents before running implementation commands.
+   - Ask for clarification when documents conflict.
+
+2. **Apply changes gradually**
+   - Start with small features.
+   - Verify behavior often.
+
+3. **Use version control carefully**
+   - Commit frequently.
+   - Create a branch before large changes.
+
+## Setup Information
+
+- Setup date: $SETUP_DATE_SHORT
+- Harness version: $HARNESS_VERSION
+- Config file: .claude-code-harness/config.json
+EOF
+    fi
 
     echo -e "${GREEN}✓${NC} Project Rulesを作成: $RULES_PATH"
 fi
@@ -378,9 +529,10 @@ echo ""
 
 # ワークフローファイル（AGENTS/CLAUDE/Plans）を必要に応じて作成（既存があれば上書きしない）
 TEMPLATE_DIR="$HARNESS_ROOT/templates"
-render_template_if_missing "$TEMPLATE_DIR/AGENTS.md.template" "AGENTS.md" "AGENTS.md"
-render_template_if_missing "$TEMPLATE_DIR/CLAUDE.md.template" "CLAUDE.md" "CLAUDE.md"
-render_template_if_missing "$TEMPLATE_DIR/Plans.md.template" "Plans.md" "Plans.md"
+render_template_if_missing "$(template_for_locale ".claude-code-harness.config.yaml.template")" ".claude-code-harness.config.yaml" ".claude-code-harness.config.yaml"
+render_template_if_missing "$(template_for_locale "AGENTS.md.template")" "AGENTS.md" "AGENTS.md"
+render_template_if_missing "$(template_for_locale "CLAUDE.md.template")" "CLAUDE.md" "CLAUDE.md"
+render_template_if_missing "$(template_for_locale "Plans.md.template")" "Plans.md" "Plans.md"
 
 echo ""
 
