@@ -792,6 +792,10 @@ grep -q 'Codex `0.125.0-alpha.2` pre-release' "${PHASE56_SNAPSHOT_DOC}" || {
   echo "Phase 56 snapshot must include Codex 0.125.0-alpha.2 pre-release"
   exit 1
 }
+grep -q -- '--print` honors agent `tools:` and `disallowedTools:` frontmatter' "${PHASE56_SNAPSHOT_DOC}" || {
+  echo "Phase 56 snapshot must classify --print frontmatter parity"
+  exit 1
+}
 grep -q 'PostToolUse` and `PostToolUseFailure` inputs include `duration_ms`' "${PHASE56_SNAPSHOT_DOC}" || {
   echo "Phase 56 snapshot must classify PostToolUse duration_ms"
   exit 1
@@ -816,12 +820,24 @@ grep -q 'Phase 56 Claude Code 2.1.119 / Codex 0.124.0 snapshot' "${ROOT_DIR}/doc
   echo "Feature Table must include the Phase 56 upstream snapshot row"
   exit 1
 }
+grep -q 'Plans `56.1.1` / `56.1.2`' "${ROOT_DIR}/docs/CLAUDE-feature-table.md" || {
+  echo "Feature Table must link the Phase 56 row back to Plans 56.1.1 / 56.1.2"
+  exit 1
+}
 grep -q 'Phase 56: Claude Code 2.1.119 / Codex 0.124.0 upstream snapshot' "${ROOT_DIR}/CHANGELOG.md" || {
   echo "CHANGELOG must include the Phase 56 upstream snapshot"
   exit 1
 }
 grep -q '56.2.2 | Codex `0.124.0` stable hooks' "${ROOT_DIR}/Plans.md" || {
   echo "Plans.md must keep the Codex 0.124.0 hooks follow-up task"
+  exit 1
+}
+grep -q '56.2.1 | Claude Code `PostToolUse.duration_ms`' "${ROOT_DIR}/Plans.md" || {
+  echo "Plans.md must keep the Claude Code duration/statusline follow-up task"
+  exit 1
+}
+grep -q '56.2.3 | `prUrlTemplate` / `--from-pr` multi-host review support' "${ROOT_DIR}/Plans.md" || {
+  echo "Plans.md must keep the multi-host review follow-up task"
   exit 1
 }
 

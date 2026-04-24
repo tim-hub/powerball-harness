@@ -1,6 +1,6 @@
-# Claude Code 2.1.114 + Codex 0.121.0 + Opus 4.7 新機能活用ガイド（完全版）
+# Claude Code / Codex Feature Table（upstream snapshot 完全版）
 
-> **概要**: Harness が活用する Claude Code 2.1.114、Codex 0.121.0、Opus 4.7 までの全機能一覧。
+> **概要**: Harness が活用・追跡する Claude Code / Codex の主要機能と upstream snapshot の一覧。
 > CLAUDE.md の Feature Table の完全版（詳細説明付き）。
 
 ## 機能一覧
@@ -8,7 +8,7 @@
 | 機能 | 活用スキル | 用途 |
 |------|-----------|------|
 | **Issue #105 English default + Japanese opt-in CI gate** | setup, harness-work, CI | New distribution surfaces default to English while Japanese opt-in UX, bilingual skill metadata, setup rendering, and mirror consistency are locked by the i18n regression suite. |
-| **Phase 56 Claude Code 2.1.119 / Codex 0.124.0 snapshot** | upstream-update, harness-review, setup | `A: 検証強化`。`docs/upstream-update-snapshot-2026-04-25.md` で `PostToolUse.duration_ms`, status line effort/thinking, `prUrlTemplate`, Codex stable hooks, multi-environment app-server, and `0.125.0-alpha.2` watch status を A/C/P 分類し、`B: 書いただけ 0 件` を Plans / tests で固定。 |
+| **Phase 56 Claude Code 2.1.119 / Codex 0.124.0 snapshot** | upstream-update, harness-review, setup | `A: 検証強化`。`docs/upstream-update-snapshot-2026-04-25.md` と Plans `56.1.1` / `56.1.2` に接続し、`--print` frontmatter parity, `PostToolUse.duration_ms`, status line effort/thinking, `prUrlTemplate`, Codex stable hooks, multi-environment app-server, and `0.125.0-alpha.2` watch status を A/C/P 分類した上で、`B: 書いただけ 0 件` を tests で固定。 |
 | **Task tool メトリクス** | parallel-workflows | サブエージェントのトークン/ツール/時間を集計 |
 | **`/debug` コマンド** | troubleshoot | 複雑なセッション問題の診断 |
 | **PDF ページ範囲** | notebookLM, harness-review | 大型ドキュメントの効率的な処理 |
