@@ -118,6 +118,77 @@ func resolveProjectRoot() string {
 // harnessConfigFileName は設定ファイルのデフォルト名。
 const harnessConfigFileName = ".claude-code-harness.config.yaml"
 
+func normalizeHarnessLocale(value string) string {
+	normalized := strings.ToLower(strings.Trim(strings.TrimSpace(value), `"'`))
+	switch normalized {
+	case "en", "ja":
+		return normalized
+	default:
+		return "en"
+	}
+}
+
+// readI18nLanguageFromConfig は projectRoot 配下の設定ファイルから
+// i18n.language の値を返す。設定がない・読めない場合は空文字を返す。
+func readI18nLanguageFromConfig(projectRoot string) string {
+	configPath := filepath.Join(projectRoot, harnessConfigFileName)
+	f, err := os.Open(configPath)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	inI18n := false
+	for scanner.Scan() {
+		line := scanner.Text()
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+
+		if !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") {
+			inI18n = strings.HasPrefix(trimmed, "i18n:")
+			continue
+		}
+		if !inI18n || !strings.HasPrefix(trimmed, "language:") {
+			continue
+		}
+
+		value := strings.TrimSpace(strings.TrimPrefix(trimmed, "language:"))
+		if idx := strings.Index(value, "#"); idx >= 0 {
+			value = strings.TrimSpace(value[:idx])
+		}
+		return strings.Trim(value, `"'`)
+	}
+	return ""
+}
+
+// resolveHarnessLocale は Harness の表示 locale を解決する。
+//
+// 優先順:
+//  1. 明示 locale 引数
+//  2. .claude-code-harness.config.yaml の i18n.language
+//  3. CLAUDE_CODE_HARNESS_LANG
+//  4. en
+//
+// en / ja 以外は安全な既定値 en に正規化する。
+func resolveHarnessLocale(projectRoot string, explicitLocale ...string) string {
+	if len(explicitLocale) > 0 && explicitLocale[0] != "" {
+		return normalizeHarnessLocale(explicitLocale[0])
+	}
+	if projectRoot == "" {
+		projectRoot = resolveProjectRoot()
+	}
+	if configLocale := readI18nLanguageFromConfig(projectRoot); configLocale != "" {
+		return normalizeHarnessLocale(configLocale)
+	}
+	if envLocale := os.Getenv("CLAUDE_CODE_HARNESS_LANG"); envLocale != "" {
+		return normalizeHarnessLocale(envLocale)
+	}
+	return "en"
+}
+
 // readPlansDirectoryFromConfig は projectRoot 配下の設定ファイルから
 // plansDirectory の値を返す。設定がない・読めない場合は空文字を返す。
 //

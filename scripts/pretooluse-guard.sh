@@ -39,18 +39,34 @@ else
   }
 fi
 
+if [ -f "$SCRIPT_DIR/config-utils.sh" ]; then
+  # shellcheck source=./config-utils.sh
+  source "$SCRIPT_DIR/config-utils.sh"
+fi
+
 detect_lang() {
-  # Default to Japanese for this harness (can be overridden).
-  # - CLAUDE_CODE_HARNESS_LANG=en で英語
-  # - CLAUDE_CODE_HARNESS_LANG=ja で日本語
-  if [ -n "${CLAUDE_CODE_HARNESS_LANG:-}" ]; then
-    echo "${CLAUDE_CODE_HARNESS_LANG}"
+  local cwd_path="${1:-}"
+
+  if declare -F get_harness_locale >/dev/null 2>&1; then
+    if [ -n "$cwd_path" ] && [ -f "$cwd_path/.claude-code-harness.config.yaml" ]; then
+      CONFIG_FILE="$cwd_path/.claude-code-harness.config.yaml" get_harness_locale
+    else
+      get_harness_locale
+    fi
     return 0
   fi
-  echo "ja"
+
+  if [ -n "${CLAUDE_CODE_HARNESS_LANG:-}" ]; then
+    case "$(printf '%s' "${CLAUDE_CODE_HARNESS_LANG}" | tr '[:upper:]' '[:lower:]')" in
+      en|ja) printf '%s\n' "$(printf '%s' "${CLAUDE_CODE_HARNESS_LANG}" | tr '[:upper:]' '[:lower:]')" ;;
+      *) echo "en" ;;
+    esac
+    return 0
+  fi
+  echo "en"
 }
 
-LANG_CODE="$(detect_lang)"
+LANG_CODE="en"
 
 # ===== Work Mode Detection =====
 # /work (auto-iteration) 実行中は特定の確認プロンプトをスキップ
@@ -393,9 +409,9 @@ if command -v jq >/dev/null 2>&1; then
     (.session_id // ""),
     (.agent_id // ""),
     (.agent_type // "")
-  ] | @tsv' 2>/dev/null)"
+  ] | map(tostring | gsub("\u001f"; "")) | join("\u001f")' 2>/dev/null)"
   if [ -n "$_jq_parsed" ]; then
-    IFS=$'\t' read -r TOOL_NAME FILE_PATH COMMAND CWD SESSION_ID AGENT_ID AGENT_TYPE <<< "$_jq_parsed"
+    IFS=$'\037' read -r TOOL_NAME FILE_PATH COMMAND CWD SESSION_ID AGENT_ID AGENT_TYPE <<< "$_jq_parsed"
   fi
   unset _jq_parsed
 elif command -v python3 >/dev/null 2>&1; then
@@ -414,13 +430,15 @@ def get_nested(d, path):
             return ''
     return d if isinstance(d, str) else ''
 fields = ['tool_name', 'tool_input.file_path', 'tool_input.command', 'cwd', 'session_id', 'agent_id', 'agent_type']
-print('\t'.join(get_nested(data, f) for f in fields))
+print('\x1f'.join(get_nested(data, f).replace('\x1f', '') for f in fields))
 " 2>/dev/null)"
   if [ -n "$_py_parsed" ]; then
-    IFS=$'\t' read -r TOOL_NAME FILE_PATH COMMAND CWD SESSION_ID AGENT_ID AGENT_TYPE <<< "$_py_parsed"
+    IFS=$'\037' read -r TOOL_NAME FILE_PATH COMMAND CWD SESSION_ID AGENT_ID AGENT_TYPE <<< "$_py_parsed"
   fi
   unset _py_parsed
 fi
+
+LANG_CODE="$(detect_lang "$CWD")"
 
 [ -z "$TOOL_NAME" ] && exit 0
 

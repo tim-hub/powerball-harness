@@ -62,6 +62,86 @@ PY
   printf '%s\n' "$value"
 }
 
+normalize_harness_locale() {
+  local value="${1:-}"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  value="${value#\"}"
+  value="${value%\"}"
+  value="${value#\'}"
+  value="${value%\'}"
+  value="$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]')"
+
+  case "$value" in
+    en|ja) printf '%s\n' "$value" ;;
+    *) printf '%s\n' "en" ;;
+  esac
+}
+
+read_i18n_language_from_config() {
+  local file="${1:-$CONFIG_FILE}"
+  local value=""
+
+  if [ ! -f "$file" ]; then
+    return 0
+  fi
+
+  value="$(yaml_get_value '.i18n.language' "$file")"
+
+  # yq/PyYAML がない環境でも標準テンプレートの単純な YAML は読めるようにする。
+  if [ -z "$value" ]; then
+    value="$(awk '
+      function trim(s) {
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", s)
+        return s
+      }
+      /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+      {
+        raw = $0
+        trimmed = trim(raw)
+        if (raw ~ /^[^[:space:]][^:]*:/) {
+          in_i18n = (trimmed ~ /^i18n:[[:space:]]*($|#)/)
+          next
+        }
+        if (in_i18n && raw ~ /^[[:space:]]+language:[[:space:]]*/) {
+          sub(/^[[:space:]]*language:[[:space:]]*/, "", raw)
+          sub(/[[:space:]]+#.*$/, "", raw)
+          raw = trim(raw)
+          gsub(/"/, "", raw)
+          gsub(/\047/, "", raw)
+          print raw
+          exit
+        }
+      }
+    ' "$file" 2>/dev/null || true)"
+  fi
+
+  printf '%s\n' "$value"
+}
+
+get_harness_locale() {
+  local explicit_locale="${1:-}"
+  local config_locale=""
+
+  if [ -n "$explicit_locale" ]; then
+    normalize_harness_locale "$explicit_locale"
+    return 0
+  fi
+
+  config_locale="$(read_i18n_language_from_config "$CONFIG_FILE")"
+  if [ -n "$config_locale" ]; then
+    normalize_harness_locale "$config_locale"
+    return 0
+  fi
+
+  if [ -n "${CLAUDE_CODE_HARNESS_LANG:-}" ]; then
+    normalize_harness_locale "$CLAUDE_CODE_HARNESS_LANG"
+    return 0
+  fi
+
+  printf '%s\n' "en"
+}
+
 # plansDirectory の検証（セキュリティ）
 # 絶対パス、親ディレクトリ参照、symlink脱出を拒否
 validate_plans_directory() {
