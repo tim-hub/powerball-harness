@@ -780,6 +780,14 @@ for referencing_file in \
     exit 1
   }
 done
+grep -q 'https://code.claude.com/docs/en/changelog' "${PHASE56_SNAPSHOT_DOC}" || {
+  echo "Phase 56 snapshot must include the Claude Code docs changelog URL"
+  exit 1
+}
+grep -q 'https://github.com/openai/codex/releases' "${PHASE56_SNAPSHOT_DOC}" || {
+  echo "Phase 56 snapshot must include the OpenAI Codex releases URL"
+  exit 1
+}
 grep -q 'Claude Code `2.1.119`' "${PHASE56_SNAPSHOT_DOC}" || {
   echo "Phase 56 snapshot must include Claude Code 2.1.119"
   exit 1
@@ -838,6 +846,10 @@ grep -q '56.2.1 | Claude Code `PostToolUse.duration_ms`' "${ROOT_DIR}/Plans.md" 
 }
 grep -q '56.2.3 | `prUrlTemplate` / `--from-pr` multi-host review support' "${ROOT_DIR}/Plans.md" || {
   echo "Plans.md must keep the multi-host review follow-up task"
+  exit 1
+}
+grep -q '56.2.4 | Codex `0.124.0` multi-environment app-server と branch/workdir policy' "${ROOT_DIR}/Plans.md" || {
+  echo "Plans.md must keep the multi-environment app-server follow-up task"
   exit 1
 }
 
