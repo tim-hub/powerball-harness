@@ -702,6 +702,8 @@ run_i18n_gate "locale roundtrip idempotency" \
   bash "$PLUGIN_ROOT/tests/test-i18n-locale-roundtrip.sh"
 run_i18n_gate "setup language rendering" \
   bash "$PLUGIN_ROOT/tests/test-setup-language-rendering.sh"
+run_i18n_gate "Japanese UX opt-in surfaces" \
+  bash "$PLUGIN_ROOT/tests/test-i18n-japanese-ux-regression.sh"
 
 if [ $I18N_ISSUES -eq 0 ]; then
   echo "  ✅ i18n 回帰ゲートOK"
