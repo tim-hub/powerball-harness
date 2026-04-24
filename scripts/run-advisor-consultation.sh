@@ -76,7 +76,9 @@ done
 }
 
 # shellcheck disable=SC1090
-PROJECT_ROOT="${PROJECT_ROOT}" CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml" source "${CONFIG_UTILS}"
+PROJECT_ROOT="${PROJECT_ROOT}"
+CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml"
+source "${CONFIG_UTILS}"
 ensure_advisor_state_files
 
 if [ -z "${MODEL}" ]; then

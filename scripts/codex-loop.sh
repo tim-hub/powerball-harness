@@ -1656,10 +1656,21 @@ payload = {
 path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 PY
 
+  local advisor_exit=0
   bash "$(advisor_script_path)" \
     --request-file "${request_file}" \
     --response-file "${response_file}" \
-    --model "${model}" >> "${RUNNER_LOG}" 2>&1
+    --model "${model}" >> "${RUNNER_LOG}" 2>&1 || advisor_exit=$?
+
+  if [ "${advisor_exit}" -ne 0 ]; then
+    log_line "advisor consultation failed for ${task_id} reason=${reason_code} exit=${advisor_exit}"
+    return "${advisor_exit}"
+  fi
+
+  if [ ! -f "${response_file}" ]; then
+    log_line "advisor consultation produced no response for ${task_id} reason=${reason_code}"
+    return 1
+  fi
 
   local decision
   decision="$(json_get_file "${response_file}" "decision" "")"

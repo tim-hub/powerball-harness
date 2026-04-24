@@ -65,11 +65,22 @@ run_structured_task_exec() {
           shift || true
         fi
         ;;
+      --effort)
+        # codex exec does not accept the companion-only --effort flag.
+        # Structured task mode goes through codex exec directly, so drop it
+        # here while preserving support for the Node companion path below.
+        shift
+        shift || true
+        ;;
+      --effort=*)
+        # See --effort above.
+        shift
+        ;;
       *)
         passthrough+=("${current}")
         shift
         if [ "${current}" = "--model" ] || [ "${current}" = "-m" ] || \
-           [ "${current}" = "--effort" ] || [ "${current}" = "--output-schema" ] || \
+           [ "${current}" = "--output-schema" ] || \
            [ "${current}" = "-o" ] || [ "${current}" = "--output-last-message" ] || \
            [ "${current}" = "-c" ] || [ "${current}" = "--config" ] || \
            [ "${current}" = "-C" ] || [ "${current}" = "--cd" ] || \
