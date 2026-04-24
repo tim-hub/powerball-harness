@@ -136,6 +136,26 @@ phrases for implementation, review, and planning must be preserved in
 - `レビューして`
 - `計画作って`
 
+## Japanese UX Regression Boundary
+
+English default means the first distributed discovery surface is English. It
+does not mean Japanese-only user value should be deleted.
+
+When a surface exists primarily for Japanese users, keep one of these paths:
+
+| Surface type | English default boundary | Japanese opt-in boundary |
+| --- | --- | --- |
+| README and setup templates | English onboarding remains the default path. | `README_ja.md` and `templates/locales/ja/` remain reachable and render Japanese output when `i18n.language: ja` or `CLAUDE_CODE_HARNESS_LANG=ja` is explicit. |
+| Skill metadata | `description` equals `description-en` in shipped packages. | `description-ja` remains complete, and `scripts/i18n/set-locale.sh ja` can copy it into `description`. |
+| Hook and system messages | English is emitted when no locale is configured. JSON shape and decisions are unchanged. | Existing Japanese messages remain available through explicit `ja`. |
+| Memory / output style modes | English mode remains `templates/modes/harness.json`. | `templates/modes/harness--ja.json` remains valid JSON and keeps Japanese language requirements. |
+| Creative skills such as `x-announce` and `x-article` | English `description-en` controls default skill discovery and must not promise English creative output unless an English playbook exists. | Japanese article / post structure, Japanese image text defaults, and Japanese publication tone are retained as intentional creative defaults. |
+
+For Japanese-specific creative defaults, the safe rule is additive: if English
+users need a full English creative flow later, add an English playbook or mode.
+Do not remove Japanese defaults just because the distribution default changed
+to English.
+
 ## Surface Checklist
 
 The following surfaces are in scope for Phase 55 implementation and must be
