@@ -150,15 +150,13 @@ checked before Issue #105 is closed:
 | `docs/constitution.md` | Any language guidance aligns with this contract. |
 | `opencode/README.md` and `codex/README.md` | Runtime-specific docs do not contradict the contract. |
 
-Known current drift as of 2026-04-24:
+Known current drift after 55.1.1 test hardening:
 
-- `claude-code-harness.config.schema.json` still declares `i18n.language`
-  default as `ja`.
-- `claude-code-harness.config.example.json` still uses `ja`.
 - `scripts/pretooluse-guard.sh` defaults to Japanese when no environment
   variable is set.
-- `scripts/i18n/check-translations.sh` checks root `skills/` but not all
-  packaged skill mirrors.
+- Runtime shell / Go messages are not yet fully locale-aware.
+- Default setup content templates still need the broader English-default /
+  Japanese-opt-in rendering pass planned for 55.2.2.
 
 These are implementation targets for later Phase 55 tasks, not blockers for
 this contract task.

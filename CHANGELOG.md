@@ -16,6 +16,10 @@ Change history for claude-code-harness.
 
 ### Added
 
+#### Phase 55: Issue #105 English default no-regression tests
+
+**I18n regression coverage**: Added shell tests for English default config/schema surfaces, shipped skill frontmatter, temp-copy `ja -> en` locale roundtrip, and setup-facing language rendering. `scripts/i18n/check-translations.sh` now checks `skills/`, `skills-codex/`, `codex/.codex/skills/`, and `opencode/skills/`, requiring shipped `description` to match `description-en` while preserving `description-ja`.
+
 #### Phase 54: Codex Breezing defaults + loop batch execution
 
 **Codex harness-loop docs**: Codex 用 `harness-loop` guidance を、旧来の「1 cycle = 1 task」から「1 cycle = ready batch を Breezing で実行」に更新した。`--max-workers N|max` で batch 内の並列数を制御し、問題切り分けや危険な直列作業では `--executor task` で従来の one-task-per-cycle local worker path に逃がせることを明記した。

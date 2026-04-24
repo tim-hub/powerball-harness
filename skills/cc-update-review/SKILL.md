@@ -1,6 +1,6 @@
 ---
 name: cc-update-review
-description: "Claude/Codex upstream update 統合の品質ガードレール。Feature Table 追加時に「書いただけ」を検出し、実装または Plans 化を強制する。Use when reviewing Claude Code / Codex update integration PRs. Do NOT load for: implementation work, standard reviews, setup."
+description: "Quality guardrail for Claude/Codex update integration. Detects doc-only Feature Table additions and requires implementation or explicit planning. Internal use only."
 description-en: "Quality guardrail for Claude/Codex update integration. Detects doc-only Feature Table additions and requires implementation or explicit planning. Internal use only."
 description-ja: "Claude/Codex upstream update 統合の品質ガードレール。Feature Table 追加時に「書いただけ」を検出し、実装または Plans 化を強制する。内部専用。"
 user-invocable: false

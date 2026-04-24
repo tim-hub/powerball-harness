@@ -4,6 +4,11 @@
 # This file lets you customize cleanup thresholds.
 # If omitted, default values are used.
 
+# Language settings
+# Default is English for distributed installs. Set to "ja" for Japanese output.
+i18n:
+  language: en
+
 # Plans.md の配置場所（デフォルト: "." = プロジェクトルート）
 # 例: ".claude/memory" にすると SSOT と統一配置
 plansDirectory: "."
@@ -93,4 +98,3 @@ hooks:
   post_tool_use:
     - matcher: "Edit|Write"
       script: "~/.claude/scripts/auto-cleanup-hook.sh"
-

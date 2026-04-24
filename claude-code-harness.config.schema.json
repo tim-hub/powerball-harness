@@ -174,9 +174,9 @@
       "properties": {
         "language": {
           "type": "string",
-          "enum": ["ja", "en"],
-          "default": "ja",
-          "description": "Display language for commands and messages (ja: 日本語, en: English)"
+          "enum": ["en", "ja"],
+          "default": "en",
+          "description": "Display language for commands and messages (en: English, ja: Japanese / 日本語)"
         }
       },
       "default": {}
@@ -268,5 +268,4 @@
   },
   "additionalProperties": false
 }
-
 
