@@ -19,6 +19,9 @@ DURATION_MS=$(echo "$input" | jq -r '.cost.total_duration_ms // 0')
 STYLE=$(echo "$input" | jq -r '.output_style.name // ""')
 AGENT_NAME=$(echo "$input" | jq -r '.agent.name // ""')
 WT_NAME=$(echo "$input" | jq -r '.worktree.name // ""')
+EFFORT_LEVEL=$(echo "$input" | jq -r '.effort.level // ""')
+THINKING_ENABLED_JSON=$(echo "$input" | jq -c '.thinking.enabled // null')
+THINKING_ENABLED_LABEL=$(echo "$input" | jq -r 'if .thinking.enabled == true then "on" elif .thinking.enabled == false then "off" else "" end')
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
 STATE_DIR="${REPO_ROOT}/.claude/state"
 
@@ -35,6 +38,8 @@ if command -v jq >/dev/null 2>&1; then
       --arg cost "$COST" \
       --arg duration "$DURATION_MS" \
       --arg pct "$PCT" \
+      --arg effort_level "$EFFORT_LEVEL" \
+      --argjson thinking_enabled "$THINKING_ENABLED_JSON" \
       '{
         version: 1,
         timestamp: $ts,
@@ -44,7 +49,9 @@ if command -v jq >/dev/null 2>&1; then
         output_style: $style,
         context_used_percentage: ($pct | tonumber),
         cost_usd: ($cost | tonumber),
-        duration_ms: ($duration | tonumber)
+        duration_ms: ($duration | tonumber),
+        effort_level: $effort_level,
+        thinking_enabled: $thinking_enabled
       }')"
     printf '%s\n' "$STATUSLINE_TELEMETRY" >> "${STATE_DIR}/statusline-telemetry.jsonl"
 fi
@@ -74,11 +81,28 @@ MINS=$((DURATION_MS / 60000))
 SECS=$(((DURATION_MS % 60000) / 1000))
 
 # Git info (cached for 5 seconds)
-CACHE_FILE="/tmp/harness-statusline-git-cache"
+CACHE_FILE="${HARNESS_STATUSLINE_GIT_CACHE:-/tmp/harness-statusline-git-cache}"
 CACHE_MAX_AGE=5
+cache_mtime() {
+    local ts=""
+    ts="$(stat -c %Y "$CACHE_FILE" 2>/dev/null || true)"
+    if [ -n "$ts" ] && printf '%s' "$ts" | grep -Eq '^[0-9]+$'; then
+        printf '%s\n' "$ts"
+        return 0
+    fi
+
+    ts="$(stat -f %m "$CACHE_FILE" 2>/dev/null || true)"
+    if [ -n "$ts" ] && printf '%s' "$ts" | grep -Eq '^[0-9]+$'; then
+        printf '%s\n' "$ts"
+        return 0
+    fi
+
+    printf '0\n'
+}
+
 cache_is_stale() {
     [ ! -f "$CACHE_FILE" ] || \
-    [ $(($(date +%s) - $(stat -f %m "$CACHE_FILE" 2>/dev/null || stat -c %Y "$CACHE_FILE" 2>/dev/null || echo 0))) -gt $CACHE_MAX_AGE ]
+    [ $(( $(date +%s) - $(cache_mtime) )) -gt $CACHE_MAX_AGE ]
 }
 if cache_is_stale; then
     if git rev-parse --git-dir > /dev/null 2>&1; then
@@ -94,6 +118,12 @@ IFS='|' read -r BRANCH STAGED MODIFIED < "$CACHE_FILE"
 
 # Line 1: Model + Git + Agent/Worktree context
 LINE1="${CYAN}[$MODEL]${RESET}"
+MODE_FLAGS=""
+[ -n "$EFFORT_LEVEL" ] && MODE_FLAGS="${MODE_FLAGS} effort:${EFFORT_LEVEL}"
+[ -n "$THINKING_ENABLED_LABEL" ] && MODE_FLAGS="${MODE_FLAGS} think:${THINKING_ENABLED_LABEL}"
+if [ -n "$MODE_FLAGS" ]; then
+    LINE1="${LINE1} ${DIM}${MODE_FLAGS# }${RESET}"
+fi
 if [ -n "$BRANCH" ]; then
     GIT_STATUS=""
     [ "$STAGED" -gt 0 ] && GIT_STATUS="${GREEN}+${STAGED}${RESET}"
