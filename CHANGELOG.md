@@ -6,6 +6,8 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+## [4.4.0] - 2026-04-26
+
 ### Fixed
 
 - `harness codex-loop start` now accepts heading-style Plans tasks such as `6G-6` and human line references such as `Plans.md:546`. Hyphenated task IDs are resolved as exact IDs before range parsing, so Codex `harness-loop` no longer requires users to rewrite heading tasks into table rows before starting a loop.
@@ -3639,7 +3641,8 @@ Purpose: 自己修正ループ失敗時に「止まるだけ」から「次の�
 
 For v2.9.x and earlier, see [GitHub Releases](https://github.com/Chachamaru127/claude-code-harness/releases).
 
-[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.3.3...HEAD
+[Unreleased]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.4.0...HEAD
+[4.4.0]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.3.3...v4.4.0
 [4.3.3]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.3.2...v4.3.3
 [4.3.2]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.3.1...v4.3.2
 [4.3.1]: https://github.com/Chachamaru127/claude-code-harness/compare/v4.3.0...v4.3.1
