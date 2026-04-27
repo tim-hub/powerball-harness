@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/tim-hub/powerball-harness/go/internal/piiguard"
 )
 
 // ---------------------------------------------------------------------------
@@ -246,5 +248,89 @@ func TestFormatPromptBlockReason_Shape(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Errorf("expected reason to contain %q, got: %s", want, body)
 		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// helper coverage tests (piiguardFilterDisabled, piiguardEnabled)
+// ---------------------------------------------------------------------------
+
+// TestPiiguardFilterDisabled covers the env-var rule disable list parser.
+func TestPiiguardFilterDisabled(t *testing.T) {
+	makeRules := func() []piiguard.Rule {
+		return []piiguard.Rule{
+			{ID: "rule-a"}, {ID: "rule-b"}, {ID: "rule-c"}, {ID: "rule-d"},
+		}
+	}
+
+	t.Run("no env var leaves rules intact", func(t *testing.T) {
+		t.Setenv(piiguardRulesEnvVar, "")
+		out := piiguardFilterDisabled(makeRules())
+		if len(out) != 4 {
+			t.Errorf("want 4 rules, got %d", len(out))
+		}
+	})
+
+	t.Run("single rule disabled", func(t *testing.T) {
+		t.Setenv(piiguardRulesEnvVar, "rule-b")
+		out := piiguardFilterDisabled(makeRules())
+		for _, r := range out {
+			if r.ID == "rule-b" {
+				t.Errorf("rule-b should have been filtered out")
+			}
+		}
+		if len(out) != 3 {
+			t.Errorf("want 3 rules, got %d", len(out))
+		}
+	})
+
+	t.Run("multiple rules with whitespace tolerance", func(t *testing.T) {
+		t.Setenv(piiguardRulesEnvVar, " rule-a , rule-c ")
+		out := piiguardFilterDisabled(makeRules())
+		ids := map[string]bool{}
+		for _, r := range out {
+			ids[r.ID] = true
+		}
+		if !ids["rule-b"] || !ids["rule-d"] {
+			t.Errorf("expected rule-b and rule-d to remain, got %v", ids)
+		}
+		if ids["rule-a"] || ids["rule-c"] {
+			t.Errorf("rule-a and rule-c should have been filtered out")
+		}
+	})
+
+	t.Run("empty entries ignored", func(t *testing.T) {
+		t.Setenv(piiguardRulesEnvVar, ",,, ,,")
+		out := piiguardFilterDisabled(makeRules())
+		if len(out) != 4 {
+			t.Errorf("empty/whitespace-only should leave rules intact, got %d", len(out))
+		}
+	})
+}
+
+// TestPiiguardEnabled covers the kill-switch env var parser.
+func TestPiiguardEnabled(t *testing.T) {
+	cases := []struct {
+		val  string
+		want bool
+	}{
+		{"", true},
+		{"0", true},
+		{"false", true},
+		{"1", false},
+		{"true", false},
+		{"TRUE", false},
+		{"yes", false},
+		{"YES", false},
+		{" 1 ", false},
+		{"random-other-value", true},
+	}
+	for _, tc := range cases {
+		t.Run("val="+tc.val, func(t *testing.T) {
+			t.Setenv(piiguardDisabledEnvVar, tc.val)
+			if got := piiguardEnabled(); got != tc.want {
+				t.Errorf("piiguardEnabled() with %q: want %v, got %v", tc.val, tc.want, got)
+			}
+		})
 	}
 }

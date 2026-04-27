@@ -1,0 +1,3 @@
+SYNTHETIC TEST FIXTURE — DO NOT USE
+This file exercises the github-token rule.
+Sample value: ghp_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa

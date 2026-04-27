@@ -1,0 +1,3 @@
+SYNTHETIC TEST FIXTURE — clean baseline
+This is plain prose with no credentials, emails, or tokens.
+Numbers like 1234 and words like password (mentioned, not assigned) should not match.

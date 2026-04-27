@@ -1,0 +1,3 @@
+SYNTHETIC TEST FIXTURE — near-miss boundary
+Strings that look like credentials but are too short to match:
+ghp_short, hf_short, sk-short, pplx-short, gsk_short

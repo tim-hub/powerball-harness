@@ -1,0 +1,3 @@
+SYNTHETIC TEST FIXTURE — DO NOT USE
+This file exercises the aws-api-key rule.
+Sample value: AKIAIOSFODNN7EXAMPLE (the canonical AWS documentation example).
