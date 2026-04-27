@@ -245,6 +245,8 @@ flowchart LR
 | **Release** | `writing-changelog` | before release, drafting entries |
 | **Release** | `harness-release` | `/harness-release patch\|minor\|major` |
 | **Memory** | `harness-remember` | `/harness-remember ssot\|sync\|search\|record` |
+| **Meta** | `distill-session` | "save this", "distill this", "turn this into a skill" — captures a session's repeatable workflow as a new skill in `.claude/skills/` |
+| **Meta** | `update-skill` | "update the X skill", "improve this skill" — refines an existing project skill (description, branch, correction, or extraction) instead of creating a duplicate |
 | **Session** | `session-init` | auto — every session start |
 | **Session** | `session-control` | auto — resume / fork flags |
 | **Session** | `session-memory` | auto — session end recording |
@@ -284,13 +286,16 @@ Key hook groups at a glance:
 
 | Event | What fires |
 |-------|-----------|
-| **PreToolUse** `Write\|Edit` | Guardrail check, inbox scan, secrets agent |
+| **PreToolUse** `Write\|Edit\|MultiEdit\|Bash\|Read` | **PII Guard** (block on credentials/PII), guardrail R01–R13, inbox scan |
+| **PostToolUse** `Bash\|Read` | **PII Guard** redaction (inject sanitized `additionalContext` if secrets found in tool output) |
 | **PostToolUse** `Write\|Edit\|Task` | Memory bridge, trace, auto-test, quality-pack, plans-watcher |
 | **PostToolUse** `Bash` | Commit cleanup, async CI status check |
 | **PermissionRequest** | File-modification guard, test/build validation |
 | **SessionStart** | Env check, memory bridge init |
 | **Stop / SessionEnd** | Session summary, WIP-task gate, memory finalise |
-| **UserPromptSubmit** | Policy injection, command tracking, breezing signal |
+| **UserPromptSubmit** | **PII Guard** (block prompt on credentials/PII), policy injection, command tracking, breezing signal |
 | **Pre/PostCompact** | State save, context re-injection |
+
+> **PII Guard (Phase 83)**: three new `bin/harness hook pii-*` subcommands run on UserPromptSubmit (block + exit 1), PreToolUse (`permissionDecision: deny`), and PostToolUse (`additionalContext` with redacted view). 45 active rules from `go/internal/piiguard/`; disable globally with `HARNESS_PIIGUARD_DISABLED=1` or per-rule with `HARNESS_PIIGUARD_DISABLED_RULES=id1,id2`. See the main [README.md](../README.md#pii--secret-guard) for details.
 
 For the full event map and per-hook script references, see **[hooks/README.md](hooks/README.md)**.
