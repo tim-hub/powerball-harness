@@ -7,6 +7,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook pii-pretool",
+            "timeout": 2
+          },
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook pre-tool",
             "timeout": 3
           }
@@ -280,6 +285,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook pii-prompt",
+            "timeout": 2
+          },
+          {
+            "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook memory-bridge --mode=user-prompt",
             "timeout": 3
           },
@@ -307,6 +317,16 @@
       }
     ],
     "PostToolUse": [
+      {
+        "matcher": "Bash|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/harness\" hook pii-posttool",
+            "timeout": 2
+          }
+        ]
+      },
       {
         "matcher": "Write|Edit|MultiEdit|Bash",
         "hooks": [
