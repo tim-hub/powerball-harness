@@ -24,7 +24,6 @@ When invoked:
    - Keep under 200 lines. Link out to `references/*.md` for anything longer.
 
 4. Show me the draft. Wait for approval before writing.
-4. Show me the draft. Wait for approval before writing.
 
 5. On approval, write to `.claude/skills/<name>/SKILL.md` (relative to the project root). The skill is live in the current session immediately — no restart needed.
 
