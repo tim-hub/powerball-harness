@@ -426,6 +426,13 @@ func runHook(hookType string) {
 		if err := h.Handle(os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "emit-trace handler error: %v\n", err)
 		}
+	// --- PII Guard (Phase 83) ---
+	case "pii-prompt":
+		runPIIPrompt()
+	case "pii-pretool":
+		runPIIPreTool()
+	case "pii-posttool":
+		runPIIPostTool()
 	default:
 		// guard-fastpath handlers require tool_name validation
 		input, err := hook.ReadInput(os.Stdin)

@@ -239,6 +239,24 @@ func TestScanner_RealCatalog(t *testing.T) {
 	}
 }
 
+// BenchmarkScan10KB measures Scanner.Scan throughput on a ~10 KB input
+// against the full builtin + external catalog (≈45 rules after coding-only filter).
+// DoD target: < 50 ms per scan.
+func BenchmarkScan10KB(b *testing.B) {
+	rules := append([]Rule{}, BuiltinRules...)
+	rules = append(rules, LoadExternalCatalog(true)...)
+	s := NewScanner(rules)
+
+	chunk := "lorem ipsum dolor sit amet consectetur adipiscing elit "
+	body := strings.Repeat(chunk, 10240/len(chunk))
+	planted := body + " " + "AKIA" + "IOSFODNN7EXAMPLE" + " contact: foo@example.com"
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = s.Scan(planted)
+	}
+}
+
 // TestSeverityWeight covers all severity weights including unknown.
 func TestSeverityWeight(t *testing.T) {
 	cases := []struct {
