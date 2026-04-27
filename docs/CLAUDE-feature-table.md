@@ -143,6 +143,7 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 
 | Feature | Utilized Skills | Purpose |
 |------|-----------|------|
+| **PII & Secret Guard (Phase 83)** | hooks, `go/internal/piiguard` | Content scanner for UserPromptSubmit / PreToolUse / PostToolUse — 45 rules block API keys, tokens, PEM keys, and emails. Category A (has implementation, Phase 83) |
 | **Task tool metrics** | parallel-workflows | Aggregate sub-agent token/tool/time metrics |
 | **`/debug` command** | troubleshoot | Diagnose complex session issues |
 | **PDF page ranges** | notebook-lm, harness-review | Efficient processing of large documents |

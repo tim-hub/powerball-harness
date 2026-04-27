@@ -40,7 +40,26 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, with
 - Use go based engine for hooks to enforce runtime guardrails and autmate tasks.
 - Use `deleted-concepts.yaml` to track and prevent reintroduction of rejected ideas.
 
+## PII & Secret Guard
 
+A built-in content scanner that blocks credentials and PII before they leak into a conversation or out through a tool call. Implementation: [`go/internal/piiguard/`](go/internal/piiguard/) — 15 built-in rules + 30 patterns from an embedded coding-only catalog.
+
+| Hook event | Matcher | Action on detection |
+|---|---|---|
+| `UserPromptSubmit` | `*` | Hard block (`{decision: "block"}` + exit 1) |
+| `PreToolUse` | `Write\|Edit\|MultiEdit\|Bash\|Read` | Deny via `permissionDecision: deny` |
+| `PostToolUse` | `Bash\|Read` | Inject redacted view via `additionalContext` (PostToolUse cannot undo, so Claude reasons about the redacted copy) |
+
+What gets caught: AWS / OpenAI / Anthropic / OpenRouter / Google / Groq / Perplexity / Stripe / GitHub / HuggingFace API keys, JWT and Bearer tokens, RSA / OPENSSH / EC private key blocks, generic `api_key = "..."` assignments, and email addresses. Each hook fires with a 2-second timeout; the scanner enforces an internal 1500ms ceiling and fails open on timeout.
+
+Disable globally or per-rule:
+
+```bash
+HARNESS_PIIGUARD_DISABLED=1                     # kill switch — all three hooks skip
+HARNESS_PIIGUARD_DISABLED_RULES=email-address   # comma-separated rule IDs
+```
+
+Patterns ported 1:1 from [datumbrain/claude-privacy-guard](https://github.com/datumbrain/claude-privacy-guard) (MIT) and run through Go's RE2 engine — linear-time, no ReDoS.
 
 ## The 5 Verb Workflow
 

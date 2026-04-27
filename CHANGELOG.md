@@ -30,6 +30,49 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Native Go PII & Secret Guard (Phase 83)
+
+**A new content-layer scanner blocks credentials and PII at three hook points: user prompts, tool inputs, and tool outputs.**
+
+---
+
+#### 1. PII & Secret Guard — three hook subcommands
+
+**Before**: To get content-layer secret blocking you had to install a separate plugin (e.g. `claude-privacy-guard`), which only intercepts user prompts and adds a Node.js runtime dependency. Tool inputs and tool outputs containing secrets were never scanned.
+
+**After**: Native Go scanner ships with the harness binary. Three new hook subcommands cover all the ingress and egress paths:
+
+```
+hook pii-prompt    UserPromptSubmit  → {decision:block}                 + exit 1
+hook pii-pretool   PreToolUse        → permissionDecision:deny
+hook pii-posttool  PostToolUse       → additionalContext (redacted view)
+```
+
+Each hook runs with `timeout: 2s` and an internal 1500ms scan deadline (fails open on timeout).
+
+#### 2. 45 active detection rules
+
+**Before**: No content-layer detection — leaked credentials in `Read` of `.env` or `Bash` output of `aws configure list` were silently passed through.
+
+**After**: 15 built-in rules (`go/internal/piiguard/builtin.go`) plus 30 patterns from an embedded external catalog (`data/pii-regex.json`, ported from [datumbrain/claude-privacy-guard](https://github.com/datumbrain/claude-privacy-guard) MIT). Coverage includes AWS / OpenAI / Anthropic / OpenRouter / Google AI / Groq / Perplexity / Stripe / GitHub / HuggingFace API keys, JWT and Bearer tokens, PEM private key blocks, generic `api_key = "..."` assignments, and email addresses.
+
+#### 3. Configurable kill switches
+
+**Before**: No content-layer guard meant nothing to disable.
+
+**After**: Two env vars:
+
+```bash
+HARNESS_PIIGUARD_DISABLED=1                     # kill switch
+HARNESS_PIIGUARD_DISABLED_RULES=rule-a,rule-b   # selective disable
+```
+
+#### 4. RE2 engine — no ReDoS risk
+
+**Before**: Upstream Node.js scanner uses PCRE-style regex. Catastrophic backtracking on attacker-crafted input was a latent risk.
+
+**After**: Go `regexp` (RE2) is linear-time. The same patterns run safely against arbitrary input sizes; benchmark `BenchmarkScan10KB` runs at ~5 ms per 10 KB scan against the full 45-rule set.
+
 ## [4.11.6] - 2026-04-21
 
 ### Theme: Release tooling separation and memory skill rename (Phase 81 + 82)

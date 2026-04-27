@@ -2,6 +2,10 @@
 
 Full lifecycle of a feature from project init to release, showing which skills and agents are active at each stage.
 
+> **Attribution**: The PII & Secret Guard ships an embedded regex catalog ported from
+> [datumbrain/claude-privacy-guard](https://github.com/datumbrain/claude-privacy-guard) (MIT License).
+> See [`go/internal/piiguard/data/SOURCE.md`](../go/internal/piiguard/data/SOURCE.md) for details.
+
 ---
 
 ## Primary Workflow
