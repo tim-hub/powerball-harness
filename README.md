@@ -96,7 +96,14 @@ Or run everything after plan approval:
   <img src="docs/assets/readme-visuals-en/generated/safety-guardrails.svg" alt="Safety Protection System" width="640">
 </p>
 
-Harness protects your codebase with a **Go-native guardrail engine** (`go/internal/guardrail/`) — 13 declarative rules (R01–R13) evaluated in priority order:
+Harness ships **two complementary Go-native guardrail layers** that fire on Claude Code hook events:
+
+| Layer | Package | Scope | What it blocks |
+|---|---|---|---|
+| **Operation guard** | [`go/internal/guardrail/`](go/internal/guardrail/) | Tool *operations* (file paths, shell commands) | `sudo`, writes to `.env`, `rm -rf`, `git push --force`, test tampering |
+| **Content guard** | [`go/internal/piiguard/`](go/internal/piiguard/) | Tool *content* (prompts, tool I/O) | API keys, tokens, PEM private keys, PII — see [PII & Secret Guard](#pii--secret-guard) |
+
+### Operation guard rules (R01–R13)
 
 | Rule | Protected | Action |
 |------|-----------|--------|
@@ -114,7 +121,11 @@ Harness protects your codebase with a **Go-native guardrail engine** (`go/intern
 | Post | `it.skip`, assertion tampering | **Warning** |
 | Perm | `git status`, `npm test` | **Auto-allow** |
 
-Runtime hook behavior is documented in [docs/hardening-parity.md](docs/hardening-parity.md).
+### Content guard rules
+
+The PII Guard contributes 45 active detection rules (15 built-in + 30 from the embedded coding-only catalog) covering API keys for AWS / OpenAI / Anthropic / OpenRouter / Google / Groq / Perplexity / Stripe / GitHub / HuggingFace, JWT and Bearer tokens, RSA / OPENSSH / EC private key blocks, generic `api_key = "..."` assignments, and email addresses. See [PII & Secret Guard](#pii--secret-guard) above for hook wiring and disable switches.
+
+Runtime hook behavior for the operation guard is documented in [docs/hardening-parity.md](docs/hardening-parity.md).
 
 ---
 
