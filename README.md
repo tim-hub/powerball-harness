@@ -85,6 +85,8 @@ Or run everything after plan approval:
 |---------|-------------|
 | `/harness-loop` | Poll a command on a recurring interval (e.g., `/harness-loop 5m /harness-work` for automation) |
 | `/harness-remember` | SSOT (Single Source of Truth) management — maintain decisions, patterns, and session logs |
+| `/distill-session` | Turn a session that solved a non-trivial, repeatable problem into a new project skill under `.claude/skills/`. Triggers on "save this", "distill this", "turn this into a skill" |
+| `/update-skill` | Refine an existing skill in `.claude/skills/` with new learnings — tighten the description, add a branch, or fix a wrong instruction. Use when a session extends a skill that already exists rather than creating a new one |
 
 ---
 
