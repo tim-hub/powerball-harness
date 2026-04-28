@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.11.6...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.12.0...HEAD
+[4.12.0]: https://github.com/tim-hub/powerball-harness/compare/v4.11.6...v4.12.0
 [4.11.6]: https://github.com/tim-hub/powerball-harness/compare/v4.11.5...v4.11.6
 [4.11.5]: https://github.com/tim-hub/powerball-harness/compare/v4.11.4...v4.11.5
 [4.11.4]: https://github.com/tim-hub/powerball-harness/compare/v4.11.3...v4.11.4
@@ -29,6 +30,8 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.12.0] - 2026-04-28
 
 ### Theme: Native Go PII & Secret Guard (Phase 83)
 
@@ -72,6 +75,15 @@ HARNESS_PIIGUARD_DISABLED_RULES=rule-a,rule-b   # selective disable
 **Before**: Upstream Node.js scanner uses PCRE-style regex. Catastrophic backtracking on attacker-crafted input was a latent risk.
 
 **After**: Go `regexp` (RE2) is linear-time. The same patterns run safely against arbitrary input sizes; benchmark `BenchmarkScan10KB` runs at ~5 ms per 10 KB scan against the full 45-rule set.
+
+#### 5. Self-learning skills: distill-session + update-skill
+
+**Before**: Reusable workflows discovered during a session had to be manually extracted and written as skills. No structured path from "I just solved this problem" to "skill the team can reuse".
+
+**After**: Two new project-level meta-skills:
+
+- **`/distill-session`** — reviews the current session, identifies the repeatable workflow, drafts a `SKILL.md`, shows you a preview, and writes to `.claude/skills/<name>/SKILL.md` on approval. Triggers on "save this", "distill this", "turn this into a skill".
+- **`/update-skill`** — diagnoses whether an existing skill needs a description tightening, a new branch, a correction, or a reference extraction, then proposes a minimal diff. Falls back to `distill-session` if the new learning warrants a new skill instead.
 
 ## [4.11.6] - 2026-04-21
 
