@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.13.2...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.14.0...HEAD
+[4.14.0]: https://github.com/tim-hub/powerball-harness/compare/v4.13.2...v4.14.0
 [4.13.2]: https://github.com/tim-hub/powerball-harness/compare/v4.13.1...v4.13.2
 [4.13.1]: https://github.com/tim-hub/powerball-harness/compare/v4.13.0...v4.13.1
 [4.13.0]: https://github.com/tim-hub/powerball-harness/compare/v4.12.1...v4.13.0
@@ -34,6 +35,10 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [4.14.0] - 2026-04-29
 
 ### Fixed: PII Guard noise reduction — bearer-token floor, disabled context rules, per-event warn-only (Phase 85)
 
