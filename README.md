@@ -27,7 +27,7 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, back
 ```bash
 # Run inside Claude Code (user scope recommended — applies across all your projects)
 /plugin marketplace add tim-hub/powerball-harness
-/plugin install harness@powerball-harness-marketplace --scope user
+/plugin install harness@powerball-harness-marketplace
 ```
 
 > First-time setup only: run `/harness-setup` to create `CLAUDE.md`, `Plans.md`, `.claude/memory`. Existing projects with these files can skip it.
@@ -127,11 +127,11 @@ Two meta-skills that grow your project's skill set as you work:
 
 ### Meta-Harness ([arXiv:2603.28052](https://arxiv.org/abs/2603.28052))
 
-Inspired by *Meta-Harness: End-to-End Optimization of Model Harnesses* — compressed feedback loses causal signal, so agents need raw execution history, not summaries. Drives the per-task `.claude/state/traces/` JSONL system and the `harness-review` eval loop.
+*Meta-Harness: End-to-End Optimization of Model Harnesses* — compressed feedback loses causal signal, so agents need raw execution history, not summaries. Drives the per-task `.claude/state/traces/` JSONL system and the `harness-review` eval loop.
 
 ### Natural-Language Agent Harnesses ([arXiv:2603.25723](https://arxiv.org/abs/2603.25723))
 
-Inspired by *Natural-Language Agent Harnesses* — named failure modes drive recovery strategies. The Failure Taxonomy (`FT-*` IDs) in [`.claude/rules/failure-taxonomy.md`](.claude/rules/failure-taxonomy.md) is a direct implementation.
+*Natural-Language Agent Harnesses* — named failure modes drive recovery strategies. The Failure Taxonomy (`FT-*` IDs) in [`.claude/rules/failure-taxonomy.md`](.claude/rules/failure-taxonomy.md) is a direct implementation.
 
 
 ---
@@ -142,8 +142,8 @@ Inspired by *Natural-Language Agent Harnesses* — named failure modes drive rec
 - [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md)
 - [Guardrail Rules](docs/hardening-parity.md)
 - [Advisor Strategy](docs/advisor-strategy.md)
-- [Work All Evidence](docs/evidence/work-all.md)
-- [Workflow Diagrams · Skill Catalog · Hooks](harness/README.md)
+- [harness-work all examples](docs/evidence/work-all.md)
+- [Harness Plugin Workflow Diagrams · Skill Catalog · Hooks](harness/README.md)
 
 ### Troubleshooting
 
