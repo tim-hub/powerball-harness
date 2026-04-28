@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.14.0...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.14.1...HEAD
+[4.14.1]: https://github.com/tim-hub/powerball-harness/compare/v4.14.0...v4.14.1
 [4.14.0]: https://github.com/tim-hub/powerball-harness/compare/v4.13.2...v4.14.0
 [4.13.2]: https://github.com/tim-hub/powerball-harness/compare/v4.13.1...v4.13.2
 [4.13.1]: https://github.com/tim-hub/powerball-harness/compare/v4.13.0...v4.13.1
@@ -37,6 +38,26 @@ Change history for claude-code-harness.
 ## [Unreleased]
 
 ---
+
+## [4.14.1] - 2026-04-29
+
+### Fixed: release wrapper guard + harness.toml version sync
+
+**Prevents `harness.toml` version drift and enforces `release-this` as the release entry point for this plugin.**
+
+---
+
+#### 1. Wrapper guard in `release-preflight.sh`
+
+**Before**: `harness-release` could be invoked directly, bypassing `release-this`'s plugin-specific checks (build, consistency, version sync). This caused `harness.toml` to be left at the old version while `harness/VERSION` was bumped, breaking CI check 3/13.
+
+**After**: `release-preflight.sh` exits 1 if `release-this/SKILL.md` exists but `.claude/state/harness-release-wrapper.lock` is absent. `release-this` creates the lock before delegating and removes it after. Direct invocation now prints a clear bypass instruction.
+
+#### 2. `harness.toml` version sync wired into `release-this` step 5
+
+**Before**: `sync-version.sh check` in step 5 reported "no extra manifest files configured" — it didn't verify `harness.toml` despite the step description saying it should.
+
+**After**: Step 5 passes `HARNESS_RELEASE_EXTRA_VERSION_FILES="harness/harness.toml"` to `sync-version.sh check`, catching any drift before the release commit.
 
 ## [4.14.0] - 2026-04-29
 
