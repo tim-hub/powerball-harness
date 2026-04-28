@@ -31,6 +31,7 @@ const (
 	piiguardScanTimeout    = 1500 * time.Millisecond // safely below the 2s hook timeout
 	piiguardDisabledEnvVar = "HARNESS_PIIGUARD_DISABLED"
 	piiguardRulesEnvVar    = "HARNESS_PIIGUARD_DISABLED_RULES"
+	piiguardWarnOnlyEnvVar = "HARNESS_PIIGUARD_PROMPT_WARN_ONLY"
 )
 
 // piiScanner is a process-wide singleton — rules compile once at first use.
@@ -77,6 +78,11 @@ func piiguardEnabled() bool {
 	return v != "1" && v != "true" && v != "yes"
 }
 
+func piiguardPromptWarnOnly() bool {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv(piiguardWarnOnlyEnvVar)))
+	return v == "1" || v == "true" || v == "yes"
+}
+
 // runPIIPrompt is the os.Exit-style entry point for `hook pii-prompt`.
 func runPIIPrompt() {
 	os.Exit(piiPromptHandler(os.Stdin, os.Stdout, os.Stderr))
@@ -113,6 +119,17 @@ func piiPromptHandler(in io.Reader, out, errOut io.Writer) int {
 
 	res, ok := scanWithDeadline(prompt)
 	if !ok || len(res.Findings) == 0 {
+		return 0
+	}
+
+	if piiguardPromptWarnOnly() {
+		// UserPromptSubmit warn-only: inject context instead of blocking.
+		warning := struct {
+			AdditionalContext string `json:"additionalContext"`
+		}{AdditionalContext: formatPromptWarnContext(res)}
+		_ = hook.WriteJSON(out, warning)
+		fmt.Fprintf(errOut, "\n⚠️  Privacy Guard: sensitive content in prompt (warn-only, %d findings)\n",
+			len(res.Findings))
 		return 0
 	}
 
@@ -260,6 +277,24 @@ func extractPostToolText(raw map[string]interface{}) string {
 		return strings.Join(parts, "\n")
 	}
 	return ""
+}
+
+// formatPromptWarnContext builds the additionalContext injected when warn-only
+// mode is active (HARNESS_PIIGUARD_PROMPT_WARN_ONLY=1).  The submission is
+// allowed through but Claude is informed of the potential sensitive data.
+func formatPromptWarnContext(res piiguard.ScanResult) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "⚠️ Privacy Guard warning: %d potential sensitive item(s) detected in this prompt (not blocked — warn-only mode).\n", len(res.Findings))
+	seen := make(map[string]bool)
+	for _, f := range res.Findings {
+		if seen[f.RuleID] {
+			continue
+		}
+		seen[f.RuleID] = true
+		fmt.Fprintf(&b, "  - %s [%s]\n", f.Title, f.Severity)
+	}
+	b.WriteString("Please verify no real secrets are included before acting on this prompt.")
+	return b.String()
 }
 
 // formatPromptBlockReason builds the reason text shown to the user/Claude when

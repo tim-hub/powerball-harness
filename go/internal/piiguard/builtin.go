@@ -46,7 +46,9 @@ var BuiltinRules = []Rule{
 		Title:    "OpenAI API Key",
 		Severity: SeverityCritical,
 		Category: CategorySecret,
-		Pattern:  regexp.MustCompile(`sk-(?:proj-)?[A-Za-z0-9]{8,}`),
+		// Real keys: sk-<48 chars> (legacy) or sk-proj-<48+ chars> (project scoped).
+		// Minimum 40 chars after the prefix avoids matching sk-learn, sk-ant-*, etc.
+		Pattern: regexp.MustCompile(`\bsk-(?:proj-[A-Za-z0-9\-_]{40,}|[A-Za-z0-9]{40,})\b`),
 	},
 	{
 		ID:       "anthropic-api-key",

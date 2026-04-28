@@ -54,6 +54,26 @@ func TestPIIPrompt_DisabledByEnv(t *testing.T) {
 	}
 }
 
+func TestPIIPrompt_WarnOnly(t *testing.T) {
+	t.Setenv(piiguardWarnOnlyEnvVar, "1")
+	planted := "GH_TOKEN=" + "ghp_" + "abcdefghijklmnopqrstuvwxyz12345678901234"
+	in := strings.NewReader(`{"prompt": "secret: ` + planted + `"}`)
+	var out, errOut bytes.Buffer
+	exit := piiPromptHandler(in, &out, &errOut)
+	if exit != 0 {
+		t.Errorf("warn-only should exit 0, got %d", exit)
+	}
+	if !strings.Contains(out.String(), "additionalContext") {
+		t.Errorf("warn-only should emit additionalContext, got %q", out.String())
+	}
+	if strings.Contains(out.String(), `"decision"`) {
+		t.Errorf("warn-only must not emit decision:block, got %q", out.String())
+	}
+	if !strings.Contains(errOut.String(), "warn-only") {
+		t.Errorf("warn-only should note warn-only in stderr, got %q", errOut.String())
+	}
+}
+
 func TestPIIPrompt_EmptyInput(t *testing.T) {
 	in := strings.NewReader("")
 	var out, errOut bytes.Buffer

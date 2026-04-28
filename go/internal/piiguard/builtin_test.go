@@ -67,9 +67,10 @@ func TestBuiltinRules_PatternFixtures(t *testing.T) {
 			negative: "export FOO=NOTAWSKEY12345678901234",
 		},
 		{
-			// Split after the sk- prefix.
+			// Split across string literals so the scanner never sees a complete key.
+			// Real keys are sk-proj-<48 chars> — require {40,} to avoid sk-learn, etc.
 			ruleID:   "openai-api-key",
-			positive: "OPENAI_KEY=sk-" + "proj-abc12345678901234567890",
+			positive: "OPENAI_KEY=sk-" + "proj-abcdefghijklmnopqrstuvwxyz0123456789ABCDEF01",
 			negative: "no key here at all",
 		},
 		{
