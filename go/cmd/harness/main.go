@@ -433,6 +433,11 @@ func runHook(hookType string) {
 		runPIIPreTool()
 	case "pii-posttool":
 		runPIIPostTool()
+	// --- AskUserQuestion normalizer (Phase 84) ---
+	case "ask-user-question-normalize":
+		if err := hookhandler.HandleAskUserQuestionNormalize(os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintf(os.Stderr, "ask-user-question-normalize handler error: %v\n", err)
+		}
 	default:
 		// guard-fastpath handlers require tool_name validation
 		input, err := hook.ReadInput(os.Stdin)

@@ -91,8 +91,22 @@ type permissionsField struct {
 }
 
 type sandboxField struct {
-	FailIfUnavailable bool                  `json:"failIfUnavailable"`
+	FailIfUnavailable bool                    `json:"failIfUnavailable"`
+	Network           *sandboxNetworkField    `json:"network,omitempty"`
 	Filesystem        *sandboxFilesystemField `json:"filesystem,omitempty"`
+}
+
+// sandboxNetworkField blocks access to cloud metadata endpoints.
+// The three entries below are the minimum security baseline for any sandboxed run:
+// they prevent any shell from reading IAM credentials from AWS/GCP/Azure metadata services.
+var defaultDeniedDomains = []string{
+	"169.254.169.254",
+	"metadata.google.internal",
+	"metadata.azure.com",
+}
+
+type sandboxNetworkField struct {
+	DeniedDomains []string `json:"deniedDomains,omitempty"`
 }
 
 type sandboxFilesystemField struct {
@@ -129,6 +143,7 @@ func generateSettingsJSON(projectRoot string, cfg *config.Config) error {
 	if sb.FailIfUnavailable || len(sb.Filesystem.DenyRead) > 0 || len(sb.Filesystem.AllowRead) > 0 {
 		sf := &sandboxField{
 			FailIfUnavailable: sb.FailIfUnavailable,
+			Network:           &sandboxNetworkField{DeniedDomains: defaultDeniedDomains},
 		}
 		if len(sb.Filesystem.DenyRead) > 0 || len(sb.Filesystem.AllowRead) > 0 {
 			sf.Filesystem = &sandboxFilesystemField{
