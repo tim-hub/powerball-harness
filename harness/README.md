@@ -245,6 +245,7 @@ flowchart LR
 | **Release** | `writing-changelog` | before release, drafting entries |
 | **Release** | `harness-release` | `/harness-release patch\|minor\|major` |
 | **Memory** | `harness-remember` | `/harness-remember ssot\|sync\|search\|record` |
+| **Automation** | `harness-loop` | `/harness-loop all` — long-running autonomous loop over Plans.md tasks |
 | **Meta** | `distill-session` | "save this", "distill this", "turn this into a skill" — captures a session's repeatable workflow as a new skill in `.claude/skills/` |
 | **Meta** | `update-skill` | "update the X skill", "improve this skill" — refines an existing project skill (description, branch, correction, or extraction) instead of creating a duplicate |
 | **Session** | `session-init` | auto — every session start |

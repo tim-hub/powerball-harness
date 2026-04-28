@@ -30,7 +30,7 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, back
 /plugin install harness@powerball-harness-marketplace --scope user
 ```
 
-> First-time setup only: run `/harness-setup` to create `CLAUDE.md` and `Plans.md`. Existing projects with these files can skip it.
+> First-time setup only: run `/harness-setup` to create `CLAUDE.md`, `Plans.md`, `.claude/memory`. Existing projects with these files can skip it.
 
 ---
 
@@ -44,15 +44,19 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, back
 | `/harness-review` | 4-perspective code review (security, performance, quality, a11y) |
 | `/harness-release` | CHANGELOG, tag, and GitHub Release |
 | `/harness-remember` | SSOT — decisions, patterns, session logs |
-| `/harness-loop` | Poll any command on a recurring interval |
-| `/distill-session` | Capture a repeatable workflow as a new project skill |
-| `/update-skill` | Refine an existing project skill |
+| `/harness-loop` | Runs Plans.md tasks in a long-running autonomous loop |
 
 Run everything after plan approval:
 
 ```bash
 /harness-work all
 ```
+
+Or even more automated:
+```bash
+/harness-loop all
+```
+
 
 Full skill catalog, lifecycle diagrams, and agent roles: [harness/README.md](harness/README.md).
 
@@ -84,9 +88,6 @@ Full skill catalog, lifecycle diagrams, and agent roles: [harness/README.md](har
 
 Runtime hook behavior: [docs/hardening-parity.md](docs/hardening-parity.md) · Engine internals: [go/README.md](go/README.md).
 
----
-
-## Other Core Features
 
 ### PII & Secret Guard
 
@@ -98,11 +99,13 @@ A second guardrail engine in [`go/internal/piiguard/`](go/internal/piiguard/) �
 | `PreToolUse` (`Write\|Edit\|MultiEdit\|Bash\|Read`) | `permissionDecision: deny` |
 | `PostToolUse` (`Bash\|Read`) | Inject redacted view via `additionalContext` |
 
-Disable globally with `HARNESS_PIIGUARD_DISABLED=1` or per-rule with `HARNESS_PIIGUARD_DISABLED_RULES=id1,id2`. Patterns ported from [datumbrain/claude-privacy-guard](https://github.com/datumbrain/claude-privacy-guard) (MIT); Go's RE2 engine eliminates the ReDoS class of bugs.
+Disable globally with `HARNESS_PIIGUARD_DISABLED=1` or per-rule with `HARNESS_PIIGUARD_DISABLED_RULES=id1,id2`.
 
-### Harness Loop
 
-`/harness-loop 5m /harness-work` polls any command on a recurring interval — useful for long-running automation, CI babysitting, or auto-progress on large plans. Built on Claude Code's native `/loop` + cron scheduling primitives.
+---
+
+## Other Core Features
+
 
 ### Advisor
 
@@ -114,7 +117,7 @@ A read-only Opus consultation agent that Workers consult on high-risk preflight,
 
 Full configuration: [docs/advisor-strategy.md](docs/advisor-strategy.md).
 
-### Self-learning Skills
+### Self-learning Skills (experimental)
 
 Two meta-skills that grow your project's skill set as you work:
 
@@ -130,9 +133,6 @@ Inspired by *Meta-Harness: End-to-End Optimization of Model Harnesses* — compr
 
 Inspired by *Natural-Language Agent Harnesses* — named failure modes drive recovery strategies. The Failure Taxonomy (`FT-*` IDs) in [`.claude/rules/failure-taxonomy.md`](.claude/rules/failure-taxonomy.md) is a direct implementation.
 
-### Origin
-
-Forked from [Chachamaru127/claude-code-harness](https://github.com/Chachamaru127/claude-code-harness) and significantly modified — repository restructured for clarity, English-first documentation, optimised skill descriptions, no committed binaries (built from source or downloaded from Releases).
 
 ---
 
@@ -164,7 +164,10 @@ Project files (`Plans.md`, `CLAUDE.md`, SSOT files) remain unchanged.
 
 ## Contributing
 
-Issues and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+- Issues and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+- Credits: 
+  - [@Chachamaru127](https://github.com/Chachamaru127/claude-code-harness) for the original work of Claude Code harness development.
+  - [@datumbrain](https://github.com/datumbrain/claude-privacy-guard) for PII Patterns detection.
 
 ## License
 
