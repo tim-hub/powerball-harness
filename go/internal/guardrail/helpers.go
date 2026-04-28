@@ -18,6 +18,10 @@ var allowedPathPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(?:^|/)\.env\.example$`),
 	regexp.MustCompile(`(?:^|/)\.env\.template$`),
 	regexp.MustCompile(`(?:^|/)\.env\.sample$`),
+	// Next.js shared env files: committed to VCS, no secrets.
+	// *.local variants (e.g. .env.development.local) remain protected.
+	regexp.MustCompile(`(?:^|/)\.env\.development$`),
+	regexp.MustCompile(`(?:^|/)\.env\.test$`),
 }
 
 var protectedPathPatterns = []*regexp.Regexp{

@@ -3,7 +3,7 @@
 
 [project]
 name = "powerball-harness"
-version = "4.13.1"
+version = "4.13.2"
 description = "Powerball harness - A harness for builders to handle full-cycle contract development."
 homepage = "https://github.com/tim-hub/powerball-harness"
 repository = "https://github.com/tim-hub/powerball-harness"
@@ -29,7 +29,8 @@ deny = [
 
   # --- sensitive file reads ---
   "Read(./.env)",
-  "Read(./.env.*)",
+  "Read(./.env.local)",
+  "Read(./.env.*.local)",
   "Read(./secrets/**)",
   "Read(**/*.pem)",
   "Read(**/*.key)",
@@ -212,6 +213,8 @@ denyRead = [
   ".env",
   ".env.*",
   "!.env.example",
+  "!.env.development",
+  "!.env.test",
   "secrets/**",
   "**/*.pem",
   "**/*.key",
@@ -223,6 +226,8 @@ denyRead = [
 allowRead = [
   ".env.example",
   ".env.sample",
+  ".env.development",
+  ".env.test",
   "config/public-*",
   "docs/**",
 ]

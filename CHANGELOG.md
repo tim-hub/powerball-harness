@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.13.1...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.13.2...HEAD
+[4.13.2]: https://github.com/tim-hub/powerball-harness/compare/v4.13.1...v4.13.2
 [4.13.1]: https://github.com/tim-hub/powerball-harness/compare/v4.13.0...v4.13.1
 [4.13.0]: https://github.com/tim-hub/powerball-harness/compare/v4.12.1...v4.13.0
 [4.12.1]: https://github.com/tim-hub/powerball-harness/compare/v4.12.0...v4.12.1
@@ -33,6 +34,14 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.13.2] - 2026-04-28
+
+### Fixed: Allow `.env.development` and `.env.test` in guardrail and sandbox
+
+**Before**: `.env.development` and `.env.test` were treated as protected paths by the guardrail (blocked for reads/writes) and as denied in sandbox filesystem rules, even though these Next.js shared env files contain no secrets and are committed to VCS. The permissions.deny list used `"Read(./.env.*)"` which caught these files along with `.env.local` and other secret-bearing variants.
+
+**After**: Both files are added to the guardrail `allowedPathPatterns` exemption list so `isProtectedPath()` returns false for them. `harness.toml` permissions.deny now uses `"Read(./.env.local)"` and `"Read(./.env.*.local)"` instead of the broad `"Read(./.env.*)"`. Sandbox `denyRead` negations and `allowRead` entries include `.env.development` and `.env.test`. `.env.development.local` and `.env.test.local` (the actual secret-bearing `.local` variants) remain protected.
 
 ## [4.13.1] - 2026-04-28
 

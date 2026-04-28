@@ -61,6 +61,24 @@ func TestIsProtectedPath_EnvLocalStillProtected(t *testing.T) {
 	}
 }
 
+// Allowlist: .env.development and .env.test are Next.js shared env files committed to VCS
+func TestIsProtectedPath_EnvDevelopmentAndTestAllowed(t *testing.T) {
+	for _, p := range []string{".env.development", "/project/.env.development", ".env.test", "/project/.env.test"} {
+		if isProtectedPath(p) {
+			t.Errorf("%s should NOT be protected (Next.js shared env, committed to VCS)", p)
+		}
+	}
+}
+
+// .env.development.local and .env.test.local still contain secrets and remain protected
+func TestIsProtectedPath_EnvLocalVariantsStillProtected(t *testing.T) {
+	for _, p := range []string{".env.development.local", ".env.test.local"} {
+		if !isProtectedPath(p) {
+			t.Errorf("%s should still be protected (.local suffix = not committed)", p)
+		}
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Task 38.1.1: .husky protection (CC 2.1.90)
 // ---------------------------------------------------------------------------
