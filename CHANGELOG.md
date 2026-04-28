@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.13.0...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.13.1...HEAD
+[4.13.1]: https://github.com/tim-hub/powerball-harness/compare/v4.13.0...v4.13.1
 [4.13.0]: https://github.com/tim-hub/powerball-harness/compare/v4.12.1...v4.13.0
 [4.12.1]: https://github.com/tim-hub/powerball-harness/compare/v4.12.0...v4.12.1
 [4.12.0]: https://github.com/tim-hub/powerball-harness/compare/v4.11.6...v4.12.0
@@ -32,6 +33,14 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.13.1] - 2026-04-28
+
+### Fixed: PII guard false positives + harness.toml version sync
+
+**Before**: The OpenAI API key rule matched any `sk-` string longer than 8 characters — catching package names like `sk-learn`, short variable names, and test IDs. `harness.toml` version was not updated during the v4.13.0 release, causing the `check-consistency` CI gate to fail.
+
+**After**: OpenAI key pattern now requires 40+ characters after the `sk-` prefix, matching only realistic key lengths (real keys are 48+ chars). `harness.toml` version is now in sync. New `HARNESS_PIIGUARD_PROMPT_WARN_ONLY=1` env var available as an escape hatch: prompt hook emits an `additionalContext` warning instead of hard-blocking when set.
 
 ## [4.13.0] - 2026-04-28
 
