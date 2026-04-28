@@ -88,8 +88,6 @@ Runtime hook behavior: [docs/hardening-parity.md](docs/hardening-parity.md) · E
 
 ## Other Core Features
 
-Originally forked from [Chachamaru127/claude-code-harness](https://github.com/Chachamaru127/claude-code-harness) and significantly modified — repository restructured for clarity, English-first documentation, optimised skill descriptions, no committed binaries (built from source or downloaded from Releases), and the additions below.
-
 ### PII & Secret Guard
 
 A second guardrail engine in [`go/internal/piiguard/`](go/internal/piiguard/) — 45 rules (15 built-in + 30 from an embedded coding-only catalog) that block AWS / OpenAI / Anthropic / Google / GitHub / Stripe / HuggingFace API keys, JWT and Bearer tokens, PEM private keys, generic `api_key = "..."` assignments, and email addresses. Wired into three hooks:
@@ -116,6 +114,14 @@ A read-only Opus consultation agent that Workers consult on high-risk preflight,
 
 Full configuration: [docs/advisor-strategy.md](docs/advisor-strategy.md).
 
+### Self-learning Skills
+
+Two meta-skills that grow your project's skill set as you work:
+
+**`/distill-session`** — At the end of a session that solved a non-trivial, repeatable problem, this skill reviews what happened, identifies the workflow, drafts a `SKILL.md`, shows you a preview, and writes it to `.claude/skills/<name>/SKILL.md` on approval. Trigger phrases: "save this", "distill this", "turn this into a skill". Checks for an existing overlapping skill first and hands off to `/update-skill` if one is found.
+
+**`/update-skill`** — Refines an existing project skill with new learnings from the current session. Diagnoses whether the fix is a description tightening, a new branch, a correction, or a reference extraction, then proposes a minimal diff. Falls back to `/distill-session` when the new learning is broad enough to warrant a new skill.
+
 ### Meta-Harness ([arXiv:2603.28052](https://arxiv.org/abs/2603.28052))
 
 Inspired by *Meta-Harness: End-to-End Optimization of Model Harnesses* — compressed feedback loses causal signal, so agents need raw execution history, not summaries. Drives the per-task `.claude/state/traces/` JSONL system and the `harness-review` eval loop.
@@ -123,6 +129,10 @@ Inspired by *Meta-Harness: End-to-End Optimization of Model Harnesses* — compr
 ### Natural-Language Agent Harnesses ([arXiv:2603.25723](https://arxiv.org/abs/2603.25723))
 
 Inspired by *Natural-Language Agent Harnesses* — named failure modes drive recovery strategies. The Failure Taxonomy (`FT-*` IDs) in [`.claude/rules/failure-taxonomy.md`](.claude/rules/failure-taxonomy.md) is a direct implementation.
+
+### Origin
+
+Forked from [Chachamaru127/claude-code-harness](https://github.com/Chachamaru127/claude-code-harness) and significantly modified — repository restructured for clarity, English-first documentation, optimised skill descriptions, no committed binaries (built from source or downloaded from Releases).
 
 ---
 
