@@ -61,6 +61,16 @@ cd "$PLUGIN_ROOT"  # plugin-local: operate from plugin root
 
 GIT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$PLUGIN_ROOT")"  # project-root: user's git repository root
 
+# Wrapper guard: if this project has a release-this skill, require it to be the entry point.
+# release-this creates .claude/state/harness-release-wrapper.lock before delegating here.
+_WRAPPER_SKILL="$GIT_ROOT/.claude/skills/release-this/SKILL.md"
+_WRAPPER_LOCK="$GIT_ROOT/.claude/state/harness-release-wrapper.lock"
+if [ -f "$_WRAPPER_SKILL" ] && [ ! -f "$_WRAPPER_LOCK" ]; then
+  echo "[FAIL] release-this wrapper detected — run /release-this instead of /harness-release directly." >&2
+  echo "       To bypass: touch $GIT_ROOT/.claude/state/harness-release-wrapper.lock" >&2
+  exit 1
+fi
+
 PASS_COUNT=0
 WARN_COUNT=0
 FAIL_COUNT=0
