@@ -10,13 +10,6 @@ model: opus
 
 # Harness Plan
 
-Unified planning skill for Harness.
-Consolidates the following 3 legacy skills:
-
-- `planning` (plan-with-agent) — Convert ideas into Plans.md
-- `plans-management` — Task state management and marker updates
-- `sync-status` — Sync verification between Plans.md and implementation
-
 ## Quick Reference
 
 | User Input | Subcommand | Behavior |
@@ -24,9 +17,7 @@ Consolidates the following 3 legacy skills:
 | "create a plan" | `create` | Interactive interview → Plans.md generation |
 | "add a task" | `add` | Add new task to Plans.md |
 | "mark complete" | `update` | Change task marker to cc:done |
-| "where am I?" / "check progress" | `sync` | Compare implementation with Plans.md and sync |
-| `harness-plan sync` / "sync status" | `sync` | Progress check via harness-plan's embedded sync subcommand |
-| `harness-plan create` | `create` | Create plan |
+| "where am I?" / "check progress" / `harness-plan sync` / "sync status"| `sync` | Compare implementation with Plans.md and sync |
 | "archive old phases" / `harness-plan archive` | `archive` | Archive phases in Plans.md to `.claude/memory/archive/`; update `Last archive:` line in the `## Archive` footer |
 | "session log too big" / `harness-plan session-log` | `session-log` | Split session-log.md by month; move older months to `.claude/memory/session-log-YYYY-MM.md` |
 
@@ -34,22 +25,27 @@ Consolidates the following 3 legacy skills:
 
 ### create — Plan Creation
 
-See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md)
-
 Interviews for ideas and requirements, then generates an actionable Plans.md.
 
 **Flow**:
 1. Check conversation context (extract from preceding discussion or start new interview)
 2. Ask what to build (max 3 questions)
-3. Technical research (WebSearch)
+3. Using @Explore agent to do Technical research, and ask @advisor agent for advice on high-risk, uncertain, or blocked areas
 4. Feature list extraction
-5. Priority matrix (Required / Recommended / Optional)
-6. TDD adoption decision (test design)
+5. Priority matrix (Required, Recommended, Optional)
+6. TDD (Test-Driven Development) design including TDD decision, test plan and tasks to create unit tests, component tests, manual test instructions, and spike tasks for unknown areas
 7. Plans.md generation (with `cc:TODO` markers)
 8. Suggest next actions
 
+
 **CI mode** (`--ci`):
 No interview. Uses existing Plans.md as-is and only performs task decomposition.
+
+
+#### Task Creation Reference
+
+See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md) as reference for the full creation flow, including the interview questions, TDD decision rules, and Plans.md format conventions.
+
 
 ### add — Add Task
 

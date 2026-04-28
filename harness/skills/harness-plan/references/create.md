@@ -105,9 +105,9 @@ Tasks tagged `[needs-spike]` automatically get a **spike (technical validation) 
 
 The spike task's completion criterion is "leave a validation result report (feasible / infeasible / needs design change)."
 
-## Step 5.5: TDD Skip Decision (Enabled by Default)
+## Step 5.5: TDD (Test-Driven Development) — Enabled by Default
 
-TDD is enabled by default. Only tasks matching one of the following conditions receive a `[skip:tdd]` marker to skip:
+TDD is encouraged and enabled by default. Only tasks matching one of the following conditions receive a `[skip:tdd]` marker to skip:
 
 | Skip Condition | Reason |
 |---------------|--------|
@@ -119,7 +119,7 @@ TDD is enabled by default. Only tasks matching one of the following conditions r
 | README/CHANGELOG updates | Documentation only |
 | Refactoring (no behavior change) | Covered by existing tests |
 
-Tasks not matching the above have TDD automatically applied (test-first recommended).
+Tasks not matching the above have TDD automatically applied (test-first).
 
 ## Step 5.7: Plans.md v3 Format Specification
 
