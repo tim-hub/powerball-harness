@@ -142,6 +142,7 @@ Inspired by *Natural-Language Agent Harnesses* — named failure modes drive rec
 - [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md)
 - [Guardrail Rules](docs/hardening-parity.md)
 - [Advisor Strategy](docs/advisor-strategy.md)
+- [Work All Evidence](docs/evidence/work-all.md)
 - [Workflow Diagrams · Skill Catalog · Hooks](harness/README.md)
 
 ### Troubleshooting
