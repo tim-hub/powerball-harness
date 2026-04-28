@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.12.1...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.13.0...HEAD
+[4.13.0]: https://github.com/tim-hub/powerball-harness/compare/v4.12.1...v4.13.0
 [4.12.1]: https://github.com/tim-hub/powerball-harness/compare/v4.12.0...v4.12.1
 [4.12.0]: https://github.com/tim-hub/powerball-harness/compare/v4.11.6...v4.12.0
 [4.11.6]: https://github.com/tim-hub/powerball-harness/compare/v4.11.5...v4.11.6
@@ -31,6 +32,50 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.13.0] - 2026-04-28
+
+### Theme: Sandbox Network Security + AskUserQuestion Answer Normalizer (Phase 84 — upstream v4.4.0 port)
+
+**Two security and UX improvements ported from upstream v4.4.0 that were missing from the local fork.**
+
+---
+
+#### 1. Cloud Metadata SSRF Blocklist in Sandbox
+
+**Before**: `sandbox.network` was absent from `harness/settings.json`. Any sandboxed shell command could silently reach AWS/GCP/Azure cloud metadata services (169.254.169.254, metadata.google.internal, metadata.azure.com) and read IAM credentials in under a second — a well-known SSRF attack surface.
+
+**After**: `harness sync` now always regenerates `settings.json` with `sandbox.network.deniedDomains` containing the three cloud-metadata endpoints. The deny list is wired into the Go struct (`sync.go`) so it survives every future `harness sync` run — it cannot be accidentally removed by regeneration.
+
+```json
+"sandbox": {
+  "failIfUnavailable": true,
+  "network": {
+    "deniedDomains": [
+      "169.254.169.254",
+      "metadata.google.internal",
+      "metadata.azure.com"
+    ]
+  },
+  "filesystem": { ... }
+}
+```
+
+#### 2. AskUserQuestion Answer Normalizer
+
+**Before**: Downstream skills (session-control, breezing, team-composition) received whatever free-form string the user typed as a workflow mode — "single", "個人", "github-issue", "探索" — and had to handle the variants themselves or silently misbehave on unexpected input.
+
+**After**: A new PreToolUse hook (`harness hook ask-user-question-normalize`) intercepts AskUserQuestion tool calls and canonicalizes answers before they reach downstream skills:
+
+| User input | Normalized to |
+|------------|---------------|
+| `single`, `individual`, `個人`, `単独` | `solo` |
+| `issue`, `github-issue`, `チーム` | `team` |
+| `explore`, `exploratory`, `探索`, `触って確認` | `exploratory` |
+| `playwright`, `scripted`, `手順固定` | `scripted` |
+| `patch`, `minor`, `major` | (unchanged) |
+
+The handler also accepts answers pre-injected via `HARNESS_ASK_USER_QUESTION_ANSWERS` (JSON env var) for headless/automated sessions. Unknown values pass through unchanged — the normalizer never blocks on ambiguity.
 
 ## [4.12.1] - 2026-04-28
 
