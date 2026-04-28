@@ -1,6 +1,7 @@
 ---
 name: distill-session
-description: Distills the current Claude Code session into a reusable project skill. Use this whenever the user says "save this", "distill this", "turn this into a skill", or at the end of a session that solved a non-trivial, repeatable problem. Trigger even without explicit ask if the session contained a clear reusable workflow worth capturing for this project.
+description: "Distills a session's repeatable workflow into a new project skill in .claude/skills/. Use when a session solved a non-trivial, repeatable problem and the workflow is worth capturing for reuse."
+when_to_use: "save this, distill this, turn this into a skill, capture this workflow, make a skill from this, end of session with reusable pattern"
 model: opus
 effort: xhigh
 ---

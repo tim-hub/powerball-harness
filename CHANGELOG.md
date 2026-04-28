@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.12.0...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.12.1...HEAD
+[4.12.1]: https://github.com/tim-hub/powerball-harness/compare/v4.12.0...v4.12.1
 [4.12.0]: https://github.com/tim-hub/powerball-harness/compare/v4.11.6...v4.12.0
 [4.11.6]: https://github.com/tim-hub/powerball-harness/compare/v4.11.5...v4.11.6
 [4.11.5]: https://github.com/tim-hub/powerball-harness/compare/v4.11.4...v4.11.5
@@ -30,6 +31,16 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [4.12.1] - 2026-04-28
+
+### Fixed: skill description format violations + README refinements
+
+**Before**: `distill-session` and `update-skill` SKILL.md descriptions used "Use this whenever the user says…" (wrong format) and exceeded 300 characters, causing the `validate-plugin` CI check to fail on section 11 (skill description audit).
+
+**After**: Both descriptions rewritten to conform to `.claude/rules/skill-description.md` — capability summary + "Use when" trigger, `when_to_use` field added, ≤300 chars. CI green.
+
+Documentation also tightened: README reorganised into a cleaner 6-section layout, `harness/README.md` synced with harness-loop and meta-skill additions, credits section added.
 
 ## [4.12.0] - 2026-04-28
 
