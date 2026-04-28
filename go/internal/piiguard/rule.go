@@ -38,4 +38,8 @@ type Rule struct {
 	Severity Severity
 	Category Category
 	Pattern  *regexp.Regexp
+	// Validator is an optional post-filter applied to each raw match string.
+	// When non-nil, a match is included only when Validator returns true.
+	// Use for character-class diversity checks that RE2 cannot express (no lookaheads).
+	Validator func(match string) bool
 }

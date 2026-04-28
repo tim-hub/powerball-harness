@@ -1,0 +1,11 @@
+# Bearer Authentication Overview
+
+Short examples below the 20-char length floor:
+  Authorization: Bearer x
+  Authorization: Bearer ab
+  Authorization: Bearer abc
+
+All-lowercase 25-char phrase (post-filter rejects):
+  Authorization: Bearer abcdefghijklmnopqrstuvwxy
+
+The Bearer scheme is defined in RFC 6750.

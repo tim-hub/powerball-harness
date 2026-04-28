@@ -35,6 +35,35 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Fixed: PII Guard noise reduction — bearer-token floor, disabled context rules, per-event warn-only (Phase 85)
+
+**Three complementary changes that reduce false positives in agentic coding sessions without weakening real-secret detection.**
+
+---
+
+#### 1. bearer-token rule: 20-char minimum + all-lowercase post-filter
+
+**Before**: The `bearer-token` rule had no minimum length on the captured value — it matched even a single character after the `Bearer` keyword. Documentation comments, short placeholder names, and prose phrases all triggered a hard block.
+
+**After**: The regex now requires `{20,}` characters (20-char floor). A new `bearerTokenValidator` post-filter additionally rejects matches whose token value is entirely lowercase-ASCII alphabetic — plain English words are not credentials. Real tokens (JWT, opaque OAuth strings) contain digits, uppercase letters, or punctuation. Confirmed via `TestBearerToken_FalsePositives` (3 new negative subtests).
+
+#### 2. Three weak external context rules disabled
+
+**Before**: Three external catalog rules — `external-aws-credentials-context`, `external-microsoft-office-365-oauth-context`, `external-john-the-ripper` — passed the `codingOnly` keyword filter but matched documentation prose, Terraform field names, and OAuth tutorial URLs rather than real secrets. Any terraform snippet or OAuth comment in a tool call would trigger a block.
+
+**After**: A package-level `disabledExternalRuleIDs` map in `external.go` skips these three rules by slug before `regexp.Compile`. The catalog JSON is unchanged — users with a different threat model can re-enable by clearing the map. Entries added to `.claude/rules/deleted-concepts.yaml` per migration policy.
+
+#### 3. Per-event warn-only env vars + global override
+
+**Before**: Only `HARNESS_PIIGUARD_PROMPT_WARN_ONLY=1` existed, covering the UserPromptSubmit hook only. PreToolUse and PostToolUse had no warn-only escape hatch.
+
+**After**: Three new per-event env vars:
+- `HARNESS_PIIGUARD_PRETOOL_WARN_ONLY=1` — emits `permissionDecision: allow` with `additionalContext` warning instead of `deny`
+- `HARNESS_PIIGUARD_POSTTOOL_WARN_ONLY=1` — writes stderr advisory only, skips `additionalContext` injection
+- `HARNESS_PIIGUARD_WARN_ONLY=1` — global override that applies to all three handlers
+
+All three handlers now share `piiguardWarnOnlyForEvent(event)` which checks the global override first, then the event-specific var.
+
 ## [4.13.2] - 2026-04-28
 
 ### Fixed: Allow `.env.development` and `.env.test` in guardrail and sandbox

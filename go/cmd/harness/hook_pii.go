@@ -28,10 +28,13 @@ import (
 )
 
 const (
-	piiguardScanTimeout    = 1500 * time.Millisecond // safely below the 2s hook timeout
-	piiguardDisabledEnvVar = "HARNESS_PIIGUARD_DISABLED"
-	piiguardRulesEnvVar    = "HARNESS_PIIGUARD_DISABLED_RULES"
-	piiguardWarnOnlyEnvVar = "HARNESS_PIIGUARD_PROMPT_WARN_ONLY"
+	piiguardScanTimeout         = 1500 * time.Millisecond // safely below the 2s hook timeout
+	piiguardDisabledEnvVar      = "HARNESS_PIIGUARD_DISABLED"
+	piiguardRulesEnvVar         = "HARNESS_PIIGUARD_DISABLED_RULES"
+	piiguardWarnOnlyEnvVar      = "HARNESS_PIIGUARD_PROMPT_WARN_ONLY"
+	piiguardWarnOnlyGlobalVar   = "HARNESS_PIIGUARD_WARN_ONLY"
+	piiguardWarnOnlyPreToolVar  = "HARNESS_PIIGUARD_PRETOOL_WARN_ONLY"
+	piiguardWarnOnlyPostToolVar = "HARNESS_PIIGUARD_POSTTOOL_WARN_ONLY"
 )
 
 // piiScanner is a process-wide singleton — rules compile once at first use.
@@ -78,8 +81,23 @@ func piiguardEnabled() bool {
 	return v != "1" && v != "true" && v != "yes"
 }
 
-func piiguardPromptWarnOnly() bool {
-	v := strings.ToLower(strings.TrimSpace(os.Getenv(piiguardWarnOnlyEnvVar)))
+func piiguardWarnOnlyForEvent(event string) bool {
+	if v := strings.ToLower(strings.TrimSpace(os.Getenv(piiguardWarnOnlyGlobalVar))); v == "1" || v == "true" || v == "yes" {
+		return true
+	}
+	var envVar string
+	switch event {
+	case "prompt":
+		envVar = piiguardWarnOnlyEnvVar
+	case "pretool":
+		envVar = piiguardWarnOnlyPreToolVar
+	case "posttool":
+		envVar = piiguardWarnOnlyPostToolVar
+	}
+	if envVar == "" {
+		return false
+	}
+	v := strings.ToLower(strings.TrimSpace(os.Getenv(envVar)))
 	return v == "1" || v == "true" || v == "yes"
 }
 
@@ -122,7 +140,7 @@ func piiPromptHandler(in io.Reader, out, errOut io.Writer) int {
 		return 0
 	}
 
-	if piiguardPromptWarnOnly() {
+	if piiguardWarnOnlyForEvent("prompt") {
 		// UserPromptSubmit warn-only: inject context instead of blocking.
 		warning := struct {
 			AdditionalContext string `json:"additionalContext"`
@@ -145,7 +163,7 @@ func piiPromptHandler(in io.Reader, out, errOut io.Writer) int {
 
 // piiPreToolHandler scans a PreToolUse event.  Returns 0 always (deny is
 // communicated via the hookSpecificOutput JSON, not exit code).
-func piiPreToolHandler(in io.Reader, out, _ io.Writer) int {
+func piiPreToolHandler(in io.Reader, out, errOut io.Writer) int {
 	if !piiguardEnabled() {
 		return 0
 	}
@@ -163,6 +181,20 @@ func piiPreToolHandler(in io.Reader, out, _ io.Writer) int {
 		return 0
 	}
 
+	if piiguardWarnOnlyForEvent("pretool") {
+		out2 := hookproto.PreToolOutput{
+			HookSpecificOutput: hookproto.PreToolHookSpecific{
+				HookEventName:      "PreToolUse",
+				PermissionDecision: "allow",
+				AdditionalContext:  formatPromptWarnContext(res),
+			},
+		}
+		_ = hook.WriteJSON(out, out2)
+		fmt.Fprintf(errOut, "\n⚠️  Privacy Guard: sensitive content in tool input (warn-only, %d findings)\n",
+			len(res.Findings))
+		return 0
+	}
+
 	out2 := hookproto.PreToolOutput{
 		HookSpecificOutput: hookproto.PreToolHookSpecific{
 			HookEventName:            "PreToolUse",
@@ -176,7 +208,7 @@ func piiPreToolHandler(in io.Reader, out, _ io.Writer) int {
 
 // piiPostToolHandler scans a PostToolUse event.  Always returns 0 — PostToolUse
 // cannot block retroactively, so we inject a redacted view via additionalContext.
-func piiPostToolHandler(in io.Reader, out, _ io.Writer) int {
+func piiPostToolHandler(in io.Reader, out, errOut io.Writer) int {
 	if !piiguardEnabled() {
 		return 0
 	}
@@ -195,6 +227,12 @@ func piiPostToolHandler(in io.Reader, out, _ io.Writer) int {
 
 	res, ok := scanWithDeadline(text)
 	if !ok || len(res.Findings) == 0 {
+		return 0
+	}
+
+	if piiguardWarnOnlyForEvent("posttool") {
+		fmt.Fprintf(errOut, "\n⚠️  Privacy Guard: sensitive data in tool output (warn-only, %d findings)\n",
+			len(res.Findings))
 		return 0
 	}
 

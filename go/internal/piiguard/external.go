@@ -38,6 +38,17 @@ var codingSecretKeywords = []string{
 	"pgp",
 }
 
+// disabledExternalRuleIDs lists external catalog rules that produce too many false positives
+// to be useful in an agentic coding context.  Rules are identified by their slugified ID.
+var disabledExternalRuleIDs = map[string]bool{
+	// Matches plain AWS field-name keywords in docs/comments, not actual credentials.
+	"external-aws-credentials-context": true,
+	// Matches OAuth doc URLs and prose, not actual secrets.
+	"external-microsoft-office-365-oauth-context": true,
+	// Matches the tool name in any security-discussion text.
+	"external-john-the-ripper": true,
+}
+
 // externalEntry mirrors the upstream regex_list_1.json entry shape.
 type externalEntry struct {
 	Name        string `json:"name"`
@@ -94,13 +105,19 @@ func loadExternalFromBytes(data []byte, codingOnly bool, warnLog io.Writer) ([]R
 			continue
 		}
 
+		slug := "external-" + slugify(entry.Name)
+		if disabledExternalRuleIDs[slug] {
+			fmt.Fprintf(warnLog, "piiguard: skipping disabled rule %q (high false-positive rate in agentic context)\n", slug)
+			continue
+		}
+
 		pattern, err := regexp.Compile(entry.Regex)
 		if err != nil {
 			fmt.Fprintf(warnLog, "piiguard: skipping %q (regex compile failed: %v)\n", entry.Name, err)
 			continue
 		}
 
-		id := uniqueID(usedIDs, "external-"+slugify(entry.Name))
+		id := uniqueID(usedIDs, slug)
 		usedIDs[id] = true
 
 		rules = append(rules, Rule{

@@ -195,3 +195,41 @@ func TestBuiltinRules_SeverityCategories(t *testing.T) {
 		}
 	}
 }
+
+// TestBearerToken_FalsePositives verifies that the tightened bearer-token rule
+// rejects short tokens (below the 20-char floor) and all-lowercase tokens
+// (rejected by bearerTokenValidator).  Inputs use concatenation so the raw source
+// does not contain a contiguous trigger string.
+func TestBearerToken_FalsePositives(t *testing.T) {
+	scanner := NewScanner(BuiltinRules)
+
+	negatives := []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "below-floor-1char",
+			input: "Authorization: Bearer " + "x",
+		},
+		{
+			name:  "below-floor-3chars",
+			input: "Authorization: Bearer " + "abc",
+		},
+		{
+			// 25 lowercase-only chars: pattern matches ({20,}) but Validator rejects.
+			name:  "all-lowercase-25chars",
+			input: "Authorization: Bearer " + "abcdefghijklmnopqrstuvwxy",
+		},
+	}
+
+	for _, tc := range negatives {
+		t.Run(tc.name, func(t *testing.T) {
+			res := scanner.Scan(tc.input)
+			for _, f := range res.Findings {
+				if f.RuleID == "bearer-token" {
+					t.Errorf("bearer-token rule false-positive on %q: got finding %q", tc.name, f.RedactedValue)
+				}
+			}
+		})
+	}
+}

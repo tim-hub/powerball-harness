@@ -1,0 +1,6 @@
+# Microsoft OAuth2 Guide
+
+Token endpoint:         https://login.microsoftonline.com/tenant-id/oauth2/token
+Authorization endpoint: https://login.microsoftonline.com/tenant-id/oauth2/v2.0/authorize
+
+Office 365 uses standard oauth2 flows.

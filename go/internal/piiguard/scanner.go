@@ -67,6 +67,9 @@ func (s *Scanner) Scan(text string) ScanResult {
 		for _, idx := range r.Pattern.FindAllStringIndex(text, -1) {
 			start, end := idx[0], idx[1]
 			match := text[start:end]
+			if r.Validator != nil && !r.Validator(match) {
+				continue
+			}
 			result.Findings = append(result.Findings, Finding{
 				RuleID:        r.ID,
 				Title:         r.Title,

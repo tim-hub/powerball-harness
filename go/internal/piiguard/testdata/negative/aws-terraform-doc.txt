@@ -1,0 +1,10 @@
+# Terraform AWS Config
+
+resource "aws_iam_user" "example" {
+  name = "ci-user"
+}
+
+# Field reference:
+#   aws_access_key_id - sourced from AWS_ACCESS_KEY_ID
+#   aws_secret_access_key - sourced from AWS_SECRET_ACCESS_KEY
+#   region         - us-east-1

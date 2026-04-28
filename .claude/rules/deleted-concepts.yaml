@@ -304,3 +304,39 @@ deleted_concepts:
       - ".claude/state/"
       - "Plans.md"
       - "local-scripts/build-binary.sh"  # new location of the same script
+
+  - term: "external-aws-credentials-context"
+    replacement: "disabledExternalRuleIDs in go/internal/piiguard/external.go"
+    deleted_in: "v4.13.2"
+    reason: "Phase 85: disabled from active scanning — matches AWS field-name keywords in docs/comments, not real credentials."
+    allowlist:
+      - "go/internal/piiguard/"
+      - "harness/bin/"  # compiled binary embeds the string literal from disabledExternalRuleIDs
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+
+  - term: "external-microsoft-office-365-oauth-context"
+    replacement: "disabledExternalRuleIDs in go/internal/piiguard/external.go"
+    deleted_in: "v4.13.2"
+    reason: "Phase 85: disabled from active scanning — matches OAuth doc URLs and tutorial prose, not real secrets."
+    allowlist:
+      - "go/internal/piiguard/"
+      - "harness/bin/"  # compiled binary embeds the string literal from disabledExternalRuleIDs
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+
+  - term: "external-john-the-ripper"
+    replacement: "disabledExternalRuleIDs in go/internal/piiguard/external.go"
+    deleted_in: "v4.13.2"
+    reason: "Phase 85: disabled from active scanning — matches the tool name in any security-discussion text, not actual credentials."
+    allowlist:
+      - "go/internal/piiguard/"
+      - "harness/bin/"  # compiled binary embeds the string literal from disabledExternalRuleIDs
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"

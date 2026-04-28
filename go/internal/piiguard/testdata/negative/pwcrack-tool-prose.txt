@@ -1,0 +1,5 @@
+# Password Auditing Notes
+
+Tool referenced: john the ripper
+Project site: openwall.com/john/ (authorized use only)
+Used only in authorized penetration tests.

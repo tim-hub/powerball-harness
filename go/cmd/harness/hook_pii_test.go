@@ -328,6 +328,107 @@ func TestPiiguardFilterDisabled(t *testing.T) {
 	})
 }
 
+// TestPIIPrompt_WarnOnly_GlobalOverride verifies that HARNESS_PIIGUARD_WARN_ONLY
+// suppresses blocking even when the prompt-specific var is unset.
+func TestPIIPrompt_WarnOnly_GlobalOverride(t *testing.T) {
+	t.Setenv(piiguardWarnOnlyGlobalVar, "1")
+	planted := "GH_TOKEN=" + "ghp_" + "abcdefghijklmnopqrstuvwxyz12345678901234"
+	in := strings.NewReader(`{"prompt": "secret: ` + planted + `"}`)
+	var out, errOut bytes.Buffer
+	exit := piiPromptHandler(in, &out, &errOut)
+	if exit != 0 {
+		t.Errorf("global warn-only should exit 0, got %d", exit)
+	}
+	if strings.Contains(out.String(), `"decision"`) {
+		t.Errorf("global warn-only must not emit decision:block, got %q", out.String())
+	}
+	if !strings.Contains(errOut.String(), "warn-only") {
+		t.Errorf("global warn-only should note warn-only in stderr, got %q", errOut.String())
+	}
+}
+
+// TestPIIPreTool_WarnOnly verifies that HARNESS_PIIGUARD_PRETOOL_WARN_ONLY=1 emits
+// permissionDecision:allow (not deny) and writes a stderr advisory.
+func TestPIIPreTool_WarnOnly(t *testing.T) {
+	t.Setenv(piiguardWarnOnlyPreToolVar, "1")
+	planted := "export AWS_KEY=" + "AKIA" + "IOSFODNN7EXAMPLE"
+	in := strings.NewReader(`{
+		"tool_name": "Bash",
+		"tool_input": {"command": "` + planted + `"}
+	}`)
+	var out, errOut bytes.Buffer
+	exit := piiPreToolHandler(in, &out, &errOut)
+	if exit != 0 {
+		t.Errorf("pre-tool always exits 0, got %d", exit)
+	}
+	if strings.Contains(out.String(), `"permissionDecision":"deny"`) {
+		t.Errorf("warn-only must not emit deny decision, got %q", out.String())
+	}
+	if !strings.Contains(out.String(), `"permissionDecision":"allow"`) {
+		t.Errorf("warn-only should emit allow decision, got %q", out.String())
+	}
+	if !strings.Contains(errOut.String(), "warn-only") {
+		t.Errorf("warn-only should write advisory to stderr, got %q", errOut.String())
+	}
+}
+
+// TestPIIPreTool_WarnOnly_Global verifies that HARNESS_PIIGUARD_WARN_ONLY also
+// triggers the pretool warn-only path.
+func TestPIIPreTool_WarnOnly_Global(t *testing.T) {
+	t.Setenv(piiguardWarnOnlyGlobalVar, "1")
+	planted := "export AWS_KEY=" + "AKIA" + "IOSFODNN7EXAMPLE"
+	in := strings.NewReader(`{
+		"tool_name": "Bash",
+		"tool_input": {"command": "` + planted + `"}
+	}`)
+	var out, errOut bytes.Buffer
+	piiPreToolHandler(in, &out, &errOut)
+	if strings.Contains(out.String(), `"permissionDecision":"deny"`) {
+		t.Errorf("global warn-only must not emit deny, got %q", out.String())
+	}
+}
+
+// TestPIIPostTool_WarnOnly verifies that HARNESS_PIIGUARD_POSTTOOL_WARN_ONLY=1 skips
+// the additionalContext block and writes only a stderr advisory.
+func TestPIIPostTool_WarnOnly(t *testing.T) {
+	t.Setenv(piiguardWarnOnlyPostToolVar, "1")
+	planted := "ghp_" + "abcdefghijklmnopqrstuvwxyz12345678901234"
+	in := strings.NewReader(`{
+		"tool_name": "Bash",
+		"tool_response": {"stdout": "TOKEN=` + planted + `"}
+	}`)
+	var out, errOut bytes.Buffer
+	exit := piiPostToolHandler(in, &out, &errOut)
+	if exit != 0 {
+		t.Errorf("post-tool always exits 0, got %d", exit)
+	}
+	if strings.Contains(out.String(), "additionalContext") {
+		t.Errorf("posttool warn-only must not emit additionalContext, got %q", out.String())
+	}
+	if !strings.Contains(errOut.String(), "warn-only") {
+		t.Errorf("posttool warn-only should write advisory to stderr, got %q", errOut.String())
+	}
+}
+
+// TestPIIPostTool_WarnOnly_Global verifies that HARNESS_PIIGUARD_WARN_ONLY also
+// triggers the posttool warn-only path.
+func TestPIIPostTool_WarnOnly_Global(t *testing.T) {
+	t.Setenv(piiguardWarnOnlyGlobalVar, "1")
+	planted := "ghp_" + "abcdefghijklmnopqrstuvwxyz12345678901234"
+	in := strings.NewReader(`{
+		"tool_name": "Bash",
+		"tool_response": {"stdout": "TOKEN=` + planted + `"}
+	}`)
+	var out, errOut bytes.Buffer
+	piiPostToolHandler(in, &out, &errOut)
+	if strings.Contains(out.String(), "additionalContext") {
+		t.Errorf("global warn-only must not emit additionalContext, got %q", out.String())
+	}
+	if !strings.Contains(errOut.String(), "warn-only") {
+		t.Errorf("global warn-only should write advisory to stderr, got %q", errOut.String())
+	}
+}
+
 // TestPiiguardEnabled covers the kill-switch env var parser.
 func TestPiiguardEnabled(t *testing.T) {
 	cases := []struct {

@@ -1,6 +1,9 @@
 package piiguard
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+)
 
 // BuiltinRules is the set of built-in PII and secret detection rules.
 // All patterns are compiled once at package init via regexp.MustCompile.
@@ -31,7 +34,8 @@ var BuiltinRules = []Rule{
 		Title:    "Bearer Token",
 		Severity: SeverityHigh,
 		Category: CategorySecret,
-		Pattern:  regexp.MustCompile(`(?i)\bBearer\s+[A-Za-z0-9\-._~+/]+=*`),
+		Pattern:   regexp.MustCompile(`(?i)\bBearer\s+[A-Za-z0-9\-._~+/]{20,}=*`),
+		Validator: bearerTokenValidator,
 	},
 	{
 		ID:       "aws-api-key",
@@ -126,4 +130,25 @@ var BuiltinRules = []Rule{
 		// Go RE2 supports lazy quantifiers and [\s\S] for any-char-including-newline.
 		Pattern: regexp.MustCompile(`-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----[\s\S]*?-----END (?:RSA |OPENSSH |EC )?PRIVATE KEY-----`),
 	},
+}
+
+// bearerTokenValidator rejects matches where the captured token value is entirely
+// lowercase-ASCII alpha — plain English words, not credentials.
+// Real tokens contain at least one digit, uppercase letter, or non-alpha character.
+func bearerTokenValidator(match string) bool {
+	i := strings.IndexAny(match, " \t")
+	if i < 0 {
+		return true
+	}
+	token := strings.TrimLeft(match[i:], " \t")
+	token = strings.TrimRight(token, "=")
+	if len(token) == 0 {
+		return true
+	}
+	for _, c := range token {
+		if c < 'a' || c > 'z' {
+			return true
+		}
+	}
+	return false
 }
