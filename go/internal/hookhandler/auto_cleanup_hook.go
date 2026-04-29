@@ -149,7 +149,7 @@ func (h *AutoCleanupHandler) checkPlans(absPath string, maxLines int, cwd string
 		ssotFlag := filepath.Join(stateDir, ".ssot-synced-this-session")
 
 		if !fileExists(ssotFlag) {
-			ssotWarning := "**Run /memory sync before cleaning up Plans.md** — important decisions and learnings may not yet be reflected in the SSOT (decisions.md/patterns.md)."
+			ssotWarning := "**Run /harness-remember sync before cleaning up Plans.md** — important decisions and learnings may not yet be reflected in the SSOT (decisions.md/patterns.md)."
 			if feedback != "" {
 				feedback = feedback + " | ⚠️ " + ssotWarning
 			} else {

@@ -17,7 +17,7 @@ The `harness_mem_*` MCP tools let Claude Code, Codex, and OpenCode share a runti
 | **SSOT (Layer 2)** | `.claude/memory/decisions.md`, `patterns.md` — committed to git | `memory ssot` / `memory record` | Durable decisions and reusable patterns the whole team needs |
 | **Shared DB (this file)** | Harness MCP server (SQLite under the hood) | `harness_mem_record_*` MCP tools | Ephemeral cross-tool state: checkpoints, session timelines, free-form observations |
 
-`memory sync` is the bridge: it promotes shared-DB observations into the SSOT layer when they matter long-term.
+`/harness-remember sync` is the bridge: it promotes shared-DB observations into the SSOT layer when they matter long-term.
 
 ## Tool catalog
 
@@ -47,7 +47,7 @@ The `harness_mem_*` MCP tools let Claude Code, Codex, and OpenCode share a runti
 | The user asks "what did we try last time?" across tools | `harness_mem_search` + `harness_mem_timeline` |
 | Recording "we hit this issue" during a working session | `harness_mem_record_event` (cheap) |
 | Marking a natural pause point with enough context to resume | `harness_mem_record_checkpoint` |
-| Pulling Layer 1 observations into Layer 2 | `memory sync` (combines both layers) |
+| Pulling Layer 1 observations into Layer 2 | `/harness-remember sync` (combines both layers) |
 
 ## Extension behavior: how `search` and `record` fan out
 
@@ -112,7 +112,7 @@ When the user says "continue from where we left off" at session start, call `har
 
 If an MCP-only observation turns out to be important enough to commit:
 
-1. Run `memory sync` — it scans Layer 1 observations and proposes promotions.
+1. Run `/harness-remember sync` — it scans Layer 1 observations and proposes promotions.
 2. Review each proposed entry.
 3. Approve the ones worth preserving — they go through the `record` validation gate and land in `decisions.md` or `patterns.md`, then `record` mirrors a pointer back to MCP.
 

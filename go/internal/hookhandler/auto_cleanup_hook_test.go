@@ -205,7 +205,7 @@ func TestAutoCleanupHandler_PlansmdArchive_WithSSOTFlag(t *testing.T) {
 			} `json:"hookSpecificOutput"`
 		}
 		_ = json.Unmarshal(bytes.TrimRight(out.Bytes(), "\n"), &result)
-		if strings.Contains(result.HookSpecificOutput.AdditionalContext, "memory sync") {
+		if strings.Contains(result.HookSpecificOutput.AdditionalContext, "harness-remember sync") {
 			t.Errorf("expected no SSOT warning with flag present, got %q", result.HookSpecificOutput.AdditionalContext)
 		}
 	}
@@ -238,8 +238,8 @@ func TestAutoCleanupHandler_PlansmdArchive_NoSSOTFlag(t *testing.T) {
 	}
 	_ = json.Unmarshal(bytes.TrimRight(out.Bytes(), "\n"), &result)
 	ctx := result.HookSpecificOutput.AdditionalContext
-	if !strings.Contains(ctx, "memory sync") {
-		t.Errorf("expected memory sync warning, got %q", ctx)
+	if !strings.Contains(ctx, "harness-remember sync") {
+		t.Errorf("expected harness-remember sync warning, got %q", ctx)
 	}
 }
 

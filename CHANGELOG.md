@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.14.1...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.14.2...HEAD
+[4.14.2]: https://github.com/tim-hub/powerball-harness/compare/v4.14.1...v4.14.2
 [4.14.1]: https://github.com/tim-hub/powerball-harness/compare/v4.14.0...v4.14.1
 [4.14.0]: https://github.com/tim-hub/powerball-harness/compare/v4.13.2...v4.14.0
 [4.13.2]: https://github.com/tim-hub/powerball-harness/compare/v4.13.1...v4.13.2
@@ -36,6 +37,28 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [4.14.2] - 2026-04-29
+
+### Fixed: `/memory sync` → `/harness-remember sync` command reference
+
+**The auto-cleanup hook was emitting the wrong command name, causing repeated confusing reminders.**
+
+#### 1. Corrected hook warning text
+
+**Before**: The PostToolUse auto-cleanup hook emitted `Run /memory sync before cleaning up Plans.md` — a non-existent command alias that left users confused about what to run.
+
+**After**: Hook now emits `Run /harness-remember sync before cleaning up Plans.md` — the correct fully-qualified skill invocation.
+
+Files changed: `go/internal/hookhandler/auto_cleanup_hook.go`, `go/internal/hookhandler/auto_cleanup_hook_test.go`
+
+#### 2. Corrected documentation references
+
+**Before**: `harness-remember/SKILL.md` and `references/harness-mem-mcp.md` used `memory sync` and `memory sync-across` as the canonical command names in routing tables and prose instructions.
+
+**After**: All references updated to `/harness-remember sync` and `/harness-remember sync-across` for consistency with the actual skill invocation path.
 
 ---
 
