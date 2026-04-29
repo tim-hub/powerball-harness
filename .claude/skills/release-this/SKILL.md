@@ -66,10 +66,14 @@ Confirm all listed entries are valid symlinks (no broken/dangling entries).
 Verify that `harness/VERSION` and `harness/harness.toml` agree before proceeding.
 
 ```bash
-bash harness/skills/harness-release/scripts/sync-version.sh check
+HARNESS_RELEASE_EXTRA_VERSION_FILES="harness/harness.toml" bash harness/skills/harness-release/scripts/sync-version.sh check
 ```
 
-If there is a mismatch, stop and ask the user to run `./harness/skills/harness-release/scripts/sync-version.sh bump` or manually reconcile the files.
+If there is a mismatch, stop and ask the user to run:
+```bash
+HARNESS_RELEASE_EXTRA_VERSION_FILES="harness/harness.toml" bash harness/skills/harness-release/scripts/sync-version.sh sync
+```
+or manually reconcile the files before proceeding.
 
 ---
 
@@ -78,6 +82,12 @@ If there is a mismatch, stop and ask the user to run `./harness/skills/harness-r
 ---
 
 ### Step 6: Invoke harness-release
+
+Create the wrapper lock so `release-preflight.sh` knows it was invoked through `release-this`:
+
+```bash
+mkdir -p .claude/state && touch .claude/state/harness-release-wrapper.lock
+```
 
 Delegate to the generic release skill using the same argument provided by the user (patch / minor / major).
 
@@ -97,12 +107,13 @@ Wait for `harness-release` to complete successfully before proceeding to step 7.
 
 ### Step 7: Completion marking commit
 
-After `harness-release` finishes, create an empty commit to mark the release as fully complete, then push it.
+After `harness-release` finishes, create an empty commit to mark the release as fully complete, then push it. Remove the wrapper lock when done.
 
 ```bash
 NEW_VERSION=$(cat harness/VERSION)
 git commit --allow-empty -m "chore: mark v${NEW_VERSION} release complete"
 git push origin "$(git rev-parse --abbrev-ref HEAD)"
+rm -f .claude/state/harness-release-wrapper.lock
 ```
 
 This empty commit is the explicit record that "all release work is done." It is separate from the `chore: release vX.Y.Z` commit created by `harness-release`.
