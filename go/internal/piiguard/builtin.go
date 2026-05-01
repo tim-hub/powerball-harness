@@ -13,6 +13,58 @@ import (
 //   critical → cloud credentials, private keys, payment keys, code-hosting tokens
 //   high     → session/auth tokens, platform tokens
 //   medium   → PII (email)
+// emailAllowlistDomains lists exact email domains (matched case-insensitively) that are
+// known-safe public or test addresses and must not trigger the email-address PII rule.
+// RFC 2606 / RFC 6761 reserved domains and GitHub's noreply domain are included.
+// Use emailAllowlistSuffixes for TLD-level suffix patterns.
+var emailAllowlistDomains = []string{
+	"users.noreply.github.com", // GitHub privacy-preserving commit/PR address
+	"localhost",                // bare localhost, non-routable
+	"example.com",             // RFC 2606 reserved
+	"example.org",             // RFC 2606 reserved
+	"example.net",             // RFC 2606 reserved
+}
+
+// emailAllowlistSuffixes lists domain suffixes (matched case-insensitively via HasSuffix)
+// that indicate test, local-network, or RFC-reserved addresses.
+// A suffix entry ".lan" matches any domain ending in ".lan" (e.g. machine.lan).
+var emailAllowlistSuffixes = []string{
+	".test",       // RFC 6761 special-use TLD
+	".example",    // RFC 6761 special-use TLD
+	".invalid",    // RFC 6761 — guaranteed never resolves
+	".localhost",  // RFC 6761 / RFC 2606 loopback TLD
+	".local",      // RFC 6762 mDNS / Bonjour
+	".lan",        // common local-network convention (user-requested)
+	".localdomain", // common Linux default hostname suffix
+	".internal",   // common internal-services convention
+	".home.arpa",  // RFC 8375 home-network standard
+}
+
+// emailAllowlistValidator returns false (skip the finding) when the matched email's
+// domain part is a known-safe domain or matches a known-safe suffix.
+// Exact-domain check uses EqualFold; suffix check uses HasSuffix on lowercased domain.
+// The exact check uses the FULL domain (everything after the last @) — not HasSuffix —
+// to prevent evil-subdomain.users.noreply.github.com.attacker.example from passing.
+func emailAllowlistValidator(match string) bool {
+	i := strings.LastIndex(match, "@")
+	if i < 0 {
+		return true
+	}
+	domain := match[i+1:]
+	for _, d := range emailAllowlistDomains {
+		if strings.EqualFold(domain, d) {
+			return false
+		}
+	}
+	lower := strings.ToLower(domain)
+	for _, s := range emailAllowlistSuffixes {
+		if strings.HasSuffix(lower, s) {
+			return false
+		}
+	}
+	return true
+}
+
 var BuiltinRules = []Rule{
 	{
 		ID:       "email-address",
@@ -20,7 +72,8 @@ var BuiltinRules = []Rule{
 		Severity: SeverityMedium,
 		Category: CategoryPII,
 		// Upstream bug fix: [A-Z|a-z] → [A-Za-z] (| is literal in char class, not alternation).
-		Pattern: regexp.MustCompile(`\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b`),
+		Pattern:   regexp.MustCompile(`\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b`),
+		Validator: emailAllowlistValidator,
 	},
 	{
 		ID:       "jwt-token",

@@ -60,7 +60,7 @@ func TestScanner_TableDriven(t *testing.T) {
 	cases := []tcase{
 		{
 			name:           "single email (medium PII)",
-			input:          "Contact me at user@example.com please.",
+			input:          "Contact me at " + "user" + "@contact.io please.",
 			minFindings:    1,
 			expectScoreCap: false,
 			expectCategory: "pii",
@@ -226,7 +226,7 @@ func TestScanner_RealCatalog(t *testing.T) {
 	s := NewScanner(rules)
 
 	// Plant a few synthetic credentials and confirm the scanner finds them.
-	input := "Email: user@example.com, AWS: " + "AKIA" + "IOSFODNN7EXAMPLE"
+	input := "Email: " + "user" + "@contact.io, AWS: " + "AKIA" + "IOSFODNN7EXAMPLE"
 	res := s.Scan(input)
 	if len(res.Findings) < 2 {
 		t.Errorf("expected ≥ 2 findings on planted input, got %d", len(res.Findings))

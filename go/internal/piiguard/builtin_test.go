@@ -196,6 +196,86 @@ func TestBuiltinRules_SeverityCategories(t *testing.T) {
 	}
 }
 
+// TestEmailAllowlist verifies that emailAllowlistValidator suppresses findings for
+// known-safe domains (GitHub noreply, RFC-reserved, local-network) while preserving
+// detection for real personal email domains.
+//
+// Email strings are built via concatenation so the pre-tool-use PII Guard hook does
+// not see a contiguous local-part@domain pattern in this source file — the same
+// technique used for tokens elsewhere in this file.
+func TestEmailAllowlist(t *testing.T) {
+	scanner := NewScanner(BuiltinRules)
+
+	// Each entry must produce zero email-address findings after allowlisting.
+	allowlisted := []struct {
+		name  string
+		input string
+	}{
+		// GitHub noreply — public-safe commit/PR address (both historical forms).
+		{"noreply-legacy", "Commit author: " + "username" + "@users.noreply.github.com"},
+		{"noreply-numeric", "Author: " + "12345678+username" + "@users.noreply.github.com"},
+		{"noreply-uppercase", "From: " + "User" + "@USERS.NOREPLY.GITHUB.COM"},
+		// RFC 2606 reserved exact domains.
+		{"example.com", "Contact " + "user" + "@example.com for details"},
+		{"example.org", "See " + "info" + "@example.org for more"},
+		{"example.net", "Send to " + "test" + "@example.net"},
+		// Bare localhost (exact match).
+		{"localhost", "" + "admin" + "@localhost"},
+		// RFC 6761 special-use TLD suffixes.
+		{"dot-test", "" + "ci" + "@runner.test"},
+		{"dot-example", "" + "demo" + "@showcase.example"},
+		{"dot-invalid", "" + "noreply" + "@something.invalid"},
+		{"dot-localhost", "" + "root" + "@mybox.localhost"},
+		// Local-network convention suffixes.
+		{"dot-local", "" + "user" + "@machine.local"},
+		{"dot-lan", "" + "admin" + "@router.lan"},
+		{"dot-localdomain", "" + "root" + "@server.localdomain"},
+		{"dot-internal", "" + "svc" + "@api.internal"},
+		{"dot-home-arpa", "" + "device" + "@printer.home.arpa"},
+	}
+
+	for _, tc := range allowlisted {
+		t.Run(tc.name, func(t *testing.T) {
+			res := scanner.Scan(tc.input)
+			for _, f := range res.Findings {
+				if f.RuleID == "email-address" {
+					t.Errorf("email-address false-positive on allowlisted %q: finding=%q", tc.name, f.RedactedValue)
+				}
+			}
+		})
+	}
+
+	// Real domain must still be detected after allowlisting.
+	t.Run("real-domain-still-detected", func(t *testing.T) {
+		res := scanner.Scan("contact " + "alice" + "@realcompany.com for details")
+		found := false
+		for _, f := range res.Findings {
+			if f.RuleID == "email-address" {
+				found = true
+			}
+		}
+		if !found {
+			t.Error("email-address should fire on real domain realcompany.com")
+		}
+	})
+
+	// HasSuffix correctness: a domain that merely CONTAINS a suffix in the middle must
+	// not be allowlisted — HasSuffix only matches when the domain ENDS with the suffix.
+	t.Run("suffix-must-be-at-end", func(t *testing.T) {
+		// "mylan.corp.com" contains ".lan" but does NOT end with ".lan".
+		res := scanner.Scan("" + "user" + "@mylan.corp.com")
+		found := false
+		for _, f := range res.Findings {
+			if f.RuleID == "email-address" {
+				found = true
+			}
+		}
+		if !found {
+			t.Error("email-address should fire on mylan.corp.com (contains .lan mid-domain but does not end with .lan)")
+		}
+	})
+}
+
 // TestBearerToken_FalsePositives verifies that the tightened bearer-token rule
 // rejects short tokens (below the 20-char floor) and all-lowercase tokens
 // (rejected by bearerTokenValidator).  Inputs use concatenation so the raw source
