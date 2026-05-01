@@ -1,0 +1,28 @@
+SYNTHETIC TEST FIXTURE — NOT REAL CREDENTIALS
+Allowlisted email domains that must produce zero findings.
+
+# GitHub noreply (public-safe commit/PR address)
+Commit author: username@users.noreply.github.com
+Author: 12345678+username@users.noreply.github.com
+From: User@USERS.NOREPLY.GITHUB.COM
+
+# RFC 2606 reserved second-level domains
+Contact user@example.com for details
+See info@example.org for more
+Send to test@example.net
+
+# Bare localhost
+admin@localhost
+
+# RFC 6761 special-use TLDs
+ci@runner.test
+demo@showcase.example
+noreply@something.invalid
+root@mybox.localhost
+
+# Local-network convention suffixes
+user@machine.local
+admin@router.lan
+root@server.localdomain
+svc@api.internal
+device@printer.home.arpa
