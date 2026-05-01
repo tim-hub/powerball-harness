@@ -38,6 +38,28 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Fixed: PII Guard email allowlist + Powerball Harness PII Guard branding (Phase 86)
+
+**Two complementary polish changes: safe/test email addresses no longer trigger PII findings, and all user-facing block messages now identify the product by name.**
+
+---
+
+#### 1. Email domain allowlist — safe addresses are no longer flagged
+
+**Before**: Every email-shaped string in a prompt or tool input triggered a PII finding, including GitHub's privacy-preserving commit/PR addresses (`username@users.noreply.github.com`, `12345678+username@users.noreply.github.com`), RFC 2606 reserved test domains (`example.com`, `example.org`, `example.net`), RFC 6761 special-use TLDs (`.test`, `.example`, `.invalid`, `.localhost`), and common local-network conventions (`.local`, `.lan`, `.localdomain`, `.internal`, `.home.arpa`).
+
+**After**: A two-tier allowlist in `emailAllowlistValidator` suppresses findings silently:
+- **Exact-domain** (via `strings.EqualFold` on the full domain, not `HasSuffix` — prevents subdomain spoofing): `users.noreply.github.com`, `localhost`, `example.com`, `example.org`, `example.net`
+- **TLD suffix** (via `strings.HasSuffix(lower, suffix)`): `.test`, `.example`, `.invalid`, `.localhost`, `.local`, `.lan`, `.localdomain`, `.internal`, `.home.arpa`
+
+Both legacy and numeric-prefix noreply forms are covered. Real personal email domains are still flagged. Verified via `TestEmailAllowlist` (19 subtests) and the new `testdata/negative/allowlisted-emails.txt` corpus fixture (16 samples, 0 findings).
+
+#### 2. Block/warn messages now branded "Powerball Harness PII Guard"
+
+**Before**: All hook messages used the generic phrasing `🛡️ Privacy Guard blocked this submission` — users could not tell which system in their toolchain had triggered the block.
+
+**After**: All seven user-facing strings updated to `🛡️ Powerball Harness PII Guard blocked this submission`, covering the prompt-block, pre-tool deny, post-tool redaction, and warn-only advisory paths in `hook_pii.go`.
+
 ---
 
 ## [4.14.2] - 2026-04-29
