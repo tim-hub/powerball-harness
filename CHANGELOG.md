@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.14.2...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.14.3...HEAD
+[4.14.3]: https://github.com/tim-hub/powerball-harness/compare/v4.14.2...v4.14.3
 [4.14.2]: https://github.com/tim-hub/powerball-harness/compare/v4.14.1...v4.14.2
 [4.14.1]: https://github.com/tim-hub/powerball-harness/compare/v4.14.0...v4.14.1
 [4.14.0]: https://github.com/tim-hub/powerball-harness/compare/v4.13.2...v4.14.0
@@ -37,6 +38,10 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [4.14.3] - 2026-05-01
 
 ### Fixed: PII Guard email allowlist + Powerball Harness PII Guard branding (Phase 86)
 
