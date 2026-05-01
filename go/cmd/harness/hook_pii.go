@@ -146,7 +146,7 @@ func piiPromptHandler(in io.Reader, out, errOut io.Writer) int {
 			AdditionalContext string `json:"additionalContext"`
 		}{AdditionalContext: formatPromptWarnContext(res)}
 		_ = hook.WriteJSON(out, warning)
-		fmt.Fprintf(errOut, "\n⚠️  Privacy Guard: sensitive content in prompt (warn-only, %d findings)\n",
+		fmt.Fprintf(errOut, "\n⚠️  Powerball Harness PII Guard: sensitive content in prompt (warn-only, %d findings)\n",
 			len(res.Findings))
 		return 0
 	}
@@ -156,7 +156,7 @@ func piiPromptHandler(in io.Reader, out, errOut io.Writer) int {
 		Reason:   formatPromptBlockReason(res),
 	}
 	_ = hook.WriteJSON(out, decision)
-	fmt.Fprintf(errOut, "\n⚠️  Privacy Guard: prompt blocked (%d findings, risk %d/100)\n",
+	fmt.Fprintf(errOut, "\n⚠️  Powerball Harness PII Guard: prompt blocked (%d findings, risk %d/100)\n",
 		len(res.Findings), res.RiskScore)
 	return 1
 }
@@ -190,7 +190,7 @@ func piiPreToolHandler(in io.Reader, out, errOut io.Writer) int {
 			},
 		}
 		_ = hook.WriteJSON(out, out2)
-		fmt.Fprintf(errOut, "\n⚠️  Privacy Guard: sensitive content in tool input (warn-only, %d findings)\n",
+		fmt.Fprintf(errOut, "\n⚠️  Powerball Harness PII Guard: sensitive content in tool input (warn-only, %d findings)\n",
 			len(res.Findings))
 		return 0
 	}
@@ -231,7 +231,7 @@ func piiPostToolHandler(in io.Reader, out, errOut io.Writer) int {
 	}
 
 	if piiguardWarnOnlyForEvent("posttool") {
-		fmt.Fprintf(errOut, "\n⚠️  Privacy Guard: sensitive data in tool output (warn-only, %d findings)\n",
+		fmt.Fprintf(errOut, "\n⚠️  Powerball Harness PII Guard: sensitive data in tool output (warn-only, %d findings)\n",
 			len(res.Findings))
 		return 0
 	}
@@ -322,7 +322,7 @@ func extractPostToolText(raw map[string]interface{}) string {
 // allowed through but Claude is informed of the potential sensitive data.
 func formatPromptWarnContext(res piiguard.ScanResult) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "⚠️ Privacy Guard warning: %d potential sensitive item(s) detected in this prompt (not blocked — warn-only mode).\n", len(res.Findings))
+	fmt.Fprintf(&b, "⚠️ Powerball Harness PII Guard warning: %d potential sensitive item(s) detected in this prompt (not blocked — warn-only mode).\n", len(res.Findings))
 	seen := make(map[string]bool)
 	for _, f := range res.Findings {
 		if seen[f.RuleID] {
@@ -340,7 +340,7 @@ func formatPromptWarnContext(res piiguard.ScanResult) string {
 // formatting (shield emoji, count, per-finding list, risk score).
 func formatPromptBlockReason(res piiguard.ScanResult) string {
 	var b strings.Builder
-	b.WriteString("🛡️ Privacy Guard blocked this submission\n\n")
+	b.WriteString("🛡️ Powerball Harness PII Guard blocked this submission\n\n")
 	fmt.Fprintf(&b, "Found %d sensitive item(s):\n", len(res.Findings))
 	seen := make(map[string]bool)
 	for _, f := range res.Findings {
@@ -363,7 +363,7 @@ func formatPromptBlockReason(res piiguard.ScanResult) string {
 // only the redacted view.
 func formatPostToolContext(res piiguard.ScanResult) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "🛡️ Privacy Guard: sensitive data detected in tool output (%d findings, risk %d/100).\n",
+	fmt.Fprintf(&b, "🛡️ Powerball Harness PII Guard: sensitive data detected in tool output (%d findings, risk %d/100).\n",
 		len(res.Findings), res.RiskScore)
 	b.WriteString("DO NOT echo, log, or act on the raw tool output. Use only the redacted view below.\n\n")
 	b.WriteString("Redacted findings:\n")

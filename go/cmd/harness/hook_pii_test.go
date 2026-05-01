@@ -35,8 +35,8 @@ func TestPIIPrompt_WithGitHubToken(t *testing.T) {
 	if !strings.Contains(out.String(), `"decision":"block"`) {
 		t.Errorf("expected decision:block in stdout, got %q", out.String())
 	}
-	if !strings.Contains(out.String(), "Privacy Guard") {
-		t.Errorf("expected Privacy Guard reason, got %q", out.String())
+	if !strings.Contains(out.String(), "Powerball Harness PII Guard") {
+		t.Errorf("expected Powerball Harness PII Guard reason, got %q", out.String())
 	}
 }
 
@@ -214,8 +214,8 @@ func TestPIIPostTool_PrivateKeyInOutput(t *testing.T) {
 	if !strings.Contains(out.String(), "additionalContext") {
 		t.Errorf("expected additionalContext, got %q", out.String())
 	}
-	if !strings.Contains(out.String(), "Privacy Guard") {
-		t.Errorf("expected Privacy Guard message in additionalContext, got %q", out.String())
+	if !strings.Contains(out.String(), "Powerball Harness PII Guard") {
+		t.Errorf("expected Powerball Harness PII Guard message in additionalContext, got %q", out.String())
 	}
 }
 
@@ -264,7 +264,7 @@ func TestFormatPromptBlockReason_Shape(t *testing.T) {
 	var out, errOut bytes.Buffer
 	piiPromptHandler(in, &out, &errOut)
 	body := out.String()
-	for _, want := range []string{"Privacy Guard", "Risk Score", "GitHub Token", "Found", "Please remove"} {
+	for _, want := range []string{"Powerball Harness PII Guard", "Risk Score", "GitHub Token", "Found", "Please remove"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("expected reason to contain %q, got: %s", want, body)
 		}
