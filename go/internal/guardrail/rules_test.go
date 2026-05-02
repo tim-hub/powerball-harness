@@ -542,3 +542,44 @@ func TestR06_PushForceWithLeaseSpaces(t *testing.T) {
 		t.Errorf("expected deny for force-with-lease with extra spaces, got %s", result.Decision)
 	}
 }
+
+// Regression: compound commands where -f appears in an UNRELATED subcommand
+// (e.g. `rm -f`) must NOT trigger the force-push detector. The `.*` between
+// `git push` and `-f` previously crossed shell separators and false-positively
+// matched `rm -f` after `&&`/`;`/`|`.
+func TestR06_CompoundCommand_RmDashF_AfterPush(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin master && rm -f /tmp/foo"})
+	result := EvaluateRules(ctx)
+	if result.Decision == hookproto.DecisionDeny {
+		t.Errorf("expected approve for `git push && rm -f` (rm -f is unrelated), got deny: %s", result.Reason)
+	}
+}
+
+func TestR06_CompoundCommand_RmDashF_Semicolon(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin master; rm -f /tmp/foo"})
+	result := EvaluateRules(ctx)
+	if result.Decision == hookproto.DecisionDeny {
+		t.Errorf("expected approve for `git push; rm -f` (rm -f is unrelated), got deny: %s", result.Reason)
+	}
+}
+
+func TestR06_CompoundCommand_RealisticReleaseCleanup(t *testing.T) {
+	// The actual command that triggered the false positive in production:
+	// release flow's completion-commit cleanup.
+	cmd := `git push origin master && rm -f .claude/state/harness-release-wrapper.lock && echo "Done"`
+	ctx := makeCtx("Bash", map[string]interface{}{"command": cmd})
+	result := EvaluateRules(ctx)
+	if result.Decision == hookproto.DecisionDeny {
+		t.Errorf("expected approve for release cleanup compound, got deny: %s", result.Reason)
+	}
+}
+
+// True-positive guard: even when the force push is in the SECOND subcommand
+// after a benign `rm -f`, the detector must still catch it.
+func TestR06_CompoundCommand_ForcePushInSecondSegment(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "rm -f /tmp/foo && git push --force origin main"})
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for force push in second segment, got %s", result.Decision)
+	}
+}

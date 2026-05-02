@@ -227,9 +227,14 @@ func hasDangerousRmRf(command string) bool {
 // git push --force detection
 // ---------------------------------------------------------------------------
 
+// Force-push detection. The `[^&;|]*` segment scopes the match to a single
+// shell subcommand, so compound commands like `git push origin master && rm -f /tmp/foo`
+// don't false-positive on the `-f` from `rm -f`. A real `git push --force` later
+// in the compound (e.g. `rm -f x && git push --force`) is still caught because
+// the regex isn't anchored to start-of-string and re-attempts at each `\bgit`.
 var (
-	forcePushPattern  = regexp.MustCompile(`\bgit\s+push\b.*--force(?:-with-lease)?\b`)
-	forcePushShort    = regexp.MustCompile(`\bgit\s+push\b.*-f\b`)
+	forcePushPattern = regexp.MustCompile(`\bgit\s+push\b[^&;|]*--force(?:-with-lease)?\b`)
+	forcePushShort   = regexp.MustCompile(`\bgit\s+push\b[^&;|]*-f\b`)
 )
 
 func hasForcePush(command string) bool {
