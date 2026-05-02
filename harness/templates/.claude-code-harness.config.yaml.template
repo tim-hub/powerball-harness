@@ -78,10 +78,6 @@ review:
       plan_reviewer: true   # Plan completeness (from claude-delegator)
       scope_analyst: true   # Requirements clarity (from claude-delegator)
 
-hooks:
-  enabled: true
-  post_tool_use:
-    - matcher: "Edit|Write"
-      script: "~/.claude/scripts/auto-cleanup-hook.sh"
-
-
+# Hooks are wired via harness/hooks/hooks.json — not via this config.
+# The PostToolUse auto-cleanup check runs as `bin/harness hook post-tool-batch`
+# which dispatches to AutoCleanupHandler in go/internal/hookhandler/auto_cleanup_hook.go.

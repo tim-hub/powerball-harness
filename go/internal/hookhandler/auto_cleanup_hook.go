@@ -13,8 +13,6 @@ import (
 // AutoCleanupHandler is the PostToolUse hook handler (automatic size check).
 // It checks the line count of files written by the Write/Edit tool and emits
 // a systemMessage warning when Plans.md / session-log.md / CLAUDE.md exceed the threshold.
-//
-// shell counterpart: scripts/auto-cleanup-hook.sh
 type AutoCleanupHandler struct {
 	// ProjectRoot is the project root path. Falls back to cwd when empty.
 	ProjectRoot string
@@ -135,7 +133,7 @@ func (h *AutoCleanupHandler) checkPlans(absPath string, maxLines int, cwd string
 
 	var feedback string
 	if lines > maxLines {
-		feedback = fmt.Sprintf("⚠️ Plans.md has %d lines (limit: %d). It is recommended to archive old tasks with /maintenance.", lines, maxLines)
+		feedback = fmt.Sprintf("⚠️ Plans.md has %d lines (limit: %d). It is recommended to archive old tasks with /harness-plan archive.", lines, maxLines)
 	}
 
 	// Detect archive section + check SSOT flag.

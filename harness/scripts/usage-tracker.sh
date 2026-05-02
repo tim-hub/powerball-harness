@@ -54,7 +54,7 @@ case "$TOOL_NAME" in
       node "$RECORD_USAGE" skill "$BASE_NAME" >/dev/null 2>&1 || true
 
       # Create session flag for SSOT sync execution (harness-remember skill or legacy sync-ssot-from-memory)
-      # This flag is checked by auto-cleanup-hook.sh before Plans.md cleanup
+      # This flag is checked by AutoCleanupHandler (Go: go/internal/hookhandler/auto_cleanup_hook.go) before Plans.md cleanup
       if [[ "$BASE_NAME" == "sync-ssot-from-memory" ]] || [[ "$SKILL_NAME" == *"sync-ssot-from-memory"* ]] || [[ "$BASE_NAME" == "harness-remember" ]] || [[ "$SKILL_NAME" == *":harness-remember"* ]]; then
         CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null)
         CWD="${CWD:-$(pwd)}"  # Fallback to pwd if empty

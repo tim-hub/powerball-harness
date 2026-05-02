@@ -38,7 +38,7 @@ flowchart LR
     POST -->|TodoWrite| POST8["hook todo-sync\n→ todo-sync.sh"]
     POST -->|Write∣Edit∣Task| POST_BATCH["Batch hooks"]
     POST_BATCH --> PB1["hook emit-trace\n→ emit-agent-trace.js"]
-    POST_BATCH --> PB2["hook auto-cleanup\n→ auto-cleanup-hook.sh"]
+    POST_BATCH --> PB2["hook auto-cleanup\n→ AutoCleanupHandler (Go)"]
     POST_BATCH --> PB3["hook track-changes\n→ track-changes.sh"]
     POST_BATCH --> PB4["hook auto-test ⚡async\n→ auto-test-runner.sh"]
     POST_BATCH --> PB5["hook quality-pack\n→ posttooluse-quality-pack.sh"]
