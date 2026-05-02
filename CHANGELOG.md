@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.0.0...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.0.1...HEAD
+[5.0.1]: https://github.com/tim-hub/powerball-harness/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/tim-hub/powerball-harness/compare/v4.14.4...v5.0.0
 [4.14.4]: https://github.com/tim-hub/powerball-harness/compare/v4.14.3...v4.14.4
 [4.14.3]: https://github.com/tim-hub/powerball-harness/compare/v4.14.2...v4.14.3
@@ -40,6 +41,28 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.0.1] - 2026-05-03
+
+### Theme: Hook message correction + orphan bash script removal
+
+**The Plans.md size warning now correctly directs users to `/harness-plan archive` instead of `/maintenance`. Two unreachable bash auto-cleanup scripts removed.**
+
+---
+
+#### 1. Plans.md size warning redirected to `/harness-plan archive`
+
+**Before**: When Plans.md exceeded the 200-line limit, the PostToolUse hook emitted: *"It is recommended to archive old tasks with /maintenance."* The `maintenance` skill explicitly disclaims Plans.md archival and points at `harness-plan archive` instead — so the advice was actively misleading.
+
+**After**: The warning now reads: *"It is recommended to archive old tasks with /harness-plan archive."* Additionally, stale references in `harness/hooks/README.md` (mermaid diagram), `harness/scripts/usage-tracker.sh` (code comment), and `harness/templates/.claude-code-harness.config.yaml.template` (dead `hooks:` stanza) all updated to reflect `AutoCleanupHandler` (Go) as the live implementation.
+
+#### 2. Orphan `auto-cleanup-hook.sh` scripts removed
+
+**Before**: Two bash files (`harness/scripts/auto-cleanup-hook.sh` and `harness/templates/hooks/auto-cleanup-hook.sh`) existed alongside the Go implementation but were never invoked. The live wiring is `hooks.json` → `bin/harness hook post-tool-batch` → `AutoCleanupHandler` in `go/internal/hookhandler/auto_cleanup_hook.go`. The bash files were parity references from before the Go port, retained without documentation that they were no longer used.
+
+**After**: Both files deleted. The `harness/templates/hooks/` directory, which existed solely for the template, is gone. The config template's `hooks.post_tool_use` stanza (which pointed at `~/.claude/scripts/auto-cleanup-hook.sh` but was never parsed by the Go config reader) replaced with an explanatory comment.
 
 ---
 
