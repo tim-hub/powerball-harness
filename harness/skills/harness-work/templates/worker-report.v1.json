@@ -1,0 +1,36 @@
+{
+  "schema": "worker-report.v1",
+  "task_id": "<task number>",
+  "self_review": [
+    {
+      "rule_id": "SR-1",
+      "rule": "All DoD items from the sprint contract are addressed",
+      "verified": true,
+      "evidence": "<what was done / test output / file reference>"
+    },
+    {
+      "rule_id": "SR-2",
+      "rule": "No NG rule violations: Plans.md untouched (NG-1), no embedded git repos (NG-2), no nested spawn (NG-3)",
+      "verified": true,
+      "evidence": "<git diff HEAD Plans.md output / find .git output>"
+    },
+    {
+      "rule_id": "SR-3",
+      "rule": "Tests pass or no test framework present and no regressions detected",
+      "verified": true,
+      "evidence": "<test run output or rationale>"
+    },
+    {
+      "rule_id": "SR-4",
+      "rule": "No AI residuals: no localhost/127.0.0.1, no it.skip/describe.skip/test.skip, no hardcoded secrets",
+      "verified": true,
+      "evidence": "<grep output or 'residuals scan: clean'>"
+    },
+    {
+      "rule_id": "SR-5",
+      "rule": "Commit is self-contained: no unrelated file changes, no debug artifacts, meaningful commit message",
+      "verified": true,
+      "evidence": "<git diff --stat output>"
+    }
+  ]
+}
