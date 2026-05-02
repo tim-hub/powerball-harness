@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.0.1...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.0.2...HEAD
+[5.0.2]: https://github.com/tim-hub/powerball-harness/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/tim-hub/powerball-harness/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/tim-hub/powerball-harness/compare/v4.14.4...v5.0.0
 [4.14.4]: https://github.com/tim-hub/powerball-harness/compare/v4.14.3...v4.14.4
@@ -41,6 +42,22 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.0.2] - 2026-05-03
+
+### Theme: R06 force-push regex no longer false-positives on compound commands
+
+**Compound commands like `git push origin master && rm -f /tmp/foo` were being denied because the R06 regex's greedy `.*` crossed shell separators and matched the `-f` from `rm -f`. The regex now scopes to a single subcommand.**
+
+---
+
+#### 1. R06 force-push detection scoped to single subcommand
+
+**Before**: The R06 patterns used `\bgit\s+push\b.*-f\b` (and `--force(?:-with-lease)?` variants). The `.*` was greedy across shell separators, so any compound command containing `git push` followed (across `&&`, `;`, or `|`) by `rm -f`, `cp -f`, `mv -f`, etc. was denied as if the user had attempted a force push. This blocked the release-completion compound used by `release-this`'s Step 7 and any push-then-cleanup workflow that removed a lock file.
+
+**After**: The patterns use `[^&;|]*` instead of `.*`, restricting the match to a single shell subcommand. Real force pushes in any segment of a compound (e.g. cleanup-then-push patterns) are still caught because the regex remains unanchored. Four regression tests added: three confirm compound `rm -f` cases are approved, one confirms a force-push in the second segment is still denied.
 
 ---
 
