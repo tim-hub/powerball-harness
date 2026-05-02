@@ -1,6 +1,45 @@
 # Powerball Harness — Plans.md
 
-Last release: v4.11.2 on 2026-04-20 (mem health tri-state fix + active-watching test policy)
+Last release: v5.0.0 on 2026-05-03 (harness-loop → harness-schedule-run rename, BREAKING)
+
+---
+
+## Phase 87: Rename `harness-loop` skill to `harness-schedule-run` (BREAKING)
+
+Created: 2026-05-03
+
+> **Retroactive phase**: This work shipped as v5.0.0 on 2026-05-03 without going through `harness-plan create` first. Recorded here after the fact via `harness-plan sync` so the plan reflects what actually shipped. All tasks `cc:Done` at creation time.
+
+**Goal**: Rename the ScheduleWakeup-based autonomous Plans.md sprint runner from `harness-loop` to `harness-schedule-run`, including the slash command, three skill directories (canonical + Codex template + OpenCode template), all references in user-facing docs, the SSOT in `decisions.md`, and the `release-this` subdirectory list. Behavior, flags, pacing options, and sprint-contract integration are unchanged — only the identifier changes.
+
+**Motivation**: User compared `harness-loop` to the `ralph-loop` plugin and found the names overlapped semantically while doing very different things. `harness-loop` also conflicted in routing with the unrelated upstream `/loop` slash command. The new name `harness-schedule-run` reflects what the skill actually does (runs Plans.md tasks on a scheduled cadence using `ScheduleWakeup`) and removes the routing collision.
+
+**Source**: Direct user request during a session that started as a comparison of `harness-loop` vs `/ralph-loop`. Released as v5.0.0 (major — breaking slash command rename).
+
+**Design**:
+- 3 directory renames via `git mv` (preserves history): `harness/skills/harness-loop/` → `harness-schedule-run/`; same under `harness/templates/codex-skills/` and `harness/templates/opencode/skills/`.
+- SKILL.md `name:` field, `# Harness Loop` heading, and all `/harness-loop` slash command examples updated in all 3 SKILL.md copies.
+- `references/flow.md` updated in all 3 copies (heading + body references).
+- 5 user-facing doc files updated with rename + parenthetical migration callouts: `README.md`, `harness/README.md`, `docs/ARCHITECTURE.md`, `docs/advisor-strategy.md`, `docs/CLAUDE-skill-catalog.md`.
+- 2 SSOT files updated: `.claude/memory/decisions.md` (D15 with `> Renamed 2026-05-03` callout); `.claude/skills/release-this/SKILL.md` (Step 4 subdirectory list + Related Skills entry).
+- `CHANGELOG.md` `[Unreleased]` "Renamed (BREAKING)" entry with Before/After block and migration note; promoted to `[5.0.0] - 2026-05-03` at release time.
+
+**Out of scope**:
+- `tests/test-harness-loop-{guard,flow}.sh` — these test `harness/scripts/codex-loop.sh` (a separate background runner), NOT the `harness-loop` skill. Filenames are misleading but the scripts are unrelated to this rename. Left untouched.
+- `.claude/memory/archive/Plans-2026-04-*.md` — historical archives, frozen-in-time records. Not rewritten.
+- `.claude/state/**.jsonl`, `.claude/state/traces/*.jsonl` — historical event logs. Not rewritten.
+- Past CHANGELOG version entries (v4.x and earlier) — `harness-loop` correctly preserved as the name that shipped at the time.
+- Backward-compat shim — clean rename, no `/harness-loop` alias. Users must update invocations to `/harness-schedule-run`.
+- Bumping `harness/VERSION` directly — handled by the release flow (`release-this major` → v5.0.0).
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 87.1 | **Rename 3 skill directories** via `git mv`: `harness/skills/harness-loop/` → `harness-schedule-run/`; same under `harness/templates/codex-skills/` and `harness/templates/opencode/skills/`. Verify old paths are gone and new paths exist with `SKILL.md` + `references/` intact. | `ls harness/skills/harness-schedule-run/` shows `SKILL.md` and `references/`; old `harness/skills/harness-loop/` no longer exists; same for both template paths; `git status` shows 6 `R` (rename) entries. | - | cc:Done [8af71e8] |
+| 87.2 | **Update 3 SKILL.md copies + 3 flow.md copies**: change `name: harness-loop` → `name: harness-schedule-run`; replace `# Harness Loop` heading with `# Harness Schedule Run`; replace all `/harness-loop` slash command examples with `/harness-schedule-run`; replace remaining `harness-loop` references in body text. Same edits applied to `references/flow.md` heading and body in all 3 copies. | `grep -L 'harness-loop' harness/skills/harness-schedule-run/SKILL.md harness/templates/codex-skills/harness-schedule-run/SKILL.md harness/templates/opencode/skills/harness-schedule-run/SKILL.md` lists all 3 (none contain the old name); same for the 3 `references/flow.md` files; `head -3` of each SKILL.md shows `name: harness-schedule-run`. | 87.1 | cc:Done [8af71e8] |
+| 87.3 | **Update 5 user-facing docs**: `README.md` (Core Skills table + run-everything example), `harness/README.md` (Automation row of skill catalog), `docs/ARCHITECTURE.md` (Section 4.4), `docs/advisor-strategy.md` (Integration section), `docs/CLAUDE-skill-catalog.md` (directory tree + skill catalog table). All references switch to `harness-schedule-run` with parenthetical `(formerly harness-loop)` or `(renamed from harness-loop)` migration callouts so users grep'ing the old name still find the new one. | All 5 docs reference `harness-schedule-run` with explanatory callouts; `grep -l 'harness-loop' README.md harness/README.md docs/ARCHITECTURE.md docs/advisor-strategy.md docs/CLAUDE-skill-catalog.md` returns matches only inside the parenthetical migration callouts. | 87.2 | cc:Done [8af71e8] |
+| 87.4 | **Update 2 SSOT files**: `.claude/memory/decisions.md` D15 entry — add `> Renamed 2026-05-03` callout block, replace 4 `harness-loop` references with `harness-schedule-run`, update file path reference from `harness/skills/harness-loop/` to `harness/skills/harness-schedule-run/`. `.claude/skills/release-this/SKILL.md` — Step 4b subdirectory list + Related Skills entry. | D15 has rename callout; `grep -c 'harness-schedule-run' .claude/memory/decisions.md` ≥ 4; release-this Step 4b lists `harness-schedule-run` not `harness-loop`; release-this Related Skills entry uses new name with `(formerly)` callout. | 87.2 | cc:Done [8af71e8] |
+| 87.5 | **Add CHANGELOG `[Unreleased]` entry**: under "Renamed (BREAKING)" subsection (new), include Before/After block from `.claude/rules/github-release.md`, the old/new slash command commands, and a migration note covering the 3 directory renames + the deliberately-untouched files (test scripts, archives, state logs). | CHANGELOG `[Unreleased]` has "Renamed (BREAKING)" subsection; Before/After block present; migration note mentions both the 3 directory renames and the untouched-files list. | 87.2, 87.3, 87.4 | cc:Done [8af71e8] |
+| 87.6 | **Validate + release as v5.0.0**: run `tests/validate-plugin.sh` (must show 39/39 pass with the rename in place); invoke `/release-this major` to bump `4.14.4 → 5.0.0`, promote `[Unreleased]` to `[5.0.0]`, tag `v5.0.0`, push, create GitHub Release with Before/After release notes; create completion-marking commit. | `tests/validate-plugin.sh` passes with 39 passed / 0 failed; `git tag --list 'v5.0.0'` returns the tag; `gh release view v5.0.0` succeeds and notes contain Before/After table; completion commit `chore: mark v5.0.0 release complete` pushed to master. | 87.5 | cc:Done [5a07dd3] |
 
 ---
 

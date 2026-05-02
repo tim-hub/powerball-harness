@@ -52,9 +52,9 @@ Run everything after plan approval:
 /harness-work all
 ```
 
-Or even more automated:
+Or even more automated (overnight scheduled run with 1-hour wake-up cadence):
 ```bash
-/harness-schedule-run all
+/harness-schedule-run all --pacing night
 ```
 
 
