@@ -11,7 +11,7 @@ effort: low
 # Release This Plugin
 
 Project-specific release orchestrator for the claude-code-harness plugin.
-Runs all plugin-specific checks (build, consistency, validation, symlinks, version sync) **before** delegating to the generic `harness-release` skill for the actual release (version bump, CHANGELOG, tag, GitHub Release).
+Runs all plugin-specific checks (build, consistency, validation, Codex templates, version sync) **before** delegating to the generic `harness-release` skill for the actual release (version bump, CHANGELOG, tag, GitHub Release).
 
 ## Quick Reference
 
@@ -51,15 +51,26 @@ bash ./tests/validate-plugin.sh
 
 This runs all CI-gated checks: marketplace.json structure, skill frontmatter, hook schemas, section 9 migration residue scan, and section 10 skill-description audit.
 
-### Step 4: Codex symlink verification
+### Step 4: Codex template verification
 
-Verify that `codex/.codex/skills/` symlinks resolve correctly. Broken symlinks would prevent Codex CLI users from loading skills.
+Verify that the Codex CLI configuration templates and the Codex-specific skill bodies are present and readable. Missing files would ship a broken Codex experience to users.
+
+**4a. Codex CLI config templates** (`harness/templates/codex/`):
 
 ```bash
-ls -la codex/.codex/skills/
+ls -la harness/templates/codex/
 ```
 
-Confirm all listed entries are valid symlinks (no broken/dangling entries).
+Confirm `AGENTS.md`, `README.md`, `config.toml`, `.codexignore`, and `rules/` are all present.
+
+**4b. Codex skill bodies** (`harness/templates/codex-skills/`):
+
+```bash
+ls -la harness/templates/codex-skills/
+ls harness/templates/codex-skills/*/SKILL.md
+```
+
+Confirm each subdirectory (`breezing`, `harness-schedule-run`, `harness-work`) contains a `SKILL.md`. A missing `SKILL.md` means that Codex-variant skill is broken.
 
 ### Step 5: Version sync check
 
@@ -138,7 +149,7 @@ git push origin "$(git rev-parse --abbrev-ref HEAD)"
 - `harness-review` — Run before release to catch issues early
 - `harness-plan` — Plan the next release tasks
 - `harness-work` — Work on tasks
-- `harness-loop` — Run review-work iterations on release tasks
+- `harness-schedule-run` — Run review-work iterations on release tasks (formerly `harness-loop`)
 
 ## Related Rules
 

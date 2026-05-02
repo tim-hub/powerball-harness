@@ -68,4 +68,4 @@ Rule actions: **Deny** (block), **Ask** (require confirmation), **Approve + Warn
 
 ### 4.4. Agents and Breezing
 
-`harness-work --parallel` spawns Worker agents via Task tool to implement Plans.md tasks concurrently. `breezing` runs the full team (Worker + Reviewer + Advisor) end-to-end. `harness-loop` uses ScheduleWakeup for autonomous multi-session runs with sprint-contract gating and plateau detection.
+`harness-work --parallel` spawns Worker agents via Task tool to implement Plans.md tasks concurrently. `breezing` runs the full team (Worker + Reviewer + Advisor) end-to-end. `harness-schedule-run` (formerly `harness-loop`) uses ScheduleWakeup for autonomous multi-session runs with sprint-contract gating and plateau detection.

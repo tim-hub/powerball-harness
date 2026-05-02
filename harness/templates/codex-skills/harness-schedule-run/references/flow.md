@@ -1,6 +1,6 @@
-# harness-loop: Wake-up Flow Details
+# harness-schedule-run: Wake-up Flow Details
 
-Detailed reference for each wake-up entry procedure in `harness-loop`.
+Detailed reference for each wake-up entry procedure in `harness-schedule-run`.
 Supplements the summary in SKILL.md with implementation-level detail.
 
 ---
@@ -16,7 +16,7 @@ mkdir -p ".claude/state/locks"
 # Atomic creation (fail immediately if exists — avoids TOCTOU race)
 if ! mkdir "${LOCK_DIR}" 2>/dev/null; then
     existing=$(cat "${LOCK_DIR}/meta.json" 2>/dev/null || echo '{}')
-    echo "ERROR: harness-loop is already running (lock dir exists: ${LOCK_DIR})" >&2
+    echo "ERROR: harness-schedule-run is already running (lock dir exists: ${LOCK_DIR})" >&2
     echo "Lock contents: ${existing}" >&2
     echo "To force-clear, run: rm -rf ${LOCK_DIR}" >&2
     exit 10
@@ -56,7 +56,7 @@ trap cleanup_loop_lock EXIT INT TERM
 if bash tests/validate-plugin.sh --quick; then
     : # OK — continue
 else
-    echo "harness-loop: state consistency check failed — stopping loop" >&2
+    echo "harness-schedule-run: state consistency check failed — stopping loop" >&2
     echo "Details: run bash tests/validate-plugin.sh --quick to investigate" >&2
     exit 1
 fi
@@ -96,7 +96,7 @@ if [ ! -f "${CONTRACT_PATH}" ]; then
     # ensure-sprint-contract-ready.sh (next step) requires "approved"
     # so we must promote before calling it
     bash harness/scripts/enrich-sprint-contract.sh "${CONTRACT_PATH}" \
-      --check "auto-approve (harness-loop — confirm DoD from reviewer perspective)" \
+      --check "auto-approve (harness-schedule-run — confirm DoD from reviewer perspective)" \
       --approve
 fi
 ```
@@ -173,7 +173,7 @@ worker_result = Agent(
 Worker runs in `mode: breezing`, so it:
 - Only commits on the feature branch — does not touch main
 - Stores changes in `worktreePath`
-- Lead (harness-loop) handles review → cherry-pick in Steps 5.5/5.6
+- Lead (harness-schedule-run) handles review → cherry-pick in Steps 5.5/5.6
 
 > **Implementation note**: `Bash("harness-work --breezing")` is also viable,
 > but the Agent tool provides cleaner context isolation and is easier to debug.
@@ -404,7 +404,7 @@ If advisor returns `STOP`, proceed to user escalation.
 **User escalation message on PIVOT_REQUIRED**:
 
 ```
-harness-loop: stopped due to plateau detection (cycle {N}/{max})
+harness-schedule-run: stopped due to plateau detection (cycle {N}/{max})
 
 Detected issue:
   {plateau details: output from detect-review-plateau.sh}
@@ -412,7 +412,7 @@ Detected issue:
 Suggested actions:
   1. Manually review and revise task content
   2. Re-run with --pacing plateau to extend the interval
-  3. Skip the problem task and restart /harness-loop
+  3. Skip the problem task and restart /harness-schedule-run
 
 Please review the current Plans.md state.
 ```
@@ -433,7 +433,7 @@ bash harness/scripts/run-advisor-consultation.sh \
 cycles_completed += 1
 if cycles_completed >= max_cycles:
     stop loop
-    print(f"harness-loop: stopped after {max_cycles} cycles")
+    print(f"harness-schedule-run: stopped after {max_cycles} cycles")
     return
 ```
 
@@ -443,7 +443,7 @@ if cycles_completed >= max_cycles:
 **Persisting cycle count**:
 - Embed the count in the `prompt` argument of `ScheduleWakeup`:
   ```
-  /harness-loop all --max-cycles 8 --cycles-done {N} --pacing worker
+  /harness-schedule-run all --max-cycles 8 --cycles-done {N} --pacing worker
   ```
 - On wake-up, read `--cycles-done N` to restore the count
 
@@ -452,7 +452,7 @@ if cycles_completed >= max_cycles:
 ```json
 {
   "session_id": "<current session ID>",
-  "title": "harness-loop cycle {N}/{max}: {task_completed}",
+  "title": "harness-schedule-run cycle {N}/{max}: {task_completed}",
   "content": "Cycle {N} complete. commit: {commit}. changes: {files_changed}. next: {next_task}"
 }
 ```
@@ -465,7 +465,7 @@ Automatically included in the next wake-up's resume pack.
 ```
 ScheduleWakeup(
     delaySeconds=<value for pacing>,
-    prompt="/harness-loop <same args> --cycles-done {N}",
+    prompt="/harness-schedule-run <same args> --cycles-done {N}",
     reason="Cycle {N}/{max} complete: {task_completed}"
 )
 ```
@@ -551,7 +551,7 @@ Method for carrying cycle count to the next wake-up:
 
 ```bash
 # Embed current cycle count in prompt
-NEXT_PROMPT="/harness-loop ${SCOPE} --max-cycles ${MAX_CYCLES} --cycles-done ${CYCLES_DONE} --pacing ${PACING}"
+NEXT_PROMPT="/harness-schedule-run ${SCOPE} --max-cycles ${MAX_CYCLES} --cycles-done ${CYCLES_DONE} --pacing ${PACING}"
 
 ScheduleWakeup(
     delaySeconds=${DELAY},

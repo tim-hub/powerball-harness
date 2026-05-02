@@ -1,11 +1,11 @@
 ---
-name: harness-loop
-description: "Use when running Plans.md tasks in a long-running autonomous loop with ScheduleWakeup (fresh context per wake-up, sprint-contract flow, plateau detection, flock guard). Do NOT load for: single-task work (harness-work), planning, review, release."
+name: harness-schedule-run
+description: "Use when running Plans.md tasks on a scheduled cadence (fresh context per wake-up, sprint-contract flow, plateau detection, flock guard). Do NOT load for: single-task work (harness-work), planning, review, release."
 allowed-tools: ["Read", "Edit", "Bash", "Task", "ScheduleWakeup", "mcp__harness__harness_mem_resume_pack", "mcp__harness__harness_mem_record_checkpoint"]
 argument-hint: "[all|N-M] [--max-cycles N] [--pacing worker|ci|plateau|night] [--advisor|--no-advisor]"
 ---
 
-# Harness Loop
+# Harness Schedule Run
 
 Meta-skill that combines `/loop` (CC dynamic mode) with `ScheduleWakeup` to re-enter long-running tasks with a **fresh context on every wake-up**.
 
@@ -15,11 +15,11 @@ Each wake-up calls `harness-work --breezing` via the Agent tool, forming a re-en
 
 | Input | Behavior |
 |-------|----------|
-| `/harness-loop all` | Loop all incomplete tasks (default: max 8 cycles) |
-| `/harness-loop all --max-cycles 3` | Stop after 3 cycles |
-| `/harness-loop 41.1-41.3 --pacing ci` | Execute task range with CI pacing |
-| `/harness-loop all --pacing night` | Overnight batch (3600s interval) |
-| `/harness-loop --no-advisor` | Disable advisor consultation at all trigger points |
+| `/harness-schedule-run all` | Loop all incomplete tasks (default: max 8 cycles) |
+| `/harness-schedule-run all --max-cycles 3` | Stop after 3 cycles |
+| `/harness-schedule-run 41.1-41.3 --pacing ci` | Execute task range with CI pacing |
+| `/harness-schedule-run all --pacing night` | Overnight batch (3600s interval) |
+| `/harness-schedule-run --no-advisor` | Disable advisor consultation at all trigger points |
 
 ## Options
 
@@ -69,7 +69,7 @@ wake-up
   Check .claude/state/contracts/${task_id}.sprint-contract.json
   If absent: node harness/scripts/generate-sprint-contract.js ${task_id}
   On first generation: bash harness/scripts/enrich-sprint-contract.sh <contract-path> \
-    --check "auto-approve (harness-loop — confirm DoD from reviewer perspective)" \
+    --check "auto-approve (harness-schedule-run — confirm DoD from reviewer perspective)" \
     --approve  ← draft → approved
   (Existing contracts already approved — skip)
   │
@@ -126,7 +126,7 @@ wake-up
 [Step 9] Schedule next wake-up
   ScheduleWakeup(
       delaySeconds=<pacing value>,
-      prompt="/harness-loop <same args>",
+      prompt="/harness-schedule-run <same args>",
       reason="Cycle {N}/{max} complete — proceeding to next task"
   )
 ```
@@ -158,7 +158,7 @@ Reload via `harness-mem resume-pack` is required (Step 4).
 ```json
 {
   "session_id": "<session ID>",
-  "title": "harness-loop cycle {N}/{max}: {task name}",
+  "title": "harness-schedule-run cycle {N}/{max}: {task name}",
   "content": "1-line summary of cycle_result + commit hash"
 }
 ```

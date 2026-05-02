@@ -33,7 +33,7 @@ harness/skills/
 ├── harness-release/       # Generic release engine: version bumps, CHANGELOG, git tags, GitHub Releases (any project)
 ├── harness-setup/         # Project init, CI/Codex/memory config, binary download
 ├── harness-sync/          # Plans.md ↔ implementation drift detection and marker updates
-├── harness-loop/          # Autonomous ScheduleWakeup-based loop runtime with sprint-contracts
+├── harness-schedule-run/  # Autonomous ScheduleWakeup-based scheduled run runtime with sprint-contracts
 ├── breezing/              # Full team end-to-end run with parallel Workers (auto-detects task count)
 ├── harness-remember/      # SSOT management — decisions.md, patterns.md, memory search
 ├── maintenance/           # Periodic cleanup — session log pruning, stale state, cache purge
@@ -67,7 +67,7 @@ harness/skills/
 | `release-this` | Plugin-specific release: build-all → checks → harness-release (use this to release THIS plugin) | "release this", "release plugin", "publish harness" |
 | `harness-setup` | Project init, binary download, CI config | "setup", "initialize", "install binary" |
 | `harness-sync` | Drift detection between Plans.md and implementation | "sync", "check drift", "update markers" |
-| `harness-loop` | Autonomous loop runtime with ScheduleWakeup and sprint-contracts | "loop", "autonomous run", "harness-loop" |
+| `harness-schedule-run` | Autonomous scheduled run runtime with ScheduleWakeup and sprint-contracts (renamed from `harness-loop`) | "scheduled run", "autonomous run", "harness-schedule-run" |
 | `breezing` | Full auto-run with parallel Agent Teams | "run with team", "breezing", "all tasks" |
 | `harness-remember` | SSOT management, decisions.md, patterns.md | "SSOT", "decisions", "memory search" |
 | `maintenance` | Periodic housekeeping — log pruning, stale state, worktrees | "prune logs", "clean state", "/maintenance" |

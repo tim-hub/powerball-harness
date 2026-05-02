@@ -64,6 +64,6 @@ Lead (harness-work --breezing)
 
 The Advisor sits laterally to the Worker — it is not spawned by Lead and is not in the Lead → Worker chain of command. Lead is unaware of individual Advisor consultations; it only sees the Worker's eventual result or escalation. This matches the diagram in [team-composition.md](../harness/agents/team-composition.md).
 
-## harness-loop Integration
+## harness-schedule-run Integration
 
-`harness-loop` invokes the Advisor at all three runtime trigger points — `high_risk_preflight`, `repeated_failure`, and `plateau_before_escalation` — by calling `run-advisor-consultation.sh` with the appropriate `--reason-code` and `--error-sig` arguments. When the Advisor returns a `STOP` decision, `harness-loop` exits the fix loop cleanly, writes a structured summary of the failure context and the Advisor's rationale to `.claude/state/advisor/last-request.json`, and escalates to the Reviewer rather than prompting the user directly.
+`harness-schedule-run` invokes the Advisor at all three runtime trigger points — `high_risk_preflight`, `repeated_failure`, and `plateau_before_escalation` — by calling `run-advisor-consultation.sh` with the appropriate `--reason-code` and `--error-sig` arguments. When the Advisor returns a `STOP` decision, `harness-schedule-run` exits the fix loop cleanly, writes a structured summary of the failure context and the Advisor's rationale to `.claude/state/advisor/last-request.json`, and escalates to the Reviewer rather than prompting the user directly.

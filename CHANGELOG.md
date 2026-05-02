@@ -40,6 +40,24 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Renamed (BREAKING)
+
+#### 1. `harness-loop` skill renamed to `harness-schedule-run`
+
+**Before**: The skill that drives ScheduleWakeup-based autonomous Plans.md execution was called `harness-loop`, invoked via `/harness-loop`. The name suggested a tight `while`-style loop and overlapped with the unrelated upstream `/loop` and the `ralph-loop` plugin, making routing and discovery confusing.
+
+**After**: The skill is now `harness-schedule-run`, invoked via `/harness-schedule-run`. The new name reflects what the skill actually does — runs a sprint of Plans.md tasks on a scheduled cadence using `ScheduleWakeup`. All flags and behavior are unchanged.
+
+```bash
+# Old
+/harness-loop all --max-cycles 8 --pacing night
+
+# New
+/harness-schedule-run all --max-cycles 8 --pacing night
+```
+
+**Migration**: Replace any `/harness-loop` invocations or scripts that reference the old slash command. The directory `harness/skills/harness-loop/` is now `harness/skills/harness-schedule-run/`; the same rename applies to the Codex-CLI and OpenCode skill templates. Historical state files (`.claude/state/`, `.claude/memory/archive/`) and CI tests for `codex-loop.sh` are intentionally left untouched.
+
 ---
 
 ## [4.14.4] - 2026-05-03

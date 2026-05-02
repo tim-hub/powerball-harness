@@ -19,7 +19,7 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 - D12: 2026-04-15: Makefile as stable CI interface layer between workflows and script paths #ci #architecture
 - D13: 2026-04-15: MARKETPLACE_NAME and PLUGIN_NAME in cache scripts must match marketplace.json #distribution #cache
 - D14: 2026-04-15: Consistency check sections must be explicitly skipped, never silently no-op #quality #ci
-- D15: 2026-04-17: Concurrent hook fan-out and ScheduleWakeup-based harness-loop runtime #architecture #hooks #breezing
+- D15: 2026-04-17: Concurrent hook fan-out and ScheduleWakeup-based harness-schedule-run runtime (formerly harness-loop) #architecture #hooks #breezing
 
 ---
 
@@ -422,18 +422,20 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 
 ---
 
-## D15: 2026-04-17: Concurrent hook fan-out and ScheduleWakeup-based harness-loop runtime #architecture #hooks #breezing
+## D15: 2026-04-17: Concurrent hook fan-out and ScheduleWakeup-based harness-schedule-run runtime (formerly harness-loop) #architecture #hooks #breezing
+
+> **Renamed 2026-05-03**: The `harness-loop` skill was renamed to `harness-schedule-run`. References below preserved as `harness-schedule-run`.
 
 ### Conclusion
 
 - `PostToolUse` and `PreToolUse` hooks use goroutine fan-out (`post-tool-batch`, `pre-tool-batch`) to parallelize subprocess invocations — 9 sequential forks reduced to 2 concurrent via `post-tool-batch`
-- `harness-loop` graduated from a basic loop to a full ScheduleWakeup-based autonomous runtime with `--max-cycles`, `--pacing`, flock guard, sprint-contracts, and plateau detection
+- `harness-schedule-run` graduated from a basic loop to a full ScheduleWakeup-based autonomous runtime with `--max-cycles`, `--pacing`, flock guard, sprint-contracts, and plateau detection
 - Sprint Contract defined as a Go package (`go/internal/sprint`) — structured commitment between Planner and Worker with acceptance criteria
 
 ### Background
 
 - Phase 63: Hook chain was blocking on sequential subprocess calls; fan-out eliminates the bottleneck
-- Phase 69: harness-loop needed to be autonomous enough to run unattended across multiple Claude Code sessions using ScheduleWakeup events
+- Phase 69: harness-schedule-run needed to be autonomous enough to run unattended across multiple Claude Code sessions using ScheduleWakeup events
 
 ### Rationale
 
@@ -442,7 +444,7 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 
 ### Impact / Trade-offs
 
-- `flock` guard prevents concurrent harness-loop instances from stepping on each other (Plans.md exclusive access)
+- `flock` guard prevents concurrent harness-schedule-run instances from stepping on each other (Plans.md exclusive access)
 - `--pacing` allows rate-limiting to avoid overwhelming external resources during automated runs
 
 ### Review Conditions
@@ -452,4 +454,4 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 
 ### Related
 
-- files: `go/internal/hookhandler/`, `harness/skills/harness-loop/`, `harness/scripts/codex-loop.sh`
+- files: `go/internal/hookhandler/`, `harness/skills/harness-schedule-run/`, `harness/scripts/codex-loop.sh`

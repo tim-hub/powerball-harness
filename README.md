@@ -44,7 +44,7 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, back
 | `/harness-review` | 4-perspective code review (security, performance, quality, a11y) |
 | `/harness-release` | CHANGELOG, tag, and GitHub Release |
 | `/harness-remember` | SSOT — decisions, patterns, session logs |
-| `/harness-loop` | Runs Plans.md tasks in a long-running autonomous loop |
+| `/harness-schedule-run` | Runs Plans.md tasks on a scheduled cadence (renamed from `/harness-loop`) |
 
 Run everything after plan approval:
 
@@ -54,7 +54,7 @@ Run everything after plan approval:
 
 Or even more automated:
 ```bash
-/harness-loop all
+/harness-schedule-run all
 ```
 
 
