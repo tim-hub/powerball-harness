@@ -124,7 +124,7 @@ The Lead outputs progress in the following format each time a Worker completes a
 ### Review Policy (unified across all modes)
 
 Even in Breezing mode, reviews follow the unified policy of **Codex exec first → internal Reviewer fallback**.
-See the "Review Loop" section of `harness-work` for details.
+See [`harness/skills/harness-work/references/review-loop.md`](${CLAUDE_SKILL_DIR}/../../harness-work/references/review-loop.md) for details.
 
 - Worker implements and commits within the worktree → returns results to Lead
 - Lead reviews via Codex exec (120s timeout, fallback: Reviewer agent)
@@ -138,7 +138,7 @@ After all tasks are complete, the **Lead** generates a rich completion report wi
 1. Collect all cherry-pick commits with `git log --oneline {base_ref}..HEAD`
 2. Get the overall change scope with `git diff --stat {base_ref}..HEAD`
 3. Extract remaining `cc:TODO` / `cc:WIP` tasks from Plans.md
-4. Output according to the Breezing template in `harness-work`'s "Completion Report Format"
+4. Output according to the Breezing template in [`harness/skills/harness-work/templates/completion-report.md`](${CLAUDE_SKILL_DIR}/../../harness-work/templates/completion-report.md)
 
 > **The Lead generates this report**, not Workers or hooks. The Lead reads git + Plans.md during Phase C to produce it.
 

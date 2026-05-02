@@ -43,6 +43,32 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Changed (no behavior change)
+
+#### 1. `harness-work` skill structure — split 668-line SKILL.md into routing index + references/ + templates/
+
+**Before**: `harness/skills/harness-work/SKILL.md` was 668 lines mixing high-level routing (Quick Reference, mode auto-selection) with deep per-mode runbooks (solo/parallel/breezing Phase A/B/C), worker-quality contracts (NG rules, self-review gate), review machinery, failure handling, and inline template blocks. CC auto-trims large SKILL.md files, risking silent loss of routing information near the bottom.
+
+**After**: SKILL.md is 154 lines — a slim routing index of link tables. All content is reachable from the new structure:
+
+| New location | Content moved |
+|---|---|
+| `references/solo-mode.md` | 13-step solo execution flow |
+| `references/parallel-mode.md` | Parallel worker fan-out + concurrent review |
+| `references/breezing-mode.md` | Phase A/B/C, sprint-contract orchestration |
+| `references/worker-ng-rules.md` | NG-1/NG-2/NG-3 hard constraints |
+| `references/worker-self-review.md` | worker-report.v1 schema + Lead validation rules |
+| `references/universal-violations.md` | Cross-task violation injection |
+| `references/ci-failure.md` | 3-strike CI auto-fix loop |
+| `references/re-ticketing.md` | Fix-task auto-generation with approval flow |
+| `references/review-loop.md` | Verdict criteria + fix cycle + mode-specific behavior |
+| `templates/worker-report.v1.json` | worker-report.v1 JSON schema (machine-emit target) |
+| `templates/completion-report.md` | Rich Completion Report skeleton (solo + breezing formats) |
+
+`harness/skills/breezing/SKILL.md` updated: the two prose section references ("Review Loop section of `harness-work`" and `harness-work`'s "Completion Report Format") are now explicit `${CLAUDE_SKILL_DIR}/../../harness-work/references/` / `templates/` links.
+
+**No behavior change** — this is a structural reorganization. All `${CLAUDE_SKILL_DIR}/../../scripts/...` paths in the reference files resolve identically to how they resolved from SKILL.md (both are skill-local; `${CLAUDE_SKILL_DIR}` expands to the skill's installed directory in both cases). `tests/validate-plugin.sh` 39/39, Go tests clean.
+
 ---
 
 ## [5.0.2] - 2026-05-03
