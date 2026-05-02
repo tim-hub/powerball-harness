@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.14.3...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.14.4...HEAD
+[4.14.4]: https://github.com/tim-hub/powerball-harness/compare/v4.14.3...v4.14.4
 [4.14.3]: https://github.com/tim-hub/powerball-harness/compare/v4.14.2...v4.14.3
 [4.14.2]: https://github.com/tim-hub/powerball-harness/compare/v4.14.1...v4.14.2
 [4.14.1]: https://github.com/tim-hub/powerball-harness/compare/v4.14.0...v4.14.1
@@ -38,6 +39,37 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [4.14.4] - 2026-05-03
+
+### Theme: harness-plan skill split into per-subcommand reference files
+
+**harness-plan SKILL.md cut from 191 to 95 lines — each subcommand now has its own reference file for focused, faster reads.**
+
+---
+
+#### 1. harness-plan subcommand documentation split
+
+**Before**: All six subcommand flows (`create`, `add`, `update`, `sync`, `archive`, `session-log`) were inlined in SKILL.md. Finding the flow for a specific subcommand required scrolling through ~190 lines.
+
+**After**: Each subcommand has its own reference file in `references/`. SKILL.md is now a routing index — a Quick Reference table plus a per-subcommand link table. `create` and `sync` already had their own files; `add`, `update`, `archive`, and `session-log` are newly extracted. Shared content (`plans-md-rules.md`) is linked from subcommand files rather than duplicated.
+
+```
+harness/skills/harness-plan/
+├── SKILL.md                          (95 lines — routing index)
+├── references/
+│   ├── add.md          ← NEW
+│   ├── update.md       ← NEW
+│   ├── archive.md      ← NEW
+│   ├── session-log.md  ← NEW
+│   ├── create.md       (existing)
+│   ├── sync.md         (existing)
+│   └── plans-md-rules.md (shared — markers, ordering, field defs)
+└── templates/
+    └── plans-md-template.md  ← MOVED from references/
+```
 
 ---
 
