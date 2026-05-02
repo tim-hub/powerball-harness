@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v4.14.4...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.0.0...HEAD
+[5.0.0]: https://github.com/tim-hub/powerball-harness/compare/v4.14.4...v5.0.0
 [4.14.4]: https://github.com/tim-hub/powerball-harness/compare/v4.14.3...v4.14.4
 [4.14.3]: https://github.com/tim-hub/powerball-harness/compare/v4.14.2...v4.14.3
 [4.14.2]: https://github.com/tim-hub/powerball-harness/compare/v4.14.1...v4.14.2
@@ -40,6 +41,16 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+---
+
+## [5.0.0] - 2026-05-03
+
+### Theme: harness-loop renamed to harness-schedule-run (BREAKING)
+
+**The `/harness-loop` slash command is renamed to `/harness-schedule-run`. All flags, pacing options, and sprint-contract behavior are unchanged — only the name changes.**
+
+---
+
 ### Renamed (BREAKING)
 
 #### 1. `harness-loop` skill renamed to `harness-schedule-run`
@@ -49,10 +60,10 @@ Change history for claude-code-harness.
 **After**: The skill is now `harness-schedule-run`, invoked via `/harness-schedule-run`. The new name reflects what the skill actually does — runs a sprint of Plans.md tasks on a scheduled cadence using `ScheduleWakeup`. All flags and behavior are unchanged.
 
 ```bash
-# Old
+# Before
 /harness-loop all --max-cycles 8 --pacing night
 
-# New
+# After
 /harness-schedule-run all --max-cycles 8 --pacing night
 ```
 
