@@ -1,7 +1,7 @@
 # Plans.md Rules
 
 Ordering conventions, field definitions, and behavioral requirements for Plans.md.
-For the canonical template structure, see [plans-md-template.md](${CLAUDE_SKILL_DIR}/references/plans-md-template.md).
+For the canonical template structure, see [plans-md-template.md](${CLAUDE_SKILL_DIR}/templates/plans-md-template.md).
 
 ---
 
@@ -119,4 +119,4 @@ Created: YYYY-MM-DD
 
 ### `create` — generate new Plans.md
 
-Use the complete template from [plans-md-template.md](${CLAUDE_SKILL_DIR}/references/plans-md-template.md). Start with Phase 1 at the top. Include the `## Archive` footer with an empty table (or omit the table body if no archives yet).
+Use the complete template from [plans-md-template.md](${CLAUDE_SKILL_DIR}/templates/plans-md-template.md). Start with Phase 1 at the top. Include the `## Archive` footer with an empty table (or omit the table body if no archives yet).
