@@ -9,7 +9,7 @@
 
 set -euo pipefail
 
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/../../../../" && pwd)}"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/../../../" && pwd)}"
 PROJECT_ROOT="$(pwd)"
 
 # ─── 1. Check opencode is installed ──────────────────────────────────────────

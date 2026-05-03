@@ -45,6 +45,17 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Fixed: `harness-setup codex` / `harness-setup opencode` path resolution
+
+**The `PLUGIN_ROOT` fallback in `setup-codex.sh` and `setup-opencode.sh` now traverses 3 levels (`../../../`) instead of 4, matching the plugin's actual root.** Per `marketplace.json`, the plugin is rooted at `./harness/`, so a script at `harness/skills/harness-setup/scripts/setup-*.sh` is exactly 3 levels below the plugin root — both in the dev tree and in the marketplace cache install (where contents unpack into `<marketplace>/harness/<hash>/`). The previous 4-level traversal landed one directory above the plugin root, so `$PLUGIN_ROOT/templates/codex` and `$PLUGIN_ROOT/skills` did not exist and setup aborted with "Template directory not found". The bug was masked when the scripts were invoked through Claude Code (which sets `CLAUDE_PLUGIN_ROOT` automatically) but surfaced when invoked from Codex or OpenCode CLIs, or directly.
+
+**Before** / **After**:
+
+| Before | After |
+|--------|-------|
+| `harness-setup codex` (without `CLAUDE_PLUGIN_ROOT`) failed with `❌ Template directory not found: <repo>/templates/codex` | Setup succeeds; `PLUGIN_ROOT` resolves to the `harness/` plugin root in dev and to the cached `<hash>/` in installed plugins. |
+| Workaround required: `CLAUDE_PLUGIN_ROOT=<path-to-harness> bash setup-codex.sh` | No env override needed — fallback resolves correctly on its own. |
+
 ---
 
 ## [5.1.0] - 2026-05-03
