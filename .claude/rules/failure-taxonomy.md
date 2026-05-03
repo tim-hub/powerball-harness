@@ -81,6 +81,18 @@ Detected by `harness/agents/ci-cd-fixer.md` during Phase 3 error classification.
 
 ---
 
+### FT-RALPH — Ralph Loop Failure Modes
+
+Handled by `harness-ralph-loop` orchestrator in `harness/skills/harness-ralph-loop/references/loop-flow.md`.
+
+| ID | category | mode | detector | recovery | escalation | source |
+|----|----------|------|----------|----------|------------|--------|
+| FT-RALPH-01 | RALPH | Idle-iteration: no file changes between iterations + verify still failing | `harness-ralph-loop` orchestrator: `git diff --stat` against prior-iter commit returns empty + verify exits non-zero | Record stuck state; hard stop immediately; surface to user with diff history + last verify stderr | Immediate — do NOT loop further; write `blocked (ralph stuck at iter N: no file changes + verify exit {code})` to Plans.md | `harness/skills/harness-ralph-loop/references/loop-flow.md` |
+| FT-RALPH-02 | RALPH | Verify mismatch: worker's self-reported `ralph-worker-report.v1.verify.exit_code` differs from orchestrator's authoritative verify result | `harness-ralph-loop` orchestrator: compares worker report `verify.exit_code` with its own `bash $VERIFY_CMD` exit code | Hard stop; do NOT loop further; treat as worker hallucination of verification | Immediate; write `blocked (worker self-report disagrees with authoritative verify: worker claimed {W}, actual {A})` to Plans.md | `harness/skills/harness-ralph-loop/references/loop-flow.md` |
+| FT-RALPH-03 | RALPH | Max-iterations exhausted without successful promise + verify | `harness-ralph-loop` orchestrator: iteration counter reaches `MaxIter` without both signals passing | Stop loop; preserve worktree state; write iteration history summary | Write `blocked (ralph max-iter exhausted after {N} iterations, last verify exit: {code})` to Plans.md; preserve worktree for manual inspection | `harness/skills/harness-ralph-loop/references/loop-flow.md` |
+
+---
+
 ## Cross-Reference Index
 
 | Source system | File | IDs |
@@ -89,6 +101,7 @@ Detected by `harness/agents/ci-cd-fixer.md` during Phase 3 error classification.
 | Advisor error signatures | `harness/agents/advisor.md` | FT-ADVISE-01 – FT-ADVISE-03 |
 | Worker retry patterns | `harness/skills/harness-work/SKILL.md` | FT-RETRY-01 – FT-RETRY-03 |
 | CI fixer rules | `harness/agents/ci-cd-fixer.md` | FT-CI-01 – FT-CI-05 |
+| Ralph loop patterns | `harness/skills/harness-ralph-loop/references/loop-flow.md` | FT-RALPH-01 – FT-RALPH-03 |
 
 ---
 
