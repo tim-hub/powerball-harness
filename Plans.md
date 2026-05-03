@@ -448,27 +448,6 @@ Created: 2026-04-20
 
 ---
 
-## Phase 78: Plans.md ordering convention — newest-first + archive footer
-
-Created: 2026-04-20
-
-**Goal**: Make the implicit "newest phase on top" convention explicit and enforced, and add a persistent archive navigation footer at the bottom of Plans.md. Currently: insertion order is undocumented in `harness-plan/SKILL.md`, no rule file states the convention, and a reader who scrolls to the bottom of Plans.md has no link to older phases in `.claude/memory/archive/`.
-
-**Scope**:
-1. Update `harness-plan/SKILL.md` to make insertion point and archive footer explicit
-2. Fix current Plans.md phase ordering (74–77 are ascending; reorder to 77→76→75→74)
-3. Add a persistent `## Archive` footer to Plans.md linking to `.claude/memory/archive/`
-4. Extend `plans-format-check.sh` to validate non-ascending phase-number order
-
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 78.1 | Update `harness/skills/harness-plan/SKILL.md` `add` subcommand section: state insertion point explicitly ("Insert new phase block immediately after the `---` header separator, above any existing phase"). Update `archive` subcommand section: state it must maintain the `## Archive` footer after archiving | SKILL.md `add` section contains "insert above existing phases"; `archive` section mentions footer maintenance; `./tests/validate-plugin.sh` passes | - | cc:done [ca29894] |
-| 78.2 | Fix current Plans.md: reorder phases 74–77 into non-ascending order (77 → 76 → 75 → 74) so all phases read newest-first. Add `## Archive` footer section at bottom of Plans.md with links to all existing archive files in `.claude/memory/archive/` | `grep -n "^## Phase" Plans.md` numbers are non-ascending top-to-bottom (gaps allowed); `## Archive` section exists at end of file with ≥1 link | - | cc:done [ca29894] |
-| 78.3 | Extend `harness/scripts/plans-format-check.sh` with a phase-order check: extract all `## Phase N` numbers top-to-bottom, assert each number is strictly less than the previous one (non-ascending, gaps allowed), exit non-zero with "phase order violation: Phase M appears after Phase N" if not | `bash harness/scripts/plans-format-check.sh Plans.md` passes on correct file (e.g. 78,77,76); fails on ascending file (e.g. 74,75,76); gaps (78,76,74) pass | - | cc:done [ca29894] |
-| 78.4 | CHANGELOG `[Unreleased]` Before/After entry under "Added"; update `archive` subcommand in `harness-plan/references/create.md` if it contains a Plans.md template that needs the footer | CHANGELOG entry present in Before/After format; no Plans.md template omits the `## Archive` footer | - | cc:done [ca29894] |
-
----
-
 ## Future Considerations
 
 (none currently)
@@ -477,6 +456,7 @@ Created: 2026-04-20
 
 ## Archive
 
-- Last archive: 2026-04-21 (Phase 77 → `.claude/memory/archive/Plans-2026-04-21-phase77.md`)
+- Last archive: 2026-05-03 (Phase 78 → `.claude/memory/archive/Plans-2026-05-03-phase78.md`)
+- Previous: 2026-04-21 (Phase 77 → `.claude/memory/archive/Plans-2026-04-21-phase77.md`)
 - Previous: 2026-04-20 (Phase 74–76 → `.claude/memory/archive/Plans-2026-04-20-phase74-76.md`)
 - Other older phases have been moved to `.claude/memory/archive/` to keep this file lean.
