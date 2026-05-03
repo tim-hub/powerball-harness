@@ -169,21 +169,23 @@ echo ""
 echo "## Layer 2: Skills quality guardrails"
 echo ""
 
-# harness-work skill quality guardrails (consolidated from impl)
+# harness-work skill quality guardrails
+# Phase 88 refactored harness-work/SKILL.md into a routing index; content moved to references/.
+# Tests now check the canonical reference files rather than the slim SKILL.md.
 assert_file_contains \
-  "harness/skills/harness-work/SKILL.md" \
+  "harness/skills/harness-work/references/review-loop.md" \
   "Review Loop|Quality|critical" \
-  "harness-work/SKILL.md has quality guardrail section"
+  "harness-work review-loop.md has quality guardrail section"
 
 assert_file_contains \
-  "harness/skills/harness-work/SKILL.md" \
-  "prohibited|Prohibited" \
-  "harness-work/SKILL.md has prohibited patterns defined"
+  "harness/skills/harness-work/references/worker-ng-rules.md" \
+  "NG-[123]|must not|hard constraint" \
+  "harness-work worker-ng-rules.md has constraint patterns defined"
 
 assert_file_contains \
-  "harness/skills/harness-work/SKILL.md" \
+  "harness/skills/harness-work/references/solo-mode.md" \
   "purpose|Purpose" \
-  "harness-work/SKILL.md has purpose-driven implementation principle"
+  "harness-work solo-mode.md has purpose-driven implementation principle"
 
 # harness-review skill quality guardrails (consolidated from verify)
 assert_file_contains \
