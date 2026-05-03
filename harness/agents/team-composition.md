@@ -72,7 +72,7 @@ Lead (Execute skill's --breezing mode) - orchestration only
 
 | Item | Setting |
 |------|------|
-| **subagent_type** | `claude-code-harness:ralph-worker` |
+| **subagent_type** | `powerball-harness:ralph-worker` |
 | **Description** | Single-iteration worker for Ralph loop orchestration — reads prior worktree attempts, implements changes, runs verify command, emits <promise> when DoD met. |
 | **Reference** | `harness/agents/ralph-worker.md` |
 

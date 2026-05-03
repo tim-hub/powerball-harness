@@ -54,7 +54,7 @@ Change history for claude-code-harness.
 
 **Before**: harness had no way to express "iterate this task until tests pass" or "fix CI failures until passing." Tasks with self-correcting success criteria still ran as one-shot worker dispatches that would either land the work or escalate. Upstream `/ralph-loop` (the canonical Ralph plugin) couldn't help: its Stop-hook mechanism only fires on the main session, not in subagents.
 
-**After**: A new `harness-ralph-loop` skill orchestrates the loop in subagent space. Iteration 0 spawns a fresh `claude-code-harness:ralph-worker` with `isolation="worktree"` to create a persistent worktree; iterations 1..N use `EnterWorktree(path=...)` to re-enter the same worktree so each spawn sees prior attempts on disk (the "self-referential through files" Ralph pattern). After each iteration, the orchestrator runs the verify command authoritatively (anti-tampering against worker self-reports), scans the final assistant message for `<promise>{DoD}</promise>`, and consults the structured `ralph-worker-report.v1` JSON before deciding whether to continue, succeed, or hard-stop.
+**After**: A new `harness-ralph-loop` skill orchestrates the loop in subagent space. Iteration 0 spawns a fresh `powerball-harness:ralph-worker` with `isolation="worktree"` to create a persistent worktree; iterations 1..N use `EnterWorktree(path=...)` to re-enter the same worktree so each spawn sees prior attempts on disk (the "self-referential through files" Ralph pattern). After each iteration, the orchestrator runs the verify command authoritatively (anti-tampering against worker self-reports), scans the final assistant message for `<promise>{DoD}</promise>`, and consults the structured `ralph-worker-report.v1` JSON before deciding whether to continue, succeed, or hard-stop.
 
 ```
 harness/skills/harness-ralph-loop/
@@ -69,13 +69,13 @@ harness/skills/harness-ralph-loop/
 
 **Before**: Plans.md tasks couldn't be flagged as Ralph-suitable. There was no marker, no auto-detection of iterate-until-pass keywords, and no per-task `Verify:` or `MaxIter:` fields.
 
-**After**: `harness-plan create` detects keywords like "until tests pass", "iterate until X", "fix until passing", "loop until clean" and applies the new `[ralph]` marker. When `[ralph]` is applied, the Verify command is auto-inferred from project type (`package.json`→`npm test`, `pyproject.toml`→`pytest`, `Cargo.toml`→`cargo test`, `go.mod`→`go test ./...`). New per-task lines `Verify:` (required) and `MaxIter:` (optional, default 10) appear below the task row. Format is documented in `harness/skills/harness-plan/references/ralph-tasks.md`.
+**After**: `harness-plan create` detects keywords like "until tests pass", "iterate until X", "fix until passing", "loop until clean" and applies the new `[ralph]` marker. When `[ralph]` is applied, the Verify command is auto-inferred from project type (`package.json`→`npm test`, `pyproject.toml`→`pytest`, `go.mod`→`go test ./...`). New per-task lines `Verify:` (required) and `MaxIter:` (optional, default 10) appear below the task row. Format is documented in `harness/skills/harness-plan/references/ralph-tasks.md`.
 
-#### 3. `claude-code-harness:ralph-worker` agent + `ralph-worker-report.v1` schema
+#### 3. `powerball-harness:ralph-worker` agent + `ralph-worker-report.v1` schema
 
 **Before**: The existing `worker` agent's frontmatter hard-coded `isolation: worktree` (forcing a fresh worktree per spawn — incompatible with Ralph's persistent-worktree pattern), its initialPrompt baked in TDD ceremony, and its SR-5 self-review rule (commit self-contained, no debug artifacts) actively conflicted with Ralph's scratchpad-file pattern.
 
-**After**: A sibling `claude-code-harness:ralph-worker` agent is added with no `isolation: worktree` in frontmatter (orchestrator owns the worktree), a Ralph-specific initialPrompt (read prior attempts → implement → run verify → emit `<promise>` only if exit 0), and a new `ralph-worker-report.v1` schema with `iteration`, `verify {command, exit_code, stderr_tail}`, `promise {asserted, dod}`, `files_changed`, `summary`, plus three SR-RALPH-* rules.
+**After**: A sibling `powerball-harness:ralph-worker` agent is added with no `isolation: worktree` in frontmatter (orchestrator owns the worktree), a Ralph-specific initialPrompt (read prior attempts → implement → run verify → emit `<promise>` only if exit 0), and a new `ralph-worker-report.v1` schema with `iteration`, `verify {command, exit_code, stderr_tail}`, `promise {asserted, dod}`, `files_changed`, `summary`, plus three SR-RALPH-* rules.
 
 #### 4. `harness-work` `[ralph]` delegation
 

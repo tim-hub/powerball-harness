@@ -42,7 +42,7 @@ for iter in range(0, MaxIter):
     if iter == 0:
         # First iteration: create the persistent worktree
         result = Agent(
-            subagent_type="claude-code-harness:ralph-worker",
+            subagent_type="powerball-harness:ralph-worker",
             prompt=prompt,
             isolation="worktree"        # ← creates the worktree; returns worktreePath
         )
@@ -55,7 +55,7 @@ for iter in range(0, MaxIter):
             ENTER_WT_LOADED = true
         EnterWorktree(path=RALPH_WORKTREE)             # ← change CWD into the worktree
         result = Agent(
-            subagent_type="claude-code-harness:ralph-worker",
+            subagent_type="powerball-harness:ralph-worker",
             prompt=prompt
             # isolation NOT passed — worker inherits current CWD (the persistent worktree)
         )

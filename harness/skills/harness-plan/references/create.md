@@ -192,7 +192,6 @@ When `[ralph]` is applied, also auto-fill the `Verify:` line below the task row 
 |--------------------|---------------------------------|
 | `package.json` present | `npm test` |
 | `pyproject.toml` or `setup.py` present | `pytest` |
-| `Cargo.toml` present | `cargo test ./...` |
 | `go.mod` present | `go test ./...` |
 | None found | `# TODO: set Verify command` |
 
