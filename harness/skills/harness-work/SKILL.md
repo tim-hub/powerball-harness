@@ -122,6 +122,13 @@ The same logic applies in breezing mode (managed centrally by harness-work).
 | **Parallel** | [`references/parallel-mode.md`](${CLAUDE_SKILL_DIR}/references/parallel-mode.md) | 2-3 tasks (auto) or `--parallel N` |
 | **Breezing** | [`references/breezing-mode.md`](${CLAUDE_SKILL_DIR}/references/breezing-mode.md) | 4+ tasks (auto) or `--breezing` |
 | **Codex** | [`references/codex-work.md`](${CLAUDE_SKILL_DIR}/references/codex-work.md) | `--codex` explicit only |
+| **Ralph** | `harness-ralph-loop` skill | Task has `[ralph]` marker — pre-dispatch, any mode |
+
+> **`[ralph]` marker pre-dispatch rule**: Before any standard worker dispatch (solo or breezing),
+> harness-work checks the task description for the `[ralph]` marker. If present, it delegates to
+> `harness-ralph-loop` instead of the standard worker flow. Ralph tasks serialize within a session
+> (only one Ralph loop runs at a time). See [`references/solo-mode.md`](${CLAUDE_SKILL_DIR}/references/solo-mode.md)
+> and [`references/breezing-mode.md`](${CLAUDE_SKILL_DIR}/references/breezing-mode.md) for dispatch details.
 
 ## Worker Contracts
 

@@ -62,6 +62,20 @@ for task in execution_order:
     contract_path = bash("${CLAUDE_SKILL_DIR}/../../scripts/enrich-sprint-contract.sh {contract_path} --check \"Verify DoD from reviewer perspective\" --approve")  # pseudocode — plugin-local
     bash("${CLAUDE_SKILL_DIR}/../../scripts/ensure-sprint-contract-ready.sh {contract_path}")  # pseudocode — plugin-local
 
+    # B-2 (NEW): [ralph] marker check — pre-dispatch, before standard worker spawn
+    # If the task description contains "[ralph]", delegate to harness-ralph-loop instead.
+    # Ralph tasks serialize within a session (only one Ralph loop runs at a time).
+    if "[ralph]" in task.description:
+        Plans.md: task.status = "cc:WIP"
+        ralph_result = Skill(name="harness-ralph-loop", args=task.id)
+        # ralph_result terminal state determines Plans.md update:
+        #   - SUCCESS         → cc:done [hash]   (already written by harness-ralph-loop orchestrator)
+        #   - FT-RALPH-01     → blocked (ralph stuck — no progress across iterations)
+        #   - FT-RALPH-02     → blocked (verify mismatch — promise/verify disagreement)
+        #   - FT-RALPH-03     → blocked (max-iter exhausted without success)
+        # All Plans.md updates are handled by harness-ralph-loop itself; Lead skips B-2.5 through B-5.
+        continue  # Skip the standard worker/reviewer loop for this task
+
     # B-2. Worker spawn (foreground, worktree isolation)
     # Agent tool return value contains agentId — used for SendMessage in fix loop
     Plans.md: task.status = "cc:WIP"  # Update on start (unstarted tasks remain cc:TODO)

@@ -37,7 +37,24 @@ This check is intentionally lightweight — it only inspects commit messages, no
    - On `PLAN`: proceed with suggested approach
    - On `CORRECTION`: apply correction before starting
    - On `STOP`: escalate to user immediately
-2. Update task to `cc:WIP`
+2. **`[ralph]` marker pre-dispatch check**: If the task description contains `[ralph]`, delegate to
+   `harness-ralph-loop` instead of the standard solo flow:
+   ```
+   # [ralph] pre-dispatch (solo mode)
+   if "[ralph]" in task.description:
+       Plans.md: task.status = "cc:WIP"
+       ralph_result = Skill(name="harness-ralph-loop", args=task.id)
+       # ralph_result terminal state determines Plans.md update:
+       #   - SUCCESS         → cc:done [hash]   (already written by harness-ralph-loop orchestrator)
+       #   - FT-RALPH-01     → blocked (ralph stuck — no progress across iterations)
+       #   - FT-RALPH-02     → blocked (verify mismatch — promise/verify disagreement)
+       #   - FT-RALPH-03     → blocked (max-iter exhausted without success)
+       # All Plans.md updates are handled by harness-ralph-loop itself; skip steps 3–13.
+       return ralph_result
+   ```
+   Ralph tasks serialize within a session (only one Ralph loop runs at a time). If the task does NOT
+   have `[ralph]`, continue with the standard solo flow below.
+2.5. Update task to `cc:WIP`
 3. **TDD Phase** (when `[skip:tdd]` is absent & test framework exists):
    a. Create test file first (Red)
    b. Confirm failure
