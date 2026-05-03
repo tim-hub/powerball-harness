@@ -456,14 +456,14 @@ echo "----------------------------------------"
 #   - Go source: intentionally parses both legacy prefixes for backward compat
 #   - .claude/memory/archive/, .claude/plans/: frozen historical artifacts
 #   - harness/skills/harness-release/scripts/check-residue.py: residue scanner has known historical names
-#   - CHANGELOG entries for v5.0.3 and earlier: historical record of the rename
+#   - CHANGELOG.md: historical record of renames + Before/After migration docs; documentation, not runtime code
 #   - .claude/state/skills-decision.json: ephemeral session-state entries
 #   - docs/spikes/plugin-name-cleanup-inventory.md: inventory documentation
 PREFIX_PATTERN='(claude-code-harness|powerball-harness):(worker|reviewer|advisor|scaffolder|ralph-worker)'
 PREFIX_VIOLATIONS=$(grep -rn -E "$PREFIX_PATTERN" \
     --include="*.md" --include="*.json" --include="*.toml" --include="*.yaml" \
     "$HARNESS_ROOT/.." 2>/dev/null \
-    | grep -v "/\.claude/memory/archive/\|/\.claude/plans/\|/check-residue.py\|/\.claude/state/skills-decision\.json\|/docs/spikes/plugin-name-cleanup-inventory\.md\|^.*CHANGELOG\.md.*\[5\.0\.[0-3]\]" \
+    | grep -v "/\.claude/memory/archive/\|/\.claude/plans/\|/check-residue.py\|/\.claude/state/skills-decision\.json\|/docs/spikes/plugin-name-cleanup-inventory\.md\|/CHANGELOG\.md" \
     || true)
 
 # Slash-command form check
