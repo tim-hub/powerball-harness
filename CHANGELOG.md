@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.0.2...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.0.3...HEAD
+[5.0.3]: https://github.com/tim-hub/powerball-harness/compare/v5.0.2...v5.0.3
 [5.0.2]: https://github.com/tim-hub/powerball-harness/compare/v5.0.1...v5.0.2
 [5.0.1]: https://github.com/tim-hub/powerball-harness/compare/v5.0.0...v5.0.1
 [5.0.0]: https://github.com/tim-hub/powerball-harness/compare/v4.14.4...v5.0.0
@@ -42,6 +43,16 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.0.3] - 2026-05-03
+
+### Theme: `harness-work` skill split into routing index + references/ + templates/ (no behavior change)
+
+**`harness-work/SKILL.md` shrinks from 668 → 154 lines. All content extracted to 9 reference files, 2 templates, and explicit cross-reference links in the breezing skill.**
+
+---
 
 ### Changed (no behavior change)
 
