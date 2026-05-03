@@ -68,6 +68,14 @@ Lead (Execute skill's --breezing mode) - orchestration only
 | **Responsibilities** | Implementation -> preflight self-check -> CI verification -> worktree commit (does not reflect to main in Breezing mode) |
 | **Error recovery** | Up to 3 times. Escalation after 3 failures |
 
+### Ralph-Worker
+
+| Item | Setting |
+|------|------|
+| **subagent_type** | `powerball-harness:ralph-worker` |
+| **Description** | Single-iteration worker for Ralph loop orchestration — reads prior worktree attempts, implements changes, runs verify command, emits <promise> when DoD met. |
+| **Reference** | `harness/agents/ralph-worker.md` |
+
 ### Advisor
 
 | Item | Setting |
