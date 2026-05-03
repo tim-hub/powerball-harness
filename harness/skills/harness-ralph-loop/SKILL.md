@@ -1,9 +1,9 @@
 ---
 name: harness-ralph-loop
-description: "Iterates a fresh ralph-worker subagent per attempt in a persistent worktree until <promise> tag and verify command both confirm success. Use when running [ralph]-marked tasks, iterate-until-pass loops, or stub-fail mode tests."
+description: "Iterates a fresh ralph-worker subagent per attempt in a persistent worktree until <promise> tag and verify command both confirm success. Use when running [ralph]-marked tasks or iterate-until-pass loops."
 when_to_use: "ralph task, loop until pass, iterate until tests pass, ralph mode, run ralph loop, [ralph] task"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Task", "Skill"]
-argument-hint: "[task-id|help|--max-iter N|--verify CMD|--stub-fail|--stub-stuck|--stub-mismatch]"
+argument-hint: "[task-id|help|--max-iter N|--verify CMD]"
 model: sonnet
 effort: high
 ---
@@ -22,9 +22,6 @@ runs the Verify command authoritatively, and loops until both the `<promise>` te
 | `<task-id>` | Run the loop for a Plans.md task that has `[ralph]` marker |
 | `--max-iter N` | Override MaxIter (default: 10) |
 | `--verify CMD` | Override the Verify command from the task |
-| `--stub-fail` | Test mode: stub a failing verify (smoke test for FT-RALPH-03) |
-| `--stub-stuck` | Test mode: stub a zero-change worker (smoke test for FT-RALPH-01) |
-| `--stub-mismatch` | Test mode: stub a verify-mismatch worker (smoke test for FT-RALPH-02) |
 
 ## Execution Flow
 

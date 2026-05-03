@@ -69,7 +69,7 @@ harness/skills/harness-ralph-loop/
 
 **Before**: Plans.md tasks couldn't be flagged as Ralph-suitable. There was no marker, no auto-detection of iterate-until-pass keywords, and no per-task `Verify:` or `MaxIter:` fields.
 
-**After**: `harness-plan create` detects keywords like "until tests pass", "iterate until X", "fix until passing", "loop until clean" and applies the new `[ralph]` marker. When `[ralph]` is applied, the Verify command is auto-inferred from project type (`package.json`→`npm test`, `pyproject.toml`→`pytest`, `Cargo.toml`→`cargo test ./...`, `go.mod`→`go test ./...`). New per-task lines `Verify:` (required) and `MaxIter:` (optional, default 10) appear below the task row. Format is documented in `harness/skills/harness-plan/references/ralph-tasks.md`.
+**After**: `harness-plan create` detects keywords like "until tests pass", "iterate until X", "fix until passing", "loop until clean" and applies the new `[ralph]` marker. When `[ralph]` is applied, the Verify command is auto-inferred from project type (`package.json`→`npm test`, `pyproject.toml`→`pytest`, `Cargo.toml`→`cargo test`, `go.mod`→`go test ./...`). New per-task lines `Verify:` (required) and `MaxIter:` (optional, default 10) appear below the task row. Format is documented in `harness/skills/harness-plan/references/ralph-tasks.md`.
 
 #### 3. `claude-code-harness:ralph-worker` agent + `ralph-worker-report.v1` schema
 
