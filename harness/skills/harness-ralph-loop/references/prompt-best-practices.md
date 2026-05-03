@@ -114,18 +114,13 @@ does — converging faster with fewer wasted iterations.
 Even well-written prompts can hit edge cases where progress stalls. Always provide
 two layers of escape-hatch protection.
 
-**Layer 1: MaxIter safety net in Plans.md task block**
+**Layer 1: `MaxIter` safety net in the task block**
 
-Always set `MaxIter:` explicitly in the task:
+Set `MaxIter:` explicitly when the default is wrong for the task — adjust upward for complex
+tasks, downward for simple ones to catch runaway loops early.
 
-```markdown
-| 4.1 | Fix auth module until tests pass [ralph] | All tests pass | 4.0 | cc:TODO |
-Verify: npm test
-MaxIter: 8
-```
-
-Without `MaxIter:`, the default is 10. For complex tasks, adjust upward; for simple tasks,
-lower it to catch runaway loops early.
+For the full task-block format including `Verify:` and `MaxIter:` syntax and the default value,
+see [`when-to-ralph.md` — Plans.md Syntax](${CLAUDE_SKILL_DIR}/references/when-to-ralph.md#plansmd-syntax).
 
 **Layer 2: Escape-hatch instructions in the prompt**
 
