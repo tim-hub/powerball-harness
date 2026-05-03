@@ -182,8 +182,21 @@ Analyze task content
     +-- "style" "format" "lint" -> [skip:tdd]
     +-- "refactor" (no behavior change) -> [skip:tdd]
     +-- "payment" "billing" -> [feature:security]
+    +-- "until tests pass" / "iterate until" / "fix until" / "loop until" / "until clean" -> [ralph]
     +-- other -> no marker (TDD enabled by default)
 ```
+
+When `[ralph]` is applied, also auto-fill the `Verify:` line below the task row using project-type inference:
+
+| Project-type signal | Auto-inferred `Verify:` command |
+|--------------------|---------------------------------|
+| `package.json` present | `npm test` |
+| `pyproject.toml` or `setup.py` present | `pytest` |
+| `Cargo.toml` present | `cargo test ./...` |
+| `go.mod` present | `go test ./...` |
+| None found | `# TODO: set Verify command` |
+
+See [references/ralph-tasks.md](${CLAUDE_SKILL_DIR}/references/ralph-tasks.md) for full `[ralph]` task format including `MaxIter:` defaults and worked example.
 
 ### DoD Auto-Inference Logic
 

@@ -1,0 +1,36 @@
+{
+  "schema": "ralph-worker-report.v1",
+  "task_id": "<task number>",
+  "iteration": 0,
+  "verify": {
+    "command": "<the verify command that was run>",
+    "exit_code": 1,
+    "stderr_tail": "<last ~40 lines of stderr, ANSI-stripped, empty string if none>"
+  },
+  "promise": {
+    "asserted": false,
+    "dod": "<the DoD string verbatim>"
+  },
+  "files_changed": ["<path/relative/to/worktree>"],
+  "summary": "<≤500 char summary of what was attempted this iteration>",
+  "self_review": [
+    {
+      "rule_id": "SR-RALPH-1",
+      "rule": "Verify command was actually run (not skipped) and exit code reflects real outcome",
+      "verified": true,
+      "evidence": "<command output excerpt or 'verify skipped: not applicable'>"
+    },
+    {
+      "rule_id": "SR-RALPH-2",
+      "rule": "Promise tag emitted IFF verify exit_code == 0",
+      "verified": true,
+      "evidence": "<'promise emitted, verify passed' or 'promise not emitted, verify exit N'>"
+    },
+    {
+      "rule_id": "SR-RALPH-3",
+      "rule": "No files modified outside the assigned worktree path",
+      "verified": true,
+      "evidence": "<git diff --stat output or 'no external file changes'>"
+    }
+  ]
+}

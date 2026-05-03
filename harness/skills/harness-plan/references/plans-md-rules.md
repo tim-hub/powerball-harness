@@ -90,6 +90,32 @@ Created: YYYY-MM-DD
 | `pm:confirmed` | PM review confirmed |
 | `blocked` | Blocked — **always add reason in parentheses** |
 
+**Quality markers** (appear inline in the Description column):
+
+| Marker | Meaning |
+|--------|---------|
+| `[needs-spike]` | High Impact × High Risk — spike task required before implementation |
+| `[skip:tdd]` | Skip TDD phase (docs, config, style, trivial changes) |
+| `[feature:security]` | Auth, login, payment tasks — security review required |
+| `[feature:a11y]` | UI/screen/component tasks — accessibility review required |
+| `[bugfix:reproduce-first]` | Bug tasks — must reproduce before fixing |
+| `[ralph]` | Iterative loop task — executed by `harness-ralph-loop` (see below) |
+
+**`[ralph]` tasks — extra per-task lines**:
+
+`[ralph]` tasks require two lines below the task row (not additional columns):
+
+```markdown
+| N.2  | Fix flaky tests until passing [ralph] | All tests pass | N.1 | cc:TODO |
+Verify: npm test
+MaxIter: 15
+```
+
+- `Verify:` (required) — bash command that must exit 0 for the loop to succeed. Auto-inferred from project type if omitted at creation.
+- `MaxIter:` (optional) — max worker iterations. Default: 10.
+
+See [references/ralph-tasks.md](${CLAUDE_SKILL_DIR}/references/ralph-tasks.md) for full format and serialization rules.
+
 ### Archive footer (required, always last)
 
 ```markdown

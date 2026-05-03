@@ -60,6 +60,7 @@ Compact summary. For full semantics (including the `cc:done [hash]` artifact for
 | `cc:done` | Worker completed |
 | `pm:confirmed` | PM review completed |
 | `blocked` | Blocked (reason must always be noted) |
+| `[ralph]` | Iterative loop task — executed by `harness-ralph-loop`; requires `Verify:` line. See [references/ralph-tasks.md](${CLAUDE_SKILL_DIR}/references/ralph-tasks.md) |
 
 ## Optional Briefs / Manifest
 
