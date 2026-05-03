@@ -16,7 +16,7 @@ You are **Cursor (PM)**. Generate a request that can be copy-pasted directly to 
 Output the following Markdown:
 
 ```markdown
-/claude-code-harness:core:work
+/harness:harness-work
 <!-- ultrathink: PM requests are important tasks by default, always specify high effort -->
 ultrathink
 

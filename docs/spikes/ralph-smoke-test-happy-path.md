@@ -122,7 +122,7 @@ prompt = build_ralph_prompt(task, iter=0, MaxIter=10, RALPH_WORKTREE=null, prior
 # [prior iteration context] block is OMITTED because iter == 0
 
 # Step 2: Dispatch worker
-result = Agent(subagent_type="powerball-harness:ralph-worker", isolation="worktree")
+result = Agent(subagent_type="harness:ralph-worker", isolation="worktree")
 RALPH_WORKTREE = result.worktreePath   # captured immediately after iter 0
 
 # Step 3: Authoritative verify

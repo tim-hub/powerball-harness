@@ -53,12 +53,12 @@ All Advisor settings live under the `advisor:` block in `harness/.claude-code-ha
 ```
 Lead (harness-work --breezing)
   |
-  +-- Worker (powerball-harness:worker)  ──consults──>  Advisor (powerball-harness:advisor)
+  +-- Worker (harness:worker)  ──consults──>  Advisor (harness:advisor)
   |     | Implementation                                  Read-only guidance
   |     | Preflight self-check                            Returns PLAN / CORRECTION / STOP
   |     + Worktree commit
   |
-  +-- Reviewer (powerball-harness:reviewer)
+  +-- Reviewer (harness:reviewer)
         Final APPROVE / REQUEST_CHANGES verdict
 ```
 

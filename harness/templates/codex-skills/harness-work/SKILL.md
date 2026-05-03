@@ -143,7 +143,7 @@ This check is intentionally lightweight — it only inspects commit messages, no
    - If confident in the inference: proceed directly to implementation (no flow delay)
    - If not confident: ask the user one question only ("Is this understanding correct?")
 1.6. **Advisor Preflight** (when `advisor.enabled` or `--advisor`):
-   - If task has `<!-- advisor:required -->` marker: consult `powerball-harness:advisor` with `reason_code: high_risk_preflight`
+   - If task has `<!-- advisor:required -->` marker: consult `harness:advisor` with `reason_code: high_risk_preflight`
    - On `PLAN`: proceed with suggested approach
    - On `CORRECTION`: apply correction before starting
    - On `STOP`: escalate to user immediately
@@ -236,7 +236,7 @@ for task in execution_order:
     Plans.md: task.status = "cc:WIP"  # Update on start (unstarted tasks remain cc:TODO)
 
     worker_result = Agent(
-        subagent_type="claude-code-harness:worker",
+        subagent_type="harness:worker",
         prompt="Task: {task.content}\nDoD: {task.DoD}\ncontract_path: {contract_path}\nmode: breezing",
         isolation="worktree",
         run_in_background=false  # Foreground execution → wait for Worker completion

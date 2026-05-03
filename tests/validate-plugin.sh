@@ -447,6 +447,44 @@ else
 fi
 
 echo ""
+echo "13. Plugin name reference convention check"
+echo "----------------------------------------"
+
+# Canonical: plugin name is `harness` (from .claude-plugin/marketplace.json),
+# so subagent refs MUST use `harness:<agent>` and slash commands MUST use `/harness:<skill>`.
+# Allowlist:
+#   - Go source: intentionally parses both legacy prefixes for backward compat
+#   - .claude/memory/archive/, .claude/plans/: frozen historical artifacts
+#   - harness/skills/harness-release/scripts/check-residue.py: residue scanner has known historical names
+#   - CHANGELOG entries for v5.0.3 and earlier: historical record of the rename
+#   - .claude/state/skills-decision.json: ephemeral session-state entries
+#   - docs/spikes/plugin-name-cleanup-inventory.md: inventory documentation
+PREFIX_PATTERN='(claude-code-harness|powerball-harness):(worker|reviewer|advisor|scaffolder|ralph-worker)'
+PREFIX_VIOLATIONS=$(grep -rn -E "$PREFIX_PATTERN" \
+    --include="*.md" --include="*.json" --include="*.toml" --include="*.yaml" \
+    "$HARNESS_ROOT/.." 2>/dev/null \
+    | grep -v "/\.claude/memory/archive/\|/\.claude/plans/\|/check-residue.py\|/\.claude/state/skills-decision\.json\|/docs/spikes/plugin-name-cleanup-inventory\.md\|^.*CHANGELOG\.md.*\[5\.0\.[0-3]\]" \
+    || true)
+
+# Slash-command form check
+SLASH_VIOLATIONS=$(grep -rn "/claude-code-harness:core:" \
+    --include="*.md" "$HARNESS_ROOT/templates/" 2>/dev/null || true)
+
+if [ -z "$PREFIX_VIOLATIONS" ] && [ -z "$SLASH_VIOLATIONS" ]; then
+    pass_test "Plugin name references use canonical 'harness:' prefix"
+else
+    if [ -n "$PREFIX_VIOLATIONS" ]; then
+        echo "Wrong subagent prefix found (canonical is 'harness:<agent>'):"
+        echo "$PREFIX_VIOLATIONS"
+    fi
+    if [ -n "$SLASH_VIOLATIONS" ]; then
+        echo "Obsolete slash-command form found (canonical is '/harness:<skill-name>'):"
+        echo "$SLASH_VIOLATIONS"
+    fi
+    fail_test "Plugin name references must use 'harness:<agent>' / '/harness:<skill>' form"
+fi
+
+echo ""
 echo "=========================================="
 echo "Test Results Summary"
 echo "=========================================="

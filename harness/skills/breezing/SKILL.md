@@ -61,8 +61,8 @@ user-invocable: true
 | Role | Agent Type | Mode | Responsibility |
 |------|-----------|------|----------------|
 | Lead | (self) | - | Coordination, command, task distribution |
-| Worker xN | `claude-code-harness:worker` | `bypassPermissions` (current) / Auto Mode (follow-up)* | Implementation |
-| Reviewer | `claude-code-harness:reviewer` | `bypassPermissions` (current) / Auto Mode (follow-up)* | Independent review |
+| Worker xN | `harness:worker` | `bypassPermissions` (current) / Auto Mode (follow-up)* | Implementation |
+| Reviewer | `harness:reviewer` | `bypassPermissions` (current) / Auto Mode (follow-up)* | Independent review |
 
 > *If the parent session or frontmatter specifies `bypassPermissions`, that takes precedence. The distributed template currently uses `bypassPermissions`, so Auto Mode is a follow-up rollout target and not the default behavior.
 

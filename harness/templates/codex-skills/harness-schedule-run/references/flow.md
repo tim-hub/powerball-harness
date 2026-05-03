@@ -148,15 +148,15 @@ Re-inject the following via `harness-mem resume-pack`:
 
 ### Step 5: Execute 1 Task Cycle
 
-Spawn `claude-code-harness:worker` via the Agent tool:
+Spawn `harness:worker` via the Agent tool:
 
-> **Important**: Specify `"claude-code-harness:worker"` for `subagent_type`, NOT `"harness-work"`.
+> **Important**: Specify `"harness:worker"` for `subagent_type`, NOT `"harness-work"`.
 > `harness-work` is a skill, not an agent. The actual agents are `worker` / `reviewer` / `scaffolder`.
 > Specifying `"harness-work"` will cause Agent spawn failure, stopping the loop at the first Worker launch.
 
 ```python
 worker_result = Agent(
-    subagent_type="claude-code-harness:worker",  # worker agent (not a skill)
+    subagent_type="harness:worker",  # worker agent (not a skill)
     prompt="""
     Task: ${task_id}
     DoD: <extracted from Plans.md>

@@ -16,7 +16,7 @@ You are **OpenCode (PM)**. Generate a request that can be copy-pasted directly t
 Output the following Markdown:
 
 ```markdown
-/claude-code-harness:core:work
+/harness:harness-work
 <!-- ultrathink: PM requests are important tasks by default, always specify high effort -->
 ultrathink
 

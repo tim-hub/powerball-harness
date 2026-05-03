@@ -58,7 +58,7 @@ In either case, generate a handoff message for Claude Code.
 Approve -> commit instruction -> **stop here**. No automatic transition to the next task.
 
 ~~~markdown
-/claude-code-harness:core:work
+/harness:harness-work
 <!-- ultrathink: PM requests are important tasks by default, always specify high effort -->
 ultrathink
 
@@ -83,7 +83,7 @@ Use the following template only when the user explicitly says "proceed to the ne
 Analyze the next `cc:TODO` or `pm:requested` task from @Plans.md and generate:
 
 ~~~markdown
-/claude-code-harness:core:work
+/harness:harness-work
 ultrathink
 
 ## Request
@@ -119,7 +119,7 @@ After completion, report with `/handoff-to-cursor`.
 Generate a handoff with change instructions:
 
 ~~~markdown
-/claude-code-harness:core:work
+/harness:harness-work
 ultrathink
 
 ## Change Request

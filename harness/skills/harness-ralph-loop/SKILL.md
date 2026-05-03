@@ -11,7 +11,7 @@ effort: high
 # Harness Ralph Loop
 
 Iterative-loop orchestrator for `[ralph]`-marked Plans.md tasks.
-Spawns a fresh `powerball-harness:ralph-worker` subagent per attempt inside a single persistent worktree,
+Spawns a fresh `harness:ralph-worker` subagent per attempt inside a single persistent worktree,
 runs the Verify command authoritatively, and loops until both the `<promise>` text tag and verify exit 0 agree.
 
 ## Quick Reference
@@ -65,4 +65,4 @@ See [`references/when-to-ralph.md`](${CLAUDE_SKILL_DIR}/references/when-to-ralph
 
 - `harness-plan` — Emits `[ralph]` marker + `Verify:` line for suitable tasks
 - `harness-work` — Detects `[ralph]` marker and routes to this skill
-- `powerball-harness:ralph-worker` — The per-iteration worker agent this skill dispatches
+- `harness:ralph-worker` — The per-iteration worker agent this skill dispatches

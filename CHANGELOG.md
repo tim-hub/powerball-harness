@@ -44,6 +44,23 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Fixed: Plugin name reference unification (Phase 90)
+
+**All subagent prefixes and slash-command invocations now use the canonical `harness:` prefix (matching the plugin name in `marketplace.json`).** Prior drift across 24 files used a mix of `claude-code-harness:` (pre-rename leftover) and `powerball-harness:` (repo-name confusion), which Claude Code's `<plugin-name>:<agent-name>` resolution would not match correctly. A new regression-prevention check in `tests/validate-plugin.sh` (Section 13) flags any future occurrence outside the allowlist.
+
+**Before** / **After**:
+
+| Before | After |
+|--------|-------|
+| `claude-code-harness:worker`, `claude-code-harness:reviewer`, etc. | `harness:worker`, `harness:reviewer`, etc. |
+| `powerball-harness:ralph-worker`, `powerball-harness:advisor`, etc. | `harness:ralph-worker`, `harness:advisor`, etc. |
+| `/claude-code-harness:core:work` (obsolete `core:` namespace) | `/harness:harness-work` |
+| 54 wrong-prefix references across 24 files | 0 violations; `validate-plugin.sh` Section 13 enforces the rule |
+
+Allowlist (intentionally preserved): Go source (backward-compat parser), `.claude/memory/archive/`, `.claude/plans/`, `harness/skills/harness-release/scripts/check-residue.py`, CHANGELOG entries for v5.0.3 and earlier.
+
+---
+
 ### Added: Ralph-loop iterative-task execution (Phase 89, partial — implementation only, no release yet)
 
 **`harness-plan` learns to write `[ralph]` tasks; `harness-ralph-loop` is the new orchestrator that drives a fresh `ralph-worker` subagent per attempt against a persistent worktree until both a `<promise>` tag and an authoritative verify command agree on success — or one of three named failure modes halts the loop.**
@@ -54,7 +71,7 @@ Change history for claude-code-harness.
 
 **Before**: harness had no way to express "iterate this task until tests pass" or "fix CI failures until passing." Tasks with self-correcting success criteria still ran as one-shot worker dispatches that would either land the work or escalate. Upstream `/ralph-loop` (the canonical Ralph plugin) couldn't help: its Stop-hook mechanism only fires on the main session, not in subagents.
 
-**After**: A new `harness-ralph-loop` skill orchestrates the loop in subagent space. Iteration 0 spawns a fresh `powerball-harness:ralph-worker` with `isolation="worktree"` to create a persistent worktree; iterations 1..N use `EnterWorktree(path=...)` to re-enter the same worktree so each spawn sees prior attempts on disk (the "self-referential through files" Ralph pattern). After each iteration, the orchestrator runs the verify command authoritatively (anti-tampering against worker self-reports), scans the final assistant message for `<promise>{DoD}</promise>`, and consults the structured `ralph-worker-report.v1` JSON before deciding whether to continue, succeed, or hard-stop.
+**After**: A new `harness-ralph-loop` skill orchestrates the loop in subagent space. Iteration 0 spawns a fresh `harness:ralph-worker` with `isolation="worktree"` to create a persistent worktree; iterations 1..N use `EnterWorktree(path=...)` to re-enter the same worktree so each spawn sees prior attempts on disk (the "self-referential through files" Ralph pattern). After each iteration, the orchestrator runs the verify command authoritatively (anti-tampering against worker self-reports), scans the final assistant message for `<promise>{DoD}</promise>`, and consults the structured `ralph-worker-report.v1` JSON before deciding whether to continue, succeed, or hard-stop.
 
 ```
 harness/skills/harness-ralph-loop/
@@ -71,11 +88,11 @@ harness/skills/harness-ralph-loop/
 
 **After**: `harness-plan create` detects keywords like "until tests pass", "iterate until X", "fix until passing", "loop until clean" and applies the new `[ralph]` marker. When `[ralph]` is applied, the Verify command is auto-inferred from project type (`package.json`→`npm test`, `pyproject.toml`→`pytest`, `Cargo.toml`→`cargo test`, `go.mod`→`go test ./...`). New per-task lines `Verify:` (required) and `MaxIter:` (optional, default 10) appear below the task row. Format is documented in `harness/skills/harness-plan/references/ralph-tasks.md`.
 
-#### 3. `powerball-harness:ralph-worker` agent + `ralph-worker-report.v1` schema
+#### 3. `harness:ralph-worker` agent + `ralph-worker-report.v1` schema
 
 **Before**: The existing `worker` agent's frontmatter hard-coded `isolation: worktree` (forcing a fresh worktree per spawn — incompatible with Ralph's persistent-worktree pattern), its initialPrompt baked in TDD ceremony, and its SR-5 self-review rule (commit self-contained, no debug artifacts) actively conflicted with Ralph's scratchpad-file pattern.
 
-**After**: A sibling `powerball-harness:ralph-worker` agent is added with no `isolation: worktree` in frontmatter (orchestrator owns the worktree), a Ralph-specific initialPrompt (read prior attempts → implement → run verify → emit `<promise>` only if exit 0), and a new `ralph-worker-report.v1` schema with `iteration`, `verify {command, exit_code, stderr_tail}`, `promise {asserted, dod}`, `files_changed`, `summary`, plus three SR-RALPH-* rules.
+**After**: A sibling `harness:ralph-worker` agent is added with no `isolation: worktree` in frontmatter (orchestrator owns the worktree), a Ralph-specific initialPrompt (read prior attempts → implement → run verify → emit `<promise>` only if exit 0), and a new `ralph-worker-report.v1` schema with `iteration`, `verify {command, exit_code, stderr_tail}`, `promise {asserted, dod}`, `files_changed`, `summary`, plus three SR-RALPH-* rules.
 
 #### 4. `harness-work` `[ralph]` delegation
 
@@ -2847,9 +2864,9 @@ Detail sections also added to `docs/CLAUDE-feature-table.md`.
 
 #### 1. Agent definition unification
 
-**Before**: Worker and Reviewer agent type names varied across files. `breezing/SKILL.md` used `general-purpose` while `team-composition.md` used `claude-code-harness:worker`, preventing per-agent hooks (agent type-specific guardrails) from firing correctly.
+**Before**: Worker and Reviewer agent type names varied across files. `breezing/SKILL.md` used `general-purpose` while `team-composition.md` used `harness:worker`, preventing per-agent hooks (agent type-specific guardrails) from firing correctly.
 
-**After**: Unified to `claude-code-harness:worker` / `claude-code-harness:reviewer` across all files. Worker-specific PreToolUse guards (Write/Edit checks) and Reviewer-specific Stop logs (completion records) now apply reliably.
+**After**: Unified to `harness:worker` / `harness:reviewer` across all files. Worker-specific PreToolUse guards (Write/Edit checks) and Reviewer-specific Stop logs (completion records) now apply reliably.
 
 #### 2. Auto Mode preparation (`--auto-mode`)
 

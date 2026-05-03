@@ -13,17 +13,17 @@ Consolidated from 11 agents to 3 agents, with Advisor added as a lateral consult
 ```
 Lead (Execute skill's --breezing mode) - orchestration only
   |
-  +-- Worker (powerball-harness:worker)  ──consults──>  Advisor (powerball-harness:advisor)
+  +-- Worker (harness:worker)  ──consults──>  Advisor (harness:advisor)
   |     Implementation + preflight                       Read-only, opus model
   |     self-check + build verification                  Returns PLAN | CORRECTION | STOP
   |     + commit preparation                             Invoked on-demand by Worker
   |     * In --codex mode, delegates
   |       to Codex via official plugin
   |
-  +-- [Worker #2] (powerball-harness:worker)
+  +-- [Worker #2] (harness:worker)
   |     Parallel execution of independent tasks
   |
-  +-- Reviewer (powerball-harness:reviewer)
+  +-- Reviewer (harness:reviewer)
         Independent verdict across static / runtime / browser
         REQUEST_CHANGES -> Lead creates fix tasks
 ```
@@ -60,7 +60,7 @@ Lead (Execute skill's --breezing mode) - orchestration only
 
 | Item | Setting |
 |------|------|
-| **subagent_type** | `powerball-harness:worker` |
+| **subagent_type** | `harness:worker` |
 | **Model** | sonnet |
 | **Count** | 1-3 (based on number of independent tasks) |
 | **Tools** | Read, Write, Edit, Bash, Grep, Glob |
@@ -72,7 +72,7 @@ Lead (Execute skill's --breezing mode) - orchestration only
 
 | Item | Setting |
 |------|------|
-| **subagent_type** | `powerball-harness:ralph-worker` |
+| **subagent_type** | `harness:ralph-worker` |
 | **Description** | Single-iteration worker for Ralph loop orchestration — reads prior worktree attempts, implements changes, runs verify command, emits <promise> when DoD met. |
 | **Reference** | `harness/agents/ralph-worker.md` |
 
@@ -80,7 +80,7 @@ Lead (Execute skill's --breezing mode) - orchestration only
 
 | Item | Setting |
 |------|------|
-| **subagent_type** | `powerball-harness:advisor` |
+| **subagent_type** | `harness:advisor` |
 | **Model** | opus |
 | **Tools** | Read, Grep, Glob only (read-only) |
 | **Prohibited** | Write, Edit, Bash, Task, Agent |
@@ -92,7 +92,7 @@ Lead (Execute skill's --breezing mode) - orchestration only
 
 | Item | Setting |
 |------|------|
-| **subagent_type** | `powerball-harness:reviewer` |
+| **subagent_type** | `harness:reviewer` |
 | **Model** | sonnet |
 | **Count** | 1 |
 | **Tools** | Read, Grep, Glob (default for static profile) |
@@ -116,7 +116,7 @@ and regenerate the few-shot bank.
 
 | Item | Setting |
 |------|------|
-| **subagent_type** | `powerball-harness:scaffolder` |
+| **subagent_type** | `harness:scaffolder` |
 | **Model** | sonnet |
 | **Count** | 1 |
 | **Tools** | Read, Write, Edit, Bash, Grep, Glob |

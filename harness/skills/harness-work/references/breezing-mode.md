@@ -85,7 +85,7 @@ for task in execution_order:
         violation_preamble = "Universal violations from prior tasks in this session — do NOT repeat these:\n" + "\n".join(f"- {v}" for v in universal_violations) + "\n\n"
 
     worker_result = Agent(
-        subagent_type="claude-code-harness:worker",
+        subagent_type="harness:worker",
         prompt=f"{violation_preamble}Task: {task.content}\nDoD: {task.DoD}\ncontract_path: {contract_path}\nmode: breezing",
         isolation="worktree",
         run_in_background=false  # Foreground execution → wait for Worker completion

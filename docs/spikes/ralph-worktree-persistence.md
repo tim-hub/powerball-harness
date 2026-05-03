@@ -63,7 +63,7 @@ for iter in range(0, MaxIter):
     if iter == 0:
         # First iteration: create the persistent worktree
         result = Agent(
-            subagent_type="powerball-harness:ralph-worker",
+            subagent_type="harness:ralph-worker",
             prompt=prompt,
             isolation="worktree"           # ← creates the worktree
         )
@@ -73,7 +73,7 @@ for iter in range(0, MaxIter):
         ToolSearch(query="select:EnterWorktree")   # ← load schema before first call
         EnterWorktree(path=RALPH_WORKTREE)         # ← enter existing worktree
         result = Agent(
-            subagent_type="powerball-harness:ralph-worker",
+            subagent_type="harness:ralph-worker",
             prompt=prompt
             # isolation NOT passed — worker inherits current CWD (the worktree)
         )

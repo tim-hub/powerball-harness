@@ -186,7 +186,7 @@ When a PostToolUse hook warning includes a `taxonomy_ids` JSON field (e.g. `{"ta
 ### Consultation Flow
 
 1. Check `advisor.enabled` in `harness/.claude-code-harness.config.yaml`
-2. If enabled, invoke `powerball-harness:advisor` subagent with: `task_id`, `reason_code`, normalized `error_signature`, `retry_count`, and `taxonomy_id` if available from hook output
+2. If enabled, invoke `harness:advisor` subagent with: `task_id`, `reason_code`, normalized `error_signature`, `retry_count`, and `taxonomy_id` if available from hook output
 3. Parse response `decision` field:
    - **`PLAN`** — adopt the `suggested_approach` and replan; continue execution
    - **`CORRECTION`** — apply the provided fix directly; continue execution
