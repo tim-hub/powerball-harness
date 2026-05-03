@@ -37,6 +37,7 @@ Auto-inferred from project type when not explicitly specified by the user:
 |--------------------|---------------------------------|
 | `package.json` present | `npm test` |
 | `pyproject.toml` or `setup.py` present | `pytest` |
+| `Cargo.toml` present | `cargo test` |
 | `go.mod` present | `go test ./...` |
 | None of the above found | `# TODO: set Verify command` |
 
