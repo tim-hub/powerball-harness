@@ -1,6 +1,6 @@
 ---
 name: scaffolder
-description: "Use when analyzing a project, scaffolding initial structure, or updating Harness project state. Do NOT load for: implementation (worker), review (reviewer)."
+description: "Use when analyzing a project, scaffolding initial structure, or updating Harness project state."
 tools: [Read, Write, Edit, Bash, Grep, Glob]
 disallowedTools: [Agent]
 model: sonnet  # needs code comprehension for project analysis and state updates

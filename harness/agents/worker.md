@@ -1,6 +1,6 @@
 ---
 name: worker
-description: "Use when implementing tasks in breezing/parallel mode — TDD, implementation, preflight self-check, and worktree commit. Do NOT load for: review (reviewer), planning, or CI diagnosis."
+description: "Use when implementing tasks in breezing/parallel mode — TDD, implementation, preflight self-check, and worktree commit."
 tools: [Read, Write, Edit, Bash, Grep, Glob]
 disallowedTools: [Agent]
 model: sonnet  # balanced capability/cost for implementation; haiku lacks depth for complex tasks

@@ -874,7 +874,7 @@ permissionMode: bypassPermissions  # added
 ### Agent Teams official best practices (v2.1.72+)
 
 Claude Code official `agent-teams.md` established as independent documentation.
-Reflected in Harness's `agents/team-composition.md`:
+Reflected in Harness's `skills/breezing/references/team-composition.md`:
 
 1. **Task granularity guideline**: 5-6 tasks/teammate recommended
 2. **`teammateMode` setting**: Official support for `"auto"` / `"in-process"` / `"tmux"`
