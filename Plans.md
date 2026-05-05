@@ -1,6 +1,6 @@
 # Powerball Harness — Plans.md
 
-Last release: v5.0.2 on 2026-05-03 (R06 force-push false-positive fix)
+Last release: v5.1.3 on 2026-05-05 (Fix root-path resolution and bare script paths)
 
 ---
 
