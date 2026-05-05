@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.1.2...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.1.3...HEAD
+[5.1.3]: https://github.com/tim-hub/powerball-harness/compare/v5.1.2...v5.1.3
 [5.1.2]: https://github.com/tim-hub/powerball-harness/compare/v5.1.1...v5.1.2
 [5.1.1]: https://github.com/tim-hub/powerball-harness/compare/v5.1.0...v5.1.1
 [5.1.0]: https://github.com/tim-hub/powerball-harness/compare/v5.0.3...v5.1.0
@@ -46,6 +47,34 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.1.3] - 2026-05-05
+
+### Theme: Fix root-path resolution and bare script paths in skills and hook handlers
+
+**Three hotfixes that make Harness scripts work correctly regardless of CWD or plugin install location.**
+
+---
+
+#### 1. Bare `bash harness/scripts/` paths replaced with `${CLAUDE_PLUGIN_ROOT}`
+
+**Before**: 11 skill and reference files used `bash harness/scripts/SCRIPT.sh`. This only worked when Claude's CWD was the repo root — it broke silently in marketplace-installed environments where the plugin was at an arbitrary path.
+
+**After**: All occurrences replaced with `bash "${CLAUDE_PLUGIN_ROOT}/scripts/SCRIPT.sh"`, which resolves correctly in both local-clone and marketplace-installed contexts.
+
+#### 2. `sync-plugin-cache.sh` REPO_ROOT used parent-traversal instead of `git rev-parse`
+
+**Before**: `REPO_ROOT="$(cd "$PLUGIN_ROOT/.." && pwd)"` assumed the plugin was installed one level below the repo root — a layout assumption that breaks when the plugin is installed to `~/.claude/plugins/`.
+
+**After**: `REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"` anchors resolution to the script's own directory regardless of install layout.
+
+#### 3. `breezing-signal-injector.sh` PROJECT_ROOT used parent-traversal
+
+**Before**: `PROJECT_ROOT` fallback used `cd "${PARENT_DIR}/.."`, which resolved to the `harness/` plugin directory rather than the user's project root, causing signal state to be written to the wrong location.
+
+**After**: Fallback uses `git -C "${SCRIPT_DIR}" rev-parse --show-toplevel 2>/dev/null || pwd`, matching the pattern used in all other Harness hook handlers.
 
 ---
 
