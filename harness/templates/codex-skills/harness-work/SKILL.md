@@ -72,7 +72,7 @@ the optimal mode is automatically selected based on the number of target tasks:
 
 ## Scope Dialog (when no arguments provided)
 
-> **Note**: A lightweight drift check (`bash harness/scripts/plans-drift-check.sh`) runs before the scope dialog regardless of which option the user chooses. If stale markers are detected, the dialog is preceded by a drift summary and a confirmation prompt.
+> **Note**: A lightweight drift check (`bash "${CLAUDE_PLUGIN_ROOT}/scripts/plans-drift-check.sh"`) runs before the scope dialog regardless of which option the user chooses. If stale markers are detected, the dialog is preceded by a drift summary and a confirmation prompt.
 
 ```
 harness-work
@@ -119,7 +119,7 @@ The same logic applies in breezing mode (managed centrally by harness-work).
 Before selecting execution mode, run a lightweight sync pass to catch stale Plans.md markers:
 
 ```bash
-bash harness/scripts/plans-drift-check.sh
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/plans-drift-check.sh"
 ```
 
 - **Exit 0** (no stale markers): proceed immediately to Step 1
@@ -206,7 +206,7 @@ Lead (this agent)
 **Phase A: Pre-delegate (Preparation)**:
 0. **Entry-point drift check** — run before dependency analysis:
    ```bash
-   bash harness/scripts/plans-drift-check.sh
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/plans-drift-check.sh"
    ```
    - Exit 0: proceed to step 1
    - Exit 1: display drift report and prompt "Stale markers detected. Proceed anyway? (y/N)". Stop if user declines.

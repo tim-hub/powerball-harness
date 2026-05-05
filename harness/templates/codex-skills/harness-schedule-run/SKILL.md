@@ -67,15 +67,15 @@ wake-up
   ▼
 [Step 2] Check sprint-contract existence & generate
   Check .claude/state/contracts/${task_id}.sprint-contract.json
-  If absent: node harness/scripts/generate-sprint-contract.js ${task_id}
-  On first generation: bash harness/scripts/enrich-sprint-contract.sh <contract-path> \
+  If absent: node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-sprint-contract.js" ${task_id}
+  On first generation: bash "${CLAUDE_PLUGIN_ROOT}/scripts/enrich-sprint-contract.sh" <contract-path> \
     --check "auto-approve (harness-schedule-run — confirm DoD from reviewer perspective)" \
     --approve  ← draft → approved
   (Existing contracts already approved — skip)
   │
   ▼
 [Step 3] Contract readiness check
-  bash harness/scripts/ensure-sprint-contract-ready.sh <contract-path>
+  bash "${CLAUDE_PLUGIN_ROOT}/scripts/ensure-sprint-contract-ready.sh" <contract-path>
   │
   ▼
 [Step 4] Resume pack reload
@@ -105,7 +105,7 @@ wake-up
   │
   ▼
 [Step 6] Plateau detection
-  bash harness/scripts/detect-review-plateau.sh ${current_task_id}
+  bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-review-plateau.sh" ${current_task_id}
   │
   ├── PIVOT_REQUIRED (exit 2)   → loop stop + user escalation (advisor called if enabled)
   ├── INSUFFICIENT_DATA (exit 1) → continue
@@ -175,7 +175,7 @@ When advisor consultation is enabled (default: on, disable with `--no-advisor`),
 
 **Script call**:
 ```bash
-bash harness/scripts/run-advisor-consultation.sh \
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-advisor-consultation.sh" \
   --reason-code high_risk_preflight \
   --task-id "${task_id}"
 ```
@@ -190,7 +190,7 @@ bash harness/scripts/run-advisor-consultation.sh \
 
 **Script call**:
 ```bash
-bash harness/scripts/run-advisor-consultation.sh \
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-advisor-consultation.sh" \
   --reason-code plateau_before_escalation \
   --task-id "${task_id}"
 ```
@@ -205,7 +205,7 @@ bash harness/scripts/run-advisor-consultation.sh \
 
 **Script call**:
 ```bash
-bash harness/scripts/run-advisor-consultation.sh \
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-advisor-consultation.sh" \
   --reason-code pre_user_escalation \
   --task-id "${task_id}"
 ```

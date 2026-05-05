@@ -89,20 +89,20 @@ CONTRACT_PATH=".claude/state/contracts/${task_id}.sprint-contract.json"
 
 if [ ! -f "${CONTRACT_PATH}" ]; then
     # Contract not yet generated → generate it
-    node harness/scripts/generate-sprint-contract.js "${task_id}"
+    node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-sprint-contract.js" "${task_id}"
 
     # Step 2.5: Promote draft → approved (first generation only)
     # generate-sprint-contract.js initializes review.status == "draft"
     # ensure-sprint-contract-ready.sh (next step) requires "approved"
     # so we must promote before calling it
-    bash harness/scripts/enrich-sprint-contract.sh "${CONTRACT_PATH}" \
+    bash "${CLAUDE_PLUGIN_ROOT}/scripts/enrich-sprint-contract.sh" "${CONTRACT_PATH}" \
       --check "auto-approve (harness-schedule-run — confirm DoD from reviewer perspective)" \
       --approve
 fi
 ```
 
 - Check `.claude/state/contracts/${task_id}.sprint-contract.json` for existence
-- If absent: generate with `node harness/scripts/generate-sprint-contract.js ${task_id}`
+- If absent: generate with `node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-sprint-contract.js" ${task_id}`
 - **On first generation only**: promote `draft` → `approved` via `enrich-sprint-contract.sh --approve`
   - `generate-sprint-contract.js` initializes `review.status == "draft"`
   - `ensure-sprint-contract-ready.sh` (Step 3) only accepts `approved`
@@ -112,7 +112,7 @@ fi
 ### Step 3: Contract Readiness Check
 
 ```bash
-bash harness/scripts/ensure-sprint-contract-ready.sh "${CONTRACT_PATH}"
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/ensure-sprint-contract-ready.sh" "${CONTRACT_PATH}"
 ```
 
 - Verifies sprint-contract `review.status == "approved"`
@@ -198,13 +198,13 @@ WORKER_PATH="${worker_result.worktreePath:-}"
 
 if [ -n "${WORKER_PATH}" ] && [ "${WORKER_PATH}" != "${MAIN_REPO_ROOT}" ]; then
     # Run review inside Worker's worktree → see actual diff of Worker feature branch
-    ( cd "${WORKER_PATH}" && bash harness/scripts/codex-companion.sh review --base "${BASE_REF}" )
+    ( cd "${WORKER_PATH}" && bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.sh" review --base "${BASE_REF}" )
     REVIEW_EXIT=$?
     # review-output.json is created in Worker worktree dir — manage as absolute path
     REVIEW_OUTPUT_PATH="${WORKER_PATH}/review-output.json"
 else
     # Fallback: run from Lead dir (when worktree isolation is not available)
-    bash harness/scripts/codex-companion.sh review --base "${BASE_REF}"
+    bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.sh" review --base "${BASE_REF}"
     REVIEW_EXIT=$?
     REVIEW_OUTPUT_PATH="$(pwd)/review-output.json"
 fi
@@ -224,11 +224,11 @@ case "${REVIEWER_PROFILE}" in
         # Important: stdout of run-contract-review-checks.sh is the artifact FILE PATH (not JSON payload)
         if [ -n "${WORKER_PATH}" ] && [ "${WORKER_PATH}" != "${MAIN_REPO_ROOT}" ]; then
             RUNTIME_ARTIFACT_PATH=$(
-                cd "${WORKER_PATH}" && bash harness/scripts/run-contract-review-checks.sh "${CONTRACT_PATH}" 2>/dev/null
+                cd "${WORKER_PATH}" && bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-contract-review-checks.sh" "${CONTRACT_PATH}" 2>/dev/null
             ) || RUNTIME_ARTIFACT_PATH=""
         else
             RUNTIME_ARTIFACT_PATH=$(
-                bash harness/scripts/run-contract-review-checks.sh "${CONTRACT_PATH}" 2>/dev/null
+                bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-contract-review-checks.sh" "${CONTRACT_PATH}" 2>/dev/null
             ) || RUNTIME_ARTIFACT_PATH=""
         fi
 
@@ -271,7 +271,7 @@ case "${REVIEWER_PROFILE}" in
         # Generate artifact for browser reviewer to use later
         # Browser artifact is a PENDING_BROWSER scaffold; actual browser execution is done by reviewer agent
         # review-result verdict remains static (not PENDING_BROWSER)
-        bash harness/scripts/generate-browser-review-artifact.sh "${CONTRACT_PATH}" 2>/dev/null || true
+        bash "${CLAUDE_PLUGIN_ROOT}/scripts/generate-browser-review-artifact.sh" "${CONTRACT_PATH}" 2>/dev/null || true
         EFFECTIVE_VERDICT=""  # → read from REVIEW_OUTPUT_PATH (use static verdict)
         REVIEW_RESULT_INPUT="${REVIEW_OUTPUT_PATH}"
         ;;
@@ -294,7 +294,7 @@ fi
 # Normalize and save review result
 # REVIEW_RESULT_INPUT is runtime artifact path when runtime REQUEST_CHANGES, otherwise REVIEW_OUTPUT_PATH
 # This ensures runtime REQUEST_CHANGES propagates correctly to pretooluse-guard
-bash harness/scripts/write-review-result.sh "${REVIEW_RESULT_INPUT}" "${worker_result.commit}"
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/write-review-result.sh" "${REVIEW_RESULT_INPUT}" "${worker_result.commit}"
 ```
 
 **Verdict determination**:
@@ -377,7 +377,7 @@ HASH=$(git rev-parse --short HEAD)
 ### Step 6: Plateau Detection
 
 ```bash
-bash harness/scripts/detect-review-plateau.sh ${current_task_id}
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-review-plateau.sh" ${current_task_id}
 PLATEAU_EXIT=$?
 # Note: current_task_id is the task_id identified in Step 1
 ```
@@ -393,7 +393,7 @@ PLATEAU_EXIT=$?
 Before escalating to the user, call the advisor:
 
 ```bash
-bash harness/scripts/run-advisor-consultation.sh \
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-advisor-consultation.sh" \
   --reason-code plateau_before_escalation \
   --task-id "${current_task_id}"
 ```
@@ -422,7 +422,7 @@ Please review the current Plans.md state.
 Before presenting any STOP/failure to the user, call:
 
 ```bash
-bash harness/scripts/run-advisor-consultation.sh \
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-advisor-consultation.sh" \
   --reason-code pre_user_escalation \
   --task-id "${current_task_id}"
 ```

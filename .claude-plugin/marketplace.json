@@ -1,7 +1,8 @@
 {
   "name": "powerball-harness-marketplace",
   "metadata": {
-    "description": "A marketplace for distributing and installing powerball-harness plugins"
+    "description": "A marketplace for distributing and installing powerball-harness plugins",
+    "pluginRoot": "./plugins"
   },
   "owner": {
     "name": "tim-hub",
@@ -30,7 +31,7 @@
       ],
       "category": "productivity",
       "strict": false,
-      "outputStyles": "./output-styles/"
+      "outputStyles": "./harness/output-styles/"
     }
   ]
 }

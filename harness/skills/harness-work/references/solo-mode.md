@@ -9,7 +9,7 @@ Full 13-step single-task implementation flow with drift check, advisor preflight
 Before selecting execution mode, run a lightweight sync pass to catch stale Plans.md markers:
 
 ```bash
-bash harness/scripts/plans-drift-check.sh
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/plans-drift-check.sh"
 ```
 
 - **Exit 0** (no stale markers): proceed immediately to Step 1

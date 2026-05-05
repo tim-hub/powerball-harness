@@ -25,7 +25,7 @@ Lead (this agent)
 **Phase A: Pre-delegate (Preparation)**:
 0. **Entry-point drift check** — run before dependency analysis:
    ```bash
-   bash harness/scripts/plans-drift-check.sh
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/plans-drift-check.sh"
    ```
    - Exit 0: proceed to step 1
    - Exit 1: display drift report and prompt "Stale markers detected. Proceed anyway? (y/N)". Stop if user declines.

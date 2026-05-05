@@ -23,7 +23,7 @@ New phases are inserted **immediately after the `---` header separator**, above 
 ---
 ```
 
-**Never append a new phase at the bottom.** The non-ascending order (highest phase number nearest the top) is enforced by `harness/scripts/plans-format-check.sh`.
+**Never append a new phase at the bottom.** The non-ascending order (highest phase number nearest the top) is enforced by `${CLAUDE_PLUGIN_ROOT}/scripts/plans-format-check.sh`.
 
 ### 2. Non-ascending phase numbers (gaps allowed)
 

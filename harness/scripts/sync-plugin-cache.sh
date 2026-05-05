@@ -10,8 +10,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # PLUGIN_ROOT: the harness/ directory (where scripts, hooks, VERSION live)
 PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
-# REPO_ROOT: the repository root (parent of harness/) — required by `harness sync`
-REPO_ROOT="$(cd "$PLUGIN_ROOT/.." && pwd)"
+# REPO_ROOT: the repository root — required by `harness sync`
+REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 
 # --- Step 1: Run harness sync (Go binary) ---
 # `harness sync` expects the repo root and appends harness/ itself (outputDir="harness").
