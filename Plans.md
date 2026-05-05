@@ -4,6 +4,32 @@ Last release: v5.0.2 on 2026-05-03 (R06 force-push false-positive fix)
 
 ---
 
+## Phase 91: Skill & Agent Simplification (writing-skills review)
+
+Created: 2026-05-05
+
+**Goal**: Apply accepted findings from a `superpowers-extended-cc:writing-skills` review of `harness/`. Reduce on-disk surface area, split heavy reference content out of long SKILL.md files into `references/`, remove a documented rule violation in agent descriptions, retire deprecated content, and consolidate two duplicated SSOTs (versioning rules; principles vs vibecoder-guide). All changes are documentation-level — no runtime behavior change.
+
+**Source**: writing-skills review run on 2026-05-05; user accepted findings F1–F6, F8, F9, F12 and skipped F7, F10, F11, F14.
+
+**Non-goals**: No edits to `hooks.json` or hook shim scripts (F14 deferred). No frontmatter changes that affect routing — the `description: "Use when …"` rule is being relaxed for both skills and agents per user direction (F7, F10, F11 dropped). No Go code changes.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 91.1 | F6: Remove `Do NOT load for:` clause from 5 agent descriptions: `worker.md`, `reviewer.md`, `scaffolder.md`, `advisor.md`, `ralph-worker.md` [skip:tdd] | `grep -l "Do NOT load for" harness/agents/` returns no matches | - | cc:done |
+| 91.2 | F8: Stub deprecated `harness/agents/error-recovery.md` — replace body with a single deprecation-redirect line pointing to the `worker` agent and `team-composition`; preserve YAML frontmatter [skip:tdd] | `harness/agents/error-recovery.md` is ≤ 15 lines (frontmatter + redirect) and YAML frontmatter still parses | - | cc:done |
+| 91.3 | F9: Move `harness/agents/team-composition.md` to `harness/skills/breezing/references/team-composition.md`; update in-repo links to the new path | `harness/agents/team-composition.md` does not exist AND `harness/skills/breezing/references/team-composition.md` exists AND `grep -rn "agents/team-composition" harness/ docs/ .claude/` returns no matches outside frozen archives | - | cc:done |
+| 91.4 | F12: Merge `harness/skills/principles/` and `harness/skills/vibecoder-guide/` into a single skill — keep `vibecoder-guide`, fold principles' references into its `references/` directory; remove the `<!-- OPEN: ... -->` note left in the surviving SKILL.md [skip:tdd] | `harness/skills/principles/` no longer exists AND `harness/skills/vibecoder-guide/` covers both prior surfaces AND no `<!-- OPEN:` comment remains in the surviving SKILL.md AND `grep -rn "harness:principles" harness/ docs/` matches reflect only the vibecoder-guide skill | - | cc:done |
+| 91.5 | F2: Add `references/` to `harness/skills/session-memory/`; move file-format templates, 3-layer architecture comparison, usage-example dialogues, and memory-optimization sections out of SKILL.md and link via `${CLAUDE_SKILL_DIR}/references/...` [skip:tdd] | `harness/skills/session-memory/SKILL.md` is ≤ 120 lines AND `harness/skills/session-memory/references/` exists with ≥ 2 reference files | - | cc:done |
+| 91.6 | F3: Add `references/` to `harness/skills/harness-sync/`; move Step-1.5 Agent Trace recipes and Step-3+ proposal/snapshot details to references; keep Quick Reference + Step 0–2 inline [skip:tdd] | `harness/skills/harness-sync/SKILL.md` is ≤ 130 lines AND `harness/skills/harness-sync/references/` exists with ≥ 1 reference file | - | cc:done |
+| 91.7 | F4: Trim `harness/skills/harness-schedule-run/SKILL.md`; rely on existing `references/flow.md` for the per-wake-up step walkthrough; keep Quick Reference, Pacing Values, and advisor-flag semantics inline [skip:tdd] | `harness/skills/harness-schedule-run/SKILL.md` is ≤ 130 lines AND there is no duplicated step-by-step content between SKILL.md and `references/flow.md` | - | cc:done |
+| 91.8 | F1: Refactor `harness/skills/harness-review/SKILL.md` — extract Verdict Framework + AI Residuals classification into `references/verdict-framework.md`, the `review-result.v1` JSON schema into `references/result-schema.md`, and Plan Review + Scope Review flows into `references/plan-review.md` and `references/scope-review.md` [skip:tdd] | `harness/skills/harness-review/SKILL.md` is ≤ 150 lines AND all 4 new reference files exist AND existing references (`security-profile.md`, `ui-rubric.md`, `dual-review.md`, `codex-review.md`) are unchanged | - | cc:done |
+| 91.9 | F5: Refactor `harness/skills/harness-release/SKILL.md`; consolidate SemVer rules + batch-release guidance + version-distribution rules into a single SSOT at `harness/skills/harness-release/references/versioning-rules.md`; rewrite `.claude/rules/versioning.md` as a one-line pointer to the new SSOT (or delete and update `CLAUDE.md` link) [skip:tdd] | `harness/skills/harness-release/SKILL.md` is ≤ 170 lines AND `harness/skills/harness-release/references/versioning-rules.md` exists AND `.claude/rules/versioning.md` either does not exist or is ≤ 10 lines pointing to the new SSOT AND `CLAUDE.md` links resolve | - | cc:done |
+| 91.10 | Validate the simplified surface — run `tests/validate-plugin.sh`, `local-scripts/audit-skill-descriptions.sh`, and `harness/skills/release-this/scripts/check-consistency.sh`; resolve any failures introduced by 91.1–91.9 [skip:tdd] | All three scripts exit 0 with the changes from 91.1–91.9 applied | 91.1, 91.2, 91.3, 91.4, 91.5, 91.6, 91.7, 91.8, 91.9 | cc:done |
+| 91.11 | CHANGELOG `[Unreleased]` entry added under "Changed" / "Removed" with Before/After describing: (a) 5 agent descriptions cleaned up, (b) error-recovery agent stubbed, (c) team-composition moved to breezing/references, (d) principles merged into vibecoder-guide, (e) 5 skills split with new references/, (f) versioning rules consolidated into single SSOT [skip:tdd] | grep finds the [Unreleased] entry in `CHANGELOG.md` mentioning all 6 deliverables | 91.10 | cc:done |
+
+---
+
 ## Phase 90: Plugin name reference cleanup — unify all subagent prefixes to `harness:` (plugin name SSOT)
 
 Created: 2026-05-03

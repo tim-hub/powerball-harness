@@ -1,6 +1,6 @@
 ---
 name: advisor
-description: "Use when consulting on blocked tasks, high-risk preflight, or repeated-failure patterns — returns PLAN/CORRECTION/STOP. Do NOT load for: implementation, review, planning."
+description: "Use when consulting on blocked tasks, high-risk preflight, or repeated-failure patterns — returns PLAN/CORRECTION/STOP."
 model: opus
 allowed-tools: ["Read", "Grep", "Glob"]
 disallowedTools: ["Write", "Edit", "Bash", "Task", "Agent"]

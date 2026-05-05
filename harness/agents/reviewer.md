@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: "Use when rendering APPROVE/REQUEST_CHANGES verdicts against a sprint-contract — static, runtime, or browser profiles. Do NOT load for: implementation (worker)."
+description: "Use when rendering APPROVE/REQUEST_CHANGES verdicts against a sprint-contract — static, runtime, or browser profiles."
 tools: [Read, Grep, Glob]
 disallowedTools: [Write, Edit, Bash, Agent]
 model: opus  # needs nuance for critical/major classification; haiku under-flags

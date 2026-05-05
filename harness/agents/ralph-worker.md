@@ -1,6 +1,6 @@
 ---
 name: ralph-worker
-description: "Use when executing a single iteration of a Ralph loop task — read prior attempts in worktree, implement changes, run verify command, emit <promise> and ralph-worker-report.v1 when DoD is met. Do NOT load for: non-Ralph tasks, planning, review."
+description: "Use when executing a single iteration of a Ralph loop task — read prior attempts in worktree, implement changes, run verify command, emit <promise> and ralph-worker-report.v1 when DoD is met."
 tools: [Read, Write, Edit, Bash, Grep, Glob]
 disallowedTools: [Agent]
 model: sonnet

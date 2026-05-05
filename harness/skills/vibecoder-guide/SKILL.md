@@ -120,3 +120,15 @@ When this skill is triggered:
 4. Wait for the user's next action
 
 **Important**: Avoid technical jargon and explain in plain, simple language
+
+---
+
+## Developer Principles
+
+For coding guidelines, safe-editing practices, and repo context reading, see:
+
+| Principle Area | Reference |
+|----------------|-----------|
+| **General Principles** | [`${CLAUDE_SKILL_DIR}/references/general-principles.md`](${CLAUDE_SKILL_DIR}/references/general-principles.md) |
+| **Diff-Aware Editing** | [`${CLAUDE_SKILL_DIR}/references/diff-aware-editing.md`](${CLAUDE_SKILL_DIR}/references/diff-aware-editing.md) |
+| **Repo Context Reading** | [`${CLAUDE_SKILL_DIR}/references/repo-context-reading.md`](${CLAUDE_SKILL_DIR}/references/repo-context-reading.md) |

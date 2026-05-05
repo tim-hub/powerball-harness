@@ -46,6 +46,56 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Changed: Skill & Agent Simplification (Phase 91)
+
+**`harness/` skills and agents are leaner — heavy reference content extracted into `references/` directories, deprecated content removed, and two duplicate SSOTs consolidated.** All changes are documentation-only (no runtime behavior change). Auto-loading routing and all validation gates (40/40 tests) are unaffected.
+
+---
+
+#### 1. Agent descriptions — `Do NOT load for:` clause removed
+
+**Before**: 5 agent descriptions (`worker`, `reviewer`, `scaffolder`, `advisor`, `ralph-worker`) included exclusion clauses like `Do NOT load for: implementation, review, planning.`
+
+**After**: Exclusion clauses removed. Per updated skill-description rules, positive `when_to_use:` keywords provide better routing signal than negative exclusions. Descriptions now end at their capability summary.
+
+#### 2. `error-recovery` agent stubbed
+
+**Before**: `harness/agents/error-recovery.md` was 335 lines of detailed guidance for a deprecated agent that was consolidated into `harness:worker` in v4.
+
+**After**: File is now 15 lines — frontmatter + one deprecation notice pointing to `harness:worker` and `team-composition.md`.
+
+#### 3. `team-composition.md` moved to `breezing/references/`
+
+**Before**: `harness/agents/team-composition.md` lived alongside dispatchable agent definitions, creating a confusing `agents/` directory that mixed reference docs with actual agents.
+
+**After**: Moved to `harness/skills/breezing/references/team-composition.md`, where it is actually consumed. All in-repo links updated (`docs/advisor-strategy.md`, `docs/CLAUDE-feature-table.md`, `.claude/memory/patterns.md`).
+
+#### 4. `principles` skill merged into `vibecoder-guide`
+
+**Before**: `harness/skills/principles/` and `harness/skills/vibecoder-guide/` were two separate skills with overlapping audiences. `principles/SKILL.md` carried an open `<!-- OPEN: vibecoder-guide may be redundant -->` comment.
+
+**After**: `harness/skills/principles/` deleted. Its 3 reference files (`general-principles.md`, `diff-aware-editing.md`, `repo-context-reading.md`) moved to `harness/skills/vibecoder-guide/references/` with a new "Developer Principles" section in the surviving SKILL.md.
+
+#### 5. Five long skills split with `references/` directories
+
+**Before / After** line counts:
+
+| Skill | Before | After | New reference files |
+|-------|--------|-------|---------------------|
+| `session-memory` | 257 | 77 | `file-formats.md`, `memory-architecture.md` |
+| `harness-sync` | 252 | 77 | `sync-details.md` |
+| `harness-schedule-run` | 226 | 92 | (had `flow.md`; SKILL.md now delegates fully) |
+| `harness-review` | 311 | 141 | `verdict-framework.md`, `result-schema.md`, `plan-review.md`, `scope-review.md` |
+| `harness-release` | 291 | 156 | `versioning-rules.md` |
+
+Heavy reference content (format templates, JSON schemas, step-by-step flows, severity matrices) moved to `references/` subdirectories with `${CLAUDE_SKILL_DIR}/references/...` links.
+
+#### 6. Versioning rules consolidated into single SSOT
+
+**Before**: SemVer classification, batch-release rules, and pre-release checklist existed in two places — inline in `harness/skills/harness-release/SKILL.md` and in `.claude/rules/versioning.md`.
+
+**After**: `harness/skills/harness-release/references/versioning-rules.md` is the single SSOT. `.claude/rules/versioning.md` is now a 6-line pointer.
+
 ---
 
 ## [5.1.1] - 2026-05-04
