@@ -15,7 +15,7 @@ PARENT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 if [ -f "${PARENT_DIR}/path-utils.sh" ]; then
   source "${PARENT_DIR}/path-utils.sh" 2>/dev/null || true
 fi
-PROJECT_ROOT="${PROJECT_ROOT:-$(cd "${PARENT_DIR}/.." && pwd)}"
+PROJECT_ROOT="${PROJECT_ROOT:-$(git -C "${SCRIPT_DIR}" rev-parse --show-toplevel 2>/dev/null || pwd)}"
 STATE_DIR="${PROJECT_ROOT}/.claude/state"
 
 # === Check whether a breezing session is active ===
