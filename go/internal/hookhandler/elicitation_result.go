@@ -31,8 +31,8 @@ type elicitationResultLogEntry struct {
 
 // ElicitationResultHandler is the Go port of scripts/hook-handlers/elicitation-result.sh.
 //
-// Receives ElicitationResult events and performs lightweight logging only.
-// Results are appended to .claude/state/elicitation-events.jsonl.
+// Receives ElicitationResult events, logs them, and appends a weak-supervision
+// ledger entry to .claude/state/elicitation/events.jsonl.
 // Always returns approve.
 type ElicitationResultHandler struct {
 	// ProjectRoot is the project root path. Resolved from env vars/CWD when empty.
@@ -89,6 +89,11 @@ func (h *ElicitationResultHandler) Handle(in io.Reader, out io.Writer) error {
 			}
 		}
 	}
+
+	// Append weak-supervision ledger entry (best-effort; errors do not fail the hook).
+	resultEvent := newElicitationResultEvent(mcpServer, elicitationID, resultStatus)
+	//nolint:errcheck
+	appendElicitationEvent(projectRoot, resultEvent)
 
 	// Always approve.
 	return writeJSON(out, elicitationDecision{

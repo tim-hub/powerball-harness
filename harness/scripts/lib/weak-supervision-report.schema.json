@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "weak-supervision-report.v1",
+  "description": "Schema for weak-supervision review reports produced by harness reviewers and loops.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "task_id",
+    "rubric_id",
+    "reward_score",
+    "verdict",
+    "privacy_tags",
+    "evidence_refs"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["weak-supervision-report.v1"]
+    },
+    "run_id": {
+      "type": "string",
+      "description": "Current harness run, session, or loop identifier."
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Plans task or external task identifier."
+    },
+    "rubric_id": {
+      "type": "string",
+      "description": "Rubric used to score the result."
+    },
+    "reward_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Calibrated score in the closed interval [0, 1]."
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["APPROVE", "REQUEST_CHANGES", "STOP"],
+      "description": "Stable verdict enum."
+    },
+    "privacy_tags": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": ["may_train", "do_not_train", "synthetic_only", "legal_hold"]
+      },
+      "description": "Data-use tags governing downstream use of this report."
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Files, logs, tests, screenshots, or artifacts used as evidence."
+    },
+    "risk_flags": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Optional reward-hacking or quality-risk flags."
+    },
+    "implementation_claims": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Claims made by the implementation (e.g. 'bugfix: ...')."
+    },
+    "reproduction_refs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Reproduction artifacts (failing-before/passing-after tests, logs)."
+    }
+  },
+  "additionalProperties": true
+}

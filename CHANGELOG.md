@@ -49,6 +49,47 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Configurable protected-branch push policy + weak-supervision elicitation ledger (ported from Chachamaru127/claude-code-harness@v4.4.0...v4.7.0)
+
+**Two upstream features are now available: per-project R12 push policy and a local weak-supervision event ledger.**
+
+---
+
+#### 1. Configurable R12 Protected-Branch Push Policy
+
+**Before**: R12 always warned on direct pushes to `main`/`master` but could not be changed per project. Teams that intentionally push directly to main (solo repos, CI pipelines) had no way to suppress the warning, and teams that wanted hard blocking had no way to enforce it.
+
+**After**: R12 now respects a three-level policy — `ask` (default, warn and approve), `deny` (block with explanation), `allow` (silent pass). Resolved from the following precedence chain:
+
+```
+HARNESS_PROTECTED_BRANCH_PUSH_POLICY  (env var)
+  → HARNESS_DIRECT_PUSH_POLICY        (env var alias)
+  → .claude-code-harness.config.yaml  (safety.protected_branch_push)
+  → harness.toml                      (safety.permissions.protectedBranchPush)
+  → default: ask
+```
+
+Example — enforce hard blocking in a shared repo:
+```bash
+HARNESS_PROTECTED_BRANCH_PUSH_POLICY=deny claude
+```
+
+#### 2. Weak-Supervision Elicitation Ledger
+
+**Before**: MCP server elicitation events (capability probes and result answers) were processed and discarded. Reviewers and advisors had no persistent record of past elicitation outcomes to draw on when evaluating whether a task result was genuinely good or merely superficially passing.
+
+**After**: Every `Elicitation` and `ElicitationResult` hook call appends a structured `elicitation-event.v1` JSON line to `.claude/state/elicitation/events.jsonl`. The ledger is local-only (no external forwarding). Advisor context on high-risk or repeated-failure requests can be enriched with the last 5 relevant events using `build-weak-supervision-cues.sh`. Reviewer payloads can be validated against sandbagging heuristics using `review-weak-supervision-report.sh`.
+
+New scripts:
+- `harness/scripts/build-weak-supervision-cues.sh` — inject cues into advisor context
+- `harness/scripts/review-weak-supervision-report.sh` — validate `weak-supervision-report.v1` payloads
+- Schema files: `harness/scripts/lib/weak-supervision-report.schema.json`, `harness/scripts/lib/elicitation-event.schema.json`
+
+Privacy tags default to `do_not_train`. Override per session:
+```bash
+HARNESS_ELICITATION_PRIVACY_TAGS=synthetic_only claude
+```
+
 ---
 
 ## [5.2.0] - 2026-05-06

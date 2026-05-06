@@ -53,11 +53,12 @@ func BuildContext(input hookproto.HookInput) hookproto.RuleContext {
 	}
 
 	return hookproto.RuleContext{
-		Input:        input,
-		ProjectRoot:  projectRoot,
-		WorkMode:     workMode,
-		CodexMode:    codexMode,
-		BreezingRole: breezingRole,
+		Input:                     input,
+		ProjectRoot:               projectRoot,
+		WorkMode:                  workMode,
+		CodexMode:                 codexMode,
+		BreezingRole:              breezingRole,
+		ProtectedBranchPushPolicy: resolveProtectedBranchPushPolicy(input, projectRoot),
 	}
 }
 

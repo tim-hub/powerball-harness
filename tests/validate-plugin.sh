@@ -353,7 +353,7 @@ RULES_FILE="$PLUGIN_ROOT/go/internal/guardrail/rules.go"
 RULE_IDS=(
     "R10:no-git-bypass-flags"
     "R11:no-reset-hard-protected-branch"
-    "R12:warn-direct-push-protected-branch"
+    "R12:confirm-direct-push-protected-branch"
     "R13:warn-protected-review-paths"
 )
 for rule_id in "${RULE_IDS[@]}"; do
@@ -482,6 +482,16 @@ else
         echo "$SLASH_VIOLATIONS"
     fi
     fail_test "Plugin name references must use 'harness:<agent>' / '/harness:<skill>' form"
+fi
+
+echo ""
+echo "14. Weak-supervision report schema and reviewer tests"
+echo "----------------------------------------"
+
+if bash "$PLUGIN_ROOT/tests/test-weak-supervision-report.sh" >/dev/null 2>&1; then
+    pass_test "Weak-supervision report schema and reviewer fixture tests"
+else
+    fail_test "Weak-supervision report tests failed — run: bash tests/test-weak-supervision-report.sh"
 fi
 
 echo ""

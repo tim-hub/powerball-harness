@@ -105,9 +105,10 @@ type PermissionOutput struct {
 
 // RuleContext carries the evaluation context for guard rules.
 type RuleContext struct {
-	Input        HookInput
-	ProjectRoot  string
-	WorkMode     bool
-	CodexMode    bool
-	BreezingRole string // "" means not in breezing mode
+	Input                     HookInput
+	ProjectRoot               string
+	WorkMode                  bool
+	CodexMode                 bool
+	BreezingRole              string // "" means not in breezing mode
+	ProtectedBranchPushPolicy string // ask, deny, or allow
 }

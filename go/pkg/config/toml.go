@@ -82,10 +82,12 @@ type SafetyConfig struct {
 }
 
 // PermissionsConfig maps to [safety.permissions].
-// Reflected to settings.json as permissions.deny and permissions.ask.
+// Deny/Ask are reflected to settings.json. Harness-only policy fields are read
+// by the Go guardrail engine at runtime.
 type PermissionsConfig struct {
-	Deny []string `toml:"deny"`
-	Ask  []string `toml:"ask"`
+	Deny                []string `toml:"deny"`
+	Ask                 []string `toml:"ask"`
+	ProtectedBranchPush string   `toml:"protectedBranchPush"`
 }
 
 // SandboxConfig maps to [safety.sandbox].

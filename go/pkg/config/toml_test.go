@@ -25,6 +25,7 @@ default = "security-reviewer"
 CLAUDE_CODE_SUBPROCESS_ENV_SCRUB = "1"
 
 [safety.permissions]
+protectedBranchPush = "ask"
 deny = [
   "Bash(sudo:*)",
   "Bash(rm -rf:*)",
@@ -101,6 +102,9 @@ func TestParse_Full(t *testing.T) {
 	wantAsk := []string{"Bash(rm -r:*)", "Bash(git push -f:*)"}
 	if len(cfg.Safety.Permissions.Ask) != len(wantAsk) {
 		t.Errorf("permissions.ask len = %d, want %d", len(cfg.Safety.Permissions.Ask), len(wantAsk))
+	}
+	if cfg.Safety.Permissions.ProtectedBranchPush != "ask" {
+		t.Errorf("permissions.protectedBranchPush = %q, want ask", cfg.Safety.Permissions.ProtectedBranchPush)
 	}
 
 	// [safety.sandbox]

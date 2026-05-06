@@ -409,12 +409,13 @@ func TestR11_ResetSoftMain(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// R12: warn on direct push to protected branch (softened from deny in 90d6051)
+// R12: configurable direct push policy for protected branch
 // ---------------------------------------------------------------------------
 
 func TestR12_PushToMain(t *testing.T) {
 	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin main"})
 	result := EvaluateRules(ctx)
+	// Default policy is ask → approve+warn
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve (warn), got %s", result.Decision)
 	}
@@ -442,6 +443,48 @@ func TestR12_PushRefspecToMain(t *testing.T) {
 	}
 	if result.SystemMessage == "" {
 		t.Error("expected warning SystemMessage for refspec push to main")
+	}
+}
+
+func TestR12_PushToMainPolicyDeny(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin main"})
+	ctx.ProtectedBranchPushPolicy = "deny"
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny, got %s", result.Decision)
+	}
+}
+
+func TestR12_PushToMainPolicyAllow(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin main"})
+	ctx.ProtectedBranchPushPolicy = "allow"
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve, got %s", result.Decision)
+	}
+	if result.SystemMessage != "" {
+		t.Errorf("expected no warning when allow policy, got: %s", result.SystemMessage)
+	}
+}
+
+func TestR12_PushToMainPolicyConfirmAliasesAsk(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin main"})
+	ctx.ProtectedBranchPushPolicy = "confirm"
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve (warn) for confirm alias, got %s", result.Decision)
+	}
+	if result.SystemMessage == "" {
+		t.Error("expected warning SystemMessage for confirm alias")
+	}
+}
+
+func TestR12_PushToMainInvalidPolicyDefaultsAsk(t *testing.T) {
+	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin main"})
+	ctx.ProtectedBranchPushPolicy = "unexpected"
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve (warn) for invalid policy, got %s", result.Decision)
 	}
 }
 

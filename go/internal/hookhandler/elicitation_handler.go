@@ -38,10 +38,11 @@ type elicitationDecision struct {
 // ElicitationHandler is the Go port of scripts/hook-handlers/elicitation-handler.sh.
 //
 // On Elicitation events it logs the MCP elicitation request,
+// records a weak-supervision ledger entry to .claude/state/elicitation/events.jsonl,
 // automatically skips (deny) for Breezing Workers (background, no UI),
 // and passes through (allow) for normal sessions.
 //
-// Logs are recorded in .claude/state/elicitation-events.jsonl.
+// Operation logs are recorded in .claude/state/elicitation-events.jsonl.
 type ElicitationHandler struct {
 	// ProjectRoot is the project root path. Resolved from env vars/CWD when empty.
 	ProjectRoot string
@@ -99,6 +100,11 @@ func (h *ElicitationHandler) Handle(in io.Reader, out io.Writer) error {
 			}
 		}
 	}
+
+	// Append weak-supervision ledger entry (best-effort; errors do not fail the hook).
+	event := newElicitationRequestEvent(mcpServer, elicitationID, message)
+	//nolint:errcheck
+	appendElicitationEvent(projectRoot, event)
 
 	// During a Breezing session: auto-skip (background Worker cannot interact with UI).
 	breezingSession := os.Getenv("HARNESS_BREEZING_SESSION_ID")

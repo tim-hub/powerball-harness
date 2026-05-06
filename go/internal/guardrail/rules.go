@@ -278,9 +278,9 @@ var Rules = []GuardRule{
 		},
 	},
 
-	// R12: warn on direct push to protected branch (solo-dev: allowed; collaborative: use a PR)
+	// R12: configurable direct push policy for protected branches
 	{
-		ID:          "R12:warn-direct-push-protected-branch",
+		ID:          "R12:confirm-direct-push-protected-branch",
 		ToolPattern: regexp.MustCompile(`^Bash$`),
 		Evaluate: func(ctx hookproto.RuleContext) *hookproto.HookResult {
 			command, ok := ctx.Input.ToolInput["command"].(string)
@@ -290,9 +290,19 @@ var Rules = []GuardRule{
 			if !hasDirectPushToProtectedBranch(command) {
 				return nil
 			}
-			return &hookproto.HookResult{
-				Decision:      hookproto.DecisionApprove,
-				SystemMessage: "Warning: Pushing directly to main/master. For collaborative projects, prefer a PR via a feature branch.",
+			switch normalizeProtectedBranchPushPolicy(ctx.ProtectedBranchPushPolicy) {
+			case protectedBranchPushPolicyDeny:
+				return &hookproto.HookResult{
+					Decision: hookproto.DecisionDeny,
+					Reason:   "Direct push to main/master is blocked by policy. Use a feature branch and open a PR.",
+				}
+			case protectedBranchPushPolicyAllow:
+				return nil
+			default: // ask
+				return &hookproto.HookResult{
+					Decision:      hookproto.DecisionApprove,
+					SystemMessage: "Warning: Pushing directly to main/master. For collaborative projects, prefer a PR via a feature branch. Override with HARNESS_PROTECTED_BRANCH_PUSH_POLICY=allow or deny.",
+				}
 			}
 		},
 	},

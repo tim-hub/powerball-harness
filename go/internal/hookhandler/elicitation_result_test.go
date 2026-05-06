@@ -2,6 +2,7 @@ package hookhandler
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -73,6 +74,25 @@ func TestElicitationResultHandler_LogWritten(t *testing.T) {
 	}
 	if !strings.Contains(content, "cancelled") {
 		t.Errorf("log missing result_status: %s", content)
+	}
+
+	ledgerFile := filepath.Join(dir, ".claude", "state", "elicitation", "events.jsonl")
+	ledgerData, err := os.ReadFile(ledgerFile)
+	if err != nil {
+		t.Fatalf("ledger file not created: %v", err)
+	}
+	var event ElicitationEvent
+	if err := json.Unmarshal(bytes.TrimSpace(ledgerData), &event); err != nil {
+		t.Fatalf("ledger entry is not valid JSON: %v\n%s", err, ledgerData)
+	}
+	if event.SchemaVersion != "elicitation-event.v1" {
+		t.Errorf("schema_version = %q, want elicitation-event.v1", event.SchemaVersion)
+	}
+	if event.EventKind != "eval_result" {
+		t.Errorf("event_kind = %q, want eval_result", event.EventKind)
+	}
+	if event.ResultStatus != "cancelled" {
+		t.Errorf("result_status = %q, want cancelled", event.ResultStatus)
 	}
 }
 

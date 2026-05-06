@@ -341,7 +341,7 @@ RECOVERING → ABORTED     (recovery failed, human intervention required)
 | R09 | Read | Sensitive files (.env, id_rsa, *.pem, secrets/) | approve + warn | None |
 | R10 | Bash | `--no-verify` / `--no-gpg-sign` | deny | None |
 | R11 | Bash | `git reset --hard` on protected branch | deny | None |
-| R12 | Bash | Direct push to main/master | approve + warn | None |
+| R12 | Bash | Direct push to main/master | configurable: `ask` (approve+warn, default), `deny`, or `allow` — resolved from `HARNESS_PROTECTED_BRANCH_PUSH_POLICY` env var → `.claude-code-harness.config.yaml` `safety.protected_branch_push` → `harness.toml` `[safety.permissions] protectedBranchPush` → default `ask` | None |
 | R13 | Write/Edit/MultiEdit | package.json, Dockerfile, workflow, etc. | approve + warn | None |
 
 Test IDs: `TestR01_*` through `TestR13_*` (go/internal/guard/rules_test.go)
