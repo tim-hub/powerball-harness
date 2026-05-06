@@ -48,6 +48,25 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Added
+
+#### 1. New `harness-compact` skill — strategic compaction suggester
+
+> Inspired by the [`affaan-m/everything-claude-code`](https://github.com/affaan-m/everything-claude-code/tree/main/skills/strategic-compact) `strategic-compact` skill.
+
+**Before**: Harness had no guidance on *when* to run `/compact`. Users had to decide manually, often letting auto-compaction fire mid-implementation — losing variable names, file-path context, and mid-task reasoning right in the middle of a `cc:WIP` task.
+
+**After**: A `PostToolUse(Edit|Write)` hook counts change events per session and emits a `systemMessage` suggestion at the first 50 tool calls and every 25 thereafter, with a direct link to the decision guide. The suggestion is suppressed automatically during Worker sessions with active `cc:WIP` tasks (mirrors the existing PreCompact role-gate) and during `[ralph]` orchestration loops.
+
+New files:
+- `harness/skills/harness-compact/SKILL.md` — skill definition with `suggest` / `stats` / `reset` subcommands
+- `harness/skills/harness-compact/scripts/suggest-compact.sh` — PostToolUse counter and threshold logic
+- `harness/skills/harness-compact/scripts/show-stats.sh` — `stats` subcommand: count, threshold, next reminder, session age, WIP count
+- `harness/skills/harness-compact/references/decision-framework.md` — when to compact vs. wait; three harness-specific rules (no mid-`[ralph]`, prefer at phase boundary, prefer after harness-review)
+- `harness/skills/harness-compact/references/integration.md` — relationship to `pre-compact-save.js`, `post-compact.sh`, `handoff-artifact.json`, and the role-gate
+
+Hook wiring: new `PostToolUse` / `Edit|Write` entry in `harness/hooks/hooks.json` calling `suggest-compact.sh` with timeout 3.
+
 ---
 
 ## [5.1.3] - 2026-05-05
