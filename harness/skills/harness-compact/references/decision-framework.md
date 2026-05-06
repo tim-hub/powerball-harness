@@ -1,8 +1,6 @@
 # harness-compact — Compaction Decision Framework
 
-When to compact vs. when to wait. Ported from the upstream
-[everything-claude-code strategic-compact](https://github.com/affaan-m/everything-claude-code/tree/main/skills/strategic-compact)
-decision matrix and extended with harness-specific rules.
+When to compact vs. when to wait.
 
 ---
 

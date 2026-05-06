@@ -9,8 +9,6 @@ allowed-tools: ["Read", "Bash", "Grep"]
 
 Strategic compaction suggester — nudges `/compact` at meaningful task boundaries so auto-compaction does not interrupt mid-implementation.
 
-Inspired by [`affaan-m/everything-claude-code`](https://github.com/affaan-m/everything-claude-code/tree/main/skills/strategic-compact).
-
 ## Quick Reference
 
 | Subcommand | Behavior |
