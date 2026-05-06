@@ -45,6 +45,7 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, back
 | `/harness-release` | CHANGELOG, tag, and GitHub Release |
 | `/harness-remember` | SSOT — decisions, patterns, session logs |
 | `/harness-schedule-run` | Runs Plans.md tasks on a scheduled cadence (renamed from `/harness-loop`) |
+| `/harness-compact` | Suggests strategic `/compact` checkpoints to preserve context across phase transitions |
 
 Run everything after plan approval:
 
@@ -169,6 +170,7 @@ Project files (`Plans.md`, `CLAUDE.md`, SSOT files) remain unchanged.
 - Credits: 
   - [@Chachamaru127](https://github.com/Chachamaru127/claude-code-harness) for the original work of Claude Code harness development.
   - [@datumbrain](https://github.com/datumbrain/claude-privacy-guard) for PII Patterns detection.
+  - [@affaan-m](https://github.com/affaan-m/everything-claude-code) for the `strategic-compact` skill that inspired `harness-compact`.
 
 ## License
 
