@@ -348,6 +348,16 @@
         ]
       },
       {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/harness-compact/scripts/suggest-compact.sh\"",
+            "timeout": 3
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit|MultiEdit|Bash|Task",
         "hooks": [
           {
