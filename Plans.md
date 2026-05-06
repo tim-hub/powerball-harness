@@ -1,6 +1,6 @@
 # Powerball Harness — Plans.md
 
-Last release: v5.2.0 on 2026-05-06 (New `harness-compact` skill — strategic compaction suggester)
+Last release: v5.3.0 on 2026-05-07 (Configurable R12 push policy + weak-supervision elicitation ledger)
 
 ---
 

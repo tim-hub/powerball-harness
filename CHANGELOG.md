@@ -49,6 +49,10 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+---
+
+## [5.3.0] - 2026-05-07
+
 ### Theme: Configurable protected-branch push policy + weak-supervision elicitation ledger (ported from Chachamaru127/claude-code-harness@v4.4.0...v4.7.0)
 
 **Two upstream features are now available: per-project R12 push policy and a local weak-supervision event ledger.**
