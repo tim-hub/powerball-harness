@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.1.3...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.2.0...HEAD
+[5.2.0]: https://github.com/tim-hub/powerball-harness/compare/v5.1.3...v5.2.0
 [5.1.3]: https://github.com/tim-hub/powerball-harness/compare/v5.1.2...v5.1.3
 [5.1.2]: https://github.com/tim-hub/powerball-harness/compare/v5.1.1...v5.1.2
 [5.1.1]: https://github.com/tim-hub/powerball-harness/compare/v5.1.0...v5.1.1
@@ -48,11 +49,15 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+---
+
+## [5.2.0] - 2026-05-06
+
 ### Added
 
 #### 1. New `harness-compact` skill — strategic compaction suggester
 
-> Inspired by the [`affaan-m/everything-claude-code`](https://github.com/affaan-m/everything-claude-code/tree/main/skills/strategic-compact) `strategic-compact` skill.
+> Inspired by [`affaan-m/everything-claude-code`](https://github.com/affaan-m/everything-claude-code/tree/main/skills/strategic-compact) `strategic-compact` skill.
 
 **Before**: Harness had no guidance on *when* to run `/compact`. Users had to decide manually, often letting auto-compaction fire mid-implementation — losing variable names, file-path context, and mid-task reasoning right in the middle of a `cc:WIP` task.
 
