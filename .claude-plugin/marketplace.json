@@ -27,11 +27,12 @@
         "workflow",
         "plan-work-review",
         "contract-development",
-        "harness-workflow"
+        "harness-workflow",
+        "codex+claudecode"
       ],
       "category": "productivity",
       "strict": false,
-      "outputStyles": "./harness/output-styles/"
+      "outputStyles": "./output-styles/"
     }
   ]
 }
