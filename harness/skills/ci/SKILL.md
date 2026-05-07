@@ -100,49 +100,7 @@ Awaiting explicit user approval
 
 ### Using Git Log Extended Flags (CC 2.1.49+)
 
-Use structured logs to identify the commit that caused a CI failure.
-
-#### Identifying the Causal Commit
-
-```bash
-# Analyze commits in structured format
-git log --format="%h|%s|%an|%ad" --date=short -10
-
-# Chronological analysis in topological order
-git log --topo-order --oneline -20
-
-# Correlate changed files with the cause
-git log --raw --oneline -5
-```
-
-#### Key Use Cases
-
-| Use Case | Flag | Effect |
-|----------|------|--------|
-| **Identifying failure cause** | `--format="%h|%s"` | Structured commit listing |
-| **Chronological tracking** | `--topo-order` | Tracking with merge order considered |
-| **Understanding change impact** | `--raw` | Detailed file change display |
-| **Merge-excluded analysis** | `--cherry-pick --no-merges` | Extract actual commits only |
-
-#### Example Output
-
-```markdown
-🔍 CI Failure Root Cause Analysis
-
-Recent commits (structured):
-| Hash | Subject | Author | Date |
-|------|---------|--------|------|
-| a1b2c3d | feat: update API | Alice | 2026-02-04 |
-| e4f5g6h | test: add tests | Bob | 2026-02-03 |
-
-Changed files (--raw):
-├── src/api/endpoint.ts (Modified) ← Type error occurred
-├── tests/api.test.ts (Modified)
-└── package.json (Modified)
-
-→ Commit a1b2c3d is likely the cause
-  Type error: src/api/endpoint.ts:42
-```
+Structured log commands to identify causal commits: see [references/analyzing-failures.md](${CLAUDE_SKILL_DIR}/references/analyzing-failures.md) (Git Log Extended Flags section).
 
 ## Sub-agent Integration
 
