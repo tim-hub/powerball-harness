@@ -49,6 +49,32 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Token savings — skill body delegation to references/ (Phase 94)
+
+**Reduces per-session and per-invocation token costs for plugin users by moving verbose inline content to lazy-loaded `references/` files and consolidating internal-only thin skills.**
+
+---
+
+#### 1. Token Savings — Skill Body Delegation
+
+**Before**: Skill bodies included all procedural content inline. `session-init` (invoked on every session start) had 160 lines with zero lazy-loaded references. `worker.md` loaded ~50 lines of Codex-CLI edge cases on every Worker dispatch — content 90%+ of users never need. `session-memory` occupied a description slot in every session-reminder despite being `user-invocable: false`. `session-state` and `session-control` were separate thin skills each consuming a description slot.
+
+**After**: Verbose procedural sections — bash blocks, flow diagrams, workflow examples, git log flag tables, orchestration APIs — are delegated to `references/` subdirectories and loaded only when an agent explicitly follows a link. Two description slots removed by demoting `session-memory` to a reference file and merging `session-state` into `session-control`.
+
+Per-invocation body reductions:
+
+| Skill | Before | After | Reduction |
+|-------|--------|-------|-----------|
+| `session-init` | 160 lines | 73 lines | 54% |
+| `session` | 191 lines | 99 lines | 48% |
+| `breezing` | 195 lines | 114 lines | 41% |
+| `ci` | 188 lines | 145 lines | 23% |
+| `worker.md` | 264 lines | 217 lines | 18% |
+
+Per-session constant cost: 2 fewer description slots (session-memory demoted; session-state merged into session-control).
+
+New reference files added: `session-init/references/steps.md`, `agents/references/codex-env.md`, `session/references/memory.md`, `session/references/memory-optimization.md`, `session/references/execution-flow.md`, `breezing/references/planning-discussion.md`, `breezing/references/codex-orchestration.md`, `session-control/references/state-transition.md` (moved from session-state).
+
 ---
 
 ## [5.3.0] - 2026-05-07
