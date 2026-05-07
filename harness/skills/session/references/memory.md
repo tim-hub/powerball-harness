@@ -1,12 +1,4 @@
----
-name: session-memory
-description: "Recalls prior sessions and persists cross-session context for continuity. Use when referencing past decisions or continuing prior work."
-when_to_use: "recall prior sessions, continue from before, what did we do last time, past work, cross-session context"
-allowed-tools: ["Read", "Write", "Edit"]
-user-invocable: false
----
-
-# Session Memory Skill
+# Session Memory
 
 Manages cross-session learning and memory. Records and references past work, decisions, and learned patterns.
 
@@ -30,8 +22,6 @@ Manages cross-session learning and memory. Records and references past work, dec
 **SSOT vs Local separation**:
 - **SSOT (Git-shared)**: `decisions.md` / `patterns.md` — each entry needs a title + tags with an Index at the top
 - **Local**: `session-log.md` / `context.json` / `.claude/state/` — noise-prone; keep out of Git unless needed
-
-File format templates: [`${CLAUDE_SKILL_DIR}/references/file-formats.md`](${CLAUDE_SKILL_DIR}/references/file-formats.md)
 
 ---
 
@@ -59,13 +49,6 @@ File format templates: [`${CLAUDE_SKILL_DIR}/references/file-formats.md`](${CLAU
 1. Generate session summary
 2. Update `context.json`
 3. Record handoff items for next session
-
----
-
-## Reference
-
-- File format templates: [`${CLAUDE_SKILL_DIR}/references/file-formats.md`](${CLAUDE_SKILL_DIR}/references/file-formats.md)
-- 3-layer architecture & usage examples: [`${CLAUDE_SKILL_DIR}/references/memory-architecture.md`](${CLAUDE_SKILL_DIR}/references/memory-architecture.md)
 
 ---
 

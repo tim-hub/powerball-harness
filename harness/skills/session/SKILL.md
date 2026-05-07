@@ -62,7 +62,7 @@ Sends a message to all active sessions.
 | Feature | Description | Reference |
 |---------|-------------|-----------|
 | **Initialization** | Start new session, load context | See `session-init` skill |
-| **Memory** | Persist learnings across sessions | See `session-memory` skill |
+| **Memory** | Persist learnings across sessions | See [references/memory.md](${CLAUDE_SKILL_DIR}/references/memory.md) |
 | **State Control** | Resume/fork session based on flags | See `references/session-control.md` |
 | **State Transitions** | Session state machine details | See `references/state-transition.md` |
 | **Communication** | Cross-session messaging | See `session-state` skill |
@@ -183,7 +183,7 @@ Session end
 
 This skill consolidates:
 - `session-init` → Session initialization
-- `session-memory` → Memory persistence
+- `session-memory` → Memory persistence (content now in [references/memory.md](${CLAUDE_SKILL_DIR}/references/memory.md))
 - `session-control` → Resume/fork control
 - `session-state` → State management & communication
 
