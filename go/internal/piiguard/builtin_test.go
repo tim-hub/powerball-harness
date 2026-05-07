@@ -232,6 +232,11 @@ func TestEmailAllowlist(t *testing.T) {
 		{"dot-localdomain", "" + "root" + "@server.localdomain"},
 		{"dot-internal", "" + "svc" + "@api.internal"},
 		{"dot-home-arpa", "" + "device" + "@printer.home.arpa"},
+		// SSH git remote URLs — "git" is a reserved service account, not a person.
+		{"git-remote-github", "remote = " + "git" + "@github.com:org/repo.git"},
+		{"git-remote-gitlab", "url = " + "git" + "@gitlab.com:user/project.git"},
+		{"git-remote-bitbucket", "git" + "@bitbucket.org:team/repo.git"},
+		{"git-remote-uppercase", "GIT" + "@github.com:org/repo.git"},
 	}
 
 	for _, tc := range allowlisted {
