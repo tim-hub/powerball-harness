@@ -101,9 +101,7 @@ flowchart LR
     subgraph SESSION["Session Layer  (always-on)"]
         direction LR
         SI["skill: session-init\n(env check on start)"]
-        SS["skill: session-state\n(state machine)"]
-        SM["skill: session-memory\n(auto-record logs)"]
-        SC2["skill: session-control\n(resume / fork)"]
+        SC2["skill: session-control\n(state machine + resume/fork)"]
     end
 
     %% ── DOMAIN SKILLS (on-demand) ───────────────────────────
