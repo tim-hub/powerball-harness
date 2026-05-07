@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -43,11 +45,16 @@ func HandleWorktreeCreate(in io.Reader, out io.Writer) error {
 	}
 
 	// Guard: CC sometimes feeds hook output JSON back as the cwd field on a
-	// subsequent invocation. Detect and skip to avoid creating a directory
-	// whose name is the literal JSON string.
-	if len(input.CWD) > 0 && input.CWD[0] == '{' {
+	// subsequent invocation. Strip whitespace first, then reject JSON strings
+	// and any non-absolute path — a valid worktree CWD is always absolute.
+	trimmedCWD := strings.TrimSpace(input.CWD)
+	if strings.HasPrefix(trimmedCWD, "{") {
 		return writeWorktreeApprove(out, "WorktreeCreate: skipped (invalid JSON cwd)")
 	}
+	if !filepath.IsAbs(trimmedCWD) {
+		return writeWorktreeApprove(out, "WorktreeCreate: skipped (non-absolute cwd)")
+	}
+	input.CWD = trimmedCWD
 
 	stateDir := input.CWD + "/.claude/state"
 	if mkErr := os.MkdirAll(stateDir, 0o755); mkErr != nil {

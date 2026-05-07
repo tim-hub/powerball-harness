@@ -52,6 +52,14 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Fixed
+
+#### 1. WorktreeCreate: hardened CWD guard against leading-whitespace JSON and relative paths
+
+**Before**: The guard `cwd[0] == '{'` could be bypassed by a CWD value with leading whitespace before the JSON object (e.g. `" {\"decision\":...}"`), causing `os.MkdirAll` to create a directory whose name was the literal JSON string. Relative paths were also accepted silently.
+
+**After**: CWD is whitespace-trimmed before the JSON check, and a second guard rejects any non-absolute path — a valid worktree CWD is always absolute. Both the Go hook handler and the shell script fallback apply the same two-guard logic. Two new tests cover the leading-whitespace bypass vector and the relative-path case.
+
 ---
 
 ## [5.4.1] - 2026-05-08

@@ -55,10 +55,16 @@ if [ -z "${CWD}" ]; then
   exit 0
 fi
 
-# Guard: reject cwd that looks like JSON (CC worktree isolation bug — hook output
-# fed back as cwd field, which would cause mkdir to create a JSON-named folder)
+# Guard: strip leading/trailing whitespace, then reject JSON strings and relative
+# paths. CC sometimes feeds hook output JSON back as the cwd field; leading
+# whitespace can mask the opening brace. A valid worktree CWD is always absolute.
+CWD="$(echo "${CWD}" | xargs)"
 if [[ "${CWD}" == "{"* ]]; then
   echo '{"decision":"approve","reason":"WorktreeCreate: skipped (invalid JSON cwd)"}'
+  exit 0
+fi
+if [[ "${CWD}" != "/"* ]]; then
+  echo '{"decision":"approve","reason":"WorktreeCreate: skipped (non-absolute cwd)"}'
   exit 0
 fi
 
