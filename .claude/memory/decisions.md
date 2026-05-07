@@ -20,6 +20,7 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 - D13: 2026-04-15: MARKETPLACE_NAME and PLUGIN_NAME in cache scripts must match marketplace.json #distribution #cache
 - D14: 2026-04-15: Consistency check sections must be explicitly skipped, never silently no-op #quality #ci
 - D15: 2026-04-17: Concurrent hook fan-out and ScheduleWakeup-based harness-schedule-run runtime (formerly harness-loop) #architecture #hooks #breezing
+- D16: 2026-05-07: Paths in marketplace.json are plugin-root relative, not repo-root relative #plugin #marketplace #paths
 
 ---
 
@@ -455,3 +456,42 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 ### Related
 
 - files: `go/internal/hookhandler/`, `harness/skills/harness-schedule-run/`, `harness/scripts/codex-loop.sh`
+
+---
+
+## D16: 2026-05-07: Paths in marketplace.json are plugin-root relative, not repo-root relative #plugin #marketplace #paths
+
+### Conclusion
+
+- All path-valued fields in `.claude-plugin/marketplace.json` (e.g., `outputStyles`, and any future path field) must be expressed **relative to the plugin root directory**, not the repository root.
+- For this repo, the plugin root is `harness/` (where `plugin.json` lives). Therefore `outputStyles` must be `./output-styles/`, not `./harness/output-styles/`.
+
+### Background
+
+- v5.4.0 set `outputStyles: "./harness/output-styles/"` assuming repo-root resolution. Claude Code resolved the path against the plugin root and produced `harness/harness/output-styles/`, which does not exist — output styles silently failed to load.
+- v5.4.1 fixed the entry to `./output-styles/` after observing the resolution behavior in the installed plugin cache.
+
+### Options
+
+- A: Use repo-root relative paths and add a translation step at install time
+- B: Use plugin-root relative paths to match Claude Code's native resolution
+
+### Rationale
+
+- Claude Code's plugin loader treats the directory containing `plugin.json` as the anchor for all relative paths in `marketplace.json` and `plugin.json`. Fighting that resolution would require custom tooling and would still surprise contributors.
+- Plugin-root relative is also the convention used by `commands/`, `skills/`, `agents/`, and `hooks/` entries elsewhere in the marketplace schema.
+
+### Impact / Trade-offs
+
+- Anyone editing `marketplace.json` must mentally anchor on `harness/`, not the repo root.
+- When porting upstream PRs that touch `marketplace.json` paths, the same rule applies — verify each path resolves against `harness/` before merging.
+
+### Review Conditions
+
+- If Claude Code changes path resolution semantics for plugin manifests
+- If the plugin root is moved to the repo root (would invalidate the asymmetry that motivated this entry)
+
+### Related
+
+- files: `.claude-plugin/marketplace.json`, `harness/output-styles/`
+- patterns: see also `.claude/rules/path-conventions.md` (skill / shell script tier conventions — different concern, same theme of "anchor your paths to the right root")
