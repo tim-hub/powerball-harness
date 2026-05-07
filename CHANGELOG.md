@@ -51,6 +51,14 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Fixed
+
+#### 1. marketplace.json: codex+claudecode skill registration and outputStyles path
+
+**Before**: `codex+claudecode` skill was missing from the marketplace configuration; `outputStyles` path pointed to `./harness/output-styles/` which did not resolve correctly.
+
+**After**: `codex+claudecode` skill registered; `outputStyles` corrected to `./output-styles/`.
+
 ---
 
 ## [5.4.0] - 2026-05-07
