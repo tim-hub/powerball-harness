@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.4.2...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.4.3...HEAD
+[5.4.3]: https://github.com/tim-hub/powerball-harness/compare/v5.4.2...v5.4.3
 [5.4.2]: https://github.com/tim-hub/powerball-harness/compare/v5.4.1...v5.4.2
 [5.4.1]: https://github.com/tim-hub/powerball-harness/compare/v5.4.0...v5.4.1
 [5.4.0]: https://github.com/tim-hub/powerball-harness/compare/v5.3.0...v5.4.0
@@ -52,6 +53,18 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.4.3] - 2026-05-08
+
+### Fixed
+
+#### 1. PII Guard: SSH git remote URLs no longer flagged as email addresses
+
+**Before**: The email-address PII rule matched SSH git remote URL patterns (the `git` service account at any git hosting domain), blocking tool calls that contained repository remote URLs — a false positive that stopped legitimate work.
+
+**After**: `emailAllowlistValidator` now suppresses findings where the local-part is exactly `git` (case-insensitive). The `git` username is a reserved SSH service account used by all major git hosting platforms (GitHub, GitLab, Bitbucket, and self-hosted forges) and is never a personal email address. Four new test cases cover the common remote URL forms.
 
 ---
 
