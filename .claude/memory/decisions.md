@@ -20,7 +20,7 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 - D13: 2026-04-15: MARKETPLACE_NAME and PLUGIN_NAME in cache scripts must match marketplace.json #distribution #cache
 - D14: 2026-04-15: Consistency check sections must be explicitly skipped, never silently no-op #quality #ci
 - D15: 2026-04-17: Concurrent hook fan-out and ScheduleWakeup-based harness-schedule-run runtime (formerly harness-loop) #architecture #hooks #breezing
-- D16: 2026-05-07: Paths in marketplace.json are plugin-root relative, not repo-root relative #plugin #marketplace #paths
+- D16: 2026-05-07: outputStyles path in marketplace.json is plugin-root relative #plugin #marketplace #outputStyles
 
 ---
 
@@ -459,11 +459,11 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 
 ---
 
-## D16: 2026-05-07: Paths in marketplace.json are plugin-root relative, not repo-root relative #plugin #marketplace #paths
+## D16: 2026-05-07: outputStyles path in marketplace.json is plugin-root relative #plugin #marketplace #outputStyles
 
 ### Conclusion
 
-- All path-valued fields in `.claude-plugin/marketplace.json` (e.g., `outputStyles`, and any future path field) must be expressed **relative to the plugin root directory**, not the repository root.
+- The `outputStyles` field in `.claude-plugin/marketplace.json` must be expressed **relative to the plugin root directory**, not the repository root.
 - For this repo, the plugin root is `harness/` (where `plugin.json` lives). Therefore `outputStyles` must be `./output-styles/`, not `./harness/output-styles/`.
 
 ### Background
