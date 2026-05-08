@@ -50,6 +50,11 @@ func emailAllowlistValidator(match string) bool {
 	if i < 0 {
 		return true
 	}
+	// "git" is the reserved SSH service account for git hosting (GitHub, GitLab, Bitbucket…).
+	// git@host is always a remote URL, never a personal email address.
+	if strings.EqualFold(match[:i], "git") {
+		return false
+	}
 	domain := match[i+1:]
 	for _, d := range emailAllowlistDomains {
 		if strings.EqualFold(domain, d) {
