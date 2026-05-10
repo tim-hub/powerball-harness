@@ -7,7 +7,7 @@ import (
 )
 
 // helper to build a RuleContext for testing
-func makeCtx(toolName string, toolInput map[string]interface{}) hookproto.RuleContext {
+func makeCtx(toolName string, toolInput map[string]any) hookproto.RuleContext {
 	return hookproto.RuleContext{
 		Input: hookproto.HookInput{
 			ToolName:  toolName,
@@ -25,7 +25,7 @@ func makeCtx(toolName string, toolInput map[string]interface{}) hookproto.RuleCo
 // ---------------------------------------------------------------------------
 
 func TestR01_SudoBlocked(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "sudo rm -rf /"})
+	ctx := makeCtx("Bash", map[string]any{"command": "sudo rm -rf /"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -33,7 +33,7 @@ func TestR01_SudoBlocked(t *testing.T) {
 }
 
 func TestR01_SudoInMiddle(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "echo hello && sudo apt install"})
+	ctx := makeCtx("Bash", map[string]any{"command": "echo hello && sudo apt install"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -41,7 +41,7 @@ func TestR01_SudoInMiddle(t *testing.T) {
 }
 
 func TestR01_NoSudo(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "ls -la"})
+	ctx := makeCtx("Bash", map[string]any{"command": "ls -la"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve, got %s", result.Decision)
@@ -53,7 +53,7 @@ func TestR01_NoSudo(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestR02_WriteToEnv(t *testing.T) {
-	ctx := makeCtx("Write", map[string]interface{}{"file_path": ".env"})
+	ctx := makeCtx("Write", map[string]any{"file_path": ".env"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -61,7 +61,7 @@ func TestR02_WriteToEnv(t *testing.T) {
 }
 
 func TestR02_WriteToGitDir(t *testing.T) {
-	ctx := makeCtx("Edit", map[string]interface{}{"file_path": ".git/config"})
+	ctx := makeCtx("Edit", map[string]any{"file_path": ".git/config"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -69,7 +69,7 @@ func TestR02_WriteToGitDir(t *testing.T) {
 }
 
 func TestR02_WriteToIdRsa(t *testing.T) {
-	ctx := makeCtx("Write", map[string]interface{}{"file_path": "/home/user/.ssh/id_rsa"})
+	ctx := makeCtx("Write", map[string]any{"file_path": "/home/user/.ssh/id_rsa"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -77,7 +77,7 @@ func TestR02_WriteToIdRsa(t *testing.T) {
 }
 
 func TestR02_WriteToNormalFile(t *testing.T) {
-	ctx := makeCtx("Write", map[string]interface{}{"file_path": "/project/src/main.ts"})
+	ctx := makeCtx("Write", map[string]any{"file_path": "/project/src/main.ts"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve, got %s", result.Decision)
@@ -85,7 +85,7 @@ func TestR02_WriteToNormalFile(t *testing.T) {
 }
 
 func TestR02_WriteToPemFile(t *testing.T) {
-	ctx := makeCtx("Write", map[string]interface{}{"file_path": "certs/server.pem"})
+	ctx := makeCtx("Write", map[string]any{"file_path": "certs/server.pem"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -97,7 +97,7 @@ func TestR02_WriteToPemFile(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestR03_EchoToEnv(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "echo SECRET=foo > .env"})
+	ctx := makeCtx("Bash", map[string]any{"command": "echo SECRET=foo > .env"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -105,7 +105,7 @@ func TestR03_EchoToEnv(t *testing.T) {
 }
 
 func TestR03_TeeToGit(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "echo test | tee .git/config"})
+	ctx := makeCtx("Bash", map[string]any{"command": "echo test | tee .git/config"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -113,7 +113,7 @@ func TestR03_TeeToGit(t *testing.T) {
 }
 
 func TestR03_NormalBash(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "echo hello > output.txt"})
+	ctx := makeCtx("Bash", map[string]any{"command": "echo hello > output.txt"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve, got %s", result.Decision)
@@ -125,7 +125,7 @@ func TestR03_NormalBash(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestR04_WriteOutsideProject(t *testing.T) {
-	ctx := makeCtx("Write", map[string]interface{}{"file_path": "/tmp/malicious.sh"})
+	ctx := makeCtx("Write", map[string]any{"file_path": "/tmp/malicious.sh"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionAsk {
 		t.Errorf("expected ask, got %s", result.Decision)
@@ -133,7 +133,7 @@ func TestR04_WriteOutsideProject(t *testing.T) {
 }
 
 func TestR04_WriteInsideProject(t *testing.T) {
-	ctx := makeCtx("Write", map[string]interface{}{"file_path": "/project/src/index.ts"})
+	ctx := makeCtx("Write", map[string]any{"file_path": "/project/src/index.ts"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve, got %s", result.Decision)
@@ -141,7 +141,7 @@ func TestR04_WriteInsideProject(t *testing.T) {
 }
 
 func TestR04_RelativePath(t *testing.T) {
-	ctx := makeCtx("Write", map[string]interface{}{"file_path": "src/index.ts"})
+	ctx := makeCtx("Write", map[string]any{"file_path": "src/index.ts"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve, got %s", result.Decision)
@@ -149,7 +149,7 @@ func TestR04_RelativePath(t *testing.T) {
 }
 
 func TestR04_WorkModeBypass(t *testing.T) {
-	ctx := makeCtx("Write", map[string]interface{}{"file_path": "/tmp/file.txt"})
+	ctx := makeCtx("Write", map[string]any{"file_path": "/tmp/file.txt"})
 	ctx.WorkMode = true
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
@@ -162,7 +162,7 @@ func TestR04_WorkModeBypass(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestR05_RmRfBlocked(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "rm -rf /var/data"})
+	ctx := makeCtx("Bash", map[string]any{"command": "rm -rf /var/data"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionAsk {
 		t.Errorf("expected ask, got %s", result.Decision)
@@ -170,7 +170,7 @@ func TestR05_RmRfBlocked(t *testing.T) {
 }
 
 func TestR05_RmRfWorkMode(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "rm -rf ./dist"})
+	ctx := makeCtx("Bash", map[string]any{"command": "rm -rf ./dist"})
 	ctx.WorkMode = true
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
@@ -180,7 +180,7 @@ func TestR05_RmRfWorkMode(t *testing.T) {
 
 func TestR05_RmFOnly(t *testing.T) {
 	// rm -f (without -r) should NOT trigger R05
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "rm -f temp.txt"})
+	ctx := makeCtx("Bash", map[string]any{"command": "rm -f temp.txt"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve for rm -f (no -r), got %s", result.Decision)
@@ -188,7 +188,7 @@ func TestR05_RmFOnly(t *testing.T) {
 }
 
 func TestR05_RmRecursive(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "rm --recursive ./dir"})
+	ctx := makeCtx("Bash", map[string]any{"command": "rm --recursive ./dir"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionAsk {
 		t.Errorf("expected ask, got %s", result.Decision)
@@ -200,7 +200,7 @@ func TestR05_RmRecursive(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestR06_ForcePush(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push --force origin main"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git push --force origin main"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -208,7 +208,7 @@ func TestR06_ForcePush(t *testing.T) {
 }
 
 func TestR06_ForceWithLease(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push --force-with-lease origin feature"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git push --force-with-lease origin feature"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -216,7 +216,7 @@ func TestR06_ForceWithLease(t *testing.T) {
 }
 
 func TestR06_ShortForce(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push -f origin main"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git push -f origin main"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -224,7 +224,7 @@ func TestR06_ShortForce(t *testing.T) {
 }
 
 func TestR06_NormalPush(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin feature"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git push origin feature"})
 	result := EvaluateRules(ctx)
 	// R12 might trigger a warning for protected branch, but this is "feature"
 	if result.Decision == hookproto.DecisionDeny {
@@ -237,7 +237,7 @@ func TestR06_NormalPush(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestR07_CodexModeWrite(t *testing.T) {
-	ctx := makeCtx("Write", map[string]interface{}{"file_path": "/project/src/main.ts"})
+	ctx := makeCtx("Write", map[string]any{"file_path": "/project/src/main.ts"})
 	ctx.CodexMode = true
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
@@ -246,7 +246,7 @@ func TestR07_CodexModeWrite(t *testing.T) {
 }
 
 func TestR07_CodexModeEdit(t *testing.T) {
-	ctx := makeCtx("Edit", map[string]interface{}{"file_path": "/project/src/main.ts"})
+	ctx := makeCtx("Edit", map[string]any{"file_path": "/project/src/main.ts"})
 	ctx.CodexMode = true
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
@@ -256,7 +256,7 @@ func TestR07_CodexModeEdit(t *testing.T) {
 
 func TestR07_CodexModeBash(t *testing.T) {
 	// Bash is NOT blocked by R07 (only Write/Edit/MultiEdit)
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "echo hello"})
+	ctx := makeCtx("Bash", map[string]any{"command": "echo hello"})
 	ctx.CodexMode = true
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
@@ -265,7 +265,7 @@ func TestR07_CodexModeBash(t *testing.T) {
 }
 
 func TestR07_NormalModeWrite(t *testing.T) {
-	ctx := makeCtx("Write", map[string]interface{}{"file_path": "/project/src/main.ts"})
+	ctx := makeCtx("Write", map[string]any{"file_path": "/project/src/main.ts"})
 	ctx.CodexMode = false
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
@@ -278,7 +278,7 @@ func TestR07_NormalModeWrite(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestR08_ReviewerWrite(t *testing.T) {
-	ctx := makeCtx("Write", map[string]interface{}{"file_path": "/project/src/main.ts"})
+	ctx := makeCtx("Write", map[string]any{"file_path": "/project/src/main.ts"})
 	ctx.BreezingRole = "reviewer"
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
@@ -287,7 +287,7 @@ func TestR08_ReviewerWrite(t *testing.T) {
 }
 
 func TestR08_ReviewerBashGitCommit(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git commit -m 'test'"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git commit -m 'test'"})
 	ctx.BreezingRole = "reviewer"
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
@@ -296,7 +296,7 @@ func TestR08_ReviewerBashGitCommit(t *testing.T) {
 }
 
 func TestR08_ReviewerBashReadOnly(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "cat README.md"})
+	ctx := makeCtx("Bash", map[string]any{"command": "cat README.md"})
 	ctx.BreezingRole = "reviewer"
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
@@ -305,7 +305,7 @@ func TestR08_ReviewerBashReadOnly(t *testing.T) {
 }
 
 func TestR08_WorkerWrite(t *testing.T) {
-	ctx := makeCtx("Write", map[string]interface{}{"file_path": "/project/src/main.ts"})
+	ctx := makeCtx("Write", map[string]any{"file_path": "/project/src/main.ts"})
 	ctx.BreezingRole = "worker"
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
@@ -318,7 +318,7 @@ func TestR08_WorkerWrite(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestR09_ReadEnv(t *testing.T) {
-	ctx := makeCtx("Read", map[string]interface{}{"file_path": "/project/.env"})
+	ctx := makeCtx("Read", map[string]any{"file_path": "/project/.env"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve (warning only), got %s", result.Decision)
@@ -329,7 +329,7 @@ func TestR09_ReadEnv(t *testing.T) {
 }
 
 func TestR09_ReadIdRsa(t *testing.T) {
-	ctx := makeCtx("Read", map[string]interface{}{"file_path": "/home/user/.ssh/id_rsa"})
+	ctx := makeCtx("Read", map[string]any{"file_path": "/home/user/.ssh/id_rsa"})
 	result := EvaluateRules(ctx)
 	if result.SystemMessage == "" {
 		t.Error("expected a warning systemMessage for id_rsa")
@@ -337,7 +337,7 @@ func TestR09_ReadIdRsa(t *testing.T) {
 }
 
 func TestR09_ReadNormalFile(t *testing.T) {
-	ctx := makeCtx("Read", map[string]interface{}{"file_path": "/project/README.md"})
+	ctx := makeCtx("Read", map[string]any{"file_path": "/project/README.md"})
 	result := EvaluateRules(ctx)
 	if result.SystemMessage != "" {
 		t.Errorf("expected no warning for normal file, got: %s", result.SystemMessage)
@@ -349,7 +349,7 @@ func TestR09_ReadNormalFile(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestR10_NoVerify(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git commit --no-verify -m 'test'"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git commit --no-verify -m 'test'"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -357,7 +357,7 @@ func TestR10_NoVerify(t *testing.T) {
 }
 
 func TestR10_NoGpgSign(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git commit --no-gpg-sign -m 'test'"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git commit --no-gpg-sign -m 'test'"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -365,7 +365,7 @@ func TestR10_NoGpgSign(t *testing.T) {
 }
 
 func TestR10_NormalCommit(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git commit -m 'test'"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git commit -m 'test'"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve, got %s", result.Decision)
@@ -377,7 +377,7 @@ func TestR10_NormalCommit(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestR11_ResetHardMain(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git reset --hard origin/main"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git reset --hard origin/main"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -385,7 +385,7 @@ func TestR11_ResetHardMain(t *testing.T) {
 }
 
 func TestR11_ResetHardMaster(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git reset --hard master"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git reset --hard master"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -393,7 +393,7 @@ func TestR11_ResetHardMaster(t *testing.T) {
 }
 
 func TestR11_ResetHardFeature(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git reset --hard origin/feature"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git reset --hard origin/feature"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve for non-protected branch, got %s", result.Decision)
@@ -401,7 +401,7 @@ func TestR11_ResetHardFeature(t *testing.T) {
 }
 
 func TestR11_ResetSoftMain(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git reset --soft main"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git reset --soft main"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve for soft reset, got %s", result.Decision)
@@ -413,7 +413,7 @@ func TestR11_ResetSoftMain(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestR12_PushToMain(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin main"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git push origin main"})
 	result := EvaluateRules(ctx)
 	// Default policy is ask → approve+warn
 	if result.Decision != hookproto.DecisionApprove {
@@ -425,7 +425,7 @@ func TestR12_PushToMain(t *testing.T) {
 }
 
 func TestR12_PushToFeature(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin feature-branch"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git push origin feature-branch"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve for feature branch push, got %s", result.Decision)
@@ -436,7 +436,7 @@ func TestR12_PushToFeature(t *testing.T) {
 }
 
 func TestR12_PushRefspecToMain(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin HEAD:main"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git push origin HEAD:main"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve (warn), got %s", result.Decision)
@@ -447,7 +447,7 @@ func TestR12_PushRefspecToMain(t *testing.T) {
 }
 
 func TestR12_PushToMainPolicyDeny(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin main"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git push origin main"})
 	ctx.ProtectedBranchPushPolicy = "deny"
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
@@ -456,7 +456,7 @@ func TestR12_PushToMainPolicyDeny(t *testing.T) {
 }
 
 func TestR12_PushToMainPolicyAllow(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin main"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git push origin main"})
 	ctx.ProtectedBranchPushPolicy = "allow"
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
@@ -468,7 +468,7 @@ func TestR12_PushToMainPolicyAllow(t *testing.T) {
 }
 
 func TestR12_PushToMainPolicyConfirmAliasesAsk(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin main"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git push origin main"})
 	ctx.ProtectedBranchPushPolicy = "confirm"
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
@@ -480,7 +480,7 @@ func TestR12_PushToMainPolicyConfirmAliasesAsk(t *testing.T) {
 }
 
 func TestR12_PushToMainInvalidPolicyDefaultsAsk(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin main"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git push origin main"})
 	ctx.ProtectedBranchPushPolicy = "unexpected"
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
@@ -493,7 +493,7 @@ func TestR12_PushToMainInvalidPolicyDefaultsAsk(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestR13_WritePackageJson(t *testing.T) {
-	ctx := makeCtx("Write", map[string]interface{}{"file_path": "/project/package.json"})
+	ctx := makeCtx("Write", map[string]any{"file_path": "/project/package.json"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve (warning only), got %s", result.Decision)
@@ -504,7 +504,7 @@ func TestR13_WritePackageJson(t *testing.T) {
 }
 
 func TestR13_WriteDockerfile(t *testing.T) {
-	ctx := makeCtx("Edit", map[string]interface{}{"file_path": "Dockerfile"})
+	ctx := makeCtx("Edit", map[string]any{"file_path": "Dockerfile"})
 	result := EvaluateRules(ctx)
 	if result.SystemMessage == "" {
 		t.Error("expected warning for Dockerfile")
@@ -512,7 +512,7 @@ func TestR13_WriteDockerfile(t *testing.T) {
 }
 
 func TestR13_WriteGitHubWorkflow(t *testing.T) {
-	ctx := makeCtx("Write", map[string]interface{}{"file_path": ".github/workflows/ci.yml"})
+	ctx := makeCtx("Write", map[string]any{"file_path": ".github/workflows/ci.yml"})
 	result := EvaluateRules(ctx)
 	if result.SystemMessage == "" {
 		t.Error("expected warning for GitHub workflow")
@@ -520,7 +520,7 @@ func TestR13_WriteGitHubWorkflow(t *testing.T) {
 }
 
 func TestR13_WriteNormalFile(t *testing.T) {
-	ctx := makeCtx("Write", map[string]interface{}{"file_path": "/project/src/utils.ts"})
+	ctx := makeCtx("Write", map[string]any{"file_path": "/project/src/utils.ts"})
 	result := EvaluateRules(ctx)
 	if result.SystemMessage != "" {
 		t.Errorf("expected no warning for normal file, got: %s", result.SystemMessage)
@@ -533,7 +533,7 @@ func TestR13_WriteNormalFile(t *testing.T) {
 
 func TestFirstMatchWins(t *testing.T) {
 	// sudo rm -rf should be caught by R01 (sudo) before R05 (rm -rf)
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "sudo rm -rf /"})
+	ctx := makeCtx("Bash", map[string]any{"command": "sudo rm -rf /"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny, got %s", result.Decision)
@@ -548,7 +548,7 @@ func TestFirstMatchWins(t *testing.T) {
 }
 
 func TestUnknownToolApproved(t *testing.T) {
-	ctx := makeCtx("UnknownTool", map[string]interface{}{})
+	ctx := makeCtx("UnknownTool", map[string]any{})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve for unknown tool, got %s", result.Decision)
@@ -561,7 +561,7 @@ func TestUnknownToolApproved(t *testing.T) {
 
 func TestR06_PushForceMultipleSpaces(t *testing.T) {
 	// "git  push  --force" with multiple spaces should still be denied
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git  push  --force"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git  push  --force"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny for multi-space force push, got %s", result.Decision)
@@ -570,7 +570,7 @@ func TestR06_PushForceMultipleSpaces(t *testing.T) {
 
 func TestR06_PushForceTabs(t *testing.T) {
 	// "git\tpush\t-f" with tab separators should still be denied
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git\tpush\t-f"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git\tpush\t-f"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny for tab-separated force push, got %s", result.Decision)
@@ -579,7 +579,7 @@ func TestR06_PushForceTabs(t *testing.T) {
 
 func TestR06_PushForceWithLeaseSpaces(t *testing.T) {
 	// "git push   --force-with-lease" with extra spaces should still be denied
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push   --force-with-lease"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git push   --force-with-lease"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny for force-with-lease with extra spaces, got %s", result.Decision)
@@ -591,7 +591,7 @@ func TestR06_PushForceWithLeaseSpaces(t *testing.T) {
 // `git push` and `-f` previously crossed shell separators and false-positively
 // matched `rm -f` after `&&`/`;`/`|`.
 func TestR06_CompoundCommand_RmDashF_AfterPush(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin master && rm -f /tmp/foo"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git push origin master && rm -f /tmp/foo"})
 	result := EvaluateRules(ctx)
 	if result.Decision == hookproto.DecisionDeny {
 		t.Errorf("expected approve for `git push && rm -f` (rm -f is unrelated), got deny: %s", result.Reason)
@@ -599,7 +599,7 @@ func TestR06_CompoundCommand_RmDashF_AfterPush(t *testing.T) {
 }
 
 func TestR06_CompoundCommand_RmDashF_Semicolon(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "git push origin master; rm -f /tmp/foo"})
+	ctx := makeCtx("Bash", map[string]any{"command": "git push origin master; rm -f /tmp/foo"})
 	result := EvaluateRules(ctx)
 	if result.Decision == hookproto.DecisionDeny {
 		t.Errorf("expected approve for `git push; rm -f` (rm -f is unrelated), got deny: %s", result.Reason)
@@ -610,7 +610,7 @@ func TestR06_CompoundCommand_RealisticReleaseCleanup(t *testing.T) {
 	// The actual command that triggered the false positive in production:
 	// release flow's completion-commit cleanup.
 	cmd := `git push origin master && rm -f .claude/state/harness-release-wrapper.lock && echo "Done"`
-	ctx := makeCtx("Bash", map[string]interface{}{"command": cmd})
+	ctx := makeCtx("Bash", map[string]any{"command": cmd})
 	result := EvaluateRules(ctx)
 	if result.Decision == hookproto.DecisionDeny {
 		t.Errorf("expected approve for release cleanup compound, got deny: %s", result.Reason)
@@ -620,7 +620,7 @@ func TestR06_CompoundCommand_RealisticReleaseCleanup(t *testing.T) {
 // True-positive guard: even when the force push is in the SECOND subcommand
 // after a benign `rm -f`, the detector must still catch it.
 func TestR06_CompoundCommand_ForcePushInSecondSegment(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{"command": "rm -f /tmp/foo && git push --force origin main"})
+	ctx := makeCtx("Bash", map[string]any{"command": "rm -f /tmp/foo && git push --force origin main"})
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionDeny {
 		t.Errorf("expected deny for force push in second segment, got %s", result.Decision)
@@ -642,7 +642,7 @@ func TestR06_CompoundCommand_ForcePushInSecondSegment(t *testing.T) {
 
 // R06 wrapper bypass: env / sudo / watch must not let force-push through.
 func TestR06_WrappedByEnv(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{
+	ctx := makeCtx("Bash", map[string]any{
 		"command": "env GIT_SSL_NO_VERIFY=1 git push --force origin main",
 	})
 	result := EvaluateRules(ctx)
@@ -653,7 +653,7 @@ func TestR06_WrappedByEnv(t *testing.T) {
 
 func TestR06_WrappedBySudo(t *testing.T) {
 	// R01 fires first for sudo, but the deny posture is enforced.
-	ctx := makeCtx("Bash", map[string]interface{}{
+	ctx := makeCtx("Bash", map[string]any{
 		"command": "sudo git push --force origin main",
 	})
 	result := EvaluateRules(ctx)
@@ -663,7 +663,7 @@ func TestR06_WrappedBySudo(t *testing.T) {
 }
 
 func TestR06_WrappedByWatch(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{
+	ctx := makeCtx("Bash", map[string]any{
 		"command": "watch -n 5 git push --force origin main",
 	})
 	result := EvaluateRules(ctx)
@@ -674,7 +674,7 @@ func TestR06_WrappedByWatch(t *testing.T) {
 
 // R11 wrapper bypass: env / sudo / watch must not let reset --hard main through.
 func TestR11_WrappedByEnv(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{
+	ctx := makeCtx("Bash", map[string]any{
 		"command": "env GIT_DIR=.git git reset --hard main",
 	})
 	result := EvaluateRules(ctx)
@@ -685,7 +685,7 @@ func TestR11_WrappedByEnv(t *testing.T) {
 
 func TestR11_WrappedBySudo(t *testing.T) {
 	// R01 fires first for sudo; the deny posture is enforced.
-	ctx := makeCtx("Bash", map[string]interface{}{
+	ctx := makeCtx("Bash", map[string]any{
 		"command": "sudo git reset --hard main",
 	})
 	result := EvaluateRules(ctx)
@@ -695,7 +695,7 @@ func TestR11_WrappedBySudo(t *testing.T) {
 }
 
 func TestR11_WrappedByWatch(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{
+	ctx := makeCtx("Bash", map[string]any{
 		"command": "watch -n 30 git reset --hard origin/main",
 	})
 	result := EvaluateRules(ctx)
@@ -709,7 +709,7 @@ func TestR11_WrappedByWatch(t *testing.T) {
 // so that the wrapper bypass coverage is exercised against the strongest
 // configuration. For the sudo case R01 fires first.
 func TestR12_WrappedByEnv(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{
+	ctx := makeCtx("Bash", map[string]any{
 		"command": "env LANG=C git push origin main",
 	})
 	ctx.ProtectedBranchPushPolicy = "deny"
@@ -721,7 +721,7 @@ func TestR12_WrappedByEnv(t *testing.T) {
 
 func TestR12_WrappedBySudo(t *testing.T) {
 	// R01 fires first for sudo; the deny posture is enforced regardless of policy.
-	ctx := makeCtx("Bash", map[string]interface{}{
+	ctx := makeCtx("Bash", map[string]any{
 		"command": "sudo git push origin main",
 	})
 	result := EvaluateRules(ctx)
@@ -731,7 +731,7 @@ func TestR12_WrappedBySudo(t *testing.T) {
 }
 
 func TestR12_WrappedByWatch(t *testing.T) {
-	ctx := makeCtx("Bash", map[string]interface{}{
+	ctx := makeCtx("Bash", map[string]any{
 		"command": "watch -n 60 git push origin main",
 	})
 	ctx.ProtectedBranchPushPolicy = "deny"
