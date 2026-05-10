@@ -168,12 +168,64 @@ func generateSettingsJSON(projectRoot string, cfg *config.Config) error {
 	}
 
 	dest := filepath.Join(projectRoot, outputDir, "settings.json")
+
+	reportSettingsDrift(projectRoot, dest, data)
+
 	if err := writeFile(dest, data); err != nil {
 		return err
 	}
 
 	fmt.Printf("  wrote %s\n", rel(projectRoot, dest))
 	return nil
+}
+
+// reportSettingsDrift compares the about-to-be-written settings.json content
+// against the existing on-disk content and writes a warning to stderr when
+// they diverge. Silent on first-time generation (no existing file) and on
+// idempotent runs (bytes equal). Catches the failure mode where someone edits
+// .claude-plugin/settings.json directly without updating harness.toml — every
+// subsequent SessionStart hook would silently strip those edits via this very
+// function. This warning surfaces the drift so the operator can sync the
+// edits back to harness.toml.
+func reportSettingsDrift(projectRoot, dest string, newData []byte) {
+	existing, err := os.ReadFile(dest)
+	if err != nil {
+		// New file — drift not applicable.
+		return
+	}
+	if bytes.Equal(bytes.TrimSpace(existing), bytes.TrimSpace(newData)) {
+		return
+	}
+
+	oldCount := extractDeniedDomainCount(existing)
+	newCount := extractDeniedDomainCount(newData)
+
+	fmt.Fprintf(os.Stderr, "  [WARN] %s drift detected — sync rewrote the file.\n", rel(projectRoot, dest))
+	if oldCount >= 0 && newCount >= 0 && oldCount != newCount {
+		fmt.Fprintf(os.Stderr, "    sandbox.network.deniedDomains: %d -> %d entries\n", oldCount, newCount)
+		if oldCount > newCount {
+			fmt.Fprintln(os.Stderr, "    entries were REMOVED — was settings.json edited directly without updating harness.toml?")
+			fmt.Fprintln(os.Stderr, "    SSOT is harness.toml. Mirror the change there and re-run 'bin/harness sync'.")
+		}
+	}
+	fmt.Fprintln(os.Stderr, "    Review with: git diff .claude-plugin/settings.json")
+}
+
+// extractDeniedDomainCount returns the number of entries in
+// sandbox.network.deniedDomains, or -1 if the JSON cannot be parsed for
+// drift reporting purposes.
+func extractDeniedDomainCount(data []byte) int {
+	var v struct {
+		Sandbox struct {
+			Network struct {
+				DeniedDomains []string `json:"deniedDomains"`
+			} `json:"network"`
+		} `json:"sandbox"`
+	}
+	if err := json.Unmarshal(data, &v); err != nil {
+		return -1
+	}
+	return len(v.Sandbox.Network.DeniedDomains)
 }
 
 // ---------------------------------------------------------------------------

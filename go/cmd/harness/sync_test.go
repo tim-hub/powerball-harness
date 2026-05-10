@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -279,5 +282,153 @@ failIfUnavailable = true
 	}
 	if _, ok := sbRaw["filesystem"]; ok {
 		t.Error("sandbox.filesystem should not appear when no filesystem rules are set")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Phase 95.2: settings.json drift warning
+// ---------------------------------------------------------------------------
+
+// captureStderr swaps os.Stderr for a pipe, runs fn, and returns what was
+// written. Used to assert that reportSettingsDrift writes to stderr without
+// changing exit codes.
+func captureStderr(t *testing.T, fn func()) string {
+	t.Helper()
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe: %v", err)
+	}
+
+	orig := os.Stderr
+	os.Stderr = w
+	defer func() { os.Stderr = orig }()
+
+	fn()
+
+	if err := w.Close(); err != nil {
+		t.Fatalf("close pipe writer: %v", err)
+	}
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, r); err != nil {
+		t.Fatalf("read stderr: %v", err)
+	}
+	return buf.String()
+}
+
+func TestReportSettingsDrift_NewFile_NoWarning(t *testing.T) {
+	dir := t.TempDir()
+	dest := filepath.Join(dir, "settings.json")
+
+	out := captureStderr(t, func() {
+		reportSettingsDrift(dir, dest, []byte(`{"foo":"bar"}`))
+	})
+
+	if out != "" {
+		t.Errorf("expected no warning for new file, got: %q", out)
+	}
+}
+
+func TestReportSettingsDrift_Identical_NoWarning(t *testing.T) {
+	dir := t.TempDir()
+	dest := filepath.Join(dir, "settings.json")
+	data := []byte(`{"sandbox":{"network":{"deniedDomains":["a","b"]}}}` + "\n")
+	if err := os.WriteFile(dest, data, 0o644); err != nil {
+		t.Fatalf("write existing: %v", err)
+	}
+
+	out := captureStderr(t, func() {
+		reportSettingsDrift(dir, dest, data)
+	})
+
+	if out != "" {
+		t.Errorf("expected no warning for identical content, got: %q", out)
+	}
+}
+
+func TestReportSettingsDrift_DomainsRemoved_Warning(t *testing.T) {
+	dir := t.TempDir()
+	dest := filepath.Join(dir, "settings.json")
+	existing := []byte(`{
+  "sandbox": {
+    "network": {
+      "deniedDomains": ["a","b","c","d","e","f","g","h","i"]
+    }
+  }
+}
+`)
+	if err := os.WriteFile(dest, existing, 0o644); err != nil {
+		t.Fatalf("write existing: %v", err)
+	}
+	newData := []byte(`{
+  "sandbox": {
+    "network": {
+      "deniedDomains": ["a","b","c"]
+    }
+  }
+}
+`)
+
+	out := captureStderr(t, func() {
+		reportSettingsDrift(dir, dest, newData)
+	})
+
+	if !strings.Contains(out, "drift detected") {
+		t.Errorf("expected drift detected warning, got: %q", out)
+	}
+	if !strings.Contains(out, "9 -> 3 entries") {
+		t.Errorf("expected count diff '9 -> 3', got: %q", out)
+	}
+	if !strings.Contains(out, "REMOVED") {
+		t.Errorf("expected REMOVED marker when count decreases, got: %q", out)
+	}
+	if !strings.Contains(out, "harness.toml") {
+		t.Errorf("expected SSOT guidance referencing harness.toml, got: %q", out)
+	}
+}
+
+func TestReportSettingsDrift_DomainsAdded_WarningWithoutRemoved(t *testing.T) {
+	dir := t.TempDir()
+	dest := filepath.Join(dir, "settings.json")
+	existing := []byte(`{"sandbox":{"network":{"deniedDomains":["a","b","c"]}}}` + "\n")
+	if err := os.WriteFile(dest, existing, 0o644); err != nil {
+		t.Fatalf("write existing: %v", err)
+	}
+	newData := []byte(`{"sandbox":{"network":{"deniedDomains":["a","b","c","d","e","f","g","h","i"]}}}` + "\n")
+
+	out := captureStderr(t, func() {
+		reportSettingsDrift(dir, dest, newData)
+	})
+
+	if !strings.Contains(out, "drift detected") {
+		t.Errorf("expected drift detected warning, got: %q", out)
+	}
+	if !strings.Contains(out, "3 -> 9 entries") {
+		t.Errorf("expected '3 -> 9 entries', got: %q", out)
+	}
+	if strings.Contains(out, "REMOVED") {
+		t.Errorf("REMOVED marker should NOT appear when count increases, got: %q", out)
+	}
+}
+
+func TestExtractDeniedDomainCount(t *testing.T) {
+	cases := []struct {
+		name string
+		data string
+		want int
+	}{
+		{"empty json", `{}`, 0},
+		{"three entries", `{"sandbox":{"network":{"deniedDomains":["a","b","c"]}}}`, 3},
+		{"nine entries", `{"sandbox":{"network":{"deniedDomains":["1","2","3","4","5","6","7","8","9"]}}}`, 9},
+		{"invalid json", `{not-json`, -1},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := extractDeniedDomainCount([]byte(tc.data))
+			if got != tc.want {
+				t.Errorf("got %d, want %d for %s", got, tc.want, tc.name)
+			}
+		})
 	}
 }
