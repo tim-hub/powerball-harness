@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.4.3...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.4.4...HEAD
+[5.4.4]: https://github.com/tim-hub/powerball-harness/compare/v5.4.3...v5.4.4
 [5.4.3]: https://github.com/tim-hub/powerball-harness/compare/v5.4.2...v5.4.3
 [5.4.2]: https://github.com/tim-hub/powerball-harness/compare/v5.4.1...v5.4.2
 [5.4.1]: https://github.com/tim-hub/powerball-harness/compare/v5.4.0...v5.4.1
@@ -53,6 +54,10 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.4.4] - 2026-05-11
 
 ### Theme: Security hardening and observability helpers (Phase 95 — port Chachamaru127/claude-code-harness v4.7.0...v4.8.1)
 
