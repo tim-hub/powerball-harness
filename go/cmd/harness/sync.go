@@ -96,13 +96,21 @@ type sandboxField struct {
 	Filesystem        *sandboxFilesystemField `json:"filesystem,omitempty"`
 }
 
-// sandboxNetworkField blocks access to cloud metadata endpoints.
-// The three entries below are the minimum security baseline for any sandboxed run:
-// they prevent any shell from reading IAM credentials from AWS/GCP/Azure metadata services.
+// defaultDeniedDomains is the baseline network block list written into
+// harness/settings.json sandbox.network.deniedDomains by `bin/harness sync`.
+//
+// Cloud metadata endpoints (prevent IAM credential theft from AWS/GCP/Azure):
 var defaultDeniedDomains = []string{
 	"169.254.169.254",
 	"metadata.google.internal",
 	"metadata.azure.com",
+	// Paste-site / file-host exfil endpoints (prevent agent-initiated data leaks):
+	"pastebin.com",
+	"transfer.sh",
+	"0x0.st",
+	"paste.ee",
+	"termbin.com",
+	"ix.io",
 }
 
 type sandboxNetworkField struct {
