@@ -34,7 +34,10 @@ RUNTIME_REVIEW_SCRIPT="${CODEX_LOOP_RUNTIME_REVIEW_SCRIPT:-${SCRIPT_DIR}/run-con
 WRITE_REVIEW_RESULT_SCRIPT="${CODEX_LOOP_WRITE_REVIEW_RESULT_SCRIPT:-${SCRIPT_DIR}/write-review-result.sh}"
 PLATEAU_SCRIPT="${CODEX_LOOP_PLATEAU_SCRIPT:-${SCRIPT_DIR}/detect-review-plateau.sh}"
 CHECKPOINT_SCRIPT="${CODEX_LOOP_CHECKPOINT_SCRIPT:-${SCRIPT_DIR}/auto-checkpoint.sh}"
-MEM_CLIENT="${CODEX_LOOP_MEM_CLIENT:-${SCRIPT_DIR}/harness-mem-client.sh}"
+# Phase 60 (v2.20.10): harness-mem-client.sh removed (managed-companion migration).
+# Default is empty — the resume-pack call below is skipped gracefully when unset.
+# Set CODEX_LOOP_MEM_CLIENT=/abs/path for test fixture injection only.
+MEM_CLIENT="${CODEX_LOOP_MEM_CLIENT:-}"
 NODE_BIN="${NODE_BIN:-node}"
 GENERATE_CONTRACT_SCRIPT="${CODEX_LOOP_GENERATE_CONTRACT_SCRIPT:-${SCRIPT_DIR}/generate-sprint-contract.js}"
 

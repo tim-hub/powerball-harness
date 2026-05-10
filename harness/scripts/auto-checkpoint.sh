@@ -11,8 +11,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="${PROJECT_ROOT:-$(cd "${SCRIPT_DIR}/.." && pwd)}"  # plugin-local: harness plugin root
 
 # ── Environment variables ─────────────────────────────────────────────────────
-# HARNESS_MEM_CLIENT: path to harness-mem-client.sh (override for testing)
-HARNESS_MEM_CLIENT="${HARNESS_MEM_CLIENT:-${SCRIPT_DIR}/harness-mem-client.sh}"
+# HARNESS_MEM_CLIENT: path to harness-mem-client.sh (for test fixture injection only).
+# Phase 60 (v2.20.10) removed scripts/harness-mem-client.sh from the distribution
+# when managed-companion replaced it. The default is now empty — persistence uses
+# memory-bridge.sh (HTTP daemon API) and `bin/harness mem` instead. Set this env
+# var to an absolute path only in test fixtures that need to mock the record-checkpoint API.
+HARNESS_MEM_CLIENT="${HARNESS_MEM_CLIENT:-}"
 # HARNESS_MEM_DISABLE: set to 1 to skip API calls (fallback validation)
 HARNESS_MEM_DISABLE="${HARNESS_MEM_DISABLE:-0}"
 # HARNESS_MEM_CLIENT_TIMEOUT_SEC: API call timeout in seconds
@@ -184,6 +188,9 @@ main() {
   if [ "${HARNESS_MEM_DISABLE}" = "1" ]; then
     api_success=0
     api_error="HARNESS_MEM_DISABLE=1"
+  elif [ -z "${HARNESS_MEM_CLIENT}" ]; then
+    # No client configured (Phase 60: harness-mem-client.sh removed) — silent skip
+    api_success=1
   elif [ ! -x "${HARNESS_MEM_CLIENT}" ]; then
     api_success=0
     api_error="harness-mem-client not found or not executable: ${HARNESS_MEM_CLIENT}"
