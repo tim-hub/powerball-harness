@@ -54,6 +54,52 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Security hardening and observability helpers (Phase 95 — port Chachamaru127/claude-code-harness v4.7.0...v4.8.1)
+
+**Extends exfil-domain blocking, adds settings drift warnings, hardens wrapper-bypass guardrail tests, and ships two opt-in observability scripts.**
+
+---
+
+#### 1. Paste-site exfil domains added to `defaultDeniedDomains`
+
+**Before**: `bin/harness sync` seeded `harness/settings.json` with only 3 denied domains covering cloud-metadata endpoints (`169.254.169.254`, `metadata.google.internal`, `metadata.internal`). Common paste-site and anonymous file-host exfiltration vectors were not blocked.
+
+**After**: The default deny list now contains 9 entries. Six paste-site / file-host domains are added: `pastebin.com`, `transfer.sh`, `0x0.st`, `paste.ee`, `termbin.com`, `ix.io`. Any project that runs `bin/harness sync` for the first time, or re-syncs with the new binary, will automatically receive the extended block list.
+
+---
+
+#### 2. Settings drift warning in `bin/harness sync`
+
+**Before**: If `harness/settings.json` existed but had a different `deniedDomains` count from what the binary would write (e.g. after upgrading Harness), `sync` silently overwrote the file with no indication that something had changed.
+
+**After**: `sync` now compares the existing `deniedDomains` count to the expected count before writing. When a mismatch is detected it emits a drift warning to stderr — `[WARN] harness/settings.json drift detected` — showing the before/after counts and a `git diff` hint so operators can review the delta before committing.
+
+---
+
+#### 3. Wrapper-bypass tests for R06/R11/R12 guardrail rules
+
+**Before**: Guardrail rules R06 (force-push), R11 (reset-hard-protected), and R12 (direct-push-protected) were tested only with bare command strings. An attacker could prepend `env FOO=1`, `sudo`, or `watch -n N` to bypass the regex match, and those vectors were not covered by any test.
+
+**After**: Nine new test cases in `go/internal/guardrail/rules_test.go` verify that all three rules deny the commands when wrapped with `env VAR=val`, `sudo`, and `watch -n N` prefixes. The wrapper-bypass surface is now part of the regression suite.
+
+---
+
+#### 4. Opt-in PostToolUse output governance and skill-trigger telemetry scripts
+
+**Before**: There was no built-in facility to redact API keys that might appear in tool output, and no lightweight way to record which skills were activated during a session for local analytics.
+
+**After**: Two opt-in helper scripts are added:
+- `harness/scripts/hook-handlers/posttool-output-normalize.sh` — Redacts `sk-...` and `sk-ant-...` API key patterns from PostToolUse output and appends an audit record to `.claude/state/output-audit.jsonl`. Off by default; enable with `HARNESS_OUTPUT_GOVERNANCE_ENABLE=1`.
+- `harness/scripts/skill-trigger-telemetry.sh` — Records `claude_code.skill_activated` events to a local privacy-conscious ledger (session ID truncated to 12 chars). Opt-out via `HARNESS_SKILL_TELEMETRY_DISABLE=1`. Covered by `harness/tests/test-skill-trigger-telemetry.sh`.
+
+---
+
+#### 5. Fixed broken `MEM_CLIENT` default in checkpoint and codex-loop scripts
+
+**Before**: `harness/scripts/auto-checkpoint.sh` and `harness/scripts/codex-loop.sh` defaulted `HARNESS_MEM_CLIENT` / `MEM_CLIENT` to `harness-mem-client.sh`, a script that no longer exists. Any session that relied on the default (without explicitly setting the env var) would encounter a "command not found" error during checkpoint or loop operations.
+
+**After**: Both scripts now default to an empty string and skip the mem-client call gracefully when the variable is unset or empty, eliminating the spurious error without requiring any user configuration change.
+
 ---
 
 ## [5.4.3] - 2026-05-08
