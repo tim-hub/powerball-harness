@@ -4,6 +4,22 @@ Last release: v5.3.0 on 2026-05-07 (Configurable R12 push policy + weak-supervis
 
 ---
 
+## Phase 96: Fix WorktreeCreate hook — remove stdout output (root cause of JSON-named directories)
+
+Created: 2026-05-12
+
+**Goal**: Fix `HandleWorktreeCreate` so it never writes to stdout. `WorktreeCreate` is a lifecycle/notification event — CC does not expect or consume a response from it. The handler was emitting `{"decision":"approve","reason":"WorktreeCreate: initialized worktree state"}` on every invocation. CC was picking up this output and, on some invocations, appending it to the `cwd` field fed into the next WorktreeCreate event, causing `os.MkdirAll` to create a directory literally named `{"decision":"approve",...}` inside the project folder (observed at `/Users/hbai/Documents/pri/playground/ti-status/{...}`).
+
+**Root cause**: `writeWorktreeApprove` was called on every code path (success and all early-exit guards), writing JSON to `os.Stdout`. Decision-response JSON belongs only on permission hooks (`PreToolUse`, `PermissionRequest`), not notification hooks.
+
+**Fix**: Change `HandleWorktreeCreate` signature to accept `_ io.Writer` and remove all stdout writes. Retain the `{}` guard in the CWD validation as defense-in-depth — then removed at PM request since the root cause is gone. Update tests to assert zero stdout output instead of asserting approve-JSON format. Rebuild binary.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 96.1 | Remove all stdout writes from `HandleWorktreeCreate` (`go/internal/hookhandler/worktree_create.go`). Change `out io.Writer` parameter to `_ io.Writer`. Remove `writeWorktreeApprove` helper and `strings`/`path/filepath` imports no longer needed. Update `worktree_create_test.go`: remove `assertWorktreeApprove` helper and all guard tests (`JSONCWDGuard`, `NonAbsolutePath`); add `out.Len() == 0` assertion to every remaining test. Rebuild `harness/bin/harness-darwin-arm64`. | `go test ./internal/hookhandler/ -run TestHandleWorktreeCreate` passes (6 tests); `grep 'writeWorktreeApprove' go/internal/hookhandler/worktree_create.go` returns 0 lines; `go build -o ../harness/bin/harness-darwin-arm64 ./cmd/harness/` clean | - | cc:WIP |
+
+---
+
 ## Phase 95: Port upstream v4.7.0→v4.8.1 — paste-site exfil block + settings-drift warning + guardrail wrapper-bypass tests
 
 Created: 2026-05-11

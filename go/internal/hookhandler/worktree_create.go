@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -26,39 +24,28 @@ type worktreeInfo struct {
 
 // HandleWorktreeCreate ports scripts/hook-handlers/worktree-create.sh.
 //
-// On WorktreeCreate events it:
-//   1. Creates .claude/state/ inside the worktree (cwd).
-//   2. Writes worktree-info.json with worker_id, created_at, and cwd.
-func HandleWorktreeCreate(in io.Reader, out io.Writer) error {
+// WorktreeCreate is a lifecycle/notification event — CC does not expect or
+// consume any stdout response. The handler writes nothing to out; it only
+// creates .claude/state/ and worktree-info.json inside the worktree CWD.
+// Writing JSON to stdout here was the root cause of CC re-feeding the hook
+// output as a cwd value on subsequent invocations.
+func HandleWorktreeCreate(in io.Reader, _ io.Writer) error {
 	data, err := io.ReadAll(in)
 	if err != nil || len(data) == 0 {
-		return writeWorktreeApprove(out, "WorktreeCreate: no payload")
+		return nil
 	}
 
 	var input worktreeInput
 	if jsonErr := json.Unmarshal(data, &input); jsonErr != nil {
-		return writeWorktreeApprove(out, "WorktreeCreate: no payload")
+		return nil
 	}
 
 	if input.CWD == "" {
-		return writeWorktreeApprove(out, "WorktreeCreate: no cwd")
+		return nil
 	}
-
-	// Guard: CC sometimes feeds hook output JSON back as the cwd field on a
-	// subsequent invocation. Strip whitespace first, then reject JSON strings
-	// and any non-absolute path — a valid worktree CWD is always absolute.
-	trimmedCWD := strings.TrimSpace(input.CWD)
-	if strings.HasPrefix(trimmedCWD, "{") {
-		return writeWorktreeApprove(out, "WorktreeCreate: skipped (invalid JSON cwd)")
-	}
-	if !filepath.IsAbs(trimmedCWD) {
-		return writeWorktreeApprove(out, "WorktreeCreate: skipped (non-absolute cwd)")
-	}
-	input.CWD = trimmedCWD
 
 	stateDir := input.CWD + "/.claude/state"
 	if mkErr := os.MkdirAll(stateDir, 0o755); mkErr != nil {
-		// Non-fatal: log and continue.
 		fmt.Fprintf(os.Stderr, "[claude-code-harness] worktree-create: mkdir %s: %v\n", stateDir, mkErr)
 	}
 
@@ -73,16 +60,5 @@ func HandleWorktreeCreate(in io.Reader, out io.Writer) error {
 		_ = os.WriteFile(infoPath, append(infoData, '\n'), 0o644)
 	}
 
-	return writeWorktreeApprove(out, "WorktreeCreate: initialized worktree state")
-}
-
-// writeWorktreeApprove writes the standard approve decision JSON.
-func writeWorktreeApprove(out io.Writer, reason string) error {
-	resp := map[string]string{"decision": "approve", "reason": reason}
-	data, err := json.Marshal(resp)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprintf(out, "%s\n", data)
-	return err
+	return nil
 }
