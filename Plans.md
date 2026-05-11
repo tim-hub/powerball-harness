@@ -16,7 +16,7 @@ Created: 2026-05-12
 
 | Task | Description | DoD | Depends | Status |
 |------|-------------|-----|---------|--------|
-| 96.1 | Remove all stdout writes from `HandleWorktreeCreate` (`go/internal/hookhandler/worktree_create.go`). Change `out io.Writer` parameter to `_ io.Writer`. Remove `writeWorktreeApprove` helper and `strings`/`path/filepath` imports no longer needed. Update `worktree_create_test.go`: remove `assertWorktreeApprove` helper and all guard tests (`JSONCWDGuard`, `NonAbsolutePath`); add `out.Len() == 0` assertion to every remaining test. Rebuild `harness/bin/harness-darwin-arm64`. | `go test ./internal/hookhandler/ -run TestHandleWorktreeCreate` passes (6 tests); `grep 'writeWorktreeApprove' go/internal/hookhandler/worktree_create.go` returns 0 lines; `go build -o ../harness/bin/harness-darwin-arm64 ./cmd/harness/` clean | - | cc:WIP |
+| 96.1 | Remove all stdout writes from `HandleWorktreeCreate` (`go/internal/hookhandler/worktree_create.go`). Change `out io.Writer` parameter to `_ io.Writer`. Remove `writeWorktreeApprove` helper and `strings`/`path/filepath` imports no longer needed. Update `worktree_create_test.go`: remove `assertWorktreeApprove` helper and all guard tests (`JSONCWDGuard`, `NonAbsolutePath`); add `out.Len() == 0` assertion to every remaining test. Rebuild `harness/bin/harness-darwin-arm64`. | `go test ./internal/hookhandler/ -run TestHandleWorktreeCreate` passes (6 tests); `grep 'writeWorktreeApprove' go/internal/hookhandler/worktree_create.go` returns 0 lines; `go build -o ../harness/bin/harness-darwin-arm64 ./cmd/harness/` clean | - | cc:done [76f78db] |
 
 ---
 
