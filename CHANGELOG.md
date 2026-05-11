@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.4.4...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.4.5...HEAD
+[5.4.5]: https://github.com/tim-hub/powerball-harness/compare/v5.4.4...v5.4.5
 [5.4.4]: https://github.com/tim-hub/powerball-harness/compare/v5.4.3...v5.4.4
 [5.4.3]: https://github.com/tim-hub/powerball-harness/compare/v5.4.2...v5.4.3
 [5.4.2]: https://github.com/tim-hub/powerball-harness/compare/v5.4.1...v5.4.2
@@ -54,6 +55,22 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.4.5] - 2026-05-12
+
+### Theme: Fix WorktreeCreate hook stdout pollution (Phase 96)
+
+**Prevents CC from creating JSON-named directories in project folders by removing the spurious stdout output that caused it.**
+
+---
+
+#### 1. WorktreeCreate hook no longer writes to stdout
+
+**Before**: `HandleWorktreeCreate` called `writeWorktreeApprove` on every code path, emitting `{"decision":"approve","reason":"WorktreeCreate: initialized worktree state"}` to stdout. `WorktreeCreate` is a lifecycle/notification event — CC does not consume its response. CC was picking up this output and, on some invocations, appending it to the `cwd` field passed into the next `WorktreeCreate` invocation. `os.MkdirAll` then created a directory literally named after the JSON string (e.g., `/project/{"decision":"approve","reason":"..."}/.claude/state`), leaving a visible artefact in the project folder.
+
+**After**: `HandleWorktreeCreate` accepts `_ io.Writer` and produces no stdout. The hook creates `.claude/state/` and writes `worktree-info.json` as before, then exits silently. Because no JSON is written to stdout, CC has nothing to re-feed as a path component. Tests updated to assert `out.Len() == 0` and the `writeWorktreeApprove` helper removed entirely.
 
 ---
 
