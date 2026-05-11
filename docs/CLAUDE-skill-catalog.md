@@ -48,8 +48,6 @@ harness/skills/
 ├── crud/                  # Scaffold CRUD — API endpoints, database models, REST resources
 ├── deploy/                # Deploy to Vercel or Netlify — health checks, monitoring
 ├── auth/                  # Authentication, OAuth, sessions, payments (Clerk, Supabase, Stripe)
-├── ui/                    # UI components — hero sections, landing pages, feedback forms
-├── gogcli-ops/            # Google Drive/Docs/Sheets/Slides via gogcli
 ├── notebook-lm/           # NotebookLM YAML, structured slide content
 ├── principles/            # Coding principles, development guidelines, safe-editing practices
 ├── vibecoder-guide/       # Plain-language workflow guidance for newcomers
@@ -79,8 +77,6 @@ harness/skills/
 | `crud` | Scaffold CRUD API, database models | "create endpoint", "scaffold CRUD" |
 | `deploy` | Deploy to Vercel/Netlify, health checks | "deploy", "Vercel", "Netlify" |
 | `auth` | Auth, OAuth, sessions, payments | "login", "Clerk", "Stripe", "payments" |
-| `ui` | UI component generation | "component", "hero", "landing page form" |
-| `gogcli-ops` | Google Drive/Docs/Sheets via gogcli | "Google Drive", "Sheets", "gogcli" |
 | `notebook-lm` | NotebookLM YAML, slide content | "document", "NotebookLM", "slides" |
 | `principles` | Development principles, guidelines | "principles", "VibeCoder", "safety" |
 | `vibecoder-guide` | Newcomer-friendly workflow guide | "how does this work", "explain workflow" |
