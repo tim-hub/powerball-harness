@@ -272,3 +272,89 @@ failIfUnavailable = false
 		t.Error("filesystem.denyRead should be empty when not specified")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// TDD config: defaults and validation
+// ---------------------------------------------------------------------------
+
+func TestTDD_DefaultsApplied_WhenAbsent(t *testing.T) {
+	// No [tdd] section → defaults must be applied
+	cfg, err := config.ParseBytes([]byte(``))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.TDD.Enforce.Level != config.TDDEnforceLevelOff {
+		t.Errorf("default level = %q, want %q", cfg.TDD.Enforce.Level, config.TDDEnforceLevelOff)
+	}
+	if cfg.TDD.Enforce.DefaultMaxRedLogAgeMinutes != 60 {
+		t.Errorf("default red log age = %d, want 60", cfg.TDD.Enforce.DefaultMaxRedLogAgeMinutes)
+	}
+	if !cfg.TDD.Enforce.BypassAuditRequired {
+		t.Error("bypass_audit_required default must be true")
+	}
+}
+
+func TestTDD_ExplicitMaxLevel(t *testing.T) {
+	data := []byte(`
+[tdd.enforce]
+level = "max"
+hook_enabled = true
+`)
+	cfg, err := config.ParseBytes(data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.TDD.Enforce.Level != config.TDDEnforceLevelMax {
+		t.Errorf("level = %q, want %q", cfg.TDD.Enforce.Level, config.TDDEnforceLevelMax)
+	}
+	if !cfg.TDD.Enforce.HookEnabled {
+		t.Error("hook_enabled should be true")
+	}
+}
+
+func TestTDD_ExplicitCentralLevel(t *testing.T) {
+	data := []byte(`
+[tdd.enforce]
+level = "central"
+`)
+	cfg, err := config.ParseBytes(data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.TDD.Enforce.Level != config.TDDEnforceLevelCentral {
+		t.Errorf("level = %q, want %q", cfg.TDD.Enforce.Level, config.TDDEnforceLevelCentral)
+	}
+}
+
+func TestTDD_InvalidLevel_ReturnsError(t *testing.T) {
+	data := []byte(`
+[tdd.enforce]
+level = "strict"
+`)
+	_, err := config.ParseBytes(data)
+	if err == nil {
+		t.Fatal("expected error for invalid tdd.enforce.level, got nil")
+	}
+}
+
+func TestTDD_AdoptFields(t *testing.T) {
+	data := []byte(`
+[tdd]
+adopt_todo_list_first = true
+adopt_fake_implementation = true
+adopt_triangulation = "red-green-refactor"
+`)
+	cfg, err := config.ParseBytes(data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !cfg.TDD.AdoptTodoListFirst {
+		t.Error("adopt_todo_list_first should be true")
+	}
+	if !cfg.TDD.AdoptFakeImplementation {
+		t.Error("adopt_fake_implementation should be true")
+	}
+	if cfg.TDD.AdoptTriangulation != "red-green-refactor" {
+		t.Errorf("adopt_triangulation = %q, want %q", cfg.TDD.AdoptTriangulation, "red-green-refactor")
+	}
+}

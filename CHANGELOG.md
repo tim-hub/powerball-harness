@@ -57,6 +57,44 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Phase 97 + 98 — R14 TDD guardrail registration and harness-plan memory conflict detection
+
+**Registers the R14 TDD enforcement pipeline (non-blocking local-trial stub), ships TDD config structs and tdd-paths.yaml, integrates TDD into sprint contracts, and teaches harness-plan to surface memory conflicts before writing Plans.md.**
+
+---
+
+### Added
+
+#### 1. R14 TDD guardrail rule — local-trial registration
+
+**Before**: No TDD enforcement gate existed in the guardrail engine. Writing source files bypassed any TDD check regardless of project configuration.
+
+**After**: R14 fires on Write/Edit/MultiEdit for files matching `src_patterns` when `tdd.enforce.level = "max"` in harness.toml. In this registration version the `Evaluate` function always returns `nil` (non-blocking stub). Test files are excluded so R14 never fires on `*_test.go`, `*.test.ts`, etc. `TddBypass = true` returns an approve result with a SystemMessage noting the bypass reason.
+
+#### 2. TDD config structs in harness.toml (`[tdd]` section)
+
+**Before**: harness.toml had no TDD configuration — no way to opt in to TDD enforcement or set default test framework behavior.
+
+**After**: `[tdd]` and `[tdd.enforce]` sections parse cleanly from harness.toml. `tdd.enforce.level` accepts `off` (default), `central`, or `max`. Invalid values return a parse-time error with a descriptive message. Defaults are applied automatically: `level = "off"`, `default_max_red_log_age_minutes = 60`, `bypass_audit_required = true`.
+
+#### 3. `.claude/rules/tdd-paths.yaml` — src↔test path SSOT
+
+**Before**: No per-language src↔test mapping existed. R14 had no way to look up the expected test file location for a given src file.
+
+**After**: `tdd-paths.yaml` defines 4-language mappings (node, go, python, rust) including `src_patterns`, `test_patterns`, `framework_detect_files`, and `src_to_test_map`. Referenced by R14 for future full enforcement. Validated by `validate-plugin.sh` Section 16.
+
+#### 4. Sprint contract TDD integration
+
+**Before**: Sprint contracts had no TDD fields — task tags like `[tdd:required]` and `[tdd:skip:reason]` were ignored.
+
+**After**: Sprint contracts include `tdd_required`, `test_framework`, `test_todo_list`, and `skip_tdd_reason`. `[tdd:required]` tag auto-detects the test framework from project files and generates a Red-Green-Refactor todo list. `[tdd:skip:reason]` opts out and stores the reason. No tag → not required, no skip reason.
+
+#### 5. harness-plan create — Step 1.5 Memory Conflict Check and Step 1.6 Decision Capture
+
+**Before**: harness-plan create had no awareness of `.claude/memory/decisions.md` or `.claude/memory/patterns.md`. Plans could conflict with past decisions silently.
+
+**After**: Step 1.5 reads both memory files before writing Plans.md, scans for conflicts with the proposed approach, and presents two choices if a conflict is found: (a) update memory to reflect the new decision, or (b) adjust the plan to stay consistent with existing decisions. Step 1.6 prompts to capture new decisions surfaced during planning via `harness-remember`.
+
 ---
 
 ## [5.5.0] - 2026-05-15

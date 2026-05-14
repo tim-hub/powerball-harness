@@ -1,0 +1,153 @@
+# tdd-paths.yaml
+#
+# Purpose:
+#   Phase 68 — per-language src↔test file mapping SSOT for TDD enforcement.
+#   Referenced by the R14 guardrail rule to determine whether a corresponding
+#   test file exists before allowing a src file write.
+#
+# Schema: tdd-paths.v1
+#   {
+#     schema_version: "tdd-paths.v1",
+#     languages: {
+#       <lang>: {
+#         src_patterns: [glob...],
+#         test_patterns: [glob...],
+#         framework_detect_files: [path...],
+#         framework_command_default: "...",
+#         src_to_test_map: [{from: "...", to: ["..."]}]
+#       }
+#     },
+#     overrides: [{glob, framework}]  # optional, for polyglot monorepos
+#   }
+#
+# Default:
+#   node / go / python / rust — four languages with baseline mappings.
+#   Writes to files in unregistered languages do not trigger a test requirement
+#   (prevents false positives).
+#
+# Update Rules:
+#   1. languages key must be unique per language identifier (node/go/python/rust/...)
+#   2. src_patterns use glob (bash extglob / Go filepath.Match compatible)
+#   3. test_patterns must be mutually exclusive with src_patterns (test files are
+#      never R14 targets)
+#   4. src_to_test_map[].from may contain {name} / {dir} placeholders
+#   5. src_to_test_map[].to lists candidates in priority order; first match wins
+#   6. framework_detect_files: first file found determines the default framework
+#   7. Invalid schema causes exit 1 in detection scripts
+#
+# False-positive avoidance (aligned with R14 gates):
+#   - Writes to test files themselves are always approved (excluded from src_patterns)
+#   - Writes to paths without a sprint-contract are always approved
+#   - tdd_required != true in the contract → always approved
+#   - tdd.enforce.level != "max" → this file is not consulted (short-circuits in R14)
+#
+
+schema_version: tdd-paths.v1
+
+languages:
+  node:
+    src_patterns:
+      - "src/**/*.ts"
+      - "src/**/*.tsx"
+      - "src/**/*.js"
+      - "src/**/*.jsx"
+      - "src/**/*.mjs"
+      - "app/**/*.ts"
+      - "app/**/*.tsx"
+      - "lib/**/*.ts"
+      - "lib/**/*.js"
+      - "mcp-server/src/**/*.ts"
+      - "harness-ui/src/**/*.ts"
+      - "harness-ui/src/**/*.tsx"
+    test_patterns:
+      - "**/*.test.ts"
+      - "**/*.test.tsx"
+      - "**/*.test.js"
+      - "**/*.test.jsx"
+      - "**/*.test.mjs"
+      - "**/*.spec.ts"
+      - "**/*.spec.tsx"
+      - "**/*.spec.js"
+      - "**/__tests__/**"
+      - "tests/**"
+    framework_detect_files:
+      - "vitest.config.ts"
+      - "vitest.config.js"
+      - "vitest.config.mjs"
+      - "jest.config.js"
+      - "jest.config.ts"
+      - "jest.config.mjs"
+      - "package.json"
+    framework_command_default: "npm test"
+    src_to_test_map:
+      - from: "src/{name}.ts"
+        to:
+          - "tests/{name}.test.ts"
+          - "src/{name}.test.ts"
+          - "src/__tests__/{name}.test.ts"
+      - from: "src/{name}.tsx"
+        to:
+          - "tests/{name}.test.tsx"
+          - "src/{name}.test.tsx"
+      - from: "src/{name}.js"
+        to:
+          - "tests/{name}.test.js"
+          - "src/{name}.test.js"
+      - from: "mcp-server/src/{name}.ts"
+        to:
+          - "mcp-server/tests/unit/{name}.test.ts"
+          - "mcp-server/tests/{name}.test.ts"
+
+  go:
+    src_patterns:
+      - "**/*.go"
+    test_patterns:
+      - "**/*_test.go"
+    framework_detect_files:
+      - "go.mod"
+    framework_command_default: "go test ./..."
+    src_to_test_map:
+      - from: "{dir}/{name}.go"
+        to:
+          - "{dir}/{name}_test.go"
+
+  python:
+    src_patterns:
+      - "src/**/*.py"
+    test_patterns:
+      - "tests/**/test_*.py"
+      - "tests/**/*_test.py"
+      - "**/test_*.py"
+    framework_detect_files:
+      - "pyproject.toml"
+      - "pytest.ini"
+      - "setup.cfg"
+    framework_command_default: "pytest"
+    src_to_test_map:
+      - from: "src/{name}.py"
+        to:
+          - "tests/test_{name}.py"
+          - "tests/{name}_test.py"
+
+  rust:
+    src_patterns:
+      - "src/**/*.rs"
+    test_patterns:
+      - "tests/**/*.rs"
+      - "src/**/*_test.rs"
+    framework_detect_files:
+      - "Cargo.toml"
+    framework_command_default: "cargo test"
+    src_to_test_map:
+      - from: "src/{name}.rs"
+        to:
+          - "tests/{name}_test.rs"
+          - "src/{name}_test.rs"
+
+# ---- per-glob framework overrides (for future polyglot monorepo support) ----
+#
+# When a monorepo needs different frameworks per subdirectory
+# (e.g., Go at root but vitest under frontend/), add overrides here.
+# R14 uses the most specific matching override; falls back to languages[] scan.
+#
+overrides: []

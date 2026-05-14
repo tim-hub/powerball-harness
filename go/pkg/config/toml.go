@@ -23,13 +23,38 @@ import (
 // Config structs
 // ---------------------------------------------------------------------------
 
+// TDD enforce level constants.
+const (
+	TDDEnforceLevelOff     = "off"
+	TDDEnforceLevelCentral = "central"
+	TDDEnforceLevelMax     = "max"
+)
+
+// TDDEnforceConfig maps to [tdd.enforce] in harness.toml.
+type TDDEnforceConfig struct {
+	Enabled                    bool   `toml:"enabled"`
+	Level                      string `toml:"level"` // off, central, max
+	HookEnabled                bool   `toml:"hook_enabled"`
+	DefaultMaxRedLogAgeMinutes int    `toml:"default_max_red_log_age_minutes"`
+	BypassAuditRequired        bool   `toml:"bypass_audit_required"`
+}
+
+// TDDConfig maps to [tdd] in harness.toml.
+type TDDConfig struct {
+	AdoptTodoListFirst      bool             `toml:"adopt_todo_list_first"`
+	AdoptTriangulation      string           `toml:"adopt_triangulation"`
+	AdoptFakeImplementation bool             `toml:"adopt_fake_implementation"`
+	Enforce                 TDDEnforceConfig `toml:"enforce"`
+}
+
 // Config is the top-level harness.toml structure.
 type Config struct {
-	Project   ProjectConfig   `toml:"project"`
-	Agent     AgentConfig     `toml:"agent"`
+	Project   ProjectConfig     `toml:"project"`
+	Agent     AgentConfig       `toml:"agent"`
 	Env       map[string]string `toml:"env"`
-	Safety    SafetyConfig    `toml:"safety"`
-	Telemetry TelemetryConfig `toml:"telemetry"`
+	Safety    SafetyConfig      `toml:"safety"`
+	Telemetry TelemetryConfig   `toml:"telemetry"`
+	TDD       TDDConfig         `toml:"tdd"`
 }
 
 // ProjectConfig maps to [project] in harness.toml.
@@ -129,6 +154,7 @@ var rejectedKeys = []string{
 // Returns an error if:
 //   - the file cannot be read or parsed
 //   - any unsupported key (userConfig, channels) is present
+//   - [tdd].enforce.level is not one of: off, central, max
 func ParseFile(path string) (*Config, error) {
 	var cfg Config
 
@@ -138,6 +164,12 @@ func ParseFile(path string) (*Config, error) {
 	}
 
 	if err := validateKeys(meta); err != nil {
+		return nil, err
+	}
+
+	applyDefaults(&cfg)
+
+	if err := validateConfig(&cfg); err != nil {
 		return nil, err
 	}
 
@@ -158,7 +190,41 @@ func ParseBytes(data []byte) (*Config, error) {
 		return nil, err
 	}
 
+	applyDefaults(&cfg)
+
+	if err := validateConfig(&cfg); err != nil {
+		return nil, err
+	}
+
 	return &cfg, nil
+}
+
+// applyDefaults fills in zero-value TDD config fields with safe defaults.
+func applyDefaults(cfg *Config) {
+	if cfg.TDD.Enforce.Level == "" {
+		cfg.TDD.Enforce.Level = TDDEnforceLevelOff
+	}
+	if cfg.TDD.Enforce.DefaultMaxRedLogAgeMinutes == 0 {
+		cfg.TDD.Enforce.DefaultMaxRedLogAgeMinutes = 60
+	}
+	if !cfg.TDD.Enforce.BypassAuditRequired {
+		cfg.TDD.Enforce.BypassAuditRequired = true
+	}
+}
+
+// validateConfig checks semantic constraints beyond TOML key validity.
+func validateConfig(cfg *Config) error {
+	level := cfg.TDD.Enforce.Level
+	switch level {
+	case TDDEnforceLevelOff, TDDEnforceLevelCentral, TDDEnforceLevelMax:
+		// valid
+	default:
+		return fmt.Errorf(
+			"harness.toml: tdd.enforce.level %q is invalid; must be one of: off, central, max",
+			level,
+		)
+	}
+	return nil
 }
 
 // validateKeys checks that no unsupported top-level keys are present.

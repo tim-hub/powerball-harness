@@ -197,3 +197,89 @@ func TestSprintContractGenerator_WriteRoundTrip(t *testing.T) {
 		t.Fatalf("unexpected task id: %s", doc.Task.ID)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// TDD sprint contract detection
+// ---------------------------------------------------------------------------
+
+func TestSprintContract_TDDRequired_Tag(t *testing.T) {
+	dir := t.TempDir()
+	plansPath := filepath.Join(dir, "Plans.md")
+	if err := os.WriteFile(plansPath, []byte(`| Task | Title | DoD | Depends | Status |
+|------|-------|-----|---------|--------|
+| 97.1 | Port R14 [tdd:required] | cd go && go test -race ./... passes | - | cc:TODO |
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// Simulate a Go project (go.mod present)
+	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/test\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	g := &SprintContractGenerator{ProjectRoot: dir, PlansFile: plansPath}
+	doc, err := g.Generate("97.1")
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	if !doc.Contract.TDDRequired {
+		t.Error("expected TDDRequired=true for [tdd:required] tag")
+	}
+	if doc.Contract.TestFramework != "go-test" {
+		t.Errorf("expected TestFramework=go-test, got %q", doc.Contract.TestFramework)
+	}
+	if len(doc.Contract.TestTodoList) == 0 {
+		t.Error("expected non-empty TestTodoList for TDD required")
+	}
+	if doc.Contract.SkipTDDReason != nil {
+		t.Errorf("expected nil SkipTDDReason, got %q", *doc.Contract.SkipTDDReason)
+	}
+}
+
+func TestSprintContract_TDDSkip_Tag(t *testing.T) {
+	dir := t.TempDir()
+	plansPath := filepath.Join(dir, "Plans.md")
+	if err := os.WriteFile(plansPath, []byte(`| Task | Title | DoD | Depends | Status |
+|------|-------|-----|---------|--------|
+| 97.3 | tdd-paths.yaml [tdd:skip:config-only] | file exists and parses | - | cc:TODO |
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	g := &SprintContractGenerator{ProjectRoot: dir, PlansFile: plansPath}
+	doc, err := g.Generate("97.3")
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	if doc.Contract.TDDRequired {
+		t.Error("expected TDDRequired=false for [tdd:skip] tag")
+	}
+	if doc.Contract.SkipTDDReason == nil {
+		t.Fatal("expected SkipTDDReason to be set for [tdd:skip] tag")
+	}
+	if *doc.Contract.SkipTDDReason != "config-only" {
+		t.Errorf("expected skip reason %q, got %q", "config-only", *doc.Contract.SkipTDDReason)
+	}
+}
+
+func TestSprintContract_TDD_NotRequired_WhenNoTag(t *testing.T) {
+	dir := t.TempDir()
+	plansPath := filepath.Join(dir, "Plans.md")
+	if err := os.WriteFile(plansPath, []byte(`| Task | Title | DoD | Depends | Status |
+|------|-------|-----|---------|--------|
+| 98.1 | Add Step 1.5 memory check | harness-plan create.md updated | - | cc:TODO |
+`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	g := &SprintContractGenerator{ProjectRoot: dir, PlansFile: plansPath}
+	doc, err := g.Generate("98.1")
+	if err != nil {
+		t.Fatalf("Generate: %v", err)
+	}
+	if doc.Contract.TDDRequired {
+		t.Error("expected TDDRequired=false when no TDD tag present")
+	}
+	if doc.Contract.SkipTDDReason != nil {
+		t.Errorf("expected nil SkipTDDReason, got %q", *doc.Contract.SkipTDDReason)
+	}
+}

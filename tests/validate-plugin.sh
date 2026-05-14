@@ -495,6 +495,51 @@ else
 fi
 
 echo ""
+echo "15. TDD config: harness.toml [tdd.enforce.level] validity"
+echo "----------------------------------------"
+
+HARNESS_TOML="$HARNESS_ROOT/../harness.toml"
+if [ ! -f "$HARNESS_TOML" ]; then
+    pass_test "TDD config: harness.toml absent — no [tdd] section to validate"
+else
+    TDD_LEVEL=$(grep -E '^\s*level\s*=' "$HARNESS_TOML" 2>/dev/null | head -1 | sed 's/.*=\s*"\([^"]*\)".*/\1/' || true)
+    if [ -z "$TDD_LEVEL" ]; then
+        pass_test "TDD config: no [tdd.enforce] level set — defaults to 'off' (valid)"
+    else
+        case "$TDD_LEVEL" in
+            off|central|max)
+                pass_test "TDD config: tdd.enforce.level=$TDD_LEVEL is valid"
+                ;;
+            *)
+                fail_test "TDD config: tdd.enforce.level=$TDD_LEVEL is invalid; must be one of: off, central, max"
+                ;;
+        esac
+    fi
+fi
+
+echo ""
+echo "16. TDD paths SSOT: .claude/rules/tdd-paths.yaml well-formedness"
+echo "----------------------------------------"
+
+TDD_PATHS_FILE="$HARNESS_ROOT/../.claude/rules/tdd-paths.yaml"
+if [ ! -f "$TDD_PATHS_FILE" ]; then
+    fail_test "TDD paths: .claude/rules/tdd-paths.yaml missing — create it per tdd-paths.v1 schema"
+else
+    # schema_version must be present
+    if ! grep -q 'schema_version:' "$TDD_PATHS_FILE"; then
+        fail_test "TDD paths: tdd-paths.yaml missing required 'schema_version' field"
+    # languages section must be present
+    elif ! grep -q '^languages:' "$TDD_PATHS_FILE"; then
+        fail_test "TDD paths: tdd-paths.yaml missing required 'languages' section"
+    # At least one language must define src_patterns
+    elif ! grep -q 'src_patterns:' "$TDD_PATHS_FILE"; then
+        fail_test "TDD paths: tdd-paths.yaml missing src_patterns (must define at least one language)"
+    else
+        pass_test "TDD paths: tdd-paths.yaml present and structurally valid"
+    fi
+fi
+
+echo ""
 echo "=========================================="
 echo "Test Results Summary"
 echo "=========================================="

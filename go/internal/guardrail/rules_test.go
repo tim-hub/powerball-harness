@@ -740,3 +740,98 @@ func TestR12_WrappedByWatch(t *testing.T) {
 		t.Errorf("expected deny for watch-wrapped push to main with deny policy, got %s", result.Decision)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// R14: TDD enforcement — local-trial registration (non-blocking stub)
+// ---------------------------------------------------------------------------
+
+func TestR14_EnforceLevelOff_SrcFile(t *testing.T) {
+	// Default (off): R14 must be completely inert regardless of the file.
+	ctx := makeCtx("Write", map[string]any{"file_path": "/project/src/app.ts"})
+	ctx.TddEnforceLevel = "off"
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve when TDD enforce level is off, got %s", result.Decision)
+	}
+	if result.SystemMessage != "" {
+		t.Errorf("expected no system message when TDD enforce level is off, got: %s", result.SystemMessage)
+	}
+}
+
+func TestR14_EnforceLevelMax_SrcFile_LocalTrial(t *testing.T) {
+	// max + src file: local-trial stub returns nil → approve (non-blocking)
+	ctx := makeCtx("Write", map[string]any{"file_path": "/project/src/service.ts"})
+	ctx.TddEnforceLevel = "max"
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve from local-trial stub, got %s", result.Decision)
+	}
+}
+
+func TestR14_EnforceLevelMax_TestFile_Skipped(t *testing.T) {
+	// max + test file: R14 must not fire on test files themselves
+	ctx := makeCtx("Write", map[string]any{"file_path": "/project/src/service.test.ts"})
+	ctx.TddEnforceLevel = "max"
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for test file (R14 must not target test files), got %s", result.Decision)
+	}
+	if result.SystemMessage != "" {
+		t.Errorf("expected no system message for test file, got: %s", result.SystemMessage)
+	}
+}
+
+func TestR14_EnforceLevelMax_GoTestFile_Skipped(t *testing.T) {
+	// max + _test.go: must be excluded
+	ctx := makeCtx("Write", map[string]any{"file_path": "/project/src/server_test.go"})
+	ctx.TddEnforceLevel = "max"
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for _test.go file, got %s", result.Decision)
+	}
+}
+
+func TestR14_EnforceLevelMax_Bypass(t *testing.T) {
+	// max + bypass=true: returns approve with bypass SystemMessage
+	ctx := makeCtx("Edit", map[string]any{"file_path": "/project/src/handler.go"})
+	ctx.TddEnforceLevel = "max"
+	ctx.TddBypass = true
+	ctx.TddBypassReason = "hotfix: production incident"
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for bypass, got %s", result.Decision)
+	}
+	if result.SystemMessage == "" {
+		t.Error("expected bypass SystemMessage to be set")
+	}
+}
+
+func TestR14_EnforceLevelCentral_SrcFile_Inert(t *testing.T) {
+	// central (not max): R14 must be inert
+	ctx := makeCtx("Write", map[string]any{"file_path": "/project/src/main.py"})
+	ctx.TddEnforceLevel = "central"
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve when TDD enforce level is central, got %s", result.Decision)
+	}
+}
+
+func TestR14_NonWriteTool_Inert(t *testing.T) {
+	// R14 only fires on Write/Edit/MultiEdit; Bash must be ignored
+	ctx := makeCtx("Bash", map[string]any{"command": "cat src/main.ts"})
+	ctx.TddEnforceLevel = "max"
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for Bash tool (R14 scope is Write/Edit/MultiEdit only), got %s", result.Decision)
+	}
+}
+
+func TestR14_NonSrcPath_Inert(t *testing.T) {
+	// max + file outside src_patterns: R14 must not fire
+	ctx := makeCtx("Write", map[string]any{"file_path": "/project/docs/readme.md"})
+	ctx.TddEnforceLevel = "max"
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for docs file (outside src_patterns), got %s", result.Decision)
+	}
+}

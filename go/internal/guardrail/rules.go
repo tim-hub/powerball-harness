@@ -19,6 +19,44 @@ type GuardRule struct {
 	Evaluate    func(ctx hookproto.RuleContext) *hookproto.HookResult
 }
 
+// tddEnforceLevelMax is the enforce level that activates R14 TDD gate.
+const tddEnforceLevelMax = "max"
+
+// r14SourcePathPattern matches source files that are subject to TDD enforcement.
+// Excludes test files so R14 never fires on writes to test files themselves.
+var r14SourcePathPattern = regexp.MustCompile(
+	`(?:^|/)(?:src|app|lib|mcp-server/src|harness-ui/src)/.*\.(?:ts|tsx|js|jsx|mjs|go|py|rs)$`,
+)
+
+// r14TestPathPattern matches test files (used to exclude them from R14 scope).
+var r14TestPathPattern = regexp.MustCompile(
+	`(?:_test\.go|\.test\.(?:ts|tsx|js|jsx|mjs)|\.spec\.(?:ts|tsx|js)|/__tests__/|/tests/)`,
+)
+
+// isTddSourceWriteCandidate returns true when filePath is a src file subject to R14.
+func isTddSourceWriteCandidate(filePath, _ string) bool {
+	return r14SourcePathPattern.MatchString(filePath) && !r14TestPathPattern.MatchString(filePath)
+}
+
+// tddBypassHookResult returns an approve result noting the TDD bypass reason.
+func tddBypassHookResult(ctx hookproto.RuleContext, filePath string) *hookproto.HookResult {
+	reason := ctx.TddBypassReason
+	if reason == "" {
+		reason = "no reason provided"
+	}
+	return &hookproto.HookResult{
+		Decision:      hookproto.DecisionApprove,
+		SystemMessage: fmt.Sprintf("R14 TDD bypass: %s (file: %s)", reason, filePath),
+	}
+}
+
+// r14TddRequiredLocalTrialResult is the local-trial stub for R14.
+// In this registration version it is always non-blocking (returns nil).
+// Future versions will check for a matching test file before allowing the write.
+func r14TddRequiredLocalTrialResult(_ hookproto.RuleContext) *hookproto.HookResult {
+	return nil
+}
+
 // Pre-compiled patterns for R03 (shell write to protected paths)
 var r03ShellWritePatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(?:>>?|tee)\s+\S*\.env\b`),
@@ -105,6 +143,30 @@ var Rules = []GuardRule{
 				}
 			}
 			return nil
+		},
+	},
+
+	// R14: TDD enforcement — local-trial registration (non-blocking stub)
+	// Activates only when tdd.enforce.level = "max" in harness.toml.
+	// In this version the Evaluate always returns nil (see r14TddRequiredLocalTrialResult).
+	{
+		ID:          "R14:tdd-required",
+		ToolPattern: regexp.MustCompile(`^(?:Write|Edit|MultiEdit)$`),
+		Evaluate: func(ctx hookproto.RuleContext) *hookproto.HookResult {
+			if ctx.TddEnforceLevel != tddEnforceLevelMax {
+				return nil
+			}
+			filePath, ok := ctx.Input.ToolInput["file_path"].(string)
+			if !ok {
+				return nil
+			}
+			if !isTddSourceWriteCandidate(filePath, ctx.ProjectRoot) {
+				return nil
+			}
+			if ctx.TddBypass {
+				return tddBypassHookResult(ctx, filePath)
+			}
+			return r14TddRequiredLocalTrialResult(ctx)
 		},
 	},
 
