@@ -97,6 +97,25 @@ Change history for claude-code-harness.
 
 ---
 
+### Fixed
+
+#### 6. Native Claude Code task list ↔ Plans.md drift (Phase 99)
+
+**Before**: After `/harness-work` completed all tasks, the native Claude Code task list still showed them as pending or in_progress, while Plans.md correctly showed `cc:done`. The Stop hook printed "WIP task(s) remain" with a count that did not match the native task list count, leaving the user unsure which store to trust. Skills wrote `cc:WIP` and `cc:done` to Plans.md but never called `TaskUpdate` to mirror the change.
+
+**After**: Every Plans.md status write is now paired with a matching `TaskUpdate` mirror call. The contract is documented in `harness/skills/harness-plan/references/plans-md-rules.md` under "Native task mirror rule" and enforced at four call sites:
+
+1. `harness-work` solo mode (`references/solo-mode.md`) — Step 2.5 (cc:WIP → in_progress) and Step 11 (cc:done → completed)
+2. `harness-work` breezing mode (`references/breezing-mode.md`) — B-2 (cc:WIP) and B-5 (cc:done)
+3. `harness-ralph-loop` (`references/loop-flow.md`) — SUCCESS terminal state (cc:done). Blocked states intentionally leave the native task in its prior state so stalled work stays visible.
+4. `harness-plan update` (`references/update.md`) — Step 6, mirroring only `done` and `WIP` (blocked/TODO leave the user's manual state alone).
+
+An end-of-scope sweep was added to `harness/skills/harness-work/SKILL.md` (new section: `## Native Task Reconciliation`) that runs after the per-task loop completes: `TaskList` → for every native task whose title starts with a Plans.md task ID prefix, reconcile its status to match Plans.md. Idempotent and silent when no drift exists. Plans.md remains the SSOT; the native task list is a mirror only.
+
+Stop hook messages in `harness/scripts/stop-plans-reminder.sh` and `harness/scripts/check-wip-tasks.sh` now explicitly say "Plans.md is the SSOT" to remove ambiguity when the count differs from the native task list.
+
+---
+
 ## [5.5.0] - 2026-05-15
 
 ### Theme: harness-brainstorming skill + harness-plan create quality improvements

@@ -19,5 +19,5 @@ fi
 # Extract task IDs from first column (up to 5)
 wip_list=$(awk -F'|' 'NF > 2 && $(NF-1) ~ /cc:WIP/ {gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}' "$PLANS" | head -5 | tr '\n' '; ')
 
-echo "{\"decision\":\"block\",\"reason\":\"WIP tasks remain: ${wip_list}Consider completing them or marking as blocked before stopping.\"}"
+echo "{\"decision\":\"block\",\"reason\":\"Plans.md has WIP task(s) remaining (this is independent of the native task list — Plans.md is the SSOT): ${wip_list}Consider completing them or marking as blocked before stopping.\"}"
 exit 2

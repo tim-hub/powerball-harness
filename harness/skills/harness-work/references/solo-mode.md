@@ -55,6 +55,8 @@ This check is intentionally lightweight — it only inspects commit messages, no
    Ralph tasks serialize within a session (only one Ralph loop runs at a time). If the task does NOT
    have `[ralph]`, continue with the standard solo flow below.
 2.5. Update task to `cc:WIP`
+   - Write `cc:WIP` to the task's Status cell in Plans.md (authoritative)
+   - **Mirror to native task list**: run `TaskList`, locate any native task whose title starts with the Plans.md task ID prefix (e.g., `97.1`), and call `TaskUpdate(status="in_progress")` on it. If no matching native task exists, skip silently — the native task list is a mirror, never authoritative.
 3. **TDD Phase** (when `[skip:tdd]` is absent & test framework exists):
    a. Create test file first (Red)
    b. Confirm failure
@@ -71,8 +73,9 @@ This check is intentionally lightweight — it only inspects commit messages, no
 10. Auto-commit with `git commit` (skip with `--no-commit`)
 11. Update task to `cc:Done` (with commit hash)
    - Get the latest commit hash (abbreviated 7 chars) with `git log --oneline -1`
-   - Update Plans.md Status to `cc:Done [a1b2c3d]` format
+   - Update Plans.md Status to `cc:Done [a1b2c3d]` format (authoritative)
    - If no commit (`--no-commit`), use `cc:Done` without hash
+   - **Mirror to native task list**: run `TaskList`, locate any native task whose title starts with the Plans.md task ID prefix (e.g., `97.1`), and call `TaskUpdate(status="completed")` on it. If no matching native task exists, skip silently — the native task list is a mirror, never authoritative.
 12. **Rich Completion Report** (see [`${CLAUDE_SKILL_DIR}/templates/completion-report.md`](${CLAUDE_SKILL_DIR}/templates/completion-report.md))
 13. **Automatic Re-ticketing on Failure** (test/CI failure only):
     - Check test execution results

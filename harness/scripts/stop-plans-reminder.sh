@@ -41,21 +41,21 @@ if [ "$HAS_CHANGES" = "true" ] && [ -f "Plans.md" ]; then
   if [ "$PM_PENDING" -gt 0 ]; then
     NEED_REMINDER="true"
     REASON="pm_pending_tasks > 0"
-    MESSAGE="Plans.md: ${PM_PENDING} task(s) with pm:pending status. Update to cc:WIP when starting work, and to cc:done when complete."
+    MESSAGE="Plans.md has ${PM_PENDING} task(s) with pm:pending status (this is independent of the native task list — Plans.md is the SSOT). Update to cc:WIP when starting work, and to cc:done when complete."
   fi
 
   # WIP tasks present
   if [ "$CC_WIP" -gt 0 ]; then
     NEED_REMINDER="true"
     REASON="cc_wip_tasks > 0"
-    MESSAGE="Plans.md: ${CC_WIP} task(s) marked cc:WIP. Update to cc:done when complete."
+    MESSAGE="Plans.md has ${CC_WIP} task(s) marked cc:WIP (this is independent of the native task list — Plans.md is the SSOT). Update to cc:done when complete."
   fi
 
   # Completed tasks present (awaiting PM confirmation)
   if [ "$CC_DONE" -gt 0 ]; then
     NEED_REMINDER="true"
     REASON="cc_done_tasks > 0"
-    MESSAGE="Plans.md: ${CC_DONE} task(s) marked cc:done. Update to pm:confirmed after PM review."
+    MESSAGE="Plans.md has ${CC_DONE} task(s) marked cc:done (this is independent of the native task list — Plans.md is the SSOT). Update to pm:confirmed after PM review."
   fi
 fi
 

@@ -29,6 +29,11 @@ For full status marker semantics — including the `cc:done [hash]` artifact not
    `blocked (waiting on external API spec)`
 4. For `done`, optionally append the short git hash if a recent commit can be unambiguously attributed to this task: `cc:done [a1b2c3d]`.
 5. Save Plans.md without reordering rows.
+6. **Mirror to native task list** (only for `done` and `WIP` — leave native tasks alone for `blocked` and `TODO`):
+   - For `done`: run `TaskList`, locate any native task whose title starts with the Plans.md task ID prefix (e.g., `2.3`), and call `TaskUpdate(status="completed")`. Silent if no match.
+   - For `WIP`: same lookup, call `TaskUpdate(status="in_progress")`. Silent if no match.
+   - For `blocked` / `TODO`: do not touch the native task — the user manages native tasks for paused or restarted work themselves.
+   - The Plans.md write is authoritative; the TaskUpdate is a mirror only.
 
 ## Notes
 
