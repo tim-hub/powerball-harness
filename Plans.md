@@ -1,6 +1,65 @@
 # Powerball Harness — Plans.md
 
-Last release: v5.3.0 on 2026-05-07 (Configurable R12 push policy + weak-supervision elicitation ledger)
+Last release: v5.5.0 on 2026-05-15 (harness-brainstorming skill + harness-plan create quality improvements)
+
+---
+
+## Phase 98: harness-plan memory integration — conflict detection against .claude/memory
+
+Created: 2026-05-15
+
+**Goal**: When `harness-plan create` runs, automatically read `.claude/memory/decisions.md` and `.claude/memory/patterns.md` and check whether proposed tasks conflict with or diverge from established decisions/patterns. If a conflict is found, surface it to the user and ask: (a) update memory to reflect the new direction, or (b) adjust the plan to align with existing memory. This fills the gap that upstream's Spec SSOT (dropped from Phase 97) was meant to address — keeping Plans.md and memory coherent — using the memory system already present in this fork rather than adding a separate `docs/spec/` layer.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 98.1 | Add **Step 1.5: Memory Conflict Check** to `harness/skills/harness-plan/references/create.md`, inserted after Step 1 (Requirement Clarification) and before task generation. Step reads `.claude/memory/decisions.md` and `.claude/memory/patterns.md`, scans for entries relevant to the proposed feature area, and if any conflict with the proposed approach: presents the conflict clearly, then asks the user to choose — (a) "Update memory: this decision is outdated" (triggers `harness-remember` record flow) or (b) "Adjust plan: align tasks with the existing decision". If no conflict found, proceed silently. | `grep -n "Step 1.5\|Memory Conflict Check" harness/skills/harness-plan/references/create.md` returns ≥ 1 match; `bash local-scripts/audit-skill-descriptions.sh harness/skills/harness-plan` exits 0; manual smoke: add a decision to `.claude/memory/decisions.md`, run `harness-plan create` on a task conflicting with it, verify the conflict surface appears with both options | - | cc:done [c3777d2] |
+| 98.2 | Add **Step 1.6: New Decision Capture** immediately after Step 1.5 in `harness/skills/harness-plan/references/create.md`. If the planning conversation surfaces a decision or pattern not yet in `.claude/memory/` (e.g., user makes an architectural choice during clarification), prompt: "This looks like a new decision worth recording — run `harness-remember` now, or continue and record after planning?" Keeps memory current without blocking plan creation. | `grep -n "Step 1.6\|New Decision Capture" harness/skills/harness-plan/references/create.md` returns ≥ 1 match; manual smoke: run `harness-plan create` where user makes a new design choice during clarification, verify the `harness-remember` prompt appears | 98.1 | cc:done [c3777d2] |
+
+---
+
+## Phase 97: Port upstream v4.9.0→v4.10.0 — R14 TDD enforcement (guardrail + config + scripts + sprint contract)
+
+Created: 2026-05-15
+
+**Goal**: Port the R14 TDD guardrail theme from upstream `Chachamaru127/claude-code-harness` v4.9.0→v4.10.0. R14 blocks src-file writes when no matching test file exists, gated by `[tdd] enforce_level` config (`off` by default — opt-in per project). Includes: guardrail rule, config structs, path-mapping YAML, detection scripts, and sprint contract integration.
+
+**Dropped from original scope** (see conversation 2026-05-15):
+- `harness-accept`, `harness-plan-brief`, `harness-progress` — depend on harness-mem MCP not present in this fork
+- Spec SSOT workflow — superseded by Phase 98 which uses `.claude/memory` instead of a new `docs/spec/` layer
+- `test-spec-ssot-workflow.sh`, `test-session-inbox-broadcast.sh`, `test-worktree-create-hook.sh` — not relevant to R14 TDD
+- validate-plugin.sh skill-presence checks — dropped skills aren't being ported
+
+**Source**: Upstream diff `https://github.com/Chachamaru127/claude-code-harness/compare/v4.9.0...v4.10.0`
+
+**Verified missing in local**:
+- `grep -n "R14\|isTddSource\|tddBypass" go/internal/guardrail/rules.go` → 0 matches
+- `grep -n "TDDConfig\|TDDEnforce" go/pkg/config/toml.go` → 0 matches
+- `ls harness/scripts/detect-test-framework.sh harness/scripts/log-tdd-red.sh .claude/rules/tdd-paths.yaml` → all 3 missing
+
+**Skipped (not relevant to our fork)**:
+- Top-level `opencode/` directory — our fork uses `harness/templates/opencode/skills/`
+- Top-level `codex/.codex/skills/` updates — our fork uses `harness/templates/codex-skills/`
+- Top-level `skills/` and `skills-codex/` updates — our fork uses `harness/skills/`
+- `scripts/codex-loop.sh` — diverged after Phase 95 MEM_CLIENT fix; defer
+- `scripts/plan-registry.sh` — named plans is a larger separate feature; defer
+- `scripts/release-preflight.sh` — local preflight uses a different code path
+- `agents/{reviewer,scaffolder,worker}.md` — Japanese-only additions; defer to translation pass
+- `Plans.md`, `CHANGELOG.md`, `VERSION`, `.claude-plugin/`, `harness.toml`, `bin/`, `assets/*/generated/` — project-local
+
+**Design notes**:
+- **R14 model**: fires on `Write|Edit` of a path matching `tdd-paths.yaml`'s `src` glob, allowing the write only if the matching test path exists OR `TddBypassReason` is set in `RuleContext`. Default `off` for backward compatibility.
+- **Sprint Contract TDD**: `detectSprintTDD()` reads task description tags (`[skip:tdd]`, `[needs-spike]`) and shells out to `detect-test-framework.sh` to populate `TDDRequired`, `TestFramework`, `TestTodoList`, `SkipTDDReason` in the sprint contract body.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 97.1 | Port R14 TDD guardrail rule into `go/internal/guardrail/rules.go`. Add `isTddSourceWriteCandidate(toolName, path string) bool`, `tddBypassHookResult(reason string) HookResult`, `r14TddRequiredLocalTrialResult(srcPath, testPath string) HookResult`, and wire R14 into the PreToolUse decision tree alongside R01-R13. Add TDD fields (`TddEnforceLevel`, `TddHookEnabled`, `TddBypass`, `TddBypassReason`, `TddBypassReasonRequired`) to `RuleContext` in `go/pkg/hookproto/types.go`. R14 fires only when `TddEnforceLevel != "off"`. Port test cases verbatim from upstream `rules_test.go` (TestR14_* table-driven). | `cd go && go test -race ./internal/guardrail/... -run 'TestR14' -v` shows all upstream R14 cases passing; `grep -c "R14" go/internal/guardrail/rules.go` ≥ 3; `cd go && go build ./...` clean; `cd go && go vet ./...` exits 0 | - | cc:done [c3777d2] |
+| 97.2 | Port `TDDConfig` and `TDDEnforceConfig` structs + `TDDEnforceLevelOff`/`TDDEnforceLevelCentral`/`TDDEnforceLevelMax` constants + validation logic into `go/pkg/config/toml.go`. Default level: `off` (backward compatibility — R14 inert unless project opts in). Port table-driven tests from upstream `toml_test.go` (+127 lines of TDD config parse/validate cases). | `cd go && go test -race ./pkg/config/... -run 'TestTDD' -v` passes; `grep -c "TDDConfig" go/pkg/config/toml.go` ≥ 1; default-level check: parse a `[tdd]`-less harness.toml and observe `TDDEnforceLevel == "off"`; `cd go && go build ./...` clean | - | cc:done [c3777d2] |
+| 97.3 | Create `.claude/rules/tdd-paths.yaml` (SSOT for R14 src→test path mapping). Port upstream's language map: `javascript`, `typescript`, `python`, `go`, `rust` with their `src` glob, `test` glob, and `test_path_template`. R14 reads this file at startup to resolve test paths. | `cat .claude/rules/tdd-paths.yaml` shows all 5 languages with `src`, `test`, `test_path_template` fields; YAML is valid (`python3 -c "import yaml; yaml.safe_load(open('.claude/rules/tdd-paths.yaml'))"` exits 0); zero Japanese | - | cc:done [c3777d2] |
+| 97.4 | Port `harness/scripts/detect-test-framework.sh` (202 lines, language→framework detector emitting JSON: `{"language":"...","framework":"...","testCmd":"...","testGlob":"..."}`). Detects vitest/jest from `package.json`, pytest from `pyproject.toml`/`setup.py`, go-test from `go.mod`, cargo-test from `Cargo.toml`. Translate Japanese comments to English. Port `harness/scripts/log-tdd-red.sh` (185 lines, appends TDD red-phase evidence to `.claude/state/tdd-red.jsonl` for R14 audit). Both scripts `chmod +x`. | Both scripts exist and are executable; `bash harness/scripts/detect-test-framework.sh` emits valid JSON with all 4 keys (`jq -e '.language and .framework and .testCmd and .testGlob'`); `bash harness/scripts/log-tdd-red.sh test/sample.test.ts "Error: expected 1 got 2"` appends 1 valid JSON line to `.claude/state/tdd-red.jsonl`; zero Japanese in either file | - | blocked (scripts return 404 at harness/scripts/ and scripts/ in upstream v4.10.0; detection logic is inlined in Go sprint_contract.go at this tag; defer to future upstream version that ships shell scripts) |
+| 97.5 | Port Sprint Contract TDD integration into `go/internal/hookhandler/sprint_contract.go`. Add `TDDRequired bool`, `TestFramework string`, `TestTodoList []string`, `SkipTDDReason string` to `sprintContractBody`. Implement `detectSprintTDD(taskDesc string, projectRoot string) (tddRequired bool, framework string, todos []string, skipReason string)` that parses `[skip:tdd]` / `[needs-spike]` task tags and shells out to `detect-test-framework.sh`. Wire into `Generate()`. Port `sprint_contract_test.go` table-driven tests. Also port `scripts/generate-sprint-contract.js` +47-line enhancement. | `cd go && go test -race ./internal/hookhandler/... -run 'TestSprintContract.*TDD' -v` passes; `grep -c "TDDRequired" go/internal/hookhandler/sprint_contract.go` ≥ 1; manual smoke: task with `[skip:tdd]` tag produces `TDDRequired=false, SkipTDDReason="explicit skip:tdd marker"` | 97.4 | cc:done [c3777d2] |
+| 97.6 | Port `harness/tests/test-tdd-enforcement-l1l2l4.sh` (169 lines, R14 enforcement across L1/L2/L4 gates). Translate Japanese to English. Mark executable. | Script exists with executable bit; `bash harness/tests/test-tdd-enforcement-l1l2l4.sh` exits 0 (or skips with clear message when R14 is off by default); zero Japanese | 97.1, 97.2, 97.3, 97.5 | blocked (script returns 404 at harness/tests/ and tests/ in upstream v4.10.0; defer with 97.4) |
+| 97.7 | Add TDD-relevant sections to `tests/validate-plugin.sh`: (a) validate `[tdd]` config block parses correctly when present in `harness.toml`, (b) validate `tdd-paths.yaml` is well-formed when it exists. | `bash tests/validate-plugin.sh` exits 0; both new sections emit at least 1 `[PASS]` line | 97.2, 97.3 | cc:done [c3777d2] |
+| 97.8 | Cross-platform binary rebuild + full validation + CHANGELOG `[Unreleased]` entry. Run `make build-all` to regenerate binaries (97.1-97.5 changed Go code). Both `bash tests/validate-plugin.sh` and `bash .claude/skills/release-this/scripts/check-consistency.sh` must exit 0. CHANGELOG entry: **R14 TDD guardrail (opt-in)** — Before: agents could write src files without ever running a failing test, leaving test debt silently; After: R14 blocks src writes when no matching test file exists, gated by `[tdd] enforce_level = "central"` (default off, opt-in per project). Attribution: `Chachamaru127/claude-code-harness@v4.9.0...v4.10.0`. | `make build-all` produces 4 binaries; both validation scripts exit 0; `grep -A 3 "R14 TDD guardrail" CHANGELOG.md` shows new entry under `[Unreleased]`; `grep "Chachamaru127.*v4.9.0...v4.10.0" CHANGELOG.md` returns 1 match | 97.1, 97.2, 97.3, 97.4, 97.5, 97.6, 97.7 | cc:done [c3777d2] |
 
 ---
 
