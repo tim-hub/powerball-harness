@@ -13,6 +13,23 @@ If requirements can be extracted from the preceding conversation, confirm:
 If "From the preceding conversation": Extract requirements, ideas, and decisions and confirm with the user.
 After confirmation, skip to Step 3 (technical research).
 
+## Step 0.5: Scope Check
+
+Before asking questions, assess whether the request spans multiple independent subsystems (e.g., "build a platform with auth, payments, and an admin dashboard").
+
+If it does, suggest breaking it into **phases** rather than one monolithic plan:
+
+> This covers [N] independent areas. I recommend splitting into phases:
+> - Phase 1: [Subsystem A] — can be built and verified independently
+> - Phase 2: [Subsystem B] — depends on Phase 1's foundation
+> - ...
+>
+> Each phase produces working, testable software on its own. Want to start with Phase 1?
+
+If the user agrees: proceed with Phase 1 scope only. Remaining subsystems go into `## Future Considerations` in Plans.md.
+
+If the scope is appropriately contained for a single plan, continue to Step 1.
+
 ## Step 1: Ask What to Build
 
 If there is no user input, ask:
@@ -269,7 +286,15 @@ Purpose: [Phase purpose (optional)]
 
 **DoD (Definition of Done) notation**:
 - Write as a single verifiable line (e.g., "Tests pass", "Migration can be executed", "0 lint errors")
-- Phrases like "looks good" or "works properly" are prohibited. Must be answerable with Yes/No
+- Must be answerable with Yes/No
+
+**Banned DoD phrases** — never write these:
+- "looks good", "works properly", "works correctly", "seems fine"
+- "TBD", "TODO", "implement later"
+- "add appropriate error handling" (without specifying what)
+- "add validation" (without specifying what to validate)
+- "handle edge cases" (without naming the cases)
+- "similar to task N" or "as above"
 
 **Depends notation**:
 - No dependency: `-`
@@ -285,6 +310,16 @@ Only when the user explicitly requests team mode, provide an issue bridge dry-ru
 - List sub-issue payloads for each task
 - Plans.md remains the source of truth
 - Provide in a form directly usable from `scripts/plans-issue-bridge.sh --team-mode` dry-run
+
+## Step 6.5: Self-Review
+
+After generating Plans.md, review it before presenting to the user:
+
+1. **Feature coverage** — Does every feature from Step 4 map to at least one task? Note and add any missing tasks.
+2. **DoD quality** — Scan all DoD cells for banned phrases (see Step 6). Fix any found.
+3. **Dependency consistency** — Do all task numbers in the `Depends` column reference tasks that exist in the phase?
+
+Fix issues inline. No need to re-review — just fix and move on.
 
 ## Step 7: Next Action Guidance
 

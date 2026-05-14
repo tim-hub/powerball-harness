@@ -56,6 +56,23 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Added
+
+#### 1. `harness-plan create` quality improvements — scope check, DoD ban list, self-review
+
+**Before**: `harness-plan create` jumped straight into the interview without assessing whether the scope was too large for one plan, accepted vague DoD phrases like "works properly", and produced Plans.md without a final consistency check.
+
+**After**: Three additions to `references/create.md`:
+- **Step 0.5 (Scope Check)**: If the request spans multiple independent subsystems, suggests breaking into phases rather than one monolithic plan. Remaining subsystems land in `Future Considerations`.
+- **Banned DoD phrase list**: Explicit list of prohibited phrases ("looks good", "TBD", "add appropriate error handling", etc.) alongside the existing Yes/No rule.
+- **Step 6.5 (Self-Review)**: After generating Plans.md, checks feature coverage (every Step 4 feature has a task), DoD quality (no banned phrases), and dependency consistency (Depends references exist) before presenting to the user.
+
+#### 2. `harness-brainstorming` skill — shape ideas then auto-generate Plans.md
+
+**Before**: Turning a rough idea into a tracked `Plans.md` required two manual steps: invoke `/superpowers-extended-cc:brainstorming` to produce a design spec, then separately invoke `/harness-plan create` and re-explain the requirements. The brainstorming skill's terminal state hands off to `writing-plans` (superpowers), which is not wired into the harness Plans.md workflow.
+
+**After**: `/harness-brainstorming` runs both stages with one entry point. Stage 1 runs the full brainstorming interview and writes the spec to `docs/superpowers/specs/`. Stage 2 overrides the terminal handoff and routes to `harness-plan create`, which picks up the conversation context via its existing "From the preceding conversation" branch (Step 0). No second hearing, no spec re-typing. Supports `--from-spec <path>` to skip Stage 1 when an approved spec already exists.
+
 ---
 
 ## [5.4.5] - 2026-05-12
