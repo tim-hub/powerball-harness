@@ -105,6 +105,12 @@ Disable globally with `HARNESS_PIIGUARD_DISABLED=1` or per-rule with `HARNESS_PI
 
 ---
 
+## Codex CLI Integration
+
+Harness can delegate implementation and review tasks to [OpenAI Codex CLI](https://github.com/openai/codex) as a parallel execution engine, running the same Harness skills inside Codex. **Prerequisites**: Node.js 20+, `npm install -g @openai/codex`, and the [`openai/codex-plugin-cc`](https://github.com/openai/codex-plugin-cc) Claude Code plugin installed (`/plugin install openai/codex-plugin-cc`). Run `/harness-setup codex` once to copy skills and config into `.codex/` — after that. Full invocation policy: [harness/rules/codex-cli-only.md](harness/rules/codex-cli-only.md).
+
+---
+
 ## Other Core Features
 
 
@@ -132,7 +138,7 @@ Two meta-skills that grow your project's skill set as you work:
 
 ### Natural-Language Agent Harnesses ([arXiv:2603.25723](https://arxiv.org/abs/2603.25723))
 
-*Natural-Language Agent Harnesses* — named failure modes drive recovery strategies. The Failure Taxonomy (`FT-*` IDs) in [`.claude/rules/failure-taxonomy.md`](.claude/rules/failure-taxonomy.md) is a direct implementation.
+*Natural-Language Agent Harnesses* — named failure modes drive recovery strategies. The Failure Taxonomy (`FT-*` IDs) in [`harness/rules/failure-taxonomy.md`](harness/rules/failure-taxonomy.md) is a direct implementation.
 
 
 ---

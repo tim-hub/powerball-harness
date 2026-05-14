@@ -129,7 +129,7 @@ Use a version bump only when you are intentionally cutting a release.
 
 ## CHANGELOG Rules (Required)
 
-**Uses a narrative Before/After format** (see `.claude/rules/github-release.md` for full details).
+**Uses a narrative Before/After format** (see `harness/rules/github-release.md` for full details).
 
 Each version entry uses themed sections with narrative descriptions, not bare change lists:
 

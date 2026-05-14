@@ -12,7 +12,7 @@
 #     not just stderr operator breadcrumbs)
 #   - Env vars HARNESS_COMPACT_THRESHOLD / HARNESS_COMPACT_INTERVAL
 #   - Suppression: skips when role=worker AND Plans.md has cc:WIP
-#   - Project root via git rev-parse per .claude/rules/path-conventions.md
+#   - Project root via git rev-parse per harness/rules/path-conventions.md
 #   - Always exits 0 — never blocks tool execution
 #
 # Hook config (harness/hooks/hooks.json):

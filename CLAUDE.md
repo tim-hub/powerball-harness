@@ -10,8 +10,12 @@
 - **CHANGELOG**: Record changes under `[Unreleased]` in Before/After format. Details: [.claude/rules/changelog.md](.claude/rules/changelog.md)
 - **Code style**: Clear names, comments for complex logic, single-responsibility skills/agents
 - **Test tampering**: Absolutely prohibited. Details: [.claude/rules/test-quality.md](.claude/rules/test-quality.md)
-- **Failure taxonomy**: Named `FT-*` IDs for detection, recovery, and escalation: [.claude/rules/failure-taxonomy.md](.claude/rules/failure-taxonomy.md)
+- **Failure taxonomy**: Named `FT-*` IDs for detection, recovery, and escalation: [harness/rules/failure-taxonomy.md](harness/rules/failure-taxonomy.md) · @harness/rules/failure-taxonomy.md
 - **Active-watching test policy**: [.claude/rules/active-watching-test-policy.md](.claude/rules/active-watching-test-policy.md)
+- **Codex invocation policy**: [harness/rules/codex-cli-only.md](harness/rules/codex-cli-only.md) · @harness/rules/codex-cli-only.md
+- **Release notes format**: [harness/rules/github-release.md](harness/rules/github-release.md) · @harness/rules/github-release.md
+- **Versioning rules**: [harness/rules/versioning.md](harness/rules/versioning.md) · @harness/rules/versioning.md
+- **Path conventions**: [harness/rules/path-conventions.md](harness/rules/path-conventions.md) · @harness/rules/path-conventions.md
 - [Repository structure](docs/repository-structure.md)
 - Contributing guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)
 

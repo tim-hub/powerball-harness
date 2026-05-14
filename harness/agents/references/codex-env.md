@@ -18,7 +18,7 @@ bash scripts/codex-companion.sh review --base "${TASK_BASE_REF}"
 ```
 
 > **Note**: Direct invocation of raw `codex exec` is prohibited.
-> See `.claude/rules/codex-cli-only.md` (Codex Plugin Policy) for details.
+> See `harness/rules/codex-cli-only.md` (Codex Plugin Policy) for details.
 
 ## Operation within Codex CLI (Incompatibilities)
 

@@ -75,7 +75,7 @@ Never empty the `[Unreleased]` section — keep it as a placeholder for the next
 
 For releases that bundle a new Claude Code version, use the **"CC Update → Harness Usage"** format instead of Before/After. This makes it clear which changes come from upstream CC and which are Harness-specific responses.
 
-See `.claude/rules/github-release.md` — "CHANGELOG Pattern for CC Version Integration" for the full template and examples.
+See `harness/rules/github-release.md` — "CHANGELOG Pattern for CC Version Integration" for the full template and examples.
 
 ## GitHub Release Notes Format
 
@@ -103,10 +103,10 @@ GitHub Releases use **English** and a condensed format with a Before/After table
 
 ```
 
-Full format rules: `.claude/rules/github-release.md`
+Full format rules: `harness/rules/github-release.md`
 
 ## Related
 
 - `harness-release` — Full release workflow (calls this skill at Phase 3)
-- `.claude/rules/github-release.md` — Detailed GitHub Release format + CC integration pattern
-- `.claude/rules/versioning.md` — Deciding patch / minor / major
+- `harness/rules/github-release.md` — Detailed GitHub Release format + CC integration pattern
+- `harness/rules/versioning.md` — Deciding patch / minor / major

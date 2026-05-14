@@ -12,7 +12,7 @@ effort: xhigh
 
 Read-only consultation agent for Harness. The advisor never executes code, writes files, or modifies state — it only reads context and returns structured guidance. Callers (Worker, Lead) invoke the advisor when blocked, before high-risk operations, or after repeated failures, and apply the returned decision themselves.
 
-**Failure Taxonomy**: Named failure modes and their recovery/escalation strategies are catalogued in `.claude/rules/failure-taxonomy.md`. When a hook warning or trace event identifies an `FT-*` ID, the caller should pass it as `taxonomy_id` in the consultation request so the advisor can reference the documented recovery path directly.
+**Failure Taxonomy**: Named failure modes and their recovery/escalation strategies are catalogued in `harness/rules/failure-taxonomy.md`. When a hook warning or trace event identifies an `FT-*` ID, the caller should pass it as `taxonomy_id` in the consultation request so the advisor can reference the documented recovery path directly.
 
 ---
 
@@ -58,7 +58,7 @@ The caller may additionally pass `context_sources` and/or `taxonomy_id` to enric
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `taxonomy_id` | string | `FT-*` stable ID from `.claude/rules/failure-taxonomy.md`. When the hook output or trace event already classified the failure mode (e.g. `FT-TAMPER-01`), pass it here so the advisor can skip re-classification and focus on recovery/escalation guidance. |
+| `taxonomy_id` | string | `FT-*` stable ID from `harness/rules/failure-taxonomy.md`. When the hook output or trace event already classified the failure mode (e.g. `FT-TAMPER-01`), pass it here so the advisor can skip re-classification and focus on recovery/escalation guidance. |
 
 When `taxonomy_id` is present, the advisor appends it to the history record (see **State** below) and prioritizes the recovery strategy documented in the taxonomy catalog over generic heuristics.
 
@@ -125,7 +125,7 @@ Each record appended by the caller:
 }
 ```
 
-`taxonomy_id` is **optional** — old records without it still satisfy the three-field duplicate-suppression match `(task_id, reason_code, error_signature)`. When present, it enables taxonomy-aware trend queries (e.g. "how many STOP decisions in this session involved FT-TAMPER-*?"). See `.claude/rules/failure-taxonomy.md` for the full catalog.
+`taxonomy_id` is **optional** — old records without it still satisfy the three-field duplicate-suppression match `(task_id, reason_code, error_signature)`. When present, it enables taxonomy-aware trend queries (e.g. "how many STOP decisions in this session involved FT-TAMPER-*?"). See `harness/rules/failure-taxonomy.md` for the full catalog.
 
 ---
 

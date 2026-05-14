@@ -76,13 +76,9 @@ build_rules_section() {
     name="$(basename "$f" .md)"
     echo "### ${name}"
     echo ""
-    # codex-cli-only.md: Rules for Claude Code (MCP deprecation/re-registration prohibition) are not needed in Codex environments
-    # Codex itself does not need to call codex exec, so skip (reference link only)
-    if [ "$name" = "codex-cli-only" ]; then
-      echo "> This rule is for Claude Code. It does not apply in Codex environments."
     # test-quality.md: Expand the "Strictly Prohibited" section first (AGENTS.md format template)
     # Extract the prohibited pattern table and response flow and embed in AGENTS.md
-    elif [ "$name" = "test-quality" ]; then
+    if [ "$name" = "test-quality" ]; then
       awk '
         BEGIN { in_front=0; done_front=0; in_prohibited=0; lines=0 }
         /^---/ && !done_front { in_front=!in_front; if (!in_front) done_front=1; next }

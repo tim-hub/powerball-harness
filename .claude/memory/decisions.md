@@ -180,7 +180,7 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 
 ### Related
 
-- rules: `.claude/rules/codex-cli-only.md`
+- rules: `harness/rules/codex-cli-only.md`
 
 ---
 
@@ -494,4 +494,4 @@ We avoid excessive discussion logs and keep **conclusions, rationale, and trade-
 ### Related
 
 - files: `.claude-plugin/marketplace.json`, `harness/output-styles/`
-- patterns: see also `.claude/rules/path-conventions.md` (skill / shell script tier conventions — different concern, same theme of "anchor your paths to the right root")
+- patterns: see also `harness/rules/path-conventions.md` (skill / shell script tier conventions — different concern, same theme of "anchor your paths to the right root")

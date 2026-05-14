@@ -88,7 +88,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 if [ $ERRORS -gt 0 ]; then
     echo -e "${RED}Validation result: $ERRORS error(s)${NC}"
     echo ""
-    echo "📖 Reference: .claude/rules/github-release.md"
+    echo "📖 Reference: harness/rules/github-release.md"
     exit 1
 else
     echo -e "${GREEN}Validation result: all checks passed${NC}"

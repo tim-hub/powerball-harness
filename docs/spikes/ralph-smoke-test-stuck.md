@@ -3,7 +3,7 @@
 **Task**: 89.9
 **Status**: Code-review-grade logic verification (no live orchestrator run — nested agents are disallowed in worker context)
 **Reference implementation**: `harness/skills/harness-ralph-loop/references/loop-flow.md`
-**FT entry**: `.claude/rules/failure-taxonomy.md` § FT-RALPH-01
+**FT entry**: `harness/rules/failure-taxonomy.md` § FT-RALPH-01
 
 ---
 

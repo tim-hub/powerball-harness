@@ -1603,7 +1603,7 @@ CC 2.1.77 made PreToolUse hooks that return `"allow"` still respect settings.jso
 **Harness impact**:
 - Guardrails security model strengthened
 - `deny: ["mcp__codex__*"]` in settings.json now reliably blocks regardless of PreToolUse hook decisions
-- settings.json deny becomes recommended pattern alongside hook-based MCP blocking in `.claude/rules/codex-cli-only.md`
+- settings.json deny becomes recommended pattern alongside hook-based MCP blocking in `harness/rules/codex-cli-only.md`
 
 ### Agent `resume` -> `SendMessage` (v2.1.77)
 
@@ -1670,7 +1670,7 @@ CC 2.1.78 officially supported `effort`, `maxTurns`, `disallowedTools` in plugin
 CC 2.1.78 fixed settings.json `deny` permission rules to work correctly against MCP server tools.
 
 **Harness usage**:
-- Codex MCP blocking recommended in `.claude/rules/codex-cli-only.md` can migrate from hook-based to settings.json `deny`
+- Codex MCP blocking recommended in `harness/rules/codex-cli-only.md` can migrate from hook-based to settings.json `deny`
 - `"permissions": { "deny": ["mcp__codex__*"] }` is the clean pattern
 
 ### `--console` auth flag (v2.1.79)

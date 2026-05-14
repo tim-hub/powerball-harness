@@ -184,5 +184,5 @@ No escalation required. The FT-RALPH-03 branch in `loop-flow.md` is correctly im
 ## References
 
 - `harness/skills/harness-ralph-loop/references/loop-flow.md` — loop logic (lines 36, 88-95, 109-115, 160-168, 214-219)
-- `.claude/rules/failure-taxonomy.md` — FT-RALPH-03 entry
+- `harness/rules/failure-taxonomy.md` — FT-RALPH-03 entry
 - `docs/spikes/ralph-worktree-persistence.md` — worktree pattern feasibility study

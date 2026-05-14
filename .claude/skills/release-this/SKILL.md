@@ -153,6 +153,6 @@ git push origin "$(git rev-parse --abbrev-ref HEAD)"
 
 ## Related Rules
 
-- `.claude/rules/versioning.md` — SemVer classification criteria and batch release policy
-- `.claude/rules/github-release.md` — GitHub Release Notes format
+- `harness/rules/versioning.md` — SemVer classification criteria and batch release policy
+- `harness/rules/github-release.md` — GitHub Release Notes format
 - `harness/skills/harness-release/SKILL.md` — Generic release skill (delegated in step 6)

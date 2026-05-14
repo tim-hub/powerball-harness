@@ -5,7 +5,7 @@ Reference for running Harness team patterns in Codex CLI environments.
 ## Bridge via Official Plugin `codex-plugin-cc`
 
 When calling Codex from Claude Code, execute via the official plugin.
-Direct invocation of raw `codex exec` is prohibited (see `.claude/rules/codex-cli-only.md`).
+Direct invocation of raw `codex exec` is prohibited (see `harness/rules/codex-cli-only.md`).
 
 ```bash
 # Task delegation (implementation, debugging, investigation)

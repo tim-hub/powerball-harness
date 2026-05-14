@@ -181,7 +181,7 @@ When enabled in config (`advisor.enabled: true`), consult the Advisor agent befo
 
 ### Failure Taxonomy Integration
 
-When a PostToolUse hook warning includes a `taxonomy_ids` JSON field (e.g. `{"taxonomy_ids":["FT-TAMPER-01"]}`), extract the first ID and pass it as `taxonomy_id` in the advisor consultation request. This lets the advisor reference the pre-classified recovery strategy from `.claude/rules/failure-taxonomy.md` without re-classifying the failure mode.
+When a PostToolUse hook warning includes a `taxonomy_ids` JSON field (e.g. `{"taxonomy_ids":["FT-TAMPER-01"]}`), extract the first ID and pass it as `taxonomy_id` in the advisor consultation request. This lets the advisor reference the pre-classified recovery strategy from `harness/rules/failure-taxonomy.md` without re-classifying the failure mode.
 
 ### Consultation Flow
 

@@ -56,7 +56,7 @@ codex exec "implement task 3 from Plans.md"
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.sh" task --write "your prompt"
 ```
 
-See `.claude/rules/codex-cli-only.md` for the full policy on Codex invocation.
+See `harness/rules/codex-cli-only.md` for the full policy on Codex invocation.
 
 ## Re-running Setup
 
