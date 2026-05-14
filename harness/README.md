@@ -109,7 +109,6 @@ flowchart LR
         direction TB
         AUTH["skill: auth\n(OAuth, RBAC,\nStripe, sessions)"]
         CRUD["skill: crud\n(endpoints, models,\nvalidation, tests)"]
-        UI2["skill: ui\n(components,\nhero, forms, a11y)"]
         DEPLOY["skill: deploy\n(Vercel/Netlify,\nhealth, analytics)"]
     end
 
@@ -118,7 +117,6 @@ flowchart LR
         direction TB
         AB["skill: agent-browser\n(UI testing, scraping)"]
         CC["skill: cc-cursor-cc\n(Cursor ↔ CC handoff)"]
-        GOG["skill: gogcli-ops\n(Drive, Sheets, Docs)"]
         NLM["skill: notebook-lm\n(doc export / slides)"]
     end
 
@@ -236,7 +234,6 @@ flowchart LR
 | **Implementation** | `breezing` | `/breezing all` (alias for team mode) |
 | **Implementation** | `auth` | building login / OAuth / payments |
 | **Implementation** | `crud` | building data endpoints |
-| **Implementation** | `ui` | building components / pages |
 | **Implementation** | `deploy` | shipping to Vercel / Netlify |
 | **CI Recovery** | `ci` | red build or "diagnose CI" |
 | **Review** | `harness-review` | `/harness-review code\|plan\|scope` |
@@ -251,7 +248,6 @@ flowchart LR
 | **Session** | `session-memory` | auto — session end recording |
 | **Utility** | `agent-browser` | UI testing, web scraping |
 | **Utility** | `cc-cursor-cc` | Cursor ↔ Claude Code handoff |
-| **Utility** | `gogcli-ops` | Google Workspace read/write |
 | **Utility** | `notebook-lm` | doc export, slide generation |
 | **Guidance** | `workflow-guide` | "how does this work?" |
 | **Guidance** | `vibecoder-guide` | non-technical orientation |
