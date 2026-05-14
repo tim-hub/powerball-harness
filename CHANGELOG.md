@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.4.5...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.5.0...HEAD
+[5.5.0]: https://github.com/tim-hub/powerball-harness/compare/v5.4.5...v5.5.0
 [5.4.5]: https://github.com/tim-hub/powerball-harness/compare/v5.4.4...v5.4.5
 [5.4.4]: https://github.com/tim-hub/powerball-harness/compare/v5.4.3...v5.4.4
 [5.4.3]: https://github.com/tim-hub/powerball-harness/compare/v5.4.2...v5.4.3
@@ -55,6 +56,16 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.5.0] - 2026-05-15
+
+### Theme: harness-brainstorming skill + harness-plan create quality improvements
+
+**Closes the gap between rough ideas and tracked Plans.md tasks, and tightens plan quality with scope checks and DoD enforcement.**
+
+---
 
 ### Added
 
