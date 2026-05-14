@@ -57,6 +57,10 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+---
+
+## [5.6.0] - 2026-05-15
+
 ### Theme: Phase 97 + 98 — R14 TDD guardrail registration and harness-plan memory conflict detection
 
 **Registers the R14 TDD enforcement pipeline (non-blocking local-trial stub), ships TDD config structs and tdd-paths.yaml, integrates TDD into sprint contracts, and teaches harness-plan to surface memory conflicts before writing Plans.md.**
