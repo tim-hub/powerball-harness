@@ -9,12 +9,17 @@ import (
 	"testing"
 )
 
+// WorktreeCreate is a notification hook — the handler writes nothing to stdout.
+// Tests verify side effects (state dir, worktree-info.json) only.
+
 func TestHandleWorktreeCreate_EmptyInput(t *testing.T) {
 	var out bytes.Buffer
 	if err := HandleWorktreeCreate(strings.NewReader(""), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertWorktreeApprove(t, out.String(), "WorktreeCreate: no payload")
+	if out.Len() != 0 {
+		t.Errorf("expected no stdout output, got: %s", out.String())
+	}
 }
 
 func TestHandleWorktreeCreate_InvalidJSON(t *testing.T) {
@@ -22,16 +27,19 @@ func TestHandleWorktreeCreate_InvalidJSON(t *testing.T) {
 	if err := HandleWorktreeCreate(strings.NewReader("not json"), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertWorktreeApprove(t, out.String(), "WorktreeCreate: no payload")
+	if out.Len() != 0 {
+		t.Errorf("expected no stdout output, got: %s", out.String())
+	}
 }
 
 func TestHandleWorktreeCreate_NoCWD(t *testing.T) {
 	var out bytes.Buffer
-	payload := `{"session_id":"s1","cwd":""}`
-	if err := HandleWorktreeCreate(strings.NewReader(payload), &out); err != nil {
+	if err := HandleWorktreeCreate(strings.NewReader(`{"session_id":"s1","cwd":""}`), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	assertWorktreeApprove(t, out.String(), "WorktreeCreate: no cwd")
+	if out.Len() != 0 {
+		t.Errorf("expected no stdout output, got: %s", out.String())
+	}
 }
 
 func TestHandleWorktreeCreate_CreatesStateDir(t *testing.T) {
@@ -42,10 +50,10 @@ func TestHandleWorktreeCreate_CreatesStateDir(t *testing.T) {
 	if err := HandleWorktreeCreate(strings.NewReader(payload), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if out.Len() != 0 {
+		t.Errorf("expected no stdout output, got: %s", out.String())
+	}
 
-	assertWorktreeApprove(t, out.String(), "WorktreeCreate: initialized worktree state")
-
-	// .claude/state/ must be created.
 	stateDir := filepath.Join(dir, ".claude", "state")
 	if info, err := os.Stat(stateDir); err != nil || !info.IsDir() {
 		t.Errorf(".claude/state/ was not created at %s", stateDir)
@@ -83,82 +91,17 @@ func TestHandleWorktreeCreate_WritesWorktreeInfo(t *testing.T) {
 	}
 }
 
-func TestHandleWorktreeCreate_JSONCWDGuard(t *testing.T) {
-	// CC sometimes feeds hook output JSON back as the cwd field. Verify we
-	// detect it and skip mkdir instead of creating a JSON-named directory.
-	jsonCWD := `{"decision":"approve","reason":"WorktreeCreate: initialized worktree state"}`
-	payload, _ := json.Marshal(map[string]string{"session_id": "s1", "cwd": jsonCWD})
-
-	var out bytes.Buffer
-	if err := HandleWorktreeCreate(bytes.NewReader(payload), &out); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	assertWorktreeApprove(t, out.String(), "WorktreeCreate: skipped (invalid JSON cwd)")
-
-	// The JSON string must NOT have been created as a directory.
-	if _, err := os.Stat(jsonCWD); err == nil {
-		t.Errorf("directory with JSON name was created: %s", jsonCWD)
-	}
-}
-
-func TestHandleWorktreeCreate_JSONCWDGuard_LeadingWhitespace(t *testing.T) {
-	// CWD with leading whitespace before JSON must also be caught.
-	jsonCWD := ` {"decision":"approve","reason":"WorktreeCreate: initialized worktree state"}`
-	payload, _ := json.Marshal(map[string]string{"session_id": "s1", "cwd": jsonCWD})
-
-	var out bytes.Buffer
-	if err := HandleWorktreeCreate(bytes.NewReader(payload), &out); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	assertWorktreeApprove(t, out.String(), "WorktreeCreate: skipped (invalid JSON cwd)")
-}
-
-func TestHandleWorktreeCreate_NonAbsolutePath(t *testing.T) {
-	// A relative path is never a valid worktree CWD — reject it.
-	payload := `{"session_id":"s1","cwd":"relative/path"}`
-
-	var out bytes.Buffer
-	if err := HandleWorktreeCreate(strings.NewReader(payload), &out); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	assertWorktreeApprove(t, out.String(), "WorktreeCreate: skipped (non-absolute cwd)")
-
-	// The relative path must NOT have been created as a directory.
-	if _, err := os.Stat("relative/path"); err == nil {
-		t.Error("directory with relative path name was created")
-	}
-}
-
 func TestHandleWorktreeCreate_Idempotent(t *testing.T) {
 	dir := t.TempDir()
 
-	// Run twice — second call should not fail even though state dir already exists.
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		var out bytes.Buffer
 		payload := `{"session_id":"s","cwd":"` + dir + `"}`
 		if err := HandleWorktreeCreate(strings.NewReader(payload), &out); err != nil {
 			t.Fatalf("call %d: unexpected error: %v", i+1, err)
 		}
-		assertWorktreeApprove(t, out.String(), "WorktreeCreate: initialized worktree state")
-	}
-}
-
-// assertWorktreeApprove verifies the output is a valid JSON approve response
-// with the expected reason.
-func assertWorktreeApprove(t *testing.T, output, expectedReason string) {
-	t.Helper()
-	output = strings.TrimSpace(output)
-	if output == "" {
-		t.Fatal("expected approve JSON, got empty output")
-	}
-	var resp map[string]string
-	if err := json.Unmarshal([]byte(output), &resp); err != nil {
-		t.Fatalf("output is not valid JSON: %v\noutput: %s", err, output)
-	}
-	if resp["decision"] != "approve" {
-		t.Errorf("decision = %q, want approve", resp["decision"])
-	}
-	if expectedReason != "" && resp["reason"] != expectedReason {
-		t.Errorf("reason = %q, want %q", resp["reason"], expectedReason)
+		if out.Len() != 0 {
+			t.Errorf("call %d: expected no stdout output, got: %s", i+1, out.String())
+		}
 	}
 }
