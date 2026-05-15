@@ -66,7 +66,8 @@ for task in execution_order:
     # If the task description contains "[ralph]", delegate to harness-ralph-loop instead.
     # Ralph tasks serialize within a session (only one Ralph loop runs at a time).
     if "[ralph]" in task.description:
-        Plans.md: task.status = "cc:WIP"
+        Plans.md: task.status = "cc:WIP"  # authoritative
+        TaskUpdate(matching native task by ID prefix, status="in_progress")  # mirror — silent if no match
         ralph_result = Skill(name="harness-ralph-loop", args=task.id)
         # ralph_result terminal state determines Plans.md update:
         #   - SUCCESS         → cc:done [hash]   (already written by harness-ralph-loop orchestrator)
@@ -78,7 +79,8 @@ for task in execution_order:
 
     # B-2. Worker spawn (foreground, worktree isolation)
     # Agent tool return value contains agentId — used for SendMessage in fix loop
-    Plans.md: task.status = "cc:WIP"  # Update on start (unstarted tasks remain cc:TODO)
+    Plans.md: task.status = "cc:WIP"  # Update on start (unstarted tasks remain cc:TODO) — authoritative
+    TaskUpdate(matching native task by ID prefix, status="in_progress")  # mirror — silent if no match
 
     violation_preamble = ""
     if universal_violations:
@@ -156,7 +158,8 @@ for task in execution_order:
     if verdict == "APPROVE":
         git cherry-pick --no-commit {latest_commit}  # worktree → main
         git commit -m "{task.content}"
-        Plans.md: task.status = "cc:Done [{hash}]"
+        Plans.md: task.status = "cc:Done [{hash}]"  # authoritative
+        TaskUpdate(matching native task by ID prefix, status="completed")  # mirror — silent if no match
     else:
         → Escalate to user
 

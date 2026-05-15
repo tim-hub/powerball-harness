@@ -97,10 +97,14 @@ for iter in range(0, MaxIter):
     # ── SUCCESS ───────────────────────────────────────────────────────────────
     if promise_tag_found(result.finalMessage) AND ralph_report.promise.asserted AND verify_exit == 0:
         commit_hash = merge_worktree_to_main(RALPH_WORKTREE)
-        update_plans_md(task_id, status="cc:done [{hash}]".format(hash=commit_hash))
+        update_plans_md(task_id, status="cc:done [{hash}]".format(hash=commit_hash))  # authoritative
+        TaskUpdate(matching native task by ID prefix, status="completed")  # mirror — silent if no match
         print SUCCESS summary: iterations_used, files_changed_total, final_verify_output
         cleanup_worktree(RALPH_WORKTREE)    # ← remove worktree after successful merge
         exit 0
+    # NOTE: blocked terminal states (FT-RALPH-01/02/03) intentionally do NOT call TaskUpdate.
+    # Leaving the native task in its prior state (typically in_progress) makes it visible to
+    # the user that work stalled, instead of falsely marking it completed.
 
     # ── CONTINUE ─────────────────────────────────────────────────────────────
     # verify_exit != 0 and iter+1 < MaxIter: loop back with failure context
@@ -193,9 +197,10 @@ A promise tag appearing in a tool call output echo or prior-context block is ign
 ### SUCCESS
 1. Run `git -C {RALPH_WORKTREE} log --oneline` to collect the iteration commit history
 2. Cherry-pick or merge the worktree branch into main: `git -C {PROJECT_ROOT} merge --squash {RALPH_WORKTREE_BRANCH}` then commit
-3. Write `cc:done [{commit_hash}]` to the Plans.md task row
-4. Remove the worktree: `git worktree remove --force {RALPH_WORKTREE}`
-5. Print a success summary: iterations used, files changed, verify command output
+3. Write `cc:done [{commit_hash}]` to the Plans.md task row (authoritative)
+4. Mirror to native task list: `TaskList` → if any native task title starts with this Plans.md task ID prefix, call `TaskUpdate(status="completed")`. Silent if no match.
+5. Remove the worktree: `git worktree remove --force {RALPH_WORKTREE}`
+6. Print a success summary: iterations used, files changed, verify command output
 
 ### FT-RALPH-01 STUCK
 1. Write `blocked (ralph stuck at iter {N}: no file changes + verify exit {code})` to Plans.md
