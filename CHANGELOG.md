@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.5.0...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.6.1...HEAD
+[5.6.1]: https://github.com/tim-hub/powerball-harness/compare/v5.6.0...v5.6.1
 [5.5.0]: https://github.com/tim-hub/powerball-harness/compare/v5.4.5...v5.5.0
 [5.4.5]: https://github.com/tim-hub/powerball-harness/compare/v5.4.4...v5.4.5
 [5.4.4]: https://github.com/tim-hub/powerball-harness/compare/v5.4.3...v5.4.4
@@ -56,6 +57,22 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.6.1] - 2026-05-15
+
+### Theme: Consolidate Harness rules under `harness/` directory
+
+**Moves five rule files from `.claude/rules/` to `harness/rules/` so all Harness-specific rules live alongside the plugin code rather than scattered in the user-space `.claude/` directory.**
+
+---
+
+#### 1. Rules directory migration
+
+**Before**: `failure-taxonomy.md`, `codex-cli-only.md`, `github-release.md`, `path-conventions.md`, and `versioning.md` lived under `.claude/rules/`, mixing Harness plugin rules with user-level configuration.
+
+**After**: All five files moved to `harness/rules/`. All cross-references in `CLAUDE.md`, agents, skills, and scripts updated to point to the new locations. No functional change — purely a structural reorganisation.
 
 ---
 
