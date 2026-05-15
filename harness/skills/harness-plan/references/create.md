@@ -40,6 +40,31 @@ If there is no user input, ask:
 >
 > A rough idea is fine!
 
+## Step 1.5: Memory Conflict Check
+
+Before writing Plans.md, read `.claude/memory/decisions.md` and `.claude/memory/patterns.md`.
+
+Scan the proposed approach against recorded decisions and patterns:
+
+- **If a conflict is found** (e.g., the plan uses a pattern previously rejected, or contradicts a decision): present it clearly and ask the user to choose:
+  1. **Update memory** — the new approach supersedes the old decision; run `harness-remember` to record it first, then continue planning
+  2. **Adjust the plan** — keep the existing decision in place and revise the proposed approach to align with it
+
+- **If no conflict is found**: proceed silently. Do not mention this step to the user.
+
+> **Silent-pass rule**: this step must not slow down planning when there is no conflict. Surface only genuine conflicts.
+
+## Step 1.6: New Decision Capture
+
+If planning surfaces a new architectural decision not yet recorded in `.claude/memory/decisions.md`, prompt the user once before generating Plans.md:
+
+> "I noticed a new decision: **[decision summary]**. Would you like to record it in memory before we write the plan? (yes / skip)"
+
+- If yes → invoke `harness-remember` to capture it, then continue.
+- If skip → continue without recording.
+
+> This step only fires when a genuinely new decision is surfaced. Do not prompt for known patterns.
+
 ## Step 2: Increase Resolution (Up to 3 Questions)
 
 > Tell me a bit more:

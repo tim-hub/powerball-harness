@@ -56,6 +56,10 @@ type sprintContractBody struct {
 	RuntimeValidation []sprintValidation `json:"runtime_validation"`
 	BrowserValidation []sprintValidation `json:"browser_validation"`
 	RiskFlags         []string           `json:"risk_flags"`
+	TDDRequired       bool               `json:"tdd_required"`
+	TestFramework     string             `json:"test_framework,omitempty"`
+	TestTodoList      []string           `json:"test_todo_list,omitempty"`
+	SkipTDDReason     *string            `json:"skip_tdd_reason,omitempty"`
 }
 
 type sprintContractAdvisor struct {
@@ -136,6 +140,10 @@ var (
 	uxRegressionRe = regexp.MustCompile(`(?i)browser|ui|layout|responsive|playwright|chrome|screen`)
 	// advisorRequiredRe matches the explicit advisor:required HTML comment marker.
 	advisorRequiredRe = regexp.MustCompile(`(?is)<!--\s*advisor:required\s*-->`)
+	// tddRequiredTagRe matches the [tdd:required] task tag.
+	tddRequiredTagRe = regexp.MustCompile(`(?i)\[tdd:required\]`)
+	// tddSkipTagRe matches the [tdd:skip:<reason>] task tag and captures the reason.
+	tddSkipTagRe = regexp.MustCompile(`(?i)\[tdd:skip:([^\]]+)\]`)
 )
 
 var profileMaxIterations = map[string]int{
@@ -162,6 +170,79 @@ var defaultSprintAdvisor = sprintContractAdvisor{
 		ClaudeDefault: "opus",
 		CodexDefault:  "gpt-5.4",
 	},
+}
+
+// sprintTDDContract holds the TDD configuration inferred for a task.
+type sprintTDDContract struct {
+	Required      bool
+	SkipReason    *string
+	TestFramework string
+	TestTodoList  []string
+}
+
+// detectSprintTDD inspects task tags and project files to infer TDD requirements.
+// Tag priority: [tdd:skip:reason] > [tdd:required] > path inference.
+func detectSprintTDD(root string, task *sprintTaskRow) sprintTDDContract {
+	taskText := fmt.Sprintf("%s %s", task.Title, task.DoD)
+
+	// [tdd:skip] always wins — explicit opt-out.
+	if m := tddSkipTagRe.FindStringSubmatch(taskText); len(m) >= 2 {
+		reason := strings.TrimSpace(m[1])
+		return sprintTDDContract{Required: false, SkipReason: &reason}
+	}
+
+	// [tdd:required] explicit opt-in.
+	if tddRequiredTagRe.MatchString(taskText) {
+		fw := detectSprintTestFramework(root)
+		return sprintTDDContract{
+			Required:      true,
+			TestFramework: fw,
+			TestTodoList:  defaultSprintTDDTodoList(fw),
+		}
+	}
+
+	// No explicit tag → not required.
+	return sprintTDDContract{Required: false}
+}
+
+// detectSprintTestFramework returns the test framework name by probing project files.
+func detectSprintTestFramework(root string) string {
+	probes := []struct {
+		file      string
+		framework string
+	}{
+		{"vitest.config.ts", "vitest"},
+		{"vitest.config.js", "vitest"},
+		{"vitest.config.mjs", "vitest"},
+		{"jest.config.js", "jest"},
+		{"jest.config.ts", "jest"},
+		{"pytest.ini", "pytest"},
+		{"pyproject.toml", "pytest"},
+		{"Cargo.toml", "cargo-test"},
+		{"go.mod", "go-test"},
+	}
+	for _, p := range probes {
+		if _, err := os.Stat(filepath.Join(root, p.file)); err == nil {
+			return p.framework
+		}
+	}
+	return ""
+}
+
+// defaultSprintTDDTodoList returns a minimal Red-Green-Refactor todo list for the framework.
+func defaultSprintTDDTodoList(framework string) []string {
+	switch framework {
+	case "vitest", "jest":
+		return []string{"Write failing test (Red)", "Implement minimal code (Green)", "Refactor + re-run"}
+	case "pytest":
+		return []string{"Write failing pytest (Red)", "Implement minimal code (Green)", "Refactor + re-run"}
+	case "go-test":
+		return []string{"Write failing _test.go (Red)", "Implement minimal code (Green)", "Refactor + go test ./..."}
+	case "cargo-test":
+		return []string{"Write failing #[test] (Red)", "Implement minimal code (Green)", "Refactor + cargo test"}
+	default:
+		return []string{"Write failing test (Red)", "Implement minimal code (Green)", "Refactor"}
+	}
 }
 
 // Generate produces a sprint-contract document for the specified task ID.
@@ -200,6 +281,7 @@ func (g *SprintContractGenerator) Generate(taskID string) (*sprintContractDoc, e
 	runtimeValidation := pickRuntimeCommands(projectRoot)
 	riskFlags := detectSprintRiskFlags(row)
 	advisor := buildSprintAdvisor(row, riskFlags)
+	tddContract := detectSprintTDD(projectRoot, row)
 
 	var browserMode *string
 	var route *string
@@ -268,6 +350,10 @@ func (g *SprintContractGenerator) Generate(taskID string) (*sprintContractDoc, e
 			RuntimeValidation: runtimeValidation,
 			BrowserValidation: browserValidation,
 			RiskFlags:         riskFlags,
+			TDDRequired:       tddContract.Required,
+			TestFramework:     tddContract.TestFramework,
+			TestTodoList:      tddContract.TestTodoList,
+			SkipTDDReason:     tddContract.SkipReason,
 		},
 		Advisor: advisor,
 		Review: sprintContractReview{
