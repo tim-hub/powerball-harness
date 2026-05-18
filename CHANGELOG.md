@@ -58,6 +58,65 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Phase 100 — Terminal notification, R03 protected-path break-glass, harness-review TeamAgent Debate
+
+**Ports three substantive feature clusters from upstream `Chachamaru127/claude-code-harness` v4.10.0→v4.11.0: opt-in desktop/bell notifications via `HARNESS_TERMINAL_NOTIFY`, configurable break-glass for `.env` writes, and an explicit Operating Modes dispatch table for harness-review.**
+
+---
+
+### Added
+
+#### 1. Terminal notification (opt-in) — `HARNESS_TERMINAL_NOTIFY`
+
+**Before**: Hook handlers emitted plain JSON responses. Users running CC 2.1.141+ who wanted a bell beep or desktop notification on task completion or permission prompts had no Harness-supported path — they needed to wire their own terminal tooling or poll manually.
+
+**After**: Setting `HARNESS_TERMINAL_NOTIFY` to `bell`, `title`, `osc9`, or `notify` causes the notification and task-completed handlers to include a `terminalSequence` field in their JSON response. CC 2.1.141+ writes this field verbatim to the terminal:
+
+| Value | Effect |
+|-------|--------|
+| `bell` or `1` | BEL (`\x07`) — terminal bell/flash |
+| `title` | OSC 0 — window title update |
+| `osc9` | OSC 9 — macOS / iTerm notification |
+| `notify` | OSC 777 — KDE/GNOME desktop notification |
+
+Unset (default) — no sequence emitted, fully backward-compatible.
+
+Implementations: Go (`go/internal/hookhandler/terminal_notify.go`) and shell (`harness/scripts/lib/terminal-notify.sh`). Control characters are stripped from title/body to prevent terminal injection.
+
+#### 2. R03 protected-path break-glass (`[[safety.guardrail.protectedPathAskList]]`)
+
+**Before**: The R03 guardrail hard-denied all `.env` write operations. Teams that legitimately needed to write deploy-env files (e.g., `echo DATABASE_URL=... > .env.staging`) had no option except to disable the guardrail entirely — an all-or-nothing trade-off.
+
+**After**: Adding entries to `[[safety.guardrail.protectedPathAskList]]` in `harness.toml` lets a project allow narrow `.env` paths to return "Ask" instead of "Deny":
+
+```toml
+[[safety.guardrail.protectedPathAskList]]
+path = ".env.staging"
+reason = "deploy-env file managed by CI — ask before writing"
+```
+
+Hard-deny paths (`.git/`, `secrets/`, SSH keys, `.pem`/`.key`/`.p12`/`.pfx`, shell rc files, `.husky`, `.claude/hooks`) can never be softened via the ask-list. The two-pass check ensures all write targets in a compound command are inspected for hard-deny before any Ask is returned, preventing mixed-command bypass.
+
+#### 3. harness-review TeamAgent Debate operating modes
+
+**Before**: `/harness-review` loaded a single SKILL.md and dispatched implicitly. Users had to read the full skill to understand which analysis profile ran for a given invocation. New review profiles (governance, team debate, Codex closeout) had no entry point.
+
+**After**: An explicit `## Operating Modes` dispatch table routes to four new reference files plus the three existing ones:
+
+| Mode flag | Reference | Purpose |
+|-----------|-----------|---------|
+| `--team-debate` | `team-debate.md` | Multi-agent spec debate (Spec / Plans / Regression / Skeptic agents) |
+| `--governance` | `governance.md` | SSOT, boundary, and agent-view policy checks |
+| `--codex-closeout` | `codex-closeout.md` | Post-Codex session closeout gate |
+| *(default)* | `code-review.md` | Standard code quality review |
+| `--plan-review` | `plan-review.md` | Plans.md and task quality review (existing) |
+| `--scope` | `scope-review.md` | Scope/blast-radius analysis (existing) |
+| `--dual` | `dual-review.md` | Two-pass security + correctness (existing) |
+
+`AskUserQuestion` added to `allowed-tools` to support the Team Debate confirmation flow.
+
+Attribution: `Chachamaru127/claude-code-harness@v4.10.0...v4.11.0`
+
 ---
 
 ## [5.6.1] - 2026-05-15
