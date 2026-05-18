@@ -2,8 +2,8 @@
 name: harness-review
 description: "Multi-angle code and plan review with security, scope, and UI profiles. Use when reviewing code, plans, PRs, or running pre-merge quality gates."
 when_to_use: "review code, review plan, review PR, security audit, pre-merge check, scope analysis, quality gate"
-allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task"]
-argument-hint: "[code|plan|scope|--dual|--security|--ui-rubric]"
+allowed-tools: ["Read", "Grep", "Glob", "Bash", "Task", "AskUserQuestion"]
+argument-hint: "[code|plan|scope|--quick|--codex-closeout|--dual|--team-debate|--security|--ui-rubric]"
 context: fork
 effort: xhigh
 model: opus
@@ -25,6 +25,20 @@ agent: reviewer
 | `harness-review --dual` | `code` (auto) + Codex parallel | Claude + Codex dual review |
 | `harness-review --security` | Security Review | OWASP Top 10 dedicated security review (read-only) |
 | `harness-review --ui-rubric` | UI Rubric Review | 4-axis design quality scoring |
+
+## Operating Modes
+
+Maps flags to their reference files. Quick Reference above covers trigger → subcommand routing; this table covers flag → reference dispatch.
+
+| Flag | Reference | Purpose |
+|------|-----------|---------|
+| `--quick` | [`${CLAUDE_SKILL_DIR}/references/codex-closeout.md`](${CLAUDE_SKILL_DIR}/references/codex-closeout.md) | Lightweight Codex-assisted closeout; stops on clean result |
+| `--codex-closeout` | [`${CLAUDE_SKILL_DIR}/references/codex-closeout.md`](${CLAUDE_SKILL_DIR}/references/codex-closeout.md) | Full closeout with final JSON report |
+| `--team-debate` | [`${CLAUDE_SKILL_DIR}/references/team-debate.md`](${CLAUDE_SKILL_DIR}/references/team-debate.md) | Multi-agent read-only debate (Spec / Plans / Regression / Skeptic agents) |
+| _(any mode)_ | [`${CLAUDE_SKILL_DIR}/references/governance.md`](${CLAUDE_SKILL_DIR}/references/governance.md) | APPROVE pass criteria, severity table, AskUserQuestion contract |
+| _(any mode)_ | [`${CLAUDE_SKILL_DIR}/references/code-review.md`](${CLAUDE_SKILL_DIR}/references/code-review.md) | Eight-lens review flow and verdict rules |
+
+`--team-debate` is required when changes span multiple modules, touch security/auth/release, or when the same issue fails two consecutive post-fix re-reviews (see governance.md).
 
 ## Options
 
