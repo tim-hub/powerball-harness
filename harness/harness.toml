@@ -205,6 +205,14 @@ ask = [
   "Bash(git reset --hard *)",
 ]
 
+# Optional R03 break-glass: shell writes to exact/narrow .env paths ask instead
+# of deny only when this TOML entry has a non-empty reason. R02 Write/Edit/
+# MultiEdit and hard-deny paths (.git/, secrets/, *.pem, *.key, SSH trust,
+# shell rc/profile, .claude/hooks, .husky) remain denied.
+# [[safety.guardrail.protectedPathAskList]]
+# path = ".env"
+# reason = "customer deploy env update"
+
 [safety.sandbox]
 failIfUnavailable = true
 
