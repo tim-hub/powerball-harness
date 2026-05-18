@@ -33,6 +33,7 @@ Each subcommand has its own reference file. Open the matching file when invoking
 | `sync` | [references/sync.md](${CLAUDE_SKILL_DIR}/references/sync.md) — discrepancy detection, retrospective |
 | `archive` | [references/archive.md](${CLAUDE_SKILL_DIR}/references/archive.md) — phase archival, retention, naming |
 | `session-log` | [references/session-log.md](${CLAUDE_SKILL_DIR}/references/session-log.md) — monthly split of session-log.md |
+| _(quality gate)_ | [references/planning-quality.md](${CLAUDE_SKILL_DIR}/references/planning-quality.md) — 8-step planning quality contract for `create` and high-impact `add` |
 
 **CI mode** (`--ci`) — applies to `create` only: no interview; uses existing Plans.md and only performs task decomposition. See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md) "CI Mode" section.
 
