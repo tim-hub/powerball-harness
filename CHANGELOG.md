@@ -5,8 +5,10 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.6.1...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.7.0...HEAD
+[5.7.0]: https://github.com/tim-hub/powerball-harness/compare/v5.6.1...v5.7.0
 [5.6.1]: https://github.com/tim-hub/powerball-harness/compare/v5.6.0...v5.6.1
+[5.6.0]: https://github.com/tim-hub/powerball-harness/compare/v5.5.0...v5.6.0
 [5.5.0]: https://github.com/tim-hub/powerball-harness/compare/v5.4.5...v5.5.0
 [5.4.5]: https://github.com/tim-hub/powerball-harness/compare/v5.4.4...v5.4.5
 [5.4.4]: https://github.com/tim-hub/powerball-harness/compare/v5.4.3...v5.4.4
@@ -57,6 +59,10 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.7.0] - 2026-05-19
 
 ### Theme: Phase 100 — Terminal notification, R03 protected-path break-glass, harness-review TeamAgent Debate
 
