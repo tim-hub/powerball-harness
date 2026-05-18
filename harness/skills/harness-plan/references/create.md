@@ -65,6 +65,26 @@ If planning surfaces a new architectural decision not yet recorded in `.claude/m
 
 > This step only fires when a genuinely new decision is surfaced. Do not prompt for known patterns.
 
+## Step 1.7: Planning Quality Gate
+
+For `create` (new plan) and `add` (high-impact task addition), run the planning quality contract before generating Plans.md.
+
+See [`${CLAUDE_SKILL_DIR}/references/planning-quality.md`](${CLAUDE_SKILL_DIR}/references/planning-quality.md) for the full 8-step protocol:
+
+| Step | Name | When to run |
+|------|------|-------------|
+| 0 | Applicability | Always — decide if the contract applies |
+| 1 | Input Decomposition | Break user input into subject, intent, facts, evidence |
+| 2 | Latest-information Fetch | WebSearch for external facts |
+| 3 | Local-source-of-truth Check | Reconcile against Plans.md, specs, docs |
+| 4 | Memory Check | Check harness-mem / local memory |
+| 5 | Subagent Debate | 3–4 independent perspectives (Product, Arch, QA, Skeptic) |
+| 6 | Neutral Scoring Review | 5-point rubric across 6 axes |
+| 7 | Quality Contract Output | Decision-ready summary |
+| 8 | Plans.md / Spec Output | Convert adopted proposals to task contracts |
+
+**Skip criteria** (Step 0): marker-only `update`, status-only `sync`, typo/README/CHANGELOG changes, or narrow changes with a fixed spec answer.
+
 ## Step 2: Increase Resolution (Up to 3 Questions)
 
 > Tell me a bit more:
