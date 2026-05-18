@@ -103,6 +103,14 @@ type PermissionOutput struct {
 // Guard rule context (used by the guardrail engine)
 // ---------------------------------------------------------------------------
 
+// ProtectedPathAskEntry is one entry from [[safety.guardrail.protectedPathAskList]]
+// in harness.toml. When a Bash command writes to Path, the guardrail returns Ask
+// instead of Deny, prompting the user to confirm with Reason.
+type ProtectedPathAskEntry struct {
+	Path   string
+	Reason string
+}
+
 // RuleContext carries the evaluation context for guard rules.
 type RuleContext struct {
 	Input                     HookInput
@@ -111,6 +119,7 @@ type RuleContext struct {
 	CodexMode                 bool
 	BreezingRole              string // "" means not in breezing mode
 	ProtectedBranchPushPolicy string // ask, deny, or allow
+	ProtectedPathAskList      []ProtectedPathAskEntry
 
 	// TDD enforcement fields (R14)
 	TddEnforceLevel         string // off, central, or max

@@ -60,7 +60,10 @@ func TestBuildContextProtectedBranchPushPolicyFromProjectYAML(t *testing.T) {
 
 func TestBuildContextProtectedBranchPushPolicyFromHarnessTOML(t *testing.T) {
 	dir := t.TempDir()
-	tomlPath := filepath.Join(dir, "harness.toml")
+	if err := os.MkdirAll(filepath.Join(dir, "harness"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	tomlPath := filepath.Join(dir, "harness", "harness.toml")
 	data := []byte(`
 [project]
 name = "test"

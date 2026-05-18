@@ -134,6 +134,9 @@ var Rules = []GuardRule{
 			if !ok {
 				return nil
 			}
+			if result := r03EnvBreakGlassCheckBashCommand(ctx, command); result != nil {
+				return result
+			}
 			for _, p := range r03ShellWritePatterns {
 				if p.MatchString(command) {
 					return &hookproto.HookResult{

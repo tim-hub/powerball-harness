@@ -2,6 +2,8 @@ package guardrail
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/tim-hub/powerball-harness/go/pkg/hookproto"
@@ -153,5 +155,67 @@ func TestFormatPreToolResult_ApproveExitCode0(t *testing.T) {
 	}
 	if out != nil {
 		t.Error("expected nil output for pure approve")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// BuildContext — ProtectedPathAskList resolution
+// ---------------------------------------------------------------------------
+
+const askListTOML = `
+[[safety.guardrail.protectedPathAskList]]
+path = ".env"
+reason = "customer deploy env update"
+`
+
+// TestEvaluatePreTool_R03ProtectedPathAskListIgnoresPluginRootTOML verifies that
+// resolveProtectedPathAskList ignores pluginRoot and only reads from
+// projectRoot/harness/harness.toml. When the config is only in pluginRoot/harness.toml,
+// the ask-list must be empty and the command must be denied.
+func TestEvaluatePreTool_R03ProtectedPathAskListIgnoresPluginRootTOML(t *testing.T) {
+	projectRoot := t.TempDir()
+	pluginRoot := t.TempDir() // separate dir
+
+	// Write harness.toml only to pluginRoot (not to projectRoot/harness/)
+	if err := os.WriteFile(filepath.Join(pluginRoot, "harness.toml"), []byte(askListTOML), 0600); err != nil {
+		t.Fatalf("failed to write pluginRoot harness.toml: %v", err)
+	}
+
+	input := hookproto.HookInput{
+		CWD:        projectRoot,
+		PluginRoot: pluginRoot,
+		ToolName:   "Bash",
+		ToolInput:  map[string]interface{}{"command": "echo x > .env"},
+	}
+	ctx := BuildContext(input)
+	if len(ctx.ProtectedPathAskList) != 0 {
+		t.Errorf("expected empty ask-list when config is only in pluginRoot, got %d entries", len(ctx.ProtectedPathAskList))
+	}
+}
+
+// TestBuildContext_AskListLoadedFromProjectLocalTOML verifies that ask-list entries
+// are loaded when harness.toml is at projectRoot/harness/harness.toml.
+func TestBuildContext_AskListLoadedFromProjectLocalTOML(t *testing.T) {
+	projectRoot := t.TempDir()
+
+	harnessDir := filepath.Join(projectRoot, "harness")
+	if err := os.MkdirAll(harnessDir, 0755); err != nil {
+		t.Fatalf("failed to create harness dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(harnessDir, "harness.toml"), []byte(askListTOML), 0600); err != nil {
+		t.Fatalf("failed to write harness.toml: %v", err)
+	}
+
+	input := hookproto.HookInput{
+		CWD:       projectRoot,
+		ToolName:  "Bash",
+		ToolInput: map[string]interface{}{"command": "echo x > .env"},
+	}
+	ctx := BuildContext(input)
+	if len(ctx.ProtectedPathAskList) != 1 {
+		t.Errorf("expected 1 ask-list entry from project-local harness.toml, got %d", len(ctx.ProtectedPathAskList))
+	}
+	if len(ctx.ProtectedPathAskList) > 0 && ctx.ProtectedPathAskList[0].Path != ".env" {
+		t.Errorf("expected ask-list path=.env, got %q", ctx.ProtectedPathAskList[0].Path)
 	}
 }
