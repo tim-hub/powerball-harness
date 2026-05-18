@@ -43,12 +43,7 @@ harness/skills/
 ├── session-control/       # Internal — auto-triggered for --resume/--fork flags
 ├── session-memory/        # Cross-session context recall and persistence
 ├── ci/                    # CI/CD failure diagnosis — GitHub Actions, pipeline errors
-├── agent-browser/         # Browser automation — URLs, forms, scraping, UI testing
 ├── cc-cursor-cc/          # Cursor ↔ Claude Code handoff — PM plan validation, Plans.md sync
-├── crud/                  # Scaffold CRUD — API endpoints, database models, REST resources
-├── deploy/                # Deploy to Vercel or Netlify — health checks, monitoring
-├── auth/                  # Authentication, OAuth, sessions, payments (Clerk, Supabase, Stripe)
-├── notebook-lm/           # NotebookLM YAML, structured slide content
 ├── principles/            # Coding principles, development guidelines, safe-editing practices
 ├── vibecoder-guide/       # Plain-language workflow guidance for newcomers
 └── workflow-guide/        # 2-agent workflow (Cursor ↔ Claude Code roles)
@@ -72,12 +67,7 @@ harness/skills/
 | `session` | Session lifecycle: list, inbox, broadcast | "/session", "session status" |
 | `session-init` | Session start check — Plans.md overview, env readiness | (auto-triggered on session start) |
 | `ci` | Diagnose CI/CD failures — GitHub Actions errors | "CI failed", "pipeline broken" |
-| `agent-browser` | Browser automation — scraping, screenshots, UI testing | "open URL", "click", "screenshot" |
 | `cc-cursor-cc` | Cursor ↔ Claude Code handoff | "hand off to Cursor", "sync plans" |
-| `crud` | Scaffold CRUD API, database models | "create endpoint", "scaffold CRUD" |
-| `deploy` | Deploy to Vercel/Netlify, health checks | "deploy", "Vercel", "Netlify" |
-| `auth` | Auth, OAuth, sessions, payments | "login", "Clerk", "Stripe", "payments" |
-| `notebook-lm` | NotebookLM YAML, slide content | "document", "NotebookLM", "slides" |
 | `principles` | Development principles, guidelines | "principles", "VibeCoder", "safety" |
 | `vibecoder-guide` | Newcomer-friendly workflow guide | "how does this work", "explain workflow" |
 | `workflow-guide` | 2-agent workflow reference | "cursor role", "claude code role", "2-agent" |

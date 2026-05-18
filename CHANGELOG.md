@@ -60,6 +60,28 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Skill scope cleanup — extract non-harness skills
+
+**Removes seven skills that did not belong in the harness plugin. Five generic skills (`auth`, `crud`, `deploy`, `notebook-lm`, `agent-browser`) move to the personal plugin in the powerball workspace; two skills (`distill-session`, `update-skill`) are deleted since equivalents already live in the powerball `improvement` plugin.**
+
+---
+
+#### 1. Five skills moved to powerball/personal
+
+**Before**: Harness shipped feature-scaffolding skills (`auth`, `crud`), platform-deployment (`deploy`), content tooling (`notebook-lm`), and generic browser automation (`agent-browser`). None of these touched Plans.md, SSOT memory, or the dev-loop workflow that defines Harness. They diluted the plugin's purpose and overlapped with the official `vercel:` plugin and the built-in `playwright-cli` skill.
+
+**After**: These five live in `powerball/personal/skills/` as part of the personal plugin. Harness is now scoped purely to the dev-loop concerns: Plans.md flow, SSOT memory, session lifecycle, quality gates, and release infra.
+
+#### 2. Two skills deleted (duplicates of powerball/improvement)
+
+**Before**: `harness/skills/distill-session` and `harness/skills/update-skill` were byte-for-byte duplicates (only trailing-newline differences) of skills already maintained in `powerball/improvement/skills/`. Two copies of the same workflow-capture skills meant double maintenance.
+
+**After**: The powerball/improvement copies remain canonical; harness no longer carries duplicates.
+
+#### 3. Skill catalog updated
+
+`docs/CLAUDE-skill-catalog.md` no longer lists the five extracted skills under "App Skills".
+
 ---
 
 ## [5.7.0] - 2026-05-19
