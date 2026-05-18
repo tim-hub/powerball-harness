@@ -44,6 +44,10 @@ failIfUnavailable = true
 denyRead = [".env", "secrets/**", "**/*.pem"]
 allowRead = [".env.example", "docs/**"]
 
+[[safety.guardrail.protectedPathAskList]]
+path = ".env"
+reason = "customer deploy env update"
+
 [telemetry]
 otel_endpoint = ""
 webhook_url = ""
@@ -118,9 +122,45 @@ func TestParse_Full(t *testing.T) {
 		t.Errorf("sandbox.filesystem.allowRead len = %d, want 2", len(cfg.Safety.Sandbox.Filesystem.AllowRead))
 	}
 
+	// [safety.guardrail]
+	if len(cfg.Safety.Guardrail.ProtectedPathAskList) != 1 {
+		t.Fatalf("guardrail.protectedPathAskList len = %d, want 1", len(cfg.Safety.Guardrail.ProtectedPathAskList))
+	}
+	if cfg.Safety.Guardrail.ProtectedPathAskList[0].Path != ".env" {
+		t.Errorf("guardrail.protectedPathAskList[0].path = %q, want .env", cfg.Safety.Guardrail.ProtectedPathAskList[0].Path)
+	}
+	if cfg.Safety.Guardrail.ProtectedPathAskList[0].Reason != "customer deploy env update" {
+		t.Errorf("guardrail.protectedPathAskList[0].reason = %q", cfg.Safety.Guardrail.ProtectedPathAskList[0].Reason)
+	}
+
 	// [telemetry] is harness-internal — values parsed but should NOT affect CC output
 	if cfg.Telemetry.OtelEndpoint != "" {
 		t.Errorf("telemetry.otel_endpoint = %q, want empty", cfg.Telemetry.OtelEndpoint)
+	}
+}
+
+func TestParse_GuardrailProtectedPathAskList(t *testing.T) {
+	data := []byte(`
+[[safety.guardrail.protectedPathAskList]]
+path = ".env"
+reason = "customer deploy env update"
+
+[[safety.guardrail.protectedPathAskList]]
+path = ".env.production"
+reason = "production deploy handoff"
+`)
+	cfg, err := config.ParseBytes(data)
+	if err != nil {
+		t.Fatalf("unexpected parse error: %v", err)
+	}
+	if len(cfg.Safety.Guardrail.ProtectedPathAskList) != 2 {
+		t.Fatalf("guardrail.protectedPathAskList len = %d, want 2", len(cfg.Safety.Guardrail.ProtectedPathAskList))
+	}
+	if got := cfg.Safety.Guardrail.ProtectedPathAskList[0].Path; got != ".env" {
+		t.Fatalf("first path = %q, want .env", got)
+	}
+	if got := cfg.Safety.Guardrail.ProtectedPathAskList[1].Reason; got != "production deploy handoff" {
+		t.Fatalf("second reason = %q", got)
 	}
 }
 

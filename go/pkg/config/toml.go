@@ -104,6 +104,7 @@ type AgentConfig struct {
 type SafetyConfig struct {
 	Permissions PermissionsConfig `toml:"permissions"`
 	Sandbox     SandboxConfig     `toml:"sandbox"`
+	Guardrail   GuardrailConfig   `toml:"guardrail"`
 }
 
 // PermissionsConfig maps to [safety.permissions].
@@ -113,6 +114,18 @@ type PermissionsConfig struct {
 	Deny                []string `toml:"deny"`
 	Ask                 []string `toml:"ask"`
 	ProtectedBranchPush string   `toml:"protectedBranchPush"`
+}
+
+// GuardrailConfig maps to [safety.guardrail].
+// It contains harness-only runtime guardrail policy.
+type GuardrailConfig struct {
+	ProtectedPathAskList []ProtectedPathAskEntry `toml:"protectedPathAskList"`
+}
+
+// ProtectedPathAskEntry maps one [[safety.guardrail.protectedPathAskList]] entry.
+type ProtectedPathAskEntry struct {
+	Path   string `toml:"path"`
+	Reason string `toml:"reason"`
 }
 
 // SandboxConfig maps to [safety.sandbox].
