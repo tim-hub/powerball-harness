@@ -194,6 +194,8 @@ func TestHandleNotification_RotatesAtLimit(t *testing.T) {
 }
 
 func TestHandleNotification_NoOutput(t *testing.T) {
+	// When HARNESS_TERMINAL_NOTIFY is unset, the handler must produce no stdout
+	// (backward-compatibility test: opt-in is preserved).
 	tmpDir := t.TempDir()
 	origDir, err := os.Getwd()
 	if err != nil {
@@ -206,6 +208,7 @@ func TestHandleNotification_NoOutput(t *testing.T) {
 
 	t.Setenv("PROJECT_ROOT", tmpDir)
 	t.Setenv("CLAUDE_PLUGIN_DATA", "")
+	t.Setenv("HARNESS_TERMINAL_NOTIFY", "")
 
 	input := `{"notification_type":"auth_success","session_id":"sess-out"}`
 	var out bytes.Buffer
@@ -213,6 +216,116 @@ func TestHandleNotification_NoOutput(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if out.Len() != 0 {
-		t.Errorf("notification handler should produce no stdout output, got %q", out.String())
+		t.Errorf("notification handler should produce no stdout output when env unset, got %q", out.String())
+	}
+}
+
+// TestHandleNotification_TerminalSequenceEmit verifies that when HARNESS_TERMINAL_NOTIFY=osc9
+// and a permission_prompt notification is received, a JSON response with terminalSequence is
+// emitted (CC 2.1.141+ Phase 69).
+func TestHandleNotification_TerminalSequenceEmit(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	t.Setenv("PROJECT_ROOT", tmpDir)
+	t.Setenv("CLAUDE_PLUGIN_DATA", "")
+	t.Setenv("HARNESS_TERMINAL_NOTIFY", "osc9")
+
+	input := `{"notification_type":"permission_prompt","agent_type":"worker","session_id":"s1"}`
+	var out bytes.Buffer
+	if err := HandleNotification(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if out.Len() == 0 {
+		t.Fatal("expected JSON output when HARNESS_TERMINAL_NOTIFY=osc9 + permission_prompt, got none")
+	}
+
+	var resp map[string]interface{}
+	if jsonErr := json.Unmarshal(out.Bytes(), &resp); jsonErr != nil {
+		t.Fatalf("invalid JSON output: %v, raw=%q", jsonErr, out.String())
+	}
+
+	if resp["decision"] != "approve" {
+		t.Errorf("expected decision=approve, got %v", resp["decision"])
+	}
+	seq, ok := resp["terminalSequence"].(string)
+	if !ok || seq == "" {
+		t.Errorf("expected terminalSequence string in response, got %v (type %T)", resp["terminalSequence"], resp["terminalSequence"])
+	}
+	// OSC 9 sequence is ESC ]9; ... BEL
+	if !strings.HasPrefix(seq, "\x1b]9;") || !strings.HasSuffix(seq, "\x07") {
+		t.Errorf("terminalSequence does not match OSC 9 shape: %q", seq)
+	}
+}
+
+// TestHandleNotification_TerminalSequence_UnknownType verifies that unknown notification
+// types do not emit terminalSequence even when HARNESS_TERMINAL_NOTIFY is set.
+func TestHandleNotification_TerminalSequence_UnknownType(t *testing.T) {
+	tmpDir := t.TempDir()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(origDir)
+
+	t.Setenv("PROJECT_ROOT", tmpDir)
+	t.Setenv("CLAUDE_PLUGIN_DATA", "")
+	t.Setenv("HARNESS_TERMINAL_NOTIFY", "osc9")
+
+	input := `{"notification_type":"unknown_xyz","session_id":"s1"}`
+	var out bytes.Buffer
+	if err := HandleNotification(strings.NewReader(input), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Unknown types must be silent
+	if out.Len() != 0 {
+		t.Errorf("unknown notification_type should not emit terminalSequence, got %q", out.String())
+	}
+}
+
+// TestHandleNotification_TerminalSequence_AllTypes verifies that all four known
+// notification types (permission_prompt, elicitation_dialog, idle_prompt, auth_success)
+// emit terminalSequence when HARNESS_TERMINAL_NOTIFY is set.
+func TestHandleNotification_TerminalSequence_AllTypes(t *testing.T) {
+	knownTypes := []string{"permission_prompt", "elicitation_dialog", "idle_prompt", "auth_success"}
+	for _, nt := range knownTypes {
+		t.Run(nt, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			origDir, _ := os.Getwd()
+			if err := os.Chdir(tmpDir); err != nil {
+				t.Fatal(err)
+			}
+			defer os.Chdir(origDir)
+			t.Setenv("PROJECT_ROOT", tmpDir)
+			t.Setenv("CLAUDE_PLUGIN_DATA", "")
+			t.Setenv("HARNESS_TERMINAL_NOTIFY", "osc9")
+
+			input := `{"notification_type":"` + nt + `","agent_type":"worker"}`
+			var out bytes.Buffer
+			if err := HandleNotification(strings.NewReader(input), &out); err != nil {
+				t.Fatalf("err: %v", err)
+			}
+			if out.Len() == 0 {
+				t.Fatalf("expected terminalSequence for %s, got nothing", nt)
+			}
+			var resp map[string]interface{}
+			if err := json.Unmarshal(out.Bytes(), &resp); err != nil {
+				t.Fatalf("invalid JSON: %v", err)
+			}
+			if _, ok := resp["terminalSequence"]; !ok {
+				t.Errorf("type=%s: terminalSequence missing", nt)
+			}
+		})
 	}
 }

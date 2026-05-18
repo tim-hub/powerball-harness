@@ -139,38 +139,75 @@ func (h *taskCompletedHandler) handle(input taskCompletedInput, rawData []byte, 
 	// Webhook notification (synchronous, 5-second timeout).
 	h.fireWebhook(rawData)
 
+	// Build terminal sequence for opt-in desktop/bell notification (CC 2.1.141+).
+	tsTitle, tsBody := taskCompletedTerminalTitleBody(taskSubject, completedCount, totalTasks)
+	tsSeq := BuildTerminalSequence(tsTitle, tsBody)
+
 	// Determine whether to stop.
 	if !requestContinue || stopReason != "" {
 		finalReason := stopReason
 		if finalReason == "" {
 			finalReason = "TaskCompleted requested stop"
 		}
-		return writeJSON(out, map[string]interface{}{
+		resp := map[string]interface{}{
 			"continue":   false,
 			"stopReason": finalReason,
-		})
+		}
+		if tsSeq != "" {
+			resp["terminalSequence"] = tsSeq
+		}
+		return writeJSON(out, resp)
 	}
 
 	// Check whether all tasks are complete.
 	if totalTasks > 0 && completedCount >= totalTasks {
 		h.maybeFinalizeHarnessMem(ts)
-		return writeJSON(out, map[string]interface{}{
+		resp := map[string]interface{}{
 			"continue":   false,
 			"stopReason": "all_tasks_completed",
-		})
+		}
+		if tsSeq != "" {
+			resp["terminalSequence"] = tsSeq
+		}
+		return writeJSON(out, resp)
 	}
 
 	// Approval response with progress summary.
 	if totalTasks > 0 && taskSubject != "" {
 		progressMsg := fmt.Sprintf("Progress: Task %d/%d completed — %q", completedCount, totalTasks, taskSubject)
-		return writeJSON(out, map[string]string{
+		resp := map[string]interface{}{
 			"decision":      "approve",
 			"reason":        "TaskCompleted tracked",
 			"systemMessage": progressMsg,
-		})
+		}
+		if tsSeq != "" {
+			resp["terminalSequence"] = tsSeq
+		}
+		return writeJSON(out, resp)
 	}
 
-	return writeJSON(out, approveResponse("TaskCompleted tracked"))
+	resp := map[string]interface{}{
+		"decision": "approve",
+		"reason":   "TaskCompleted tracked",
+	}
+	if tsSeq != "" {
+		resp["terminalSequence"] = tsSeq
+	}
+	return writeJSON(out, resp)
+}
+
+// taskCompletedTerminalTitleBody builds the title/body pair for the TaskCompleted
+// terminalSequence. When progress counts are available, the body includes them.
+func taskCompletedTerminalTitleBody(taskSubject string, completed, total int) (string, string) {
+	title := "Claude Code: task completed"
+	if taskSubject != "" {
+		title = "Claude Code: " + taskSubject
+	}
+	body := ""
+	if total > 0 {
+		body = fmt.Sprintf("%d/%d completed", completed, total)
+	}
+	return title, body
 }
 
 // approveResponse returns a standard approval response.
