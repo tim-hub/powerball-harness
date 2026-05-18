@@ -93,6 +93,68 @@ func TestHandleTaskCompleted_StopRequested(t *testing.T) {
 	}
 }
 
+// TestHandleTaskCompleted_TerminalSequenceEmit verifies that when HARNESS_TERMINAL_NOTIFY=osc9
+// the TaskCompleted response includes a terminalSequence field (CC 2.1.141+).
+func TestHandleTaskCompleted_TerminalSequenceEmit(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HARNESS_TERMINAL_NOTIFY", "osc9")
+
+	input := fmt.Sprintf(`{
+		"teammate_name": "worker-1",
+		"task_id": "T1",
+		"task_subject": "implement feature",
+		"cwd": "%s"
+	}`, dir)
+
+	var out bytes.Buffer
+	err := HandleTaskCompleted(strings.NewReader(input), &out)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	var resp map[string]interface{}
+	if err := json.NewDecoder(&out).Decode(&resp); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	if resp["decision"] != "approve" {
+		t.Errorf("want approve, got %v", resp["decision"])
+	}
+	seq, ok := resp["terminalSequence"].(string)
+	if !ok || seq == "" {
+		t.Fatalf("expected non-empty terminalSequence, got %v (type %T)", resp["terminalSequence"], resp["terminalSequence"])
+	}
+	// OSC 9 sequence must be ESC ]9; <text> BEL
+	if !strings.HasPrefix(seq, "\x1b]9;") || !strings.HasSuffix(seq, "\x07") {
+		t.Errorf("terminalSequence not OSC 9 shape: %q", seq)
+	}
+}
+
+// TestHandleTaskCompleted_NoTerminalSequence_WhenEnvUnset verifies that when
+// HARNESS_TERMINAL_NOTIFY is unset, terminalSequence is not added (existing behavior preserved).
+func TestHandleTaskCompleted_NoTerminalSequence_WhenEnvUnset(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HARNESS_TERMINAL_NOTIFY", "")
+
+	input := fmt.Sprintf(`{
+		"teammate_name": "worker-1",
+		"task_id": "T1",
+		"task_subject": "implement",
+		"cwd": "%s"
+	}`, dir)
+
+	var out bytes.Buffer
+	err := HandleTaskCompleted(strings.NewReader(input), &out)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	var resp map[string]interface{}
+	if err := json.NewDecoder(&out).Decode(&resp); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	if _, has := resp["terminalSequence"]; has {
+		t.Errorf("env unset should NOT add terminalSequence, got: %+v", resp)
+	}
+}
+
 // --- appendTimeline ---
 
 func TestAppendTimeline_CreatesFile(t *testing.T) {

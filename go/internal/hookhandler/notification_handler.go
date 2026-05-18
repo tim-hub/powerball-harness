@@ -75,7 +75,47 @@ func HandleNotification(in io.Reader, out io.Writer) error {
 			input.AgentType)
 	}
 
+	// Emit terminalSequence when HARNESS_TERMINAL_NOTIFY is set (CC 2.1.141+, opt-in).
+	// Notifications like permission_prompt and elicitation_dialog benefit from desktop/bell
+	// alerts even when Claude Code has no controlling terminal.
+	if title, body, ok := notificationTerminalTitleBody(notificationType, input.AgentType); ok {
+		seq := BuildTerminalSequence(title, body)
+		if seq != "" {
+			resp := map[string]interface{}{
+				"decision":         "approve",
+				"reason":           "notification logged",
+				"terminalSequence": seq,
+			}
+			if writeErr := writeJSON(out, resp); writeErr != nil {
+				return writeErr
+			}
+			return nil
+		}
+	}
+
 	return nil
+}
+
+// notificationTerminalTitleBody maps notification_type to the title/body pair used
+// for terminal sequence construction. Returns ok=false for unknown types so no
+// terminalSequence is emitted.
+func notificationTerminalTitleBody(notificationType, agentType string) (string, string, bool) {
+	agent := agentType
+	if agent == "" {
+		agent = "main"
+	}
+	switch notificationType {
+	case "permission_prompt":
+		return "Claude Code: permission prompt", agent + " waiting for approval", true
+	case "elicitation_dialog":
+		return "Claude Code: elicitation", agent + " MCP elicitation", true
+	case "idle_prompt":
+		return "Claude Code: idle", "session idle", true
+	case "auth_success":
+		return "Claude Code: auth success", "", true
+	default:
+		return "", "", false
+	}
 }
 
 func resolveNotificationStateDir() string {
