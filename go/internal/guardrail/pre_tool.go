@@ -59,6 +59,7 @@ func BuildContext(input hookproto.HookInput) hookproto.RuleContext {
 		CodexMode:                 codexMode,
 		BreezingRole:              breezingRole,
 		ProtectedBranchPushPolicy: resolveProtectedBranchPushPolicy(input, projectRoot),
+		ProtectedPathAskList:      resolveProtectedPathAskList(input, projectRoot),
 	}
 }
 

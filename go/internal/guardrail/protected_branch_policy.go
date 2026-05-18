@@ -44,7 +44,7 @@ func resolveProtectedBranchPushPolicy(input hookproto.HookInput, projectRoot str
 		return normalizeProtectedBranchPushPolicy(value)
 	}
 
-	if value := readProtectedBranchPushPolicyFromHarnessTOML(filepath.Join(projectRoot, "harness.toml")); value != "" {
+	if value := readProtectedBranchPushPolicyFromHarnessTOML(harnessTOMLPath(projectRoot, input.PluginRoot)); value != "" {
 		return normalizeProtectedBranchPushPolicy(value)
 	}
 

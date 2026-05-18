@@ -1,6 +1,7 @@
 package guardrail
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/tim-hub/powerball-harness/go/pkg/hookproto"
@@ -833,5 +834,148 @@ func TestR14_NonSrcPath_Inert(t *testing.T) {
 	result := EvaluateRules(ctx)
 	if result.Decision != hookproto.DecisionApprove {
 		t.Errorf("expected approve for docs file (outside src_patterns), got %s", result.Decision)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// R03: break-glass ask-list (ProtectedPathAskList)
+// ---------------------------------------------------------------------------
+
+func makeCtxWithAskList(command string, entries []hookproto.ProtectedPathAskEntry) hookproto.RuleContext {
+	ctx := makeCtx("Bash", map[string]any{"command": command})
+	ctx.ProtectedPathAskList = entries
+	return ctx
+}
+
+func TestR03_EnvAskListReturnsAsk(t *testing.T) {
+	ctx := makeCtxWithAskList(
+		"printf 'SECRET=foo\\n' > .env",
+		[]hookproto.ProtectedPathAskEntry{{Path: ".env", Reason: "customer deploy env update"}},
+	)
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionAsk {
+		t.Errorf("expected ask for .env with ask-list, got %s: %s", result.Decision, result.Reason)
+	}
+	if !strings.Contains(result.Reason, "R03") {
+		t.Errorf("reason should mention R03, got: %s", result.Reason)
+	}
+	if !strings.Contains(result.Reason, ".env") {
+		t.Errorf("reason should mention .env, got: %s", result.Reason)
+	}
+	if !strings.Contains(result.Reason, "harness.toml") {
+		t.Errorf("reason should mention harness.toml, got: %s", result.Reason)
+	}
+	if !strings.Contains(result.Reason, "customer deploy env update") {
+		t.Errorf("reason should include configured reason, got: %s", result.Reason)
+	}
+	// Must NOT echo back the command content
+	if strings.Contains(result.Reason, "SECRET=foo") {
+		t.Errorf("reason must not echo command content, got: %s", result.Reason)
+	}
+}
+
+func TestR03_EnvAskListRequiresNonEmptyReason(t *testing.T) {
+	ctx := makeCtxWithAskList(
+		"echo x > .env",
+		[]hookproto.ProtectedPathAskEntry{{Path: ".env", Reason: "   "}},
+	)
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny when reason is whitespace-only, got %s", result.Decision)
+	}
+}
+
+func TestR03_EnvAskListRequiresExactPath(t *testing.T) {
+	// config has .env, command writes .env.production — must NOT match
+	ctx := makeCtxWithAskList(
+		"echo x > .env.production",
+		[]hookproto.ProtectedPathAskEntry{{Path: ".env", Reason: "deploy env"}},
+	)
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for .env.production when ask-list only has .env, got %s", result.Decision)
+	}
+}
+
+func TestR03_EnvAskListCanMatchNarrowEnvVariant(t *testing.T) {
+	// config explicitly lists .env.production
+	ctx := makeCtxWithAskList(
+		"echo x > .env.production",
+		[]hookproto.ProtectedPathAskEntry{{Path: ".env.production", Reason: "prod deploy"}},
+	)
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionAsk {
+		t.Errorf("expected ask for .env.production with exact ask-list entry, got %s", result.Decision)
+	}
+}
+
+func TestR03_EnvAskListDoesNotBypassOutsideProjectPath(t *testing.T) {
+	for _, cmd := range []string{
+		"echo x > ../other/.env",
+		"echo x > /tmp/.env",
+	} {
+		ctx := makeCtxWithAskList(cmd, []hookproto.ProtectedPathAskEntry{{Path: ".env", Reason: "deploy env"}})
+		result := EvaluateRules(ctx)
+		if result.Decision != hookproto.DecisionDeny {
+			t.Errorf("expected deny for out-of-project path %q, got %s", cmd, result.Decision)
+		}
+	}
+}
+
+func TestR03_EnvAskListDoesNotBypassHardDenyPaths(t *testing.T) {
+	hardDeny := []string{
+		".git/config",
+		"secrets/.env",
+		"certs/server.pem",
+		".env.key",
+		"authorized_keys",
+		".zshrc",
+		".claude/hooks/pre-tool.sh",
+		".husky/pre-commit",
+	}
+	for _, target := range hardDeny {
+		ctx := makeCtxWithAskList(
+			"echo x > "+target,
+			[]hookproto.ProtectedPathAskEntry{{Path: target, Reason: "testing"}},
+		)
+		result := EvaluateRules(ctx)
+		if result.Decision != hookproto.DecisionDeny {
+			t.Errorf("expected deny for hard-deny path %q even with ask-list, got %s", target, result.Decision)
+		}
+	}
+}
+
+func TestR03_EnvAskListDoesNotHideMixedHardDenyTarget(t *testing.T) {
+	// command writes to both a safe target and a hard-deny target — must deny
+	ctx := makeCtxWithAskList(
+		"echo safe > .env && echo hard > .git/config",
+		[]hookproto.ProtectedPathAskEntry{{Path: ".env", Reason: "deploy env"}},
+	)
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for mixed command containing hard-deny target, got %s", result.Decision)
+	}
+}
+
+func TestR03_SedInPlaceEnvWriteOutOfScope(t *testing.T) {
+	// sed -i in-place does not use redirection — R03 break-glass must not intercept
+	ctx := makeCtxWithAskList(
+		"sed -i '' 's/foo/bar/' .env",
+		[]hookproto.ProtectedPathAskEntry{{Path: ".env", Reason: "deploy env"}},
+	)
+	result := EvaluateRules(ctx)
+	// sed -i is out of scope for break-glass; R03 pattern-based deny also does not match sed
+	if result.Decision != hookproto.DecisionApprove {
+		t.Errorf("expected approve for sed -i (out of R03 scope), got %s", result.Decision)
+	}
+}
+
+func TestR02_EnvAskListDoesNotBypassWriteDeny(t *testing.T) {
+	// The Write tool hitting .env must still be denied — break-glass is Bash R03 only
+	ctx := makeCtx("Write", map[string]any{"file_path": ".env"})
+	ctx.ProtectedPathAskList = []hookproto.ProtectedPathAskEntry{{Path: ".env", Reason: "deploy env"}}
+	result := EvaluateRules(ctx)
+	if result.Decision != hookproto.DecisionDeny {
+		t.Errorf("expected deny for Write tool to .env regardless of ask-list, got %s", result.Decision)
 	}
 }

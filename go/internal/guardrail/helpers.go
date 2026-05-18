@@ -9,6 +9,22 @@ import (
 )
 
 // ---------------------------------------------------------------------------
+// harness.toml path resolution
+// ---------------------------------------------------------------------------
+
+// harnessTOMLPath returns the canonical path to harness.toml.
+// When pluginRoot differs from projectRoot and is non-empty, the plugin lives
+// outside the project directory, so harness.toml is at pluginRoot/harness.toml.
+// Otherwise it falls back to projectRoot/harness/harness.toml (the standard
+// standalone layout).
+func harnessTOMLPath(projectRoot, pluginRoot string) string {
+	if pluginRoot != "" && pluginRoot != projectRoot {
+		return filepath.Join(pluginRoot, "harness.toml")
+	}
+	return filepath.Join(projectRoot, "harness", "harness.toml")
+}
+
+// ---------------------------------------------------------------------------
 // Protected path detection
 // ---------------------------------------------------------------------------
 
