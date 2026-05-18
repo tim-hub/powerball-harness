@@ -2,7 +2,7 @@
 name: harness-release
 description: "Manages version bumps, CHANGELOG, git tags, and GitHub Releases. Use when cutting a release or updating version metadata."
 when_to_use: "release, bump version, update CHANGELOG, create tag, GitHub release, patch release, minor release"
-allowed-tools: ["Read", "Write", "Edit", "Bash"]
+allowed-tools: ["Read", "Write", "Edit", "Bash", "AskUserQuestion", "Skill"]
 argument-hint: "[patch|minor|major|--dry-run]"
 effort: medium
 model: sonnet
@@ -19,12 +19,65 @@ model: sonnet
 | `harness-release minor` | `minor` | Minor version bump (new features, x.Y+1.0) |
 | `harness-release major` | `major` | Major version bump (breaking changes, X+1.0.0) |
 | `harness-release --dry-run` | `--dry-run` | Preview all phases without writing or publishing |
+| `harness-release` (bare) | _(auto)_ | Review gate → commit reviewed work → release |
 
 Key paths:
 - Preflight script: `${CLAUDE_SKILL_DIR}/scripts/release-preflight.sh`
 - Override plugin root: `HARNESS_RELEASE_PLUGIN_ROOT=/path/to/repo`
 
 **Version classification and batch-release rules**: [`${CLAUDE_SKILL_DIR}/references/versioning-rules.md`](${CLAUDE_SKILL_DIR}/references/versioning-rules.md)
+
+## Bare invocation contract
+
+When `harness-release` is invoked without a bump level (bare), treat it as:
+**"commit and release the work done so far."**
+
+Do not stop with "no tasks found" or "awaiting instruction." Instead, before the regular release preflight, run two pre-stages:
+
+**Review Gate:**
+
+1. Check `git status --porcelain` and `git log @{upstream}..HEAD` to identify the work in scope
+2. Read `.claude/state/review-result.json` and `.claude/state/review-approved.json` — verify APPROVE exists for the work
+3. If no APPROVE review is found, use `AskUserQuestion`:
+
+```text
+harness-release will commit and release work done so far, but no APPROVE review was found.
+How would you like to proceed?
+  - Start with review (Recommended): run harness-review; only advance to commit/release on APPROVE
+  - release dry-run: preview the release plan without writing files
+  - Abort: stop without review or release
+```
+
+4. If the user selects "Start with review": invoke `harness-review`; do not advance until APPROVE
+5. If `harness-review` returns REQUEST_CHANGES: hold the release; fix with `harness-work`, then re-run `harness-review`; repeat until APPROVE
+6. After APPROVE: create the work commit (see Work Commit Gate below)
+7. After clean working tree: proceed to the normal release preflight → confirmation gate → tag → GitHub Release
+
+Return control to the user only when:
+- A Plans.md / spec / API / permission / migration decision is needed via `AskUserQuestion`
+- Multiple fix strategies exist and the choice changes user value or compatibility
+- The user chose "dry-run" or "Abort" from the Ask
+
+Do not treat REQUEST_CHANGES alone as a terminal stop.
+
+**Work Commit Gate:**
+
+When the working tree has uncommitted changes under a bare release, create a work commit separately from the version bump commit:
+
+```bash
+git status --short
+git diff --stat
+git add <reviewed files>
+git commit -m "<type>: <summary>"
+```
+
+Generate the commit message from the review summary, Plans.md task, or branch name.
+If judgment is unclear, use `AskUserQuestion` to present 2–3 candidate messages.
+After creating the work commit, verify or update `commit_hash` in `.claude/state/review-result.json`,
+then proceed to the regular release preflight.
+
+Once inside the regular release preflight, the working tree dirty check applies as normal.
+Do not advance to version bump / tag / GitHub Release with a dirty tree.
 
 ## Project-specific pre-release steps
 
@@ -69,6 +122,10 @@ bash "${CLAUDE_SKILL_DIR}/scripts/release-preflight.sh"
 
 Validates: clean working tree, `[Unreleased]` section exists, CI status, no debug/mock remnants.
 Adjustable via `HARNESS_RELEASE_PLUGIN_ROOT`, `HARNESS_RELEASE_HEALTHCHECK_CMD`, `HARNESS_RELEASE_CI_STATUS_CMD`.
+
+> **Bare release note**: This working tree clean check is the standard release preflight gate.
+> For bare releases where uncommitted work exists, complete the Review Gate and Work Commit Gate
+> (see above) before this check. Do not abort on a dirty tree alone without first running those gates.
 
 ### Phase 1: Get Current Version
 
