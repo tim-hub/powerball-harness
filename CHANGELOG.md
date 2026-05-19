@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.7.1...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.7.2...HEAD
+[5.7.2]: https://github.com/tim-hub/powerball-harness/compare/v5.7.1...v5.7.2
 [5.7.1]: https://github.com/tim-hub/powerball-harness/compare/v5.7.0...v5.7.1
 [5.7.0]: https://github.com/tim-hub/powerball-harness/compare/v5.6.1...v5.7.0
 [5.6.1]: https://github.com/tim-hub/powerball-harness/compare/v5.6.0...v5.6.1
@@ -60,6 +61,10 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.7.2] - 2026-05-20
 
 ### Theme: Skill description cleanup — fix rule violations, trim redundancy
 
