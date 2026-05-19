@@ -1,7 +1,7 @@
 ---
 name: writing-hooks
-description: "Guide for writing, configuring, and debugging Claude Code hooks in this project. Use when adding a new hook, writing a hook script (bash, Python, Node.js), fixing a hook that isn't running, or debugging permission denied / silent failure issues."
-when_to_use: "write a hook, create a hook, add a hook, hook not running, hook not working, debug hook, hook silent failure, permission denied hook, shell script hook, python hook, node hook, hooks.json, pre-tool hook, post-tool hook"
+description: "Guide for writing, configuring, and debugging Claude Code hooks. Use when adding, writing, or debugging hooks — including silent failures and permission errors."
+when_to_use: "write hook, create hook, hook not running, debug hook, hook silent failure, hooks.json, pre-tool hook, post-tool hook"
 allowed-tools: ["Read", "Write", "Edit", "Bash"]
 ---
 

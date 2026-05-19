@@ -1,6 +1,6 @@
 ---
 name: harness-ralph-loop
-description: "Iterates a fresh ralph-worker subagent per attempt in a persistent worktree until <promise> tag and verify command both confirm success. Use when running [ralph]-marked tasks or iterate-until-pass loops."
+description: "Runs iterate-until-pass loops with ralph-worker agents in a worktree. Use when running [ralph]-marked tasks or looping until verify passes."
 when_to_use: "ralph task, loop until pass, iterate until tests pass, ralph mode, run ralph loop, [ralph] task"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Task", "Skill"]
 argument-hint: "[task-id|help|--max-iter N|--verify CMD]"

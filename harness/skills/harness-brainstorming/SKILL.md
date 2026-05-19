@@ -1,7 +1,7 @@
 ---
 name: harness-brainstorming
-description: "Runs interactive brainstorming to capture intent and produce a design spec, then hands off to harness-plan to generate Plans.md. Use when a rough idea needs both shaping and a concrete task list."
-when_to_use: "rough idea to plan, interview then plan, design before plan, brainstorm and plan, spec then Plans.md, /harness-brainstorming, fuzzy requirements"
+description: "Shapes rough ideas into a design spec and hands off to harness-plan. Use when an idea needs scoping before a task list."
+when_to_use: "rough idea, brainstorm, fuzzy requirements, design spec, brainstorm and plan"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Task", "WebSearch"]
 argument-hint: "[topic|--from-spec <path>]"
 effort: high

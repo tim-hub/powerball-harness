@@ -1,6 +1,7 @@
 ---
 name: generate-video
-description: "Use when generating product demo videos, visual documentation, or release walkthroughs via Remotion. Do NOT load for: embedding video players, live recording, playback features, or slide generation."
+description: "Generates product demo videos and release walkthroughs via Remotion. Use when creating video documentation or animated demos."
+when_to_use: "generate video, product demo video, release walkthrough, Remotion, animated demo"
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task", "AskUserQuestion", "WebFetch"]
 disable-model-invocation: true
 argument-hint: "[demo|arch|release]"

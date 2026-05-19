@@ -61,6 +61,30 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Skill description cleanup — fix rule violations, trim redundancy
+
+**Skill descriptions now conform to `skill-description.md` rules: no exclusion clauses, shorter capability summaries, and deduplicated `when_to_use` fields.**
+
+---
+
+#### 1. Remove `Do NOT load for` exclusion clauses
+
+**Before**: `cc-update-review`, `generate-slide`, and `generate-video` used negative exclusion clauses in their `description` field and had no `when_to_use` field — violating Rule 4.
+
+**After**: Exclusion clauses removed. Each skill now has a positive `when_to_use` field with concise trigger phrases. Routing signal is cleaner and the combined char budget is lower.
+
+#### 2. Shorten oversized capability summaries
+
+**Before**: `harness-ralph-loop` (136 chars) and `harness-brainstorming` (128 chars) had capability summaries exceeding the 120-char Rule 3 limit, with implementation details that belonged in the skill body.
+
+**After**: Both trimmed to ≤ 70 chars. Implementation detail ("fresh ralph-worker subagent per attempt in a persistent worktree until `<promise>` tag") moved to the skill body where it already lived.
+
+#### 3. Deduplicate `writing-hooks` and `harness-brainstorming` when_to_use
+
+**Before**: `writing-hooks` `when_to_use` (222 chars) re-listed per-language variants already in the description; `harness-brainstorming` included the skill name itself as a trigger phrase.
+
+**After**: `writing-hooks` trimmed to 117 chars (removing language duplicates). `harness-brainstorming` trimmed to 78 chars (removing synonyms and the self-referential skill name trigger).
+
 ---
 
 ## [5.7.1] - 2026-05-19
