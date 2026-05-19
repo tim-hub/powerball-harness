@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "_harness_template": "claude/settings.security.json.template",
-  "_harness_version": "4.4.0",
+  "_harness_version": "5.6.0",
   "_harness_note": "Project-level settings template. Plugin defaults (.claude-plugin/settings.json) provide baseline deny/ask only; allow rules belong here at project scope.",
   "language": "english",
   "permissions": {
@@ -37,7 +37,19 @@
       "Read(**/*id_ed25519*)",
       "Read(**/.ssh/**)",
       "Read(**/.aws/**)",
-      "Read(**/.npmrc)"
+      "Read(**/.npmrc)",
+      "Write(**/.env)",
+      "Write(**/.env.*)",
+      "Write(**/.husky/**)",
+      "Write(**/.claude/hooks/**)",
+      "Write(**/*.pem)",
+      "Write(**/*.key)",
+      "Write(**/*.p12)",
+      "Write(**/*.pfx)",
+      "Write(**/id_rsa)",
+      "Write(**/id_ed25519)",
+      "Write(**/.ssh/**)",
+      "Write(**/secrets/**)"
     ],
     "ask": [
       "Bash(rm -r:*)",
