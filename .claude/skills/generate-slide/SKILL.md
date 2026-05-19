@@ -1,6 +1,7 @@
 ---
 name: generate-slide
-description: "Use when creating a single project slide or one-page visual summary — project intro image or promotional image for a repo. Do NOT load for: multi-slide decks, video generation, or text-only docs."
+description: "Creates a single project slide or one-page visual summary for a repo. Use when generating a project intro image or promotional slide."
+when_to_use: "create slide, project slide, one-page summary, promotional image, repo intro slide"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "AskUserQuestion"]
 argument-hint: "[project-path|description]"
 ---

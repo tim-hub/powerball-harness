@@ -1,6 +1,7 @@
 ---
 name: cc-update-review
-description: "Use when reviewing PRs that modify the Feature Table in CLAUDE.md or docs/CLAUDE-feature-table.md (auto-triggered). Do NOT load for: standard PR reviews, implementation, or non-Feature-Table docs."
+description: "Reviews PRs that modify the Feature Table in CLAUDE.md. Use when a PR adds CC version rows or modifies docs/CLAUDE-feature-table.md."
+when_to_use: "Feature Table PR, CC version PR, CLAUDE.md feature table, cc-update-review"
 user-invocable: false
 allowed-tools: ["Read", "Grep", "Glob"]
 ---
