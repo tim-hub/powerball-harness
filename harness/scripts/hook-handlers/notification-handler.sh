@@ -32,6 +32,12 @@ else
 fi
 LOG_FILE="${STATE_DIR}/notification-events.jsonl"
 
+# Terminal sequence helper (CC 2.1.141+, opt-in via HARNESS_TERMINAL_NOTIFY)
+if [ -f "${PARENT_DIR}/lib/terminal-notify.sh" ]; then
+  # shellcheck disable=SC1091
+  source "${PARENT_DIR}/lib/terminal-notify.sh"
+fi
+
 # === Utility functions ===
 
 ensure_state_dir() {
@@ -161,6 +167,37 @@ fi
 # Already auto-skipped by the Elicitation hook, but also recorded here in the notification log
 if [ "${NOTIFICATION_TYPE}" = "elicitation_dialog" ] && [ -n "${AGENT_TYPE}" ]; then
   echo "Notification: elicitation_dialog for agent_type=${AGENT_TYPE} (auto-skipped in background)" >&2
+fi
+
+# === Opt-in desktop/bell notification (CC 2.1.141+) ===
+_NOTIFY_TITLE=""
+_NOTIFY_BODY=""
+case "${NOTIFICATION_TYPE}" in
+  permission_prompt)
+    _NOTIFY_TITLE="Claude Code: permission request"
+    _NOTIFY_BODY="${AGENT_TYPE:+agent: ${AGENT_TYPE}}"
+    ;;
+  elicitation_dialog)
+    _NOTIFY_TITLE="Claude Code: input needed"
+    _NOTIFY_BODY="${AGENT_TYPE:+agent: ${AGENT_TYPE}}"
+    ;;
+  idle_prompt)
+    _NOTIFY_TITLE="Claude Code: waiting for input"
+    _NOTIFY_BODY=""
+    ;;
+  auth_success)
+    _NOTIFY_TITLE="Claude Code: authenticated"
+    _NOTIFY_BODY=""
+    ;;
+esac
+
+if declare -f build_terminal_sequence >/dev/null 2>&1 && [ -n "${_NOTIFY_TITLE}" ]; then
+  _TS_RAW="$(build_terminal_sequence "${_NOTIFY_TITLE}" "${_NOTIFY_BODY}")"
+  if [ -n "${_TS_RAW}" ]; then
+    _TS_ENCODED="$(encode_terminal_sequence_json "${_TS_RAW}")"
+    printf '{"decision":"approve","reason":"notification logged","terminalSequence":%s}\n' "${_TS_ENCODED}"
+    exit 0
+  fi
 fi
 
 exit 0
