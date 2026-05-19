@@ -540,6 +540,62 @@ else
 fi
 
 echo ""
+echo "17. Terminal-notify lib presence and structure"
+echo "----------------------------------------"
+
+TERMINAL_NOTIFY_LIB="$HARNESS_ROOT/scripts/lib/terminal-notify.sh"
+
+if [ ! -f "$TERMINAL_NOTIFY_LIB" ]; then
+    fail_test "Terminal-notify: harness/scripts/lib/terminal-notify.sh missing"
+else
+    pass_test "Terminal-notify: harness/scripts/lib/terminal-notify.sh present"
+
+    # Must reference the HARNESS_TERMINAL_NOTIFY env variable
+    if grep -q 'HARNESS_TERMINAL_NOTIFY' "$TERMINAL_NOTIFY_LIB"; then
+        pass_test "Terminal-notify: HARNESS_TERMINAL_NOTIFY env referenced"
+    else
+        fail_test "Terminal-notify: HARNESS_TERMINAL_NOTIFY env not found in lib"
+    fi
+
+    # build_terminal_sequence must be defined
+    if grep -q 'build_terminal_sequence' "$TERMINAL_NOTIFY_LIB"; then
+        pass_test "Terminal-notify: build_terminal_sequence function defined"
+    else
+        fail_test "Terminal-notify: build_terminal_sequence missing from lib"
+    fi
+
+    # encode_terminal_sequence_json must be defined
+    if grep -q 'encode_terminal_sequence_json' "$TERMINAL_NOTIFY_LIB"; then
+        pass_test "Terminal-notify: encode_terminal_sequence_json function defined"
+    else
+        fail_test "Terminal-notify: encode_terminal_sequence_json missing from lib"
+    fi
+
+    # notification-handler.sh must source the lib
+    NOTIF_HANDLER="$HARNESS_ROOT/scripts/hook-handlers/notification-handler.sh"
+    if [ -f "$NOTIF_HANDLER" ] && grep -Fq 'terminal-notify.sh' "$NOTIF_HANDLER"; then
+        pass_test "Terminal-notify: notification-handler.sh sources the lib"
+    else
+        fail_test "Terminal-notify: notification-handler.sh does not source terminal-notify.sh"
+    fi
+
+    # webhook-notify.sh must source the lib
+    WEBHOOK_HANDLER="$HARNESS_ROOT/scripts/hook-handlers/webhook-notify.sh"
+    if [ -f "$WEBHOOK_HANDLER" ] && grep -Fq 'terminal-notify.sh' "$WEBHOOK_HANDLER"; then
+        pass_test "Terminal-notify: webhook-notify.sh sources the lib"
+    else
+        fail_test "Terminal-notify: webhook-notify.sh does not source terminal-notify.sh"
+    fi
+
+    # Syntax check
+    if bash -n "$TERMINAL_NOTIFY_LIB" 2>/dev/null; then
+        pass_test "Terminal-notify: syntax check passed"
+    else
+        fail_test "Terminal-notify: syntax errors in terminal-notify.sh"
+    fi
+fi
+
+echo ""
 echo "=========================================="
 echo "Test Results Summary"
 echo "=========================================="
