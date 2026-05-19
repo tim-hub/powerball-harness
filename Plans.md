@@ -1,6 +1,6 @@
 # Powerball Harness — Plans.md
 
-Last release: v5.5.0 on 2026-05-15 (harness-brainstorming skill + harness-plan create quality improvements)
+Last release: v5.7.0 on 2026-05-19 (Phase 100: terminal notify + R03 break-glass + harness-review TeamAgent Debate)
 
 ---
 
