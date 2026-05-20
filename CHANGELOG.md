@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.7.2...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.7.3...HEAD
+[5.7.3]: https://github.com/tim-hub/powerball-harness/compare/v5.7.2...v5.7.3
 [5.7.2]: https://github.com/tim-hub/powerball-harness/compare/v5.7.1...v5.7.2
 [5.7.1]: https://github.com/tim-hub/powerball-harness/compare/v5.7.0...v5.7.1
 [5.7.0]: https://github.com/tim-hub/powerball-harness/compare/v5.6.1...v5.7.0
@@ -61,6 +62,22 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.7.3] - 2026-05-20
+
+### Theme: Extract `ci` skill to powerball-dx plugin
+
+**The `ci` skill moves out of the harness plugin into the new standalone `powerball-dx` plugin, narrowing harness to its core dev-loop concerns.**
+
+---
+
+#### 1. `ci` skill extracted to powerball-dx
+
+**Before**: `harness:ci` shipped inside the harness plugin, despite being a generic CI/CD diagnostic tool with no dependency on Plans.md, SSOT memory, or the harness workflow loop.
+
+**After**: The skill now lives in `powerball-dx` — a new developer-experience plugin in the powerball marketplace. Install `powerball-dx` to get CI/CD diagnosis without pulling in the full harness. The skill behaviour is identical; only the plugin namespace changes.
 
 ---
 

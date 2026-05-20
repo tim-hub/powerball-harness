@@ -42,7 +42,6 @@ harness/skills/
 ├── session-state/         # Internal — auto-triggered at harness-work phase boundaries
 ├── session-control/       # Internal — auto-triggered for --resume/--fork flags
 ├── session-memory/        # Cross-session context recall and persistence
-├── ci/                    # CI/CD failure diagnosis — GitHub Actions, pipeline errors
 ├── cc-cursor-cc/          # Cursor ↔ Claude Code handoff — PM plan validation, Plans.md sync
 ├── principles/            # Coding principles, development guidelines, safe-editing practices
 ├── vibecoder-guide/       # Plain-language workflow guidance for newcomers
@@ -66,7 +65,6 @@ harness/skills/
 | `maintenance` | Periodic housekeeping — log pruning, stale state, worktrees | "prune logs", "clean state", "/maintenance" |
 | `session` | Session lifecycle: list, inbox, broadcast | "/session", "session status" |
 | `session-init` | Session start check — Plans.md overview, env readiness | (auto-triggered on session start) |
-| `ci` | Diagnose CI/CD failures — GitHub Actions errors | "CI failed", "pipeline broken" |
 | `cc-cursor-cc` | Cursor ↔ Claude Code handoff | "hand off to Cursor", "sync plans" |
 | `principles` | Development principles, guidelines | "principles", "VibeCoder", "safety" |
 | `vibecoder-guide` | Newcomer-friendly workflow guide | "how does this work", "explain workflow" |
