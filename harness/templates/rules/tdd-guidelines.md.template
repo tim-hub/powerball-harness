@@ -46,30 +46,14 @@ _harness_version: "4.5.2"
 
 ## Workflow
 
-### For Engineers
-
-```
-1. Create the test file
-   - Describe expected behavior with describe/it
-   - It will fail since there is no implementation yet (Red)
-
-2. Minimal implementation
-   - Write just enough code to pass the test (Green)
-   - Don't aim for perfection
-
-3. Refactoring
-   - Improve while keeping tests passing
-   - Naming, structure, performance
-```
-
-### For VibeCoders (Simplified)
-
-| TDD Term | VibeCoder Equivalent |
+| TDD Term | For agent |
 |----------|---------------------|
 | Write tests first | Define success criteria first |
 | Red (failing test) | Create a "this means it works" checklist |
 | Green (pass the test) | Get it minimally working |
 | Refactor | Clean up the code |
+
+> Important, when implement TDD, we always start a subagent to write tests.
 
 ### Suggestion Templates
 
