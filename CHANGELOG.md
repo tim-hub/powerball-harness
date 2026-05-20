@@ -63,6 +63,18 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Simplify TDD guidelines template
+
+**The TDD template for new projects is streamlined — redundant engineer workflow block removed, table renamed for agent context, and subagent note added.**
+
+---
+
+#### 1. Trim `tdd-guidelines.md.template`
+
+**Before**: Template included a duplicate Red/Green/Refactor workflow block for engineers alongside the VibeCoders table, and the table was titled "For VibeCoders."
+
+**After**: Duplicate block removed. Table renamed to "For agent." Note added: TDD implementation should start a subagent to write tests.
+
 ---
 
 ## [5.7.3] - 2026-05-20
