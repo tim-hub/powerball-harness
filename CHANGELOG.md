@@ -64,6 +64,16 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Add testing anti-patterns reference to harness-work
+
+**Workers now have a reference guide for five common testing anti-patterns — mocks, test-only production methods, and incomplete stubs.**
+
+#### 1. Testing Anti-Patterns Reference
+
+**Before**: No reference for workers on what bad test patterns to avoid during the TDD phase.
+
+**After**: `harness-work` Worker Contracts table now links `references/testing-anti-patterns.md`, ported from pcvelz/superpowers. Covers five anti-patterns with gate functions and concrete TypeScript fixes.
+
 ---
 
 ## [5.7.4] - 2026-05-20
