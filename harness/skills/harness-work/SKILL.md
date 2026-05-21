@@ -137,6 +137,7 @@ The same logic applies in breezing mode (managed centrally by harness-work).
 | NG rules (Plans.md ownership, no embedded git, no nested spawn) | [`references/worker-ng-rules.md`](${CLAUDE_SKILL_DIR}/references/worker-ng-rules.md) |
 | Self-review gate (worker-report.v1 schema + Lead validation) | [`references/worker-self-review.md`](${CLAUDE_SKILL_DIR}/references/worker-self-review.md) |
 | Universal violations session injection | [`references/universal-violations.md`](${CLAUDE_SKILL_DIR}/references/universal-violations.md) |
+| Testing anti-patterns (mocks, test-only methods, incomplete stubs) | [`references/testing-anti-patterns.md`](${CLAUDE_SKILL_DIR}/references/testing-anti-patterns.md) |
 
 ## Failure & Review
 
