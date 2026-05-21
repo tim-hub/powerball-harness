@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.7.4...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.7.5...HEAD
+[5.7.5]: https://github.com/tim-hub/powerball-harness/compare/v5.7.4...v5.7.5
 [5.7.4]: https://github.com/tim-hub/powerball-harness/compare/v5.7.3...v5.7.4
 [5.7.3]: https://github.com/tim-hub/powerball-harness/compare/v5.7.2...v5.7.3
 [5.7.2]: https://github.com/tim-hub/powerball-harness/compare/v5.7.1...v5.7.2
@@ -63,6 +64,10 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.7.5] - 2026-05-22
 
 ### Theme: Add testing anti-patterns reference to harness-work
 
