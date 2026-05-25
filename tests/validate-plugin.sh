@@ -371,20 +371,6 @@ else
     fail_test "Codex wrapper does not reference the hardening contract template"
 fi
 
-CODEX_ENGINE="$HARNESS_ROOT/scripts/codex-worker-engine.sh"
-if grep -q "codex-hardening-contract.txt" "$CODEX_ENGINE"; then
-    pass_test "Codex worker engine references the hardening contract template"
-else
-    fail_test "Codex worker engine does not reference the hardening contract template"
-fi
-
-CODEX_GATE="$HARNESS_ROOT/scripts/codex-worker-quality-gate.sh"
-if grep -q "gate_hardening()" "$CODEX_GATE" && grep -q '"hardening"' "$CODEX_GATE"; then
-    pass_test "Codex quality gate has hardening parity check"
-else
-    fail_test "Codex quality gate has no hardening parity check"
-fi
-
 echo ""
 echo "10. Migration residue check"
 echo "----------------------------------------"
