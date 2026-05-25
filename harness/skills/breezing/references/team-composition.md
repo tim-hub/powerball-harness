@@ -34,7 +34,6 @@ Lead (Execute skill's --breezing mode) - orchestration only
 |--------------|--------------|
 | task-worker | worker |
 | codex-implementer | worker (--codex included) |
-| error-recovery | worker (error recovery included) |
 | code-reviewer | reviewer |
 | plan-critic | reviewer (plan type) |
 | plan-analyst | reviewer (scope type) |

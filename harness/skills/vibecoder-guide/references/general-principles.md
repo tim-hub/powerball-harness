@@ -68,10 +68,9 @@ To ensure understanding even without technical knowledge:
 - **Suggest next actions**: "Next, please say [something]"
 - **Visualize progress**: Clearly show what's done and what remains
 
-### Collaboration with PM (Cursor)
+### Collaboration with PM
 
 - **Share state via Plans.md**: Maintain as a single source of truth
-- **Use `cc-cursor-cc` for completion reports**: Follow the format
 - **Stay within scope**: Get confirmation before working outside the requested scope
 
 ---

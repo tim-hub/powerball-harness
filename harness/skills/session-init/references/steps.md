@@ -74,7 +74,7 @@ head -50 AGENTS.md 2>/dev/null || echo "AGENTS.md not found"
 ### 📋 Today's Tasks
 
 **Priority Tasks**:
-- {{pm:requesting (compat: cursor:requesting) or cc:WIP tasks}}
+- {{pm:requesting or cc:WIP tasks}}
 
 **Other Tasks**:
 - {{List of cc:TODO tasks}}

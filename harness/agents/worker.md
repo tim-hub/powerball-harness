@@ -66,7 +66,6 @@ Consolidates the following legacy agents:
 
 - `task-worker` — Single task implementation
 - `codex-implementer` — Codex CLI implementation delegation
-- `error-recovery` — Error recovery
 
 Cycles through "implementation -> preflight self-check -> fix -> build verification -> commit preparation" for a single task,
 delegating the final verdict to an independent Reviewer or read-only review runner.

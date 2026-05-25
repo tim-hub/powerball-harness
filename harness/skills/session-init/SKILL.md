@@ -50,7 +50,7 @@ Execute git status, Plans.md read, and AGENTS.md head in parallel. See [referenc
 Extract the following from Plans.md:
 
 - `cc:WIP` - Tasks continuing from the previous session
-- `pm:requesting` - Newly requested tasks from the PM (compat: cursor:requesting)
+- `pm:requesting` - Newly requested tasks from the PM
 - `cc:TODO` - Unstarted but assigned tasks
 
 ### Step 3: Output Status Report

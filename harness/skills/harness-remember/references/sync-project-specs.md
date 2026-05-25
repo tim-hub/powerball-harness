@@ -41,7 +41,6 @@ Aligns project specs' docs (e.g., `Plans.md`, `AGENTS.md`, `.claude/rules/*`) wi
 ### 1. Marker Normalization
 
 - **Standard**: `pm:requested`, `pm:confirmed`
-- **Compatible**: `cursor:requested`, `cursor:confirmed` (treated as synonyms)
 
 ### 2. State Transition Documentation
 
@@ -53,11 +52,10 @@ pm:requested -> cc:WIP -> cc:done -> pm:confirmed
 
 - PM->Impl: use `harness-work` to implement tasks
 - Impl->PM: use `harness-review` for review handoff
-- Cursor workflow: use `cc-cursor-cc` skill for Claude↔Cursor handoffs
 
 ### 4. Notification File Description
 
-- `.claude/state/pm-notification.md` (compatible: `.claude/state/cursor-notification.md`)
+- `.claude/state/pm-notification.md`
 
 ---
 
@@ -66,7 +64,7 @@ pm:requested -> cc:WIP -> cc:done -> pm:confirmed
 ### Step 1: Collect Current State (Required)
 
 - Check target file existence and extract relevant sections
-- Tally `Plans.md` marker occurrences (pm/cursor/cc)
+- Tally `Plans.md` marker occurrences (pm/cc)
 
 ### Step 2: Declare Change Policy (Required)
 
@@ -77,9 +75,9 @@ Tell user:
 
 ### Step 3: Sync (Apply Diffs)
 
-- **Plans.md**: Add `pm:*` to marker legend, note `cursor:*` as compatible
+- **Plans.md**: Add `pm:*` to marker legend
 - **AGENTS.md**: Update roles to PM/Impl
-- **rules/*.md**: Change `cursor:*` to `pm:*` standard + compatibility note
+- **rules/*.md**: Ensure `pm:*` markers are standard
 - **CLAUDE.md**: Add PM<->Impl routes if operation section exists
 
 ### Step 4: Finish (Required)

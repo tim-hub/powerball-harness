@@ -116,7 +116,6 @@ flowchart LR
     subgraph UTIL["Utility Skills  (on-demand)"]
         direction TB
         AB["skill: agent-browser\n(UI testing, scraping)"]
-        CC["skill: cc-cursor-cc\n(Cursor ↔ CC handoff)"]
         NLM["skill: notebook-lm\n(doc export / slides)"]
     end
 
@@ -247,7 +246,6 @@ flowchart LR
 | **Session** | `session-control` | auto — resume / fork flags |
 | **Session** | `session-memory` | auto — session end recording |
 | **Utility** | `agent-browser` | UI testing, web scraping |
-| **Utility** | `cc-cursor-cc` | Cursor ↔ Claude Code handoff |
 | **Utility** | `notebook-lm` | doc export, slide generation |
 | **Guidance** | `workflow-guide` | "how does this work?" |
 | **Guidance** | `vibecoder-guide` | non-technical orientation |

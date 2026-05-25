@@ -1,12 +1,12 @@
 # Typical Workflow Examples
 
-Actual flow of the 2-agent workflow.
+Actual flow of the harness workflow.
 
 ---
 
 ## Example 1: New Feature Development
 
-### Phase 1: PM (Cursor) Creates the Task
+### Phase 1: PM Creates the Task
 
 ```markdown
 # Plans.md
@@ -55,16 +55,9 @@ harness-work
 
 ---
 
-### Phase 3: Claude Code Reports Completion (2-Agent only)
+### Phase 3: Claude Code Reports Completion
 
-After Review OK and Auto-commit complete, in 2-Agent mode run `cc-cursor-cc` to report to the PM.
-
-> **In Solo mode, handoff is not needed** -- Review OK -> Auto-commit completes `harness-work`.
-
-```bash
-# Run in Claude Code (2-Agent mode only)
-cc-cursor-cc
-```
+After Review OK and Auto-commit complete, `harness-work` is done.
 
 **Generated report**:
 
@@ -129,7 +122,7 @@ All tests passed (12/12)
 4. Add tests
 5. Review with `harness-review` (fix and re-review if issues found)
 6. Review OK -> Auto-commit
-7. Report completion with `cc-cursor-cc` (2-Agent only; skip in Solo)
+7. Implementation complete — `harness-work` finishes
 
 ---
 

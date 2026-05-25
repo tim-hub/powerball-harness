@@ -30,7 +30,7 @@ Plans without evaluation cannot determine **success or failure** after implement
 2. **Scope/Non-scope** (3 items max each)
 3. **Acceptance criteria (3-5 items)** listed (must be measurable)
 4. **Evaluation (Evals)** decided (fill in the template below as-is)
-5. Add "phases" and "tasks" to Plans.md (recommended: `pm:requested` / `cc:TODO`. compat: `cursor:requested`)
+5. Add "phases" and "tasks" to Plans.md (recommended: `pm:requested` / `cc:TODO`)
 6. If delegating implementation to Claude Code, run **/handoff-to-claude** to generate the request (always include Evals in the request)
 
 ### When Receiving a Verification Request from Claude Code
