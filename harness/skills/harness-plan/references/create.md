@@ -183,6 +183,21 @@ TDD is encouraged and enabled by default. Only tasks matching one of the followi
 
 Tasks not matching the above have TDD automatically applied (test-first).
 
+### Task Split — Test-First Pair
+
+For every task that does NOT receive `[skip:tdd]`, split into a blocking pair:
+
+| Suffix | Tag | Description | DoD | Depends |
+|--------|-----|-------------|-----|---------|
+| `N.a` | `[tdd:test-first]` | Write failing tests: {{task name}} | Failing test file exists and runs red | prior dep or `-` |
+| `N.b` | _(original tags)_ | {{original description}} | {{original DoD}} | `N.a` |
+
+Rules:
+- `N.b` always lists `N.a` in `Depends`.
+- Original DoD moves to `N.b`; `N.a` DoD is always "Failing test file exists and runs red".
+- If the original task had a prior dependency (e.g., `1.1`), `N.a` inherits it; `N.b` depends on `N.a`.
+- `[bugfix]` tasks: `N.a` DoD is "Reproduction test exists and fails on current code".
+
 ## Step 5.7: Plans.md v3 Format Specification
 
 Plans.md v3 includes the following format extensions:
@@ -246,6 +261,7 @@ Analyze task content
     +-- "payment" "billing" -> [feature:security]
     +-- "until tests pass" / "iterate until" / "fix until" / "loop until" / "until clean" -> [ralph]
     +-- other -> no marker (TDD enabled by default)
+    +-- [feature] / [bugfix] (no [skip:tdd]) → split into N.a [tdd:test-first] + N.b (see Step 5.5)
 ```
 
 When `[ralph]` is applied, also auto-fill the `Verify:` line below the task row using project-type inference:
@@ -305,10 +321,13 @@ Created: YYYY-MM-DD
 
 Purpose: [Phase purpose (optional)]
 
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 1.1  | [Task description] [feature:security] | [Verifiable completion criteria] | - | cc:TODO |
-| 1.2  | [Task description] | [Verifiable completion criteria] | 1.1 | cc:TODO |
+| Task  | Description | DoD | Depends | Status |
+|-------|-------------|-----|---------|--------|
+| 1.1.a | [tdd:test-first] Write failing tests: User login | Failing test runs red | - | cc:TODO |
+| 1.1.b | Implement user login [feature:security] | Tests pass, curl returns 200 | 1.1.a | cc:TODO |
+| 1.2.a | [tdd:test-first] Write failing tests: Password reset | Failing test runs red | - | cc:TODO |
+| 1.2.b | Implement password reset | Tests pass | 1.2.a | cc:TODO |
+| 1.e2e | [verify:e2e] Phase 1 E2E — curl: login + reset return 2xx | `curl -f` exits 0 for both routes | 1.2.b | cc:TODO |
 
 ---
 
@@ -363,6 +382,10 @@ After generating Plans.md, review it before presenting to the user:
 1. **Feature coverage** — Does every feature from Step 4 map to at least one task? Note and add any missing tasks.
 2. **DoD quality** — Scan all DoD cells for banned phrases (see Step 6). Fix any found.
 3. **Dependency consistency** — Do all task numbers in the `Depends` column reference tasks that exist in the phase?
+4. **TDD pair completeness** — Every task without `[skip:tdd]` must have a corresponding
+   `.a` row. Fix any missing splits before presenting to the user.
+5. **Phase-bottom verification** — Every phase with at least one non-`[skip:tdd]` task
+   must end with an `N.e2e` row. Fix any missing.
 
 Fix issues inline. No need to re-review — just fix and move on.
 
