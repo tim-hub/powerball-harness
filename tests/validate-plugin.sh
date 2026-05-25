@@ -261,6 +261,12 @@ else
     fail_test "Claude Code 2.1.80-2.1.86 integration points have gaps"
 fi
 
+if bash "$HARNESS_ROOT/tests/test-harness-release-governance.sh" >/dev/null 2>&1; then
+    pass_test "harness-release bare-invocation governance contract present (P27 AUTO-START)"
+else
+    fail_test "harness-release governance contract missing terms — run: bash harness/tests/test-harness-release-governance.sh"
+fi
+
 echo ""
 echo "6. Script validation"
 echo "----------------------------------------"

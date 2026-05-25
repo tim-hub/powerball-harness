@@ -29,6 +29,18 @@ Key paths:
 
 ## Bare invocation contract
 
+if $ARGUMENTS == "":
+  → Interpret as "commit and release the work done so far"; start Review Gate detection
+  → Auto-advance to Review Gate only when exactly one work target can be identified
+  → When target is ambiguous or no review state exists: show AskUserQuestion with options, then proceed
+
+Emit this literal marker in the first response on bare invocation:
+`RELEASE_AUTOSTART: target=<work-summary>, base_ref=<ref>, mode=<patch|minor|major|auto>`
+
+**Forbidden actions on bare invocation**: "task unclear", "awaiting instructions", "no tasks found", "awaiting further instructions".
+
+<!-- AUTO-START CONTRACT: P27 solution 3-piece set (machine-readable condition + forbidden-action literals + AUTOSTART marker) -->
+
 When `harness-release` is invoked without a bump level (bare), treat it as:
 **"commit and release the work done so far."**
 
@@ -206,6 +218,8 @@ Runs all pre-flight checks (Phase 0), displays calculated version, CHANGELOG dra
 - [ ] `git tag --sort=-version:refname | head -5` — no gaps
 - [ ] CI passes on release commit
 - [ ] `git status` clean after push
+
+↑ Claude will summarize this result. Type a new prompt to redirect or press Enter to continue.
 
 ## Related
 

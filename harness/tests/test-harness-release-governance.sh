@@ -1,6 +1,8 @@
 #!/bin/bash
 # Verify harness-release SKILL.md contains the bare-invocation governance contract:
 # review gate before release, Work Commit Gate, AskUserQuestion for unreviewed work.
+# Also verifies P27 AUTO-START contract: RELEASE_AUTOSTART: marker, ARGUMENTS == "" condition,
+# and forbidden-action literals (prevents silent stalls on bare invocation).
 
 set -euo pipefail
 
@@ -23,6 +25,9 @@ required_terms=(
   "Do not treat REQUEST_CHANGES alone as a terminal stop"
   "release dry-run"
   "working tree clean check"
+  "RELEASE_AUTOSTART:"
+  'ARGUMENTS == ""'
+  "no tasks found"
 )
 
 failures=0
@@ -61,6 +66,24 @@ dropped_docs=(
 for doc in "${dropped_docs[@]}"; do
   if grep -Fq "$doc" "$skill_file"; then
     echo "reference to dropped doc found: $doc in ${skill_file#$ROOT_DIR/}" >&2
+    failures=$((failures + 1))
+  fi
+done
+
+# P35 Layer 2: instruction line literal must appear in both harness-release and harness-review
+layer2_literal="Claude will summarize this result"
+layer2_files=(
+  "$ROOT_DIR/skills/harness-release/SKILL.md"
+  "$ROOT_DIR/skills/harness-review/SKILL.md"
+)
+for layer2_file in "${layer2_files[@]}"; do
+  if [ ! -f "$layer2_file" ]; then
+    echo "missing skill file for Layer 2 literal check: ${layer2_file#$ROOT_DIR/}" >&2
+    failures=$((failures + 1))
+    continue
+  fi
+  if ! grep -Fq "$layer2_literal" "$layer2_file"; then
+    echo "missing P35 Layer 2 instruction literal in ${layer2_file#$ROOT_DIR/}: '$layer2_literal'" >&2
     failures=$((failures + 1))
   fi
 done

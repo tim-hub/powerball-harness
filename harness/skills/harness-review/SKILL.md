@@ -148,6 +148,8 @@ See [`${CLAUDE_SKILL_DIR}/references/scope-review.md`](${CLAUDE_SKILL_DIR}/refer
 > Load [`${CLAUDE_SKILL_DIR}/references/codex-review.md`](${CLAUDE_SKILL_DIR}/references/codex-review.md)
 > only when `command -v codex` succeeds **and** the user explicitly requests Codex or duo review.
 
+↑ Claude will summarize this result. Type a new prompt to redirect or press Enter to continue.
+
 ## Related Skills
 
 - `harness-work` — Implement fixes after review
