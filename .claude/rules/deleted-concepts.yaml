@@ -462,3 +462,149 @@ deleted_concepts:
       - ".claude/state/"
       - "Plans.md"
       - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/scripts/hooks/evaluate_subagent_output"
+    replacement: "(none — zero references, standalone orphan)"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 dead-script cleanup. Zero references across entire repo."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/scripts/codex-worker-engine"
+    replacement: "bin/harness hook codex (Go binary)"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 dead-script cleanup. Legacy codex-worker cluster: all 8 scripts (engine, lock, merge, quality-gate, setup, codex-setup-local, check-codex, lib/codex-worker-common) had zero runtime references after validate-plugin.sh gate checks were removed."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
+      - "tests/validate-plugin-v3.sh"
+
+  - term: "harness/scripts/codex-worker-quality-gate"
+    replacement: "bin/harness hook codex (Go binary)"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 dead-script cleanup. Part of the legacy codex-worker cluster."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/scripts/codex-worker-lock"
+    replacement: "(none — functionality removed with cluster)"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 dead-script cleanup. Part of the legacy codex-worker cluster."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/scripts/track-changes.sh"
+    replacement: "bin/harness hook track-changes (HandleTrackChanges in Go)"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 dead-script cleanup. Go port HandleTrackChanges handles this hook; script was not invoked from hooks.json."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/scripts/setup-hook.sh"
+    replacement: "bin/harness hook setup-hook (HandleSetupHook in Go)"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 dead-script cleanup. Go port in setup_hook.go; script was not invoked at runtime."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/scripts/subagent-tracker.sh"
+    replacement: "bin/harness hook subagent-start / subagent-stop (Go binary)"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 dead-script cleanup. hooks.json routes SubagentStart/Stop via bin/harness."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/scripts/stop-plans-reminder.sh"
+    replacement: "(functionality not wired; Go binary handles Stop events)"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 dead-script cleanup. Referenced only in .claude/rules/hooks-2.1.139-plus.md as documentation example; not wired in hooks.json."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
+      - ".claude/rules/hooks-2.1.139-plus.md"
+
+  - term: "harness/scripts/posttooluse-clear-pending.sh"
+    replacement: "bin/harness hook clear-pending (Go binary)"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 dead-script cleanup. hooks.json routes via bin/harness hook clear-pending."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/scripts/posttooluse-quality-pack.sh"
+    replacement: "bin/harness hook quality-pack (HandlePostToolUseQualityPack in Go)"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 dead-script cleanup. Go port; not wired in hooks.json."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/scripts/pretooluse-browser-guide.sh"
+    replacement: "bin/harness hook browser-guide (Go binary)"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 dead-script cleanup. hooks.json routes via bin/harness hook browser-guide."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/scripts/pretooluse-inbox-check.sh"
+    replacement: "bin/harness hook inbox-check (Go binary)"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 dead-script cleanup. hooks.json routes via bin/harness hook inbox-check."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/scripts/skill-description-drift-report.sh"
+    replacement: "local-scripts/audit-skill-descriptions.sh"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 dead-script cleanup. Self-reference only; functionality superseded by local-scripts/audit-skill-descriptions.sh."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/scripts/sync-skill-mirrors.sh"
+    replacement: "(functionality consolidated into release-this checks)"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 dead-script cleanup. Zero runtime references."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "tests/validate-plugin-v3.sh"
+    replacement: "tests/validate-plugin.sh"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 cleanup. Pre-v4 validator; unwired from CI and all harness scripts. Only self-references."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/scripts/Todos.md"
+    replacement: "deleted-concepts.yaml (formal residue tracking) + grep-at-deletion verification"
+    deleted_in: "v5.9.0"
+    reason: "Phase 102 cleanup. Orphan tracker was perpetually stale (incorrectly classified alive scripts); deleted after bulk orphan cleanup resolved most entries."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/rules/deleted-concepts.yaml"
