@@ -146,7 +146,7 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **PII & Secret Guard (Phase 83)** | hooks, `go/internal/piiguard` | Content scanner for UserPromptSubmit / PreToolUse / PostToolUse — 45 rules block API keys, tokens, PEM keys, and emails. Category A (has implementation, Phase 83) |
 | **Task tool metrics** | parallel-workflows | Aggregate sub-agent token/tool/time metrics |
 | **`/debug` command** | troubleshoot | Diagnose complex session issues |
-| **PDF page ranges** | notebook-lm, harness-review | Efficient processing of large documents |
+| **PDF page ranges** | harness-review | Efficient processing of large documents |
 | **Git log flags** | harness-review, CI, harness-release | Structured commit analysis |
 | **OAuth authentication** | codex-review | Configure MCP servers without DCR support |
 | **68% memory optimization** | session-memory, session | Active use of `--resume` |
@@ -187,7 +187,7 @@ Harness makes full use of new features introduced in Claude Code 2.1.79.
 | **`git-subdir` plugin source (v2.1.69)** | setup, release | Support plugin source managed from repository subdirectories |
 | **Per-agent hooks (v2.1.69+)** | agents/ | Added `hooks` field to agent definition frontmatter. Worker gets PreToolUse guard, Reviewer gets Stop log |
 | **Agent `isolation: worktree` (v2.1.50+)** | agents/worker | Added `isolation: worktree` to Worker agent definition. Auto worktree isolation for parallel writes |
-| **Compaction image retention (v2.1.70)** | notebook-lm, harness-review | Images retained in summary requests. Improved prompt cache reuse |
+| **Compaction image retention (v2.1.70)** | harness-review | Images retained in summary requests. Improved prompt cache reuse |
 | **Sub-agent final report simplification (v2.1.70)** | breezing, harness-work | Reduced token consumption for sub-agent completion reports |
 | **`--resume` skill list re-injection removed (v2.1.70)** | session | ~600 tokens saved on session resume |
 | **Plugin hooks fixes (v2.1.70)** | hooks | Stop/SessionEnd fire after /plugin, template collision resolved, WorktreeCreate/Remove working correctly |
@@ -324,7 +324,7 @@ Session diagnostic command. Used to investigate complex errors and unexpected be
 ### PDF page range specification
 
 Specify page ranges when loading large PDFs (e.g., `pages: "1-5"`).
-Used for document processing in `notebook-lm` skill and large spec reference in `harness-review`.
+Used for large spec reference in `harness-review`.
 
 ### Git log flags
 

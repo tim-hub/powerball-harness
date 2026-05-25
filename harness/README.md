@@ -112,13 +112,6 @@ flowchart LR
         DEPLOY["skill: deploy\n(Vercel/Netlify,\nhealth, analytics)"]
     end
 
-    %% ── UTILITY SKILLS ──────────────────────────────────────
-    subgraph UTIL["Utility Skills  (on-demand)"]
-        direction TB
-        AB["skill: agent-browser\n(UI testing, scraping)"]
-        NLM["skill: notebook-lm\n(doc export / slides)"]
-    end
-
     %% ── MAIN FLOW ───────────────────────────────────────────
     START --> SETUP --> PLAN --> MODE
 
@@ -143,7 +136,6 @@ flowchart LR
     SOLO -.->|feature work| DOMAIN
     PAR  -.->|feature work| DOMAIN
     BREEZING -.->|feature work| DOMAIN
-    BREEZING -.->|cross-agent| UTIL
 
     %% Session layer runs throughout
     SESSION -.->|wraps entire lifecycle| SETUP
@@ -243,8 +235,6 @@ flowchart LR
 | **Session** | `session-init` | auto — every session start |
 | **Session** | `session-control` | auto — resume / fork flags |
 | **Session** | `session-memory` | auto — session end recording |
-| **Utility** | `agent-browser` | UI testing, web scraping |
-| **Utility** | `notebook-lm` | doc export, slide generation |
 | **Guidance** | `workflow-guide` | "how does this work?" |
 | **Guidance** | `vibecoder-guide` | non-technical orientation |
 | **Guidance** | `principles` | coding guidelines reference |
