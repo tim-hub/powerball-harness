@@ -42,10 +42,9 @@ harness/skills/
 ├── session-state/         # Internal — auto-triggered at harness-work phase boundaries
 ├── session-control/       # Internal — auto-triggered for --resume/--fork flags
 ├── session-memory/        # Cross-session context recall and persistence
-├── cc-cursor-cc/          # Cursor ↔ Claude Code handoff — PM plan validation, Plans.md sync
 ├── principles/            # Coding principles, development guidelines, safe-editing practices
 ├── vibecoder-guide/       # Plain-language workflow guidance for newcomers
-└── workflow-guide/        # 2-agent workflow (Cursor ↔ Claude Code roles)
+└── workflow-guide/        # Harness workflow (execution modes, roles, process flow)
 ```
 
 ## Full Skill Category Listing
@@ -65,10 +64,9 @@ harness/skills/
 | `maintenance` | Periodic housekeeping — log pruning, stale state, worktrees | "prune logs", "clean state", "/maintenance" |
 | `session` | Session lifecycle: list, inbox, broadcast | "/session", "session status" |
 | `session-init` | Session start check — Plans.md overview, env readiness | (auto-triggered on session start) |
-| `cc-cursor-cc` | Cursor ↔ Claude Code handoff | "hand off to Cursor", "sync plans" |
 | `principles` | Development principles, guidelines | "principles", "VibeCoder", "safety" |
 | `vibecoder-guide` | Newcomer-friendly workflow guide | "how does this work", "explain workflow" |
-| `workflow-guide` | 2-agent workflow reference | "cursor role", "claude code role", "2-agent" |
+| `workflow-guide` | Harness workflow reference | "how does harness work", "execution modes" |
 
 ## Development Skills (Private)
 
