@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.7.5...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.7.6...HEAD
+[5.7.6]: https://github.com/tim-hub/powerball-harness/compare/v5.7.5...v5.7.6
 [5.7.5]: https://github.com/tim-hub/powerball-harness/compare/v5.7.4...v5.7.5
 [5.7.4]: https://github.com/tim-hub/powerball-harness/compare/v5.7.3...v5.7.4
 [5.7.3]: https://github.com/tim-hub/powerball-harness/compare/v5.7.2...v5.7.3
@@ -64,6 +65,34 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.7.6] - 2026-05-26
+
+### Theme: Enforce TDD task-splitting and phase-bottom E2E verification in downstream projects
+
+**The harness planner now auto-splits every [feature] and [bugfix] task into a test-first pair, and appends an agent-executable E2E verification task at the end of each phase.**
+
+---
+
+#### 1. TDD enforcement in `tdd-guidelines.md.template`
+
+**Before**: Template described TDD as advisory ("Suggest TDD"). Workers could skip test-first without any structural barrier.
+
+**After**: Template enforces test-first as the default. Purpose comment, section headings, and body all reflect enforcement. The `Suggestion Templates` section is removed. Decision Logic shows the `.a`/`.b` auto-split path. Phase-bottom Verification section added with three agent-executable lanes (curl for backends, `/chrome` for frontends, bash CLI for CLI tools), plus a skip row for docs/config-only phases.
+
+#### 2. Task-split and phase-bottom rules in `harness-plan create.md`
+
+**Before**: `harness-plan` had TDD skip conditions in Step 5.5, but no structural split rule. The generation template showed flat `1.1`, `1.2` rows. Step 6.5 self-review had 3 checks.
+
+**After**: Step 5.5 gains a "Task Split — Test-First Pair" table: every non-skipped task splits into `N.a [tdd:test-first]` (write failing tests) → `N.b` (implement, blocked-by `N.a`). Step 6 Quality Marker block includes the split branch. Generation template now shows `.a`/`.b`/`.e2e` example rows. Step 6.5 adds checks 4 (TDD pair completeness) and 5 (phase-bottom verification).
+
+#### 3. Worker execution guards in `harness-work solo-mode.md`
+
+**Before**: Worker selected any `cc:TODO` task regardless of whether its dependencies were done. Step 3 had a two-line TDD block with no distinction between `.a` and `.b` tasks. Step 11 marked tasks done with no phase awareness.
+
+**After**: Step 1 gains a **Dependency check** — Worker skips tasks with unmet dependencies and redirects to `.a` when a `.b` task's test task is still open. Step 3 replaced with a 4-row behaviour table covering `[tdd:test-first]` (`.a` tasks), `.b` tasks, legacy no-split tasks, and `[skip:tdd]` tasks. Step 11 gains a **Phase-close check** that surfaces the `N.e2e` task when all implementation tasks are done, or closes the phase normally when no `[verify:e2e]` task exists.
 
 ---
 
