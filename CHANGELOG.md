@@ -95,6 +95,50 @@ become inaccurate (listing wired scripts like `usage-tracker.sh` and `codex-loop
 Validate-plugin.sh and check-consistency.sh remain clean. `harness/hooks/README.md` updated to
 show accurate Go binary routing.
 
+### Added
+
+#### 2. Slash Command Output Summarization Rule — P35 (Phase 103, from upstream v4.11.3)
+
+**Before**: When a skill invocation returned a long report (validation output, governance checks),
+host Claude would pass the raw output directly. Long outputs often buried the actionable signal.
+
+**After**: New rule in `CLAUDE.md` and `.claude/rules/slash-command-output.md`: when a skill's
+`<local-command-stdout>` result is 10+ lines, host Claude must produce a 1–3 line summary and
+state the next action. Both `harness-release` and `harness-review` SKILL.md now include an
+instruction line literal at their conclusion block (`↑ Claude will summarize this result...`).
+
+#### 3. Sandbox Allowlist Recipe Doc (Phase 103, from upstream v4.11.4)
+
+**Before**: No documentation for configuring the Claude Code sandbox when projects needed
+external network access (web scraping, Firecrawl, additional package registries).
+
+**After**: `docs/sandbox-allowlist-recipe.md` added — step-by-step guide for merging sandbox
+config into `~/.claude/settings.json`, with safe merge patterns for both new and existing sandbox
+configs, SSRF deny-list rationale, and instructions for all three domain tiers.
+
+### Changed
+
+#### 4. harness-release Bare Invocation AUTO-START Contract — P27 (Phase 103, from upstream v4.11.2)
+
+**Before**: Bare `/harness-release` invocation had prose documentation of the Review Gate, but
+no machine-readable guard block. This allowed LLM inference to stall with "no tasks found" or
+"awaiting instructions" responses on bare invocation.
+
+**After**: `harness/skills/harness-release/SKILL.md` now contains the P27 3-piece AUTO-START
+contract at the top of the Bare invocation contract section: an `if $ARGUMENTS == ""` condition
+block, a `RELEASE_AUTOSTART:` log marker, and explicit forbidden-action literals.
+`harness/tests/test-harness-release-governance.sh` updated to assert these three literals;
+test wired into `tests/validate-plugin.sh`.
+
+#### 5. Sandbox Settings Template — Expanded from 8 to 29 Allowed Domains (Phase 103, from upstream v4.11.4)
+
+**Before**: `harness/templates/sandbox-settings.json.template` had 8 allowed domains (development
+core only) with no deny list.
+
+**After**: 29 allowed domains across 3 tiers (dev core 14 + Firecrawl 2 + tech blog targets 13)
++ 9 denied domains (SSRF endpoints and data-exfiltration sinks). Template description updated to
+reference `docs/sandbox-allowlist-recipe.md` for the authoritative domain inventory.
+
 ---
 
 ## [5.8.0] - 2026-05-26

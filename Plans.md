@@ -4,6 +4,44 @@ Last release: v5.8.0 on 2026-05-26 (Phase 101 partially open; skill consolidatio
 
 ---
 
+## Phase 103: Port upstream v4.11.2–v4.11.4 — release auto-start, slash-cmd summarization, sandbox recipe
+
+Created: 2026-05-26
+
+**Goal**: Port three actionable changes from upstream `Chachamaru127/claude-code-harness` v4.11.1→v4.12.3, focusing on tag descriptions (not code diffs). Three feature clusters worth porting: (a) v4.11.2 — harness-release P27 AUTO-START contract preventing silent stalls on bare invocation, (b) v4.11.3 — 2-layer slash-command UX (host-side summarization rule + skill-side instruction literals), (c) v4.11.4 — sandbox allowlist recipe doc + expanded sandbox-settings template.
+
+**Source**: Upstream tag descriptions for v4.11.2, v4.11.3, v4.11.4 only. Code-diff inspection deliberately deferred per user instruction.
+
+**Verified missing in local** (working-tree grep):
+- v4.11.2 P27 AUTO-START: `grep -n 'RELEASE_AUTOSTART:' harness/skills/harness-release/SKILL.md` → 0 matches
+- v4.11.3 Layer 1 rule: `grep -n 'local-command-stdout' CLAUDE.md` → 0 matches
+- v4.11.4 recipe doc: `ls docs/sandbox-allowlist-recipe.md` → missing
+- v4.11.4 template: `harness/templates/sandbox-settings.json.template` exists but has narrow allowlist (~8 hosts); upstream expanded to 29 + 9 deny + 6 excludedCommands
+
+**Dropped from scope** (skipped after relevance check):
+- v4.12.0: Large Japanese onboarding refactor (tool-first docs, Codex direct plugin route, OpenCode bootstrap, `bin/harness doctor --migration-report`) — too broad; mostly localization infrastructure not aligned with this fork
+- v4.12.1: `spec.md` co-required output from `/harness-plan` — changes core skill contract; defer until evaluated separately
+- v4.12.2: README CI claim anchor fixes — depends on upstream-specific CI structure
+- v4.12.3: Plans.md marker standardization (`cc:完了` → `cc:done`) — fork already English-only; nothing to port
+
+**Local-path mapping** (upstream → local):
+- `skills/harness-release/SKILL.md` → `harness/skills/harness-release/SKILL.md`
+- `skills/harness-review/SKILL.md` → `harness/skills/harness-review/SKILL.md`
+- `tests/test-harness-release-governance.sh` → `harness/tests/test-harness-release-governance.sh` (create if absent)
+- `docs/sandbox-allowlist-recipe.md` → `docs/sandbox-allowlist-recipe.md` (same path)
+- `templates/sandbox-settings.json.template` → `harness/templates/sandbox-settings.json.template`
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 103.1 | Port v4.11.2 P27 AUTO-START contract to `harness/skills/harness-release/SKILL.md`. Add three required literals to Step 0 / autostart guard: (1) an `if $ARGUMENTS == ""` block that auto-engages the release flow, (2) a `RELEASE_AUTOSTART:` log marker emitted on entry, (3) forbidden-action literals listing actions the skill must NOT take on bare invocation (e.g., must not ask "what version?", must not stall waiting for clarification). Fetch the upstream SKILL.md at tag v4.11.2 via `gh api repos/Chachamaru127/claude-code-harness/contents/skills/harness-release/SKILL.md?ref=v4.11.2` and adapt the literals verbatim into local Step 0. [skip:tdd] | `grep -c 'RELEASE_AUTOSTART:' harness/skills/harness-release/SKILL.md` ≥ 1; `grep -c 'ARGUMENTS == ""' harness/skills/harness-release/SKILL.md` ≥ 1; forbidden-action block present near Step 0 | - | cc:done [28239c4] |
+| 103.2 | Add or update `harness/tests/test-harness-release-governance.sh` to assert the three P27 literals from 103.1 are present in `harness/skills/harness-release/SKILL.md`. If the file doesn't exist locally, create it modeled on the upstream layout (fetch at tag v4.11.2). Wire it into `tests/validate-plugin.sh` if not already invoked. [skip:tdd] | `bash harness/tests/test-harness-release-governance.sh` exits 0; failing on a deliberate one-char mutation of any of the three literals confirms enforcement | 103.1 | cc:done [28239c4] |
+| 103.3 | Port v4.11.3 Layer 1 rule to `CLAUDE.md` (or `.claude/rules/slash-command-output.md` if a dedicated rule file is cleaner). Add an instruction: when the previous tool result contains `<local-command-stdout>` and the captured output is 10+ lines, the host Claude must produce a 1–3 line summary in the assistant message and state the next action explicitly. Cite the rule under "## Development Rules" with a link/pointer. [skip:tdd] | `grep -c 'local-command-stdout' CLAUDE.md .claude/rules/*.md` ≥ 1; the rule covers (a) ≥10-line trigger, (b) 1–3 line summary, (c) explicit next-action statement | - | cc:done [be15c2d] |
+| 103.4 | Port v4.11.3 Layer 2 instruction-line literals to `harness/skills/harness-release/SKILL.md` and `harness/skills/harness-review/SKILL.md`. At the end of the response template / final report block in each, add a literal instruction sentence (the upstream wording — fetch at tag v4.11.3 and copy verbatim) telling host Claude to follow up with a brief summary. Update governance test (from 103.2 or a new test) to assert both SKILL files contain the literal. [skip:tdd] | The literal sentence (matched verbatim) is present at the documented insertion point of both SKILL files; governance test asserts both | 103.2, 103.3 | cc:done [28239c4] |
+| 103.5 | Port v4.11.4 sandbox allowlist recipe: create `docs/sandbox-allowlist-recipe.md` by fetching upstream `docs/sandbox-allowlist-recipe.md` at tag v4.11.4 and adapting any upstream-specific paths to local conventions. Then expand `harness/templates/sandbox-settings.json.template` to match the upstream v4.11.4 structure (29 allowlist domains + 9 denylist patterns + 6 excludedCommands). Do not silently broaden the current narrow list — diff the two side-by-side in the commit body so reviewers can see exactly which entries were added. [skip:tdd] | `ls docs/sandbox-allowlist-recipe.md` succeeds; `jq '.allowlist \| length' harness/templates/sandbox-settings.json.template` ≥ 29 (or matching upstream count); commit body shows the side-by-side diff | - | cc:done [e125f3f] |
+| 103.6 | Run full validation: `./tests/validate-plugin.sh`, `./.claude/skills/release-this/scripts/check-consistency.sh`, and any new/updated governance test from 103.2/103.4. Add a CHANGELOG `[Unreleased]` entry under `### Added` (recipe doc, summarization rule) and `### Changed` (harness-release autostart contract, expanded sandbox template) citing upstream tag origins. [skip:tdd] | Both validation scripts and the governance test exit 0; CHANGELOG `[Unreleased]` has entries citing v4.11.2, v4.11.3, v4.11.4 | 103.1, 103.2, 103.3, 103.4, 103.5 | cc:TODO |
+
+---
+
 ## Phase 102: Remove dead shell scripts — Go-migration orphans + legacy codex-worker cluster
 
 Created: 2026-05-26
