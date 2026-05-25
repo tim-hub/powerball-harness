@@ -76,12 +76,14 @@ The Worker cannot close a phase until this task is `cc:done`.
 
 ### Lane Selection
 
-| Project type | Lane | Verification criterion |
-|---|---|---|
-| Backend / API | **curl** | `curl -f <endpoint>` for each critical route; HTTP 2xx |
-| Frontend / UI | **Chrome** | Open in Chrome, walk the golden path, 0 console errors |
-| CLI tool | **CLI** | Run end-to-end; assert exit 0 + expected stdout |
-| All tasks are `[skip:tdd]` | **— skip —** | No phase-bottom task appended |
+All lanes are **agent-executable** — the Worker runs them via Bash, no human action required.
+
+| Project type | Lane | Agent execution method | Verification criterion |
+|---|---|---|---|
+| Backend / API | **curl** | `bash`: `curl -f <endpoint>` | All critical routes return HTTP 2xx |
+| Frontend / UI | **agent-browser** | `bash`: `agent-browser open <url> && agent-browser snapshot -i -c` (falls back to `chrome-devtools` MCP if agent-browser not installed) | Golden path completes, 0 console errors in snapshot |
+| CLI tool | **CLI** | `bash`: run the command end-to-end | Exit 0 + expected stdout matches |
+| All tasks are `[skip:tdd]` | **— skip —** | N/A | No phase-bottom task appended |
 
 Lane is inferred from the phase's task content. If mixed, use the dominant type.
 
@@ -139,7 +141,7 @@ Show the split and phase-bottom row in the example Plans.md block:
 | 1.1.b | Implement user login [feature:security] | Tests pass, curl returns 200 | 1.1.a | cc:TODO |
 | 1.2.a | [tdd:test-first] Write failing tests: Password reset | Failing test runs red | - | cc:TODO |
 | 1.2.b | Implement password reset | Tests pass | 1.2.a | cc:TODO |
-| 1.e2e | [verify:e2e] Phase 1 E2E — curl smoke login + reset endpoints return 2xx | curl exits 0 for both routes | 1.2.b | cc:TODO |
+| 1.e2e | [verify:e2e] Phase 1 E2E — curl: login + reset return 2xx | `curl -f` exits 0 for both routes | 1.2.b | cc:TODO |
 ```
 
 ### Edit 4 — Step 6.5: Self-Review
@@ -203,7 +205,7 @@ After marking `cc:done`:
 harness-plan creates:
   1.1.a  [tdd:test-first]  Write failing tests           → Depends: -
   1.1.b  Implement feature                               → Depends: 1.1.a
-  1.e2e  [verify:e2e]      Phase 1 E2E — curl smoke      → Depends: 1.1.b
+  1.e2e  [verify:e2e]      Phase 1 E2E — curl: login+reset 2xx  → Depends: 1.1.b
 
 harness-work picks up:
   Step 1  → 1.1.b blocked; selects 1.1.a
