@@ -152,7 +152,7 @@ echo "$((MAJOR + 1)).0.0" > VERSION
 
 Move `[Unreleased]` content into a new `## [X.Y.Z] - YYYY-MM-DD` section.
 Keep an empty `## [Unreleased]` placeholder above it.
-Use the `writing-changelog` skill for format rules and the Before/After template.
+Use [`${CLAUDE_SKILL_DIR}/references/writing-changelog.md`](${CLAUDE_SKILL_DIR}/references/writing-changelog.md) for format rules and the Before/After template.
 
 ### Phase 4: Commit & Tag
 
@@ -209,5 +209,5 @@ Runs all pre-flight checks (Phase 0), displays calculated version, CHANGELOG dra
 
 ## Related
 
-- `writing-changelog` skill — CHANGELOG format and Before/After template
+- [`${CLAUDE_SKILL_DIR}/references/writing-changelog.md`](${CLAUDE_SKILL_DIR}/references/writing-changelog.md) — CHANGELOG format and Before/After template
 - [`${CLAUDE_SKILL_DIR}/references/versioning-rules.md`](${CLAUDE_SKILL_DIR}/references/versioning-rules.md) — SemVer classification and batch-release rules

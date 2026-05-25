@@ -25,8 +25,7 @@ flowchart LR
     %% ── PLANNING ────────────────────────────────────────────
     subgraph PLAN["② Planning"]
         direction TB
-        HP["skill: harness-plan\n/harness-plan create|add"]
-        SYNC0["skill: harness-sync\n(drift check, retrospective)"]
+        HP["skill: harness-plan\n/harness-plan create|add|sync|brainstorm"]
         MEM["skill: harness-remember\n(decisions.md, patterns.md)"]
         HP --> MEM
     end
@@ -91,17 +90,15 @@ flowchart LR
     %% ── RELEASE ─────────────────────────────────────────────
     subgraph RELEASE["⑤ Release"]
         direction TB
-        CL["skill: writing-changelog\n(Before/After entries)"]
         REL["skill: harness-release\n/harness-release patch|minor|major"]
         STEPS["preflight → VERSION bump\n→ CHANGELOG finalize\n→ git tag → GitHub Release\n→ optional --announce"]
-        CL --> REL --> STEPS
+        REL --> STEPS
     end
 
     %% ── SESSION LAYER (always-on) ───────────────────────────
     subgraph SESSION["Session Layer  (always-on)"]
         direction LR
-        SI["skill: session-init\n(env check on start)"]
-        SC2["skill: session-control\n(state machine + resume/fork)"]
+        SESS["skill: session\n(init, resume/fork, broadcast)"]
     end
 
     %% ── DOMAIN SKILLS (on-demand) ───────────────────────────
@@ -123,8 +120,7 @@ flowchart LR
     PAR  --> REVIEW
     BREEZING --> REVIEW
 
-    REVIEW --> SYNC0
-    SYNC0  --> RELEASE
+    REVIEW --> RELEASE
 
     %% CI recovery can fire after any work phase
     SOLO    -.->|CI red| CI
@@ -219,8 +215,7 @@ flowchart LR
 | Phase | Skill | Trigger |
 |-------|-------|---------|
 | **Setup** | `harness-setup` | `/harness-setup init` |
-| **Planning** | `harness-plan` | `/harness-plan create\|add\|update` |
-| **Planning** | `harness-sync` | `/harness-sync` or "where am I?" |
+| **Planning** | `harness-plan` | `/harness-plan create\|add\|sync\|brainstorm` |
 | **Implementation** | `harness-work` | `/harness-work all\|N\|--breezing` |
 | **Implementation** | `breezing` | `/breezing all` (alias for team mode) |
 | **Implementation** | `auth` | building login / OAuth / payments |
@@ -228,14 +223,11 @@ flowchart LR
 | **Implementation** | `deploy` | shipping to Vercel / Netlify |
 | **CI Recovery** | `ci` | red build or "diagnose CI" |
 | **Review** | `harness-review` | `/harness-review code\|plan\|scope` |
-| **Release** | `writing-changelog` | before release, drafting entries |
 | **Release** | `harness-release` | `/harness-release patch\|minor\|major` |
 | **Memory** | `harness-remember` | `/harness-remember ssot\|sync\|search\|record` |
 | **Automation** | `harness-schedule-run` | `/harness-schedule-run all` — scheduled cadence run over Plans.md tasks (renamed from `harness-loop`) |
-| **Session** | `session-init` | auto — every session start |
-| **Session** | `session-control` | auto — resume / fork flags |
-| **Guidance** | `workflow-guide` | "how does this work?" |
-| **Guidance** | `vibecoder-guide` | non-technical orientation |
+| **Session** | `session` | auto — init, resume/fork, broadcast |
+| **Guidance** | `harness-guide` | "how does this work?", "what do I do next?" |
 
 ---
 

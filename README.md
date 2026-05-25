@@ -45,7 +45,6 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, back
 | `/harness-release` | CHANGELOG, tag, and GitHub Release |
 | `/harness-remember` | SSOT — decisions, patterns, session logs |
 | `/harness-schedule-run` | Runs Plans.md tasks on a scheduled cadence (renamed from `/harness-loop`) |
-| `/harness-compact` | Suggests strategic `/compact` checkpoints to preserve context across phase transitions |
 
 Run everything after plan approval:
 

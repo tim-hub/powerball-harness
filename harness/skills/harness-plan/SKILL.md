@@ -1,9 +1,9 @@
 ---
 name: harness-plan
-description: "Plans and tracks tasks in Plans.md. Use when creating plans, adding tasks, updating markers, or checking progress."
-when_to_use: "create a plan, add a task, mark task done, where am I, check progress, sync plans, archive phases"
+description: "Plans and tracks tasks in Plans.md. Use when creating plans, adding tasks, updating markers, checking progress, or brainstorming an idea into tasks."
+when_to_use: "create a plan, add a task, mark task done, where am I, check progress, sync plans, archive phases, brainstorm idea, rough idea, design spec"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "Task"]
-argument-hint: "[create|add|update|sync|archive|session-log|sync --no-retro|--ci]"
+argument-hint: "[create|add|update|sync|archive|session-log|brainstorm|sync --no-retro|sync --snapshot|--ci]"
 effort: xhigh
 model: opus
 ---
@@ -18,6 +18,8 @@ model: opus
 | "add a task" | `add` | Add new task to Plans.md |
 | "mark complete" | `update` | Change task marker to cc:done |
 | "where am I?" / "check progress" / `harness-plan sync` / "sync status"| `sync` | Compare implementation with Plans.md and sync |
+| `harness-plan sync --snapshot` | `sync --snapshot` | Save point-in-time progress snapshot |
+| "rough idea" / "brainstorm" / `harness-plan brainstorm` | `brainstorm` | Shape idea → design spec → Plans.md tasks |
 | "archive old phases" / `harness-plan archive` | `archive` | Archive phases in Plans.md to `.claude/memory/archive/`; update `Last archive:` line in the `## Archive` footer |
 | "session log too big" / `harness-plan session-log` | `session-log` | Split session-log.md by month; move older months to `.claude/memory/session-log-YYYY-MM.md` |
 
@@ -30,7 +32,8 @@ Each subcommand has its own reference file. Open the matching file when invoking
 | `create` | [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md) — interview flow, TDD decision rules, Plans.md generation |
 | `add` | [references/add.md](${CLAUDE_SKILL_DIR}/references/add.md) — insertion rules, DoD/Depends auto-inference |
 | `update` | [references/update.md](${CLAUDE_SKILL_DIR}/references/update.md) — marker mapping, single-task status changes |
-| `sync` | [references/sync.md](${CLAUDE_SKILL_DIR}/references/sync.md) — discrepancy detection, retrospective |
+| `sync` | [references/sync.md](${CLAUDE_SKILL_DIR}/references/sync.md) — discrepancy detection, retrospective, --snapshot |
+| `brainstorm` | [references/brainstorm.md](${CLAUDE_SKILL_DIR}/references/brainstorm.md) — two-stage idea → spec → plan flow |
 | `archive` | [references/archive.md](${CLAUDE_SKILL_DIR}/references/archive.md) — phase archival, retention, naming |
 | `session-log` | [references/session-log.md](${CLAUDE_SKILL_DIR}/references/session-log.md) — monthly split of session-log.md |
 | _(quality gate)_ | [references/planning-quality.md](${CLAUDE_SKILL_DIR}/references/planning-quality.md) — 8-step planning quality contract for `create` and high-impact `add` |
@@ -91,7 +94,6 @@ Reference:
 
 ## Related Skills
 
-- `harness-sync` — Sync implementation with Plans.md
 - `harness-work` — Implement planned tasks
 - `harness-review` — Review implementation
 - `harness-setup` — Project initialization

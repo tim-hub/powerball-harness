@@ -1,12 +1,4 @@
----
-name: writing-changelog
-description: "Writes and updates CHANGELOG.md with Unreleased entries or versioned sections. Use when adding CHANGELOG entries or writing GitHub Release notes."
-when_to_use: "update CHANGELOG, add changelog entry, GitHub release notes, unreleased section, finalize release notes"
-allowed-tools: ["Read", "Write", "Edit"]
-argument-hint: "[unreleased|release|github-release]"
----
-
-# Writing Changelog
+# CHANGELOG Writing Guide
 
 CHANGELOG entries in this project use a **detailed Before/After format** — each change explains what the user experienced before and what they get after, with concrete examples.
 
@@ -107,6 +99,6 @@ Full format rules: `harness/rules/github-release.md`
 
 ## Related
 
-- `harness-release` — Full release workflow (calls this skill at Phase 3)
+- `harness-release` skill — Full release workflow (uses this guide at Phase 3)
 - `harness/rules/github-release.md` — Detailed GitHub Release format + CC integration pattern
 - `harness/rules/versioning.md` — Deciding patch / minor / major

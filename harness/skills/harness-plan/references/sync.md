@@ -106,6 +106,32 @@ Proceed with update? (yes / no)
 - {{file2}}
 ```
 
+## Step 4.5: Snapshot Save (`--snapshot` flag)
+
+When `--snapshot` is specified, save the current progress as a timestamped JSON record:
+
+```bash
+SNAPSHOT_DIR="${PROJECT_ROOT}/.claude/state/snapshots"
+mkdir -p "${SNAPSHOT_DIR}"
+SNAPSHOT_FILE="${SNAPSHOT_DIR}/progress-$(date -u +%Y%m%dT%H%M%SZ).json"
+```
+
+Snapshot schema:
+
+```json
+{
+  "timestamp": "2026-03-08T10:30:00Z",
+  "phase": "Phase N",
+  "progress": { "total": 16, "todo": 5, "wip": 3, "done": 6, "confirmed": 2 },
+  "progress_rate": 50,
+  "recent_commits": ["abc1234 feat: ..."],
+  "recent_files": ["skills/harness-work/SKILL.md"],
+  "notes": ""
+}
+```
+
+When a previous snapshot exists, display a diff table (Previous vs Current: progress rate, done count, WIP count).
+
 ## Step 5: Next Action Suggestion
 
 ```

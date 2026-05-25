@@ -373,3 +373,92 @@ deleted_concepts:
       - ".claude/state/"
       - "Plans.md"
       - ".claude/rules/deleted-concepts.yaml"  # this file
+
+  - term: "harness/skills/harness-compact"
+    replacement: "harness/scripts/suggest-compact.sh (script moved to harness/scripts/)"
+    deleted_in: "v5.8.0"
+    reason: "harness-compact skill deleted. suggest-compact.sh is a self-contained PostToolUse hook with no skill-level content worth preserving."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/skills/writing-changelog"
+    replacement: "harness/skills/harness-release/references/writing-changelog.md"
+    deleted_in: "v5.8.0"
+    reason: "writing-changelog skill deleted. Content moved into harness-release/references/writing-changelog.md — accessed directly from harness-release Phase 3."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/rules/deleted-concepts.yaml"
+      - "harness/skills/harness-release/references/writing-changelog.md"
+
+  - term: "harness/skills/vibecoder-guide"
+    replacement: "harness/skills/harness-guide (merged with workflow-guide)"
+    deleted_in: "v5.8.0"
+    reason: "vibecoder-guide and workflow-guide consolidated into harness-guide skill. Two orientation skills merged into one with references/ for each."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/skills/workflow-guide"
+    replacement: "harness/skills/harness-guide (merged with vibecoder-guide)"
+    deleted_in: "v5.8.0"
+    reason: "vibecoder-guide and workflow-guide consolidated into harness-guide skill."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/skills/harness-brainstorming"
+    replacement: "harness-plan brainstorm subcommand (harness/skills/harness-plan/references/brainstorm.md)"
+    deleted_in: "v5.8.0"
+    reason: "harness-brainstorming skill deleted. Two-stage brainstorm→plan flow moved into harness-plan as a brainstorm subcommand."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/skills/harness-sync"
+    replacement: "harness-plan sync subcommand (harness/skills/harness-plan/references/sync.md)"
+    deleted_in: "v5.8.0"
+    reason: "harness-sync skill deleted. Was an acknowledged duplicate of harness-plan sync. --snapshot flag merged into harness-plan/references/sync.md."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/skills/session-control"
+    replacement: "harness/skills/session (session/references/session-control.md)"
+    deleted_in: "v5.8.0"
+    reason: "session-control deprecated skill directory deleted. Content already present in session/references/session-control.md."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/skills/session-init"
+    replacement: "harness/skills/session (session initialization is part of the session skill)"
+    deleted_in: "v5.8.0"
+    reason: "session-init deprecated skill directory deleted. Session initialization functionality lives in the unified session skill."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/rules/deleted-concepts.yaml"

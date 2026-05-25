@@ -17,7 +17,7 @@
 #
 # Hook config (harness/hooks/hooks.json):
 #   PostToolUse / matcher "Edit|Write" / command:
-#   bash "${CLAUDE_PLUGIN_ROOT}/skills/harness-compact/scripts/suggest-compact.sh"
+#   bash "${CLAUDE_PLUGIN_ROOT}/scripts/suggest-compact.sh"
 
 set -euo pipefail
 
@@ -85,7 +85,7 @@ elif [ "${_count}" -gt "${THRESHOLD}" ]; then
 fi
 
 if [ "${_suggest}" = "true" ]; then
-  _msg="${_count} tool calls this session — consider \`/compact\` if transitioning phases or completing a milestone. Compacting now preserves the handoff artifact and re-injects Plans.md context after resume. Decision guide: harness/skills/harness-compact/references/decision-framework.md"
+  _msg="${_count} tool calls this session — consider \`/compact\` if transitioning phases or completing a milestone. Compacting now preserves the handoff artifact and re-injects Plans.md context after resume."
   echo "[HarnessCompact] ${_count} tool calls — strategic compact checkpoint" >&2
   if command -v python3 >/dev/null 2>&1; then
     python3 -c "import json,sys; print(json.dumps({'systemMessage':sys.argv[1]}))" \

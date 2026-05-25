@@ -352,7 +352,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/skills/harness-compact/scripts/suggest-compact.sh\"",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/suggest-compact.sh\"",
             "timeout": 3
           }
         ]

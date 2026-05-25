@@ -88,12 +88,10 @@ Session resume memory reduced 68% since CC 2.1.49. Best practices, workflow exam
 Session initialization → control (resume/fork) → memory persistence → broadcast flow, plus managed file paths:
 [references/execution-flow.md](${CLAUDE_SKILL_DIR}/references/execution-flow.md)
 
-## Migration Note
+## Consolidated Skills
 
-This skill consolidates:
-- `session-init` → Session initialization
-- `session-memory` → Memory persistence (content now in [references/memory.md](${CLAUDE_SKILL_DIR}/references/memory.md))
-- `session-control` → Resume/fork control
-- `session-state` → State management (merged into `session-control`)
-
-The individual skills are deprecated but still work for backward compatibility.
+This skill incorporates all session functionality:
+- Session initialization → see `session-init` entry in the Capabilities table above
+- Memory persistence → [references/memory.md](${CLAUDE_SKILL_DIR}/references/memory.md)
+- Resume/fork control → [references/session-control.md](${CLAUDE_SKILL_DIR}/references/session-control.md)
+- State management → [references/state-transition.md](${CLAUDE_SKILL_DIR}/references/state-transition.md)
