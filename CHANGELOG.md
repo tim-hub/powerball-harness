@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.7.6...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.7.7...HEAD
+[5.7.7]: https://github.com/tim-hub/powerball-harness/compare/v5.7.6...v5.7.7
 [5.7.6]: https://github.com/tim-hub/powerball-harness/compare/v5.7.5...v5.7.6
 [5.7.5]: https://github.com/tim-hub/powerball-harness/compare/v5.7.4...v5.7.5
 [5.7.4]: https://github.com/tim-hub/powerball-harness/compare/v5.7.3...v5.7.4
@@ -65,6 +66,28 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.7.7] - 2026-05-26
+
+### Theme: Fix validate-plugin.sh Section 14 and harness.toml version sync
+
+**`validate-plugin.sh` now passes all 50 checks on macOS; `harness.toml` stays in sync with `VERSION` during patch bumps.**
+
+---
+
+#### 1. Fix `test-weak-supervision-report.sh` for macOS sandbox
+
+**Before**: `mktemp -d` used the system temp dir (`/var/folders/...`), which the Claude Code sandbox blocks. Section 14 of `validate-plugin.sh` always failed in sandbox-mode sessions.
+
+**After**: `mktemp -d "${TMPDIR:-/tmp}/weak-supervision-XXXXXXXX"` uses the sandbox-writable temp directory. All 50 validation checks now pass.
+
+#### 2. Fix `harness.toml` not updated during version bump
+
+**Before**: `sync-version.sh bump` updated `VERSION` but not `harness.toml`, causing a version mismatch that failed the consistency check on the next run.
+
+**After**: `HARNESS_RELEASE_EXTRA_VERSION_FILES=harness/harness.toml` passed to `sync-version.sh bump` keeps both files in sync.
 
 ---
 
