@@ -16,6 +16,7 @@
 - **Release notes format**: [harness/rules/github-release.md](harness/rules/github-release.md) · @harness/rules/github-release.md
 - **Versioning rules**: [harness/rules/versioning.md](harness/rules/versioning.md) · @harness/rules/versioning.md
 - **Path conventions**: [harness/rules/path-conventions.md](harness/rules/path-conventions.md) · @harness/rules/path-conventions.md
+- **Slash command output summarization**: When a skill's `<local-command-stdout>` tool result is 10+ lines, produce a 1–3 line assistant summary and state the next action explicitly. Details: [.claude/rules/slash-command-output.md](.claude/rules/slash-command-output.md) (P35)
 - [Repository structure](docs/repository-structure.md)
 - Contributing guidelines: [CONTRIBUTING.md](CONTRIBUTING.md)
 
