@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "description": "Sandbox settings template - enhance security while minimizing impact on usability",
+  "description": "Sandbox settings template — enhance security while minimizing impact on usability. Synced with docs/sandbox-allowlist-recipe.md (29-domain allowlist + 9-domain denylist)",
   "sandbox": {
     "enabled": true,
     "autoAllowBashIfSandboxed": true,
@@ -17,11 +17,43 @@
         "github.com",
         "api.github.com",
         "raw.githubusercontent.com",
+        "codeload.github.com",
+        "objects.githubusercontent.com",
         "registry.npmjs.org",
         "api.anthropic.com",
         "pypi.org",
+        "files.pythonhosted.org",
+        "proxy.golang.org",
+        "sum.golang.org",
+        "crates.io",
+        "static.crates.io",
         "rubygems.org",
-        "crates.io"
+        "api.firecrawl.dev",
+        "firecrawl.dev",
+        "techblog.zozo.com",
+        "note.com",
+        "assets.st-note.com",
+        "zenn.dev",
+        "qiita.com",
+        "dev.to",
+        "medium.com",
+        "cdn-ak.f.st-hatena.com",
+        "engineering.dena.com",
+        "developers.cyberagent.co.jp",
+        "tech.uzabase.com",
+        "engineer.crowdworks.jp",
+        "tech.smarthr.jp"
+      ],
+      "deniedDomains": [
+        "169.254.169.254",
+        "metadata.google.internal",
+        "metadata.azure.com",
+        "pastebin.com",
+        "transfer.sh",
+        "0x0.st",
+        "paste.ee",
+        "termbin.com",
+        "ix.io"
       ]
     }
   },
@@ -41,6 +73,8 @@
     "purpose": "Recommended Sandbox settings based on Claude Code Permissions documentation",
     "autoAllowBashIfSandboxed": "Setting to true minimizes permission prompts when Sandbox is enabled",
     "excludedCommands": "Commands that need to run outside the Sandbox (require host system access)",
-    "allowedDomains": "Allow network access to external services needed for development"
+    "allowedDomains": "3-tier structure: dev core 14 (github/npm/anthropic/pypi/go/crates/rubygems) + Firecrawl 2 + tech blog scraping targets 13. Details: docs/sandbox-allowlist-recipe.md",
+    "deniedDomains": "SSRF (cloud metadata endpoints) + data-exfiltration sinks (pastebin family). deniedDomains takes precedence over allowedDomains",
+    "sync_with": "Keep allowedDomains count and entries in sync with docs/sandbox-allowlist-recipe.md. Drift confuses users about which file is authoritative"
   }
 }
