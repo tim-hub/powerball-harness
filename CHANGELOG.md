@@ -68,6 +68,33 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Removed
+
+#### 1. Dead Shell Scripts — Go-Migration Orphans + Legacy Codex-Worker Cluster (Phase 102)
+
+**Before**: `harness/scripts/` contained ~40 shell scripts that had become unreachable at
+runtime after the v3→v4 Go migration. The Go binary (`bin/harness`) re-implements these hooks
+natively, but the original `.sh` files were never removed. The legacy codex-worker cluster
+(`codex-worker-engine.sh`, `codex-worker-quality-gate.sh`, etc.) was also kept alive only by
+stale `tests/validate-plugin.sh` gate checks. `harness/scripts/Todos.md` tracked them but had
+become inaccurate (listing wired scripts like `usage-tracker.sh` and `codex-loop.sh` as orphans).
+
+**After**: 31 files removed — 7,250 lines of dead code eliminated:
+- `harness/scripts/hooks/evaluate_subagent_output.sh` (zero refs)
+- Legacy codex-worker cluster (8 scripts): `codex-worker-engine.sh`, `codex-worker-lock.sh`,
+  `codex-worker-merge.sh`, `codex-worker-quality-gate.sh`, `codex-worker-setup.sh`,
+  `codex-setup-local.sh`, `check-codex.sh`, `lib/codex-worker-common.sh`
+- Go-migration orphans (11 scripts): `track-changes.sh`, `setup-hook.sh`,
+  `subagent-tracker.sh`, `stop-plans-reminder.sh`, `stop-check-pending.sh`,
+  `stop-cleanup-check.sh`, `posttooluse-clear-pending.sh`, `posttooluse-log-toolname.sh`,
+  `posttooluse-quality-pack.sh`, `pretooluse-browser-guide.sh`, `pretooluse-inbox-check.sh`
+- Self-reference utilities (9 scripts + duplicate `setup-codex.sh`)
+- `tests/validate-plugin-v3.sh` (pre-v4 artifact, unwired from CI)
+- `harness/scripts/Todos.md` (replaced by `deleted-concepts.yaml` for residue tracking)
+
+Validate-plugin.sh and check-consistency.sh remain clean. `harness/hooks/README.md` updated to
+show accurate Go binary routing.
+
 ---
 
 ## [5.8.0] - 2026-05-26
