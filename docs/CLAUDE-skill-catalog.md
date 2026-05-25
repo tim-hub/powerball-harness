@@ -39,10 +39,7 @@ harness/skills/
 ├── maintenance/           # Periodic cleanup — session log pruning, stale state, cache purge
 ├── session/               # Session lifecycle: list, inbox checks, broadcast
 ├── session-init/          # Session start — status check, Plans.md overview, env readiness
-├── session-state/         # Internal — auto-triggered at harness-work phase boundaries
 ├── session-control/       # Internal — auto-triggered for --resume/--fork flags
-├── session-memory/        # Cross-session context recall and persistence
-├── principles/            # Coding principles, development guidelines, safe-editing practices
 ├── vibecoder-guide/       # Plain-language workflow guidance for newcomers
 └── workflow-guide/        # Harness workflow (execution modes, roles, process flow)
 ```
@@ -64,7 +61,6 @@ harness/skills/
 | `maintenance` | Periodic housekeeping — log pruning, stale state, worktrees | "prune logs", "clean state", "/maintenance" |
 | `session` | Session lifecycle: list, inbox, broadcast | "/session", "session status" |
 | `session-init` | Session start check — Plans.md overview, env readiness | (auto-triggered on session start) |
-| `principles` | Development principles, guidelines | "principles", "VibeCoder", "safety" |
 | `vibecoder-guide` | Newcomer-friendly workflow guide | "how does this work", "explain workflow" |
 | `workflow-guide` | Harness workflow reference | "how does harness work", "execution modes" |
 

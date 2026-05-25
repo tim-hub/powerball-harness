@@ -202,7 +202,7 @@ flowchart LR
         DB["~/.harness-mem/harness-mem.db\nshared: Claude + Codex + OpenCode"]
     end
 
-    AT -->|promoted by session-memory| L1
+    AT -->|promoted by session skill| L1
     TT -->|archived after 30d by /maintenance| TT
     L1 -->|sync via /harness-remember sync-across| L2
     L2 -->|recalled via /harness-remember search| L1
@@ -234,10 +234,8 @@ flowchart LR
 | **Automation** | `harness-schedule-run` | `/harness-schedule-run all` — scheduled cadence run over Plans.md tasks (renamed from `harness-loop`) |
 | **Session** | `session-init` | auto — every session start |
 | **Session** | `session-control` | auto — resume / fork flags |
-| **Session** | `session-memory` | auto — session end recording |
 | **Guidance** | `workflow-guide` | "how does this work?" |
 | **Guidance** | `vibecoder-guide` | non-technical orientation |
-| **Guidance** | `principles` | coding guidelines reference |
 
 ---
 
