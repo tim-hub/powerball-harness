@@ -4,6 +4,21 @@ Last release: v5.7.0 on 2026-05-19 (Phase 100: terminal notify + R03 break-glass
 
 ---
 
+## Phase 101: Testing principles — TDD enforcement + phase-bottom verification
+
+Created: 2026-05-25
+
+Purpose: Upgrade three harness files so downstream projects get enforced TDD task-splitting and mandatory phase-bottom verification instead of advisory suggestions.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 101.1 | Upgrade `harness/templates/rules/tdd-guidelines.md.template`: flip suggestion→enforcement in Notes; update Decision Logic to show `.a`/`.b` split path; append `## Phase-bottom Verification` section with three agent-executable lanes (curl / `/chrome` / CLI / skip-if-all-skip:tdd). [skip:tdd] | `grep -c 'Phase-bottom Verification' harness/templates/rules/tdd-guidelines.md.template` ≥ 1; no "Suggestion, not enforcement" phrase in file | - | cc:TODO |
+| 101.2 | Update `harness/skills/harness-plan/references/create.md`: append "### Task Split — Test-First Pair" subsection to Step 5.5; add split line to Step 6 Quality Marker Assignment block; replace generation template task table with `.a`/`.b`/`.e2e` example rows; add checks 4 + 5 to Step 6.5 Self-Review. [skip:tdd] | `grep -c 'Task Split' harness/skills/harness-plan/references/create.md` ≥ 1; `grep -c '1.1.a' harness/skills/harness-plan/references/create.md` ≥ 1; checks 4 and 5 present in Step 6.5 | - | cc:TODO |
+| 101.3 | Update `harness/skills/harness-work/references/solo-mode.md`: add "Dependency check" bullet to Step 1 task identification block; replace Step 3 TDD Phase 2-liner with a 4-row behaviour table (`.a` / `.b` / legacy / `[skip:tdd]`); add "Phase-close check" sub-bullets to Step 11 after the mirror-to-native-task-list bullet. [skip:tdd] | `grep -c 'Dependency check' harness/skills/harness-work/references/solo-mode.md` ≥ 1; `grep -c 'Phase-close check' harness/skills/harness-work/references/solo-mode.md` ≥ 1 | - | cc:TODO |
+| 101.4 | Run `./tests/validate-plugin.sh` and `./.claude/skills/release-this/scripts/check-consistency.sh`; confirm both exit 0; run all five grep checks from the acceptance criteria; add CHANGELOG `[Unreleased]` entry. [skip:tdd] | Both validation scripts exit 0; all five grep checks pass | 101.1, 101.2, 101.3 | cc:TODO |
+
+---
+
 ## Phase 100: Port upstream v4.10.0→v4.11.0 — terminal notify + protected-path policy + harness-review TeamAgent refactor
 
 Created: 2026-05-19
