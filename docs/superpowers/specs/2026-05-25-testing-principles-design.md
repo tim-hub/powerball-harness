@@ -81,7 +81,7 @@ All lanes are **agent-executable** — the Worker runs them via Bash, no human a
 | Project type | Lane | Agent execution method | Verification criterion |
 |---|---|---|---|
 | Backend / API | **curl** | `bash`: `curl -f <endpoint>` | All critical routes return HTTP 2xx |
-| Frontend / UI | **agent-browser** | `bash`: `agent-browser open <url> && agent-browser snapshot -i -c` (falls back to `chrome-devtools` MCP if agent-browser not installed) | Golden path completes, 0 console errors in snapshot |
+| Frontend / UI | **chrome-devtools** | `mcp__chrome_devtools__*` tools (Claude Code native Chrome) | Golden path completes, 0 console errors |
 | CLI tool | **CLI** | `bash`: run the command end-to-end | Exit 0 + expected stdout matches |
 | All tasks are `[skip:tdd]` | **— skip —** | N/A | No phase-bottom task appended |
 
