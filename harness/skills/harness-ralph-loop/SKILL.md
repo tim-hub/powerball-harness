@@ -6,6 +6,7 @@ allowed-tools: ["Read", "Write", "Edit", "Bash", "Task", "Skill"]
 argument-hint: "[task-id|help|--max-iter N|--verify CMD]"
 model: sonnet
 effort: high
+user-invocable: false
 ---
 
 # Harness Ralph Loop
