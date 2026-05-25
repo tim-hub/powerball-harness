@@ -340,3 +340,36 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+
+  - term: "harness/templates/cursor"
+    replacement: "(no replacement — Cursor support dropped)"
+    deleted_in: "v5.7.8"
+    reason: "Cursor IDE support dropped. Focus shifted to OpenCode and Codex CLI. cursor/ template directory removed entirely."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/rules/deleted-concepts.yaml"  # this file
+
+  - term: "cc-cursor-cc"
+    replacement: "(no replacement — Cursor support dropped)"
+    deleted_in: "v5.7.8"
+    reason: "Cursor↔Claude Code bridge skill removed. Cursor IDE support dropped entirely."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/rules/deleted-concepts.yaml"  # this file
+
+  - term: "harness/agents/error-recovery"
+    replacement: "harness/agents/worker (error recovery consolidated)"
+    deleted_in: "v5.7.8"
+    reason: "error-recovery agent deprecated in v4 and explicitly documented as 'consolidated into worker'. Dead code removed."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/rules/deleted-concepts.yaml"  # this file
