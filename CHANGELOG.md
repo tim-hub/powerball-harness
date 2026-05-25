@@ -67,6 +67,42 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Plugin simplification — reduce skill count, drop Cursor support
+
+**Fewer skills, same capabilities. 8 standalone skills merged into parent skills or scripts; Cursor IDE support removed.**
+
+---
+
+#### 1. Skill Consolidation (8 skills → 3 homes)
+
+**Before**: 8 separate skill directories that were either duplicates of existing subcommands, single-purpose wrappers, or stale code from prior versions. Running `/harness-brainstorming` and `/harness-plan create` had overlapping entry points. `/harness-sync` was documented as "standalone version of the former harness-plan sync subcommands." `/vibecoder-guide` and `/workflow-guide` were two orientation skills with nearly identical scope.
+
+**After**: Everything consolidated:
+- `harness-brainstorming` → `harness-plan brainstorm` subcommand (`references/brainstorm.md`)
+- `harness-sync` → `harness-plan sync` (already existed; `--snapshot` flag merged in)
+- `vibecoder-guide` + `workflow-guide` → `harness-guide` skill with `references/vibecoder.md` and `references/workflow.md`
+- `writing-changelog` → `harness-release/references/writing-changelog.md` (accessed directly from Phase 3)
+- `harness-compact` → `harness/scripts/suggest-compact.sh` (hook script; no skill needed)
+- `session-control` + `session-init` → unified `session` skill (directories deleted; content already in `session/references/`)
+
+#### 2. Cursor Support Removed
+
+**Before**: `harness/templates/cursor/` shipped 5 Cursor IDE templates. `cc-cursor-cc` was a bridge skill for Cursor↔Claude Code workflows. References appeared in workflow diagrams and README.
+
+**After**: All Cursor templates, the `cc-cursor-cc` skill directory, and references in `harness/README.md` removed. Focus is on Claude Code, Codex CLI, and OpenCode. Backward-compat marker handling in hook scripts (`cursor:*`) intentionally retained.
+
+#### 3. Self-learning Skills Removed from README
+
+**Before**: Root README listed `distill-session` and `update-skill` as Core Skills, implying they shipped with this plugin.
+
+**After**: Those skills live in the separate powerball-personal plugin. README entries removed.
+
+#### 4. harness-ralph-loop Hidden from Slash Palette
+
+**Before**: `harness-ralph-loop` appeared in `/help` as a user-invocable skill, even though it is an internal orchestrator launched by `harness-work`.
+
+**After**: `user-invocable: false` added to frontmatter. The skill still works — it is just no longer shown as a user command.
+
 ---
 
 ## [5.7.7] - 2026-05-26
