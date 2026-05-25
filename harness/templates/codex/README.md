@@ -52,7 +52,7 @@ Because support can drift by Codex build, verify this on a fresh Codex process b
 
 ```bash
 # Default: install to CODEX_HOME (user-based)
-/path/to/claude-code-harness/scripts/setup-codex.sh --user
+/path/to/claude-code-harness/harness/skills/harness-setup/scripts/setup-codex.sh --user
 ```
 
 This is the reliable default for end users today.
@@ -61,7 +61,7 @@ After updating Harness, rerun the same script to sync `~/.codex/skills` to the l
 Project-local install is still available:
 
 ```bash
-/path/to/claude-code-harness/scripts/setup-codex.sh --project
+/path/to/claude-code-harness/harness/skills/harness-setup/scripts/setup-codex.sh --project
 ```
 
 ### Option 1.5: Claude Code (in-session)
