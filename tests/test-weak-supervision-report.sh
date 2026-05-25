@@ -4,7 +4,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TMP_DIR="$(mktemp -d)"
+TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/weak-supervision-XXXXXXXX")"
 trap 'rm -rf "${TMP_DIR}"' EXIT
 
 python3 - "${ROOT_DIR}/harness/scripts/lib/weak-supervision-report.schema.json" "${ROOT_DIR}/harness/scripts/lib/elicitation-event.schema.json" <<'PY'
