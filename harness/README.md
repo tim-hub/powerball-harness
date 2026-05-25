@@ -240,8 +240,6 @@ flowchart LR
 | **Release** | `harness-release` | `/harness-release patch\|minor\|major` |
 | **Memory** | `harness-remember` | `/harness-remember ssot\|sync\|search\|record` |
 | **Automation** | `harness-schedule-run` | `/harness-schedule-run all` — scheduled cadence run over Plans.md tasks (renamed from `harness-loop`) |
-| **Meta** | `distill-session` | "save this", "distill this", "turn this into a skill" — captures a session's repeatable workflow as a new skill in `.claude/skills/` |
-| **Meta** | `update-skill` | "update the X skill", "improve this skill" — refines an existing project skill (description, branch, correction, or extraction) instead of creating a duplicate |
 | **Session** | `session-init` | auto — every session start |
 | **Session** | `session-control` | auto — resume / fork flags |
 | **Session** | `session-memory` | auto — session end recording |
