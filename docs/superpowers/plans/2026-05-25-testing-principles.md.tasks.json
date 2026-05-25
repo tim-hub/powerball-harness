@@ -4,28 +4,27 @@
     {
       "id": 7,
       "subject": "Task 1: Upgrade tdd-guidelines.md.template",
-      "status": "pending",
+      "status": "completed",
       "description": "**Goal:** Flip suggestion→enforcement, update decision logic tree, add Phase-bottom Verification section with three agent-executable lanes.\n\n**Files:**\n- Modify: `harness/templates/rules/tdd-guidelines.md.template`\n\n**Acceptance Criteria:**\n- [ ] File no longer contains \"Suggestion, not enforcement\"\n- [ ] Decision Logic block shows .a/.b split path\n- [ ] `## Phase-bottom Verification` section present with lane table (curl / /chrome / CLI / skip)\n- [ ] `./tests/validate-plugin.sh` exits 0\n\n**Verify:** `grep -c 'Phase-bottom Verification' harness/templates/rules/tdd-guidelines.md.template` → ≥ 1\n\n```json:metadata\n{\"files\": [\"harness/templates/rules/tdd-guidelines.md.template\"], \"verifyCommand\": \"grep -c 'Phase-bottom Verification' harness/templates/rules/tdd-guidelines.md.template\", \"acceptanceCriteria\": [\"No 'Suggestion, not enforcement' phrase\", \"Phase-bottom Verification section present\", \"Lane table has curl, /chrome, CLI rows\"]}\n```"
     },
     {
       "id": 8,
       "subject": "Task 2: Update harness-plan create.md",
-      "status": "pending",
+      "status": "completed",
       "description": "**Goal:** Add task-split rule to Step 5.5, split line to Step 6 marker logic, .a/.b/.e2e generation template rows, two Step 6.5 self-review checks.\n\n**Files:**\n- Modify: `harness/skills/harness-plan/references/create.md`\n\n**Acceptance Criteria:**\n- [ ] Step 5.5 contains \"### Task Split — Test-First Pair\" subsection\n- [ ] Step 6 generation template shows 1.1.a, 1.1.b, 1.e2e rows\n- [ ] Step 6.5 contains checks 4 and 5\n- [ ] `./tests/validate-plugin.sh` exits 0\n\n**Verify:** `grep -c 'Task Split' harness/skills/harness-plan/references/create.md` → ≥ 1\n\n```json:metadata\n{\"files\": [\"harness/skills/harness-plan/references/create.md\"], \"verifyCommand\": \"grep -c 'Task Split' harness/skills/harness-plan/references/create.md\", \"acceptanceCriteria\": [\"Task Split section present in Step 5.5\", \"1.1.a row in generation template\", \"Check 4 and 5 in Step 6.5\"]}\n```"
     },
     {
       "id": 9,
       "subject": "Task 3: Update harness-work solo-mode.md",
-      "status": "pending",
+      "status": "completed",
       "description": "**Goal:** Add dependency guard at Step 1, replace TDD Phase block at Step 3 with .a/.b behaviour table, add phase-close gate at Step 11.\n\n**Files:**\n- Modify: `harness/skills/harness-work/references/solo-mode.md`\n\n**Acceptance Criteria:**\n- [ ] Step 1 contains \"Dependency check\" paragraph\n- [ ] Step 3 contains behaviour table with [tdd:test-first], .b, legacy, [skip:tdd] rows\n- [ ] Step 11 contains \"Phase-close check\" with three outcome bullets\n- [ ] `./tests/validate-plugin.sh` exits 0\n\n**Verify:** `grep -c 'Dependency check' harness/skills/harness-work/references/solo-mode.md && grep -c 'Phase-close check' harness/skills/harness-work/references/solo-mode.md` → both ≥ 1\n\n```json:metadata\n{\"files\": [\"harness/skills/harness-work/references/solo-mode.md\"], \"verifyCommand\": \"grep -c 'Dependency check' harness/skills/harness-work/references/solo-mode.md && grep -c 'Phase-close check' harness/skills/harness-work/references/solo-mode.md\", \"acceptanceCriteria\": [\"Dependency check in Step 1\", \".a/.b behaviour table in Step 3\", \"Phase-close check in Step 11\"]}\n```"
     },
     {
       "id": 10,
       "subject": "Task 4: Validate all changes",
-      "status": "pending",
-      "blockedBy": [7, 8, 9],
+      "status": "completed",
       "description": "**Goal:** Confirm all three edits pass plugin validation and consistency check.\n\n**Files:**\n- Read: output of `./tests/validate-plugin.sh`\n\n**Acceptance Criteria:**\n- [ ] `./tests/validate-plugin.sh` exits 0\n- [ ] `./.claude/skills/release-this/scripts/check-consistency.sh` exits 0\n- [ ] All five grep checks pass\n\n**Verify:** `./tests/validate-plugin.sh && echo PASS` → prints PASS\n\n```json:metadata\n{\"files\": [], \"verifyCommand\": \"./tests/validate-plugin.sh && echo PASS\", \"acceptanceCriteria\": [\"validate-plugin.sh exits 0\", \"check-consistency.sh exits 0\", \"all grep checks pass\"]}\n```"
     }
   ],
-  "lastUpdated": "2026-05-25T00:00:00Z"
+  "lastUpdated": "2026-05-26T00:00:00Z"
 }

@@ -12,11 +12,20 @@
       }
     ]
   },
+  "enabledPlugins": {
+    "skill-creator@claude-plugins-official": true,
+    "agent-sdk-dev@claude-plugins-official": true,
+    "hookify@claude-plugins-official": true,
+    "plugin-dev@claude-plugins-official": true
+  },
   "sandbox": {
     "enabled": true,
     "autoAllowBashIfSandboxed": true,
     "filesystem": {
-      "allowWrite": ["/tmp", "/private/tmp"]
+      "allowWrite": [
+        "/tmp",
+        "/private/tmp"
+      ]
     }
   }
 }
