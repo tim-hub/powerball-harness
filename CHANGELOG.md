@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.8.0...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.9.0...HEAD
+[5.9.0]: https://github.com/tim-hub/powerball-harness/compare/v5.8.0...v5.9.0
 [5.8.0]: https://github.com/tim-hub/powerball-harness/compare/v5.7.7...v5.8.0
 [5.7.7]: https://github.com/tim-hub/powerball-harness/compare/v5.7.6...v5.7.7
 [5.7.6]: https://github.com/tim-hub/powerball-harness/compare/v5.7.5...v5.7.6
@@ -67,6 +68,14 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.9.0] - 2026-05-26
+
+### Theme: Script cleanup + upstream port — dead shell scripts removed, P27/P35/sandbox recipe ported
+
+**31 dead shell scripts removed (7,250 lines), harness-release bare-invocation hardened, sandbox allowlist expanded.**
 
 ### Removed
 
