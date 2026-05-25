@@ -21,6 +21,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/plans-drift-check.sh"
 This check is intentionally lightweight — it only inspects commit messages, not file content. For a thorough sync, run `/harness-plan sync` explicitly.
 
 1. Read Plans.md and identify the target task
+   - **Dependency check**: Before claiming a task, verify its `Depends` column. If any listed dependency is not yet `cc:done`, skip this task and select the next eligible one. For `.b` tasks whose `.a` is still open: redirect the Worker to `.a` first.
    - **If Plans.md does not exist**: Auto-invoke `harness-plan create --ci` → Generate Plans.md and continue
    - If header lacks DoD / Depends columns: `Plans.md is in the old format. Please regenerate with harness-plan create.` → **Stop**
    - **If the conversation contains unlisted tasks**: Extract requirements from the recent conversation context and auto-append to Plans.md as `cc:TODO`
@@ -57,9 +58,14 @@ This check is intentionally lightweight — it only inspects commit messages, no
 2.5. Update task to `cc:WIP`
    - Write `cc:WIP` to the task's Status cell in Plans.md (authoritative)
    - **Mirror to native task list**: run `TaskList`, locate any native task whose title starts with the Plans.md task ID prefix (e.g., `97.1`), and call `TaskUpdate(status="in_progress")` on it. If no matching native task exists, skip silently — the native task list is a mirror, never authoritative.
-3. **TDD Phase** (when `[skip:tdd]` is absent & test framework exists):
-   a. Create test file first (Red)
-   b. Confirm failure
+3. **TDD Phase** — behaviour depends on task tag:
+
+   | Task type | Step 3 action |
+   |---|---|
+   | `[tdd:test-first]` (an `.a` task) | **This task IS the TDD phase.** Write the failing test file; confirm it runs red. Commit as `test: failing tests for {{feature}}`. |
+   | `.b` task (follows a `.a`) | Confirm tests from `.a` still run red, then proceed to Step 6. No new test file needed. |
+   | No split (legacy task, no `[skip:tdd]`) | Existing behaviour — create test file first, confirm failure. |
+   | `[skip:tdd]` present | Skip Step 3 entirely. |
 4. Generate `sprint-contract.json` with `"${CLAUDE_SKILL_DIR}/../../scripts/generate-sprint-contract.sh" <task-id>`
 5. Add Reviewer perspective with `"${CLAUDE_SKILL_DIR}/../../scripts/enrich-sprint-contract.sh"` and confirm approved status with `"${CLAUDE_SKILL_DIR}/../../scripts/ensure-sprint-contract-ready.sh"`
 6. Implement code (Green) (Read/Write/Edit/Bash)
@@ -76,6 +82,10 @@ This check is intentionally lightweight — it only inspects commit messages, no
    - Update Plans.md Status to `cc:Done [a1b2c3d]` format (authoritative)
    - If no commit (`--no-commit`), use `cc:Done` without hash
    - **Mirror to native task list**: run `TaskList`, locate any native task whose title starts with the Plans.md task ID prefix (e.g., `97.1`), and call `TaskUpdate(status="completed")` on it. If no matching native task exists, skip silently — the native task list is a mirror, never authoritative.
+   - **Phase-close check**: Scan the current phase in Plans.md.
+     - All tasks except `[verify:e2e]` are `cc:done` AND `N.e2e` is `cc:TODO`: → "Phase N implementation complete. Next: run the E2E verification task (N.e2e)." Auto-select `N.e2e` as the next task (or surface it in manual mode).
+     - `[verify:e2e]` task is `cc:done`: phase is fully closed.
+     - No `[verify:e2e]` task (docs/config-only phase): phase closes normally.
 12. **Rich Completion Report** (see [`${CLAUDE_SKILL_DIR}/templates/completion-report.md`](${CLAUDE_SKILL_DIR}/templates/completion-report.md))
 13. **Automatic Re-ticketing on Failure** (test/CI failure only):
     - Check test execution results
