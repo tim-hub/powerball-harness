@@ -23,25 +23,23 @@ flowchart LR
 
     %% PreToolUse
     PRE -->|Write∣Edit∣Bash∣Read| PRE1["hook pre-tool\n→ Go binary guardrails\n(allow / deny / defer)"]
-    PRE -->|Write∣Edit| PRE2["hook inbox-check\n→ pretooluse-inbox-check.sh\n(cross-session messages)"]
+    PRE -->|Write∣Edit| PRE2["hook inbox-check\n→ Go binary inbox-check handler\n(cross-session messages)"]
     PRE -->|Write∣Edit| PRE3["Agent hook\n(scan for hardcoded secrets)"]
-    PRE -->|mcp__chrome-devtools__\nmcp__playwright__| PRE4["hook browser-guide\n→ pretooluse-browser-guide.sh"]
+    PRE -->|mcp__chrome-devtools__\nmcp__playwright__| PRE4["hook browser-guide\n→ Go binary browser-guide handler"]
 
     %% PostToolUse
     POST -->|Write∣Edit∣Bash| POST1["hook post-tool\n→ Go binary post-tool handlers"]
-    POST -->|*| POST2["hook log-toolname\n→ posttooluse-log-toolname.sh"]
+    POST -->|*| POST2["hook log-toolname\n→ Go binary log-toolname handler"]
     POST -->|*| POST3["hook memory-bridge\n→ lib/harness-mem-bridge.sh"]
     POST -->|Bash git commit| POST4["hook commit-cleanup\n→ posttooluse-commit-cleanup.sh\n(clear review state)"]
     POST -->|Bash| POST5["hook ci-status ⚡async\n→ ci-status-checker.sh\n(build status check)"]
     POST -->|Skill∣Task∣SlashCommand| POST6["hook usage-tracker\n→ usage-tracker.sh"]
-    POST -->|Skill| POST7["hook clear-pending\n→ posttooluse-clear-pending.sh"]
+    POST -->|Skill| POST7["hook clear-pending\n→ Go binary clear-pending handler"]
     POST -->|TodoWrite| POST8["hook todo-sync\n→ todo-sync.sh"]
     POST -->|Write∣Edit∣Task| POST_BATCH["Batch hooks"]
     POST_BATCH --> PB1["hook emit-trace\n→ emit-agent-trace.js"]
     POST_BATCH --> PB2["hook auto-cleanup\n→ AutoCleanupHandler (Go)"]
-    POST_BATCH --> PB3["hook track-changes\n→ track-changes.sh"]
     POST_BATCH --> PB4["hook auto-test ⚡async\n→ auto-test-runner.sh"]
-    POST_BATCH --> PB5["hook quality-pack\n→ posttooluse-quality-pack.sh"]
     POST_BATCH --> PB6["hook plans-watcher\n→ plans-watcher.sh"]
     POST_BATCH --> PB7["hook tdd-check\n→ tdd-order-check.sh"]
     POST_BATCH --> PB8["hook auto-broadcast\n→ session-auto-broadcast.sh"]
@@ -57,7 +55,6 @@ flowchart LR
     %% Stop / SessionEnd
     STOP --> STOP1["hook session-summary\n→ session-summary.sh"]
     STOP --> STOP2["hook memory-bridge stop\n→ lib/harness-mem-bridge.sh\n(finalize memory)"]
-    STOP --> STOP3["hook stop-evaluator\n→ stop-check-pending.sh\n(check WIP tasks)"]
     STOP --> STOP4["hook session-cleanup\n→ session-cleanup.sh\n(remove temp files)"]
     STOP --> STOP5["Agent hook\n(block if WIP tasks remain)"]
 
@@ -78,8 +75,8 @@ flowchart LR
     WORKTREE -->|WorktreeRemove| WT2["hook worktree-remove\n→ worktree-remove.sh"]
 
     %% Subagent
-    SUBAGENT -->|SubagentStart| SA1["hook subagent-start\n→ subagent-tracker.sh (register)"]
-    SUBAGENT -->|SubagentStop| SA2["hook subagent-stop\n→ subagent-tracker.sh (deregister)"]
+    SUBAGENT -->|SubagentStart| SA1["hook subagent-start\n→ Go binary subagent-start handler"]
+    SUBAGENT -->|SubagentStop| SA2["hook subagent-stop\n→ Go binary subagent-stop handler"]
 
     %% Team mode
     TEAM -->|TaskCompleted| TC1["hook task-completed-ext\n→ task-completed.sh\n(timeline entry)"]
