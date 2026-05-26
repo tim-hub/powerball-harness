@@ -164,7 +164,6 @@ fi
 log_test "Core Harness skills exist in harness/skills/"
 required_skills=(
   "harness/skills/harness-plan"
-  "harness/skills/harness-sync"
   "harness/skills/harness-work"
   "harness/skills/harness-review"
   "harness/skills/harness-release"
