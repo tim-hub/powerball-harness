@@ -13,6 +13,7 @@
 - **Failure taxonomy**: Named `FT-*` IDs for detection, recovery, and escalation: [harness/rules/failure-taxonomy.md](harness/rules/failure-taxonomy.md) · @harness/rules/failure-taxonomy.md
 - **Active-watching test policy**: [.claude/rules/active-watching-test-policy.md](.claude/rules/active-watching-test-policy.md)
 - **Codex invocation policy**: [harness/rules/codex-cli-only.md](harness/rules/codex-cli-only.md) · @harness/rules/codex-cli-only.md
+- **OpenCode invocation policy**: [harness/rules/opencode-cli-only.md](harness/rules/opencode-cli-only.md) · @harness/rules/opencode-cli-only.md
 - **Release notes format**: [harness/rules/github-release.md](harness/rules/github-release.md) · @harness/rules/github-release.md
 - **Versioning rules**: [harness/rules/versioning.md](harness/rules/versioning.md) · @harness/rules/versioning.md
 - **Path conventions**: [harness/rules/path-conventions.md](harness/rules/path-conventions.md) · @harness/rules/path-conventions.md
