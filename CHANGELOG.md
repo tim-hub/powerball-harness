@@ -69,6 +69,38 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: OpenCode agent delegation — Phase 1 foundation
+
+**Harness can now delegate tasks and reviews to OpenCode CLI (`tasict/opencode-plugin-cc`) using the same symmetric proxy pattern as Codex. Use `--opencode` in `harness-work` or request "opencode review" in `harness-review` to route work to OpenCode.**
+
+Spec: `docs/superpowers/specs/2026-05-26-opencode-agent-delegation-design.md`
+
+---
+
+#### 1. OpenCode Task Delegation (`harness-work --opencode`)
+
+**Before**: Harness could delegate task implementation only to Codex (`--codex`) or its own breezing workers. OpenCode CLI (a separate AI coding agent) had no integration path — users had to manually switch tools and re-paste task context.
+
+**After**: `harness-work --opencode` routes implementation to OpenCode via `opencode-companion.sh`, the same proxy pattern used by `codex-companion.sh`. Effort propagation, stdin pipe handling, and thread resume (`--resume-last`) all work identically. The reference file `harness/skills/harness-work/references/opencode-work.md` documents load conditions and invocation patterns.
+
+#### 2. OpenCode Review (`harness-review --opencode` / "use opencode")
+
+**Before**: Code review could use Claude's built-in reviewer or Codex (`--dual`, `--codex-closeout`). Getting a second opinion from OpenCode required leaving Harness entirely.
+
+**After**: `harness-review` now loads `references/opencode-review.md` when `command -v opencode` succeeds and the user requests OpenCode review. The review runs via `opencode-companion.sh review --base "${BASE_REF}"` with an AI Residuals parallel scan. Verdict mapping (`approve→APPROVE`, `needs-attention→REQUEST_CHANGES`, severity levels→issue buckets) is identical to the Codex path.
+
+#### 3. OpenCode Policy Rule (`harness/rules/opencode-cli-only.md`)
+
+**Before**: No policy existed for OpenCode invocation. Developers could invoke `opencode run` directly, bypassing job management, structured output, and the stop-review gate provided by `opencode-plugin-cc`.
+
+**After**: `harness/rules/opencode-cli-only.md` (mirroring `codex-cli-only.md`) mandates use of `scripts/opencode-companion.sh` from skills/agents and `/opencode:*` commands for ad-hoc use. Direct `opencode run` is prohibited. A pointer was added to `CLAUDE.md`'s Development Rules.
+
+#### 4. OpenCode Environment Fallbacks (`harness/agents/references/opencode-env.md`)
+
+**Before**: No documented fallback existed for harness skills running inside an OpenCode CLI session, where Claude Code's `TaskCreate`/`TaskUpdate`/`TaskList` tools are unavailable.
+
+**After**: `harness/agents/references/opencode-env.md` documents the tool fallback table (read Plans.md, edit markers directly, output review to stdout) and the `OPENCODE_CLI` harness convention for detecting the environment.
+
 ---
 
 ## [5.9.0] - 2026-05-26
