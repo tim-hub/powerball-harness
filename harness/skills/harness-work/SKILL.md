@@ -3,7 +3,7 @@ name: harness-work
 description: "Executes Plans.md tasks — solo, parallel, or breezing team mode. Use when implementing tasks or running the work loop."
 when_to_use: "implement task, run task, execute plans, work on task, run all tasks, parallel workers, breezing"
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
-argument-hint: "[all|task-number|range|--codex|--parallel N|--no-commit|--resume id|--breezing|--auto-mode|--advisor|--no-advisor]"
+argument-hint: "[all|task-number|range|--codex|--opencode|--parallel N|--no-commit|--resume id|--breezing|--auto-mode|--advisor|--no-advisor]"
 effort: high
 model: sonnet
 ---
@@ -28,11 +28,12 @@ Consolidates the following legacy skills:
 | `harness-work 3` | solo | Immediately executes task 3 only |
 | `harness-work --parallel 5` | parallel | Forces parallel execution with 5 workers |
 | `harness-work --codex` | codex | Delegates to Codex CLI (explicit only) |
+| `harness-work --opencode` | opencode | Delegates to OpenCode CLI (explicit only) |
 | `harness-work --breezing` | breezing | Forces team execution |
 
 ## Execution Mode Auto Selection (auto-selection when no flag is specified)
 
-When no explicit mode flag (`--parallel`, `--breezing`, `--codex`) is provided,
+When no explicit mode flag (`--parallel`, `--breezing`, `--codex`, `--opencode`) is provided,
 the optimal mode is automatically selected based on the number of target tasks:
 
 | Target Task Count | Auto-Selected Mode | Reason |
@@ -47,8 +48,10 @@ the optimal mode is automatically selected based on the number of target tasks:
    - `--parallel N` → Parallel mode (regardless of task count)
    - `--breezing` → Breezing mode (regardless of task count)
    - `--codex` → Codex mode (regardless of task count)
+   - `--opencode` → OpenCode mode (regardless of task count)
 2. **`--codex` activates only when explicitly specified**. Not auto-selected because Codex CLI may not be installed in some environments
 3. `--codex` can be combined with other modes: `--codex --breezing` → Codex + Breezing
+4. **`--opencode` activates only when explicitly specified**. Not auto-selected because opencode-plugin-cc may not be installed in some environments
 
 ## Options
 
@@ -59,6 +62,7 @@ the optimal mode is automatically selected based on the number of target tasks:
 | `--parallel N` | Number of parallel workers | auto |
 | `--sequential` | Force sequential execution | - |
 | `--codex` | Delegate implementation to Codex CLI (explicit only, not auto-selected) | false |
+| `--opencode` | Delegate implementation to OpenCode via opencode-plugin-cc (explicit only, not auto-selected) | false |
 | `--no-commit` | Suppress auto-commit | false |
 | `--resume <id\|latest>` | Resume previous session | - |
 | `--breezing` | Lead/Worker/Reviewer team execution | false |
@@ -122,6 +126,7 @@ The same logic applies in breezing mode (managed centrally by harness-work).
 | **Parallel** | [`references/parallel-mode.md`](${CLAUDE_SKILL_DIR}/references/parallel-mode.md) | 2-3 tasks (auto) or `--parallel N` |
 | **Breezing** | [`references/breezing-mode.md`](${CLAUDE_SKILL_DIR}/references/breezing-mode.md) | 4+ tasks (auto) or `--breezing` |
 | **Codex** | [`references/codex-work.md`](${CLAUDE_SKILL_DIR}/references/codex-work.md) | `--codex` explicit only |
+| **OpenCode** | [`references/opencode-work.md`](${CLAUDE_SKILL_DIR}/references/opencode-work.md) | `--opencode` explicit only |
 | **Ralph** | `harness-ralph-loop` skill | Task has `[ralph]` marker — pre-dispatch, any mode |
 
 > **`[ralph]` marker pre-dispatch rule**: Before any standard worker dispatch (solo or breezing),

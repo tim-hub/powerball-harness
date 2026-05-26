@@ -35,6 +35,7 @@ Maps flags to their reference files. Quick Reference above covers trigger → su
 | `--quick` | [`${CLAUDE_SKILL_DIR}/references/codex-closeout.md`](${CLAUDE_SKILL_DIR}/references/codex-closeout.md) | Lightweight Codex-assisted closeout; stops on clean result |
 | `--codex-closeout` | [`${CLAUDE_SKILL_DIR}/references/codex-closeout.md`](${CLAUDE_SKILL_DIR}/references/codex-closeout.md) | Full closeout with final JSON report |
 | `--team-debate` | [`${CLAUDE_SKILL_DIR}/references/team-debate.md`](${CLAUDE_SKILL_DIR}/references/team-debate.md) | Multi-agent read-only debate (Spec / Plans / Regression / Skeptic agents) |
+| `--opencode` | [`${CLAUDE_SKILL_DIR}/references/opencode-review.md`](${CLAUDE_SKILL_DIR}/references/opencode-review.md) | OpenCode-assisted review via opencode-plugin-cc |
 | _(any mode)_ | [`${CLAUDE_SKILL_DIR}/references/governance.md`](${CLAUDE_SKILL_DIR}/references/governance.md) | APPROVE pass criteria, severity table, AskUserQuestion contract |
 | _(any mode)_ | [`${CLAUDE_SKILL_DIR}/references/code-review.md`](${CLAUDE_SKILL_DIR}/references/code-review.md) | Eight-lens review flow and verdict rules |
 
@@ -147,6 +148,11 @@ See [`${CLAUDE_SKILL_DIR}/references/scope-review.md`](${CLAUDE_SKILL_DIR}/refer
 
 > Load [`${CLAUDE_SKILL_DIR}/references/codex-review.md`](${CLAUDE_SKILL_DIR}/references/codex-review.md)
 > only when `command -v codex` succeeds **and** the user explicitly requests Codex or duo review.
+
+## OpenCode Environment
+
+> Load [`${CLAUDE_SKILL_DIR}/references/opencode-review.md`](${CLAUDE_SKILL_DIR}/references/opencode-review.md)
+> only when `command -v opencode` succeeds **and** the user explicitly requests OpenCode review (e.g., `--opencode`, "use opencode", "opencode review").
 
 ↑ Claude will summarize this result. Type a new prompt to redirect or press Enter to continue.
 
