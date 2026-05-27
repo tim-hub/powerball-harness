@@ -3,7 +3,7 @@ name: harness-work
 description: "Executes Plans.md tasks — solo, parallel, or breezing team mode. Use when implementing tasks or running the work loop."
 when_to_use: "implement task, run task, execute plans, work on task, run all tasks, parallel workers, breezing"
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
-argument-hint: "[all|task-number|range|--codex|--opencode|--parallel N|--no-commit|--resume id|--breezing|--auto-mode|--advisor|--no-advisor]"
+argument-hint: "[all|task-number|range|--codex|--opencode|--parallel N|--commit|--resume id|--breezing|--auto-mode|--advisor|--no-advisor]"
 effort: high
 model: sonnet
 ---
@@ -63,7 +63,7 @@ the optimal mode is automatically selected based on the number of target tasks:
 | `--sequential` | Force sequential execution | - |
 | `--codex` | Delegate implementation to Codex CLI (explicit only, not auto-selected) | false |
 | `--opencode` | Delegate implementation to OpenCode via opencode-plugin-cc (explicit only, not auto-selected) | false |
-| `--no-commit` | Suppress auto-commit | false |
+| `--commit` | Commit after each task is done (default: off) | false |
 | `--resume <id\|latest>` | Resume previous session | - |
 | `--breezing` | Lead/Worker/Reviewer team execution | false |
 | `--no-tdd` | Skip TDD phase | false |
@@ -159,26 +159,9 @@ The same logic applies in breezing mode (managed centrally by harness-work).
 | [`templates/worker-report.v1.json`](${CLAUDE_SKILL_DIR}/templates/worker-report.v1.json) | Worker self-review JSON schema (SR-1 through SR-5) |
 | [`templates/completion-report.md`](${CLAUDE_SKILL_DIR}/templates/completion-report.md) | Rich Completion Report skeleton (solo + breezing formats) |
 
-## Native Task Reconciliation
+## Task Status SSOT
 
-Plans.md is the SSOT for task status. The native Claude Code task list (managed via `TaskCreate` / `TaskUpdate`) is a **mirror only** — never authoritative. To prevent visible drift between the two stores, `harness-work` runs an end-of-scope sweep after the per-task loop completes (both solo and breezing).
-
-**End-of-scope sweep**:
-
-1. Run `TaskList` to get the current native task list
-2. For each native task whose **title** starts with a Plans.md task ID prefix (e.g., `97.1`, `98.2`):
-   - Read the matching Plans.md row's Status cell
-   - If Status is `cc:done` (with or without `[hash]`) **and** the native task is not yet `completed`: call `TaskUpdate(status="completed")`
-   - If Status is `cc:WIP` **and** the native task is not yet `in_progress`: call `TaskUpdate(status="in_progress")`
-   - If Status is `blocked` or `cc:TODO`: do not touch the native task — leave the user's manual state
-3. Native tasks without a matching Plans.md row are left alone — they may belong to ad-hoc TODOs the user is tracking themselves
-
-This sweep catches drift from:
-- Manual edits to Plans.md outside the per-task flow
-- Skipped TaskUpdate calls in older sessions (pre-Phase 99)
-- Tasks completed in one mode (e.g., harness-plan update) without the matching native update
-
-The sweep is idempotent and silent when no drift is detected.
+Plans.md is the sole source of truth for task status. The native Claude Code task list is not mirrored.
 
 ## Related Skills
 

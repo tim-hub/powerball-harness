@@ -149,26 +149,6 @@ Use the complete template from [plans-md-template.md](${CLAUDE_SKILL_DIR}/templa
 
 ---
 
-## Native task mirror rule
+## Task Status SSOT
 
-Plans.md is the SSOT for task status. The native Claude Code task list (managed via `TaskCreate` / `TaskUpdate`) is a **mirror only** — never authoritative.
-
-**Contract**: any skill that writes `cc:WIP` or `cc:done` to a Plans.md row MUST also call `TaskUpdate` on the matching native task. The match is by **title prefix**: a native task whose title starts with the Plans.md task ID (e.g., `99.1`) is the mirror.
-
-| Plans.md write | Required mirror call |
-|----------------|----------------------|
-| `cc:WIP` | `TaskUpdate(status="in_progress")` |
-| `cc:done` / `cc:done [hash]` | `TaskUpdate(status="completed")` |
-| `blocked` | no mirror — leave native task alone (visible signal that work paused) |
-| `cc:TODO` | no mirror — let user manage TODO restarts themselves |
-
-**Silent on no match**: if no native task matches the prefix, skip — TaskUpdate is mirror-only, never authoritative.
-
-**Call sites covered by this contract**:
-
-1. `harness-work` solo mode — `references/solo-mode.md` Step 2.5 (cc:WIP) and Step 11 (cc:done)
-2. `harness-work` breezing mode — `references/breezing-mode.md` B-2 (cc:WIP) and B-5 (cc:done)
-3. `harness-ralph-loop` — `references/loop-flow.md` SUCCESS terminal state (cc:done)
-4. `harness-plan update` — `references/update.md` Step 6, when new marker is `done` or `WIP`
-
-**End-of-scope sweep** (in `harness-work` SKILL.md, `## Native Task Reconciliation`): after the per-task loop completes, reconcile any remaining drift by running `TaskList` and comparing every native task's title prefix to its matching Plans.md row.
+Plans.md is the sole source of truth for task status. The native Claude Code task list is not mirrored.

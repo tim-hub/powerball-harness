@@ -4,6 +4,24 @@ Last release: v5.8.0 on 2026-05-26 (Phase 101 partially open; skill consolidatio
 
 ---
 
+## Phase 107: harness-work cleanup — Drop native task mirror + remove solo auto-commit
+
+Created: 2026-05-28
+
+**Goal**: Two small simplifications driven by user feedback. (1) The Phase-99 native task list mirror (Plans.md ↔ `TaskCreate`/`TaskUpdate` sweep) is unused in practice — users don't rely on the native task list, and the sweep adds token cost (`TaskList` call + per-row `TaskUpdate` calls) every task-loop scope-exit. Remove the encouragement and the mirror logic. (2) Solo-mode auto-commit after each task done was meant to make work resumable, but it costs tokens for the commit-message drafting and creates noisy granular commits the user typically squashes. Make solo mode stop committing by default; the user runs `/commit` manually when they're ready.
+
+**Why not touch breezing-mode commits**: Breezing workers commit inside worktrees so the Lead can `cherry-pick` them back to main — that's a structural mechanic, not encouragement. Removing those commits would require redesigning breezing entirely. Out of scope.
+
+**Scope boundary**: This phase is removals only. No new features. CHANGELOG entry framed as user-facing simplification + token savings.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 107.1 | Remove the native task list mirror from `harness/skills/harness-work/SKILL.md` (the "Plans.md as SSOT" sweep block around line 163–178 that runs `TaskList` + per-row `TaskUpdate`). Also remove the "Mirror to native task list" bullets in `harness/skills/harness-work/references/solo-mode.md` (lines 60, 84) and the inline `TaskUpdate(...)` mirror calls in `harness/skills/harness-work/references/breezing-mode.md` (lines 70, 83, 162). Replace with one short sentence stating Plans.md is the SSOT; the native task list is not mirrored. | `grep -c 'TaskUpdate\|TaskList' harness/skills/harness-work/SKILL.md harness/skills/harness-work/references/solo-mode.md harness/skills/harness-work/references/breezing-mode.md` returns 0; SKILL.md still contains a one-line statement that Plans.md is the SSOT | - | cc:done |
+| 107.2 | Flip solo-mode auto-commit default. In `harness/skills/harness-work/references/solo-mode.md` remove step 10 (`Auto-commit with git commit`) and rewrite step 11 to mark `cc:done` without a `[hash]` suffix. In `harness/skills/harness-work/SKILL.md` remove `--no-commit` from `argument-hint` (line 6) and from the options table (line 66); add `--commit` as the opt-in flag instead, documented as "Commit after each task done (default: off)". Update `harness/agents/worker.md` line 136 so `mode: solo` no longer auto-commits. Do NOT change `mode: breezing` commit behavior. | `grep -c -- '--no-commit' harness/skills/harness-work/SKILL.md` returns 0; `grep -c -- '--commit' harness/skills/harness-work/SKILL.md` ≥ 1; solo-mode.md no longer contains "Auto-commit"; worker.md `mode: solo` line says no auto-commit | 107.1 | cc:done |
+| 107.3 | Add `[Unreleased]` entry in `CHANGELOG.md` using Before/After format per `harness/rules/github-release.md`. Frame as "fewer side-effects per task, lower token cost". Run `./tests/validate-plugin.sh` and `./.claude/skills/release-this/scripts/check-consistency.sh`; both must exit 0. | `grep -c 'native task list mirror\|auto-commit' CHANGELOG.md` ≥ 1 in `[Unreleased]`; entry has both Before and After paragraphs; both validation scripts exit 0 | 107.2 | cc:done |
+
+---
+
 ## Phase 106: harness-releaser agent — Split harness-release into Haiku runner + Sonnet drafter
 
 Created: 2026-05-27

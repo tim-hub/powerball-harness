@@ -70,6 +70,24 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: harness-work cleanup — Drop native task mirror + remove solo auto-commit
+
+**Two user-facing simplifications: the Plans.md ↔ native task list mirror is removed entirely, and solo mode no longer auto-commits after each task — saving tokens on every task loop iteration.**
+
+---
+
+#### 1. Remove Native Task List Mirror
+
+**Before**: After every Plans.md status write (`cc:WIP`, `cc:done`), harness-work ran `TaskList` and called `TaskUpdate` on any matching native Claude Code task. This mirror contract was enforced in five call sites — solo-mode, breezing-mode, ralph-loop, harness-planner, and harness-plan update. Every task completion triggered at least one `TaskList` + one `TaskUpdate` round-trip, costing tokens the user received no benefit from (the native task list was not relied upon in practice).
+
+**After**: Plans.md is the sole source of truth. No mirroring. The five call sites no longer call `TaskList` or `TaskUpdate`. The "Native Task Reconciliation" section in `harness-work/SKILL.md` is replaced with a single line: "Plans.md is the sole source of truth for task status. The native Claude Code task list is not mirrored." The contract table and sweep documentation in `plans-md-rules.md` and `update.md` are also removed.
+
+#### 2. Remove Solo-Mode Auto-Commit
+
+**Before**: Solo mode automatically ran `git commit` after each task passed review, appending the short hash to the `cc:done` Plans.md marker (e.g., `cc:done [a1b2c3d]`). This cost tokens for commit-message drafting on every task and produced granular commits the user typically squashed or amended. There was a `--no-commit` escape hatch, but "no commit" was the more useful default.
+
+**After**: Solo mode no longer auto-commits. Plans.md is marked `cc:done` (no hash suffix) and the user commits manually via `/commit` when ready. The `--no-commit` flag is removed; `--commit` is the new opt-in flag for users who want the previous auto-commit behaviour. Breezing-mode commits inside worktrees are unchanged — they are a structural mechanic required for cherry-pick, not a user-facing feature.
+
 ---
 
 ## [5.9.1] - 2026-05-27
