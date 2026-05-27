@@ -36,3 +36,18 @@ If all sessions in session-log.md are from the current month, report:
 ## References
 
 - [archive.md](${CLAUDE_SKILL_DIR}/references/archive.md) — sibling subcommand for archiving completed phases out of Plans.md
+
+## Agent Delegation
+
+This subcommand can be delegated to the `harness-planner` agent (Haiku, low effort).
+
+Request shape (`planner-request.v1`):
+
+```json
+{
+  "schema_version": "planner-request.v1",
+  "operation": "session-log"
+}
+```
+
+When all sessions are already in the current month, the planner returns `status: "skipped"`. See [`harness/agents/harness-planner.md`](${CLAUDE_SKILL_DIR}/../../agents/harness-planner.md).

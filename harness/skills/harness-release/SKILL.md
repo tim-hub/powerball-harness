@@ -126,6 +126,8 @@ orchestrator (e.g. `.claude/skills/release-this/`) that runs project-specific ch
 
 ### Phase 0: Pre-flight Checks (Required)
 
+**Delegation**: delegate to `harness-releaser` agent via `setup` invocation (runs Phase 0 + 1 + 2 together).
+
 ```bash
 command -v gh &>/dev/null || echo "gh missing: GitHub Release will be skipped"
 command -v jq &>/dev/null || echo "jq missing: required for manifest updates"
@@ -141,11 +143,15 @@ Adjustable via `HARNESS_RELEASE_PLUGIN_ROOT`, `HARNESS_RELEASE_HEALTHCHECK_CMD`,
 
 ### Phase 1: Get Current Version
 
+**Delegation**: included in the `harness-releaser` agent `setup` invocation.
+
 ```bash
 CURRENT=$(cat VERSION 2>/dev/null)
 ```
 
 ### Phase 2: Calculate New Version
+
+**Delegation**: included in the `harness-releaser` agent `setup` invocation.
 
 ```bash
 # patch bump
@@ -160,13 +166,33 @@ MAJOR=$(cat VERSION | cut -d. -f1)
 echo "$((MAJOR + 1)).0.0" > VERSION
 ```
 
+### Phase 2.5 → Agent `setup` invocation
+
+Delegates Phases 0–2 to the `harness-releaser` agent:
+
+```
+Agent(
+  subagent_type: "harness-releaser",
+  description: "run preflight and bump version",
+  prompt: "{\"schema_version\":\"releaser-request.v1\",\"invocation\":\"setup\",\"bump_type\":\"<patch|minor|major>\"}"
+)
+```
+
+Parse `new_version` from the `releaser-response.v1` response. If `status` is `"error"`, surface the `error` field to the user and abort.
+
+> **Smoke test required**: The releaser agent path was introduced in Phase 106. Run `/harness-release --dry-run` to validate the setup invocation before using in a live release.
+
 ### Phase 3: CHANGELOG Update
+
+**skill-owned — drafting required, no agent delegation**
 
 Move `[Unreleased]` content into a new `## [X.Y.Z] - YYYY-MM-DD` section.
 Keep an empty `## [Unreleased]` placeholder above it.
 Use [`${CLAUDE_SKILL_DIR}/references/writing-changelog.md`](${CLAUDE_SKILL_DIR}/references/writing-changelog.md) for format rules and the Before/After template.
 
 ### Phase 4: Commit & Tag
+
+**Delegation**: delegate to `harness-releaser` agent via `finalize` invocation (runs Phase 4 + 5 together).
 
 ```bash
 NEW_VERSION=$(cat VERSION)
@@ -177,13 +203,31 @@ git tag -a "v$NEW_VERSION" -m "Release v$NEW_VERSION"
 
 ### Phase 5: Push
 
+**Delegation**: included in the `harness-releaser` agent `finalize` invocation.
+
 ```bash
 git push origin {main or master} --tags
 ```
 
+### Phase 4.5 + 5 → Agent `finalize` invocation
+
+After Phase 3 CHANGELOG is written, delegates Phases 4–5 to the `harness-releaser` agent:
+
+```
+Agent(
+  subagent_type: "harness-releaser",
+  description: "commit, tag, push release v<new_version>",
+  prompt: "{\"schema_version\":\"releaser-request.v1\",\"invocation\":\"finalize\",\"version\":\"<new_version>\"}"
+)
+```
+
+Parse `git_hash` from the response. If `status` is `"error"`, surface the `error` and `changes` fields (idempotent — re-invocation after fixing the issue is safe).
+
 `.github/workflows/release.yml` auto-generates a GitHub Release from CHANGELOG on tag push if one hasn't been created yet.
 
 ### Phase 6: Create GitHub Release
+
+**skill-owned — drafting required, no agent delegation**
 
 ```bash
 NEW_VERSION=$(cat VERSION)
@@ -225,3 +269,7 @@ Runs all pre-flight checks (Phase 0), displays calculated version, CHANGELOG dra
 
 - [`${CLAUDE_SKILL_DIR}/references/writing-changelog.md`](${CLAUDE_SKILL_DIR}/references/writing-changelog.md) — CHANGELOG format and Before/After template
 - [`${CLAUDE_SKILL_DIR}/references/versioning-rules.md`](${CLAUDE_SKILL_DIR}/references/versioning-rules.md) — SemVer classification and batch-release rules
+
+## Related Agents
+
+- `harness-releaser` — Haiku executor for Phases 0–2 (`setup`) and Phases 4–5 (`finalize`); never drafts content

@@ -29,3 +29,23 @@ harness-plan add task-name: detailed description [--phase phase-number]
 
 - [plans-md-template.md](${CLAUDE_SKILL_DIR}/templates/plans-md-template.md) — canonical phase-block structure
 - [plans-md-rules.md](${CLAUDE_SKILL_DIR}/references/plans-md-rules.md) — ordering rules and field definitions (DoD, Depends, Status markers)
+
+## Agent Delegation
+
+This subcommand can be delegated to the `harness-planner` agent (Haiku, low effort) when the caller already has all content fields (DoD, Depends) materialized and just wants the row inserted.
+
+Request shape (`planner-request.v1`):
+
+```json
+{
+  "schema_version": "planner-request.v1",
+  "operation": "add",
+  "task_name": "Wire planner into worker sweep",
+  "description": "Worker delegates Plans.md marker updates to harness-planner",
+  "dod": "Worker SR-1 step emits planner-request.v1; Plans.md row updated by planner",
+  "depends": "-",
+  "phase": 110
+}
+```
+
+Omit `phase` to create a new top phase. The planner will **not** invent missing fields — if `dod` or `depends` is absent the request is rejected with `status: "error"`. Auto-inference of DoD/Depends (Steps 3–4 above) remains a responsibility of the `harness-plan` skill running in the main session, not the agent. See [`harness/agents/harness-planner.md`](${CLAUDE_SKILL_DIR}/../../agents/harness-planner.md).

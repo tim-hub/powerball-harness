@@ -103,6 +103,40 @@ Spec: `docs/superpowers/specs/2026-05-26-opencode-agent-delegation-design.md`
 
 ---
 
+#### 6. `harness-releaser` Agent — Haiku Executor for Deterministic Release Phases
+
+**Before**: All 8 units of `harness-release` ran in the same Sonnet session — including `cat VERSION`, `sync-version.sh bump`, `git add && git commit && git tag`, and `git push`. Sonnet burned context on trivially deterministic bash invocations just to keep them in-session alongside the CHANGELOG drafting that actually needed Sonnet-level reasoning.
+
+**After**: A new `harness-releaser` agent (`model: haiku`, `tools: [Read, Bash]`, `disallowedTools: [Write, Edit, Agent]`) handles the 5 bash-only phases in two batched invocations. Sonnet calls `setup` (Phases 0–2: preflight + version bump) before drafting the CHANGELOG, then calls `finalize` (Phases 4–5: commit/tag/push) after writing it. Phases 3 and 6 (CHANGELOG drafting, GitHub Release notes) are explicitly `skill-owned` and never delegated. The agent uses an idempotency contract on `commit-tag` — if the invocation fails mid-way and is retried, it skips already-completed steps rather than double-committing. A hard error contract ensures any non-zero bash exit returns `status: "error"` immediately.
+
+| harness-release phase | Session model | Notes |
+|-----------------------|---------------|-------|
+| Phase 0 — Pre-flight script | **Haiku** (setup invocation) | Read-only; useful output in dry-run too |
+| Phase 1 — Read VERSION | **Haiku** (setup invocation) | `cat VERSION` |
+| Phase 2 — Calculate + write version | **Haiku** (setup invocation) | `sync-version.sh bump` |
+| Phase 3 — CHANGELOG transform | **Sonnet** (skill-owned) | Drafting; Before/After format |
+| Phase 4 — Commit + tag | **Haiku** (finalize invocation) | Idempotent; skips if already done |
+| Phase 5 — Push | **Haiku** (finalize invocation) | Skipped in dry-run |
+| Phase 6 — GitHub Release notes | **Sonnet** (skill-owned) | English drafting; value framing |
+| Review Gate / Work Commit Gate | **Sonnet** (skill-owned) | Multi-source judgment; never delegated |
+
+Design spec: `docs/superpowers/specs/2026-05-27-harness-releaser-agent-design.md`
+
+#### 5. `harness-planner` Agent — Mechanical Plans.md Mutations on Haiku
+
+**Before**: Every Plans.md mutation (mark task done/WIP/blocked, add a row or phase, archive completed phases, split session-log by month) ran through the `harness-plan` skill in the main session, consuming Opus/Sonnet tokens for a deterministic file edit. Subagents that finished a task had to either delegate back to the parent or perform the edit inline, duplicating ordering and marker-mapping logic across `worker.md`, `ralph-worker.md`, and other callers.
+
+**After**: A new agent `harness-planner` (Haiku, `effort: low`, 15-turn budget) centralizes mechanical Plans.md operations. Callers send a `planner-request.v1` JSON payload specifying the operation (`update` / `add` / `archive` / `session-log`) and any caller-supplied content (task name, DoD, depends, marker, reason). The planner applies the edit obeying `plans-md-rules.md` and returns a `planner-response.v1` JSON. Content-generation operations (`create`, `brainstorm`, `sync`) stay in the skill — the planner explicitly refuses to invent task names, DoD, or Depends content. Each subcommand reference in `harness-plan` now documents the agent delegation pattern alongside the inline skill flow.
+
+```
+Agent(
+  subagent_type: "harness-planner",
+  prompt: "{\"schema_version\":\"planner-request.v1\",\"operation\":\"update\",\"task_id\":\"98.3\",\"marker\":\"done\",\"commit_hash\":\"a1b2c3d\"}"
+)
+```
+
+---
+
 ## [5.9.0] - 2026-05-26
 
 ### Theme: Script cleanup + upstream port — dead shell scripts removed, P27/P35/sandbox recipe ported

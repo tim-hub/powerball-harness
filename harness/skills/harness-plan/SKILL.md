@@ -79,6 +79,23 @@ Reference:
 
 - `docs/plans/briefs-manifest.md`
 
+## Delegation to `harness-planner` Agent
+
+For mechanical Plans.md mutations (mark task status, add a row, archive completed phases, split session-log), skills and agents may delegate to the **`harness-planner` agent** (Haiku, low effort) instead of running the edit inline.
+
+| Subcommand handled by agent | Notes |
+|------------------------------|-------|
+| `update` | Mirrors all caller-supplied marker changes; performs the native TaskUpdate mirror |
+| `add` | Caller supplies `task_name`, `description`, `dod`, `depends`, optional `phase` |
+| `archive` | No caller input needed; applies retention rule |
+| `session-log` | No caller input needed; splits older months out |
+
+Subcommands **not** delegated (require Opus reasoning, stay in this skill): `create`, `brainstorm`, `sync`.
+
+**Invocation pattern** — callers use the `Agent` tool with `subagent_type: "harness-planner"` and pass a `planner-request.v1` JSON payload. The agent returns a `planner-response.v1` JSON. See [`harness/agents/harness-planner.md`](${CLAUDE_SKILL_DIR}/../../agents/harness-planner.md) for the full schema and per-operation flows.
+
+The `harness-plan` skill itself remains the user-facing entry point — delegation is opt-in for callers that want cheap, deterministic edits without burning Opus tokens.
+
 ## Team Mode / Issue Bridge
 
 Plans.md is maintained as the source of truth, and GitHub Issue integration is only used in opt-in team mode.
@@ -97,3 +114,7 @@ Reference:
 - `harness-work` — Implement planned tasks
 - `harness-review` — Review implementation
 - `harness-setup` — Project initialization
+
+## Related Agents
+
+- `harness-planner` — Haiku worker for mechanical Plans.md mutations (see "Delegation" section above)

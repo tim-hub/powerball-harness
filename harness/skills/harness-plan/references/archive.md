@@ -34,3 +34,18 @@ The `## Archive` section stays at the very bottom of Plans.md and is updated aft
 
 - [plans-md-rules.md](${CLAUDE_SKILL_DIR}/references/plans-md-rules.md) — ordering rules and footer format
 - [session-log.md](${CLAUDE_SKILL_DIR}/references/session-log.md) — sibling subcommand for archiving session-log.md by month
+
+## Agent Delegation
+
+This subcommand can be delegated to the `harness-planner` agent (Haiku, low effort). The agent applies the same retention rule and footer update.
+
+Request shape (`planner-request.v1`):
+
+```json
+{
+  "schema_version": "planner-request.v1",
+  "operation": "archive"
+}
+```
+
+When no phases are eligible, the planner returns `status: "skipped"`. See [`harness/agents/harness-planner.md`](${CLAUDE_SKILL_DIR}/../../agents/harness-planner.md).

@@ -4,6 +4,65 @@ Last release: v5.8.0 on 2026-05-26 (Phase 101 partially open; skill consolidatio
 
 ---
 
+## Phase 106: harness-releaser agent — Split harness-release into Haiku runner + Sonnet drafter
+
+Created: 2026-05-27
+
+**Goal**: Extract the deterministic bash phases of `harness-release` (preflight, version calc, commit/tag, push) into a new Haiku-powered `harness-releaser` agent, while the judgment-heavy phases (CHANGELOG drafting, Before/After tables, GitHub Release notes, Review Gate / Work Commit Gate decisions) stay in the `harness-release` skill on Sonnet. Mirror the `harness-planner` split pattern from Phase 105: skill orchestrates, agent executes mechanical steps.
+
+**Why split rather than full Haiku**: Earlier evaluation concluded that a wholesale Haiku migration of `harness-release` would degrade CHANGELOG quality and produce wrong gate decisions (`Review Gate`, `Work Commit Gate`, `--dry-run` interpretation). However the bash-execution phases (release-preflight.sh, sync-version.sh, git tag/push) are pure command invocation — Haiku-friendly and cheap. The split captures the Haiku savings on ~5 of the 7 phases while keeping Sonnet on the 2 that need drafting.
+
+**Phase mapping**:
+
+| harness-release phase | Today | Proposed | Reason |
+|-----------------------|-------|----------|--------|
+| Phase 0 — Pre-flight script | Skill | Releaser agent | Pure bash; no judgment |
+| Phase 1 — Read VERSION | Skill | Releaser agent | `cat VERSION` |
+| Phase 2 — Calculate new version | Skill | Releaser agent | `sync-version.sh bump` or arithmetic |
+| Phase 3 — CHANGELOG transform | Skill | **Skill (unchanged)** | Drafting Before/After, summarizing user value |
+| Phase 4 — Commit + tag | Skill | Releaser agent | Deterministic git commands |
+| Phase 5 — Push | Skill | Releaser agent | Deterministic git command |
+| Phase 6 — GitHub Release notes | Skill | **Skill (unchanged)** | English drafting, value framing |
+| Review Gate / Work Commit Gate | Skill | **Skill (unchanged)** | Multi-source state interpretation, AskUserQuestion branching |
+
+**Risk**: High Impact × Medium Risk. The release pipeline is on the project's critical path — any regression blocks shipping. First task is a **design spike** before any code; subsequent tasks are gated on the spike's conclusion.
+
+**Out of scope (Phase 2 deferred)**: Migrating `release-this` skill (project-specific orchestrator) — that wraps harness-release and adds build/lint steps; it can adopt the releaser agent later if Phase 106 succeeds.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 106.1 | **Design spike** [needs-spike] — write `docs/superpowers/specs/2026-05-27-harness-releaser-agent-design.md`. Cover: (a) `releaser-request.v1` / `releaser-response.v1` JSON schemas (one operation per request: `preflight`, `bump-version`, `commit-tag`, `push`); (b) how the skill threads CHANGELOG-drafted content between agent invocations (skill writes CHANGELOG.md itself, then calls agent for `commit-tag`); (c) how `--dry-run` propagates — does the agent get a dry-run flag, or does the skill skip agent invocation entirely?; (d) failure recovery — if the agent's `commit-tag` op fails mid-way, how does the skill recover?; (e) explicit non-goals list (no CHANGELOG drafting, no Release notes drafting, no gate decisions, no AskUserQuestion). End the spike with a go/no-go recommendation. | Spec file exists; covers all 5 design questions (a–e); ends with explicit "go" or "no-go" recommendation citing concrete tradeoffs | - | cc:done |
+| 106.2 | Create `harness/agents/harness-releaser.md` with frontmatter (`model: haiku`, `effort: low`, `maxTurns: 20`, `tools: [Read, Bash]`, `disallowedTools: [Write, Edit, Agent]`, `color: orange`, `memory: project`). Tools are intentionally narrow — agent reads VERSION/CHANGELOG and runs bash; it does NOT Edit (skill owns all file authoring). Body defines the JSON schemas, per-operation flows, and explicit non-goals from the spike. | `test -f harness/agents/harness-releaser.md`; `grep -c 'model: haiku' harness/agents/harness-releaser.md` ≥ 1; frontmatter lists tools `[Read, Bash]` only; body contains all 4 operations as section headings (`preflight`, `bump-version`, `commit-tag`, `push`); explicit non-goals section names CHANGELOG, Release notes, gate decisions | 106.1 (go decision) | cc:done |
+| 106.3 | Update `harness/skills/harness-release/SKILL.md` to delegate the 5 mechanical phases (0, 1, 2, 4, 5) to the releaser agent. Each Phase-N section gains a "Delegation" subsection showing the `Agent(subagent_type: "harness-releaser", ...)` invocation. Phases 3 and 6 explicitly state "skill-owned — drafting required, no agent delegation". Re-run `local-scripts/audit-skill-descriptions.sh harness/skills/harness-release/` to confirm description stays under 300 chars. | `grep -c 'harness-releaser' harness/skills/harness-release/SKILL.md` ≥ 5 (one per delegable phase); Phase 3 and Phase 6 sections contain the literal text "skill-owned"; `local-scripts/audit-skill-descriptions.sh harness/skills/harness-release/` exits 0 | 106.2 | cc:done |
+| 106.4 | End-to-end smoke test with `--dry-run`. Run `/harness-release --dry-run` and verify: (a) Phases 0, 1, 2 are executed by the releaser agent (visible in the agent's response stream); (b) Phase 3 CHANGELOG transform stays in the skill (Sonnet-drafted Before/After section appears); (c) Phase 4 (commit+tag) and Phase 5 (push) are NOT invoked in dry-run (existing behavior preserved); (d) Phase 6 Release notes draft appears as skill output, not agent output. Document the test result in `docs/superpowers/runs/2026-05-27-harness-releaser-dry-run.md`. | Run-log file exists; documents all 4 verification points (a–d) with evidence (excerpts from the dry-run output); no regressions vs. pre-Phase-106 dry-run behavior | 106.3 | blocked (actual live run required; can only run after plugin cache is refreshed via /reload-plugins in a new session) |
+| 106.5 | Add `[Unreleased]` entry in `CHANGELOG.md` for the harness-releaser agent, using Before/After format per `harness/rules/github-release.md`. Include the phase mapping table (which phases moved to the agent, which stayed in the skill) to make the split visible to release-notes readers. Run validation: `./tests/validate-plugin.sh` and `./.claude/skills/release-this/scripts/check-consistency.sh` — both exit 0. | `grep -c 'harness-releaser' CHANGELOG.md` ≥ 1 in the `[Unreleased]` section; entry has both "Before" and "After" paragraphs and includes the phase mapping table; both validation scripts exit 0 | 106.4 | cc:done |
+
+---
+
+## Phase 105: harness-planner agent — Haiku-powered mechanical Plans.md mutations
+
+Created: 2026-05-27
+
+**Goal**: Introduce a Haiku-powered `harness-planner` agent that centralizes mechanical Plans.md mutations (mark task done/WIP/blocked/TODO, add row or phase, archive completed phases, split session-log by month). Skills and other agents delegate to it via a structured `planner-request.v1` payload instead of running the edit inline. Content-generation operations (`create`, `brainstorm`, `sync`) stay in the `harness-plan` skill on Opus/Sonnet — the planner explicitly refuses to invent task names, DoD, or Depends content.
+
+**Why Haiku here vs not in `harness-release`**: Plans.md row edits are deterministic — locate a row, swap a cell, verify non-ascending order. No drafting required. By contrast, `harness-release` involves CHANGELOG drafting, Before/After table generation, and gate decisions (Review Gate, Work Commit Gate) that require Sonnet-level reading comprehension. Haiku is the right tool only for the planner's purely-mechanical scope.
+
+**Foundation tasks (105.1–105.4)** are already implemented on the working tree but uncommitted; hashes will be filled in on commit.
+
+**Out of scope (deferred)**: Rewiring existing callers (`worker.md`, `ralph-worker.md`, `harness-work` end-of-scope sweep) to actually delegate — captured here as 105.5–105.7 for follow-up.
+
+| Task | Description | DoD | Depends | Status |
+|------|-------------|-----|---------|--------|
+| 105.1 | Create `harness/agents/harness-planner.md` with frontmatter (`model: haiku`, `effort: low`, `maxTurns: 15`, `tools: [Read, Write, Edit, Bash, Grep, Glob]`, `disallowedTools: [Agent]`, `color: cyan`, `memory: project`). Body must define: `planner-request.v1` / `planner-response.v1` JSON schemas; per-operation flows for `update` / `add` / `archive` / `session-log`; explicit non-goals listing `create`, `brainstorm`, `sync`; native TaskUpdate mirror rule for `update`; example invocations. [skip:tdd] | `test -f harness/agents/harness-planner.md`; `grep -c 'model: haiku' harness/agents/harness-planner.md` ≥ 1; `grep -c 'planner-request.v1' harness/agents/harness-planner.md` ≥ 3; `grep -c 'planner-response.v1' harness/agents/harness-planner.md` ≥ 2; file lists all 4 operations (update/add/archive/session-log) as section headings | - | cc:done |
+| 105.2 | Update `harness/skills/harness-plan/SKILL.md` to document the delegation pattern. Add a "Delegation to `harness-planner` Agent" section listing which subcommands are delegable (`update`/`add`/`archive`/`session-log`) and which stay in the skill (`create`/`brainstorm`/`sync`). Add a "Related Agents" entry pointing at `harness-planner`. Re-run `local-scripts/audit-skill-descriptions.sh harness/skills/harness-plan/` to confirm description stays under 300 chars. [skip:tdd] | `grep -c 'harness-planner' harness/skills/harness-plan/SKILL.md` ≥ 2; section "Delegation to `harness-planner` Agent" exists; `local-scripts/audit-skill-descriptions.sh harness/skills/harness-plan/` exits 0 | 105.1 | cc:done |
+| 105.3 | Add an "Agent Delegation" subsection to each of `harness-plan/references/update.md`, `add.md`, `archive.md`, `session-log.md`. Each subsection shows the `planner-request.v1` JSON shape for that specific operation and links back to `harness/agents/harness-planner.md`. The `add.md` subsection must explicitly state that the planner does NOT auto-infer DoD/Depends (those remain a skill responsibility). [skip:tdd] | All 4 reference files contain an "Agent Delegation" heading; total `planner-request.v1` occurrences across the 4 files ≥ 4; `add.md` mentions that DoD/Depends inference stays in the skill | 105.1 | cc:done |
+| 105.4 | Add `[Unreleased]` entry #5 in `CHANGELOG.md` for the harness-planner agent, using Before/After format per `harness/rules/github-release.md`. Include a code example showing the `Agent(subagent_type: "harness-planner", ...)` invocation pattern. Run validation: `./tests/validate-plugin.sh` and `./.claude/skills/release-this/scripts/check-consistency.sh` — both exit 0. [skip:tdd] | `grep -c 'harness-planner' CHANGELOG.md` ≥ 1 in the `[Unreleased]` section; CHANGELOG entry has both "Before" and "After" paragraphs; both validation scripts exit 0 | 105.1, 105.2, 105.3 | cc:done |
+| 105.5 | Wire `harness/agents/worker.md` to delegate Plans.md marker updates to `harness-planner` instead of editing Plans.md inline. Update the SR-1 / end-of-task step that writes `cc:done` so it instead spawns `harness-planner` with a `planner-request.v1` payload containing `task_id`, `marker: "done"`, and the worker's commit hash. Preserve the existing native TaskUpdate mirror (the planner now performs it). Add a short rationale comment citing Phase 105. | `grep -c 'harness-planner' harness/agents/worker.md` ≥ 1; worker no longer Edit's Plans.md directly for marker updates (verifiable by reading the SR-1 step); `./tests/validate-plugin.sh` exits 0; manual smoke: a simulated worker run produces a planner-response.v1 with `status: "applied"` | 105.1 | cc:TODO |
+| 105.6 | Wire `harness/agents/ralph-worker.md` similarly. When the Ralph loop's SUCCESS terminal state writes `cc:done` to Plans.md, route it through `harness-planner` with `commit_hash` from the worktree commit. Verify the planner's response is preserved in the ralph-worker-report.v1 output (or a follow-on log line) so the orchestrator can observe the mutation. | `grep -c 'harness-planner' harness/agents/ralph-worker.md` ≥ 1; ralph-worker.md documents how the planner response is captured/logged; `./tests/validate-plugin.sh` exits 0 | 105.1 | cc:TODO |
+| 105.7 | Evaluate remaining callers and migrate the mechanical ones. Audit `harness/skills/harness-work/SKILL.md` "Native Task Reconciliation" end-of-scope sweep, `harness/skills/harness-work/references/{solo-mode,breezing-mode}.md`, and any other site that writes `cc:WIP` / `cc:done` to Plans.md. For each: either migrate to `harness-planner` delegation, OR document why it stays inline (e.g. requires Opus-level reasoning across multiple rows). Produce a short audit note at the bottom of this phase listing each site and its decision. | Audit note exists listing every grep hit for `cc:done`/`cc:WIP` writes in `harness/`; each entry classified as "migrated" or "stays inline + reason"; migrated sites no longer Edit Plans.md directly | 105.5, 105.6 | cc:TODO |
+
+---
+
 ## Phase 104: OpenCode agent delegation — Phase 1 foundation (companion proxy + work/review references)
 
 Created: 2026-05-26

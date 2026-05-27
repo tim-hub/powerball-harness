@@ -39,3 +39,21 @@ For full status marker semantics — including the `cc:done [hash]` artifact not
 
 - Marker updates **never** change phase ordering. Use `harness-plan archive` to remove fully completed phases.
 - Use `harness-plan sync` (not `update`) when discrepancy detection across many tasks is needed — `update` is for a single deliberate marker change.
+
+## Agent Delegation
+
+This subcommand can be delegated to the `harness-planner` agent (Haiku, low effort) when a caller (skill or agent) wants to mark a task without running the skill flow inline.
+
+Request shape (`planner-request.v1`):
+
+```json
+{
+  "schema_version": "planner-request.v1",
+  "operation": "update",
+  "task_id": "98.3",
+  "marker": "done",
+  "commit_hash": "a1b2c3d"
+}
+```
+
+For `marker: "blocked"` the caller must also supply a `reason` field. The planner performs the native TaskUpdate mirror per the rules above. See [`harness/agents/harness-planner.md`](${CLAUDE_SKILL_DIR}/../../agents/harness-planner.md).
