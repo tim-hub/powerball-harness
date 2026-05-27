@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.9.1...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.9.2...HEAD
+[5.9.2]: https://github.com/tim-hub/powerball-harness/compare/v5.9.1...v5.9.2
 [5.9.1]: https://github.com/tim-hub/powerball-harness/compare/v5.9.0...v5.9.1
 [5.9.0]: https://github.com/tim-hub/powerball-harness/compare/v5.8.0...v5.9.0
 [5.8.0]: https://github.com/tim-hub/powerball-harness/compare/v5.7.7...v5.8.0
@@ -69,6 +70,10 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [5.9.2] - 2026-05-28
 
 ### Theme: harness-work cleanup — Drop native task mirror + remove solo auto-commit
 
