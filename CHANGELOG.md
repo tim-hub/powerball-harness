@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.9.0...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.9.1...HEAD
+[5.9.1]: https://github.com/tim-hub/powerball-harness/compare/v5.9.0...v5.9.1
 [5.9.0]: https://github.com/tim-hub/powerball-harness/compare/v5.8.0...v5.9.0
 [5.8.0]: https://github.com/tim-hub/powerball-harness/compare/v5.7.7...v5.8.0
 [5.7.7]: https://github.com/tim-hub/powerball-harness/compare/v5.7.6...v5.7.7
@@ -69,41 +70,38 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
-### Theme: OpenCode agent delegation — Phase 1 foundation
+---
 
-**Harness can now delegate tasks and reviews to OpenCode CLI (`tasict/opencode-plugin-cc`) using the same symmetric proxy pattern as Codex. Use `--opencode` in `harness-work` or request "opencode review" in `harness-review` to route work to OpenCode.**
+## [5.9.1] - 2026-05-27
 
-Spec: `docs/superpowers/specs/2026-05-26-opencode-agent-delegation-design.md`
+### Theme: Haiku agent delegation layer — harness-planner + harness-releaser
+
+**Two new Haiku-powered agents reduce Sonnet/Opus token burn on deterministic operations: `harness-planner` centralizes mechanical Plans.md mutations; `harness-releaser` runs the bash phases of the release pipeline. Content generation and gate decisions stay on Sonnet.**
+
+### Before / After
+
+| Before | After |
+|--------|-------|
+| Every Plans.md mutation (mark done, add row, archive) ran through the `harness-plan` skill on Opus/Sonnet | `harness-planner` (Haiku, `effort: low`) accepts a `planner-request.v1` JSON and applies the edit mechanically |
+| All 8 harness-release units ran in the same Sonnet session, including trivial `cat VERSION` and `git push` calls | `harness-releaser` (Haiku, `tools: [Read, Bash]`) handles Phases 0–2 and 4–5; Phases 3, 6, and gates stay on Sonnet |
+| CHANGELOG drafting, gate decisions, and file-system edits were coupled to the same session as bash invocations | Hard architectural split: `harness-releaser` has `disallowedTools: [Write, Edit, Agent]` — it can never author content |
 
 ---
 
-#### 1. OpenCode Task Delegation (`harness-work --opencode`)
+#### 1. `harness-planner` Agent — Mechanical Plans.md Mutations on Haiku
 
-**Before**: Harness could delegate task implementation only to Codex (`--codex`) or its own breezing workers. OpenCode CLI (a separate AI coding agent) had no integration path — users had to manually switch tools and re-paste task context.
+**Before**: Every Plans.md mutation (mark task done/WIP/blocked, add a row or phase, archive completed phases, split session-log by month) ran through the `harness-plan` skill in the main session, consuming Opus/Sonnet tokens for a deterministic file edit. Subagents that finished a task had to either delegate back to the parent or perform the edit inline, duplicating ordering and marker-mapping logic across `worker.md`, `ralph-worker.md`, and other callers.
 
-**After**: `harness-work --opencode` routes implementation to OpenCode via `opencode-companion.sh`, the same proxy pattern used by `codex-companion.sh`. Effort propagation, stdin pipe handling, and thread resume (`--resume-last`) all work identically. The reference file `harness/skills/harness-work/references/opencode-work.md` documents load conditions and invocation patterns.
+**After**: A new agent `harness-planner` (Haiku, `effort: low`, 15-turn budget) centralizes mechanical Plans.md operations. Callers send a `planner-request.v1` JSON payload specifying the operation (`update` / `add` / `archive` / `session-log`) and any caller-supplied content (task name, DoD, depends, marker, reason). The planner applies the edit obeying `plans-md-rules.md` and returns a `planner-response.v1` JSON. Content-generation operations (`create`, `brainstorm`, `sync`) stay in the skill — the planner explicitly refuses to invent task names, DoD, or Depends content. Each subcommand reference in `harness-plan` now documents the agent delegation pattern alongside the inline skill flow.
 
-#### 2. OpenCode Review (`harness-review --opencode` / "use opencode")
+```
+Agent(
+  subagent_type: "harness-planner",
+  prompt: "{\"schema_version\":\"planner-request.v1\",\"operation\":\"update\",\"task_id\":\"98.3\",\"marker\":\"done\",\"commit_hash\":\"a1b2c3d\"}"
+)
+```
 
-**Before**: Code review could use Claude's built-in reviewer or Codex (`--dual`, `--codex-closeout`). Getting a second opinion from OpenCode required leaving Harness entirely.
-
-**After**: `harness-review` now loads `references/opencode-review.md` when `command -v opencode` succeeds and the user requests OpenCode review. The review runs via `opencode-companion.sh review --base "${BASE_REF}"` with an AI Residuals parallel scan. Verdict mapping (`approve→APPROVE`, `needs-attention→REQUEST_CHANGES`, severity levels→issue buckets) is identical to the Codex path.
-
-#### 3. OpenCode Policy Rule (`harness/rules/opencode-cli-only.md`)
-
-**Before**: No policy existed for OpenCode invocation. Developers could invoke `opencode run` directly, bypassing job management, structured output, and the stop-review gate provided by `opencode-plugin-cc`.
-
-**After**: `harness/rules/opencode-cli-only.md` (mirroring `codex-cli-only.md`) mandates use of `scripts/opencode-companion.sh` from skills/agents and `/opencode:*` commands for ad-hoc use. Direct `opencode run` is prohibited. A pointer was added to `CLAUDE.md`'s Development Rules.
-
-#### 4. OpenCode Environment Fallbacks (`harness/agents/references/opencode-env.md`)
-
-**Before**: No documented fallback existed for harness skills running inside an OpenCode CLI session, where Claude Code's `TaskCreate`/`TaskUpdate`/`TaskList` tools are unavailable.
-
-**After**: `harness/agents/references/opencode-env.md` documents the tool fallback table (read Plans.md, edit markers directly, output review to stdout) and the `OPENCODE_CLI` harness convention for detecting the environment.
-
----
-
-#### 6. `harness-releaser` Agent — Haiku Executor for Deterministic Release Phases
+#### 2. `harness-releaser` Agent — Haiku Executor for Deterministic Release Phases
 
 **Before**: All 8 units of `harness-release` ran in the same Sonnet session — including `cat VERSION`, `sync-version.sh bump`, `git add && git commit && git tag`, and `git push`. Sonnet burned context on trivially deterministic bash invocations just to keep them in-session alongside the CHANGELOG drafting that actually needed Sonnet-level reasoning.
 
@@ -122,18 +120,11 @@ Spec: `docs/superpowers/specs/2026-05-26-opencode-agent-delegation-design.md`
 
 Design spec: `docs/superpowers/specs/2026-05-27-harness-releaser-agent-design.md`
 
-#### 5. `harness-planner` Agent — Mechanical Plans.md Mutations on Haiku
+#### 3. OpenCode Agent Delegation — Phase 1 Foundation
 
-**Before**: Every Plans.md mutation (mark task done/WIP/blocked, add a row or phase, archive completed phases, split session-log by month) ran through the `harness-plan` skill in the main session, consuming Opus/Sonnet tokens for a deterministic file edit. Subagents that finished a task had to either delegate back to the parent or perform the edit inline, duplicating ordering and marker-mapping logic across `worker.md`, `ralph-worker.md`, and other callers.
+**Before**: Harness could delegate tasks and reviews only to Codex. OpenCode CLI (`tasict/opencode-plugin-cc`) had no integration path.
 
-**After**: A new agent `harness-planner` (Haiku, `effort: low`, 15-turn budget) centralizes mechanical Plans.md operations. Callers send a `planner-request.v1` JSON payload specifying the operation (`update` / `add` / `archive` / `session-log`) and any caller-supplied content (task name, DoD, depends, marker, reason). The planner applies the edit obeying `plans-md-rules.md` and returns a `planner-response.v1` JSON. Content-generation operations (`create`, `brainstorm`, `sync`) stay in the skill — the planner explicitly refuses to invent task names, DoD, or Depends content. Each subcommand reference in `harness-plan` now documents the agent delegation pattern alongside the inline skill flow.
-
-```
-Agent(
-  subagent_type: "harness-planner",
-  prompt: "{\"schema_version\":\"planner-request.v1\",\"operation\":\"update\",\"task_id\":\"98.3\",\"marker\":\"done\",\"commit_hash\":\"a1b2c3d\"}"
-)
-```
+**After**: `harness-work --opencode` routes implementation to OpenCode via `opencode-companion.sh`; `harness-review --opencode` runs reviews via the same proxy. Policy rule `harness/rules/opencode-cli-only.md` prohibits direct `opencode run`. Environment fallback reference `harness/agents/references/opencode-env.md` documents behavior when running inside an OpenCode CLI session.
 
 ---
 
