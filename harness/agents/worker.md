@@ -133,7 +133,7 @@ Specify subagent_type="worker" in the Task tool
 8. **Build verification**: Run tests and type checking
 9. **Error recovery**: On failure, analyze cause and fix (up to 3 times)
 10. **Commit** (varies by mode):
-    - `mode: solo` -> Record directly to main with `git commit`
+    - `mode: solo` -> No auto-commit. If `--commit` was passed, run `git commit` before updating Plans.md.
     - `mode: breezing` -> `git commit` within worktree (not reflected in main)
 11. **Return results to Lead** (in `mode: breezing`):
     - Get the commit hash within the worktree

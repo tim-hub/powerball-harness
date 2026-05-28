@@ -85,7 +85,7 @@ For mechanical Plans.md mutations (mark task status, add a row, archive complete
 
 | Subcommand handled by agent | Notes |
 |------------------------------|-------|
-| `update` | Mirrors all caller-supplied marker changes; performs the native TaskUpdate mirror |
+| `update` | Mirrors all caller-supplied marker changes |
 | `add` | Caller supplies `task_name`, `description`, `dod`, `depends`, optional `phase` |
 | `archive` | No caller input needed; applies retention rule |
 | `session-log` | No caller input needed; splits older months out |

@@ -102,12 +102,7 @@ Mirrors `harness-plan update`. See `harness/skills/harness-plan/references/updat
    - `blocked` → `blocked (<reason>)`
    - `TODO` → `cc:TODO`
 4. Replace the **Status** cell. Do not reorder phases.
-5. **Native task mirror** — for `done` and `WIP` only:
-   - Run `TaskList`; find a native task whose title starts with `<task_id>`.
-   - Call `TaskUpdate(status="completed")` for `done`, `TaskUpdate(status="in_progress")` for `WIP`.
-   - Silent on no match.
-   - Do **not** mirror for `blocked` or `TODO`.
-6. Return `status: "applied"`, `changes: ["Plans.md row <task_id>: <old> → <new>"]`.
+5. Return `status: "applied"`, `changes: ["Plans.md row <task_id>: <old> → <new>"]`.
 
 ## Operation: `add`
 
@@ -177,7 +172,7 @@ Planner response:
   "operation": "update",
   "status": "applied",
   "file_path": "Plans.md",
-  "changes": ["Plans.md row 98.3: cc:WIP → cc:done [a1b2c3d]", "TaskUpdate(98.3, completed)"]
+  "changes": ["Plans.md row 98.3: cc:WIP → cc:done [a1b2c3d]"]
 }
 ```
 
@@ -234,7 +229,7 @@ The planner returns the `planner-response.v1` JSON as its final message. The cal
 ## References
 
 - `harness/skills/harness-plan/references/plans-md-rules.md` — ordering rules, field definitions, marker semantics
-- `harness/skills/harness-plan/references/update.md` — full `update` flow including native task mirror
+- `harness/skills/harness-plan/references/update.md` — full `update` flow including insertion rules
 - `harness/skills/harness-plan/references/add.md` — full `add` flow including insertion rules
 - `harness/skills/harness-plan/references/archive.md` — full `archive` flow including retention rule
 - `harness/skills/harness-plan/references/session-log.md` — monthly split flow

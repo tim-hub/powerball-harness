@@ -1,6 +1,6 @@
 # Solo Mode
 
-Full 13-step single-task implementation flow with drift check, advisor preflight, TDD, sprint-contract generation, review, and completion report.
+Full 12-step single-task implementation flow with drift check, advisor preflight, TDD, sprint-contract generation, review, and completion report.
 
 ---
 
@@ -57,7 +57,6 @@ This check is intentionally lightweight — it only inspects commit messages, no
    have `[ralph]`, continue with the standard solo flow below.
 2.5. Update task to `cc:WIP`
    - Write `cc:WIP` to the task's Status cell in Plans.md (authoritative)
-   - **Mirror to native task list**: run `TaskList`, locate any native task whose title starts with the Plans.md task ID prefix (e.g., `97.1`), and call `TaskUpdate(status="in_progress")` on it. If no matching native task exists, skip silently — the native task list is a mirror, never authoritative.
 3. **TDD Phase** — behaviour depends on task tag:
 
    | Task type | Step 3 action |
@@ -76,18 +75,15 @@ This check is intentionally lightweight — it only inspects commit messages, no
    - On REQUEST_CHANGES: fix based on feedback → re-review (up to 3 times)
    - Proceed to next step on APPROVE. Self-check alone does not confirm completion
 9. Normalize and save review artifact with `"${CLAUDE_SKILL_DIR}/../../scripts/write-review-result.sh"`
-10. Auto-commit with `git commit` (skip with `--no-commit`)
-11. Update task to `cc:Done` (with commit hash)
-   - Get the latest commit hash (abbreviated 7 chars) with `git log --oneline -1`
-   - Update Plans.md Status to `cc:Done [a1b2c3d]` format (authoritative)
-   - If no commit (`--no-commit`), use `cc:Done` without hash
-   - **Mirror to native task list**: run `TaskList`, locate any native task whose title starts with the Plans.md task ID prefix (e.g., `97.1`), and call `TaskUpdate(status="completed")` on it. If no matching native task exists, skip silently — the native task list is a mirror, never authoritative.
+10. Update task to `cc:done`
+   - Update Plans.md Status to `cc:done` (authoritative). No commit is made by default.
+   - If `--commit` was passed: run `git commit`, get the abbreviated 7-char hash with `git log --oneline -1`, and write `cc:done [a1b2c3d]` instead.
    - **Phase-close check**: Scan the current phase in Plans.md.
      - All tasks except `[verify:e2e]` are `cc:done` AND `N.e2e` is `cc:TODO`: → "Phase N implementation complete. Next: run the E2E verification task (N.e2e)." Auto-select `N.e2e` as the next task (or surface it in manual mode).
      - `[verify:e2e]` task is `cc:done`: phase is fully closed.
      - No `[verify:e2e]` task (docs/config-only phase): phase closes normally.
-12. **Rich Completion Report** (see [`${CLAUDE_SKILL_DIR}/templates/completion-report.md`](${CLAUDE_SKILL_DIR}/templates/completion-report.md))
-13. **Automatic Re-ticketing on Failure** (test/CI failure only):
+11. **Rich Completion Report** (see [`${CLAUDE_SKILL_DIR}/templates/completion-report.md`](${CLAUDE_SKILL_DIR}/templates/completion-report.md))
+12. **Automatic Re-ticketing on Failure** (test/CI failure only):
     - Check test execution results
     - On failure: save fix task proposal to state, add to Plans.md via approval command (see [`re-ticketing.md`](${CLAUDE_SKILL_DIR}/references/re-ticketing.md))
     - On success: proceed to next task
