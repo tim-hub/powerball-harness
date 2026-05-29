@@ -173,13 +173,14 @@ append_jsonl() {
 }
 
 plans_file_path() {
+  # Resolve the plans.json SSOT path (honors plansDirectory via config-utils.sh).
   local plans_file=""
   if [ -f "${SCRIPT_DIR}/config-utils.sh" ]; then
     plans_file="$(
       cd "${PROJECT_ROOT}" && \
       CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml" \
       source "${SCRIPT_DIR}/config-utils.sh" && \
-      get_plans_file_path 2>/dev/null
+      get_plans_json_path 2>/dev/null
     )" || plans_file=""
     # Resolve relative paths against PROJECT_ROOT
     if [ -n "${plans_file}" ]; then
@@ -192,10 +193,8 @@ plans_file_path() {
     fi
   fi
 
-  if [ -z "${plans_file}" ]; then
-    if [ -f "${PROJECT_ROOT}/Plans.md" ]; then
-      plans_file="${PROJECT_ROOT}/Plans.md"
-    fi
+  if [ -z "${plans_file}" ] && [ -f "${PROJECT_ROOT}/.claude/harness/plans.json" ]; then
+    plans_file="${PROJECT_ROOT}/.claude/harness/plans.json"
   fi
 
   printf '%s\n' "${plans_file}"
@@ -289,12 +288,11 @@ next_task_id() {
   local selection="$1"
   local plans_file="$2"
   python_json "${plans_file}" "${selection}" <<'PY'
-import re
+import json
 import sys
 
 plans_path = sys.argv[1]
 selection = sys.argv[2]
-task_re = re.compile(r'^\|\s*([0-9]+(?:\.[0-9]+)*)\s*\|')
 
 def to_tuple(value):
     return tuple(int(part) for part in value.split("."))
@@ -304,20 +302,20 @@ def matches(task_id):
         return True
     if "-" in selection:
         start, end = selection.split("-", 1)
-        return to_tuple(start) <= to_tuple(task_id) <= to_tuple(end)
+        try:
+            return to_tuple(start) <= to_tuple(task_id) <= to_tuple(end)
+        except ValueError:
+            return False
     return selection == task_id
 
 with open(plans_path, "r", encoding="utf-8") as fh:
-    for raw_line in fh:
-        match = task_re.match(raw_line)
-        if not match:
-            continue
-        task_id = match.group(1)
-        cells = [cell.strip() for cell in raw_line.strip().strip("|").split("|")]
-        if len(cells) < 2:
-            continue
-        status = cells[-1]
-        if matches(task_id) and ("cc:TODO" in status or "cc:WIP" in status):
+    data = json.load(fh)
+
+for phase in data.get("phases", []):
+    for task in phase.get("tasks") or []:
+        task_id = task.get("id", "")
+        status = task.get("status", "")
+        if matches(task_id) and status in ("cc:TODO", "cc:WIP"):
             print(task_id)
             raise SystemExit(0)
 
@@ -329,26 +327,20 @@ task_status_value() {
   local plans_file="$1"
   local task_id="$2"
   python_json "${plans_file}" "${task_id}" <<'PY'
-import re
+import json
 import sys
 
 plans_path = sys.argv[1]
 target = sys.argv[2]
-task_re = re.compile(r'^\|\s*([0-9]+(?:\.[0-9]+)*)\s*\|')
 
 with open(plans_path, "r", encoding="utf-8") as fh:
-    for raw_line in fh:
-        match = task_re.match(raw_line)
-        if not match:
-            continue
-        task_id = match.group(1)
-        if task_id != target:
-            continue
-        cells = [cell.strip() for cell in raw_line.strip().strip("|").split("|")]
-        if len(cells) < 2:
-            break
-        print(cells[-1])
-        raise SystemExit(0)
+    data = json.load(fh)
+
+for phase in data.get("phases", []):
+    for task in phase.get("tasks") or []:
+        if task.get("id") == target:
+            print(task.get("status", ""))
+            raise SystemExit(0)
 
 raise SystemExit(1)
 PY
@@ -1038,10 +1030,10 @@ ${advisor_guidance}
 }
 
 Do exactly one task cycle.
-1. Read Plans.md and the sprint contract.
+1. Read the task with \`harness plan-cli get ${task_id}\` and the sprint contract.
 2. Work only on task ${task_id}. Do not start another long-running loop or background runner.
 3. Implement the task, run the validation you judge necessary, and keep the repo coherent.
-4. If the task is in a good state, update Plans.md for ${task_id} to \`cc:Done [<commit>]\` and create a commit.
+4. If the task is in a good state, create a commit, then mark it done: \`harness plan-cli update ${task_id} --status cc:done --hash <commit>\`.
 5. If the task is blocked or not ready to approve, do not fake completion. Leave a clear explanation in the final message.
 6. In all cases, end with a short summary that starts with either:
    - RESULT: APPROVED
@@ -1452,7 +1444,7 @@ cmd_start() {
   local plans_file
   plans_file="$(plans_file_path)"
   [ -f "${plans_file}" ] || {
-    echo "Plans.md not found under ${PROJECT_ROOT}" >&2
+    echo "plans.json not found under ${PROJECT_ROOT}" >&2
     exit 1
   }
 

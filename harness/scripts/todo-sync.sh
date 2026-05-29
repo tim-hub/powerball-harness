@@ -1,11 +1,11 @@
 #!/bin/bash
 # todo-sync.sh
-# Bidirectional sync between TodoWrite and Plans.md
+# Records TodoWrite snapshots as session context. The task SSOT is plans.json
+# (managed via `harness plan-cli`); this hook does not write the plan.
 #
-# Called from the PostToolUse hook to reflect TodoWrite state changes in Plans.md
+# Called from the PostToolUse hook on TodoWrite events.
 #
-# Mapping:
-#   TodoWrite state  → Plans.md marker
+# Status mapping (TodoWrite → plans.json marker):
 #   pending          → cc:TODO
 #   in_progress      → cc:WIP
 #   completed        → cc:done
@@ -38,16 +38,11 @@ if [ "$TOOL_NAME" != "TodoWrite" ]; then
   exit 0
 fi
 
-# Get the path to Plans.md
+# Gate on the plans.json SSOT existing.
 if [ -f "${SCRIPT_DIR}/config-utils.sh" ]; then
   source "${SCRIPT_DIR}/config-utils.sh"
-  PLANS_FILE=$(get_plans_file_path)
-else
-  PLANS_FILE="Plans.md"
-fi
-
-# Exit if Plans.md does not exist
-if [ ! -f "$PLANS_FILE" ]; then
+  plans_json_exists || exit 0
+elif [ ! -f ".claude/harness/plans.json" ]; then
   exit 0
 fi
 
@@ -69,9 +64,8 @@ echo "$TODOS" | jq '{
   todos: .
 }' > "$SYNC_STATE_FILE" 2>/dev/null
 
-# Update task state in Plans.md
-# Note: Updating while preserving the Plans.md format is complex,
-# so here we only log it and leave the actual update to Claude Code.
+# Task state is owned by plans.json (via `harness plan-cli`); this hook only
+# records the TodoWrite snapshot as context and does not write the plan itself.
 
 # Record to event log
 EVENT_LOG="${STATE_DIR}/session.events.jsonl"
@@ -106,13 +100,13 @@ if [ "$PENDING_COUNT" -eq 0 ] && [ "$WIP_COUNT" -eq 0 ] && [ "$DONE_COUNT" -gt 0
 fi
 
 # Output sync information as additionalContext
-OUTPUT="[TodoSync] Synced with Plans.md: TODO=$PENDING_COUNT, WIP=$WIP_COUNT, done=$DONE_COUNT${WORK_WARNING}"
+OUTPUT="[TodoSync] Synced with plans.json: TODO=$PENDING_COUNT, WIP=$WIP_COUNT, done=$DONE_COUNT${WORK_WARNING}"
 
 if command -v jq >/dev/null 2>&1; then
   jq -nc --arg ctx "$OUTPUT" \
     '{hookSpecificOutput:{additionalContext:$ctx}}'
 else
   cat <<EOF
-{"hookSpecificOutput":{"additionalContext":"[TodoSync] Synced with Plans.md: TODO=$PENDING_COUNT, WIP=$WIP_COUNT, done=$DONE_COUNT"}}
+{"hookSpecificOutput":{"additionalContext":"[TodoSync] Synced with plans.json: TODO=$PENDING_COUNT, WIP=$WIP_COUNT, done=$DONE_COUNT"}}
 EOF
 fi
