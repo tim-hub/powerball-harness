@@ -256,7 +256,8 @@ func apiPatchTask(w http.ResponseWriter, r *http.Request, planFile string, taskI
 	setCORSHeaders(w)
 	var fields map[string]string
 	if err := decodeBody(r, &fields); err != nil {
-		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		writeJSON(w, map[string]string{"error": "invalid JSON: " + err.Error()})
 		return
 	}
 
@@ -316,7 +317,8 @@ func apiPostPhase(w http.ResponseWriter, r *http.Request, planFile string) {
 		Importance string `json:"importance"`
 	}
 	if err := decodeBody(r, &req); err != nil {
-		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		writeJSON(w, map[string]string{"error": "invalid JSON: " + err.Error()})
 		return
 	}
 	if req.Title == "" || req.Goal == "" {
@@ -375,7 +377,8 @@ func apiPostTask(w http.ResponseWriter, r *http.Request, planFile string, phaseI
 		QualityMarkers []string `json:"qualityMarkers"`
 	}
 	if err := decodeBody(r, &req); err != nil {
-		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		writeJSON(w, map[string]string{"error": "invalid JSON: " + err.Error()})
 		return
 	}
 	if req.Name == "" || req.DoD == "" {
@@ -471,9 +474,8 @@ func apiPostComment(w http.ResponseWriter, r *http.Request, planFile string, tar
 		AuthorName string `json:"authorName"`
 	}
 	if err := decodeBody(r, &req); err != nil {
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "invalid JSON: " + err.Error()})
+		writeJSON(w, map[string]string{"error": "invalid JSON: " + err.Error()})
 		return
 	}
 	if req.Text == "" {
