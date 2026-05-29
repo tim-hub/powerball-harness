@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import cytoscape from 'cytoscape';
 
   // ── State ─────────────────────────────────────────────────────────────────
   let phases = $state([]);
@@ -16,6 +17,7 @@
   let error = $state('');
   let mapContainer;
   let cy = null;
+  let expandedPhases = new Set();
 
   const STATUSES = ['cc:TODO', 'cc:WIP', 'cc:done', 'pm:confirmed', 'pm:requested', 'blocked'];
 
@@ -136,12 +138,120 @@
     await patchTask(modalTask.id, fields);
   }
 
+  function buildMapElements() {
+    const elements = [];
+    const targetPhases = phaseFilter === 'all' ? phases : phases.filter(ph => String(ph.id) === phaseFilter);
+
+    for (const ph of targetPhases) {
+      if (!expandedPhases.has(ph.id)) {
+        elements.push({
+          data: { id: `ph-${ph.id}`, label: `Phase ${ph.id}\n${ph.title}`, type: 'phase', phaseId: ph.id }
+        });
+      } else {
+        for (const t of (ph.tasks || [])) {
+          const color = { 'cc:TODO': '#9ca3af', 'cc:WIP': '#3b82f6', 'cc:done': '#22c55e',
+                          'pm:confirmed': '#16a34a', 'pm:requested': '#eab308', 'blocked': '#ef4444' }[t.status] || '#9ca3af';
+          elements.push({
+            data: { id: `task-${t.id}`, label: `#${t.id}\n${t.name.slice(0, 30)}`, type: 'task', taskId: t.id, color, phaseId: ph.id }
+          });
+        }
+      }
+    }
+
+    for (const ph of targetPhases) {
+      if (expandedPhases.has(ph.id)) {
+        for (const t of (ph.tasks || [])) {
+          for (const dep of (t.depends || [])) {
+            const depTask = allTasks().find(x => x.id === dep);
+            if (!depTask) continue;
+            const depPhaseExpanded = expandedPhases.has(depTask._phase?.id);
+            const srcId = `task-${t.id}`;
+            const tgtId = depPhaseExpanded ? `task-${dep}` : `ph-${depTask._phase?.id}`;
+            if (elements.find(e => e.data.id === tgtId)) {
+              elements.push({ data: { id: `edge-${t.id}-${dep}`, source: srcId, target: tgtId, dashed: !depPhaseExpanded } });
+            }
+          }
+        }
+      }
+    }
+
+    return elements;
+  }
+
+  function initMap() {
+    if (!mapContainer || cy) return;
+    cy = cytoscape({
+      container: mapContainer,
+      elements: buildMapElements(),
+      layout: { name: 'cose', animate: false, padding: 40 },
+      style: [
+        { selector: 'node[type="phase"]', style: {
+          'shape': 'round-rectangle', 'width': 160, 'height': 60,
+          'background-color': '#1f2937', 'color': '#fff',
+          'label': 'data(label)', 'text-valign': 'center', 'text-halign': 'center',
+          'font-size': '11px', 'text-wrap': 'wrap', 'text-max-width': '140px',
+          'border-width': 2, 'border-color': '#374151', 'cursor': 'pointer',
+        }},
+        { selector: 'node[type="task"]', style: {
+          'shape': 'ellipse', 'width': 80, 'height': 80,
+          'background-color': 'data(color)', 'color': '#fff',
+          'label': 'data(label)', 'text-valign': 'center', 'text-halign': 'center',
+          'font-size': '9px', 'text-wrap': 'wrap', 'text-max-width': '70px',
+          'cursor': 'pointer',
+        }},
+        { selector: 'edge', style: {
+          'curve-style': 'bezier', 'target-arrow-shape': 'triangle',
+          'arrow-scale': 1.2, 'line-color': '#9ca3af', 'target-arrow-color': '#9ca3af',
+          'line-style': 'data(dashed)',
+        }},
+      ],
+    });
+
+    cy.on('tap', 'node[type="phase"]', evt => {
+      const phaseId = evt.target.data('phaseId');
+      expandedPhases = new Set([...expandedPhases, phaseId]);
+      cy.destroy(); cy = null;
+      initMap();
+    });
+
+    cy.on('tap', 'node[type="task"]', evt => {
+      const taskId = evt.target.data('taskId');
+      const t = allTasks().find(x => x.id === taskId);
+      if (t) openTask(t);
+    });
+
+    cy.on('dbltap', evt => {
+      if (evt.target === cy) cy.fit(undefined, 40);
+    });
+  }
+
+  function destroyMap() {
+    if (cy) { cy.destroy(); cy = null; }
+    expandedPhases = new Set();
+  }
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   onMount(async () => {
     await fetchPhases();
     const handler = (e) => { if (e.key === 'Escape') closeModal(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
+  });
+
+  $effect(() => {
+    if (view === 'map') {
+      setTimeout(initMap, 0);
+    } else {
+      destroyMap();
+    }
+  });
+
+  $effect(() => {
+    const _filter = phaseFilter; // track dependency
+    if (view === 'map' && cy) {
+      destroyMap();
+      setTimeout(initMap, 0);
+    }
   });
 </script>
 
