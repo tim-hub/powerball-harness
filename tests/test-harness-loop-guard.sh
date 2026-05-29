@@ -22,16 +22,22 @@ fail() { echo "  FAIL: $1"; FAIL=$((FAIL + 1)); }
 TMP="$(mktemp -d)"
 trap 'rm -rf "${TMP}"' EXIT
 
-# Helper: build a minimal Plans.md with a TODO task
+# Helper: build a minimal plans.json with a TODO task
 make_plans() {
   local dir="$1"
-  mkdir -p "${dir}"
-  cat > "${dir}/Plans.md" <<'PLANS'
-# Plans
-
-| Task | Content | DoD | Depends | Status |
-|------|---------|-----|---------|--------|
-| 1 | Dummy task | done | - | cc:TODO |
+  mkdir -p "${dir}/.claude/harness"
+  cat > "${dir}/.claude/harness/plans.json" <<'PLANS'
+{
+  "project": "test", "meta": {"lastRelease": "", "lastReleaseDate": ""},
+  "phases": [{
+    "id": 1, "title": "Test Phase", "created": "2026-01-01", "goal": "Test",
+    "status": "active", "urgency": "medium", "importance": "medium", "comments": [],
+    "tasks": [
+      {"id": "1.1", "name": "Dummy task", "description": "", "dod": "done", "depends": [], "status": "cc:TODO", "urgency": "medium", "importance": "medium", "qualityMarkers": [], "comments": []}
+    ]
+  }],
+  "futureConsiderations": []
+}
 PLANS
 }
 
@@ -88,7 +94,7 @@ cat > "${STATE_DIR_B}/run.json" <<EOF
   "run_id": "stale-test",
   "selection": "all",
   "status": "running",
-  "plans_file": "${PROJECT_B}/Plans.md"
+  "plans_file": "${PROJECT_B}/.claude/harness/plans.json"
 }
 EOF
 

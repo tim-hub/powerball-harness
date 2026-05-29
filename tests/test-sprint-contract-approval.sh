@@ -8,14 +8,24 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TMP_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-cat > "${TMP_DIR}/Plans.md" <<'EOF'
-| Task | Content | DoD | Depends | Status |
-|------|---------|-----|---------|--------|
-| 32.1.1 | Create contract | Load runtime validation into contract | 32.0.1 | cc:TODO |
+mkdir -p "${TMP_DIR}/.claude/harness"
+cat > "${TMP_DIR}/.claude/harness/plans.json" <<'EOF'
+{
+  "project": "test", "meta": {"lastRelease": "", "lastReleaseDate": ""},
+  "phases": [{
+    "id": 32, "title": "Test Phase", "created": "2026-01-01", "goal": "Test",
+    "status": "active", "urgency": "medium", "importance": "medium", "comments": [],
+    "tasks": [
+      {"id": "32.1.1", "name": "Create contract", "description": "", "dod": "Load runtime validation into contract", "depends": ["32.0.1"], "status": "cc:TODO", "urgency": "medium", "importance": "medium", "qualityMarkers": [], "comments": []}
+    ]
+  }],
+  "futureConsiderations": []
+}
 EOF
+PLANS_JSON="${TMP_DIR}/.claude/harness/plans.json"
 
 CONTRACT_PATH="${TMP_DIR}/contract.json"
-"${PROJECT_ROOT}/harness/scripts/generate-sprint-contract.sh" "32.1.1" "${TMP_DIR}/Plans.md" "$CONTRACT_PATH" >/dev/null
+"${PROJECT_ROOT}/harness/scripts/generate-sprint-contract.sh" "32.1.1" "${PLANS_JSON}" "$CONTRACT_PATH" >/dev/null
 
 if "${PROJECT_ROOT}/harness/scripts/ensure-sprint-contract-ready.sh" "$CONTRACT_PATH" >/dev/null 2>&1; then
   echo "contract should fail before approval"

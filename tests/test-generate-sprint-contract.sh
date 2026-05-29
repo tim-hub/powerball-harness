@@ -8,13 +8,23 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TMP_DIR="$(mktemp -d "/tmp/harness-test.XXXXXX")"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-cat > "${TMP_DIR}/Plans.md" <<'EOF'
-| Task | Content | DoD | Depends | Status |
-|------|---------|-----|---------|--------|
-| 32.1.1 | Create contract | Load runtime validation into contract | 32.0.1 | cc:TODO |
-| 32.2.2 | Add browser evaluator | Verify UI flow in browser | 32.2.1 | cc:TODO |
-| 32.2.5 | Handle browser_mode: exploratory | Prioritize AgentBrowser in exploratory mode | 32.2.2 | cc:TODO |
+mkdir -p "${TMP_DIR}/.claude/harness"
+cat > "${TMP_DIR}/.claude/harness/plans.json" <<'EOF'
+{
+  "project": "test", "meta": {"lastRelease": "", "lastReleaseDate": ""},
+  "phases": [{
+    "id": 32, "title": "Test Phase", "created": "2026-01-01", "goal": "Test",
+    "status": "active", "urgency": "medium", "importance": "medium", "comments": [],
+    "tasks": [
+      {"id": "32.1.1", "name": "Create contract", "description": "", "dod": "Load runtime validation into contract", "depends": ["32.0.1"], "status": "cc:TODO", "urgency": "medium", "importance": "medium", "qualityMarkers": [], "comments": []},
+      {"id": "32.2.2", "name": "Add browser evaluator", "description": "", "dod": "Verify UI flow in browser", "depends": ["32.2.1"], "status": "cc:TODO", "urgency": "medium", "importance": "medium", "qualityMarkers": [], "comments": []},
+      {"id": "32.2.5", "name": "Handle browser_mode: exploratory", "description": "", "dod": "Prioritize AgentBrowser in exploratory mode", "depends": ["32.2.2"], "status": "cc:TODO", "urgency": "medium", "importance": "medium", "qualityMarkers": [], "comments": []}
+    ]
+  }],
+  "futureConsiderations": []
+}
 EOF
+PLANS_JSON="${TMP_DIR}/.claude/harness/plans.json"
 
 cat > "${TMP_DIR}/package.json" <<'EOF'
 {
@@ -29,7 +39,7 @@ cat > "${TMP_DIR}/package.json" <<'EOF'
 EOF
 
 OUTPUT_PATH="${TMP_DIR}/out/32.1.1.sprint-contract.json"
-(cd "${TMP_DIR}" && "${PROJECT_ROOT}/harness/scripts/generate-sprint-contract.sh" "32.1.1" "${TMP_DIR}/Plans.md" "${OUTPUT_PATH}" >/dev/null)
+(cd "${TMP_DIR}" && "${PROJECT_ROOT}/harness/scripts/generate-sprint-contract.sh" "32.1.1" "${PLANS_JSON}" "${OUTPUT_PATH}" >/dev/null)
 
 jq -e '
   .schema_version == "sprint-contract.v1" and
@@ -41,7 +51,7 @@ jq -e '
 ' "${OUTPUT_PATH}" >/dev/null
 
 BROWSER_OUTPUT="${TMP_DIR}/out/32.2.2.sprint-contract.json"
-(cd "${TMP_DIR}" && "${PROJECT_ROOT}/harness/scripts/generate-sprint-contract.sh" "32.2.2" "${TMP_DIR}/Plans.md" "${BROWSER_OUTPUT}" >/dev/null)
+(cd "${TMP_DIR}" && "${PROJECT_ROOT}/harness/scripts/generate-sprint-contract.sh" "32.2.2" "${PLANS_JSON}" "${BROWSER_OUTPUT}" >/dev/null)
 
 jq -e '
   .task.id == "32.2.2" and
@@ -53,7 +63,7 @@ jq -e '
 
 EXPLORATORY_OUTPUT="${TMP_DIR}/out/32.2.5.sprint-contract.json"
 (cd "${TMP_DIR}" && HARNESS_BROWSER_REVIEW_DISABLE_AGENT_BROWSER=1 \
-  "${PROJECT_ROOT}/harness/scripts/generate-sprint-contract.sh" "32.2.5" "${TMP_DIR}/Plans.md" "${EXPLORATORY_OUTPUT}" >/dev/null)
+  "${PROJECT_ROOT}/harness/scripts/generate-sprint-contract.sh" "32.2.5" "${PLANS_JSON}" "${EXPLORATORY_OUTPUT}" >/dev/null)
 
 jq -e '
   .task.id == "32.2.5" and
