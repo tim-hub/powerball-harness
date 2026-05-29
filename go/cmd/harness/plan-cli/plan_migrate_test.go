@@ -1,6 +1,7 @@
 package plancli
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -228,26 +229,21 @@ Created: 2026-01-01
 // Integration test against actual Plans.md
 // ---------------------------------------------------------------------------
 
-func TestMigrate_ActualPlansMD(t *testing.T) {
-	// Plans.md lives at repo root; this package is at go/cmd/harness/plan-cli/
-	data, err := os.ReadFile("../../../../Plans.md")
+func TestActualPlansJSON(t *testing.T) {
+	// Plans.md was migrated to plans.json in Phase 108; validate the SSOT.
+	// This package is at go/cmd/harness/plan-cli/; plans.json is at .claude/harness/plans.json.
+	data, err := os.ReadFile("../../../../.claude/harness/plans.json")
 	if err != nil {
-		t.Fatalf("cannot read Plans.md: %v", err)
+		t.Fatalf("cannot read .claude/harness/plans.json: %v", err)
 	}
 
-	plans, err := parsePlansMD(string(data))
-	if err != nil {
-		t.Fatalf("parsePlansMD: %v", err)
+	var plans Plans
+	if err := json.Unmarshal(data, &plans); err != nil {
+		t.Fatalf("json.Unmarshal plans.json: %v", err)
 	}
 
-	if plans.Project == "" {
-		t.Error("project name should not be empty")
-	}
 	if len(plans.Phases) == 0 {
 		t.Fatal("should have at least one phase")
-	}
-	if plans.Meta.LastRelease == "" {
-		t.Error("lastRelease should be set")
 	}
 
 	// All tasks must have valid IDs and non-empty statuses.
