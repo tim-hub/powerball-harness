@@ -58,12 +58,13 @@ Each subcommand has its own reference file. Open the matching file when invoking
 
 ## Plans Format Conventions
 
-Task data is stored in `.claude/harness/plans.json`. The canonical schema is defined in `plan_types.go`. Key invariants:
+Task data is stored in `.claude/harness/plans.json` (repo root — **never** the plugin cache path). The canonical schema is defined in `plan_types.go`. Key invariants:
 
 - **Newest phase first** — `add-phase` prepends; phases are listed newest-on-top.
 - **Phases are never reordered** — gaps in IDs are allowed (archived phases are soft-deleted via `status: archived`).
 - **DoD must be verifiable** — yes/no answerable; banned: "looks good", "works properly".
 - **All writes go through the CLI** — never edit `plans.json` directly; use `harness plan-cli` subcommands.
+- **Location rule** — see [`harness/rules/plans-json-location.md`](${CLAUDE_SKILL_DIR}/../../rules/plans-json-location.md); plugin cache copies are frozen snapshots and must not be read or written.
 
 ## Marker List
 

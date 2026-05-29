@@ -74,6 +74,12 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+#### plans-json-location rule
+
+**Before**: No explicit rule prohibited reading `plans.json` from the plugin cache path. During sessions where the plugin cache was also on disk, agents could accidentally read stale snapshot data and silently write to the wrong path.
+
+**After**: `harness/rules/plans-json-location.md` codifies that the canonical path is always `<repo-root>/.claude/harness/plans.json`. The rule is cross-referenced from the CLI reference and the harness-plan SKILL.md "Plans Format Conventions" section.
+
 ---
 
 ## [6.1.0] - 2026-05-30

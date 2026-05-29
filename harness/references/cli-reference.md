@@ -2,6 +2,9 @@
 
 Machine-readable CLI reference for `harness plan-cli`. All subcommands exit 0 on success, non-zero on error.
 
+> **Plans file location**: always `<repo-root>/.claude/harness/plans.json` — never the plugin cache path.
+> See [`harness/rules/plans-json-location.md`](../rules/plans-json-location.md) for the full rule.
+
 ## Global flags
 
 | Flag | Description |
