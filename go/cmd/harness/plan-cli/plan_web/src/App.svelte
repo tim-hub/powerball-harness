@@ -304,6 +304,10 @@
   $effect(() => {
     const _view = view;
     const _filter = phaseFilter;
+    // Track phases.length so the effect re-fires once fetchPhases resolves.
+    // Without this, initMap runs while loading=true (mapContainer is null)
+    // and never retries when the map container actually renders.
+    const _dataReady = phases.length > 0;
     if (_view === 'map') {
       const timer = setTimeout(initMap, 0);
       return () => { clearTimeout(timer); destroyMap(); };
