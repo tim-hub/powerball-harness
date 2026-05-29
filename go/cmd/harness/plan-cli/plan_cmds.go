@@ -660,4 +660,169 @@ func runPlanComment(args []string) {
 	fmt.Printf("added comment %s to %s\n", c.ID, targetID)
 }
 
+// ---------------------------------------------------------------------------
+// update-phase
+// ---------------------------------------------------------------------------
+
+func runPlanUpdatePhase(args []string) {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "Usage: harness plan-cli update-phase <phase-id> [flags]")
+		os.Exit(1)
+	}
+	phID, err := strconv.Atoi(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "phase-id must be integer, got %q\n", args[0])
+		os.Exit(1)
+	}
+	args = args[1:]
+
+	// Pointers distinguish "flag absent" from "flag set to empty string".
+	var title, goal, urgency, importance, status *string
+	capture := func(i *int) *string {
+		*i++
+		if *i < len(args) {
+			v := args[*i]
+			return &v
+		}
+		return nil
+	}
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--title":
+			title = capture(&i)
+		case "--goal":
+			goal = capture(&i)
+		case "--urgency":
+			urgency = capture(&i)
+		case "--importance":
+			importance = capture(&i)
+		case "--status":
+			status = capture(&i)
+		}
+	}
+
+	p, path, err := planLoad()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+
+	found := false
+	for i := range p.Phases {
+		if p.Phases[i].ID != phID {
+			continue
+		}
+		if title != nil {
+			p.Phases[i].Title = *title
+		}
+		if goal != nil {
+			p.Phases[i].Goal = *goal
+		}
+		if urgency != nil {
+			p.Phases[i].Urgency = *urgency
+		}
+		if importance != nil {
+			p.Phases[i].Importance = *importance
+		}
+		if status != nil {
+			p.Phases[i].Status = *status
+		}
+		found = true
+	}
+	if !found {
+		fmt.Fprintf(os.Stderr, "phase %d not found\n", phID)
+		os.Exit(1)
+	}
+
+	if err := SavePlans(path, p); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("updated phase %d\n", phID)
+}
+
+// ---------------------------------------------------------------------------
+// delete-task
+// ---------------------------------------------------------------------------
+
+func runPlanDeleteTask(args []string) {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "Usage: harness plan-cli delete-task <task-id>")
+		os.Exit(1)
+	}
+	taskID := args[0]
+
+	p, path, err := planLoad()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+
+	found := false
+	for pi := range p.Phases {
+		tasks := p.Phases[pi].Tasks
+		for ti := range tasks {
+			if tasks[ti].ID == taskID {
+				p.Phases[pi].Tasks = append(tasks[:ti], tasks[ti+1:]...)
+				found = true
+				break
+			}
+		}
+		if found {
+			break
+		}
+	}
+	if !found {
+		fmt.Fprintf(os.Stderr, "task %q not found\n", taskID)
+		os.Exit(1)
+	}
+
+	if err := SavePlans(path, p); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("deleted task %s\n", taskID)
+}
+
+// ---------------------------------------------------------------------------
+// delete-phase
+// ---------------------------------------------------------------------------
+
+func runPlanDeletePhase(args []string) {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "Usage: harness plan-cli delete-phase <phase-id>")
+		os.Exit(1)
+	}
+	phID, err := strconv.Atoi(args[0])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "phase-id must be integer, got %q\n", args[0])
+		os.Exit(1)
+	}
+
+	p, path, err := planLoad()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+
+	idx := -1
+	for i := range p.Phases {
+		if p.Phases[i].ID == phID {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		fmt.Fprintf(os.Stderr, "phase %d not found\n", phID)
+		os.Exit(1)
+	}
+	p.Phases = append(p.Phases[:idx], p.Phases[idx+1:]...)
+
+	if err := SavePlans(path, p); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Printf("deleted phase %d\n", phID)
+}
+
 // runPlanServe is implemented in plan_serve.go.

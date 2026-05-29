@@ -24,8 +24,14 @@ func RunPlanCLI(args []string) {
 		runPlanAddTask(args[1:])
 	case "update":
 		runPlanUpdate(args[1:])
+	case "update-phase":
+		runPlanUpdatePhase(args[1:])
 	case "archive":
 		runPlanArchive(args[1:])
+	case "delete-task":
+		runPlanDeleteTask(args[1:])
+	case "delete-phase":
+		runPlanDeletePhase(args[1:])
 	case "comment":
 		runPlanComment(args[1:])
 	case "migrate":
@@ -72,7 +78,15 @@ func planUsage() {
 	fmt.Fprintln(os.Stderr, "    --reason   \"string\"  (required when status=blocked)")
 	fmt.Fprintln(os.Stderr, "    --urgency  low|medium|high")
 	fmt.Fprintln(os.Stderr, "    --importance low|medium|high")
+	fmt.Fprintln(os.Stderr, "  update-phase <phase-id> Update phase fields")
+	fmt.Fprintln(os.Stderr, "    --title  \"string\"")
+	fmt.Fprintln(os.Stderr, "    --goal   \"string\"")
+	fmt.Fprintln(os.Stderr, "    --urgency    low|medium|high")
+	fmt.Fprintln(os.Stderr, "    --importance low|medium|high")
+	fmt.Fprintln(os.Stderr, "    --status     active|archived")
 	fmt.Fprintln(os.Stderr, "  archive <phase-id>      Set phase status to archived")
+	fmt.Fprintln(os.Stderr, "  delete-task <task-id>   Remove a task from its phase")
+	fmt.Fprintln(os.Stderr, "  delete-phase <phase-id> Remove a phase entirely")
 	fmt.Fprintln(os.Stderr, "  comment <phase-id|task-id>  Add a comment")
 	fmt.Fprintln(os.Stderr, "    --text        \"string\"   (required)")
 	fmt.Fprintln(os.Stderr, "    --author      human|agent  (default: human)")
