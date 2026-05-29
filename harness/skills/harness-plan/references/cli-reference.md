@@ -175,6 +175,8 @@ harness plan-cli comment <targetID> --text <text> [--author <author>]
 | `--text <text>` | Yes |
 | `--author <author>` | No (default: "agent") |
 
+**Exit codes:** 0 success · 1 target not found · 2 missing required flag
+
 **Agent examples:**
 ```bash
 harness plan-cli comment 108.3 --text "Verified: go test passes, binary starts on 8888"
@@ -197,6 +199,15 @@ harness plan-cli migrate [--dry-run]
 
 **Exit codes:** 0 success · 1 Plans.md not found · 2 parse error
 
+**Agent examples:**
+```bash
+# Preview migration without writing
+harness plan-cli migrate --dry-run
+
+# Migrate Plans.md to plans.json
+harness plan-cli migrate
+```
+
 ---
 
 ## `serve`
@@ -214,7 +225,7 @@ harness plan-cli serve [--port <port>] [--open]
 
 **Exit codes:** 0 on SIGINT · 1 on listen error
 
-**Examples:**
+**Agent examples:**
 ```bash
 harness plan-cli serve --open
 harness plan-cli serve --port 9000
