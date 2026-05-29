@@ -1,6 +1,6 @@
 #!/bin/bash
 # calculate-effort.sh
-# Reads task information from Plans.md and calculates the effort level, printing it to stdout.
+# Reads task information from plans.json and calculates the effort level, printing it to stdout.
 #
 # Usage:
 #   bash scripts/calculate-effort.sh "task description or task ID"
@@ -36,44 +36,45 @@ fi
 # Initialize score
 SCORE=0
 
-# Resolve Plans.md path (fallback order: git root → PROJECT_ROOT → cwd)
+# Resolve plans.json path (fallback order: git root → PROJECT_ROOT → cwd)
+# SSOT: <root>/.claude/harness/plans.json
 _GIT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
-PLANS_MD="${PROJECT_ROOT:-${_GIT_ROOT:-$(pwd)}}/Plans.md"
+PLANS_JSON="${PROJECT_ROOT:-${_GIT_ROOT:-$(pwd)}}/.claude/harness/plans.json"
 
-# Extract task information from Plans.md
-# Assumes v2 format: | Task | Content | DoD | Depends | Status |
+# Extract task information from plans.json
+# Per-task fields: id, name, dod, depends (array), qualityMarkers (array)
 TASK_CONTENT=""
 TASK_DOD=""
 TASK_DEPENDS=""
 
-if [ -f "$PLANS_MD" ]; then
+if command -v jq >/dev/null 2>&1 && [ -f "$PLANS_JSON" ]; then
   # Search by task ID pattern (#123, 34.2.2, #34.2.2 formats)
-  TASK_ID_PATTERN=""
   if echo "$TASK_INPUT" | grep -qE '^#?[0-9]+(\.[0-9]+)*$'; then
     TASK_ID_PATTERN=$(echo "$TASK_INPUT" | tr -d '#')
-    # Parse table row: | Number | Content | DoD | Depends | Status |
-    TASK_ROW=$(grep -E "^\|[[:space:]]*${TASK_ID_PATTERN}[[:space:]]*\|" "$PLANS_MD" 2>/dev/null || true)
-    if [ -n "$TASK_ROW" ]; then
-      # Extract columns by pipe delimiter
-      TASK_CONTENT=$(echo "$TASK_ROW" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $3); print $3}')
-      TASK_DOD=$(echo "$TASK_ROW" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $4); print $4}')
-      TASK_DEPENDS=$(echo "$TASK_ROW" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $5); print $5}')
+    # Look up the task by exact id. depends is rendered as a comma-joined list.
+    _task_tsv=$(jq -r --arg id "$TASK_ID_PATTERN" '
+      [.phases[].tasks[]? | select(.id == $id)] | .[0] // empty |
+      [ (.name // ""), (.dod // ""), ((.depends // []) | join(",")) ] | @tsv
+    ' "$PLANS_JSON" 2>/dev/null || true)
+    if [ -n "$_task_tsv" ]; then
+      IFS=$'\t' read -r TASK_CONTENT TASK_DOD TASK_DEPENDS <<< "$_task_tsv"
     fi
   fi
 
-  # If not found by task ID, search by keyword in description
+  # If not found by task ID, search by keyword in the task name
   if [ -z "$TASK_CONTENT" ]; then
-    # Extract the row closest to the task description within Plans.md (table rows)
-    TASK_ROW=$(grep -iF "$(echo "$TASK_INPUT" | cut -c1-50)" "$PLANS_MD" 2>/dev/null | grep "^|" | head -1 || true)
-    if [ -n "$TASK_ROW" ]; then
-      TASK_CONTENT=$(echo "$TASK_ROW" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $3); print $3}')
-      TASK_DOD=$(echo "$TASK_ROW" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $4); print $4}')
-      TASK_DEPENDS=$(echo "$TASK_ROW" | awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/, "", $5); print $5}')
+    _needle="$(echo "$TASK_INPUT" | cut -c1-50)"
+    _task_tsv=$(jq -r --arg needle "$_needle" '
+      [.phases[].tasks[]? | select((.name // "") | contains($needle))] | .[0] // empty |
+      [ (.name // ""), (.dod // ""), ((.depends // []) | join(",")) ] | @tsv
+    ' "$PLANS_JSON" 2>/dev/null || true)
+    if [ -n "$_task_tsv" ]; then
+      IFS=$'\t' read -r TASK_CONTENT TASK_DOD TASK_DEPENDS <<< "$_task_tsv"
     fi
   fi
 fi
 
-# If not retrievable from Plans.md, use the task input itself as the analysis target
+# If not retrievable from plans.json, use the task input itself as the analysis target
 if [ -z "$TASK_CONTENT" ]; then
   TASK_CONTENT="$TASK_INPUT"
 fi

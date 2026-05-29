@@ -4,7 +4,7 @@
 #
 # Supported events:
 # - TaskCreated: Records background task creation
-# - FileChanged: Detects changes to Plans / rules / settings and prompts re-read
+# - FileChanged: Detects changes to plans.json / rules / settings and prompts re-read
 # - CwdChanged: Prompts context re-check when switching worktrees or repos
 
 set -euo pipefail
@@ -124,8 +124,8 @@ MESSAGE=""
 case "${HOOK_EVENT_NAME}" in
   FileChanged)
     case "${FILE_PATH}" in
-      Plans.md|*/Plans.md)
-        MESSAGE="Plans.md has been updated. Please re-read the latest task state before the next implementation or review."
+      .claude/harness/plans.json|*/.claude/harness/plans.json)
+        MESSAGE="plans.json has been updated. Please re-read the latest task state before the next implementation or review."
         ;;
       AGENTS.md|*/AGENTS.md|CLAUDE.md|*/CLAUDE.md|.claude/rules/*|*/.claude/rules/*|hooks/hooks.json|*/hooks/hooks.json|.claude-plugin/settings.json|*/.claude-plugin/settings.json)
         MESSAGE="Work rules or Harness settings have been updated. Proceed with the latest rules in mind for the next operation."
@@ -133,7 +133,7 @@ case "${HOOK_EVENT_NAME}" in
     esac
     ;;
   CwdChanged)
-    MESSAGE="Working directory has been switched. If you have moved to a different repository or worktree, please re-check AGENTS.md, Plans.md, and local rules."
+    MESSAGE="Working directory has been switched. If you have moved to a different repository or worktree, please re-check AGENTS.md, plans.json, and local rules."
     ;;
 esac
 

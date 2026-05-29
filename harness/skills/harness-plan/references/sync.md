@@ -1,22 +1,22 @@
 # sync Subcommand -- Progress Sync Flow
 
-Compares implementation status against Plans.md, detects discrepancies, and updates accordingly.
+Compares implementation status against the plan (`harness plan-cli list`/`get`), detects discrepancies, and updates accordingly via `harness plan-cli update`. The SSOT is `.claude/harness/plans.json`.
 
-## Step 0: Plans.md Validation
+## Step 0: Plan Validation
 
-Verify the existence and format of Plans.md. If there are issues, provide guidance and stop immediately.
+Verify the plan exists and is readable. If there are issues, provide guidance and stop immediately.
 
 | State | Guidance |
 |-------|----------|
-| Plans.md does not exist | `Plans.md not found. Create one with /harness-plan create.` -> **Stop** |
-| Header lacks DoD / Depends columns (v1 format) | `Plans.md is in the old format (3 columns). Regenerate as v2 (5 columns) with /harness-plan create. Existing tasks will be carried over automatically.` -> **Stop** |
-| v2 format (5 columns) | Proceed to Step 1 |
+| Plan is empty / no phases (`harness plan-cli list` returns nothing) | `No plan found. Create one with /harness-plan create.` -> **Stop** |
+| Legacy `Plans.md` exists but `.claude/harness/plans.json` does not | `Legacy Plans.md detected. Run \`harness plan-cli migrate\` to convert it to the JSON SSOT.` -> **Stop** |
+| `.claude/harness/plans.json` present | Proceed to Step 1 |
 
 ## Step 1: Collect Current State (Parallel)
 
 ```bash
-# Plans.md state
-cat Plans.md
+# Plan state (SSOT is .claude/harness/plans.json)
+harness plan-cli list
 
 # Git change status
 git status
@@ -31,7 +31,7 @@ tail -20 .claude/state/agent-trace.jsonl 2>/dev/null | jq -r '.files[].path' | s
 
 ## Step 1.5: Agent Trace Analysis
 
-Retrieve recent edit history from Agent Trace and cross-reference with Plans.md tasks:
+Retrieve recent edit history from Agent Trace and cross-reference with plan tasks (`harness plan-cli list`):
 
 ```bash
 # Recent edited file list
@@ -47,7 +47,7 @@ PROJECT=$(tail -1 .claude/state/agent-trace.jsonl 2>/dev/null | \
 
 | Check Item | Detection Method |
 |-----------|-----------------|
-| File edits not in Plans.md | Agent Trace vs task descriptions |
+| File edits not in any plan task | Agent Trace vs task descriptions |
 | Files differing from task description | Expected files vs actual edits |
 | Tasks with no recent edits | Agent Trace timeline vs WIP duration |
 
@@ -68,14 +68,14 @@ Recognizes both `cc:done [a1b2c3d]` format (with commit hash) and `cc:done` (wit
 - `cc:done [xxxxxxx]` -> Treated as done with hash. Retains the 7-character short hash
 - When hash is present, can verify commit existence by cross-referencing with `git log --oneline`
 
-> **Backward compatibility**: The hashless format remains valid. Does not break existing Plans.md files.
+> **Backward compatibility**: The hashless format remains valid. Does not break existing plans.
 
-## Step 3: Plans.md Update Proposal
+## Step 3: Plan Update Proposal
 
-When discrepancies are detected, propose and execute:
+When discrepancies are detected, propose and (on approval) execute each change with `harness plan-cli update <task-id> --status <status>` (add `--hash` for `cc:done`, `--reason` for `blocked`):
 
 ```
-Plans.md update needed
+Plan update needed
 
 | Task | Current | New | Reason |
 |------|---------|-----|--------|
@@ -83,6 +83,13 @@ Plans.md update needed
 | YY   | cc:TODO | cc:WIP | Files already edited |
 
 Proceed with update? (yes / no)
+```
+
+On "yes", apply each row, e.g.:
+
+```bash
+harness plan-cli update XX --status cc:done --hash <7char>
+harness plan-cli update YY --status cc:WIP
 ```
 
 ## Step 4: Progress Summary Output
@@ -160,8 +167,9 @@ Can be explicitly skipped with `--no-retro`.
 ### Step R1: Collect Completed Tasks
 
 ```bash
-# Extract cc:done / pm:confirmed tasks from Plans.md
-grep -E 'cc:done|pm:confirmed' Plans.md
+# List cc:done / pm:confirmed tasks from the plan
+harness plan-cli list --status cc:done
+harness plan-cli list --status pm:confirmed
 
 # Recent completion commit history
 git log --oneline --since="7 days ago"
@@ -174,10 +182,10 @@ git diff --stat HEAD~10
 
 | Item | Analysis Method |
 |------|----------------|
-| **Estimation accuracy** | Infer expected file count from Plans.md task descriptions -> Compare with actual changed file count from `git diff --stat` |
+| **Estimation accuracy** | Infer expected file count from plan task descriptions -> Compare with actual changed file count from `git diff --stat` |
 | **Block causes** | Aggregate reason patterns for tasks with `blocked` marker (technical / external dependency / unclear spec) |
 | **Quality marker accuracy** | Check whether tasks tagged `[feature:security]` etc. actually had related issues |
-| **Scope changes** | Task count at initial Plans.md commit vs current task count (additions/deletions) |
+| **Scope changes** | Task count at the start of the period vs current task count (additions/deletions) |
 
 ### Step R3: Retrospective Summary Output
 

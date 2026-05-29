@@ -4,13 +4,18 @@
 #
 # Purpose: Run after Write|Edit in PostToolUse
 # Behavior:
-#   - When Plans.md has a cc:WIP task (TDD is enabled by default)
-#   - Skip WIP tasks that have the [skip:tdd] marker
+#   - When plans.json has a cc:WIP task (TDD is enabled by default)
+#   - Skip WIP tasks that have the skip:tdd quality marker
 #   - A source file (*.ts, *.tsx, *.js, *.jsx) was edited
 #   - The corresponding test file (*.test.*, *.spec.*) has not yet been edited
 #   → Output a warning message (does not block)
+# SSOT: .claude/harness/plans.json (via config-utils.sh helpers).
 
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=./config-utils.sh
+source "${SCRIPT_DIR}/config-utils.sh"
 
 # Get information about the edited file
 TOOL_INPUT="${TOOL_INPUT:-}"
@@ -46,22 +51,14 @@ is_source_file() {
     [[ "$file" =~ \.(ts|tsx|js|jsx)$ ]] && ! is_test_file "$file"
 }
 
-# Check for active WIP tasks
+# Check for active WIP tasks (reads plans.json SSOT)
 has_active_wip_task() {
-    if [[ -f "Plans.md" ]]; then
-        grep -q 'cc:WIP' Plans.md 2>/dev/null
-        return $?
-    fi
-    return 1
+    plans_has_wip
 }
 
-# Check whether the WIP task has a [skip:tdd] marker
+# Check whether a WIP task carries the skip:tdd quality marker
 is_tdd_skipped() {
-    if [[ -f "Plans.md" ]]; then
-        grep -q '\[skip:tdd\].*cc:WIP\|cc:WIP.*\[skip:tdd\]' Plans.md 2>/dev/null
-        return $?
-    fi
-    return 1
+    plans_wip_has_skip_tdd
 }
 
 # Check whether a test file was edited during this session (lightweight)
@@ -107,7 +104,7 @@ main() {
 {
   "decision": "approve",
   "reason": "TDD reminder",
-  "systemMessage": "💡 TDD is enabled by default. Writing tests first is recommended.\n\nA source file was edited, but the corresponding test file has not been edited yet.\n\nRecommendation: Create the test file (*.test.ts, *.spec.ts) first, then implement the source.\n\nTo skip, add the [skip:tdd] marker to the relevant task in Plans.md.\n\nThis is a warning and does not block."
+  "systemMessage": "💡 TDD is enabled by default. Writing tests first is recommended.\n\nA source file was edited, but the corresponding test file has not been edited yet.\n\nRecommendation: Create the test file (*.test.ts, *.spec.ts) first, then implement the source.\n\nTo skip, add the skip:tdd marker to the relevant task (harness plan-cli add-task ... --marker skip:tdd).\n\nThis is a warning and does not block."
 }
 EOF
 }

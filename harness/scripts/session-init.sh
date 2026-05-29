@@ -5,7 +5,7 @@
 # Features:
 # 1. Plugin cache integrity check and sync
 # 2. Skills Gate initialization
-# 3. Plans.md status display
+# 3. plans.json status display
 #
 # Output: Outputs information to hookSpecificOutput.additionalContext in JSON format
 #       → Displayed by Claude Code as system-reminder
@@ -56,7 +56,7 @@ fi
 # For sub-agents: lightweight initialization (early return)
 # - Skip plugin cache sync
 # - Skip Skills Gate initialization
-# - Skip Plans.md check
+# - Skip plans.json check
 # - Skip template update check
 # - Skip new rule file check
 # - Skip old hook configuration detection
@@ -359,7 +359,7 @@ sync_handoff_session_metadata() {
 
 # Clear SSOT sync flag (on new session start)
 # This flag is created when /sync-ssot-from-memory runs,
-# and is used to confirm SSOT sync before Plans.md cleanup
+# and is used to confirm SSOT sync before plans.json cleanup
 rm -f "${STATE_DIR}/.ssot-synced-this-session" 2>/dev/null || true
 
 # Clear work warning flag (on new session start)
@@ -443,22 +443,31 @@ if [ -f "$SKILLS_CONFIG_FILE" ]; then
   fi
 fi
 
-# ===== Step 3: Plans.md check =====
+# ===== Step 3: plans.json check (SSOT: .claude/harness/plans.json) =====
 # Consider plansDirectory setting
-PLANS_PATH="Plans.md"
+PLANS_PATH=".claude/harness/plans.json"
 if [ -f "${SCRIPT_DIR}/config-utils.sh" ]; then
   source "${SCRIPT_DIR}/config-utils.sh"
-  PLANS_PATH=$(get_plans_file_path)
+  PLANS_PATH=$(get_plans_json_path)
 fi
 
 PLANS_INFO=""
 if [ -f "$PLANS_PATH" ]; then
-  wip_count="$(count_matches "cc:WIP\\|pm:pending\\|cursor:pending" "$PLANS_PATH")"
-  todo_count="$(count_matches "cc:TODO" "$PLANS_PATH")"
+  wip_count="$(( $(plans_count_status "cc:WIP") + $(plans_count_status "pm:pending") ))"
+  todo_count="$(plans_count_status "cc:TODO")"
 
-  PLANS_INFO="📄 Plans.md: In Progress ${wip_count} / Not Started ${todo_count}"
+  PLANS_INFO="📄 plans.json: In Progress ${wip_count} / Not Started ${todo_count}"
+
+  # Legacy Plans.md migration bridge: advise migrating if the markdown still exists.
+  if declare -F plans_file_exists >/dev/null 2>&1 && plans_file_exists; then
+    PLANS_INFO="${PLANS_INFO} (legacy Plans.md found → run \`harness plan-cli migrate\`)"
+  fi
 else
-  PLANS_INFO="📄 Plans.md: Not Found"
+  PLANS_INFO="📄 plans.json: Not Found"
+  # Legacy Plans.md migration bridge: suggest migrating to plans.json.
+  if declare -F plans_file_exists >/dev/null 2>&1 && plans_file_exists; then
+    PLANS_INFO="📄 plans.json: Not Found (legacy Plans.md found → run \`harness plan-cli migrate\`)"
+  fi
 fi
 
 SNAPSHOT_INFO=""

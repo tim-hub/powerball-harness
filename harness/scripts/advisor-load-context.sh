@@ -8,7 +8,7 @@
 #   advisor-load-context.sh --task <task_id> --sources <csv>
 #
 # Flags:
-#   --task <id>              Plans.md task id (e.g. "73.4")
+#   --task <id>              plans.json task id (e.g. "73.4")
 #   --sources <csv>          Comma-separated: trace,git_diff,session_log,patterns
 #   --per-source-cap <N>     Per-source byte cap (default 10240 = 10 KiB)
 #

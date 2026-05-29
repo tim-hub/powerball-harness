@@ -1,10 +1,18 @@
 #!/bin/bash
 # plans-format-check.sh
-# Check the format of Plans.md and warn / suggest migration if old format is detected
+# SSOT is .claude/harness/plans.json (validated by the Go plan-cli structs).
+# This check no longer asserts the legacy Plans.md markdown table format. Instead:
+#   - If a legacy Plans.md exists, advise running `harness plan-cli migrate`.
+#   - Otherwise, validate that plans.json parses cleanly (jq empty check) and exit 0.
 
 set -uo pipefail
 
-PLANS_FILE="${1:-Plans.md}"
+# Source plans.json helpers (SSOT: .claude/harness/plans.json)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/config-utils.sh" ]; then
+  # shellcheck source=./config-utils.sh
+  source "${SCRIPT_DIR}/config-utils.sh"
+fi
 
 # Function for JSON output
 output_json() {
@@ -27,54 +35,37 @@ output_json() {
 EOF
 }
 
-# If Plans.md does not exist
-if [ ! -f "$PLANS_FILE" ]; then
-  output_json "skip" "Plans.md not found" "false"
+# Legacy Plans.md migration bridge: if the markdown still exists, advise migrating.
+if declare -F plans_file_exists >/dev/null 2>&1 && plans_file_exists; then
+  output_json "migration_required" \
+    "Legacy Plans.md detected. plans.json is now the source of truth — run \`harness plan-cli migrate\` to convert." \
+    "true"
   exit 0
 fi
 
-# Format check
-ISSUES=()
-MIGRATION_NEEDED=false
-
-# 1. Check for deprecated markers (cursor:WIP, cursor:done)
-if grep -qE 'cursor:(WIP|done)' "$PLANS_FILE" 2>/dev/null; then
-  MIGRATION_NEEDED=true
-  ISSUES+=("\"cursor:WIP and cursor:done are deprecated. Please migrate to pm:pending / pm:confirmed.\"")
-fi
-
-# 2. Check for marker legend section
-if ! grep -qE '## Marker Legend' "$PLANS_FILE" 2>/dev/null; then
-  ISSUES+=("\"Marker legend section is missing. Recommended to add from the template.\"")
-fi
-
-# 3. Check for valid harness markers
-# New format: cc:TODO, cc:WIP, cc:WORK, cc:DONE, cc:done, cc:blocked, pm:pending, pm:confirmed, cursor:pending, cursor:confirmed
-if ! grep -qE 'cc:(TODO|WIP|WORK|DONE|done|blocked)|pm:(pending|confirmed)|cursor:(pending|confirmed)' "$PLANS_FILE" 2>/dev/null; then
-  # Also check old format (cursor:WIP/done)
-  if ! grep -qE 'cursor:(WIP|done)' "$PLANS_FILE" 2>/dev/null; then
-    ISSUES+=("\"Harness markers (cc:TODO, cc:WIP, etc.) not found.\"")
-  fi
-fi
-
-# 4. Check phase ordering: numbers must be non-ascending top-to-bottom (gaps allowed)
-prev_phase=999999
-while IFS= read -r phase_num; do
-  if (( phase_num >= prev_phase )); then
-    ISSUES+=("\"Phase order violation: Phase $phase_num appears after Phase $prev_phase (phases must be non-ascending, newest first).\"")
-    break
-  fi
-  prev_phase=$phase_num
-done < <(grep -oE '^## Phase [0-9]+' "$PLANS_FILE" | grep -oE '[0-9]+$')
-
-# Output result
-if [ ${#ISSUES[@]} -eq 0 ]; then
-  output_json "ok" "Plans.md format is up to date" "false"
+# Resolve plans.json path
+if declare -F get_plans_json_path >/dev/null 2>&1; then
+  PLANS_JSON="$(get_plans_json_path)"
 else
-  ISSUES_JSON=$(printf '%s,' "${ISSUES[@]}" | sed 's/,$//')
-  if [ "$MIGRATION_NEEDED" = true ]; then
-    output_json "migration_required" "Old format detected in Plans.md. Migration available via /harness-update." "true" "[$ISSUES_JSON]"
-  else
-    output_json "warning" "Plans.md has items that could be improved" "false" "[$ISSUES_JSON]"
-  fi
+  PLANS_JSON=".claude/harness/plans.json"
 fi
+
+# If plans.json does not exist, there is nothing to validate.
+if [ ! -f "$PLANS_JSON" ]; then
+  output_json "skip" "plans.json not found" "false"
+  exit 0
+fi
+
+# Validate that plans.json parses cleanly.
+if command -v jq >/dev/null 2>&1; then
+  if jq empty "$PLANS_JSON" >/dev/null 2>&1; then
+    output_json "ok" "plans.json parses cleanly" "false"
+  else
+    output_json "warning" "plans.json is not valid JSON — run \`harness plan-cli\` to inspect/repair." "false"
+  fi
+else
+  # No jq available — cannot validate, but plans.json is the SSOT, so do not fail.
+  output_json "skip" "jq not available; skipped plans.json validation" "false"
+fi
+
+exit 0

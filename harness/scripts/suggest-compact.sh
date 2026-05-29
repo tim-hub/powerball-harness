@@ -11,7 +11,7 @@
 #   - Emits {"systemMessage":"..."} on stdout at threshold (reaches model context,
 #     not just stderr operator breadcrumbs)
 #   - Env vars HARNESS_COMPACT_THRESHOLD / HARNESS_COMPACT_INTERVAL
-#   - Suppression: skips when role=worker AND Plans.md has cc:WIP
+#   - Suppression: skips when role=worker AND plans.json has cc:WIP
 #   - Project root via git rev-parse per harness/rules/path-conventions.md
 #   - Always exits 0 — never blocks tool execution
 #
@@ -30,7 +30,7 @@ PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 STATE_DIR="${PROJECT_ROOT}/.claude/state"
 COUNTER_FILE="${STATE_DIR}/compact-counter-${SESSION_ID}.json"
 SESSION_FILE="${STATE_DIR}/session.json"     # project-root: session state
-PLANS_FILE="${PROJECT_ROOT}/Plans.md"        # project-root: Plans.md
+PLANS_JSON="${PROJECT_ROOT}/.claude/harness/plans.json"  # project-root: plans.json SSOT
 
 # --- Suppression: worker session with cc:WIP tasks ---
 # Mirrors the PreCompact role-gate in pre-compact-save.js so we don't nag a
@@ -44,7 +44,11 @@ try:
 except Exception:
     print('')
 " "${SESSION_FILE}" 2>/dev/null || true)
-  if [ "${_role}" = "worker" ] && grep -q "cc:WIP" "${PLANS_FILE}" 2>/dev/null; then
+  _wip_count=0
+  if command -v jq >/dev/null 2>&1 && [ -f "${PLANS_JSON}" ]; then
+    _wip_count=$(jq '[.phases[].tasks[]? | select(.status=="cc:WIP")] | length' "${PLANS_JSON}" 2>/dev/null || echo 0)
+  fi
+  if [ "${_role}" = "worker" ] && [ "${_wip_count:-0}" -gt 0 ]; then
     echo "[HarnessCompact] suppressed (worker session with cc:WIP tasks)" >&2
     exit 0
   fi
@@ -85,7 +89,7 @@ elif [ "${_count}" -gt "${THRESHOLD}" ]; then
 fi
 
 if [ "${_suggest}" = "true" ]; then
-  _msg="${_count} tool calls this session — consider \`/compact\` if transitioning phases or completing a milestone. Compacting now preserves the handoff artifact and re-injects Plans.md context after resume."
+  _msg="${_count} tool calls this session — consider \`/compact\` if transitioning phases or completing a milestone. Compacting now preserves the handoff artifact and re-injects plans.json context after resume."
   echo "[HarnessCompact] ${_count} tool calls — strategic compact checkpoint" >&2
   if command -v python3 >/dev/null 2>&1; then
     python3 -c "import json,sys; print(json.dumps({'systemMessage':sys.argv[1]}))" \

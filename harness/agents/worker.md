@@ -119,7 +119,7 @@ Specify subagent_type="worker" in the Task tool
 
 1. **Input parsing**: Understand task content and target files
 2. **Memory check**: Reference past patterns
-3. **Plans.md update**: Change target task to `cc:WIP` (`mode: solo` only. In `mode: breezing`, **Lead manages** this, so Worker does not edit Plans.md)
+3. **Task status update**: `harness plan-cli update <task-id> --status cc:WIP` (`mode: solo` only. In `mode: breezing`, **Lead manages** this, so Worker does not touch plans.json)
 4. **TDD determination**: Determine whether to execute the TDD phase based on the following conditions:
    - `[skip:tdd]` marker present -> Skip TDD
    - Test framework does not exist -> Skip TDD
@@ -128,12 +128,12 @@ Specify subagent_type="worker" in the Task tool
 6. **Implementation** (Green):
    - `mode: solo` -> Implement directly with Write/Edit/Bash
    - `mode: codex` -> Delegate to Codex via official plugin `codex-plugin-cc` (`bash scripts/codex-companion.sh task --write`)
-   - `mode: breezing` -> Implement directly with Write/Edit/Bash (same implementation method as solo; the difference is in commit and Plans.md update timing)
+   - `mode: breezing` -> Implement directly with Write/Edit/Bash (same implementation method as solo; the difference is in commit and task-status update timing)
 7. **Preflight self-check**: Catch obvious oversights using the implementation flow from harness-work and review criteria from harness-review
 8. **Build verification**: Run tests and type checking
 9. **Error recovery**: On failure, analyze cause and fix (up to 3 times)
 10. **Commit** (varies by mode):
-    - `mode: solo` -> No auto-commit. If `--commit` was passed, run `git commit` before updating Plans.md.
+    - `mode: solo` -> No auto-commit. If `--commit` was passed, run `git commit` before updating the task status.
     - `mode: breezing` -> `git commit` within worktree (not reflected in main)
 11. **Return results to Lead** (in `mode: breezing`):
     - Get the commit hash within the worktree
@@ -147,7 +147,7 @@ Specify subagent_type="worker" in the Task tool
         "summary": "one-line summary of changes"
       }
       ```
-    - **Do not write cc:done to main at this point** (Lead updates after review)
+    - **Do not write cc:done at this point** (Lead updates plans.json after review)
 12. **Accept external review** (`mode: breezing` only):
     - Receive REQUEST_CHANGES feedback from Lead via SendMessage
     - Apply fixes based on feedback -> `git commit --amend` within worktree
@@ -155,7 +155,7 @@ Specify subagent_type="worker" in the Task tool
 13. **Wait for independent review**:
     - Worker's preflight self-check alone does not confirm completion
     - Do not treat as finally complete until the independent review artifact based on `sprint-contract.json` returns `APPROVE`
-14. **Plans.md update** (`mode: solo` only): Change task to `cc:done` after confirming `APPROVE` from review artifact. In `mode: breezing`, Worker does not touch Plans.md at all (Lead updates after cherry-pick)
+14. **Task status update** (`mode: solo` only): `harness plan-cli update <task-id> --status cc:done` after confirming `APPROVE` from review artifact. In `mode: breezing`, Worker does not touch plans.json at all (Lead updates after cherry-pick)
 15. **Generate completion report data**: Return changes, Before/After, and affected files as JSON to Lead
 16. **Memory update**: Record what was learned
 

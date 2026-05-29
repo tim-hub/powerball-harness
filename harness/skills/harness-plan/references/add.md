@@ -1,6 +1,6 @@
 # add Subcommand — Add Task
 
-Adds a new task (or new phase) to Plans.md.
+Adds a new task (or new phase) to the plan (`.claude/harness/plans.json`) via `harness plan-cli`. The SSOT is `.claude/harness/plans.json`; never edit `Plans.md` markdown.
 
 ## Syntax
 
@@ -10,25 +10,24 @@ harness-plan add task-name: detailed description [--phase phase-number]
 
 ## Behavior
 
-- New tasks are added with the `cc:TODO` marker.
-- **Insertion point**: a new phase block goes immediately after the `---` header separator, above all existing `## Phase` blocks (newest phase on top). **Never append at the bottom.**
-- When `--phase N` is supplied and Phase `N` exists, the new task is appended to Phase `N`'s task table instead of creating a new phase.
+- New tasks are created with the `cc:TODO` status by default.
+- **New phases**: `harness plan-cli add-phase` prepends, so the new phase lands newest-on-top automatically. **Never append at the bottom.**
+- When `--phase N` is supplied and Phase `N` exists, the new task is added to Phase `N` via `harness plan-cli add-task N …` instead of creating a new phase.
 
 ## Flow
 
 1. Parse `task-name`, `description`, and optional `--phase`.
-2. Determine target phase:
-   - If `--phase N` given and Phase N exists → append row to that phase's task table.
-   - Otherwise → create a new phase block with the next phase number (highest existing + 1).
-3. Auto-fill DoD using the inference logic in [create.md](${CLAUDE_SKILL_DIR}/references/create.md) (Step 6 — "DoD Auto-Inference Logic").
-4. Auto-fill Depends using the inference logic in [create.md](${CLAUDE_SKILL_DIR}/references/create.md) (Step 6 — "Depends Auto-Inference Logic").
-5. Insert the new phase block (or row) per the ordering rules in [plans-md-rules.md](${CLAUDE_SKILL_DIR}/references/plans-md-rules.md).
-6. Verify the file remains non-ascending after insertion.
+2. Determine target phase (query existing state with `harness plan-cli list`):
+   - If `--phase N` given and Phase N exists → `harness plan-cli add-task N --name "…" --dod "…" [--depends "…"] [--description "…"]`.
+   - Otherwise → create a new phase first with `harness plan-cli add-phase --title "…" --goal "…"`, then add the task to the returned phase ID.
+3. Auto-fill DoD using the inference logic in [create.md](${CLAUDE_SKILL_DIR}/references/create.md) (Step 6 — "DoD Auto-Inference Logic"); pass it via `--dod`.
+4. Auto-fill Depends using the inference logic in [create.md](${CLAUDE_SKILL_DIR}/references/create.md) (Step 6 — "Depends Auto-Inference Logic"); pass it via `--depends`.
+5. Issue the `harness plan-cli add-task` (and, if needed, `add-phase`) calls. Ordering is handled by the CLI.
+6. Verify the result with `harness plan-cli list`.
 
 ## References
 
-- [plans-md-template.md](${CLAUDE_SKILL_DIR}/templates/plans-md-template.md) — canonical phase-block structure
-- [plans-md-rules.md](${CLAUDE_SKILL_DIR}/references/plans-md-rules.md) — ordering rules and field definitions (DoD, Depends, Status markers)
+- [plans-md-rules.md](${CLAUDE_SKILL_DIR}/references/plans-md-rules.md) — field definitions (DoD, Depends, Status markers)
 
 ## Agent Delegation
 
@@ -41,8 +40,8 @@ Request shape (`planner-request.v1`):
   "schema_version": "planner-request.v1",
   "operation": "add",
   "task_name": "Wire planner into worker sweep",
-  "description": "Worker delegates Plans.md marker updates to harness-planner",
-  "dod": "Worker SR-1 step emits planner-request.v1; Plans.md row updated by planner",
+  "description": "Worker delegates plan status updates to harness-planner",
+  "dod": "Worker SR-1 step emits planner-request.v1; plan task updated by planner via harness plan-cli",
   "depends": "-",
   "phase": 110
 }

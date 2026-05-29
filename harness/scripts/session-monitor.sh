@@ -17,13 +17,13 @@ TOOLING_POLICY_FILE="$STATE_DIR/tooling-policy.json"
 EVENT_LOG_FILE="$STATE_DIR/session.events.jsonl"
 CONFIG_FILE=".claude-code-harness.config.yaml"
 
-# Get the Plans.md path considering plansDirectory setting
+# Get the plans.json path considering plansDirectory setting (SSOT: .claude/harness/plans.json)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "${SCRIPT_DIR}/config-utils.sh" ]; then
   source "${SCRIPT_DIR}/config-utils.sh"
-  PLANS_FILE=$(get_plans_file_path)
+  PLANS_FILE=$(get_plans_json_path)
 else
-  PLANS_FILE="Plans.md"
+  PLANS_FILE=".claude/harness/plans.json"
 fi
 
 # ================================
@@ -44,12 +44,17 @@ relative_time() {
   fi
 }
 
-# Count tasks from Plans.md
+# Count tasks from plans.json by status (uses config-utils.sh helper when available)
 count_tasks() {
   local marker=$1
+  if declare -F plans_count_status >/dev/null 2>&1; then
+    plans_count_status "$marker"
+    return 0
+  fi
+  # Fallback: inline jq over plans.json (config-utils.sh unavailable)
   local count=0
-  if [ -f "$PLANS_FILE" ]; then
-    count=$(grep -c "$marker" "$PLANS_FILE" 2>/dev/null || true)
+  if command -v jq >/dev/null 2>&1 && [ -f "$PLANS_FILE" ]; then
+    count=$(jq "[.phases[].tasks[]? | select(.status==\"$marker\")] | length" "$PLANS_FILE" 2>/dev/null || echo 0)
     [ -z "$count" ] && count=0
   fi
   echo "$count"
@@ -78,7 +83,7 @@ else
   GIT_LAST_COMMIT_TIME="0"
 fi
 
-# Plans.md info
+# plans.json info (SSOT: .claude/harness/plans.json)
 if [ -f "$PLANS_FILE" ]; then
   PLANS_EXISTS="true"
   PLANS_MODIFIED=$(stat -f "%m" "$PLANS_FILE" 2>/dev/null || stat -c "%Y" "$PLANS_FILE" 2>/dev/null || echo "0")
@@ -661,7 +666,7 @@ fi
 if [ "$PLANS_EXISTS" = "true" ]; then
   TOTAL_ACTIVE=$((WIP_COUNT + TODO_COUNT + PENDING_COUNT))
   if [ "$TOTAL_ACTIVE" -gt 0 ]; then
-    echo "📋 Plans.md: WIP ${WIP_COUNT} / TODO $((TODO_COUNT + PENDING_COUNT))"
+    echo "📋 plans.json: WIP ${WIP_COUNT} / TODO $((TODO_COUNT + PENDING_COUNT))"
   fi
 fi
 

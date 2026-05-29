@@ -20,14 +20,12 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/plans-drift-check.sh"
 
 This check is intentionally lightweight — it only inspects commit messages, not file content. For a thorough sync, run `/harness-plan sync` explicitly.
 
-1. Read Plans.md and identify the target task
-   - **Dependency check**: Before claiming a task, verify its `Depends` column. If any listed dependency is not yet `cc:done`, skip this task and select the next eligible one. For `.b` tasks whose `.a` is still open: redirect the Worker to `.a` first.
-   - **If Plans.md does not exist**: Auto-invoke `harness-plan create --ci` → Generate Plans.md and continue
-   - If header lacks DoD / Depends columns: `Plans.md is in the old format. Please regenerate with harness-plan create.` → **Stop**
-   - **If the conversation contains unlisted tasks**: Extract requirements from the recent conversation context and auto-append to Plans.md as `cc:TODO`
+1. Identify the target task with `harness plan-cli list` — the SSOT is `.claude/harness/plans.json`
+   - **Dependency check**: Before claiming a task, inspect its `depends` (via `harness plan-cli get <task-id>`). If any listed dependency is not yet `cc:done`/`pm:confirmed`, skip this task and select the next eligible one. For `.b` tasks whose `.a` is still open: redirect the Worker to `.a` first.
+   - **If plans.json does not exist**: if a legacy `Plans.md` is present, run `harness plan-cli migrate` to convert it; otherwise auto-invoke `harness-plan create --ci` to generate it, then continue
+   - **If the conversation contains unlisted tasks**: Extract requirements from the recent conversation context and add them with `harness plan-cli add-task <phase-id> --name "…" --dod "…"` (status defaults to `cc:TODO`)
      - Extraction logic: Detect action verbs from user statements ("add...", "fix...", "implement...")
-     - Appended entries conform to v2 format (Task / Content / DoD / Depends / Status)
-     - After appending, display "Added the following to Plans.md" with a 5-second timeout prompt (default: continue)
+     - After adding, display "Added the following tasks" with a 5-second timeout prompt (default: continue)
 1.5. **Task Background Check** (30 seconds):
    - Infer and display the **purpose** (the problem this task solves) in one line from the task's "Content" and "DoD"
    - Use `git grep` / `Glob` to infer and display the **impact scope** (files/modules affected by changes)
@@ -43,20 +41,20 @@ This check is intentionally lightweight — it only inspects commit messages, no
    ```
    # [ralph] pre-dispatch (solo mode)
    if "[ralph]" in task.description:
-       Plans.md: task.status = "cc:WIP"
+       harness plan-cli update <task-id> --status cc:WIP
        ralph_result = Skill(name="harness-ralph-loop", args=task.id)
-       # ralph_result terminal state determines Plans.md update:
+       # ralph_result terminal state determines the plans.json update:
        #   - SUCCESS         → cc:done [hash]   (already written by harness-ralph-loop orchestrator)
        #   - FT-RALPH-01     → blocked (ralph stuck — no progress across iterations)
        #   - FT-RALPH-02     → blocked (verify mismatch — promise/verify disagreement)
        #   - FT-RALPH-03     → blocked (max-iter exhausted without success)
-       # All Plans.md updates are handled by harness-ralph-loop itself; skip steps 3–13.
+       # All plans.json updates are handled by harness-ralph-loop itself; skip steps 3–13.
        return ralph_result
    ```
    Ralph tasks serialize within a session (only one Ralph loop runs at a time). If the task does NOT
    have `[ralph]`, continue with the standard solo flow below.
 2.5. Update task to `cc:WIP`
-   - Write `cc:WIP` to the task's Status cell in Plans.md (authoritative)
+   - `harness plan-cli update <task-id> --status cc:WIP` (writes to plans.json, the authoritative SSOT)
 3. **TDD Phase** — behaviour depends on task tag:
 
    | Task type | Step 3 action |
@@ -76,14 +74,14 @@ This check is intentionally lightweight — it only inspects commit messages, no
    - Proceed to next step on APPROVE. Self-check alone does not confirm completion
 9. Normalize and save review artifact with `"${CLAUDE_SKILL_DIR}/../../scripts/write-review-result.sh"`
 10. Update task to `cc:done`
-   - Update Plans.md Status to `cc:done` (authoritative). No commit is made by default.
-   - If `--commit` was passed: run `git commit`, get the abbreviated 7-char hash with `git log --oneline -1`, and write `cc:done [a1b2c3d]` instead.
-   - **Phase-close check**: Scan the current phase in Plans.md.
+   - `harness plan-cli update <task-id> --status cc:done` (writes to plans.json, the authoritative SSOT). No commit is made by default.
+   - If `--commit` was passed: run `git commit`, get the abbreviated 7-char hash with `git log --oneline -1`, then `harness plan-cli update <task-id> --status cc:done --hash a1b2c3d`.
+   - **Phase-close check**: Scan the current phase with `harness plan-cli list --phase <id>`.
      - All tasks except `[verify:e2e]` are `cc:done` AND `N.e2e` is `cc:TODO`: → "Phase N implementation complete. Next: run the E2E verification task (N.e2e)." Auto-select `N.e2e` as the next task (or surface it in manual mode).
      - `[verify:e2e]` task is `cc:done`: phase is fully closed.
      - No `[verify:e2e]` task (docs/config-only phase): phase closes normally.
 11. **Rich Completion Report** (see [`${CLAUDE_SKILL_DIR}/templates/completion-report.md`](${CLAUDE_SKILL_DIR}/templates/completion-report.md))
 12. **Automatic Re-ticketing on Failure** (test/CI failure only):
     - Check test execution results
-    - On failure: save fix task proposal to state, add to Plans.md via approval command (see [`re-ticketing.md`](${CLAUDE_SKILL_DIR}/references/re-ticketing.md))
+    - On failure: save fix task proposal to state, add it via `harness plan-cli add-task` on approval (see [`re-ticketing.md`](${CLAUDE_SKILL_DIR}/references/re-ticketing.md))
     - On success: proceed to next task

@@ -13,6 +13,13 @@ EVENT_LOG_FILE=".claude/state/session.events.jsonl"
 ARCHIVE_DIR=".claude/state/sessions"
 CURRENT_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
+# Source plans.json helpers (SSOT: .claude/harness/plans.json)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/config-utils.sh" ]; then
+  # shellcheck source=./config-utils.sh
+  source "${SCRIPT_DIR}/config-utils.sh"
+fi
+
 # Skip if state file does not exist
 if [ ! -f "$STATE_FILE" ]; then
   exit 0
@@ -44,13 +51,13 @@ if [ -d ".git" ]; then
   GIT_COMMITS=$(git log --oneline --since="$SESSION_START" 2>/dev/null | wc -l | tr -d ' ' || echo "0")
 fi
 
-# Task status from Plans.md
+# Task status from plans.json (SSOT: .claude/harness/plans.json)
 COMPLETED_TASKS=0
 WIP_TASK_TITLE=""
-if [ -f "Plans.md" ]; then
-  COMPLETED_TASKS=$(grep -c "cc:done" Plans.md 2>/dev/null || echo "0")
+if declare -F plans_json_exists >/dev/null 2>&1 && plans_json_exists; then
+  COMPLETED_TASKS=$(plans_count_status "cc:done")
   # Get current WIP task title (first match)
-  WIP_TASK_TITLE=$(grep -E "^\s*-\s*\[.\]\s*\*\*.*\`cc:WIP\`" Plans.md 2>/dev/null | head -1 | sed 's/.*\*\*\(.*\)\*\*.*/\1/' || true)
+  WIP_TASK_TITLE=$(plans_wip_names 1 2>/dev/null | head -1 || true)
 fi
 
 # Retrieve recently edited file info from Agent Trace
@@ -146,8 +153,8 @@ EOF
 
   # WIP tasks (extract if present)
   WIP_TASKS=""
-  if [ -f "Plans.md" ]; then
-    WIP_TASKS=$(grep -n "cc:WIP\|pm:pending\|cursor:pending" Plans.md 2>/dev/null | head -20 || true)
+  if declare -F plans_json_exists >/dev/null 2>&1 && plans_json_exists; then
+    WIP_TASKS=$(plans_wip_names 20 2>/dev/null || true)
   fi
 
   {
@@ -185,7 +192,7 @@ EOF
     echo "### Handoff Notes (optional)"
     if [ -n "$WIP_TASKS" ]; then
       echo ""
-      echo "**Plans.md WIP/In-Progress (excerpt)**:"
+      echo "**plans.json WIP/In-Progress (excerpt)**:"
       echo ""
       echo '```'
       echo "$WIP_TASKS"

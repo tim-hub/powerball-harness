@@ -1,17 +1,32 @@
 #!/usr/bin/env bash
 # plans-issue-bridge.sh
-# Generate a dry-run payload from Plans.md for GitHub Issue integration.
+# Generate a dry-run payload from plans.json for GitHub Issue integration.
+# SSOT: .claude/harness/plans.json
 
 set -euo pipefail
+
+# Source plans.json helpers (for default path resolution)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${SCRIPT_DIR}/config-utils.sh" ]; then
+  # shellcheck source=./config-utils.sh
+  source "${SCRIPT_DIR}/config-utils.sh"
+fi
 
 usage() {
   cat >&2 <<'EOF'
 Usage: scripts/plans-issue-bridge.sh [--plans PATH] [--format json|markdown] [--team-mode] [--output PATH]
+  --plans PATH   Path to plans.json (default: .claude/harness/plans.json)
 EOF
   exit 1
 }
 
-PLANS_FILE="Plans.md"
+# Default plans.json path (SSOT)
+if declare -F get_plans_json_path >/dev/null 2>&1; then
+  PLANS_FILE="$(get_plans_json_path)"
+else
+  PLANS_FILE=".claude/harness/plans.json"
+fi
+PLANS_FILE_DEFAULT="$PLANS_FILE"
 FORMAT="json"
 TEAM_MODE="false"
 OUTPUT_FILE=""
@@ -42,7 +57,7 @@ while [ $# -gt 0 ]; do
       usage
       ;;
     *)
-      if [ -z "$PLANS_FILE" ] || [ "$PLANS_FILE" = "Plans.md" ]; then
+      if [ -z "$PLANS_FILE" ] || [ "$PLANS_FILE" = "$PLANS_FILE_DEFAULT" ]; then
         PLANS_FILE="$1"
         shift
       else
@@ -53,7 +68,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ ! -f "$PLANS_FILE" ]; then
-  echo "Plans file not found: $PLANS_FILE" >&2
+  echo "plans.json not found: $PLANS_FILE" >&2
   exit 2
 fi
 
@@ -70,8 +85,8 @@ process.stdout.on('error', (error) => {
 const [plansFile, format, teamModeFlag, outputFile] = process.argv.slice(2);
 const teamMode = teamModeFlag === 'true';
 
-function readText(filePath) {
-  return fs.readFileSync(filePath, 'utf8');
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
 function repoNameFrom(plansPath) {
@@ -83,56 +98,51 @@ function repoNameFrom(plansPath) {
     }).trim();
     if (gitRoot) return path.basename(gitRoot);
   } catch {
-    // fall back to the directory name that contains Plans.md
+    // fall back to the directory name that contains plans.json
   }
   return path.basename(path.resolve(path.dirname(plansPath)));
 }
 
-function splitDepends(value) {
+function normalizeDepends(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
   if (!value || value === '-') return [];
-  return value.split(',').map((item) => item.trim()).filter(Boolean);
+  return String(value).split(',').map((item) => item.trim()).filter(Boolean);
 }
 
-function parsePlans(markdown) {
-  const lines = markdown.split(/\r?\n/);
+// Parse the plans.json SSOT shape:
+//   { "phases": [ { "id", "title", "status", "tasks": [ { "id", "name", "dod",
+//     "depends": [...], "status", ... } ] } ] }
+function parsePlans(plansData) {
   const phases = [];
   const tasks = [];
-  let currentPhase = null;
 
-  for (const line of lines) {
-    const phaseMatch = line.match(/^##\s+Phase\s+([^:]+):\s*(.*)$/);
-    if (phaseMatch) {
-      currentPhase = {
-        id: phaseMatch[1].trim(),
-        title: phaseMatch[2].trim(),
-      };
-      phases.push({ ...currentPhase, tasks: [] });
-      continue;
-    }
+  const rawPhases = Array.isArray(plansData && plansData.phases) ? plansData.phases : [];
 
-    const trimmed = line.trim();
-    if (!trimmed.startsWith('|')) continue;
-    if (/^\|[\s-]+\|/.test(trimmed)) continue;
-
-    const cells = trimmed.slice(1, -1).split('|').map((cell) => cell.trim());
-    if (cells.length < 5) continue;
-
-    const [taskId, content, dod, depends, status] = cells;
-    if (!/^\d+(?:\.\d+)*(?:-spike)?$/.test(taskId)) continue;
-
-    const task = {
-      id: taskId,
-      content,
-      dod,
-      depends,
-      depends_on: splitDepends(depends),
-      status,
-      phase: currentPhase ? { ...currentPhase } : null,
+  for (const rawPhase of rawPhases) {
+    const currentPhase = {
+      id: String(rawPhase.id ?? '').trim(),
+      title: String(rawPhase.title ?? '').trim(),
     };
+    const phaseEntry = { ...currentPhase, tasks: [] };
+    phases.push(phaseEntry);
 
-    tasks.push(task);
-    if (phases.length > 0) {
-      phases[phases.length - 1].tasks.push(task);
+    const rawTasks = Array.isArray(rawPhase.tasks) ? rawPhase.tasks : [];
+    for (const rawTask of rawTasks) {
+      const dependsOn = normalizeDepends(rawTask.depends);
+      const task = {
+        id: String(rawTask.id ?? '').trim(),
+        content: String(rawTask.name ?? rawTask.content ?? ''),
+        dod: String(rawTask.dod ?? ''),
+        depends: dependsOn.join(', '),
+        depends_on: dependsOn,
+        status: String(rawTask.status ?? ''),
+        phase: { ...currentPhase },
+      };
+
+      tasks.push(task);
+      phaseEntry.tasks.push(task);
     }
   }
 
@@ -169,8 +179,8 @@ function renderTable(rows) {
 
 function buildReport(plansPath, teamModeEnabled) {
   const repoName = repoNameFrom(plansPath);
-  const markdown = readText(plansPath);
-  const parsed = parsePlans(markdown);
+  const plansData = readJson(plansPath);
+  const parsed = parsePlans(plansData);
   const summary = {
     phase_count: parsed.phases.length,
     task_count: parsed.tasks.length,
@@ -186,7 +196,7 @@ function buildReport(plansPath, teamModeEnabled) {
       `Depends: ${task.depends}`,
       `Status: ${task.status}`,
       '',
-      'This is a dry-run payload. Plans.md remains the source of truth.',
+      'This is a dry-run payload. plans.json remains the source of truth.',
     ].join('\n'),
     labels: ['harness-plan', `phase-${(task.phase && String(task.phase.id).split('.')[0]) || 'unassigned'}`],
     depends_on: task.depends_on,
@@ -196,9 +206,9 @@ function buildReport(plansPath, teamModeEnabled) {
   }));
 
   const trackingIssue = {
-    title: `Plans.md tracking issue: ${repoName}`,
+    title: `plans.json tracking issue: ${repoName}`,
     body: [
-      '# Plans.md tracking issue dry-run',
+      '# plans.json tracking issue dry-run',
       '',
       `- Repo: ${repoName}`,
       `- Plans file: ${path.relative(process.cwd(), plansPath)}`,
@@ -211,7 +221,7 @@ function buildReport(plansPath, teamModeEnabled) {
       '## Task snapshot',
       renderTable(parsed.tasks),
       '',
-      'Plans.md is the source of truth. This payload is preview-only and does not mutate the plan.',
+      'plans.json is the source of truth. This payload is preview-only and does not mutate the plan.',
     ].join('\n'),
     labels: ['harness-plan', 'plans-sync', teamModeEnabled ? 'team-mode' : 'solo-preview'],
     state: 'dry-run',
@@ -237,7 +247,7 @@ function buildReport(plansPath, teamModeEnabled) {
 
 function renderMarkdown(report) {
   const lines = [
-    '# Plans.md issue bridge dry-run',
+    '# plans.json issue bridge dry-run',
     '',
     `- Repo: ${report.source.repo_name}`,
     `- Plans file: ${report.source.plans_file}`,
@@ -263,7 +273,7 @@ function renderMarkdown(report) {
   }
 
   lines.push('');
-  lines.push('Plans.md remains the source of truth.');
+  lines.push('plans.json remains the source of truth.');
   return `${lines.join('\n')}\n`;
 }
 

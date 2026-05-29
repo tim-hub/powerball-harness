@@ -1,6 +1,6 @@
 # create Subcommand -- Plan Creation Flow
 
-Gathers ideas and requirements through a hearing, then generates an actionable Plans.md.
+Gathers ideas and requirements through a hearing, then creates an actionable plan by issuing `harness plan-cli` calls. The SSOT is `.claude/harness/plans.json`; never write `Plans.md` markdown directly.
 
 ## Step 0: Check Conversation Context
 
@@ -26,7 +26,7 @@ If it does, suggest breaking it into **phases** rather than one monolithic plan:
 >
 > Each phase produces working, testable software on its own. Want to start with Phase 1?
 
-If the user agrees: proceed with Phase 1 scope only. Remaining subsystems go into `## Future Considerations` in Plans.md.
+If the user agrees: proceed with Phase 1 scope only. Capture remaining subsystems for later (e.g., as a comment on the phase via `harness plan-cli comment`, or note them back to the user) rather than creating their tasks now.
 
 If the scope is appropriately contained for a single plan, continue to Step 1.
 
@@ -42,7 +42,7 @@ If there is no user input, ask:
 
 ## Step 1.5: Memory Conflict Check
 
-Before writing Plans.md, read `.claude/memory/decisions.md` and `.claude/memory/patterns.md`.
+Before creating the plan, read `.claude/memory/decisions.md` and `.claude/memory/patterns.md`.
 
 Scan the proposed approach against recorded decisions and patterns:
 
@@ -56,7 +56,7 @@ Scan the proposed approach against recorded decisions and patterns:
 
 ## Step 1.6: New Decision Capture
 
-If planning surfaces a new architectural decision not yet recorded in `.claude/memory/decisions.md`, prompt the user once before generating Plans.md:
+If planning surfaces a new architectural decision not yet recorded in `.claude/memory/decisions.md`, prompt the user once before creating the plan:
 
 > "I noticed a new decision: **[decision summary]**. Would you like to record it in memory before we write the plan? (yes / skip)"
 
@@ -67,7 +67,7 @@ If planning surfaces a new architectural decision not yet recorded in `.claude/m
 
 ## Step 1.7: Planning Quality Gate
 
-For `create` (new plan) and `add` (high-impact task addition), run the planning quality contract before generating Plans.md.
+For `create` (new plan) and `add` (high-impact task addition), run the planning quality contract before creating the plan.
 
 See [`${CLAUDE_SKILL_DIR}/references/planning-quality.md`](${CLAUDE_SKILL_DIR}/references/planning-quality.md) for the full 8-step protocol:
 
@@ -76,12 +76,12 @@ See [`${CLAUDE_SKILL_DIR}/references/planning-quality.md`](${CLAUDE_SKILL_DIR}/r
 | 0 | Applicability | Always — decide if the contract applies |
 | 1 | Input Decomposition | Break user input into subject, intent, facts, evidence |
 | 2 | Latest-information Fetch | WebSearch for external facts |
-| 3 | Local-source-of-truth Check | Reconcile against Plans.md, specs, docs |
+| 3 | Local-source-of-truth Check | Reconcile against the plan (`harness plan-cli list`/`get`), specs, docs |
 | 4 | Memory Check | Check harness-mem / local memory |
 | 5 | Subagent Debate | 3–4 independent perspectives (Product, Arch, QA, Skeptic) |
 | 6 | Neutral Scoring Review | 5-point rubric across 6 axes |
 | 7 | Quality Contract Output | Decision-ready summary |
-| 8 | Plans.md / Spec Output | Convert adopted proposals to task contracts |
+| 8 | Plan / Spec Output | Convert adopted proposals to task contracts via `harness plan-cli` |
 
 **Skip criteria** (Step 0): marker-only `update`, status-only `sync`, typo/README/CHANGELOG changes, or narrow changes with a fixed spec answer.
 
@@ -117,7 +117,7 @@ Example: For a reservation management system
 
 ## Step 4.5: Optional Brief Generation
 
-Attach a brief only when needed. The brief does not replace Plans.md -- it is a supplementary document that briefly locks down implementation prerequisites.
+Attach a brief only when needed. The brief does not replace the plan -- it is a supplementary document that briefly locks down implementation prerequisites.
 
 - For tasks involving UI, include a `design brief`
 - For tasks involving API, include a `contract brief`
@@ -158,11 +158,13 @@ Evaluate each feature on **Impact x Risk (uncertainty)** across 2 axes:
 ### `[needs-spike]` Marker
 
 Tasks with High Impact x High Risk are automatically tagged `[needs-spike]`.
-Tasks tagged `[needs-spike]` automatically get a **spike (technical validation) task** generated ahead of them:
+Tasks tagged `[needs-spike]` automatically get a **spike (technical validation) task** added ahead of them via `harness plan-cli add-task`:
 
-```markdown
-| N.X-spike | [spike] Technical validation for {{task name}} | Create validation result report | - | cc:TODO |
-| N.X       | {{task name}} [needs-spike] | {{DoD}} | N.X-spike | cc:TODO |
+```bash
+harness plan-cli add-task <phase-id> --name "[spike] Technical validation for {{task name}}" \
+  --dod "Create validation result report" --marker "spike"
+harness plan-cli add-task <phase-id> --name "{{task name}} [needs-spike]" \
+  --dod "{{DoD}}" --depends "<spike-task-id>"
 ```
 
 The spike task's completion criterion is "leave a validation result report (feasible / infeasible / needs design change)."
@@ -198,54 +200,49 @@ Rules:
 - If the original task had a prior dependency (e.g., `1.1`), `N.a` inherits it; `N.b` depends on `N.a`.
 - `[bugfix]` tasks: `N.a` DoD is "Reproduction test exists and fails on current code".
 
-## Step 5.7: Plans.md v3 Format Specification
+## Step 5.7: Plan Field Conventions
 
-Plans.md v3 includes the following format extensions:
+The plan (`.claude/harness/plans.json`) supports the following conceptual fields:
 
-### Phase Header Purpose Line (Optional)
+### Phase Goal / Purpose (Optional)
 
-Each Phase header can include a one-line Purpose. Omit if no input is provided:
+Each phase can carry a one-line goal describing what problem it solves. Set it via `--goal` when creating the phase:
 
-```markdown
-### Phase N.X: [Phase Name] [Px]
-
-Purpose: [What problem this phase solves, in one line]
+```bash
+harness plan-cli add-phase --title "[Phase Name]" --goal "[What problem this phase solves, in one line]"
 ```
 
-- **Default**: Do not prompt for input (omit if blank)
+- **Default**: Do not prompt for input (omit `--goal` if blank)
 - **When included**: Displayed during breezing Phase 0 scope confirmation
 - **Generation rule**: Auto-include only when the user explicitly states the phase's purpose
 
-### Artifact Notation (Status Column)
+### Artifact Notation (commit hash on completion)
 
-Attach commit hash to Status upon task completion:
+Record the commit hash when a task is marked done, via `harness plan-cli update`:
 
-```markdown
-| Task | Description | DoD | Depends | Status |
-|------|-------------|-----|---------|--------|
-| 1.1  | ... | ... | - | cc:done [a1b2c3d] |
-| 1.2  | ... | ... | 1.1 | cc:TODO |
+```bash
+harness plan-cli update 1.1 --status cc:done --hash a1b2c3d
 ```
 
-- **Format**: `cc:done [7-char hash]`
+- **Format**: 7-char short hash, passed with `--hash`
 - **When applied**: Automatically applied at `harness-work` Solo Step 7
-- **Backward compatibility**: Hashless `cc:done` remains valid
+- **Backward compatibility**: `cc:done` without a hash remains valid
 
 ### Affected Files
 
-Files related to the v3 format:
+Files related to these field conventions:
 
 | File | Impact |
 |------|--------|
-| `skills/harness-plan/references/create.md` | Purpose line added to Step 6 template |
-| `skills/harness-plan/references/sync.md` | Discrepancy detection recognizes `cc:done [hash]` format |
+| `skills/harness-plan/references/create.md` | Phase goal set via `add-phase --goal` |
+| `skills/harness-plan/references/sync.md` | Discrepancy detection recognizes `cc:done` with/without hash |
 | `skills/harness-work/SKILL.md` | Hash applied at Solo Step 7, re-ticketing on failure |
 | `skills/harness-sync/SKILL.md` | Snapshot saved with --snapshot |
 | `skills/breezing/SKILL.md` | Progress displayed in Progress Feed |
 
-## Step 6: Generate Plans.md
+## Step 6: Create the Plan via `harness plan-cli`
 
-Auto-generate quality markers + DoD + Depends and produce Plans.md.
+Auto-generate quality markers + DoD + Depends, then create the phase and its tasks by issuing `harness plan-cli` calls (one `add-phase`, then one `add-task` per task). Do **not** write `Plans.md` markdown — the SSOT is `.claude/harness/plans.json`.
 
 ### Quality Marker Assignment Logic
 ```
@@ -306,42 +303,28 @@ Infer dependencies between tasks within a phase using the following rules:
 
 When inference confidence is low, set to `-` and request user confirmation.
 
-**Generation template**:
+**Generation sequence** (create the phase first, then add each task, wiring `--depends` to the task IDs returned by prior `add-task` calls):
 
-```markdown
-# [Project Name] — Plans.md
+```bash
+# 1. Create the phase (capture the returned phase-id, e.g. 1)
+harness plan-cli add-phase --title "[Phase Name]" --goal "[Phase purpose (optional)]"
 
-Last release: (none yet)
-
----
-
-## Phase 1: [Phase Name]
-
-Created: YYYY-MM-DD
-
-Purpose: [Phase purpose (optional)]
-
-| Task  | Description | DoD | Depends | Status |
-|-------|-------------|-----|---------|--------|
-| 1.1.a | [tdd:test-first] Write failing tests: User login | Failing test runs red | - | cc:TODO |
-| 1.1.b | Implement user login [feature:security] | Tests pass, curl returns 200 | 1.1.a | cc:TODO |
-| 1.2.a | [tdd:test-first] Write failing tests: Password reset | Failing test runs red | - | cc:TODO |
-| 1.2.b | Implement password reset | Tests pass | 1.2.a | cc:TODO |
-| 1.e2e | [verify:e2e] Phase 1 E2E — curl: login + reset return 2xx | `curl -f` exits 0 for both routes | 1.2.b | cc:TODO |
-
----
-
-## Future Considerations
-
-(none currently)
-
----
-
-## Archive
-
-- Last archive: (none yet)
-- Other older phases have been moved to `.claude/memory/archive/` to keep this file lean.
+# 2. Add each task to that phase (new tasks default to cc:TODO)
+harness plan-cli add-task 1 --name "Write failing tests: User login" \
+  --dod "Failing test runs red" --marker "tdd:test-first"
+harness plan-cli add-task 1 --name "Implement user login" \
+  --dod "Tests pass, curl returns 200" --depends "1.1.a" --marker "feature:security"
+harness plan-cli add-task 1 --name "Write failing tests: Password reset" \
+  --dod "Failing test runs red" --marker "tdd:test-first"
+harness plan-cli add-task 1 --name "Implement password reset" \
+  --dod "Tests pass" --depends "1.2.a"
+harness plan-cli add-task 1 --name "[verify:e2e] Phase 1 E2E — curl: login + reset return 2xx" \
+  --dod "\`curl -f\` exits 0 for both routes" --depends "1.2.b"
 ```
+
+- New tasks are created with the `cc:TODO` status by default.
+- Pass quality markers (Step 6 logic), DoD, and Depends as flags. Use `--depends` to reference task IDs created earlier in the sequence.
+- Archived phases stay in `.claude/harness/plans.json` with `status: archived` (no separate archive markdown file). Defer-only subsystems can be noted via `harness plan-cli comment`.
 
 **Purpose line**:
 - Auto-include only when the user states the phase purpose
@@ -368,20 +351,20 @@ Purpose: [Phase purpose (optional)]
 
 ### Team mode output
 
-Only when the user explicitly requests team mode, provide an issue bridge dry-run alongside Plans.md.
+Only when the user explicitly requests team mode, provide an issue bridge dry-run alongside the created plan.
 
 - Only one tracking issue
 - List sub-issue payloads for each task
-- Plans.md remains the source of truth
+- `.claude/harness/plans.json` remains the source of truth
 - Provide in a form directly usable from `scripts/plans-issue-bridge.sh --team-mode` dry-run
 
 ## Step 6.5: Self-Review
 
-After generating Plans.md, review it before presenting to the user:
+After creating the plan, review it (query state via `harness plan-cli list`/`get`) before presenting to the user:
 
-1. **Feature coverage** — Does every feature from Step 4 map to at least one task? Note and add any missing tasks.
-2. **DoD quality** — Scan all DoD cells for banned phrases (see Step 6). Fix any found.
-3. **Dependency consistency** — Do all task numbers in the `Depends` column reference tasks that exist in the phase?
+1. **Feature coverage** — Does every feature from Step 4 map to at least one task? Add any missing tasks via `harness plan-cli add-task`.
+2. **DoD quality** — Scan all task DoDs for banned phrases (see Step 6). Fix any found by re-adding or updating the task.
+3. **Dependency consistency** — Do all task IDs referenced in `--depends` exist in the phase?
 4. **TDD pair completeness** — Every task without `[skip:tdd]` must have a corresponding
    `.a` row. Fix any missing splits before presenting to the user.
 5. **Phase-bottom verification** — Every phase with at least one non-`[skip:tdd]` task
@@ -391,7 +374,7 @@ Fix issues inline. No need to re-review — just fix and move on.
 
 ## Step 7: Next Action Guidance
 
-> Plans.md complete!
+> Plan complete!
 >
 > Next steps:
 > - Start implementation with `harness-work`
@@ -401,9 +384,9 @@ Fix issues inline. No need to re-review — just fix and move on.
 
 ## CI Mode (--ci)
 
-No hearing. Uses the existing Plans.md as-is and only performs task decomposition.
+No hearing. Uses the existing plan as-is and only performs task decomposition.
 
-1. Load Plans.md
-2. List cc:TODO tasks in priority order
+1. Load the plan via `harness plan-cli list` (the SSOT is `.claude/harness/plans.json`)
+2. List cc:TODO tasks in priority order (`harness plan-cli list --status cc:TODO`)
 3. Mark parallelizable tasks with `[P]`
 4. Suggest the next task to execute

@@ -20,13 +20,19 @@ if [ -f "${PARENT_DIR}/path-utils.sh" ]; then
   source "${PARENT_DIR}/path-utils.sh"
 fi
 
+# Load config-utils.sh (plans.json SSOT helpers; lives one dir up in scripts/)
+if [ -f "${PARENT_DIR}/config-utils.sh" ]; then
+  # shellcheck source=../config-utils.sh
+  source "${PARENT_DIR}/config-utils.sh"
+fi
+
 # Detect project root
 PROJECT_ROOT="${PROJECT_ROOT:-$(detect_project_root 2>/dev/null || pwd)}"
 
-# File paths
+# File paths (SSOT: .claude/harness/plans.json)
 STATE_DIR="${PROJECT_ROOT}/.claude/state"
 COMPACTION_LOG="${STATE_DIR}/compaction-events.jsonl"
-PLANS_FILE="${PROJECT_ROOT}/Plans.md"
+PLANS_FILE="${PROJECT_ROOT}/.claude/harness/plans.json"
 HANDOFF_ARTIFACT="${STATE_DIR}/handoff-artifact.json"
 PRECOMPACT_SNAPSHOT="${STATE_DIR}/precompact-snapshot.json"
 
@@ -52,7 +58,8 @@ get_timestamp() {
   date -u +"%Y-%m-%dT%H:%M:%SZ"
 }
 
-# Extract WIP tasks from Plans.md and generate a summary
+# Extract WIP/TODO tasks from plans.json and generate a summary
+# (SSOT: .claude/harness/plans.json)
 get_wip_summary() {
   if [ ! -f "${PLANS_FILE}" ]; then
     return 0
@@ -60,27 +67,28 @@ get_wip_summary() {
 
   local wip_lines=""
 
-  if command -v python3 >/dev/null 2>&1; then
+  if command -v jq >/dev/null 2>&1; then
+    # One line per active task: "<id> <name> [<status>]" — capped at 20.
+    wip_lines="$(jq -r '
+      [.phases[].tasks[]? | select(.status=="cc:WIP" or .status=="cc:TODO")]
+      | .[0:20][]
+      | "\(.id) \(.name) [\(.status)]"
+    ' "${PLANS_FILE}" 2>/dev/null)" || wip_lines=""
+  elif command -v python3 >/dev/null 2>&1; then
     wip_lines="$(python3 -c "
-import sys
-
-plans_path = sys.argv[1]
+import json, sys
 try:
-    with open(plans_path, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-    wip_tasks = []
-    for line in lines:
-        stripped = line.strip()
-        if 'cc:WIP' in stripped or 'cc:TODO' in stripped:
-            wip_tasks.append(stripped)
-    if wip_tasks:
-        print('\\n'.join(wip_tasks[:20]))
+    data = json.load(open(sys.argv[1], encoding='utf-8'))
+    tasks = []
+    for phase in data.get('phases', []) or []:
+        for t in phase.get('tasks', []) or []:
+            if t.get('status') in ('cc:WIP', 'cc:TODO'):
+                tasks.append('{} {} [{}]'.format(t.get('id', ''), t.get('name', ''), t.get('status', '')))
+    if tasks:
+        print('\\n'.join(tasks[:20]))
 except Exception:
     pass
 " "${PLANS_FILE}" 2>/dev/null)" || wip_lines=""
-  else
-    # Fallback to grep when python3 is unavailable
-    wip_lines="$(grep -E 'cc:WIP|cc:TODO' "${PLANS_FILE}" 2>/dev/null | head -20)" || wip_lines=""
   fi
 
   printf '%s' "${wip_lines}"
@@ -334,7 +342,7 @@ fi
 SYSTEM_MESSAGE=""
 
 if [ -z "${STRUCTURED_HANDOFF_CONTEXT}" ] && [ -n "${WIP_SUMMARY}" ]; then
-  SYSTEM_MESSAGE="[PostCompact Re-injection] Context was just compacted. The following WIP/TODO tasks are active in Plans.md:
+  SYSTEM_MESSAGE="[PostCompact Re-injection] Context was just compacted. The following WIP/TODO tasks are active in plans.json:
 ${WIP_SUMMARY}"
 fi
 

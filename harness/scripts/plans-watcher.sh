@@ -1,5 +1,6 @@
 #!/bin/bash
-# plans-watcher.sh - Monitor changes to Plans.md and generate notifications to PM (compatible: cursor:*)
+# plans-watcher.sh - Monitor changes to plans.json and generate notifications to PM (compatible: cursor:*)
+# SSOT: .claude/harness/plans.json
 # Called from PostToolUse hook
 #
 # Idempotency guard: exclusive locking via .claude/state/locks/plans.flock
@@ -138,27 +139,22 @@ if [ -n "$CWD" ] && [ -n "$CHANGED_FILE" ] && [[ "$CHANGED_FILE" == "$CWD/"* ]];
   CHANGED_FILE="${CHANGED_FILE#$CWD/}"
 fi
 
-# Plans.md path (respecting plansDirectory setting)
+# plans.json path (respecting plansDirectory setting; SSOT: .claude/harness/plans.json)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "${SCRIPT_DIR}/config-utils.sh" ]; then
   source "${SCRIPT_DIR}/config-utils.sh"
-  PLANS_FILE=$(get_plans_file_path)
-  plans_file_exists || PLANS_FILE=""
+  PLANS_FILE=$(get_plans_json_path)
+  plans_json_exists || PLANS_FILE=""
 else
-  # Fallback: legacy search logic
-  find_plans_file() {
-      for f in Plans.md plans.md PLANS.md PLANS.MD; do
-          if [ -f "$f" ]; then
-              echo "$f"
-              return 0
-          fi
-      done
-      return 1
-  }
-  PLANS_FILE=$(find_plans_file)
+  # Fallback: default plans.json location
+  if [ -f ".claude/harness/plans.json" ]; then
+    PLANS_FILE=".claude/harness/plans.json"
+  else
+    PLANS_FILE=""
+  fi
 fi
 
-# Skip changes to files other than Plans.md
+# Skip changes to files other than plans.json
 if [ -z "$PLANS_FILE" ]; then
     exit 0
 fi
@@ -175,12 +171,17 @@ mkdir -p "$STATE_DIR"
 # Get previous state
 PREV_STATE_FILE="${STATE_DIR}/plans-state.json"
 
-# Count markers
+# Count tasks by status from plans.json (uses config-utils.sh helper when available)
 count_markers() {
     local marker=$1
+    if declare -F plans_count_status >/dev/null 2>&1; then
+        plans_count_status "$marker"
+        return 0
+    fi
+    # Fallback: inline jq over plans.json
     local count=0
-    if [ -f "$PLANS_FILE" ]; then
-        count=$(grep -c "$marker" "$PLANS_FILE" 2>/dev/null || true)
+    if command -v jq >/dev/null 2>&1 && [ -f "$PLANS_FILE" ]; then
+        count=$(jq "[.phases[].tasks[]? | select(.status==\"$marker\")] | length" "$PLANS_FILE" 2>/dev/null || echo 0)
         [ -z "$count" ] && count=0
     fi
     echo "$count"
@@ -227,7 +228,7 @@ EOF
 generate_notification() {
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "📋 Plans.md change detected"
+    echo "📋 plans.json change detected"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
     if [ -n "$NEW_TASKS" ]; then

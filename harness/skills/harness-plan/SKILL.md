@@ -27,13 +27,13 @@ This check is performed silently. Inform the user only if migration was triggere
 
 | User Input | Subcommand | Behavior |
 |------------|------------|----------|
-| "create a plan" | `create` | Default behavior, interactive interview → Plans.md generation |
-| "add a task" | `add` | Add new task to Plans.md |
-| "mark complete" | `update` | Change task marker to cc:done |
-| "where am I?" / "check progress" / `harness-plan sync` / "sync status"| `sync` | Compare implementation with Plans.md and sync |
+| "create a plan" | `create` | Default behavior, interactive interview → `harness plan-cli add-phase`/`add-task` |
+| "add a task" | `add` | Add new task via `harness plan-cli add-task` |
+| "mark complete" | `update` | Change task status to cc:done via `harness plan-cli update` |
+| "where am I?" / "check progress" / `harness-plan sync` / "sync status"| `sync` | Compare implementation with plan state (`harness plan-cli list`/`get`) and sync via `harness plan-cli update` |
 | `harness-plan sync --snapshot` | `sync --snapshot` | Save point-in-time progress snapshot |
-| "rough idea" / "brainstorm" / `harness-plan brainstorm` | `brainstorm` | Shape idea → design spec → Plans.md tasks |
-| "archive old phases" / `harness-plan archive` | `archive` | Archive phases in Plans.md to `.claude/memory/archive/`; update `Last archive:` line in the `## Archive` footer |
+| "rough idea" / "brainstorm" / `harness-plan brainstorm` | `brainstorm` | Shape idea → design spec → tasks via `harness plan-cli add-phase`/`add-task` |
+| "archive old phases" / `harness-plan archive` | `archive` | Archive phases via `harness plan-cli archive <phase-id>` (sets `status: archived` in plans.json) |
 | "session log too big" / `harness-plan session-log` | `session-log` | Split session-log.md by month; move older months to `.claude/memory/session-log-YYYY-MM.md` |
 
 ## Subcommand Details
@@ -42,7 +42,7 @@ Each subcommand has its own reference file. Open the matching file when invoking
 
 | Subcommand | Reference |
 |------------|-----------|
-| `create` | [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md) — interview flow, TDD decision rules, Plans.md generation |
+| `create` | [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md) — interview flow, TDD decision rules, plan generation via `harness plan-cli` |
 | `add` | [references/add.md](${CLAUDE_SKILL_DIR}/references/add.md) — insertion rules, DoD/Depends auto-inference |
 | `update` | [references/update.md](${CLAUDE_SKILL_DIR}/references/update.md) — marker mapping, single-task status changes |
 | `sync` | [references/sync.md](${CLAUDE_SKILL_DIR}/references/sync.md) — discrepancy detection, retrospective, --snapshot |
@@ -52,7 +52,7 @@ Each subcommand has its own reference file. Open the matching file when invoking
 | _(CLI reference)_ | [references/cli-reference.md](${CLAUDE_SKILL_DIR}/references/cli-reference.md) — all subcommands, flags, exit codes, agent examples |
 | _(quality gate)_ | [references/planning-quality.md](${CLAUDE_SKILL_DIR}/references/planning-quality.md) — 8-step planning quality contract for `create` and high-impact `add` |
 
-**CI mode** (`--ci`) — applies to `create` only: no interview; uses existing Plans.md and only performs task decomposition. See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md) "CI Mode" section.
+**CI mode** (`--ci`) — applies to `create` only: no interview; uses the existing plan state (`harness plan-cli list`) and only performs task decomposition. See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md) "CI Mode" section.
 
 **Retrospective skip** (`--no-retro`) — applies to `sync` only: skips the automatic retrospective pass. See [references/sync.md](${CLAUDE_SKILL_DIR}/references/sync.md) "Step 6: Retrospective".
 
@@ -85,7 +85,7 @@ Compact summary. For full semantics (including the `cc:done [hash]` artifact for
 
 - Tasks involving UI get a `design brief`
 - Tasks involving API get a `contract brief`
-- Briefs are supplementary materials that briefly define what to build; they do not replace Plans.md
+- Briefs are supplementary materials that briefly define what to build; they do not replace the plan
 - A machine-readable JSON list of skill frontmatter can be generated with `scripts/generate-skill-manifest.sh`
 
 Reference:
@@ -105,6 +105,8 @@ The planner agent now calls the `harness plan-cli` binary — it **does not edit
 | `archive` | `harness plan-cli archive <phaseID>` |
 | `session-log` | No CLI equivalent; still edits session-log.md directly |
 
+> The same CLI calls apply when this skill performs the edit **inline** (without delegating): the SSOT is `.claude/harness/plans.json`, and every read goes through `harness plan-cli list`/`get`, every write through a `harness plan-cli` subcommand.
+
 Subcommands **not** delegated (require Opus reasoning, stay in this skill): `create`, `brainstorm`, `sync`.
 
 **Invocation pattern** — callers use the `Agent` tool with `subagent_type: "harness-planner"` and pass a `planner-request.v1` JSON payload. The agent returns a `planner-response.v1` JSON. See [`harness/agents/harness-planner.md`](${CLAUDE_SKILL_DIR}/../../agents/harness-planner.md) for the full schema and per-operation flows.
@@ -113,12 +115,12 @@ The `harness-plan` skill itself remains the user-facing entry point — delegati
 
 ## Team Mode / Issue Bridge
 
-Plans.md is maintained as the source of truth, and GitHub Issue integration is only used in opt-in team mode.
+`.claude/harness/plans.json` is maintained as the source of truth, and GitHub Issue integration is only used in opt-in team mode.
 
 - Do not use the bridge for solo development
 - Team mode creates one tracking issue and generates dry-run sub-issue payloads for each task underneath it
 - `scripts/plans-issue-bridge.sh` does not actually update GitHub; it always returns dry-run payloads
-- This bridge does not modify Plans.md
+- This bridge does not modify the plan
 
 Reference:
 
@@ -132,4 +134,4 @@ Reference:
 
 ## Related Agents
 
-- `harness-planner` — Haiku worker for mechanical Plans.md mutations (see "Delegation" section above)
+- `harness-planner` — Haiku worker for mechanical plan mutations via `harness plan-cli` (see "Delegation" section above)

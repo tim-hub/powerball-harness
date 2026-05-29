@@ -114,9 +114,82 @@ get_plans_file_path() {
   echo "$default_path"
 }
 
-# Check if Plans.md exists
+# Check if Plans.md exists (legacy — used only by the Plans.md → plans.json
+# migration bridge; new code should use plans_json_exists).
 plans_file_exists() {
   local plans_path
   plans_path=$(get_plans_file_path)
   [ -f "$plans_path" ]
+}
+
+# ---------------------------------------------------------------------------
+# plans.json SSOT query helpers
+#
+# `.claude/harness/plans.json` is the single source of truth for tasks/phases.
+# These helpers read it directly with jq (fast path for always-on hooks).
+# `harness plan-cli` remains the read/write interface for agents and the web UI.
+# All helpers degrade gracefully (empty/zero) when plans.json or jq is absent,
+# so hooks never hard-fail on a fresh project.
+# ---------------------------------------------------------------------------
+
+# Path to plans.json (honors plansDirectory; canonical location is
+# <plansDir>/.claude/harness/plans.json, default ./.claude/harness/plans.json).
+get_plans_json_path() {
+  local plans_dir
+  plans_dir=$(get_plans_directory)
+  if [ "$plans_dir" = "." ]; then
+    echo ".claude/harness/plans.json"
+  else
+    echo "${plans_dir}/.claude/harness/plans.json"
+  fi
+}
+
+# Exit 0 if plans.json exists.
+plans_json_exists() {
+  [ -f "$(get_plans_json_path)" ]
+}
+
+# Run a jq filter over plans.json. Echoes empty and returns non-zero when
+# jq is unavailable or plans.json is missing.
+_plans_jq() {
+  local filter="$1"
+  local pj
+  pj="$(get_plans_json_path)"
+  command -v jq >/dev/null 2>&1 || return 1
+  [ -f "$pj" ] || return 1
+  jq -r "$filter" "$pj" 2>/dev/null
+}
+
+# Count tasks with a given status (e.g. cc:WIP, cc:TODO, cc:done).
+# Note: local var is named want_status, not status — `status` is a read-only
+# special variable in zsh/fish and breaks if this lib is sourced there.
+plans_count_status() {
+  local want_status="$1"
+  local n
+  n="$(_plans_jq "[.phases[].tasks[]? | select(.status==\"${want_status}\")] | length")"
+  echo "${n:-0}"
+}
+
+# Exit 0 if at least one task is cc:WIP.
+plans_has_wip() {
+  [ "$(plans_count_status 'cc:WIP')" -gt 0 ] 2>/dev/null
+}
+
+# Print names of cc:WIP tasks, one per line (optional arg: max count).
+plans_wip_names() {
+  local limit="${1:-0}"
+  local names
+  names="$(_plans_jq '[.phases[].tasks[]? | select(.status=="cc:WIP") | .name] | .[]')"
+  if [ "$limit" -gt 0 ] 2>/dev/null; then
+    echo "$names" | head -n "$limit"
+  else
+    echo "$names"
+  fi
+}
+
+# Exit 0 if any cc:WIP task carries the skip:tdd quality marker.
+plans_wip_has_skip_tdd() {
+  local n
+  n="$(_plans_jq '[.phases[].tasks[]? | select(.status=="cc:WIP") | select((.qualityMarkers // []) | index("skip:tdd"))] | length')"
+  [ "${n:-0}" -gt 0 ] 2>/dev/null
 }

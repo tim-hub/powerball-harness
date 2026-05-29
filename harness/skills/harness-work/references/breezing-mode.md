@@ -29,8 +29,8 @@ Lead (this agent)
    ```
    - Exit 0: proceed to step 1
    - Exit 1: display drift report and prompt "Stale markers detected. Proceed anyway? (y/N)". Stop if user declines.
-1. Read Plans.md and identify target tasks
-2. Analyze the dependency graph and determine execution order (Depends column)
+1. Identify target tasks with `harness plan-cli list` — the SSOT is `.claude/harness/plans.json`
+2. Analyze the dependency graph and determine execution order (each task's `depends` field)
 3. Effort scoring for each task (ultrathink injection decision)
 4. Generate all sprint contracts concurrently (contracts are independent):
    ```
@@ -66,19 +66,19 @@ for task in execution_order:
     # If the task description contains "[ralph]", delegate to harness-ralph-loop instead.
     # Ralph tasks serialize within a session (only one Ralph loop runs at a time).
     if "[ralph]" in task.description:
-        Plans.md: task.status = "cc:WIP"  # authoritative
+        harness plan-cli update <task-id> --status cc:WIP  # authoritative (plans.json)
         ralph_result = Skill(name="harness-ralph-loop", args=task.id)
-        # ralph_result terminal state determines Plans.md update:
+        # ralph_result terminal state determines the plans.json update:
         #   - SUCCESS         → cc:done [hash]   (already written by harness-ralph-loop orchestrator)
         #   - FT-RALPH-01     → blocked (ralph stuck — no progress across iterations)
         #   - FT-RALPH-02     → blocked (verify mismatch — promise/verify disagreement)
         #   - FT-RALPH-03     → blocked (max-iter exhausted without success)
-        # All Plans.md updates are handled by harness-ralph-loop itself; Lead skips B-2.5 through B-5.
+        # All plans.json updates are handled by harness-ralph-loop itself; Lead skips B-2.5 through B-5.
         continue  # Skip the standard worker/reviewer loop for this task
 
     # B-2. Worker spawn (foreground, worktree isolation)
     # Agent tool return value contains agentId — used for SendMessage in fix loop
-    Plans.md: task.status = "cc:WIP"  # Update on start (unstarted tasks remain cc:TODO) — authoritative
+    harness plan-cli update <task-id> --status cc:WIP  # Update on start (unstarted tasks remain cc:TODO) — authoritative (plans.json)
 
     violation_preamble = ""
     if universal_violations:
@@ -156,7 +156,7 @@ for task in execution_order:
     if verdict == "APPROVE":
         git cherry-pick --no-commit {latest_commit}  # worktree → main
         git commit -m "{task.content}"
-        Plans.md: task.status = "cc:Done [{hash}]"  # authoritative
+        harness plan-cli update <task-id> --status cc:done --hash {hash}  # authoritative (plans.json)
     else:
         → Escalate to user
 
@@ -189,4 +189,4 @@ The generated artifact includes:
 **Phase C: Post-delegate (Integration & Reporting)**:
 1. Aggregate commit logs for all tasks
 2. Output a **Rich Completion Report** (see [`${CLAUDE_SKILL_DIR}/templates/completion-report.md`](${CLAUDE_SKILL_DIR}/templates/completion-report.md))
-3. Final check of Plans.md (verify all tasks are cc:Done)
+3. Final check with `harness plan-cli list --status all` (verify all tasks are cc:done)

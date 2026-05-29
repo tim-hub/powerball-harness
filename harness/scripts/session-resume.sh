@@ -411,7 +411,7 @@ echo '{"used": [], "session_start": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > "$SES
 
 # ===== Clear SSOT sync flag (at new/restored session start) =====
 # This flag is created when /sync-ssot-from-memory runs,
-# and is used to confirm SSOT sync before Plans.md cleanup
+# and is used to confirm SSOT sync before plans.json cleanup
 rm -f "${STATE_DIR}/.ssot-synced-this-session" 2>/dev/null || true
 
 # Clear ultrawork warning flag (on session restore)
@@ -421,14 +421,29 @@ rm -f "${STATE_DIR}/.ssot-synced-this-session" 2>/dev/null || true
 rm -f "${STATE_DIR}/.work-review-warned" 2>/dev/null || true
 rm -f "${STATE_DIR}/.ultrawork-review-warned" 2>/dev/null || true
 
-# ===== Plans.md check =====
+# ===== plans.json check (SSOT: .claude/harness/plans.json) =====
+# Consider plansDirectory setting
+PLANS_PATH=".claude/harness/plans.json"
+if [ -f "${SCRIPT_DIR}/config-utils.sh" ]; then
+  source "${SCRIPT_DIR}/config-utils.sh"
+  PLANS_PATH=$(get_plans_json_path)
+fi
+
 PLANS_INFO=""
-if [ -f "Plans.md" ]; then
-  wip_count="$(count_matches "cc:WIP\\|pm:in-progress\\|cursor:in-progress" "Plans.md")"
-  todo_count="$(count_matches "cc:TODO" "Plans.md")"
-  PLANS_INFO="📄 Plans.md: In Progress ${wip_count} / Not Started ${todo_count}"
+if [ -f "$PLANS_PATH" ]; then
+  wip_count="$(plans_count_status "cc:WIP")"
+  todo_count="$(plans_count_status "cc:TODO")"
+  PLANS_INFO="📄 plans.json: In Progress ${wip_count} / Not Started ${todo_count}"
+
+  # Legacy Plans.md migration bridge: advise migrating if the markdown still exists.
+  if declare -F plans_file_exists >/dev/null 2>&1 && plans_file_exists; then
+    PLANS_INFO="${PLANS_INFO} (legacy Plans.md found → run \`harness plan-cli migrate\`)"
+  fi
 else
-  PLANS_INFO="📄 Plans.md: Not Found"
+  PLANS_INFO="📄 plans.json: Not Found"
+  if declare -F plans_file_exists >/dev/null 2>&1 && plans_file_exists; then
+    PLANS_INFO="📄 plans.json: Not Found (legacy Plans.md found → run \`harness plan-cli migrate\`)"
+  fi
 fi
 
 SNAPSHOT_INFO=""

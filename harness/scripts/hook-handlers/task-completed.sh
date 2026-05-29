@@ -832,7 +832,7 @@ Approve: approve fix ${TASK_ID}
 Reject: reject fix ${TASK_ID}"
     if [ "${_proposal_saved}" != "true" ]; then
       _fix_message="${_fix_message}
-Warning: failed to save proposal. Please add it to Plans.md manually."
+Warning: failed to save proposal. Please add it to plans.json manually (via \`harness plan-cli\`)."
     fi
 
     # Approve hook with exit 0 while announcing proposal that can be approved in next turn

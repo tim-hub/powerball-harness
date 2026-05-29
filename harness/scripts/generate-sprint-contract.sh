@@ -13,77 +13,41 @@ const taskId = process.argv[2];
 if (!taskId) usage();
 
 const repoRoot = spawnSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).stdout.trim();
-const plansFile = process.argv[3] ? path.resolve(process.argv[3]) : path.join(repoRoot, 'Plans.md');
+const plansFile = process.argv[3] ? path.resolve(process.argv[3]) : path.join(repoRoot, '.claude', 'harness', 'plans.json');
 const defaultOut = path.join(repoRoot, '.claude', 'state', 'contracts', `${taskId}.sprint-contract.json`);
 const outputFile = process.argv[4] ? path.resolve(process.argv[4]) : defaultOut;
 
 if (!fs.existsSync(plansFile)) {
-  console.error(`Plans.md not found: ${plansFile}`);
+  console.error(`plans.json not found: ${plansFile}`);
   process.exit(2);
 }
 
-function parseTaskRow(markdown, targetTaskId) {
-  const lines = markdown.split('\n');
-  // Replace escaped pipes `\|` with a placeholder before parsing, then restore
-  const PIPE_PLACEHOLDER = '\x00PIPE\x00';
-  const escapePipes = (s) => s.replace(/\\\|/g, PIPE_PLACEHOLDER);
-  const restorePipes = (s) => s.replace(new RegExp(PIPE_PLACEHOLDER, 'g'), '|');
-
-  // Detect column positions from the header row for accurate splitting
-  // Expected Plans.md columns: | Task | Content | DoD | Depends | Status |
-  // Determine physical column count from the separator line (|---|---|...)
-  let headerColCount = 5; // default
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (/^\|[\s-]+\|/.test(trimmed)) {
-      const sepCols = trimmed.split('|').filter((c) => c.trim().length > 0);
-      if (sepCols.length >= 5) headerColCount = sepCols.length;
-      break;
-    }
+// Look up a task by id in plans.json. Returns the shape the rest of this script
+// expects: { taskId, title, dod, depends (comma string), status }.
+// qualityMarkers are folded into the title text as [marker] tokens so the
+// existing text-based profile / risk-flag detectors keep working unchanged.
+function findTaskInPlans(plansJsonText, targetTaskId) {
+  let data;
+  try {
+    data = JSON.parse(plansJsonText);
+  } catch (e) {
+    console.error(`failed to parse plans.json: ${e.message}`);
+    process.exit(2);
   }
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed.startsWith('|')) continue;
-    if (/^\|[\s-]+\|/.test(trimmed)) continue; // skip separator row
-
-    // Protect escaped `\|` before split
-    const inner = escapePipes(trimmed.replace(/^\|/, '').replace(/\|$/, ''));
-    const parts = inner.split('|');
-    if (parts.length < 5) continue;
-
-    const taskId = parts[0].trim();
-    if (taskId !== targetTaskId) continue;
-
-    // Rightmost 2 columns (depends, status) are fixed. They do not contain `|`.
-    const status = parts[parts.length - 1].trim();
-    const depends = parts[parts.length - 2].trim();
-
-    // Split parts[1..n-3] into title and dod.
-    // Use header column count to determine middle column count (title + dod = headerColCount - 3)
-    const middleParts = parts.slice(1, parts.length - 2);
-    const expectedMiddle = headerColCount - 3; // number of title + dod columns (usually 2)
-
-    let title, dod;
-    if (expectedMiddle <= 1 || middleParts.length <= 1) {
-      // Few columns or no extra `|` — simple split
-      title = middleParts[0] ? middleParts[0].trim() : '';
-      dod = '';
-    } else {
-      // Split middleParts: first portion = title, last cell = dod
-      // In a standard table `|` separates title/dod exactly once,
-      // so any extra `|` belongs to the title side (title is more likely to contain `|`)
-      // dod is always the last single cell
-      dod = middleParts[middleParts.length - 1].trim();
-      title = middleParts.slice(0, middleParts.length - 1).join('|').trim();
+  for (const phase of data.phases || []) {
+    for (const task of phase.tasks || []) {
+      if (task.id !== targetTaskId) continue;
+      const markers = Array.isArray(task.qualityMarkers) ? task.qualityMarkers : [];
+      const markerText = markers.map((m) => `[${m}]`).join(' ');
+      const name = task.name || '';
+      return {
+        taskId: task.id,
+        title: markerText ? `${name} ${markerText}` : name,
+        dod: task.dod || '',
+        depends: Array.isArray(task.depends) ? task.depends.join(',') : '',
+        status: task.status || '',
+      };
     }
-    return {
-      taskId: restorePipes(taskId),
-      title: restorePipes(title),
-      dod: restorePipes(dod),
-      depends: restorePipes(depends),
-      status: restorePipes(status),
-    };
   }
   return null;
 }
@@ -238,10 +202,10 @@ function pickRuntimeCommands(root) {
   return commands;
 }
 
-const markdown = fs.readFileSync(plansFile, 'utf8');
-const row = parseTaskRow(markdown, taskId);
+const plansJsonText = fs.readFileSync(plansFile, 'utf8');
+const row = findTaskInPlans(plansJsonText, taskId);
 if (!row) {
-  console.error(`Task row not found in Plans.md: ${taskId}`);
+  console.error(`Task not found in plans.json: ${taskId}`);
   process.exit(3);
 }
 
@@ -255,7 +219,7 @@ const contract = {
   schema_version: 'sprint-contract.v1',
   generated_at: new Date().toISOString(),
   source: {
-    plans_file: path.relative(repoRoot, plansFile) || 'Plans.md',
+    plans_file: path.relative(repoRoot, plansFile) || 'plans.json',
     task_id: row.taskId,
   },
   task: {
@@ -269,7 +233,7 @@ const contract = {
     checks: [
       {
         id: 'dod-primary',
-        source: 'Plans.md.DoD',
+        source: 'plans.json.dod',
         description: row.dod,
       },
     ],
