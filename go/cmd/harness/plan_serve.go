@@ -361,8 +361,9 @@ func apiPostPhase(w http.ResponseWriter, r *http.Request, planFile string) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	writeJSON(w, ph)
+	json.NewEncoder(w).Encode(ph)
 }
 
 func apiPostTask(w http.ResponseWriter, r *http.Request, planFile string, phaseID int) {
@@ -435,8 +436,9 @@ func apiPostTask(w http.ResponseWriter, r *http.Request, planFile string, phaseI
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	writeJSON(w, task)
+	json.NewEncoder(w).Encode(task)
 }
 
 func apiArchivePhase(w http.ResponseWriter, r *http.Request, planFile string, phaseID int) {
@@ -533,8 +535,9 @@ func apiPostComment(w http.ResponseWriter, r *http.Request, planFile string, tar
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	writeJSON(w, c)
+	json.NewEncoder(w).Encode(c)
 }
 
 // ---------------------------------------------------------------------------

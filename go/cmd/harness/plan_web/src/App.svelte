@@ -168,7 +168,7 @@
             const srcId = `task-${t.id}`;
             const tgtId = depPhaseExpanded ? `task-${dep}` : `ph-${depTask._phase?.id}`;
             if (elements.find(e => e.data.id === tgtId)) {
-              elements.push({ data: { id: `edge-${t.id}-${dep}`, source: srcId, target: tgtId, dashed: !depPhaseExpanded } });
+              elements.push({ data: { id: `edge-${t.id}-${dep}`, source: srcId, target: tgtId, dashed: !depPhaseExpanded ? 'dashed' : 'solid' } });
             }
           }
         }
