@@ -164,149 +164,204 @@ def is_allowlisted(filepath: str, allowlist: list) -> bool:
             return True
     return False
 
-# ─── grep utilities ───────────────────────────────────────────────────────────
-def grep_files(term: str, repo_root: str) -> list:
-    try:
-        result = subprocess.run(
-            ["grep", "-rln", "-F",
-             "--exclude-dir=.git",
-             term, "."],
-            cwd=repo_root,
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode not in (0, 1):
-            return []
-        return [f.strip() for f in result.stdout.splitlines() if f.strip()]
-    except Exception as e:
-        print(f"  WARNING: grep execution error: {e}", file=sys.stderr)
-        return []
+# ─── Scan backends ────────────────────────────────────────────────────────────
 
-def grep_line_numbers(term: str, filepath: str, repo_root: str) -> list:
+def _rg_available() -> bool:
     try:
-        result = subprocess.run(
-            ["grep", "-n", "-F", term, filepath],
-            cwd=repo_root,
-            capture_output=True,
-            text=True,
-        )
-        lines = []
-        for line in result.stdout.splitlines():
-            m = re.match(r"^(\d+):(.*)$", line)
-            if m:
-                lines.append((int(m.group(1)), m.group(2).strip()))
-        return lines
-    except Exception:
-        return []
+        subprocess.run(["rg", "--version"], capture_output=True, check=True)
+        return True
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return False
+
+
+def _batch_scan_rg(terms: list, repo_root: str) -> dict:
+    """One rg pass for all terms. Returns {term: [(filepath, linenum, content)]}."""
+    args = [
+        "rg", "-F", "-n", "--no-heading", "--with-filename",
+        "--glob", "!.git",
+        "--glob", "!node_modules",
+        "--glob", "!.claude/worktrees",
+    ]
+    for term in terms:
+        args.extend(["-e", term])
+    args.append(".")
+
+    result = subprocess.run(args, cwd=repo_root, capture_output=True, text=True)
+    # rg exits 0 on match, 1 on no match, 2 on error
+    if result.returncode == 2:
+        raise RuntimeError(f"rg error: {result.stderr.strip()}")
+
+    hits = {term: [] for term in terms}
+    for line in result.stdout.splitlines():
+        m = re.match(r"^(.+?):(\d+):(.*)$", line)
+        if not m:
+            continue
+        filepath, linenum, content = m.group(1), int(m.group(2)), m.group(3).strip()
+        for term in terms:
+            if term in content:
+                hits[term].append((filepath, linenum, content))
+    return hits
+
+
+def _batch_scan_grep(terms: list, repo_root: str) -> dict:
+    """Fallback: sequential grep per term (legacy behaviour)."""
+    hits = {term: [] for term in terms}
+    for term in terms:
+        try:
+            r = subprocess.run(
+                ["grep", "-rln", "-F", "--exclude-dir=.git", term, "."],
+                cwd=repo_root, capture_output=True, text=True,
+            )
+            for filepath in (f.strip() for f in r.stdout.splitlines() if f.strip()):
+                r2 = subprocess.run(
+                    ["grep", "-n", "-F", term, filepath],
+                    cwd=repo_root, capture_output=True, text=True,
+                )
+                for ln_line in r2.stdout.splitlines():
+                    lm = re.match(r"^(\d+):(.*)$", ln_line)
+                    if lm:
+                        hits[term].append((filepath, int(lm.group(1)), lm.group(2).strip()))
+        except Exception as e:
+            print(f"  WARNING: grep error for '{term}': {e}", file=sys.stderr)
+    return hits
+
+
+def batch_scan(terms: list, repo_root: str, backend: str = "auto") -> dict:
+    """
+    Scan all terms in one pass. Returns {term: [(filepath, linenum, content)]}.
+    Set RESIDUE_SCANNER_BACKEND=rg|grep|auto to override; default is auto (rg if available).
+    """
+    if not terms:
+        return {}
+    use_rg = backend == "rg" or (backend == "auto" and _rg_available())
+    if use_rg:
+        try:
+            return _batch_scan_rg(terms, repo_root)
+        except (FileNotFoundError, RuntimeError) as e:
+            print(f"  WARNING: rg failed ({e}), falling back to grep", file=sys.stderr)
+    return _batch_scan_grep(terms, repo_root)
+
 
 def grep_h1_v3_files(repo_root: str) -> list:
+    """Regex scan for H1 titles with (v3) suffix — kept separate as it uses a regex pattern."""
     try:
         result = subprocess.run(
-            ["grep", "-rln", "--include=*.md",
-             "--exclude-dir=.git",
-             r"^# .*(v3)", "."],
-            cwd=repo_root,
-            capture_output=True,
-            text=True,
+            ["grep", "-rln", "--include=*.md", "--exclude-dir=.git", r"^# .*(v3)", "."],
+            cwd=repo_root, capture_output=True, text=True,
         )
         if result.returncode not in (0, 1):
             return []
         return [f.strip() for f in result.stdout.splitlines() if f.strip()]
     except Exception:
         return []
+
 
 # ─── Run scan ─────────────────────────────────────────────────────────────────
 violations = 0
 violation_files = set()
 
-# ── Scan deleted_paths ──
-print("[scanning deleted_paths...]")
+SCAN_BACKEND = os.environ.get("RESIDUE_SCANNER_BACKEND", "auto")
+
+_PATH_DEFAULT_ALLOWLIST = [
+    "CHANGELOG.md",
+    ".claude/memory/archive/",
+    ".claude/worktrees/",
+    ".claude/state/",
+    "out/",
+    "output/",
+    "benchmarks/",
+    "tests/validate-plugin-v3.sh",
+    ".claude/rules/deleted-concepts.yaml",
+    "harness/skills/harness-release/scripts/check-residue.sh",
+    "harness/skills/harness-release/scripts/check-residue.py",
+]
+_CONCEPT_DEFAULT_ALLOWLIST = [
+    "CHANGELOG.md",
+    ".claude/memory/archive/",
+    ".claude/worktrees/",
+    ".claude/state/",
+    "out/",
+    "output/",
+    "benchmarks/",
+    ".claude/rules/deleted-concepts.yaml",
+    "harness/skills/harness-release/scripts/check-residue.sh",
+    "harness/skills/harness-release/scripts/check-residue.py",
+    "tests/validate-plugin-v3.sh",
+]
+
+# ── Collect all scan terms for a single batched pass ──
+all_terms = []
+for entry in deleted_paths:
+    all_terms.append(entry["path"])
+for entry in deleted_concepts:
+    if not entry.get("_scan_disabled", False):
+        all_terms.append(entry["term"])
+        if entry.get("term_ja"):
+            all_terms.append(entry["term_ja"])
+
+print(f"[scanning {len(all_terms)} terms in one pass (backend={SCAN_BACKEND})...]")
+all_hits = batch_scan(all_terms, REPO_ROOT, backend=SCAN_BACKEND)
+
+
+def _report_hits(term: str, effective_allowlist: list) -> list:
+    """Filter hits for term through allowlist; return list of (filepath, linenum, content)."""
+    return [
+        (f, ln, c)
+        for f, ln, c in all_hits.get(term, [])
+        if not is_allowlisted(f, effective_allowlist)
+    ]
+
+
+def _show_violations(term: str, filtered: list, label: str, suffix: str = "") -> None:
+    """Print violation block and update global counters."""
+    global violations
+    by_file = {}
+    for f, ln, c in filtered:
+        by_file.setdefault(f, []).append((ln, c))
+    violations += len(by_file)
+    violation_files.update(by_file.keys())
+    print(f"  ✗ {label}")
+    for f, lines in by_file.items():
+        for lineno, content in lines[:3]:
+            print(f"    {f}:L{lineno} — \"{content}\"")
+    if suffix:
+        print(f"    {suffix}")
+    print()
+
+
+# ── Check deleted_paths ──
+print("[checking deleted_paths...]")
 for entry in deleted_paths:
     path_term = entry["path"]
-    allowlist  = entry.get("allowlist", [])
-    reason     = entry.get("reason", "")
-
-    default_allowlist = [
-        "CHANGELOG.md",
-        ".claude/memory/archive/",
-        ".claude/worktrees/",
-        ".claude/state/",
-        "out/",
-        "output/",
-        "benchmarks/",
-        "tests/validate-plugin-v3.sh",
-        ".claude/rules/deleted-concepts.yaml",
-        "harness/skills/harness-release/scripts/check-residue.sh",
-        "harness/skills/harness-release/scripts/check-residue.py",
-    ]
-    effective_allowlist = list(set(allowlist + default_allowlist))
-
-    matched_files = grep_files(path_term, REPO_ROOT)
-    filtered = [f for f in matched_files if not is_allowlisted(f, effective_allowlist)]
-
+    effective_allowlist = list(set(entry.get("allowlist", []) + _PATH_DEFAULT_ALLOWLIST))
+    filtered = _report_hits(path_term, effective_allowlist)
     if filtered:
-        violations += len(filtered)
-        violation_files.update(filtered)
-        print(f"  ✗ {path_term}")
-        for f in filtered:
-            lines = grep_line_numbers(path_term, f, REPO_ROOT)
-            if lines:
-                for lineno, content in lines[:3]:
-                    print(f"    {f}:L{lineno} — \"{content}\"")
-            else:
-                print(f"    {f}")
+        reason = entry.get("reason", "")
         reason_display = f"{reason[:60]}..." if len(reason) > 60 else reason
-        print(f"    (matched entry: {path_term}, reason: \"{reason_display}\")")
-        print()
+        _show_violations(path_term, filtered,
+                         label=path_term,
+                         suffix=f"(matched entry: {path_term}, reason: \"{reason_display}\")")
 
-# ── Scan deleted_concepts ──
-print("[scanning deleted_concepts...]")
+# ── Check deleted_concepts ──
+print("[checking deleted_concepts...]")
 for entry in deleted_concepts:
     if entry.get("_scan_disabled", False):
         continue
-
     term        = entry["term"]
     term_ja     = entry.get("term_ja")
     replacement = entry.get("replacement", "")
-    reason      = entry.get("reason", "")
-    allowlist   = entry.get("allowlist", [])
-
-    default_allowlist = [
-        "CHANGELOG.md",
-        ".claude/memory/archive/",
-        ".claude/worktrees/",
-        ".claude/state/",
-        "out/",
-        "output/",
-        "benchmarks/",
-        ".claude/rules/deleted-concepts.yaml",
-        "harness/skills/harness-release/scripts/check-residue.sh",
-        "harness/skills/harness-release/scripts/check-residue.py",
-        "tests/validate-plugin-v3.sh",
-    ]
-    effective_allowlist = list(set(allowlist + default_allowlist))
+    effective_allowlist = list(set(entry.get("allowlist", []) + _CONCEPT_DEFAULT_ALLOWLIST))
+    display_replacement = f" → {replacement}" if replacement else ""
 
     for scan_term in ([term] + ([term_ja] if term_ja else [])):
-        matched_files = grep_files(scan_term, REPO_ROOT)
-        filtered = [f for f in matched_files if not is_allowlisted(f, effective_allowlist)]
-
+        filtered = _report_hits(scan_term, effective_allowlist)
         if filtered:
-            violations += len(filtered)
-            violation_files.update(filtered)
-            display_replacement = f" → {replacement}" if replacement else ""
-            print(f"  ✗ \"{scan_term}\"")
-            for f in filtered:
-                lines = grep_line_numbers(scan_term, f, REPO_ROOT)
-                if lines:
-                    for lineno, content in lines[:3]:
-                        print(f"    {f}:L{lineno} — \"{content}\"")
-                else:
-                    print(f"    {f}")
-            print(f"    (matched entry: {scan_term}{display_replacement})")
-            print()
+            _show_violations(scan_term, filtered,
+                             label=f"\"{scan_term}\"",
+                             suffix=f"(matched entry: {scan_term}{display_replacement})")
 
-# ── Scan for H1 (v3) suffix ──
-print("[scanning H1 (v3) suffix in skills/ and agents/...]")
+# ── Scan for H1 (v3) suffix (regex — separate pass) ──
+print("[scanning H1 (v3) suffix in *.md files...]")
 h1_allowlist = [
     "CHANGELOG.md",
     ".claude/memory/archive/",
@@ -333,9 +388,7 @@ if h1_filtered:
         try:
             result = subprocess.run(
                 ["grep", "-n", r"^# .*(v3)", f],
-                cwd=REPO_ROOT,
-                capture_output=True,
-                text=True,
+                cwd=REPO_ROOT, capture_output=True, text=True,
             )
             for line in result.stdout.splitlines()[:3]:
                 m = re.match(r"^(\d+):(.*)$", line)
