@@ -80,31 +80,39 @@
   }
 
   async function patchTask(id, fields) {
-    const res = await fetch(`/api/tasks/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(fields),
-    });
-    if (!res.ok) { error = `Save failed: HTTP ${res.status}`; return; }
-    await fetchPhases();
-    if (modalTask && modalTask.id === id) {
-      modalTask = allTasks().find(t => t.id === id) || null;
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      });
+      if (!res.ok) { error = `Save failed: HTTP ${res.status}`; return; }
+      await fetchPhases();
+      if (modalTask && modalTask.id === id) {
+        modalTask = allTasks().find(t => t.id === id) || null;
+      }
+    } catch (e) {
+      error = `Save failed: ${e.message}`;
     }
   }
 
   async function postComment(targetId) {
     const text = commentText.trim();
     if (!text) return;
-    const res = await fetch(`/api/comments/${targetId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, author: 'user' }),
-    });
-    if (!res.ok) { error = `Comment failed: HTTP ${res.status}`; return; }
-    commentText = '';
-    await fetchPhases();
-    if (modalTask && modalTask.id === targetId) {
-      modalTask = allTasks().find(t => t.id === targetId) || null;
+    try {
+      const res = await fetch(`/api/comments/${targetId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, author: 'user' }),
+      });
+      if (!res.ok) { error = `Comment failed: HTTP ${res.status}`; return; }
+      commentText = '';
+      await fetchPhases();
+      if (modalTask && modalTask.id === targetId) {
+        modalTask = allTasks().find(t => t.id === targetId) || null;
+      }
+    } catch (e) {
+      error = `Comment failed: ${e.message}`;
     }
   }
 
@@ -122,6 +130,7 @@
   function closeModal() { modalTask = null; }
 
   async function saveEdit() {
+    if (!modalTask) return;
     const fields = { status: editStatus, urgency: editUrgency, importance: editImportance };
     if (editStatus === 'blocked') fields.blockedReason = editBlockedReason;
     await patchTask(modalTask.id, fields);
@@ -130,7 +139,9 @@
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   onMount(async () => {
     await fetchPhases();
-    window.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    const handler = (e) => { if (e.key === 'Escape') closeModal(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   });
 </script>
 
