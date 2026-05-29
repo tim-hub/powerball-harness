@@ -54,6 +54,15 @@ jobs:
           go-version-file: go/go.mod
           cache-dependency-path: go/go.sum
 
+      - name: Setup Node.js (for plan_web frontend build)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build plan_web frontend
+        working-directory: go/cmd/harness/plan-cli/plan_web
+        run: npm install && npm run build
+
       - name: Build harness binary
         working-directory: go
         run: go build ./cmd/harness/
