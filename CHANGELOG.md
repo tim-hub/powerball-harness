@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v5.9.2...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v6.0.0...HEAD
+[6.0.0]: https://github.com/tim-hub/powerball-harness/compare/v5.9.2...v6.0.0
 [5.9.2]: https://github.com/tim-hub/powerball-harness/compare/v5.9.1...v5.9.2
 [5.9.1]: https://github.com/tim-hub/powerball-harness/compare/v5.9.0...v5.9.1
 [5.9.0]: https://github.com/tim-hub/powerball-harness/compare/v5.8.0...v5.9.0
@@ -70,6 +71,10 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [6.0.0] - 2026-05-29
 
 ### Theme: JSON Plans System — Replace Plans.md with structured task tracker
 
