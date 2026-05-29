@@ -151,6 +151,8 @@ Mark a phase as archived. Tasks remain readable; they appear in the Archive colu
 harness plan-cli archive <phaseID>
 ```
 
+No flags — only the positional `<phaseID>` argument.
+
 **Exit codes:** 0 success · 1 phase not found
 
 **Agent examples:**
