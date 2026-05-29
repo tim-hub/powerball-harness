@@ -180,32 +180,38 @@
 
   function initMap() {
     if (!mapContainer || cy) return;
-    cy = cytoscape({
-      container: mapContainer,
-      elements: buildMapElements(),
-      layout: { name: 'cose', animate: false, padding: 40 },
-      style: [
-        { selector: 'node[type="phase"]', style: {
-          'shape': 'round-rectangle', 'width': 160, 'height': 60,
-          'background-color': '#1f2937', 'color': '#fff',
-          'label': 'data(label)', 'text-valign': 'center', 'text-halign': 'center',
-          'font-size': '11px', 'text-wrap': 'wrap', 'text-max-width': '140px',
-          'border-width': 2, 'border-color': '#374151', 'cursor': 'pointer',
-        }},
-        { selector: 'node[type="task"]', style: {
-          'shape': 'ellipse', 'width': 80, 'height': 80,
-          'background-color': 'data(color)', 'color': '#fff',
-          'label': 'data(label)', 'text-valign': 'center', 'text-halign': 'center',
-          'font-size': '9px', 'text-wrap': 'wrap', 'text-max-width': '70px',
-          'cursor': 'pointer',
-        }},
-        { selector: 'edge', style: {
-          'curve-style': 'bezier', 'target-arrow-shape': 'triangle',
-          'arrow-scale': 1.2, 'line-color': '#9ca3af', 'target-arrow-color': '#9ca3af',
-          'line-style': 'data(dashed)',
-        }},
-      ],
-    });
+    try {
+      cy = cytoscape({
+        container: mapContainer,
+        elements: buildMapElements(),
+        layout: { name: 'cose', animate: false, padding: 40 },
+        style: [
+          { selector: 'node[type="phase"]', style: {
+            'shape': 'round-rectangle', 'width': 160, 'height': 60,
+            'background-color': '#1f2937', 'color': '#fff',
+            'label': 'data(label)', 'text-valign': 'center', 'text-halign': 'center',
+            'font-size': '11px', 'text-wrap': 'wrap', 'text-max-width': '140px',
+            'border-width': 2, 'border-color': '#374151', 'cursor': 'pointer',
+          }},
+          { selector: 'node[type="task"]', style: {
+            'shape': 'ellipse', 'width': 80, 'height': 80,
+            'background-color': 'data(color)', 'color': '#fff',
+            'label': 'data(label)', 'text-valign': 'center', 'text-halign': 'center',
+            'font-size': '9px', 'text-wrap': 'wrap', 'text-max-width': '70px',
+            'cursor': 'pointer',
+          }},
+          { selector: 'edge', style: {
+            'curve-style': 'bezier', 'target-arrow-shape': 'triangle',
+            'arrow-scale': 1.2, 'line-color': '#9ca3af', 'target-arrow-color': '#9ca3af',
+            'line-style': 'data(dashed)',
+          }},
+        ],
+      });
+    } catch (e) {
+      cy = null;
+      error = `Map failed to initialize: ${e.message}`;
+      return;
+    }
 
     cy.on('tap', 'node[type="phase"]', evt => {
       const phaseId = evt.target.data('phaseId');
@@ -239,18 +245,13 @@
   });
 
   $effect(() => {
-    if (view === 'map') {
-      setTimeout(initMap, 0);
+    const _view = view;
+    const _filter = phaseFilter; // track both — rebuild map when either changes
+    if (_view === 'map') {
+      const timer = setTimeout(initMap, 0);
+      return () => { clearTimeout(timer); destroyMap(); };
     } else {
       destroyMap();
-    }
-  });
-
-  $effect(() => {
-    const _filter = phaseFilter; // track dependency
-    if (view === 'map' && cy) {
-      destroyMap();
-      setTimeout(initMap, 0);
     }
   });
 </script>
