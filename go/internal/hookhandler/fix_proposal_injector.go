@@ -282,7 +282,7 @@ func consumeFixProposal(path, sourceTaskID string) error {
 	return os.Rename(tmp, path)
 }
 
-// applyFixProposalToPlans inserts the proposal into Plans.md immediately after the source_task_id row.
+// applyFixProposalToPlans appends the proposal as a cc:TODO task to the source task's phase in plans.json.
 // Returns: "applied" / "already_present" / "plans_missing" / "source_not_found"
 func applyFixProposalToPlans(plansPath string, proposal fixProposal) string {
 	p, err := plans.Load(plansPath)
