@@ -49,7 +49,7 @@ Each subcommand has its own reference file. Open the matching file when invoking
 | `brainstorm` | [references/brainstorm.md](${CLAUDE_SKILL_DIR}/references/brainstorm.md) — two-stage idea → spec → plan flow |
 | `archive` | [references/archive.md](${CLAUDE_SKILL_DIR}/references/archive.md) — phase archival, retention, naming |
 | `session-log` | [references/session-log.md](${CLAUDE_SKILL_DIR}/references/session-log.md) — monthly split of session-log.md |
-| _(CLI reference)_ | [references/cli-reference.md](${CLAUDE_SKILL_DIR}/references/cli-reference.md) — all subcommands, flags, exit codes, agent examples |
+| _(CLI reference)_ | [cli-reference.md](${CLAUDE_SKILL_DIR}/../../references/cli-reference.md) — all subcommands, flags, exit codes, agent examples |
 | _(quality gate)_ | [references/planning-quality.md](${CLAUDE_SKILL_DIR}/references/planning-quality.md) — 8-step planning quality contract for `create` and high-impact `add` |
 
 **CI mode** (`--ci`) — applies to `create` only: no interview; uses the existing plan state (`harness plan-cli list`) and only performs task decomposition. See [references/create.md](${CLAUDE_SKILL_DIR}/references/create.md) "CI Mode" section.
@@ -67,7 +67,7 @@ Task data is stored in `.claude/harness/plans.json`. The canonical schema is def
 
 ## Marker List
 
-Compact summary. For full semantics (including the `cc:done [hash]` artifact format and `blocked` reason annotation), see [references/plans-md-rules.md](${CLAUDE_SKILL_DIR}/references/plans-md-rules.md) "Status markers".
+Compact summary. For full semantics (including the `cc:done [hash]` artifact format and `blocked` reason annotation), see [references/task-fields.md](${CLAUDE_SKILL_DIR}/references/task-fields.md) "Status Markers".
 
 | Marker | Meaning |
 |--------|---------|

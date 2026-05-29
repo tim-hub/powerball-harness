@@ -17,7 +17,7 @@ harness-plan update [task-name|task-number] [WIP|done|blocked|TODO]
 | `blocked` | `blocked` |
 | `TODO` | `cc:TODO` |
 
-For full status marker semantics — including the `cc:done [hash]` artifact notation and the required reason annotation for `blocked` — see [plans-md-rules.md](${CLAUDE_SKILL_DIR}/references/plans-md-rules.md) ("Status markers" subsection).
+For full status marker semantics — including the `cc:done [hash]` artifact notation and the required reason annotation for `blocked` — see [task-fields.md](${CLAUDE_SKILL_DIR}/references/task-fields.md) ("Status Markers" section).
 
 ## Flow
 

@@ -13,7 +13,7 @@ model: sonnet
 Unified execution skill for Harness.
 Consolidates the following legacy skills:
 
-- `work` — Plans.md task implementation (auto scope detection)
+- `work` — plans.json task implementation (auto scope detection)
 - `impl` — Feature implementation (task-based)
 - `breezing` — Full team auto-execution
 - `parallel-workflows` — Parallel workflow optimization
@@ -85,7 +85,7 @@ the optimal mode is automatically selected based on the number of target tasks:
 ```
 harness-work
 How far do you want to go?
-1) Next task: The next incomplete task in Plans.md → Execute in Solo mode
+1) Next task: The next incomplete task from plans.json → Execute in Solo mode
 2) All (recommended): Complete all remaining tasks → Auto-select mode based on task count
 3) Specify numbers: Enter task numbers (e.g., 3, 5-7) → Auto-select mode based on count
 ```
@@ -139,7 +139,7 @@ The same logic applies in breezing mode (managed centrally by harness-work).
 
 | Topic | Reference |
 |-------|-----------|
-| NG rules (Plans.md ownership, no embedded git, no nested spawn) | [`references/worker-ng-rules.md`](${CLAUDE_SKILL_DIR}/references/worker-ng-rules.md) |
+| NG rules (plans.json ownership via harness plan-cli, no embedded git, no nested spawn) | [`references/worker-ng-rules.md`](${CLAUDE_SKILL_DIR}/references/worker-ng-rules.md) |
 | Self-review gate (worker-report.v1 schema + Lead validation) | [`references/worker-self-review.md`](${CLAUDE_SKILL_DIR}/references/worker-self-review.md) |
 | Universal violations session injection | [`references/universal-violations.md`](${CLAUDE_SKILL_DIR}/references/universal-violations.md) |
 | Testing anti-patterns (mocks, test-only methods, incomplete stubs) | [`references/testing-anti-patterns.md`](${CLAUDE_SKILL_DIR}/references/testing-anti-patterns.md) |
@@ -161,11 +161,11 @@ The same logic applies in breezing mode (managed centrally by harness-work).
 
 ## Task Status SSOT
 
-Plans.md is the sole source of truth for task status. The native Claude Code task list is not mirrored.
+`.claude/harness/plans.json` is the sole source of truth for task status. All reads via `harness plan-cli list`/`get`, all writes via `harness plan-cli update`. See [harness/references/cli-reference.md](${CLAUDE_SKILL_DIR}/../../references/cli-reference.md). The native Claude Code task list is not mirrored.
 
 ## Related Skills
 
 - `harness-plan` — Plan the tasks to execute
-- `harness-sync` — Sync implementation with Plans.md
+- `harness-sync` — Sync implementation with plans.json
 - `harness-review` — Review implementations
 - `harness-release` — Version bump and release

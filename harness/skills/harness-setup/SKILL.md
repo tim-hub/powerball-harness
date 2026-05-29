@@ -14,10 +14,10 @@ model: sonnet
 
 | User Input | Subcommand | Behavior |
 |------------|------------|----------|
-| `harness-setup` (no args) | `init` | Runs `gitignore` → project initialization (CLAUDE.md + Plans.md + settings.json) |
-| `harness-setup init` | `init` | New project initialization: gitignore → CLAUDE.md + Plans.md + settings.json |
+| `harness-setup` (no args) | `init` | Runs `gitignore` → project initialization (CLAUDE.md + plans.json + settings.json) |
+| `harness-setup init` | `init` | New project initialization: gitignore → CLAUDE.md + plans.json + settings.json |
 | `harness-setup gitignore` | `gitignore` | Merge harness-managed block into .gitignore (runs `scripts/merge-gitignore.sh`) |
-| `harness-setup cleanup` | `cleanup` | Periodic maintenance: delete old logs, compress Plans.md, trim traces |
+| `harness-setup cleanup` | `cleanup` | Periodic maintenance: delete old logs, archive completed phases (`harness plan-cli archive`), trim traces |
 | `harness-setup codex` | `codex` | Set up Codex CLI: copy config, rules, and skills to project `.codex/` |
 | `harness-setup opencode` | `opencode` | Set up OpenCode: copy config, commands, and skills to project `.opencode/` |
 | `harness-setup duo` | `duo` | Set up both Codex and OpenCode in one step |
@@ -32,10 +32,10 @@ Introduce Harness to a new project.
 ```
 project/
 ├── CLAUDE.md            # Project configuration
-├── Plans.md             # Task management (empty template)
 ├── .gitignore           # Standard ignore rules (harness-managed block appended)
 └── .claude/
-    └── settings.json    # Claude Code permissions/sandbox/env
+    ├── settings.json    # Claude Code permissions/sandbox/env
+    ├── harness/plans.json  # Task tracking (auto-created by harness plan-cli)
     ├── memory/          # Harness SSOT (decisions.md + patterns.md)
     ├── output-styles/   # Custom output styles (if any)
     ├── rules/           # Custom rules (if any)
@@ -57,7 +57,7 @@ project/
 1. Run the `gitignore` subcommand (idempotent — calls `scripts/merge-gitignore.sh`)
 2. Detect project type (Node.js/Python/Go/Rust/Other)
 3. Generate minimal CLAUDE.md
-4. Generate Plans.md template
+4. Create `.claude/harness/` directory (plans.json is auto-created on first `harness plan-cli add-phase` call)
 5. Generate `.claude/settings.json` (permissions/sandbox/env — safe defaults)
 
 ### gitignore — Harness .gitignore Block
@@ -131,7 +131,7 @@ Periodic maintenance tasks:
 | Task | Command |
 |------|---------|
 | Delete old logs | `find .claude/logs -mtime +30 -delete` |
-| Compress Plans.md | Move completed tasks to an archive section |
+| Archive completed phases | `harness plan-cli archive` |
 | Delete old traces | `tail -1000 .claude/state/agent-trace.jsonl > /tmp/trace && mv /tmp/trace .claude/state/agent-trace.jsonl` |
 
 ## Related Skills

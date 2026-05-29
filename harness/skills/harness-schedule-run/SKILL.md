@@ -1,6 +1,6 @@
 ---
 name: harness-schedule-run
-description: "Runs Plans.md tasks in a long-running autonomous loop with ScheduleWakeup, sprint contracts, and plateau detection. Use when running tasks overnight or on a scheduled cadence."
+description: "Runs plans.json tasks in a long-running autonomous loop with ScheduleWakeup, sprint contracts, and plateau detection. Use when running tasks overnight or on a scheduled cadence."
 when_to_use: "autonomous loop, overnight run, scheduled loop, continuous execution, long-running loop"
 allowed-tools: ["Read", "Edit", "Bash", "Task", "ScheduleWakeup", "mcp__harness__harness_mem_resume_pack", "mcp__harness__harness_mem_record_checkpoint"]
 argument-hint: "[all|N-M|--max-cycles N|--pacing worker|ci|plateau|night|--advisor|--no-advisor]"
@@ -50,7 +50,7 @@ Each wake-up calls `harness-work --breezing` via the Agent tool — 1 cycle = 1 
 
 ## Launch Flow
 
-Full per-wake-up step walkthrough (Steps 0–9: concurrency guard → state check → Plans.md read → sprint-contract → resume-pack → worker execution → review → plateau detection → cycle count → checkpoint → next wake-up):
+Full per-wake-up step walkthrough (Steps 0–9: concurrency guard → state check → plans.json read → sprint-contract → resume-pack → worker execution → review → plateau detection → cycle count → checkpoint → next wake-up):
 
 [`${CLAUDE_SKILL_DIR}/references/flow.md`](${CLAUDE_SKILL_DIR}/references/flow.md)
 

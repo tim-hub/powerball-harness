@@ -79,7 +79,7 @@ Always emit this JSON as the final message:
   "schema_version": "planner-response.v1",
   "operation": "update | add | archive | session-log",
   "status":    "applied | skipped | error",
-  "file_path": "Plans.md | .claude/memory/archive/Plans-YYYY-MM-DD-phaseX-Y.md | .claude/memory/session-log-YYYY-MM.md",
+  "file_path": ".claude/harness/plans.json | .claude/memory/session-log-YYYY-MM.md",
   "changes":   ["one-line description per change"],
   "error":     "string — present only when status=error"
 }
@@ -263,6 +263,7 @@ The planner returns the `planner-response.v1` JSON as its final message. The cal
 
 ## References
 
+- `harness/references/cli-reference.md` — all `harness plan-cli` subcommands, flags, exit codes, and agent examples
 - `go/cmd/harness/plan_types.go` — `plans.json` schema (Phase, Task, Comment structs)
 - `go/cmd/harness/plan_cmds.go` — all `harness plan-cli` subcommand implementations
 - `harness/skills/harness-plan/references/update.md` — full `update` flow semantics

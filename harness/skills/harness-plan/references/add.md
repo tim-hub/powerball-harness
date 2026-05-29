@@ -27,7 +27,7 @@ harness-plan add task-name: detailed description [--phase phase-number]
 
 ## References
 
-- [plans-md-rules.md](${CLAUDE_SKILL_DIR}/references/plans-md-rules.md) — field definitions (DoD, Depends, Status markers)
+- [task-fields.md](${CLAUDE_SKILL_DIR}/references/task-fields.md) — field definitions (DoD, Depends, Status markers, quality markers)
 
 ## Agent Delegation
 

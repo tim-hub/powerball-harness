@@ -1,7 +1,7 @@
 # Plans.md Template
 
 Canonical template for Plans.md. Copy this structure when creating or regenerating Plans.md.
-For ordering rules, field definitions, and what `harness-plan` must do, see [plans-md-rules.md](${CLAUDE_SKILL_DIR}/references/plans-md-rules.md).
+For field definitions (DoD, Depends, Status markers, quality markers), see [task-fields.md](${CLAUDE_SKILL_DIR}/references/task-fields.md).
 
 ---
 

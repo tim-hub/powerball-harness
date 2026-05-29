@@ -20,7 +20,7 @@ Archived phases are soft-deleted: they remain in `.claude/harness/plans.json` wi
 
 ## References
 
-- [plans-md-rules.md](${CLAUDE_SKILL_DIR}/references/plans-md-rules.md) — ordering rules and field definitions
+- [task-fields.md](${CLAUDE_SKILL_DIR}/references/task-fields.md) — field definitions (DoD, Depends, Status markers)
 - [session-log.md](${CLAUDE_SKILL_DIR}/references/session-log.md) — sibling subcommand for archiving session-log.md by month
 
 ## Agent Delegation

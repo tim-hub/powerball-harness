@@ -63,24 +63,21 @@ fi
 ```
 
 - `tests/validate-plugin.sh --quick` completes in seconds
-- Checks: `.claude/state/` existence / Plans.md existence + v2 format / sprint-contract format
+- Checks: `.claude/state/` existence / plans.json existence + schema / sprint-contract format
 - Does NOT run full validate (39 verification items)
-- If Plans.md is intentionally corrupted and this check fails, the loop stops immediately
+- If plans.json is missing or invalid and this check fails, the loop stops immediately
 
-### Step 1: Read Plans.md First
+### Step 1: Read plans.json
 
 ```bash
-# Extract cc:WIP / cc:TODO tasks and identify the leading task's task_id
-grep -E "cc:(WIP|TODO)" Plans.md | head -1
+# List cc:WIP / cc:TODO tasks from plans.json and identify the leading task's task_id
+harness plan-cli list --status cc:WIP --json
+# If no WIP tasks: harness plan-cli list --status cc:TODO --json
 ```
 
 - If `cc:WIP` tasks remain: may have been interrupted in a previous cycle → get task_id and continue
 - If `cc:TODO` tasks exist: get task_id as the next target
 - If neither: **all tasks complete** → loop ends normally
-
-> **Plans lock prerequisite**: If `plans-watcher.sh` is protecting Plans.md with flock,
-> perform the Plans.md read within that flock scope.
-> Without flock protection, direct read is fine.
 
 ### Step 2: Sprint-contract Existence Check & Generation
 
@@ -159,7 +156,7 @@ worker_result = Agent(
     subagent_type="harness:worker",  # worker agent (not a skill)
     prompt="""
     Task: ${task_id}
-    DoD: <extracted from Plans.md>
+    DoD: <extracted from plans.json via harness plan-cli get ${task_id}>
     contract_path: ${CONTRACT_PATH}
     mode: breezing
     On completion: return commit hash, branch, and change summary.
@@ -366,12 +363,11 @@ if [ -n "${worker_result.branch}" ] && \
 fi
 ```
 
-Update Plans.md:
+Mark task done:
 
 ```bash
-# cc:WIP → cc:Done [{hash}]
 HASH=$(git rev-parse --short HEAD)
-# Update the relevant task line in Plans.md
+harness plan-cli update "${task_id}" --status cc:done --hash "${HASH}"
 ```
 
 ### Step 6: Plateau Detection
@@ -414,7 +410,7 @@ Suggested actions:
   2. Re-run with --pacing plateau to extend the interval
   3. Skip the problem task and restart /harness-schedule-run
 
-Please review the current Plans.md state.
+Please review the current plans.json state.
 ```
 
 **Pre-escalation advisor check** (when `--advisor` is enabled):

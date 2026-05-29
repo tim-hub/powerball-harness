@@ -7,6 +7,130 @@
   },
   "phases": [
     {
+      "id": 109,
+      "title": "harness-plan references cleanup — drop Plans.md-specific content, expose CLI reference to planner agent",
+      "created": "2026-05-30",
+      "goal": "Two cleanups to the harness-plan skill's reference files now that Plans.md is fully deprecated and harness plan-cli is the SSOT: (1) Slim or rename plans-md-rules.md to drop the obsolete Plans.md ordering/footer/edit-operation sections while preserving the still-load-bearing content (status markers, quality markers, [ralph] format, DoD/Depends semantics) referenced by SKILL.md, update.md, add.md, archive.md, and plans-md-template.md. (2) Add references/cli-reference.md to the References section of harness/agents/harness-planner.md — the agent calls harness plan-cli for all 4 operations but currently links only to Go source files, not the human-readable flag/exit-code reference.",
+      "status": "active",
+      "urgency": "medium",
+      "importance": "medium",
+      "comments": [],
+      "tasks": [
+        {
+          "id": "109.1",
+          "name": "Slim or rename plans-md-rules.md — keep markers/DoD semantics, drop Plans.md ordering and footer rules",
+          "description": "Audit current content sections: (1) Ordering Rules — drop (handled by harness plan-cli); (2) Field Definitions: Header block — drop (Plans.md-only); Phase block markdown table — drop (JSON now); Status markers table — KEEP; Quality markers — KEEP; [ralph] tasks — KEEP; (3) What harness-plan Must Do — drop (operations now go through CLI); (4) Task Status SSOT — update one-liner to reference plans.json instead of Plans.md. Decide between in-place slim vs rename to task-markers.md. If rename, update the 5 linking files.",
+          "dod": "plans-md-rules.md (or its successor file) contains zero references to Plans.md ordering rules, archive footer format, or markdown-table-specific edit operations; status markers + quality markers + [ralph] format + DoD/Depends field definitions remain; all 5 linking files (SKILL.md, update.md, add.md, archive.md, plans-md-template.md) still resolve their references after the change",
+          "depends": [
+            "-"
+          ],
+          "status": "cc:done",
+          "urgency": "medium",
+          "importance": "medium",
+          "qualityMarkers": null,
+          "comments": []
+        },
+        {
+          "id": "109.2",
+          "name": "Add cli-reference.md to harness-planner agent References section",
+          "description": "harness-planner runs harness plan-cli for all 4 supported operations (update, add, archive, session-log), but its References section currently links only to Go source files (plan_types.go, plan_cmds.go). cli-reference.md is the human-readable flag/exit-code/example reference the agent should consult when constructing CLI calls. Add it to the References list. Also consider whether the link should be promoted earlier in the file (e.g., near the top of the Operations section) since the agent's primary job is CLI invocation.",
+          "dod": "harness/agents/harness-planner.md References section contains a bullet linking to harness/skills/harness-plan/references/cli-reference.md with a one-line description (e.g. 'all harness plan-cli subcommands, flags, exit codes, agent examples'); grep -n cli-reference harness/agents/harness-planner.md returns at least 1 match",
+          "depends": [
+            "-"
+          ],
+          "status": "cc:done",
+          "urgency": "medium",
+          "importance": "medium",
+          "qualityMarkers": null,
+          "comments": []
+        },
+        {
+          "id": "109.3",
+          "name": "Move cli-reference.md to shared harness/references/ folder",
+          "description": "cli-reference.md is currently in harness/skills/harness-plan/references/ but agents and other skills need to link it too. Move it to a new harness/references/ shared folder (alongside harness/skills/, harness/agents/). Update the two current linkers: harness-plan/SKILL.md uses ${CLAUDE_SKILL_DIR}/../../references/cli-reference.md (plugin-local path); harness-planner.md uses harness/references/cli-reference.md (repo-root relative). This task must complete before 109.4–109.8 so those tasks can link the canonical shared path.",
+          "dod": "harness/references/cli-reference.md exists; harness/skills/harness-plan/references/cli-reference.md is deleted; all existing links (harness-plan/SKILL.md, harness-planner.md) updated to the new path; grep -r 'harness-plan/references/cli-reference' harness/ returns 0 results",
+          "depends": [
+            "-"
+          ],
+          "status": "cc:done",
+          "urgency": "medium",
+          "importance": "medium",
+          "qualityMarkers": null,
+          "comments": []
+        },
+        {
+          "id": "109.4",
+          "name": "Update harness-work/SKILL.md — replace Plans.md SSOT claims with plans.json + harness plan-cli",
+          "description": "Stale lines: (16) legacy skill description still says 'Plans.md task implementation'; (88) scope dialog says 'next incomplete task in Plans.md' — should say 'next incomplete task from plans.json (harness plan-cli list)'; (142) NG rules say 'Plans.md ownership' — update to 'plans.json ownership, all writes through harness plan-cli'; (164) 'Plans.md is the sole source of truth for task status' — update to plans.json; (169) 'harness-sync — Sync implementation with Plans.md' — update to plans.json. Also add a link to harness/references/cli-reference.md in the Related Skills or at the SSOT note.",
+          "dod": "grep -n 'Plans.md is the sole source of truth' harness/skills/harness-work/SKILL.md returns 0 results; scope-dialog 'next task' text references plans.json (not Plans.md); NG rules section references plans.json; all Plans.md mentions that are operational are gone or updated",
+          "depends": [
+            "109.3"
+          ],
+          "status": "cc:done",
+          "urgency": "medium",
+          "importance": "medium",
+          "qualityMarkers": null,
+          "comments": []
+        },
+        {
+          "id": "109.5",
+          "name": "Update harness-setup/SKILL.md — replace Plans.md init/cleanup references with plans.json",
+          "description": "Stale lines: (17-18) init lists Plans.md as generated output — update to show 'creates .claude/harness/plans.json (via harness plan-cli add-phase)'; (20) cleanup says 'compress Plans.md' — remove or replace with 'harness plan-cli archive'; (35) file tree shows Plans.md — update to .claude/harness/plans.json; (60) 'Generate Plans.md template' step — replace with 'Initialize plans.json with harness plan-cli add-phase'. Add link to harness/references/cli-reference.md.",
+          "dod": "grep -rn 'Plans.md' harness/skills/harness-setup/SKILL.md returns 0 operational hits (migration/legacy mentions acceptable); init flow describes generating plans.json via 'harness plan-cli add-phase', not a Plans.md markdown file; cleanup step references plans.json; file tree example shows .claude/harness/plans.json not Plans.md",
+          "depends": [
+            "109.3"
+          ],
+          "status": "cc:done",
+          "urgency": "medium",
+          "importance": "medium",
+          "qualityMarkers": null,
+          "comments": []
+        },
+        {
+          "id": "109.6",
+          "name": "Update harness-schedule-run SKILL.md + flow.md — replace Plans.md with plans.json + harness plan-cli",
+          "description": "harness-schedule-run/SKILL.md line 3 description says 'Runs Plans.md tasks in a long-running autonomous loop' — update to 'Runs plans.json tasks'. Line 53 step walkthrough reads Plans.md — update to 'harness plan-cli list'. harness-schedule-run/references/flow.md has 11 hits: all read/write operations against Plans.md markdown (parse phase blocks, update status cells) must be replaced with harness plan-cli list/get/update equivalents. This is the highest-impact update in the batch.",
+          "dod": "grep -rn 'Plans.md' harness/skills/harness-schedule-run/ returns 0 operational hits; SKILL.md description no longer says 'Runs Plans.md tasks'; flow.md reads task list via 'harness plan-cli list', writes status via 'harness plan-cli update'; harness/references/cli-reference.md linked from SKILL.md",
+          "depends": [
+            "109.3"
+          ],
+          "status": "cc:done",
+          "urgency": "medium",
+          "importance": "medium",
+          "qualityMarkers": null,
+          "comments": []
+        },
+        {
+          "id": "109.7",
+          "name": "Update harness-ralph-loop/references/loop-flow.md — use harness plan-cli for task status writes",
+          "description": "loop-flow.md has 6 references to Plans.md for writing task status back after each iteration (e.g. 'update Plans.md status to cc:WIP before loop', 'write cc:done [hash] to Plans.md on SUCCESS', 'write blocked to Plans.md on FT-RALPH-*'). Replace each with the harness plan-cli equivalent: 'harness plan-cli update \u003ctask-id\u003e --status cc:WIP', 'harness plan-cli update \u003ctask-id\u003e --status cc:done --hash \u003chash\u003e', 'harness plan-cli update \u003ctask-id\u003e --status blocked --reason \"...\"'.",
+          "dod": "grep -rn 'Plans.md' harness/skills/harness-ralph-loop/ returns 0 operational hits; all task status writes (WIP, done, blocked) in loop-flow.md use 'harness plan-cli update \u003ctask-id\u003e --status \u003cstatus\u003e'; harness/references/cli-reference.md linked from loop-flow.md or SKILL.md",
+          "depends": [
+            "109.3"
+          ],
+          "status": "cc:done",
+          "urgency": "medium",
+          "importance": "medium",
+          "qualityMarkers": null,
+          "comments": []
+        },
+        {
+          "id": "109.8",
+          "name": "Fix harness-planner.md output schema — remove Plans.md as valid file_path return value",
+          "description": "harness-planner.md line 82: the planner-response.v1 output schema shows file_path as 'Plans.md | .claude/memory/archive/Plans-YYYY-MM-DD-phaseX-Y.md | .claude/memory/session-log-YYYY-MM.md'. The first option (Plans.md) is no longer valid — the planner now writes to plans.json. Update file_path to '.claude/harness/plans.json | .claude/memory/session-log-YYYY-MM.md'. Also check each example invocation block and ensure the sample responses show the correct file path.",
+          "dod": "grep -n 'Plans.md' harness/agents/harness-planner.md returns only the 'never edit Plans.md directly' prohibition line (acceptable); the planner-response.v1 file_path example field no longer shows Plans.md as a valid path; all example responses show .claude/harness/plans.json as the target file",
+          "depends": [
+            "109.3"
+          ],
+          "status": "cc:done",
+          "urgency": "medium",
+          "importance": "medium",
+          "qualityMarkers": null,
+          "comments": []
+        }
+      ]
+    },
+    {
       "id": 108,
       "title": "JSON Plans System — Replace Plans.md with plans.json + Go CLI + Web App",
       "created": "2026-05-29",
