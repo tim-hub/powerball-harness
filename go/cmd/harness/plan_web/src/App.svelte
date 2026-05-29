@@ -191,8 +191,12 @@
   function initMap() {
     if (!mapContainer || cy) return;
     const targetPhases = phaseFilter === 'all' ? phases : phases.filter(ph => String(ph.id) === phaseFilter);
-    // Active phases expand by default; archived phases start collapsed
-    expandedPhases = new Set(targetPhases.filter(ph => ph.status !== 'archived').map(ph => ph.id));
+    // Expand phases with outstanding work; collapse archived + fully-done phases
+    const DONE_STATUSES = new Set(['cc:done', 'pm:confirmed']);
+    const hasWork = ph => (ph.tasks || []).length === 0 || (ph.tasks || []).some(t => !DONE_STATUSES.has(t.status));
+    expandedPhases = new Set(
+      targetPhases.filter(ph => ph.status !== 'archived' && hasWork(ph)).map(ph => ph.id)
+    );
     try {
       cy = cytoscape({
         container: mapContainer,
