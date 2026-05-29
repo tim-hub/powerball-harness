@@ -17,27 +17,27 @@
     {
       "id": 3,
       "subject": "Task 3: Rewrite App.svelte — Board view + modal",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [2],
       "description": "**Goal:** Complete rewrite of App.svelte with 4-column Kanban board and 3-tab modal.\n\n**Files:**\n- Modify: `go/cmd/harness/plan_web/src/App.svelte`\n\n**Acceptance Criteria:**\n- [ ] 4 columns: TODO / In Progress / Done / Archive\n- [ ] Archive hidden in single-phase view\n- [ ] Cards show #id + name\n- [ ] Modal: Details / Edit / Comments tabs\n- [ ] Build exits 0\n\n**Verify:** `cd go/cmd/harness/plan_web && npm run build 2>&1 | tail -3`\n\nFull code in plan doc Task 3.\n\n```json:metadata\n{\"files\": [\"go/cmd/harness/plan_web/src/App.svelte\"], \"verifyCommand\": \"cd go/cmd/harness/plan_web && npm run build 2>&1 | tail -3\", \"acceptanceCriteria\": [\"4-column Kanban\", \"modal with 3 tabs\", \"build exits 0\"]}\n```"
     },
     {
       "id": 4,
       "subject": "Task 4: Add Dependency Map view (Cytoscape.js)",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [3],
       "description": "**Goal:** Wire up Map view with Cytoscape.js phase/task graph.\n\n**Files:**\n- Modify: `go/cmd/harness/plan_web/src/App.svelte`\n\n**Acceptance Criteria:**\n- [ ] Phase nodes render by default\n- [ ] Click phase → expand to tasks\n- [ ] Task click → opens modal\n- [ ] Build exits 0\n\n**Verify:** `cd go/cmd/harness/plan_web && npm run build 2>&1 | tail -3`\n\nFull code in plan doc Task 4.\n\n```json:metadata\n{\"files\": [\"go/cmd/harness/plan_web/src/App.svelte\"], \"verifyCommand\": \"cd go/cmd/harness/plan_web && npm run build 2>&1 | tail -3\", \"acceptanceCriteria\": [\"Cytoscape renders phase nodes\", \"expand interaction works\", \"build exits 0\"]}\n```"
     },
     {
       "id": 5,
       "subject": "Task 5: CLI reference doc + harness-plan SKILL.md link",
-      "status": "pending",
+      "status": "completed",
       "description": "**Goal:** Create cli-reference.md and link it from SKILL.md.\n\n**Files:**\n- Create: `harness/skills/harness-plan/references/cli-reference.md`\n- Modify: `harness/skills/harness-plan/SKILL.md`\n\n**Acceptance Criteria:**\n- [ ] cli-reference.md exists with all 9 subcommands\n- [ ] SKILL.md links to it\n\n**Verify:** `ls harness/skills/harness-plan/references/cli-reference.md && grep cli-reference harness/skills/harness-plan/SKILL.md`\n\nFull content in plan doc Task 5.\n\n```json:metadata\n{\"files\": [\"harness/skills/harness-plan/references/cli-reference.md\", \"harness/skills/harness-plan/SKILL.md\"], \"verifyCommand\": \"ls harness/skills/harness-plan/references/cli-reference.md && grep cli-reference harness/skills/harness-plan/SKILL.md\", \"acceptanceCriteria\": [\"cli-reference.md exists\", \"SKILL.md links to it\"]}\n```"
     },
     {
       "id": 6,
       "subject": "Task 6: Full build + end-to-end verification",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [1, 4, 5],
       "description": "**Goal:** Verify Svelte build → Go embed → binary starts on 8888.\n\n**Files:** None\n\n**Acceptance Criteria:**\n- [ ] npm run build exits 0\n- [ ] go build exits 0\n- [ ] curl http://localhost:8888/api/phases returns 200\n- [ ] plan tests pass\n\n**Verify:** `go build -o /tmp/harness-final ./go/cmd/harness/... && echo 'build ok'`\n\n```json:metadata\n{\"files\": [], \"verifyCommand\": \"go build -o /tmp/harness-final ./go/cmd/harness/... && echo 'build ok'\", \"acceptanceCriteria\": [\"go build exits 0\", \"API returns 200\", \"plan tests pass\"]}\n```"
     }
