@@ -1,7 +1,6 @@
 package hookhandler
 
 import (
-	"bufio"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -81,11 +80,11 @@ func (h *StopSessionEvaluatorHandler) Handle(in io.Reader, out io.Writer) error 
 		return writeJSON(out, stopSessionResponse{OK: true})
 	}
 
-	// WIP task check: find Plans.md and count cc:WIP markers.
+	// WIP task check: load plans.json and count cc:WIP tasks.
 	wipCount := h.countWIPTasks(projectRoot)
 	if wipCount > 0 {
 		msg := fmt.Sprintf(
-			"[StopSession] %d WIP task(s) remain. Please check Plans.md.",
+			"[StopSession] %d WIP task(s) remain. Please check plans.json.",
 			wipCount,
 		)
 		return writeJSON(out, stopSessionResponse{
@@ -143,23 +142,11 @@ func (h *StopSessionEvaluatorHandler) recordLastMessage(stateFile, msg string) {
 	_ = os.Rename(tmpPath, stateFile)
 }
 
-// countWIPTasks finds Plans.md under projectRoot and returns the count of cc:WIP markers.
+// countWIPTasks loads plans.json under projectRoot and returns the count of cc:WIP tasks.
 func (h *StopSessionEvaluatorHandler) countWIPTasks(projectRoot string) int {
-	for _, name := range plansFileNames {
-		path := projectRoot + "/" + name
-		f, err := os.Open(path)
-		if err != nil {
-			continue
-		}
-		count := 0
-		scanner := bufio.NewScanner(f)
-		for scanner.Scan() {
-			if strings.Contains(scanner.Text(), "cc:WIP") {
-				count++
-			}
-		}
-		f.Close()
-		return count
+	p, err := resolvePlansJSON(projectRoot)
+	if err != nil || p == nil {
+		return 0
 	}
-	return 0
+	return p.CountStatus("cc:WIP")
 }

@@ -9,14 +9,18 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/tim-hub/powerball-harness/go/internal/plans"
 )
 
-// SprintContractGenerator generates sprint-contracts from Plans.md.
+// SprintContractGenerator generates sprint-contracts from plans.json.
 type SprintContractGenerator struct {
 	ProjectRoot string
-	PlansFile   string
-	OutputFile  string
-	Now         func() string
+	// PlansFile is the path to plans.json. When empty, the canonical
+	// .claude/harness/plans.json under ProjectRoot is resolved.
+	PlansFile  string
+	OutputFile string
+	Now        func() string
 }
 
 type sprintTaskRow struct {
@@ -253,25 +257,27 @@ func (g *SprintContractGenerator) Generate(taskID string) (*sprintContractDoc, e
 	}
 
 	plansFile := g.PlansFile
-	if plansFile == "" {
-		plansFile = filepath.Join(projectRoot, "Plans.md")
-		if _, err := os.Stat(plansFile); err != nil {
-			if resolved := resolvePlansPath(projectRoot); resolved != "" {
-				plansFile = resolved
-			}
+	var p *plans.Plans
+	if plansFile != "" {
+		loaded, err := plans.Load(plansFile)
+		if err != nil {
+			return nil, fmt.Errorf("read plans file: %w", err)
 		}
+		p = loaded
+	} else {
+		loaded, err := resolvePlansJSON(projectRoot)
+		if err != nil {
+			return nil, fmt.Errorf("read plans file: %w", err)
+		}
+		p = loaded
+		plansFile = plans.ResolvePath(projectRoot, readPlansDirectoryFromConfig(projectRoot))
 	}
 
-	if _, err := os.Stat(plansFile); err != nil {
-		return nil, fmt.Errorf("Plans.md not found: %s", plansFile)
+	if p == nil {
+		return nil, fmt.Errorf("plans.json not found: %s", plansFile)
 	}
 
-	markdown, err := os.ReadFile(plansFile)
-	if err != nil {
-		return nil, fmt.Errorf("read plans file: %w", err)
-	}
-
-	row, err := parseSprintTaskRow(string(markdown), taskID)
+	row, err := sprintTaskRowFromPlans(p, taskID)
 	if err != nil {
 		return nil, err
 	}
@@ -342,7 +348,7 @@ func (g *SprintContractGenerator) Generate(taskID string) (*sprintContractDoc, e
 			Checks: []sprintCheck{
 				{
 					ID:          "dod-primary",
-					Source:      "Plans.md.DoD",
+					Source:      "plans.json.dod",
 					Description: row.DoD,
 				},
 			},
@@ -406,75 +412,31 @@ func (g *SprintContractGenerator) Write(taskID string) (string, error) {
 	return outputFile, nil
 }
 
-func parseSprintTaskRow(markdown, targetTaskID string) (*sprintTaskRow, error) {
-	lines := strings.Split(markdown, "\n")
-	headerColCount := 5
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if matched, _ := regexp.MatchString(`^\|[\s-]+\|`, trimmed); matched {
-			sepCols := []string{}
-			for _, part := range strings.Split(trimmed, "|") {
-				if strings.TrimSpace(part) != "" {
-					sepCols = append(sepCols, part)
-				}
-			}
-			if len(sepCols) >= 5 {
-				headerColCount = len(sepCols)
-			}
-			break
-		}
+// sprintTaskRowFromPlans builds a sprintTaskRow from a plans.json task. Quality
+// markers are appended to the title text as `[marker]` tokens so the existing
+// text-based profile, risk-flag, and TDD detectors continue to fire.
+func sprintTaskRowFromPlans(p *plans.Plans, targetTaskID string) (*sprintTaskRow, error) {
+	task, _ := p.FindTask(targetTaskID)
+	if task == nil {
+		return nil, fmt.Errorf("task row not found in plans.json: %s", targetTaskID)
 	}
 
-	const pipePlaceholder = "\x00PIPE\x00"
-	escapePipes := func(s string) string { return strings.ReplaceAll(s, `\|`, pipePlaceholder) }
-	restorePipes := func(s string) string { return strings.ReplaceAll(s, pipePlaceholder, "|") }
-
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if !strings.HasPrefix(trimmed, "|") {
+	title := task.Name
+	for _, marker := range task.QualityMarkers {
+		marker = strings.TrimSpace(marker)
+		if marker == "" {
 			continue
 		}
-		if matched, _ := regexp.MatchString(`^\|[\s-]+\|`, trimmed); matched {
-			continue
-		}
-
-		inner := strings.TrimSuffix(strings.TrimPrefix(escapePipes(trimmed), "|"), "|")
-		parts := strings.Split(inner, "|")
-		if len(parts) < 5 {
-			continue
-		}
-
-		taskID := strings.TrimSpace(parts[0])
-		if taskID != targetTaskID {
-			continue
-		}
-
-		status := strings.TrimSpace(parts[len(parts)-1])
-		depends := strings.TrimSpace(parts[len(parts)-2])
-		middleParts := parts[1 : len(parts)-2]
-		expectedMiddle := headerColCount - 3
-
-		title := ""
-		dod := ""
-		if expectedMiddle <= 1 || len(middleParts) <= 1 {
-			if len(middleParts) > 0 {
-				title = strings.TrimSpace(middleParts[0])
-			}
-		} else {
-			dod = strings.TrimSpace(middleParts[len(middleParts)-1])
-			title = strings.TrimSpace(strings.Join(middleParts[:len(middleParts)-1], "|"))
-		}
-
-		return &sprintTaskRow{
-			TaskID:  restorePipes(taskID),
-			Title:   restorePipes(title),
-			DoD:     restorePipes(dod),
-			Depends: restorePipes(depends),
-			Status:  restorePipes(status),
-		}, nil
+		title = strings.TrimSpace(title + " [" + marker + "]")
 	}
 
-	return nil, fmt.Errorf("task row not found in Plans.md: %s", targetTaskID)
+	return &sprintTaskRow{
+		TaskID:  task.ID,
+		Title:   title,
+		DoD:     task.DoD,
+		Depends: strings.Join(task.Depends, ", "),
+		Status:  task.Status,
+	}, nil
 }
 
 func sprintToList(value string) []string {

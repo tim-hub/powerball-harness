@@ -14,6 +14,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/tim-hub/powerball-harness/go/internal/plans"
 )
 
 // taskCompletedInput is the stdin JSON for the TaskCompleted hook.
@@ -41,7 +43,7 @@ type taskCompletedHandler struct {
 	timelineFile   string
 	pendingFixFile string
 	finalizeMarker string
-	// plansPath is the resolved path to Plans.md (respects plansDirectory from config).
+	// plansPath is the resolved path to plans.json (respects plansDirectory from config).
 	// Empty string when the file does not exist.
 	plansPath string
 }
@@ -73,8 +75,8 @@ func HandleTaskCompleted(in io.Reader, out io.Writer) error {
 		timelineFile:   filepath.Join(projectRoot, ".claude", "state", "breezing-timeline.jsonl"),
 		pendingFixFile: filepath.Join(projectRoot, ".claude", "state", "pending-fix-proposals.jsonl"),
 		finalizeMarker: filepath.Join(projectRoot, ".claude", "state", "harness-mem-finalize-work-completed.json"),
-		// Resolve the Plans.md path, respecting plansDirectory in the config file.
-		plansPath: resolvePlansPath(projectRoot),
+		// Resolve the plans.json path, respecting plansDirectory in the config file.
+		plansPath: plans.ResolvePath(projectRoot, readPlansDirectoryFromConfig(projectRoot)),
 	}
 
 	return h.handle(input, data, out)

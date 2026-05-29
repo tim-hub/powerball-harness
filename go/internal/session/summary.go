@@ -19,7 +19,8 @@ type SummaryHandler struct {
 	StateDir string
 	// MemoryDir is the path to .claude/memory. Defaults to projectRoot/.claude/memory if empty.
 	MemoryDir string
-	// PlansFile is the path to Plans.md. Defaults to projectRoot/Plans.md if empty.
+	// PlansFile is the path to plans.json. Defaults to the canonical
+	// projectRoot/.claude/harness/plans.json if empty.
 	PlansFile string
 	// now is the injected current time function (for testing). Uses time.Now() if nil.
 	now func() time.Time
@@ -67,11 +68,6 @@ func (h *SummaryHandler) Handle(r io.Reader, w io.Writer) error {
 		memoryDir = filepath.Join(projectRoot, ".claude", "memory")
 	}
 
-	plansFile := h.PlansFile
-	if plansFile == "" {
-		plansFile = filepath.Join(projectRoot, "Plans.md")
-	}
-
 	sessionFile := filepath.Join(stateDir, "session.json")
 	sessionLogFile := filepath.Join(memoryDir, "session-log.md")
 	eventLogFile := filepath.Join(stateDir, "session.events.jsonl")
@@ -96,8 +92,8 @@ func (h *SummaryHandler) Handle(r io.Reader, w io.Writer) error {
 	// Calculate session duration
 	durationMinutes := h.calcDurationMinutes(sessData.StartedAt, now)
 
-	// Get WIP tasks from Plans.md
-	wipTasks := h.readWIPTasks(plansFile)
+	// Get WIP tasks from plans.json
+	wipTasks := h.readWIPTasks(h.PlansFile, projectRoot)
 
 	// Get changed file information
 	changedFiles, importantFiles := h.readChangedFiles(sessData.raw)
@@ -217,25 +213,23 @@ func (h *SummaryHandler) readChangedFiles(raw map[string]interface{}) ([]string,
 	return changedFiles, importantFiles
 }
 
-// readWIPTasks reads WIP/in-progress tasks from Plans.md.
-func (h *SummaryHandler) readWIPTasks(plansFile string) []string {
-	f, err := os.Open(plansFile)
-	if err != nil {
+// readWIPTasks reads WIP/in-progress tasks from plans.json. Each returned line
+// summarizes one task as "<id> <name> (<status>)". Up to 20 tasks are returned.
+func (h *SummaryHandler) readWIPTasks(plansFile, projectRoot string) []string {
+	p, _ := loadPlansJSON(plansFile, projectRoot)
+	if p == nil {
 		return nil
 	}
-	defer f.Close()
 
 	var tasks []string
-	scanner := newLineScanner(f)
-	count := 0
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.Contains(line, "cc:WIP") || strings.Contains(line, "pm:pending") || strings.Contains(line, "cursor:pending") {
-			tasks = append(tasks, line)
-			count++
-			if count >= 20 {
-				break
-			}
+	for _, t := range p.AllTasks() {
+		if t.Status != "cc:WIP" && t.Status != "pm:requested" {
+			continue
+		}
+		line := strings.TrimSpace(fmt.Sprintf("%s %s (%s)", t.ID, t.Name, t.Status))
+		tasks = append(tasks, line)
+		if len(tasks) >= 20 {
+			break
 		}
 	}
 	return tasks
@@ -312,7 +306,7 @@ func (h *SummaryHandler) appendSessionLog(logFile string, entry sessionLogEntry)
 
 	fmt.Fprintf(f, "\n### Handoff Notes (optional)\n")
 	if len(entry.WIPTasks) > 0 {
-		fmt.Fprintf(f, "\n**Plans.md WIP/in-progress (excerpt)**:\n\n```\n")
+		fmt.Fprintf(f, "\n**plans.json WIP/in-progress (excerpt)**:\n\n```\n")
 		for _, task := range entry.WIPTasks {
 			fmt.Fprintln(f, task)
 		}

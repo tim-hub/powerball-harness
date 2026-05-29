@@ -18,6 +18,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/tim-hub/powerball-harness/go/internal/plans"
 )
 
 // ---------------------------------------------------------------------------
@@ -28,14 +30,15 @@ import (
 // Ports the main functionality of session-init.sh to Go:
 //  1. Lightweight initialization for subagents
 //  2. Session JSON initialization (session.json)
-//  3. Plans.md task counting
+//  3. plans.json task counting
 //  4. JSON response including additionalContext
 //
 // shell version: scripts/session-init.sh
 type InitHandler struct {
 	// StateDir is the path to the .claude/state directory. Inferred from cwd if empty.
 	StateDir string
-	// PlansFile is the path to Plans.md. Defaults to projectRoot/Plans.md if empty.
+	// PlansFile is the path to plans.json. Defaults to the canonical
+	// projectRoot/.claude/harness/plans.json if empty.
 	PlansFile string
 }
 
@@ -113,12 +116,8 @@ func (h *InitHandler) Handle(r io.Reader, w io.Writer) error {
 	_ = os.Remove(filepath.Join(stateDir, ".work-review-warned"))
 	_ = os.Remove(filepath.Join(stateDir, ".ultrawork-review-warned"))
 
-	// Count Plans.md tasks
-	plansFile := h.PlansFile
-	if plansFile == "" {
-		plansFile = filepath.Join(projectRoot, "Plans.md")
-	}
-	plansInfo := buildPlansInfo(plansFile)
+	// Count plans.json tasks
+	plansInfo := buildPlansInfo(h.PlansFile, projectRoot)
 
 	// Append marker legend
 	context := buildAdditionalContext(plansInfo)
@@ -174,16 +173,17 @@ func (h *InitHandler) initSessionFile(stateDir string) error {
 	return writeFileAtomic(sessionFile, append(data, '\n'), 0600)
 }
 
-// buildPlansInfo reads Plans.md and returns an info string with WIP/TODO counts.
-func buildPlansInfo(plansFile string) string {
-	if _, err := os.Stat(plansFile); err != nil {
-		return "Plans.md: not found"
+// buildPlansInfo reads plans.json and returns an info string with WIP/TODO counts.
+func buildPlansInfo(plansFile, projectRoot string) string {
+	p, _ := loadPlansJSON(plansFile, projectRoot)
+	if p == nil {
+		return "plans.json: not found"
 	}
 
-	wipCount := countMatches(plansFile, "cc:WIP", "pm:pending", "cursor:pending")
-	todoCount := countMatches(plansFile, "cc:TODO")
+	wipCount := p.CountStatus("cc:WIP") + p.CountStatus("pm:requested")
+	todoCount := p.CountStatus("cc:TODO")
 
-	return fmt.Sprintf("Plans.md: in-progress %d / todo %d", wipCount, todoCount)
+	return fmt.Sprintf("plans.json: in-progress %d / todo %d", wipCount, todoCount)
 }
 
 // buildAdditionalContext builds the additionalContext for session initialization.
@@ -270,6 +270,25 @@ func countMatches(filePath string, patterns ...string) int {
 		}
 	}
 	return count
+}
+
+// loadPlansJSON loads plans.json for a session handler. When plansFile is set
+// (test injection or explicit override) it is loaded directly; otherwise the
+// canonical .claude/harness/plans.json under projectRoot is used. Returns
+// (nil, "") when no plans.json exists.
+func loadPlansJSON(plansFile, projectRoot string) (*plans.Plans, string) {
+	path := plansFile
+	if path == "" {
+		path = plans.ResolvePath(projectRoot, "")
+	}
+	if path == "" {
+		return nil, ""
+	}
+	p, err := plans.Load(path)
+	if err != nil || p == nil {
+		return nil, ""
+	}
+	return p, path
 }
 
 // writeFileAtomic atomically writes a file via a temporary file.

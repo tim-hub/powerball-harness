@@ -2,16 +2,16 @@
 package hookhandler
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
+
+	"github.com/tim-hub/powerball-harness/go/internal/plans"
 )
 
 //
@@ -193,7 +193,7 @@ func (h *PreCompactSave) Handle(r io.Reader, w io.Writer) error {
 
 	plansFile := h.PlansFile
 	if plansFile == "" {
-		plansFile = resolvePlansPath(repoRoot)
+		plansFile = plans.ResolvePath(repoRoot, readPlansDirectoryFromConfig(repoRoot))
 	}
 
 	claudeDir := filepath.Join(repoRoot, ".claude")
@@ -332,7 +332,7 @@ func (h *PreCompactSave) buildHandoffArtifact(repoRoot, plansFile, sessionID, no
 	}
 
 	naItem := nextAction{
-		Summary:  "Re-read Plans.md and determine the next task",
+		Summary:  "Re-read plans.json and determine the next task",
 		Source:   "fallback",
 		Priority: "normal",
 	}
@@ -370,58 +370,28 @@ func (h *PreCompactSave) buildHandoffArtifact(repoRoot, plansFile, sessionID, no
 }
 
 func (h *PreCompactSave) getPlanRows(plansFile string) []planRow {
-	f, err := os.Open(plansFile)
-	if err != nil {
+	p, err := plans.Load(plansFile)
+	if err != nil || p == nil {
 		return nil
 	}
-	defer f.Close()
-
-	reTodo := regexp.MustCompile("(?i)`?cc:TODO`?")
-	reWip := regexp.MustCompile("(?i)`?cc:WIP`?|\\[in_progress\\]")
-	reBlocked := regexp.MustCompile("(?i)`?cc:blocked`?|\\[blocked\\]")
 
 	var rows []planRow
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if !strings.Contains(line, "|") {
-			continue
-		}
+	for _, task := range p.AllTasks() {
+		status := task.Status
+		isTodo := status == "cc:TODO"
+		isWip := status == "cc:WIP"
+		isBlocked := status == "blocked"
 
-		cells := splitPipeRow(line)
-		if len(cells) < 5 {
-			continue
-		}
-
-		taskID := strings.TrimSpace(cells[0])
-		if taskID == "" || taskID == "Task" || strings.Contains(taskID, "---") {
-			continue
-		}
-
-		status := strings.TrimSpace(cells[len(cells)-1])
-		depends := strings.TrimSpace(cells[len(cells)-2])
-		title := ""
-		if len(cells) > 2 {
-			title = strings.TrimSpace(cells[1])
-		}
-		dod := ""
-		if len(cells) > 3 {
-			dod = strings.TrimSpace(strings.Join(cells[2:len(cells)-2], "|"))
-		}
-
-		isTodo := reTodo.MatchString(status)
-		isWip := reWip.MatchString(status)
-		isBlocked := reBlocked.MatchString(status)
-
+		// Capture only open work (TODO / WIP / blocked); skip done/confirmed/requested.
 		if !isTodo && !isWip && !isBlocked {
 			continue
 		}
 
 		rows = append(rows, planRow{
-			TaskID:  taskID,
-			Title:   title,
-			DoD:     dod,
-			Depends: depends,
+			TaskID:  task.ID,
+			Title:   task.Name,
+			DoD:     task.DoD,
+			Depends: strings.Join(task.Depends, ", "),
 			Status:  status,
 			Tags: planTags{
 				Todo:    isTodo,
@@ -431,27 +401,6 @@ func (h *PreCompactSave) getPlanRows(plansFile string) []planRow {
 		})
 	}
 	return rows
-}
-
-func splitPipeRow(line string) []string {
-	const placeholder = "\x00PIPE\x00"
-	escaped := strings.ReplaceAll(line, `\|`, placeholder)
-	rawCells := strings.Split(escaped, "|")
-
-	start := 0
-	end := len(rawCells)
-	if end > 0 && strings.TrimSpace(rawCells[0]) == "" {
-		start = 1
-	}
-	if end > start && strings.TrimSpace(rawCells[end-1]) == "" {
-		end--
-	}
-	cells := rawCells[start:end]
-
-	for i, c := range cells {
-		cells[i] = strings.ReplaceAll(c, placeholder, "|")
-	}
-	return cells
 }
 
 func getWIPTasks(rows []planRow) []string {
@@ -568,7 +517,7 @@ func (h *PreCompactSave) pickNextAction(rows []planRow) *nextAction {
 		DoD:      preferred.DoD,
 		Depends:  preferred.Depends,
 		Status:   preferred.Status,
-		Source:   "Plans.md",
+		Source:   "plans.json",
 		Priority: priority,
 		Summary:  summary,
 	}
@@ -594,7 +543,7 @@ func (h *PreCompactSave) buildOpenRisks(rows []planRow, recentEdits []string, wo
 		risks = append(risks, openRisk{
 			Severity: "medium",
 			Kind:     "continuity",
-			Summary:  fmt.Sprintf("%d WIP task(s) remain in Plans.md", wipCount),
+			Summary:  fmt.Sprintf("%d WIP task(s) remain in plans.json", wipCount),
 			Detail:   strings.Join(details, "; "),
 		})
 	}
@@ -666,7 +615,7 @@ func (h *PreCompactSave) buildOpenRisks(rows []planRow, recentEdits []string, wo
 			Severity: "low",
 			Kind:     "continuity",
 			Summary:  "Open plan items still exist and should be re-read after compaction",
-			Detail:   fmt.Sprintf("%d plan row(s) captured from Plans.md", len(rows)),
+			Detail:   fmt.Sprintf("%d plan row(s) captured from plans.json", len(rows)),
 		})
 	}
 

@@ -146,12 +146,8 @@ func TestSummaryHandler_WritesWIPTasks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Create Plans.md
-	plans := "| task1 | cc:WIP |\n| task2 | pm:pending |\n| task3 | cc:TODO |\n"
-	plansFile := filepath.Join(dir, "Plans.md")
-	if err := os.WriteFile(plansFile, []byte(plans), 0644); err != nil {
-		t.Fatal(err)
-	}
+	// Create plans.json: 1 WIP, 1 pm:requested, 1 TODO
+	plansFile := writeSessionPlansJSON(t, dir, "cc:WIP", "pm:requested", "cc:TODO")
 
 	sess := map[string]interface{}{
 		"session_id":   "sess-002",

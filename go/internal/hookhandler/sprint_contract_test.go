@@ -7,16 +7,74 @@ import (
 	"testing"
 )
 
-func TestSprintContractGenerator_RuntimeContract(t *testing.T) {
-	dir := t.TempDir()
-	plansPath := filepath.Join(dir, "Plans.md")
-	packageJSONPath := filepath.Join(dir, "package.json")
-	if err := os.WriteFile(plansPath, []byte(`| Task | Content | DoD | Depends | Status |
-|------|---------|-----|---------|--------|
-| 32.1.1 | create contract | put runtime validation in contract | 32.0.1 | cc:TODO |
-`), 0o600); err != nil {
+// sprintTaskFixture describes a single plans.json task for sprint-contract tests.
+type sprintTaskFixture struct {
+	ID             string
+	Name           string
+	DoD            string
+	Depends        []string
+	Status         string
+	QualityMarkers []string
+}
+
+// writeSprintPlansJSON writes a plans.json containing the given tasks under
+// dir/.claude/harness/plans.json and returns its absolute path.
+func writeSprintPlansJSON(t *testing.T, dir string, tasks ...sprintTaskFixture) string {
+	t.Helper()
+	hdir := filepath.Join(dir, ".claude", "harness")
+	if err := os.MkdirAll(hdir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	type jtask struct {
+		ID             string   `json:"id"`
+		Name           string   `json:"name"`
+		DoD            string   `json:"dod"`
+		Depends        []string `json:"depends"`
+		Status         string   `json:"status"`
+		QualityMarkers []string `json:"qualityMarkers"`
+	}
+	var jtasks []jtask
+	for _, tk := range tasks {
+		depends := tk.Depends
+		if depends == nil {
+			depends = []string{}
+		}
+		markers := tk.QualityMarkers
+		if markers == nil {
+			markers = []string{}
+		}
+		jtasks = append(jtasks, jtask{
+			ID:             tk.ID,
+			Name:           tk.Name,
+			DoD:            tk.DoD,
+			Depends:        depends,
+			Status:         tk.Status,
+			QualityMarkers: markers,
+		})
+	}
+	doc := map[string]interface{}{
+		"phases": []map[string]interface{}{
+			{"id": 1, "title": "P1", "status": "active", "tasks": jtasks},
+		},
+	}
+	data, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(hdir, "plans.json")
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func TestSprintContractGenerator_RuntimeContract(t *testing.T) {
+	dir := t.TempDir()
+	packageJSONPath := filepath.Join(dir, "package.json")
+	plansPath := writeSprintPlansJSON(t, dir, sprintTaskFixture{
+		ID: "32.1.1", Name: "create contract", DoD: "put runtime validation in contract",
+		Depends: []string{"32.0.1"}, Status: "cc:TODO",
+	})
 	if err := os.WriteFile(packageJSONPath, []byte(`{"scripts":{"test":"vitest run","test:e2e":"playwright test"},"devDependencies":{"@playwright/test":"^1.52.0"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -56,13 +114,11 @@ func TestSprintContractGenerator_RuntimeContract(t *testing.T) {
 
 func TestSprintContractGenerator_UIRubricDefaults(t *testing.T) {
 	dir := t.TempDir()
-	plansPath := filepath.Join(dir, "Plans.md")
-	if err := os.WriteFile(plansPath, []byte(`| Task | Content | DoD | Depends | Status |
-|------|---------|-----|---------|--------|
-| 41.3.1 | design-heavy task | polish UI layout with design and styling and aesthetic quality | 41.2.1 | cc:TODO |
-`), 0o600); err != nil {
-		t.Fatal(err)
-	}
+	plansPath := writeSprintPlansJSON(t, dir, sprintTaskFixture{
+		ID: "41.3.1", Name: "design-heavy task",
+		DoD:     "polish UI layout with design and styling and aesthetic quality",
+		Depends: []string{"41.2.1"}, Status: "cc:TODO",
+	})
 
 	g := &SprintContractGenerator{ProjectRoot: dir, PlansFile: plansPath}
 	doc, err := g.Generate("41.3.1")
@@ -82,13 +138,10 @@ func TestSprintContractGenerator_UIRubricDefaults(t *testing.T) {
 
 func TestSprintContractGenerator_MaxIterationsHTMLOverride(t *testing.T) {
 	dir := t.TempDir()
-	plansPath := filepath.Join(dir, "Plans.md")
-	if err := os.WriteFile(plansPath, []byte(`| Task | Content | DoD | Depends | Status |
-|------|---------|-----|---------|--------|
-| T-html-comment | HTML comment task | <!-- max_iterations: 15 --> specified in DoD | - | cc:TODO |
-`), 0o600); err != nil {
-		t.Fatal(err)
-	}
+	plansPath := writeSprintPlansJSON(t, dir, sprintTaskFixture{
+		ID: "T-html-comment", Name: "HTML comment task",
+		DoD: "<!-- max_iterations: 15 --> specified in DoD", Status: "cc:TODO",
+	})
 
 	g := &SprintContractGenerator{ProjectRoot: dir, PlansFile: plansPath}
 	doc, err := g.Generate("T-html-comment")
@@ -102,15 +155,17 @@ func TestSprintContractGenerator_MaxIterationsHTMLOverride(t *testing.T) {
 
 func TestSprintContractGenerator_BrowserRouteRules(t *testing.T) {
 	dir := t.TempDir()
-	plansPath := filepath.Join(dir, "Plans.md")
 	packageJSONPath := filepath.Join(dir, "package.json")
-	if err := os.WriteFile(plansPath, []byte(`| Task | Content | DoD | Depends | Status |
-|------|---------|-----|---------|--------|
-| scripted | add browser evaluator | verify UI flow in browser | 32.2.1 | cc:TODO |
-| exploratory | handle browser_mode: exploratory | prioritize AgentBrowser in exploratory mode | 32.2.2 | cc:TODO |
-`), 0o600); err != nil {
-		t.Fatal(err)
-	}
+	plansPath := writeSprintPlansJSON(t, dir,
+		sprintTaskFixture{
+			ID: "scripted", Name: "add browser evaluator", DoD: "verify UI flow in browser",
+			Depends: []string{"32.2.1"}, Status: "cc:TODO",
+		},
+		sprintTaskFixture{
+			ID: "exploratory", Name: "handle browser_mode: exploratory",
+			DoD: "prioritize AgentBrowser in exploratory mode", Depends: []string{"32.2.2"}, Status: "cc:TODO",
+		},
+	)
 	if err := os.WriteFile(packageJSONPath, []byte(`{"scripts":{"test:e2e":"playwright test"},"devDependencies":{"@playwright/test":"^1.52.0"}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -142,13 +197,12 @@ func TestSprintContractGenerator_BrowserRouteRules(t *testing.T) {
 
 func TestSprintContractGenerator_AdvisorTriggers(t *testing.T) {
 	dir := t.TempDir()
-	plansPath := filepath.Join(dir, "Plans.md")
-	if err := os.WriteFile(plansPath, []byte(`| Task | Content | DoD | Depends | Status |
-|------|---------|-----|---------|--------|
-| 43.1.1 | [needs-spike] security migration contract | verify state migration guard <!-- advisor:required --> | - | cc:TODO |
-`), 0o600); err != nil {
-		t.Fatal(err)
-	}
+	plansPath := writeSprintPlansJSON(t, dir, sprintTaskFixture{
+		ID: "43.1.1", Name: "security migration contract",
+		DoD:            "verify state migration guard <!-- advisor:required -->",
+		Status:         "cc:TODO",
+		QualityMarkers: []string{"needs-spike"},
+	})
 
 	g := &SprintContractGenerator{ProjectRoot: dir, PlansFile: plansPath}
 	doc, err := g.Generate("43.1.1")
@@ -169,13 +223,10 @@ func TestSprintContractGenerator_AdvisorTriggers(t *testing.T) {
 
 func TestSprintContractGenerator_WriteRoundTrip(t *testing.T) {
 	dir := t.TempDir()
-	plansPath := filepath.Join(dir, "Plans.md")
-	if err := os.WriteFile(plansPath, []byte(`| Task | Content | DoD | Depends | Status |
-|------|---------|-----|---------|--------|
-| 32.1.1 | create contract | put runtime validation in contract | 32.0.1 | cc:TODO |
-`), 0o600); err != nil {
-		t.Fatal(err)
-	}
+	plansPath := writeSprintPlansJSON(t, dir, sprintTaskFixture{
+		ID: "32.1.1", Name: "create contract", DoD: "put runtime validation in contract",
+		Depends: []string{"32.0.1"}, Status: "cc:TODO",
+	})
 	outputPath := filepath.Join(dir, "out", "32.1.1.sprint-contract.json")
 	g := &SprintContractGenerator{ProjectRoot: dir, PlansFile: plansPath, OutputFile: outputPath}
 	written, err := g.Write("32.1.1")
@@ -204,13 +255,10 @@ func TestSprintContractGenerator_WriteRoundTrip(t *testing.T) {
 
 func TestSprintContract_TDDRequired_Tag(t *testing.T) {
 	dir := t.TempDir()
-	plansPath := filepath.Join(dir, "Plans.md")
-	if err := os.WriteFile(plansPath, []byte(`| Task | Title | DoD | Depends | Status |
-|------|-------|-----|---------|--------|
-| 97.1 | Port R14 [tdd:required] | cd go && go test -race ./... passes | - | cc:TODO |
-`), 0o600); err != nil {
-		t.Fatal(err)
-	}
+	plansPath := writeSprintPlansJSON(t, dir, sprintTaskFixture{
+		ID: "97.1", Name: "Port R14", DoD: "cd go && go test -race ./... passes",
+		Status: "cc:TODO", QualityMarkers: []string{"tdd:required"},
+	})
 	// Simulate a Go project (go.mod present)
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/test\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -237,13 +285,10 @@ func TestSprintContract_TDDRequired_Tag(t *testing.T) {
 
 func TestSprintContract_TDDSkip_Tag(t *testing.T) {
 	dir := t.TempDir()
-	plansPath := filepath.Join(dir, "Plans.md")
-	if err := os.WriteFile(plansPath, []byte(`| Task | Title | DoD | Depends | Status |
-|------|-------|-----|---------|--------|
-| 97.3 | tdd-paths.yaml [tdd:skip:config-only] | file exists and parses | - | cc:TODO |
-`), 0o600); err != nil {
-		t.Fatal(err)
-	}
+	plansPath := writeSprintPlansJSON(t, dir, sprintTaskFixture{
+		ID: "97.3", Name: "tdd-paths.yaml", DoD: "file exists and parses",
+		Status: "cc:TODO", QualityMarkers: []string{"tdd:skip:config-only"},
+	})
 
 	g := &SprintContractGenerator{ProjectRoot: dir, PlansFile: plansPath}
 	doc, err := g.Generate("97.3")
@@ -263,13 +308,10 @@ func TestSprintContract_TDDSkip_Tag(t *testing.T) {
 
 func TestSprintContract_TDD_NotRequired_WhenNoTag(t *testing.T) {
 	dir := t.TempDir()
-	plansPath := filepath.Join(dir, "Plans.md")
-	if err := os.WriteFile(plansPath, []byte(`| Task | Title | DoD | Depends | Status |
-|------|-------|-----|---------|--------|
-| 98.1 | Add Step 1.5 memory check | harness-plan create.md updated | - | cc:TODO |
-`), 0o600); err != nil {
-		t.Fatal(err)
-	}
+	plansPath := writeSprintPlansJSON(t, dir, sprintTaskFixture{
+		ID: "98.1", Name: "Add Step 1.5 memory check", DoD: "harness-plan create.md updated",
+		Status: "cc:TODO",
+	})
 
 	g := &SprintContractGenerator{ProjectRoot: dir, PlansFile: plansPath}
 	doc, err := g.Generate("98.1")

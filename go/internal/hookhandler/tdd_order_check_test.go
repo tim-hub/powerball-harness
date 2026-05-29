@@ -106,10 +106,8 @@ func TestHandleTDDOrderCheck_NoWIPTask(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// skip when cc:WIP is not in Plans.md
-	if err := os.WriteFile("Plans.md", []byte("| Task | impl | DoD | - | cc:TODO |\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	// skip when cc:WIP is not in plans.json
+	writePlansJSONStatuses(t, tmpDir, "cc:TODO")
 
 	input := `{"tool_name":"Write","tool_input":{"file_path":"src/main.ts"}}`
 	var out bytes.Buffer
@@ -134,10 +132,10 @@ func TestHandleTDDOrderCheck_SkipTDDMarker(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	// skip when [skip:tdd] marker is present
-	plansContent := "| Task | impl [skip:tdd] | DoD | - | cc:WIP |\n"
-	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSprintPlansJSON(t, tmpDir, sprintTaskFixture{
+		ID: "1.1", Name: "impl", DoD: "DoD", Status: "cc:WIP",
+		QualityMarkers: []string{"skip:tdd"},
+	})
 
 	input := `{"tool_name":"Write","tool_input":{"file_path":"src/main.ts"}}`
 	var out bytes.Buffer
@@ -162,9 +160,7 @@ func TestHandleTDDOrderCheck_WarningEmitted(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	// WIP task present, no test edited, no [skip:tdd] → emit warning
-	if err := os.WriteFile("Plans.md", []byte("| Task | impl | DoD | - | cc:WIP |\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, tmpDir, "cc:WIP")
 
 	input := `{"tool_name":"Write","tool_input":{"file_path":"src/main.ts"}}`
 	var out bytes.Buffer
@@ -198,9 +194,7 @@ func TestHandleTDDOrderCheck_TestAlreadyEdited(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	// WIP task present, test file already recorded in session-changes.json
-	if err := os.WriteFile("Plans.md", []byte("| Task | impl | DoD | - | cc:WIP |\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, tmpDir, "cc:WIP")
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -233,9 +227,7 @@ func TestHandleTDDOrderCheck_TestAlreadyInChangedFiles(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	// WIP task present, test file entry exists in changed-files.jsonl
-	if err := os.WriteFile("Plans.md", []byte("| Task | impl | DoD | - | cc:WIP |\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, tmpDir, "cc:WIP")
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -334,15 +326,12 @@ func TestHasActiveWIPTask_CustomPlansDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// place Plans.md containing cc:WIP in the docs/ directory
+	// place plans.json containing cc:WIP in the docs/ directory
 	docsDir := filepath.Join(dir, "docs")
 	if err := os.MkdirAll(docsDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	plansContent := "| 1 | Task | DoD | none | `cc:WIP` |\n"
-	if err := os.WriteFile(filepath.Join(docsDir, "Plans.md"), []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, docsDir, "cc:WIP")
 
 	got := hasActiveWIPTask(dir)
 	if !got {
@@ -364,10 +353,7 @@ func TestHasActiveWIPTask_CustomPlansDirectory_NoWIP(t *testing.T) {
 	if err := os.MkdirAll(docsDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	plansContent := "| 1 | Task | DoD | none | `cc:TODO` |\n"
-	if err := os.WriteFile(filepath.Join(docsDir, "Plans.md"), []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, docsDir, "cc:TODO")
 
 	got := hasActiveWIPTask(dir)
 	if got {

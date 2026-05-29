@@ -55,7 +55,8 @@ func (h *TodoSyncHandler) Handle(r io.Reader, w io.Writer) error {
 		projectRoot = resolveProjectRoot()
 	}
 
-	if resolvePlansPath(projectRoot) == "" {
+	p, _ := resolvePlansJSON(projectRoot)
+	if p == nil {
 		return nil
 	}
 
@@ -80,7 +81,7 @@ func (h *TodoSyncHandler) Handle(r io.Reader, w io.Writer) error {
 
 	workWarning := h.checkWorkModeWarning(stateDir, pending, inProgress, done)
 
-	ctx := fmt.Sprintf("[TodoSync] synced with Plans.md: TODO=%d, WIP=%d, done=%d%s",
+	ctx := fmt.Sprintf("[TodoSync] synced with plans.json: TODO=%d, WIP=%d, done=%d%s",
 		pending, inProgress, done, workWarning)
 
 	return writeTodoSyncOutput(w, ctx)

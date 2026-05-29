@@ -112,13 +112,7 @@ func TestStopSessionEvaluator_WIPTasksWarning(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	plansContent := `| 1 | impl foo | DoD | - | cc:WIP |
-| 2 | impl bar | DoD | - | cc:WIP |
-| 3 | impl baz | DoD | - | cc:done |
-`
-	if err := os.WriteFile(filepath.Join(dir, "Plans.md"), []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, dir, "cc:WIP", "cc:WIP", "cc:done")
 
 	h := &StopSessionEvaluatorHandler{ProjectRoot: dir}
 	var out bytes.Buffer
@@ -153,10 +147,7 @@ func TestStopSessionEvaluator_NoWIPTasksNoWarning(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	plansContent := `| 1 | done task | DoD | - | cc:done |`
-	if err := os.WriteFile(filepath.Join(dir, "Plans.md"), []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, dir, "cc:done")
 
 	h := &StopSessionEvaluatorHandler{ProjectRoot: dir}
 	var out bytes.Buffer

@@ -37,9 +37,6 @@ var testFilePatterns = []*regexp.Regexp{
 	regexp.MustCompile(`/tests?/`),
 }
 
-// tddSkipMarkerRe is the pattern to detect [skip:tdd] + cc:WIP combinations in Plans.md.
-var tddSkipMarkerRe = regexp.MustCompile(`\[skip:tdd\].*cc:WIP|cc:WIP.*\[skip:tdd\]`)
-
 // sessionChangesFile is the file path that records files edited during a session.
 const sessionChangesFile = ".claude/state/session-changes.json"
 
@@ -47,7 +44,7 @@ const sessionChangesFile = ".claude/state/session-changes.json"
 const tddWarningMessage = "TDD is enabled by default. It is recommended to write tests first.\n\n" +
 	"You have edited an implementation file, but the corresponding test file has not been edited yet.\n\n" +
 	"Recommended: Create the test file (*.test.ts, *.spec.ts, *_test.go, test_*.py) before implementing the source.\n\n" +
-	"To skip TDD for this task, add the [skip:tdd] marker to the relevant task in Plans.md.\n\n" +
+	"To skip TDD for this task, add the [skip:tdd] marker to the relevant task in plans.json.\n\n" +
 	"This is a warning only — it does not block execution."
 
 // HandleTDDOrderCheck is the Go port of tdd-order-check.sh.
@@ -57,7 +54,7 @@ const tddWarningMessage = "TDD is enabled by default. It is recommended to write
 //
 // Triggers a warning when all of the following are true:
 //   - A source file (.ts, .js, .tsx, .jsx, .py, .go) was edited
-//   - A cc:WIP task exists in Plans.md
+//   - A cc:WIP task exists in plans.json
 //   - No [skip:tdd] marker is present
 //   - No test file was edited during this session
 //
@@ -147,40 +144,32 @@ func isSourceFilePath(filePath string) bool {
 	return sourceFileExts.MatchString(filePath) && !isTestFilePath(filePath)
 }
 
-// hasActiveWIPTask reports whether Plans.md contains an active cc:WIP task.
+// hasActiveWIPTask reports whether plans.json contains an active cc:WIP task.
 // If projectRoot is empty, it falls back to resolveProjectRoot().
-// Returns false when resolvePlansPath returns an empty string (Plans.md not found).
+// Returns false when no plans.json exists.
 func hasActiveWIPTask(projectRoot string) bool {
 	if projectRoot == "" {
 		projectRoot = resolveProjectRoot()
 	}
-	plansPath := resolvePlansPath(projectRoot)
-	if plansPath == "" {
+	p, err := resolvePlansJSON(projectRoot)
+	if err != nil || p == nil {
 		return false
 	}
-	data, err := os.ReadFile(plansPath)
-	if err != nil {
-		return false
-	}
-	return strings.Contains(string(data), "cc:WIP")
+	return p.HasWIP()
 }
 
-// isTDDSkipped reports whether the cc:WIP task in Plans.md has the [skip:tdd] marker.
+// isTDDSkipped reports whether a cc:WIP task in plans.json has the skip:tdd marker.
 // If projectRoot is empty, it falls back to resolveProjectRoot().
-// Returns false when resolvePlansPath returns an empty string (Plans.md not found).
+// Returns false when no plans.json exists.
 func isTDDSkipped(projectRoot string) bool {
 	if projectRoot == "" {
 		projectRoot = resolveProjectRoot()
 	}
-	plansPath := resolvePlansPath(projectRoot)
-	if plansPath == "" {
+	p, err := resolvePlansJSON(projectRoot)
+	if err != nil || p == nil {
 		return false
 	}
-	data, err := os.ReadFile(plansPath)
-	if err != nil {
-		return false
-	}
-	return tddSkipMarkerRe.Match(data)
+	return p.WIPHasSkipTDD()
 }
 
 // testEditedThisSession reports whether a test file was edited during the current session.

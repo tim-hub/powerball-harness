@@ -14,6 +14,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/tim-hub/powerball-harness/go/internal/plans"
 )
 
 // fileExists reports whether the file at path exists.
@@ -195,4 +197,12 @@ func resolvePlansPath(projectRoot string) string {
 
 	// File not found — return empty string (equivalent to plans_file_exists() in the bash version).
 	return ""
+}
+
+// resolvePlansJSON loads the task SSOT, .claude/harness/plans.json, honoring the
+// plansDirectory config. Returns (nil, nil) when no plans.json exists so callers
+// can treat "no plan" as an empty, non-error state.
+func resolvePlansJSON(projectRoot string) (*plans.Plans, error) {
+	plansDir := readPlansDirectoryFromConfig(projectRoot)
+	return plans.LoadFrom(projectRoot, plansDir)
 }

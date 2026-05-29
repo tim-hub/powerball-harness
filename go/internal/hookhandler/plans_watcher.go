@@ -7,11 +7,12 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/tim-hub/powerball-harness/go/internal/plans"
 )
 
 // plansWatcherDeps holds injectable dependencies so tests can substitute
@@ -148,7 +149,7 @@ const pmNotificationFile = ".claude/state/pm-notification.md"
 // cursorNotificationFile is the path to the compatibility cursor notification file.
 const cursorNotificationFile = ".claude/state/cursor-notification.md"
 
-// plansState holds the aggregated marker counts from Plans.md.
+// plansState holds the aggregated status counts from plans.json.
 type plansState struct {
 	Timestamp   string `json:"timestamp"`
 	PmPending   int    `json:"pm_pending"`
@@ -157,9 +158,6 @@ type plansState struct {
 	CcDone      int    `json:"cc_done"`
 	PmConfirmed int    `json:"pm_confirmed"`
 }
-
-// plansFileNames lists the candidate Plans.md file names to search for.
-var plansFileNames = []string{"Plans.md", "plans.md", "PLANS.md", "PLANS.MD"}
 
 // HandlePlansWatcher is the public entry point used by the post-tool-batch hook.
 // It constructs a plansWatcher with production defaults and delegates to handle().
@@ -170,9 +168,9 @@ func HandlePlansWatcher(in io.Reader, out io.Writer) error {
 
 // handle is the Go port of plans-watcher.sh.
 //
-// Called on PostToolUse Write/Edit events to detect changes to Plans.md.
+// Called on PostToolUse Write/Edit events to detect changes to plans.json.
 // Generates an aggregated summary of WIP/TODO/done markers and writes a PM notification file.
-// Files other than Plans.md are skipped.
+// Files other than plans.json are skipped.
 func (w *plansWatcher) handle(in io.Reader, out io.Writer) error {
 	data, err := io.ReadAll(in)
 	if err != nil {
@@ -206,19 +204,19 @@ func (w *plansWatcher) handle(in io.Reader, out io.Writer) error {
 		)
 	}
 
-	// locate the Plans.md file (supports plansDirectory in config)
+	// locate the plans.json file (supports plansDirectory in config)
 	// Use input.CWD as projectRoot when available.
-	// Fixes an issue where the hook process CWD differs from input.CWD, causing the wrong Plans.md to be referenced.
+	// Fixes an issue where the hook process CWD differs from input.CWD, causing the wrong plans.json to be referenced.
 	projectRoot := input.CWD
 	if projectRoot == "" {
 		projectRoot = resolveProjectRoot()
 	}
-	plansFile := resolvePlansPath(projectRoot)
+	plansFile := plans.ResolvePath(projectRoot, readPlansDirectoryFromConfig(projectRoot))
 	if plansFile == "" {
 		return emptyPostToolOutput(out)
 	}
 
-	// skip if the changed file is not Plans.md (strict full-path comparison)
+	// skip if the changed file is not plans.json (strict full-path comparison)
 	if !isPlansFileWithRoot(changedFile, plansFile, projectRoot) {
 		return emptyPostToolOutput(out)
 	}
@@ -298,17 +296,7 @@ func (w *plansWatcher) handle(in io.Reader, out io.Writer) error {
 	return writeJSON(out, o)
 }
 
-// findPlansFile searches the current directory for a Plans.md file.
-func findPlansFile() string {
-	for _, name := range plansFileNames {
-		if _, err := os.Stat(name); err == nil {
-			return name
-		}
-	}
-	return ""
-}
-
-// isPlansFile returns true if the changed file is Plans.md.
+// isPlansFile returns true if the changed file is plans.json.
 //
 // Matching logic:
 //  1. Exact match after filepath.Clean (handles both relative and absolute paths)
@@ -316,7 +304,7 @@ func findPlansFile() string {
 //
 // The case-insensitive basename fallback from the old implementation has been removed.
 // Basename-only comparison would incorrectly match files with the same name in different
-// directories (e.g. /tmp/other/Plans.md), so only strict full-path matching is used.
+// directories (e.g. /tmp/other/plans.json), so only strict full-path matching is used.
 func isPlansFile(changedFile, plansFile string) bool {
 	// normalize with filepath.Clean and check for exact match
 	if filepath.Clean(changedFile) == filepath.Clean(plansFile) {
@@ -337,35 +325,23 @@ func isPlansFileWithRoot(changedFile, plansFile, projectRoot string) bool {
 	return isPlansFile(absChanged, plansFile)
 }
 
-// countMarker returns the number of occurrences of the marker string in Plans.md.
-func countMarker(plansFile, marker string) int {
-	data, err := os.ReadFile(plansFile)
-	if err != nil {
-		return 0
-	}
-	re := regexp.MustCompile(regexp.QuoteMeta(marker))
-	return len(re.FindAllIndex(data, -1))
-}
-
-// collectPlansState aggregates the markers in Plans.md.
+// collectPlansState aggregates the task status counts in plans.json.
 func collectPlansState(plansFile string) (plansState, error) {
-	if _, err := os.Stat(plansFile); err != nil {
-		return plansState{}, fmt.Errorf("plans file not found: %w", err)
+	p, err := plans.Load(plansFile)
+	if err != nil {
+		return plansState{}, fmt.Errorf("load plans.json: %w", err)
 	}
-
-	pmPending := countMarker(plansFile, "pm:pending") + countMarker(plansFile, "cursor:pending")
-	ccTodo := countMarker(plansFile, "cc:TODO")
-	ccWip := countMarker(plansFile, "cc:WIP")
-	ccDone := countMarker(plansFile, "cc:done")
-	pmConfirmed := countMarker(plansFile, "pm:confirmed") + countMarker(plansFile, "cursor:confirmed")
+	if p == nil {
+		return plansState{}, fmt.Errorf("plans file not found: %s", plansFile)
+	}
 
 	return plansState{
 		Timestamp:   time.Now().UTC().Format(time.RFC3339),
-		PmPending:   pmPending,
-		CcTodo:      ccTodo,
-		CcWip:       ccWip,
-		CcDone:      ccDone,
-		PmConfirmed: pmConfirmed,
+		PmPending:   p.CountStatus("pm:requested"),
+		CcTodo:      p.CountStatus("cc:TODO"),
+		CcWip:       p.CountStatus("cc:WIP"),
+		CcDone:      p.CountStatus("cc:done"),
+		PmConfirmed: p.CountStatus("pm:confirmed"),
 	}, nil
 }
 
@@ -398,7 +374,7 @@ func buildSummaryMessage(state plansState, hasNewTasks, hasCompletedTasks bool) 
 	var sb strings.Builder
 
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-	sb.WriteString("Plans.md update detected\n")
+	sb.WriteString("plans.json update detected\n")
 	sb.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
 
 	if hasNewTasks {

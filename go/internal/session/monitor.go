@@ -18,7 +18,8 @@ import (
 type MonitorHandler struct {
 	// StateDir is the state directory path. If empty, it is inferred from cwd.
 	StateDir string
-	// PlansFile is the path to Plans.md. If empty, projectRoot/Plans.md is used.
+	// PlansFile is the path to plans.json. If empty, the canonical
+	// projectRoot/.claude/harness/plans.json is used.
 	PlansFile string
 	// now is a time injection function for testing. If nil, time.Now() is used.
 	now func() time.Time
@@ -138,18 +139,13 @@ func (h *MonitorHandler) Handle(r io.Reader, w io.Writer) error {
 		return nil
 	}
 
-	plansFile := h.PlansFile
-	if plansFile == "" {
-		plansFile = filepath.Join(projectRoot, "Plans.md")
-	}
-
 	now := h.currentTime()
 	nowStr := now.UTC().Format(time.RFC3339)
 
 	// Collect project information
 	projectName := filepath.Base(projectRoot)
 	gitState := h.collectGitState(projectRoot)
-	plansState := h.collectPlansState(plansFile)
+	plansState, plansFile := h.collectPlansState(h.PlansFile, projectRoot)
 
 	// Generate session.json (determine resume vs new session)
 	sessionFile := filepath.Join(stateDir, "session.json")
@@ -162,7 +158,7 @@ func (h *MonitorHandler) Handle(r io.Reader, w io.Writer) error {
 	// Write summary to stdout
 	h.writeSummary(w, projectName, gitState, plansState)
 
-	// Check for Plans.md drift and emit warning if thresholds exceeded
+	// Check for plans.json drift and emit warning if thresholds exceeded
 	h.CheckPlansDrift(w, plansState, plansFile, projectRoot)
 
 	// Check for unanswered advisor/reviewer requests past TTL
@@ -257,26 +253,27 @@ func (h *MonitorHandler) readPackedRef(projectRoot, ref string) string {
 	return "none"
 }
 
-// collectPlansState collects the state of Plans.md.
-func (h *MonitorHandler) collectPlansState(plansFile string) plansStateJSON {
-	fi, err := os.Stat(plansFile)
-	if err != nil {
-		return plansStateJSON{Exists: false}
+// collectPlansState collects the task status counts from plans.json. It returns
+// the aggregated state and the resolved plans.json path (empty when absent).
+func (h *MonitorHandler) collectPlansState(plansFile, projectRoot string) (plansStateJSON, string) {
+	p, path := loadPlansJSON(plansFile, projectRoot)
+	if p == nil {
+		return plansStateJSON{Exists: false}, ""
 	}
 
-	wipCount := countMatches(plansFile, "cc:WIP")
-	todoCount := countMatches(plansFile, "cc:TODO")
-	pendingCount := countMatches(plansFile, "pm:pending", "cursor:pending")
-	completedCount := countMatches(plansFile, "cc:done")
+	fi, err := os.Stat(path)
+	if err != nil {
+		return plansStateJSON{Exists: false}, ""
+	}
 
 	return plansStateJSON{
 		Exists:         true,
 		LastModified:   fi.ModTime().Unix(),
-		WIPTasks:       wipCount,
-		TODOTasks:      todoCount,
-		PendingTasks:   pendingCount,
-		CompletedTasks: completedCount,
-	}
+		WIPTasks:       p.CountStatus("cc:WIP"),
+		TODOTasks:      p.CountStatus("cc:TODO"),
+		PendingTasks:   p.CountStatus("pm:requested"),
+		CompletedTasks: p.CountStatus("cc:done"),
+	}, path
 }
 
 // generateSessionFile generates session.json (determining resume vs new session).
@@ -402,10 +399,10 @@ func (h *MonitorHandler) generateToolingPolicy(policyFile string) {
 	_ = writeFileAtomic(policyFile, append(data, '\n'), 0644)
 }
 
-// plansDriftConfig holds the thresholds for Plans.md drift detection.
+// plansDriftConfig holds the thresholds for plans.json drift detection.
 type plansDriftConfig struct {
 	WIPThreshold   int // emit warning when WIP task count >= this value
-	StaleHours     int // emit warning when Plans.md has not been modified for >= this many hours
+	StaleHours     int // emit warning when plans.json has not been modified for >= this many hours
 }
 
 // defaultPlansDriftConfig returns the default drift detection thresholds.
@@ -483,7 +480,7 @@ func loadPlansDriftConfig(projectRoot string) plansDriftConfig {
 	return cfg
 }
 
-// CheckPlansDrift emits a warning line to w when Plans.md has too many WIP tasks
+// CheckPlansDrift emits a warning line to w when plans.json has too many WIP tasks
 // or has not been modified recently enough.
 // projectRoot is used to locate the config file.
 func (h *MonitorHandler) CheckPlansDrift(w io.Writer, plans plansStateJSON, plansFile string, projectRoot string) {
@@ -513,7 +510,7 @@ func (h *MonitorHandler) writeSummary(w io.Writer, projectName string, git gitSt
 	if plans.Exists {
 		total := plans.WIPTasks + plans.TODOTasks + plans.PendingTasks
 		if total > 0 {
-			fmt.Fprintf(w, "Plans.md: WIP %d / TODO %d\n", plans.WIPTasks, plans.TODOTasks+plans.PendingTasks)
+			fmt.Fprintf(w, "plans.json: WIP %d / TODO %d\n", plans.WIPTasks, plans.TODOTasks+plans.PendingTasks)
 		}
 	}
 

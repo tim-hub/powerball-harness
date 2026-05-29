@@ -14,13 +14,9 @@ import (
 func TestMonitorHandler_GeneratesSessionFile(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, "state")
-	plansFile := filepath.Join(dir, "Plans.md")
 
-	// Create Plans.md
-	plans := "| t1 | cc:WIP |\n| t2 | cc:TODO |\n"
-	if err := os.WriteFile(plansFile, []byte(plans), 0644); err != nil {
-		t.Fatal(err)
-	}
+	// Create plans.json: 1 WIP, 1 TODO
+	plansFile := writeSessionPlansJSON(t, dir, "cc:WIP", "cc:TODO")
 
 	h := &MonitorHandler{
 		StateDir:  stateDir,

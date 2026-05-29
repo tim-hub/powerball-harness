@@ -33,13 +33,10 @@ func TestPreCompactSave_BasicOutput(t *testing.T) {
 func TestPreCompactSave_SavesArtifact(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, "state")
-	plansFile := filepath.Join(dir, "Plans.md")
-
-	content := "| 1 | Implement feature | In progress | none | `cc:WIP` |\n" +
-		"| 2 | Write tests | Not started | none | `cc:TODO` |\n"
-	if err := os.WriteFile(plansFile, []byte(content), 0600); err != nil {
-		t.Fatal(err)
-	}
+	plansFile := writeSprintPlansJSON(t, dir,
+		sprintTaskFixture{ID: "1", Name: "Implement feature", DoD: "In progress", Status: "cc:WIP"},
+		sprintTaskFixture{ID: "2", Name: "Write tests", DoD: "Not started", Status: "cc:TODO"},
+	)
 
 	h := &PreCompactSave{
 		RepoRoot:  dir,
@@ -74,14 +71,11 @@ func TestPreCompactSave_SavesArtifact(t *testing.T) {
 func TestPreCompactSave_WIPTasksExtracted(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, "state")
-	plansFile := filepath.Join(dir, "Plans.md")
-
-	content := "| 1 | Feature X | In progress | none | `cc:WIP` |\n" +
-		"| 2 | Feature Y | Not started | none | cc:TODO |\n" +
-		"| 3 | Done | Completed | none | cc:done |\n"
-	if err := os.WriteFile(plansFile, []byte(content), 0600); err != nil {
-		t.Fatal(err)
-	}
+	plansFile := writeSprintPlansJSON(t, dir,
+		sprintTaskFixture{ID: "1", Name: "Feature X", DoD: "In progress", Status: "cc:WIP"},
+		sprintTaskFixture{ID: "2", Name: "Feature Y", DoD: "Not started", Status: "cc:TODO"},
+		sprintTaskFixture{ID: "3", Name: "Done", DoD: "Completed", Status: "cc:done"},
+	)
 
 	h := &PreCompactSave{
 		RepoRoot:  dir,
@@ -185,25 +179,26 @@ func TestPreCompactSave_PlanRowParsing(t *testing.T) {
 	h := &PreCompactSave{}
 
 	tests := []struct {
-		name     string
-		content  string
-		wantWIP  int
-		wantTODO int
+		name    string
+		tasks   []sprintTaskFixture
+		wantWIP int
 	}{
 		{
-			name:     "WIP and TODO tasks",
-			content:  "| 1 | Task A | DoD A | none | `cc:WIP` |\n| 2 | Task B | DoD B | none | cc:TODO |\n",
-			wantWIP:  1,
-			wantTODO: 1,
+			name: "WIP and TODO tasks",
+			tasks: []sprintTaskFixture{
+				{ID: "1", Name: "Task A", DoD: "DoD A", Status: "cc:WIP"},
+				{ID: "2", Name: "Task B", DoD: "DoD B", Status: "cc:TODO"},
+			},
+			wantWIP: 1,
 		},
 		{
 			name:    "completed task only",
-			content: "| 1 | Task A | DoD A | none | cc:done |\n",
+			tasks:   []sprintTaskFixture{{ID: "1", Name: "Task A", DoD: "DoD A", Status: "cc:done"}},
 			wantWIP: 0,
 		},
 		{
-			name:    "header line ignored",
-			content: "| Task | Title | DoD | Depends | Status |\n|---|---|---|---|---|\n| 1 | Feature | - | none | cc:WIP |\n",
+			name:    "single WIP task",
+			tasks:   []sprintTaskFixture{{ID: "1", Name: "Feature", DoD: "-", Status: "cc:WIP"}},
 			wantWIP: 1,
 		},
 	}
@@ -211,10 +206,7 @@ func TestPreCompactSave_PlanRowParsing(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dir := t.TempDir()
-			plansFile := filepath.Join(dir, "Plans.md")
-			if err := os.WriteFile(plansFile, []byte(tt.content), 0600); err != nil {
-				t.Fatal(err)
-			}
+			plansFile := writeSprintPlansJSON(t, dir, tt.tasks...)
 			h.PlansFile = plansFile
 			rows := h.getPlanRows(plansFile)
 			wipCount := countWIP(rows)
@@ -385,16 +377,14 @@ func TestBuildOpenRisks_EmptyMetricsFailedChecks(t *testing.T) {
 func TestPreCompactSave_SessionMetricsOpenRisks(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, "state")
-	plansFile := filepath.Join(dir, "Plans.md")
 
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
-	content := "| 1 | Feature X | In progress | none | `cc:WIP` |\n"
-	if err := os.WriteFile(plansFile, []byte(content), 0600); err != nil {
-		t.Fatal(err)
-	}
+	plansFile := writeSprintPlansJSON(t, dir,
+		sprintTaskFixture{ID: "1", Name: "Feature X", DoD: "In progress", Status: "cc:WIP"},
+	)
 
 	// set failed_checks in session-metrics.json
 	// getSessionMetrics reads from repoRoot/.claude/state/session-metrics.json
@@ -573,15 +563,14 @@ func TestPreCompactSave_CustomPlansDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// place Plans.md in the workspace/ directory
+	// place plans.json in the workspace/ directory
 	workspaceDir := filepath.Join(dir, "workspace")
 	if err := os.MkdirAll(workspaceDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	plansContent := "| 1 | Custom Dir Task | DoD | none | `cc:WIP` |\n"
-	if err := os.WriteFile(filepath.Join(workspaceDir, "Plans.md"), []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSprintPlansJSON(t, workspaceDir,
+		sprintTaskFixture{ID: "1", Name: "Custom Dir Task", DoD: "DoD", Status: "cc:WIP"},
+	)
 
 	stateDir := filepath.Join(dir, ".claude", "state")
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {

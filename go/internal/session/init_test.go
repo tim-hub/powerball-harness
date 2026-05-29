@@ -9,6 +9,43 @@ import (
 	"testing"
 )
 
+// writeSessionPlansJSON writes a plans.json under baseDir/.claude/harness with one
+// task per given status and returns the file's path.
+func writeSessionPlansJSON(t *testing.T, baseDir string, statuses ...string) string {
+	t.Helper()
+	dir := filepath.Join(baseDir, ".claude", "harness")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	type jtask struct {
+		ID     string `json:"id"`
+		Name   string `json:"name"`
+		Status string `json:"status"`
+	}
+	var tasks []jtask
+	for i, s := range statuses {
+		tasks = append(tasks, jtask{
+			ID:     "1." + string(rune('1'+i)),
+			Name:   "Task" + string(rune('A'+i)),
+			Status: s,
+		})
+	}
+	doc := map[string]interface{}{
+		"phases": []map[string]interface{}{
+			{"id": 1, "title": "P1", "status": "active", "tasks": tasks},
+		},
+	}
+	data, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "plans.json")
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
 func TestInitHandler_Subagent(t *testing.T) {
 	// Lightweight initialization for subagents
 	h := &InitHandler{}
@@ -55,8 +92,8 @@ func TestInitHandler_NewSession(t *testing.T) {
 	if resp.HookSpecificOutput.HookEventName != "SessionStart" {
 		t.Errorf("expected HookEventName=SessionStart, got %q", resp.HookSpecificOutput.HookEventName)
 	}
-	if !strings.Contains(resp.HookSpecificOutput.AdditionalContext, "Plans.md") {
-		t.Errorf("expected Plans.md info in context, got %q", resp.HookSpecificOutput.AdditionalContext)
+	if !strings.Contains(resp.HookSpecificOutput.AdditionalContext, "plans.json") {
+		t.Errorf("expected plans.json info in context, got %q", resp.HookSpecificOutput.AdditionalContext)
 	}
 	// Verify marker legend is included
 	if !strings.Contains(resp.HookSpecificOutput.AdditionalContext, "cc:TODO") {
@@ -73,20 +110,9 @@ func TestInitHandler_NewSession(t *testing.T) {
 func TestInitHandler_WithPlans(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, "state")
-	plansFile := filepath.Join(dir, "Plans.md")
 
-	// Create Plans.md
-	content := `# Plans
-| Task | Status |
-|------|--------|
-| task1 | cc:WIP |
-| task2 | cc:TODO |
-| task3 | cc:TODO |
-| task4 | pm:pending |
-`
-	if err := os.WriteFile(plansFile, []byte(content), 0644); err != nil {
-		t.Fatal(err)
-	}
+	// Create plans.json: 1 WIP + 2 TODO + 1 pm:requested
+	plansFile := writeSessionPlansJSON(t, dir, "cc:WIP", "cc:TODO", "cc:TODO", "pm:requested")
 
 	h := &InitHandler{
 		StateDir:  stateDir,

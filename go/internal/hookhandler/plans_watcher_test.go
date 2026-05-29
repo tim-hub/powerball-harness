@@ -11,6 +11,43 @@ import (
 	"time"
 )
 
+// writePlansJSONStatuses writes a plans.json under baseDir/.claude/harness with one
+// task per given status. It returns the relative path to plans.json from baseDir.
+func writePlansJSONStatuses(t *testing.T, baseDir string, statuses ...string) string {
+	t.Helper()
+	dir := filepath.Join(baseDir, ".claude", "harness")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	type jtask struct {
+		ID     string `json:"id"`
+		Name   string `json:"name"`
+		Status string `json:"status"`
+	}
+	var tasks []jtask
+	for i, s := range statuses {
+		tasks = append(tasks, jtask{
+			ID:     "1." + string(rune('1'+i)),
+			Name:   "Task" + string(rune('A'+i)),
+			Status: s,
+		})
+	}
+	doc := map[string]interface{}{
+		"phases": []map[string]interface{}{
+			{"id": 1, "title": "P1", "status": "active", "tasks": tasks},
+		},
+	}
+	data, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rel := filepath.Join(".claude", "harness", "plans.json")
+	if err := os.WriteFile(filepath.Join(baseDir, rel), data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return rel
+}
+
 func TestHandlePlansWatcher_NoInput(t *testing.T) {
 	var out bytes.Buffer
 	err := HandlePlansWatcher(strings.NewReader(""), &out)
@@ -52,12 +89,10 @@ func TestHandlePlansWatcher_NonPlansFile(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// pre-create Plans.md
-	if err := os.WriteFile("Plans.md", []byte("# Plans\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	// pre-create plans.json
+	writePlansJSONStatuses(t, tmpDir, "cc:TODO")
 
-	// skip when a file other than Plans.md is edited
+	// skip when a file other than plans.json is edited
 	input := `{"tool_name":"Write","tool_input":{"file_path":"src/main.go"}}`
 	var out bytes.Buffer
 	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
@@ -68,7 +103,7 @@ func TestHandlePlansWatcher_NonPlansFile(t *testing.T) {
 		t.Fatalf("invalid JSON output: %v", jsonErr)
 	}
 	if result.HookSpecificOutput.AdditionalContext != "" {
-		t.Errorf("expected empty context for non-Plans.md file, got %q", result.HookSpecificOutput.AdditionalContext)
+		t.Errorf("expected empty context for non-plans.json file, got %q", result.HookSpecificOutput.AdditionalContext)
 	}
 }
 
@@ -83,8 +118,8 @@ func TestHandlePlansWatcher_NoPlansFile(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// skip when Plans.md does not exist
-	input := `{"tool_name":"Write","tool_input":{"file_path":"Plans.md"}}`
+	// skip when plans.json does not exist
+	input := `{"tool_name":"Write","tool_input":{"file_path":".claude/harness/plans.json"}}`
 	var out bytes.Buffer
 	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -94,7 +129,7 @@ func TestHandlePlansWatcher_NoPlansFile(t *testing.T) {
 		t.Fatalf("invalid JSON output: %v", jsonErr)
 	}
 	if result.HookSpecificOutput.AdditionalContext != "" {
-		t.Errorf("expected empty context when Plans.md not found, got %q", result.HookSpecificOutput.AdditionalContext)
+		t.Errorf("expected empty context when plans.json not found, got %q", result.HookSpecificOutput.AdditionalContext)
 	}
 }
 
@@ -109,10 +144,7 @@ func TestHandlePlansWatcher_NewTaskDetected(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	plansContent := "| Task 1 | TaskA | DoD | - | pm:pending |\n"
-	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	rel := writePlansJSONStatuses(t, tmpDir, "pm:requested")
 
 	// save the previous state (pm_pending=0)
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
@@ -123,7 +155,7 @@ func TestHandlePlansWatcher_NewTaskDetected(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	input := `{"tool_name":"Edit","tool_input":{"file_path":"Plans.md"}}`
+	input := `{"tool_name":"Edit","tool_input":{"file_path":"` + rel + `"}}`
 	var out bytes.Buffer
 	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -165,11 +197,7 @@ func TestHandlePlansWatcher_NotificationUsesInputCWD(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	plansContent := "| Task 1 | TaskA | DoD | - | pm:pending |\n"
-	plansPath := filepath.Join(projectDir, "Plans.md")
-	if err := os.WriteFile(plansPath, []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	rel := writePlansJSONStatuses(t, projectDir, "pm:requested")
 
 	stateDir := filepath.Join(projectDir, ".claude", "state")
 	if err := os.MkdirAll(stateDir, 0o755); err != nil {
@@ -180,7 +208,7 @@ func TestHandlePlansWatcher_NotificationUsesInputCWD(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	inputJSON := `{"tool_name":"Edit","cwd":"` + projectDir + `","tool_input":{"file_path":"Plans.md"}}`
+	inputJSON := `{"tool_name":"Edit","cwd":"` + projectDir + `","tool_input":{"file_path":"` + rel + `"}}`
 	var out bytes.Buffer
 	if err := HandlePlansWatcher(strings.NewReader(inputJSON), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -206,10 +234,7 @@ func TestHandlePlansWatcher_CompletedTaskDetected(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	plansContent := "| Task 1 | TaskA | DoD | - | cc:done |\n"
-	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	rel := writePlansJSONStatuses(t, tmpDir, "cc:done")
 
 	// save the previous state (cc_done=0)
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
@@ -220,7 +245,7 @@ func TestHandlePlansWatcher_CompletedTaskDetected(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	input := `{"tool_name":"Edit","tool_input":{"file_path":"Plans.md"}}`
+	input := `{"tool_name":"Edit","tool_input":{"file_path":"` + rel + `"}}`
 	var out bytes.Buffer
 	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -249,10 +274,7 @@ func TestHandlePlansWatcher_NoChange(t *testing.T) {
 	defer os.Chdir(origDir)
 
 	// no change (cc:TODO stays at 1)
-	plansContent := "| Task 1 | TaskA | DoD | - | cc:TODO |\n"
-	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	rel := writePlansJSONStatuses(t, tmpDir, "cc:TODO")
 
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
 		t.Fatal(err)
@@ -262,7 +284,7 @@ func TestHandlePlansWatcher_NoChange(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	input := `{"tool_name":"Edit","tool_input":{"file_path":"Plans.md"}}`
+	input := `{"tool_name":"Edit","tool_input":{"file_path":"` + rel + `"}}`
 	var out bytes.Buffer
 	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -290,14 +312,8 @@ func TestHandlePlansWatcher_StatusSummary(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// Plans.md with multiple markers
-	plansContent := "| Task 1 | A | DoD | - | cc:TODO |\n" +
-		"| Task 2 | B | DoD | - | cc:WIP |\n" +
-		"| Task 3 | C | DoD | - | cc:done |\n" +
-		"| Task 4 | D | DoD | - | pm:pending |\n"
-	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	// plans.json with multiple markers
+	rel := writePlansJSONStatuses(t, tmpDir, "cc:TODO", "cc:WIP", "cc:done", "pm:requested")
 
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
 		t.Fatal(err)
@@ -307,7 +323,7 @@ func TestHandlePlansWatcher_StatusSummary(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	input := `{"tool_name":"Edit","tool_input":{"file_path":"Plans.md"}}`
+	input := `{"tool_name":"Edit","tool_input":{"file_path":"` + rel + `"}}`
 	var out bytes.Buffer
 	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -388,37 +404,29 @@ func TestIsPlansFileWithRoot(t *testing.T) {
 	}
 }
 
-func TestCountMarker(t *testing.T) {
+func TestCollectPlansState(t *testing.T) {
 	tmpDir := t.TempDir()
-	origDir, err := os.Getwd()
+	rel := writePlansJSONStatuses(t, tmpDir, "cc:TODO", "cc:TODO", "cc:WIP", "cc:done", "pm:requested")
+
+	state, err := collectPlansState(filepath.Join(tmpDir, rel))
 	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Chdir(tmpDir); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Chdir(origDir)
-
-	content := "cc:TODO\ncc:TODO\ncc:WIP\ncc:done\npm:pending\n"
-	if err := os.WriteFile("Plans.md", []byte(content), 0o644); err != nil {
-		t.Fatal(err)
+		t.Fatalf("collectPlansState: %v", err)
 	}
 
-	cases := []struct {
-		marker   string
-		expected int
-	}{
-		{"cc:TODO", 2},
-		{"cc:WIP", 1},
-		{"cc:done", 1},
-		{"pm:pending", 1},
-		{"pm:confirmed", 0},
+	if state.CcTodo != 2 {
+		t.Errorf("CcTodo = %d, want 2", state.CcTodo)
 	}
-	for _, c := range cases {
-		got := countMarker("Plans.md", c.marker)
-		if got != c.expected {
-			t.Errorf("countMarker(Plans.md, %q) = %d, want %d", c.marker, got, c.expected)
-		}
+	if state.CcWip != 1 {
+		t.Errorf("CcWip = %d, want 1", state.CcWip)
+	}
+	if state.CcDone != 1 {
+		t.Errorf("CcDone = %d, want 1", state.CcDone)
+	}
+	if state.PmPending != 1 {
+		t.Errorf("PmPending = %d, want 1", state.PmPending)
+	}
+	if state.PmConfirmed != 0 {
+		t.Errorf("PmConfirmed = %d, want 0", state.PmConfirmed)
 	}
 }
 
@@ -433,10 +441,7 @@ func TestHandlePlansWatcher_CursorCompatMarker(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	plansContent := "| Task 1 | A | DoD | - | cursor:pending |\n"
-	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	rel := writePlansJSONStatuses(t, tmpDir, "pm:requested")
 
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
 		t.Fatal(err)
@@ -446,7 +451,7 @@ func TestHandlePlansWatcher_CursorCompatMarker(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	input := `{"tool_name":"Edit","tool_input":{"file_path":"Plans.md"}}`
+	input := `{"tool_name":"Edit","tool_input":{"file_path":"` + rel + `"}}`
 	var out bytes.Buffer
 	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -458,7 +463,7 @@ func TestHandlePlansWatcher_CursorCompatMarker(t *testing.T) {
 	}
 
 	if !strings.Contains(result.HookSpecificOutput.AdditionalContext, "New tasks") {
-		t.Errorf("expected 'New tasks' for cursor:pending, got %q",
+		t.Errorf("expected 'New tasks' for pm:requested, got %q",
 			result.HookSpecificOutput.AdditionalContext)
 	}
 }
@@ -482,14 +487,9 @@ func TestHandlePlansWatcher_CustomPlansDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// create docs/Plans.md
-	if err := os.MkdirAll("docs", 0o755); err != nil {
-		t.Fatal(err)
-	}
-	plansContent := "| Task 1 | TaskA | DoD | - | pm:pending |\n"
-	if err := os.WriteFile("docs/Plans.md", []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	// create docs/.claude/harness/plans.json
+	rel := writePlansJSONStatuses(t, filepath.Join(tmpDir, "docs"), "pm:requested")
+	relFromRoot := filepath.Join("docs", rel)
 
 	// save previous state (pm_pending=0)
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
@@ -500,8 +500,8 @@ func TestHandlePlansWatcher_CustomPlansDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// send event indicating docs/Plans.md was modified
-	input := `{"tool_name":"Edit","tool_input":{"file_path":"docs/Plans.md"}}`
+	// send event indicating docs/.claude/harness/plans.json was modified
+	input := `{"tool_name":"Edit","tool_input":{"file_path":"` + relFromRoot + `"}}`
 	var out bytes.Buffer
 	if err := HandlePlansWatcher(strings.NewReader(input), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -572,12 +572,8 @@ func TestHandlePlansWatcher_CWDFromInput(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// create Plans.md in projectDir
-	plansContent := "| Task 1 | TaskA | DoD | - | cc:done |\n"
-	plansPath := filepath.Join(projectDir, "Plans.md")
-	if err := os.WriteFile(plansPath, []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	// create plans.json in projectDir
+	rel := writePlansJSONStatuses(t, projectDir, "cc:done")
 
 	// create .claude/state in projectDir
 	stateDir := filepath.Join(projectDir, ".claude", "state")
@@ -586,7 +582,7 @@ func TestHandlePlansWatcher_CWDFromInput(t *testing.T) {
 	}
 
 	// include cwd field in input (pointing to projectDir)
-	inputJSON := `{"tool_name":"Edit","cwd":"` + projectDir + `","tool_input":{"file_path":"Plans.md"}}`
+	inputJSON := `{"tool_name":"Edit","cwd":"` + projectDir + `","tool_input":{"file_path":"` + rel + `"}}`
 	var out bytes.Buffer
 	if err := HandlePlansWatcher(strings.NewReader(inputJSON), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -674,11 +670,8 @@ func TestHandlePlansWatcher_LockExhaustionFailsClosed(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// create Plans.md
-	plansContent := "| Task 1 | A | DoD | - | pm:pending |\n"
-	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	// create plans.json
+	rel := writePlansJSONStatuses(t, tmpDir, "pm:requested")
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -708,7 +701,7 @@ func TestHandlePlansWatcher_LockExhaustionFailsClosed(t *testing.T) {
 		exitFn: func(msg string) { failClosedCalled = true },
 	}}
 
-	input := `{"tool_name":"Edit","tool_input":{"file_path":"Plans.md"}}`
+	input := `{"tool_name":"Edit","tool_input":{"file_path":"` + rel + `"}}`
 	var out bytes.Buffer
 	if err := w.handle(strings.NewReader(input), &out); err != nil {
 		t.Fatalf("handle should not return error even on lock failure: %v", err)
@@ -751,11 +744,8 @@ func TestHandlePlansWatcher_LockAndStateUseSameCWD(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// create Plans.md and state directory in projectA
-	plansContent := "| Task 1 | A | DoD | - | pm:pending |\n"
-	if err := os.WriteFile(filepath.Join(projectA, "Plans.md"), []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	// create plans.json and state directory in projectA
+	rel := writePlansJSONStatuses(t, projectA, "pm:requested")
 	if err := os.MkdirAll(filepath.Join(projectA, ".claude", "state"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -768,7 +758,7 @@ func TestHandlePlansWatcher_LockAndStateUseSameCWD(t *testing.T) {
 	}
 
 	// call hook with input.CWD = projectA
-	inputJSON := `{"tool_name":"Edit","cwd":"` + projectA + `","tool_input":{"file_path":"Plans.md"}}`
+	inputJSON := `{"tool_name":"Edit","cwd":"` + projectA + `","tool_input":{"file_path":"` + rel + `"}}`
 	var out bytes.Buffer
 	if err := HandlePlansWatcher(strings.NewReader(inputJSON), &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -817,11 +807,8 @@ func TestAcquirePlansLock_FailClosed(t *testing.T) {
 	}
 	defer os.Chdir(origDir)
 
-	// create Plans.md
-	plansContent := "| Task 1 | A | DoD | - | pm:pending |\n"
-	if err := os.WriteFile("Plans.md", []byte(plansContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	// create plans.json
+	rel := writePlansJSONStatuses(t, tmpDir, "pm:requested")
 	if err := os.MkdirAll(".claude/state", 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -850,7 +837,7 @@ func TestAcquirePlansLock_FailClosed(t *testing.T) {
 		exitFn: func(msg string) { /* no-op for test */ },
 	}}
 
-	input := `{"tool_name":"Edit","tool_input":{"file_path":"Plans.md"}}`
+	input := `{"tool_name":"Edit","tool_input":{"file_path":"` + rel + `"}}`
 	var out bytes.Buffer
 	if err := w.handle(strings.NewReader(input), &out); err != nil {
 		t.Fatalf("handle should not return error even on lock failure: %v", err)

@@ -54,9 +54,7 @@ func TestTodoSyncHandler_EmptyTodos(t *testing.T) {
 
 func TestTodoSyncHandler_CountsInOutput(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "Plans.md"), []byte("# Plans\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, dir, "cc:TODO")
 	h := &TodoSyncHandler{ProjectRoot: dir}
 
 	input := `{"tool_name":"TodoWrite","tool_input":{"todos":[
@@ -97,9 +95,7 @@ func TestTodoSyncHandler_CountsInOutput(t *testing.T) {
 
 func TestTodoSyncHandler_SavesSyncState(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "Plans.md"), []byte("# Plans\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, dir, "cc:TODO")
 	h := &TodoSyncHandler{ProjectRoot: dir}
 
 	input := `{"tool_name":"TodoWrite","tool_input":{"todos":[
@@ -133,9 +129,7 @@ func TestTodoSyncHandler_SavesSyncState(t *testing.T) {
 
 func TestTodoSyncHandler_AppendsEventLog(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "Plans.md"), []byte("# Plans\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, dir, "cc:TODO")
 	h := &TodoSyncHandler{ProjectRoot: dir}
 
 	stateDir := filepath.Join(dir, ".claude", "state")
@@ -180,9 +174,7 @@ func TestTodoSyncHandler_AppendsEventLog(t *testing.T) {
 
 func TestTodoSyncHandler_NoEventLog_NoError(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "Plans.md"), []byte("# Plans\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, dir, "cc:TODO")
 	h := &TodoSyncHandler{ProjectRoot: dir}
 
 	input := `{"tool_name":"TodoWrite","tool_input":{"todos":[
@@ -198,9 +190,7 @@ func TestTodoSyncHandler_NoEventLog_NoError(t *testing.T) {
 
 func TestTodoSyncHandler_WorkModeWarning_AllComplete(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "Plans.md"), []byte("# Plans\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, dir, "cc:TODO")
 	h := &TodoSyncHandler{ProjectRoot: dir}
 
 	stateDir := filepath.Join(dir, ".claude", "state")
@@ -234,9 +224,7 @@ func TestTodoSyncHandler_WorkModeWarning_AllComplete(t *testing.T) {
 
 func TestTodoSyncHandler_WorkModeWarning_ReviewPassed(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "Plans.md"), []byte("# Plans\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, dir, "cc:TODO")
 	h := &TodoSyncHandler{ProjectRoot: dir}
 
 	stateDir := filepath.Join(dir, ".claude", "state")
@@ -269,9 +257,7 @@ func TestTodoSyncHandler_WorkModeWarning_ReviewPassed(t *testing.T) {
 
 func TestTodoSyncHandler_WorkModeWarning_StillHasPending(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "Plans.md"), []byte("# Plans\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, dir, "cc:TODO")
 	h := &TodoSyncHandler{ProjectRoot: dir}
 
 	stateDir := filepath.Join(dir, ".claude", "state")
@@ -326,9 +312,7 @@ func TestTodoSyncHandler_UsesResolveProjectRoot(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HARNESS_PROJECT_ROOT", dir)
 
-	if err := os.WriteFile(filepath.Join(dir, "Plans.md"), []byte("# Plans\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, dir, "cc:TODO")
 
 	h := &TodoSyncHandler{ProjectRoot: ""}
 
@@ -364,9 +348,7 @@ func TestTodoSyncHandler_CustomPlansDirectory(t *testing.T) {
 	if err := os.MkdirAll(workDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(workDir, "Plans.md"), []byte("# Plans\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writePlansJSONStatuses(t, workDir, "cc:TODO")
 
 	h := &TodoSyncHandler{ProjectRoot: dir}
 
