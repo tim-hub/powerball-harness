@@ -308,3 +308,6 @@ out/
 !.claude/skills/
 !.claude/settings.json
 # ---- Harness managed end ----
+*/node_modules/
+*/dist/
+*/.vscode/
