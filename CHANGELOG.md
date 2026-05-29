@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v6.1.0...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v6.1.1...HEAD
+[6.1.1]: https://github.com/tim-hub/powerball-harness/compare/v6.1.0...v6.1.1
 [6.1.0]: https://github.com/tim-hub/powerball-harness/compare/v6.0.1...v6.1.0
 [6.0.1]: https://github.com/tim-hub/powerball-harness/compare/v6.0.0...v6.0.1
 [6.0.0]: https://github.com/tim-hub/powerball-harness/compare/v5.9.2...v6.0.0
@@ -74,11 +75,21 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
-#### plans-json-location rule
+---
 
-**Before**: No explicit rule prohibited reading `plans.json` from the plugin cache path. During sessions where the plugin cache was also on disk, agents could accidentally read stale snapshot data and silently write to the wrong path.
+## [6.1.1] - 2026-05-30
 
-**After**: `harness/rules/plans-json-location.md` codifies that the canonical path is always `<repo-root>/.claude/harness/plans.json`. The rule is cross-referenced from the CLI reference and the harness-plan SKILL.md "Plans Format Conventions" section.
+### Theme: plans-json-location rule
+
+**Prevents agents from accidentally reading or writing the frozen plugin cache copy of plans.json.**
+
+---
+
+#### 1. plans-json-location rule
+
+**Before**: No explicit rule prohibited reading `plans.json` from the plugin cache path. During sessions where the plugin cache was also on disk, agents could accidentally read stale snapshot data and silently write to the wrong path (which the project hook would not guard, since it only protects the repo path).
+
+**After**: `harness/rules/plans-json-location.md` codifies that the canonical path is always `<repo-root>/.claude/harness/plans.json`. The rule is cross-referenced from `harness/references/cli-reference.md` and the harness-plan SKILL.md "Plans Format Conventions" section, so any agent reading either file will see the guard immediately.
 
 ---
 
