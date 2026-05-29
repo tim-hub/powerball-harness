@@ -1,11 +1,9 @@
 <script>
   import { onMount } from 'svelte';
-  import cytoscape from 'cytoscape';
   import { Dialog, Tabs } from 'bits-ui';
 
   // ── State ─────────────────────────────────────────────────────────────────
   let phases = $state([]);
-  let view = $state('map');            // 'board' | 'map'
   let phaseFilter = $state('all');     // 'all' | String(phase.id)
   let searchQuery = $state('');
   let modalTask = $state(null);
@@ -17,9 +15,6 @@
   let editImportance = $state('');
   let loading = $state(true);
   let error = $state('');
-  let mapContainer;
-  let cy = null;
-  let expandedPhases = new Set();
 
   const STATUSES = ['cc:TODO', 'cc:WIP', 'cc:done', 'pm:confirmed', 'pm:requested', 'blocked'];
   const DONE_STATUSES = new Set(['cc:done', 'pm:confirmed']);
@@ -53,7 +48,33 @@
     return String(t.id).includes(q) || t.name.toLowerCase().includes(q);
   }
 
-  const todoTasks    = $derived(allActiveTasks.filter(t => t.status === 'cc:TODO' && matchesSearch(t)));
+  // Status of every task by id (across all phases, including archived) so we can
+  // resolve whether a task's dependencies are satisfied.
+  const statusById = $derived.by(() => {
+    const m = new Map();
+    for (const ph of phases) for (const t of (ph.tasks || [])) m.set(t.id, t.status);
+    return m;
+  });
+
+  // A dependency is satisfied when the depended-on task is done/confirmed.
+  // Unknown ids (dep points at a task that no longer exists) count as satisfied
+  // so a dangling reference never blocks a task forever.
+  function depSatisfied(depId) {
+    const s = statusById.get(depId);
+    return s === undefined || DONE_STATUSES.has(s);
+  }
+
+  // "Ready to go": a not-started task whose every dependency is satisfied.
+  function isReady(task) {
+    return task.status === 'cc:TODO' && (task.depends || []).every(depSatisfied);
+  }
+
+  // TODO column: ready-to-go tasks float to the top. Array.sort is stable, so
+  // ordering within the ready / not-ready groups is preserved (phase order).
+  const todoTasks = $derived.by(() => {
+    const list = allActiveTasks.filter(t => t.status === 'cc:TODO' && matchesSearch(t));
+    return list.sort((a, b) => (isReady(a) ? 0 : 1) - (isReady(b) ? 0 : 1));
+  });
   const wipTasks     = $derived(allActiveTasks.filter(t => (t.status === 'cc:WIP' || t.status === 'blocked') && matchesSearch(t)));
   const doneTasks    = $derived(allActiveTasks.filter(t => (t.status === 'cc:done' || t.status === 'pm:confirmed' || t.status === 'pm:requested') && matchesSearch(t)));
   const archiveTasks = $derived(allArchivedTasks.filter(t => matchesSearch(t)));
@@ -75,11 +96,6 @@
 
   function allTasks() {
     return [...allActiveTasks, ...allArchivedTasks];
-  }
-
-  function phaseHasWork(ph) {
-    const tasks = ph.tasks || [];
-    return tasks.length === 0 || tasks.some(t => !DONE_STATUSES.has(t.status));
   }
 
   // ── API ───────────────────────────────────────────────────────────────────
@@ -153,146 +169,6 @@
     await patchTask(modalTask.id, fields);
   }
 
-  // ── Map ───────────────────────────────────────────────────────────────────
-  function buildMapElements() {
-    const targetPhases = phaseFilter === 'all' ? phases : phases.filter(ph => String(ph.id) === phaseFilter);
-    const elements = [];
-
-    for (const ph of targetPhases) {
-      if (!expandedPhases.has(ph.id)) {
-        elements.push({
-          data: {
-            id: `ph-${ph.id}`,
-            label: `Phase ${ph.id}\n${ph.title}`,
-            type: 'phase',
-            phaseId: ph.id,
-            archived: ph.status === 'archived',
-            done: !phaseHasWork(ph),
-          }
-        });
-      } else {
-        for (const t of (ph.tasks || [])) {
-          const color = {
-            'cc:TODO': '#9ca3af', 'cc:WIP': '#3b82f6', 'cc:done': '#22c55e',
-            'pm:confirmed': '#16a34a', 'pm:requested': '#eab308', 'blocked': '#ef4444',
-          }[t.status] || '#9ca3af';
-          elements.push({
-            data: { id: `task-${t.id}`, label: `#${t.id}\n${t.name.slice(0, 30)}`, type: 'task', taskId: t.id, color, phaseId: ph.id }
-          });
-        }
-      }
-    }
-
-    const allT = allTasks();
-    const targetPhaseSet = new Set(targetPhases.map(p => p.id));
-
-    for (const ph of targetPhases) {
-      if (!expandedPhases.has(ph.id)) continue;
-      for (const t of (ph.tasks || [])) {
-        for (const dep of (t.depends || [])) {
-          const depTask = allT.find(x => x.id === dep);
-          if (!depTask || !targetPhaseSet.has(depTask._phase?.id)) continue;
-          const depPhaseExpanded = expandedPhases.has(depTask._phase?.id);
-          const srcId = `task-${t.id}`;
-          const tgtId = depPhaseExpanded ? `task-${dep}` : `ph-${depTask._phase?.id}`;
-          if (!elements.find(e => e.data.id === tgtId)) continue;
-          const crossPhase = ph.id !== depTask._phase?.id;
-          const edgeData = {
-            id: `edge-${t.id}-${dep}`,
-            source: srcId,
-            target: tgtId,
-            dashed: !depPhaseExpanded ? 'dashed' : 'solid',
-          };
-          if (crossPhase) edgeData.crossPhase = true;
-          elements.push({ data: edgeData });
-        }
-      }
-    }
-
-    return elements;
-  }
-
-  // Rebuild cytoscape with current expandedPhases (does NOT reset expansion state)
-  function mountCy() {
-    if (!mapContainer) return;
-    if (cy) { cy.destroy(); cy = null; }
-    try {
-      cy = cytoscape({
-        container: mapContainer,
-        elements: buildMapElements(),
-        layout: { name: 'cose', animate: false, padding: 40 },
-        style: [
-          { selector: 'node[type="phase"]', style: {
-            'shape': 'round-rectangle', 'width': 160, 'height': 60,
-            'background-color': '#1f2937', 'color': '#fff',
-            'label': 'data(label)', 'text-valign': 'center', 'text-halign': 'center',
-            'font-size': '11px', 'text-wrap': 'wrap', 'text-max-width': '140px',
-            'border-width': 2, 'border-color': '#374151', 'cursor': 'pointer',
-          }},
-          { selector: 'node[type="phase"][archived]', style: {
-            'background-color': '#6b7280', 'border-color': '#9ca3af', 'opacity': 0.65,
-          }},
-          { selector: 'node[type="phase"][done]', style: {
-            'background-color': '#374151', 'border-color': '#6b7280', 'opacity': 0.75,
-          }},
-          { selector: 'node[type="task"]', style: {
-            'shape': 'ellipse', 'width': 80, 'height': 80,
-            'background-color': 'data(color)', 'color': '#fff',
-            'label': 'data(label)', 'text-valign': 'center', 'text-halign': 'center',
-            'font-size': '9px', 'text-wrap': 'wrap', 'text-max-width': '70px',
-            'cursor': 'pointer',
-          }},
-          { selector: 'edge', style: {
-            'curve-style': 'bezier', 'target-arrow-shape': 'triangle',
-            'arrow-scale': 1.2, 'line-color': '#9ca3af', 'target-arrow-color': '#9ca3af',
-            'line-style': 'data(dashed)',
-          }},
-          // Cross-phase deps in indigo so they stand out from same-phase deps
-          { selector: 'edge[crossPhase]', style: {
-            'line-color': '#6366f1', 'target-arrow-color': '#6366f1',
-          }},
-        ],
-      });
-    } catch (e) {
-      cy = null;
-      error = `Map failed to initialize: ${e.message}`;
-      return;
-    }
-
-    cy.on('tap', 'node[type="phase"]', evt => {
-      const phaseId = evt.target.data('phaseId');
-      const next = new Set(expandedPhases);
-      if (next.has(phaseId)) next.delete(phaseId); else next.add(phaseId);
-      expandedPhases = next;
-      mountCy(); // rebuild with toggled state, don't reset defaults
-    });
-
-    cy.on('tap', 'node[type="task"]', evt => {
-      const taskId = evt.target.data('taskId');
-      const t = allTasks().find(x => x.id === taskId);
-      if (t) openTask(t);
-    });
-
-    cy.on('dbltap', evt => {
-      if (evt.target === cy) cy.fit(undefined, 40);
-    });
-  }
-
-  function initMap() {
-    if (!mapContainer || cy) return;
-    const targetPhases = phaseFilter === 'all' ? phases : phases.filter(ph => String(ph.id) === phaseFilter);
-    // Expand phases with outstanding work; archived + fully-done phases start collapsed
-    expandedPhases = new Set(
-      targetPhases.filter(ph => ph.status !== 'archived' && phaseHasWork(ph)).map(ph => ph.id)
-    );
-    mountCy();
-  }
-
-  function destroyMap() {
-    if (cy) { cy.destroy(); cy = null; }
-    expandedPhases = new Set();
-  }
-
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   onMount(async () => {
     await fetchPhases();
@@ -300,24 +176,9 @@
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   });
-
-  $effect(() => {
-    const _view = view;
-    const _filter = phaseFilter;
-    // Track phases.length so the effect re-fires once fetchPhases resolves.
-    // Without this, initMap runs while loading=true (mapContainer is null)
-    // and never retries when the map container actually renders.
-    const _dataReady = phases.length > 0;
-    if (_view === 'map') {
-      const timer = setTimeout(initMap, 0);
-      return () => { clearTimeout(timer); destroyMap(); };
-    } else {
-      destroyMap();
-    }
-  });
 </script>
 
-<div class="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
+<div class="h-screen bg-gray-50 text-gray-900 flex flex-col overflow-hidden">
 
   <!-- Header -->
   <header class="border-b border-gray-200 bg-white px-4 flex items-center gap-3 sticky top-0 z-30 h-[57px]">
@@ -333,13 +194,6 @@
 
     <div class="flex-1"></div>
 
-    <div class="flex rounded border border-gray-200 overflow-hidden text-sm">
-      <button class="px-3 py-1 {view==='board' ? 'bg-gray-900 text-white' : 'bg-white hover:bg-gray-50'}"
-              onclick={() => view = 'board'}>Board</button>
-      <button class="px-3 py-1 {view==='map' ? 'bg-gray-900 text-white' : 'bg-white hover:bg-gray-50'}"
-              onclick={() => view = 'map'}>Map</button>
-    </div>
-
     <button onclick={fetchPhases}
             class="text-xs text-gray-400 hover:text-gray-700 border border-gray-200 rounded px-2 py-1">↻</button>
   </header>
@@ -354,7 +208,7 @@
   {#if loading}
     <div class="flex-1 flex items-center justify-center text-gray-400 text-sm">Loading…</div>
 
-  {:else if view === 'board'}
+  {:else}
     <!-- Search bar -->
     <div class="px-4 py-2 bg-white border-b border-gray-200">
       <input
@@ -365,10 +219,48 @@
       />
     </div>
 
+    <!-- Card snippet shared by every column. Shows a "Ready" badge for
+         ready-to-go tasks and a "needs" line listing each dependency, colored
+         green when satisfied and amber when still pending. -->
+    {#snippet taskCard(task)}
+      <button class="text-left rounded-lg p-3 w-full transition-shadow
+                     {task._archived
+                       ? 'bg-gray-50 border border-gray-200 hover:bg-white'
+                       : 'bg-white border border-gray-100 shadow-sm hover:shadow-md'}"
+              onclick={() => openTask(task)}>
+        <div class="flex items-baseline gap-1.5 mb-0.5">
+          <span class="text-[10px] text-gray-400 font-mono shrink-0">#{task.id}</span>
+          <span class="text-sm font-medium line-clamp-2 leading-snug {task._archived ? 'text-gray-400' : 'text-gray-900'}">{task.name}</span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-1.5 mt-1">
+          {#if isReady(task)}
+            <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">● Ready</span>
+          {/if}
+          {#if task.status === 'blocked'}
+            <span class="text-xs text-amber-600">⚠ {task.blockedReason || 'blocked'}</span>
+          {:else if showPhaseLabel}
+            <span class="text-xs text-gray-400">Phase {task._phase.id} · {task.status}</span>
+          {:else}
+            <span class="text-xs px-1.5 py-0.5 rounded-full {statusColor(task.status)}">{task.status}</span>
+          {/if}
+        </div>
+
+        {#if (task.depends || []).length}
+          <div class="mt-1.5 flex flex-wrap items-center gap-1">
+            <span class="text-[10px] text-gray-400 uppercase tracking-wide mr-0.5">needs</span>
+            {#each task.depends as d}
+              <span class="text-[10px] font-mono px-1 py-0.5 rounded {depSatisfied(d) ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-700'}">#{d}{depSatisfied(d) ? ' ✓' : ''}</span>
+            {/each}
+          </div>
+        {/if}
+      </button>
+    {/snippet}
+
     <!-- Kanban board — fixed-width columns, horizontal scroll -->
     <div class="flex gap-4 p-4 overflow-x-auto flex-1">
 
-      <!-- TODO -->
+      <!-- TODO (ready-to-go tasks float to the top) -->
       <div class="flex flex-col w-72 shrink-0 bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div class="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
           <span class="text-sm font-semibold text-gray-700">TODO</span>
@@ -376,18 +268,7 @@
         </div>
         <div class="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
           {#each todoTasks as task (task.id)}
-            <button class="text-left bg-white border border-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow w-full"
-                    onclick={() => openTask(task)}>
-              <div class="flex items-baseline gap-1.5 mb-0.5">
-                <span class="text-[10px] text-gray-400 font-mono shrink-0">#{task.id}</span>
-                <span class="text-sm font-medium text-gray-900 line-clamp-2 leading-snug">{task.name}</span>
-              </div>
-              {#if showPhaseLabel}
-                <span class="text-xs text-gray-400">Phase {task._phase.id} · {task.status}</span>
-              {:else}
-                <span class="text-xs px-1.5 py-0.5 rounded-full {statusColor(task.status)}">{task.status}</span>
-              {/if}
-            </button>
+            {@render taskCard(task)}
           {/each}
         </div>
       </div>
@@ -400,20 +281,7 @@
         </div>
         <div class="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
           {#each wipTasks as task (task.id)}
-            <button class="text-left bg-white border border-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow w-full"
-                    onclick={() => openTask(task)}>
-              <div class="flex items-baseline gap-1.5 mb-0.5">
-                <span class="text-[10px] text-gray-400 font-mono shrink-0">#{task.id}</span>
-                <span class="text-sm font-medium text-gray-900 line-clamp-2 leading-snug">{task.name}</span>
-              </div>
-              {#if task.status === 'blocked'}
-                <span class="text-xs text-amber-600">⚠ {task.blockedReason || 'blocked'}</span>
-              {:else if showPhaseLabel}
-                <span class="text-xs text-gray-400">Phase {task._phase.id} · {task.status}</span>
-              {:else}
-                <span class="text-xs px-1.5 py-0.5 rounded-full {statusColor(task.status)}">{task.status}</span>
-              {/if}
-            </button>
+            {@render taskCard(task)}
           {/each}
         </div>
       </div>
@@ -426,18 +294,7 @@
         </div>
         <div class="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
           {#each doneTasks as task (task.id)}
-            <button class="text-left bg-white border border-gray-100 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow w-full"
-                    onclick={() => openTask(task)}>
-              <div class="flex items-baseline gap-1.5 mb-0.5">
-                <span class="text-[10px] text-gray-400 font-mono shrink-0">#{task.id}</span>
-                <span class="text-sm font-medium text-gray-900 line-clamp-2 leading-snug">{task.name}</span>
-              </div>
-              {#if showPhaseLabel}
-                <span class="text-xs text-gray-400">Phase {task._phase.id}</span>
-              {:else}
-                <span class="text-xs px-1.5 py-0.5 rounded-full {statusColor(task.status)}">{task.status}</span>
-              {/if}
-            </button>
+            {@render taskCard(task)}
           {/each}
         </div>
       </div>
@@ -451,46 +308,12 @@
           </div>
           <div class="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
             {#each archiveTasks as task (task.id)}
-              <button class="text-left bg-gray-50 border border-gray-200 rounded-lg p-3 hover:bg-white transition-colors w-full"
-                      onclick={() => openTask(task)}>
-                <div class="flex items-baseline gap-1.5 mb-0.5">
-                  <span class="text-[10px] text-gray-400 font-mono shrink-0">#{task.id}</span>
-                  <span class="text-sm font-medium text-gray-400 line-clamp-2 leading-snug">{task.name}</span>
-                </div>
-                <span class="text-xs text-gray-400">Phase {task._phase.id}</span>
-              </button>
+              {@render taskCard(task)}
             {/each}
           </div>
         </div>
       {/if}
 
-    </div>
-
-  {:else}
-    <!-- Map view -->
-    <div class="flex-1 relative" style="height: calc(100vh - 57px);">
-      <div bind:this={mapContainer} class="absolute inset-0 bg-white"></div>
-
-      <!-- Legend -->
-      <div class="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-600 flex flex-col gap-1.5 shadow-sm pointer-events-none">
-        <div class="font-semibold text-gray-700 mb-0.5">Legend</div>
-        <div class="flex items-center gap-2">
-          <svg width="16" height="16"><rect x="1" y="3" width="14" height="10" rx="2" fill="#1f2937"/></svg>
-          <span>Phase (click to expand/collapse)</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#3b82f6"/></svg>
-          <span>Task (click to view details)</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <svg width="16" height="4"><line x1="0" y1="2" x2="16" y2="2" stroke="#9ca3af" stroke-width="2" marker-end="url(#a)"/></svg>
-          <span>Same-phase dependency</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <svg width="16" height="4"><line x1="0" y1="2" x2="16" y2="2" stroke="#6366f1" stroke-width="2" stroke-dasharray="4 2"/></svg>
-          <span>Cross-phase dependency</span>
-        </div>
-      </div>
     </div>
   {/if}
 
