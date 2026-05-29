@@ -282,12 +282,10 @@ go/harness
 
 # ---- Harness managed begin ----
 # Only ignore volatile runtime outputs — everything else in .claude/ is tracked.
-# Do NOT add a blanket .claude/* rule here; track plans.json, rules, skills, memory, etc.
+# Do NOT add a blanket .claude/* rule here; track agents, plans.json, rules, skills, memory, etc.
 .claude/sessions/
 .claude/logs/
 .claude/state/
-.claude/agents/
-.claude/memory/session-log.md
 .claude/worktrees/
 logs/
 settings.local.json
@@ -295,6 +293,7 @@ states/
 out/
 
 # Force-track key Harness directories (defense against global gitignore .claude/* rules)
+!.claude/agents/
 !.claude/harness/
 !.claude/memory/
 !.claude/output-styles/

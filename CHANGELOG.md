@@ -75,6 +75,20 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+#### chore: track .claude/agents/ and full .claude/memory/ in git
+
+**Before**: `.claude/agents/` was gitignored; `memory/session-log.md` was individually excluded while the rest of `memory/` was tracked. This caused local agent definitions to be lost and required per-file gitignore reasoning for memory.
+
+**After**: `.claude/agents/` is force-tracked (`!.claude/agents/`) and removed from the ignore list. `.claude/memory/session-log.md` individual exclusion removed — the whole `memory/` folder is now committed as one unit. Updated in both the project `.gitignore` and `harness/templates/gitignore-harness`.
+
+---
+
+#### docs: credits, references, and .claude/ folder layout
+
+**Before**: Credits and arXiv references were embedded inline in README. The `.claude/` folder layout (which paths to commit vs. ignore) was not documented anywhere for plugin users.
+
+**After**: `docs/credits-and-references.md` consolidates credits, academic references, and the full `.claude/` committed-vs-gitignored layout. README links to it from the Contributing section and a new `.claude/ Folder` section.
+
 ---
 
 ## [6.1.1] - 2026-05-30

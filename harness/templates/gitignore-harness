@@ -3,19 +3,18 @@
 # Re-running harness-setup init is idempotent; it will not duplicate this block.
 #
 # Policy: only ignore volatile runtime outputs. Everything else in .claude/ is tracked.
-# Do NOT add a blanket .claude/* rule — plans.json, rules, skills, and memory must be committed.
+# Do NOT add a blanket .claude/* rule — agents, plans.json, rules, skills, and memory must be committed.
 
 # Harness volatile runtime outputs (do not commit)
 .claude/sessions/
 .claude/logs/
 .claude/state/
-.claude/agents/
 .claude/worktrees/
-.claude/memory/session-log.md
 .claude/settings.local.json
 .claude/states/
 
 # Force-track key Harness directories (defense against any global gitignore .claude/* rule)
+!.claude/agents/
 !.claude/harness/
 !.claude/memory/
 !.claude/agent-memory/

@@ -124,20 +124,27 @@ A read-only Opus consultation agent that Workers consult on high-risk preflight,
 Full configuration: [docs/advisor-strategy.md](docs/advisor-strategy.md).
 
 
-### Meta-Harness ([arXiv:2603.28052](https://arxiv.org/abs/2603.28052))
+### Academic Foundations
 
-*Meta-Harness: End-to-End Optimization of Model Harnesses* — compressed feedback loses causal signal, so agents need raw execution history, not summaries. Drives the per-task `.claude/state/traces/` JSONL system and the `harness-review` eval loop.
+Two papers directly shaped this project's design — see [docs/credits-and-references.md](docs/credits-and-references.md) for summaries and links.
 
-### Natural-Language Agent Harnesses ([arXiv:2603.25723](https://arxiv.org/abs/2603.25723))
 
-*Natural-Language Agent Harnesses* — named failure modes drive recovery strategies. The Failure Taxonomy (`FT-*` IDs) in [`harness/rules/failure-taxonomy.md`](harness/rules/failure-taxonomy.md) is a direct implementation.
+---
 
+## `.claude/` Folder
+
+After `/harness-setup`, your project will have a `.claude/` folder. Some paths are tracked in git; others are generated at runtime and git-ignored. Full layout: [docs/credits-and-references.md#claude-folder-layout](docs/credits-and-references.md#-claude-folder-layout).
+
+**Committed** (you should check these in): `agents/`, `harness/plans.json`, `memory/`, `rules/`, `skills/`, `settings.json`
+
+**Git-ignored** (generated): `sessions/`, `logs/`, `state/`, `worktrees/`
 
 ---
 
 ## Documentation
 
 - [Changelog](CHANGELOG.md)
+- [Credits & References](docs/credits-and-references.md)
 - [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md)
 - [Guardrail Rules](docs/hardening-parity.md)
 - [Advisor Strategy](docs/advisor-strategy.md)
@@ -164,11 +171,9 @@ Project files (`Plans.md`, `CLAUDE.md`, SSOT files) remain unchanged.
 
 ## Contributing
 
-- Issues and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
-- Credits: 
-  - [@Chachamaru127](https://github.com/Chachamaru127/claude-code-harness) for the original work of Claude Code harness development.
-  - [@datumbrain](https://github.com/datumbrain/claude-privacy-guard) for PII Patterns detection.
-  - [@affaan-m](https://github.com/affaan-m/everything-claude-code) for the `strategic-compact` skill that inspired `harness-compact`.
+Issues and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Credits and academic references: [docs/credits-and-references.md](docs/credits-and-references.md).
 
 ## License
 
