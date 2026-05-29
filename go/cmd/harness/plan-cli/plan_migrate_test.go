@@ -3,6 +3,8 @@ package plancli
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -231,10 +233,15 @@ Created: 2026-01-01
 
 func TestActualPlansJSON(t *testing.T) {
 	// Plans.md was migrated to plans.json in Phase 108; validate the SSOT.
-	// This package is at go/cmd/harness/plan-cli/; plans.json is at .claude/harness/plans.json.
-	data, err := os.ReadFile("../../../../.claude/harness/plans.json")
+	// Use git rev-parse to find the repo root so the path is stable across environments.
+	out, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
 	if err != nil {
-		t.Fatalf("cannot read .claude/harness/plans.json: %v", err)
+		t.Skipf("not in a git repo, skipping live plans.json validation: %v", err)
+	}
+	plansPath := filepath.Join(strings.TrimSpace(string(out)), ".claude", "harness", "plans.json")
+	data, err := os.ReadFile(plansPath)
+	if err != nil {
+		t.Fatalf("cannot read .claude/harness/plans.json (file is tracked in git and must exist): %v", err)
 	}
 
 	var plans Plans
