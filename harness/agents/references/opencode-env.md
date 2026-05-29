@@ -27,15 +27,15 @@ Use these fallbacks:
 
 | Normal Environment | OpenCode Fallback |
 |---|---|
-| Get task list with `TaskList` | Read Plans.md and check WIP/TODO tasks |
-| Update status with `TaskUpdate` | Directly update Plans.md markers with `Edit` (e.g., `cc:WIP` → `cc:done`) |
+| Get task list with `TaskList` | `harness plan-cli list --status cc:TODO,cc:WIP --pretty` |
+| Update status with `TaskUpdate` | `harness plan-cli update <task-id> --status cc:WIP` |
 | Write review result to Task | Output review result to stdout in markdown format |
 
 ### Detection
 
 ```bash
 if [ "${OPENCODE_CLI:-}" = "1" ]; then
-  # OpenCode environment: Plans.md-based fallback
+  # OpenCode environment: use harness plan-cli fallback
 fi
 ```
 
@@ -77,4 +77,4 @@ Alternatives in OpenCode environment:
 ### Task Tool
 
 OpenCode does not expose Claude Code's `TaskCreate` / `TaskUpdate` / `TaskList` tools.
-State management is done by directly reading and editing Plans.md.
+State management is done via `harness plan-cli` subcommands (read: `list`/`get`; write: `update`/`add-task`).

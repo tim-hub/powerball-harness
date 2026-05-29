@@ -6,13 +6,13 @@ Three hard constraints applied to every Worker — NG-1 (Plans.md markers are Le
 
 Three hard constraints applied to every Worker before and during implementation. Violations are grounds for immediate escalation — the Lead must not cherry-pick a commit that broke any NG rule.
 
-## NG-1: Plans.md Markers Are Lead-Owned
+## NG-1: plans.json Markers Are Lead-Owned
 
-`cc:TODO`, `cc:WIP`, `cc:Done`, and all other `cc:*` / `pm:*` status markers in `Plans.md` are **exclusively managed by the Lead**. Workers must not read, write, or touch `Plans.md` during implementation.
+`cc:TODO`, `cc:WIP`, `cc:Done`, and all other `cc:*` / `pm:*` status markers in `plans.json` are **exclusively managed by the Lead** via `harness plan-cli`. Workers must not call `harness plan-cli update` or otherwise touch `plans.json` during implementation.
 
 **Why**: status markers are the coordination layer between Lead, Worker, and Reviewer. A Worker modifying its own `cc:WIP` entry, or pre-emptively writing `cc:Done`, breaks the Lead's ability to track actual completion state and can cause double-commits or skipped reviews.
 
-**Check**: Lead verifies `git diff HEAD Plans.md` is empty before cherry-picking a Worker commit. Any `Plans.md` modification in the diff → reject + send amendment request.
+**Check**: Lead verifies `git diff HEAD .claude/harness/plans.json` is empty before cherry-picking a Worker commit. Any `plans.json` modification in the diff → reject + send amendment request.
 
 ## NG-2: No Embedded Git Repositories
 

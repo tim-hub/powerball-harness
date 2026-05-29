@@ -146,9 +146,9 @@ Phase B: Sequential execution per task (in dependency order)
     B-4. APPROVE -> Lead cherry-picks to main
          git cherry-pick --no-commit {worktree_commit}
          git commit -m "{task description}"
-         Plans.md: cc:done [{hash}]
+         plans.json: cc:done [{hash}]
     |
-Phase C: Lead outputs rich completion report, final Plans.md confirmation
+Phase C: Lead outputs rich completion report, final plans.json confirmation
 ```
 
 ### SendMessage Pattern (Fix Loop)

@@ -1,6 +1,6 @@
 ---
 name: harness-work
-description: "Executes Plans.md tasks — solo, parallel, or breezing team mode. Use when implementing tasks or running the work loop."
+description: "Executes plans.json tasks — solo, parallel, or breezing team mode. Use when implementing tasks or running the work loop."
 when_to_use: "implement task, run task, execute plans, work on task, run all tasks, parallel workers, breezing"
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
 argument-hint: "[all|task-number|range|--codex|--opencode|--parallel N|--commit|--resume id|--breezing|--auto-mode|--advisor|--no-advisor]"

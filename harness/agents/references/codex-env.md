@@ -49,4 +49,4 @@ Alternatives in Codex environment:
 ### Task Tool
 
 Worker's `disallowedTools: [Agent]` is a Claude Code constraint (Task renamed to Agent in v2.1.63).
-In Codex environment, the Task tool itself does not exist, so state management is done by directly Read/Edit-ing Plans.md.
+In Codex environment, the Task tool itself does not exist, so state management is done via `harness plan-cli` subcommands (e.g., `harness plan-cli list`, `harness plan-cli update <task-id> --status cc:WIP`).

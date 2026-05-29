@@ -72,7 +72,7 @@ Specify subagent_type="scaffolder" in the Task tool
    - Check `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, etc.
    - Identify frameworks and libraries
 2. Check existing Harness configuration
-   - Verify the existence of `.claude/`, `Plans.md`, `CLAUDE.md`
+   - Verify the existence of `.claude/`, `.claude/harness/plans.json`, `CLAUDE.md`
 3. Compile and return analysis results
 
 ### scaffold Mode
@@ -81,7 +81,7 @@ Specify subagent_type="scaffolder" in the Task tool
 2. Select the appropriate template
 3. Generate the following:
    - `CLAUDE.md` — Project configuration
-   - `Plans.md` — Task management (empty template)
+   - `.claude/harness/plans.json` — Task management (empty template via `harness plan-cli add-phase`)
    - `.claude/settings.json` — Claude Code settings
    - `.claude/hooks.json` — Hook configuration
    - `hooks/pre-tool.sh`, `hooks/post-tool.sh` — Thin shims
@@ -89,9 +89,9 @@ Specify subagent_type="scaffolder" in the Task tool
 
 ### update-state Mode
 
-1. Read the current Plans.md
+1. Read current task state via `harness plan-cli list --status all --pretty`
 2. Check implementation status from git status / git log
-3. Update Plans.md markers to match the actual state
+3. Update task markers via `harness plan-cli update <task-id> --status <status>` to match actual state
 4. Compile and return update details
 
 ## Output
@@ -103,7 +103,7 @@ Specify subagent_type="scaffolder" in the Task tool
   "framework": "next | express | fastapi | gin | etc",
   "harness_version": "none | v2 | v3 | v4",
   "files_created": ["List of generated files (scaffold mode)"],
-  "plans_updates": ["Plans.md update details (update-state mode)"],
+  "plans_updates": ["plans.json update details (update-state mode)"],
   "memory_updates": ["Content to append to memory"]
 }
 ```

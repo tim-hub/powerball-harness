@@ -1,6 +1,6 @@
 ---
 name: breezing
-description: "Full team execution with Lead/Worker/Reviewer agents running all Plans.md tasks end-to-end. Use when running the complete breezing flow with parallel workers."
+description: "Full team execution with Lead/Worker/Reviewer agents running all plans.json tasks end-to-end. Use when running the complete breezing flow with parallel workers."
 when_to_use: "full team run, run all tasks with team, parallel team execution, end-to-end execution"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Task", "WebSearch"]
 argument-hint: "[all|N-M|--codex|--parallel N|--no-commit|--no-discuss|--auto-mode|--advisor|--no-advisor]"
@@ -101,7 +101,7 @@ The `task-completed.sh` hook also outputs equivalent information via systemMessa
 
 Codex exec first → internal Reviewer fallback (unified across all modes).
 See [`harness-work/references/review-loop.md`](${CLAUDE_SKILL_DIR}/../../harness-work/references/review-loop.md).
-APPROVE → Lead cherry-picks to main → `cc:done [{hash}]` in Plans.md.
+APPROVE → Lead cherry-picks to main → `cc:done [{hash}]` in plans.json.
 
 ### Completion Report (Phase C)
 

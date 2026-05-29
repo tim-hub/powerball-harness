@@ -72,6 +72,24 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Plans.md → plans.json migration cleanup + TDD enforcement hardening
+
+**Agents and skills no longer reference Plans.md for task state — all status reads/writes now go through `harness plan-cli`.**
+
+---
+
+#### 1. Plans.md reference purge across agents and skills
+
+**Before**: `scaffolder.md`, `codex-env.md`, `opencode-env.md`, `worker-ng-rules.md`, `breezing/SKILL.md`, and `harness-work/SKILL.md` still instructed agents to read/edit `Plans.md` directly (e.g. "state management is done by directly Read/Edit-ing Plans.md").
+
+**After**: All agent and skill files now reference `harness plan-cli list`/`update` instead. The NG-1 breezing rule was updated to reference `plans.json`. The Plans.md file itself was already absent from the repo.
+
+#### 2. TDD enforcement upgraded from suggestion to requirement
+
+**Before**: `tdd-guidelines.md.template` used encouragement language; `harness-plan/references/create.md` and `harness-work/references/solo-mode.md` lacked explicit task-split and phase-close verification steps.
+
+**After**: Template uses enforcement language with a `## Phase-bottom Verification` section. `create.md` Step 6.5 has TDD pair completeness and phase-bottom checks (items 4 + 5). `solo-mode.md` has `Dependency check` and `Phase-close check` bullets.
+
 ---
 
 ## [6.0.0] - 2026-05-29

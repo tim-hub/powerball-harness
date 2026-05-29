@@ -45,7 +45,7 @@ User / New Project
 Lead spawns Worker (worktree, task + sprint-contract)
 Worker: TDD → implement → self-check → commit
 Lead reviews with Reviewer (diff + sprint-contract)
-  APPROVE  → cherry-pick to main → Plans.md cc:done
+  APPROVE  → cherry-pick to main → plans.json cc:done
   REQUEST_CHANGES (≤3 retries) → SendMessage fixes → re-review
 ```
 
