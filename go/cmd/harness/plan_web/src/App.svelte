@@ -5,10 +5,11 @@
 
   // ── State ─────────────────────────────────────────────────────────────────
   let phases = $state([]);
-  let view = $state('board');        // 'board' | 'map'
-  let phaseFilter = $state('all');   // 'all' | String(phase.id)
+  let view = $state('map');            // 'board' | 'map'
+  let phaseFilter = $state('all');     // 'all' | String(phase.id)
+  let searchQuery = $state('');
   let modalTask = $state(null);
-  let modalTab = $state('details');  // 'details' | 'edit' | 'comments'
+  let modalTab = $state('details');    // 'details' | 'edit' | 'comments'
   let commentText = $state('');
   let editStatus = $state('');
   let editBlockedReason = $state('');
@@ -21,6 +22,7 @@
   let expandedPhases = new Set();
 
   const STATUSES = ['cc:TODO', 'cc:WIP', 'cc:done', 'pm:confirmed', 'pm:requested', 'blocked'];
+  const DONE_STATUSES = new Set(['cc:done', 'pm:confirmed']);
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const activePhases = $derived(phases.filter(ph => ph.status !== 'archived'));
@@ -44,10 +46,17 @@
     )
   );
 
-  const todoTasks    = $derived(allActiveTasks.filter(t => t.status === 'cc:TODO'));
-  const wipTasks     = $derived(allActiveTasks.filter(t => t.status === 'cc:WIP' || t.status === 'blocked'));
-  const doneTasks    = $derived(allActiveTasks.filter(t => t.status === 'cc:done' || t.status === 'pm:confirmed' || t.status === 'pm:requested'));
-  const archiveTasks = $derived(allArchivedTasks);
+  const q = $derived(searchQuery.toLowerCase().trim());
+
+  function matchesSearch(t) {
+    if (!q) return true;
+    return String(t.id).includes(q) || t.name.toLowerCase().includes(q);
+  }
+
+  const todoTasks    = $derived(allActiveTasks.filter(t => t.status === 'cc:TODO' && matchesSearch(t)));
+  const wipTasks     = $derived(allActiveTasks.filter(t => (t.status === 'cc:WIP' || t.status === 'blocked') && matchesSearch(t)));
+  const doneTasks    = $derived(allActiveTasks.filter(t => (t.status === 'cc:done' || t.status === 'pm:confirmed' || t.status === 'pm:requested') && matchesSearch(t)));
+  const archiveTasks = $derived(allArchivedTasks.filter(t => matchesSearch(t)));
   const showArchiveColumn = $derived(phaseFilter === 'all');
   const showPhaseLabel    = $derived(phaseFilter === 'all');
 
@@ -66,6 +75,11 @@
 
   function allTasks() {
     return [...allActiveTasks, ...allArchivedTasks];
+  }
+
+  function phaseHasWork(ph) {
+    const tasks = ph.tasks || [];
+    return tasks.length === 0 || tasks.some(t => !DONE_STATUSES.has(t.status));
   }
 
   // ── API ───────────────────────────────────────────────────────────────────
@@ -141,18 +155,27 @@
 
   // ── Map ───────────────────────────────────────────────────────────────────
   function buildMapElements() {
-    const elements = [];
     const targetPhases = phaseFilter === 'all' ? phases : phases.filter(ph => String(ph.id) === phaseFilter);
+    const elements = [];
 
     for (const ph of targetPhases) {
       if (!expandedPhases.has(ph.id)) {
         elements.push({
-          data: { id: `ph-${ph.id}`, label: `Phase ${ph.id}\n${ph.title}`, type: 'phase', phaseId: ph.id, archived: ph.status === 'archived' }
+          data: {
+            id: `ph-${ph.id}`,
+            label: `Phase ${ph.id}\n${ph.title}`,
+            type: 'phase',
+            phaseId: ph.id,
+            archived: ph.status === 'archived',
+            done: !phaseHasWork(ph),
+          }
         });
       } else {
         for (const t of (ph.tasks || [])) {
-          const color = { 'cc:TODO': '#9ca3af', 'cc:WIP': '#3b82f6', 'cc:done': '#22c55e',
-                          'pm:confirmed': '#16a34a', 'pm:requested': '#eab308', 'blocked': '#ef4444' }[t.status] || '#9ca3af';
+          const color = {
+            'cc:TODO': '#9ca3af', 'cc:WIP': '#3b82f6', 'cc:done': '#22c55e',
+            'pm:confirmed': '#16a34a', 'pm:requested': '#eab308', 'blocked': '#ef4444',
+          }[t.status] || '#9ca3af';
           elements.push({
             data: { id: `task-${t.id}`, label: `#${t.id}\n${t.name.slice(0, 30)}`, type: 'task', taskId: t.id, color, phaseId: ph.id }
           });
@@ -161,26 +184,27 @@
     }
 
     const allT = allTasks();
+    const targetPhaseSet = new Set(targetPhases.map(p => p.id));
+
     for (const ph of targetPhases) {
-      if (expandedPhases.has(ph.id)) {
-        for (const t of (ph.tasks || [])) {
-          for (const dep of (t.depends || [])) {
-            const depTask = allT.find(x => x.id === dep);
-            if (!depTask) continue;
-            const depPhaseExpanded = expandedPhases.has(depTask._phase?.id);
-            const srcId = `task-${t.id}`;
-            const tgtId = depPhaseExpanded ? `task-${dep}` : `ph-${depTask._phase?.id}`;
-            if (!elements.find(e => e.data.id === tgtId)) continue;
-            const crossPhase = ph.id !== depTask._phase?.id;
-            const edgeData = {
-              id: `edge-${t.id}-${dep}`,
-              source: srcId,
-              target: tgtId,
-              dashed: !depPhaseExpanded ? 'dashed' : 'solid',
-            };
-            if (crossPhase) edgeData.crossPhase = true;
-            elements.push({ data: edgeData });
-          }
+      if (!expandedPhases.has(ph.id)) continue;
+      for (const t of (ph.tasks || [])) {
+        for (const dep of (t.depends || [])) {
+          const depTask = allT.find(x => x.id === dep);
+          if (!depTask || !targetPhaseSet.has(depTask._phase?.id)) continue;
+          const depPhaseExpanded = expandedPhases.has(depTask._phase?.id);
+          const srcId = `task-${t.id}`;
+          const tgtId = depPhaseExpanded ? `task-${dep}` : `ph-${depTask._phase?.id}`;
+          if (!elements.find(e => e.data.id === tgtId)) continue;
+          const crossPhase = ph.id !== depTask._phase?.id;
+          const edgeData = {
+            id: `edge-${t.id}-${dep}`,
+            source: srcId,
+            target: tgtId,
+            dashed: !depPhaseExpanded ? 'dashed' : 'solid',
+          };
+          if (crossPhase) edgeData.crossPhase = true;
+          elements.push({ data: edgeData });
         }
       }
     }
@@ -188,15 +212,10 @@
     return elements;
   }
 
-  function initMap() {
-    if (!mapContainer || cy) return;
-    const targetPhases = phaseFilter === 'all' ? phases : phases.filter(ph => String(ph.id) === phaseFilter);
-    // Expand phases with outstanding work; collapse archived + fully-done phases
-    const DONE_STATUSES = new Set(['cc:done', 'pm:confirmed']);
-    const hasWork = ph => (ph.tasks || []).length === 0 || (ph.tasks || []).some(t => !DONE_STATUSES.has(t.status));
-    expandedPhases = new Set(
-      targetPhases.filter(ph => ph.status !== 'archived' && hasWork(ph)).map(ph => ph.id)
-    );
+  // Rebuild cytoscape with current expandedPhases (does NOT reset expansion state)
+  function mountCy() {
+    if (!mapContainer) return;
+    if (cy) { cy.destroy(); cy = null; }
     try {
       cy = cytoscape({
         container: mapContainer,
@@ -210,8 +229,11 @@
             'font-size': '11px', 'text-wrap': 'wrap', 'text-max-width': '140px',
             'border-width': 2, 'border-color': '#374151', 'cursor': 'pointer',
           }},
-          { selector: 'node[archived]', style: {
+          { selector: 'node[type="phase"][archived]', style: {
             'background-color': '#6b7280', 'border-color': '#9ca3af', 'opacity': 0.65,
+          }},
+          { selector: 'node[type="phase"][done]', style: {
+            'background-color': '#374151', 'border-color': '#6b7280', 'opacity': 0.75,
           }},
           { selector: 'node[type="task"]', style: {
             'shape': 'ellipse', 'width': 80, 'height': 80,
@@ -225,7 +247,7 @@
             'arrow-scale': 1.2, 'line-color': '#9ca3af', 'target-arrow-color': '#9ca3af',
             'line-style': 'data(dashed)',
           }},
-          // Cross-phase dependencies rendered in indigo to distinguish them
+          // Cross-phase deps in indigo so they stand out from same-phase deps
           { selector: 'edge[crossPhase]', style: {
             'line-color': '#6366f1', 'target-arrow-color': '#6366f1',
           }},
@@ -239,9 +261,10 @@
 
     cy.on('tap', 'node[type="phase"]', evt => {
       const phaseId = evt.target.data('phaseId');
-      expandedPhases = new Set([...expandedPhases, phaseId]);
-      cy.destroy(); cy = null;
-      setTimeout(initMap, 0);
+      const next = new Set(expandedPhases);
+      if (next.has(phaseId)) next.delete(phaseId); else next.add(phaseId);
+      expandedPhases = next;
+      mountCy(); // rebuild with toggled state, don't reset defaults
     });
 
     cy.on('tap', 'node[type="task"]', evt => {
@@ -253,6 +276,16 @@
     cy.on('dbltap', evt => {
       if (evt.target === cy) cy.fit(undefined, 40);
     });
+  }
+
+  function initMap() {
+    if (!mapContainer || cy) return;
+    const targetPhases = phaseFilter === 'all' ? phases : phases.filter(ph => String(ph.id) === phaseFilter);
+    // Expand phases with outstanding work; archived + fully-done phases start collapsed
+    expandedPhases = new Set(
+      targetPhases.filter(ph => ph.status !== 'archived' && phaseHasWork(ph)).map(ph => ph.id)
+    );
+    mountCy();
   }
 
   function destroyMap() {
@@ -284,7 +317,7 @@
 
   <!-- Header -->
   <header class="border-b border-gray-200 bg-white px-4 flex items-center gap-3 sticky top-0 z-30 h-[57px]">
-    <span class="text-base font-semibold text-gray-800 mr-2">harness plan-cli</span>
+    <span class="text-base font-semibold text-gray-800 mr-2">powerball-harness</span>
 
     <select bind:value={phaseFilter}
             class="border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400">
@@ -318,8 +351,18 @@
     <div class="flex-1 flex items-center justify-center text-gray-400 text-sm">Loading…</div>
 
   {:else if view === 'board'}
+    <!-- Search bar -->
+    <div class="px-4 py-2 bg-white border-b border-gray-200">
+      <input
+        bind:value={searchQuery}
+        type="search"
+        placeholder="Search tasks by name or ID…"
+        class="w-full max-w-sm border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      />
+    </div>
+
     <!-- Kanban board — fixed-width columns, horizontal scroll -->
-    <div class="flex gap-4 p-4 overflow-x-auto" style="height: calc(100vh - 57px);">
+    <div class="flex gap-4 p-4 overflow-x-auto flex-1">
 
       <!-- TODO -->
       <div class="flex flex-col w-72 shrink-0 bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -421,7 +464,30 @@
 
   {:else}
     <!-- Map view -->
-    <div bind:this={mapContainer} class="flex-1 bg-white" style="height: calc(100vh - 57px);"></div>
+    <div class="flex-1 relative" style="height: calc(100vh - 57px);">
+      <div bind:this={mapContainer} class="absolute inset-0 bg-white"></div>
+
+      <!-- Legend -->
+      <div class="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-600 flex flex-col gap-1.5 shadow-sm pointer-events-none">
+        <div class="font-semibold text-gray-700 mb-0.5">Legend</div>
+        <div class="flex items-center gap-2">
+          <svg width="16" height="16"><rect x="1" y="3" width="14" height="10" rx="2" fill="#1f2937"/></svg>
+          <span>Phase (click to expand/collapse)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#3b82f6"/></svg>
+          <span>Task (click to view details)</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <svg width="16" height="4"><line x1="0" y1="2" x2="16" y2="2" stroke="#9ca3af" stroke-width="2" marker-end="url(#a)"/></svg>
+          <span>Same-phase dependency</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <svg width="16" height="4"><line x1="0" y1="2" x2="16" y2="2" stroke="#6366f1" stroke-width="2" stroke-dasharray="4 2"/></svg>
+          <span>Cross-phase dependency</span>
+        </div>
+      </div>
+    </div>
   {/if}
 
   <!-- Task detail modal — bits-ui Dialog for proper a11y -->
