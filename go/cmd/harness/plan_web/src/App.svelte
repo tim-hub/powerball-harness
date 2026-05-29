@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import cytoscape from 'cytoscape';
+  import { Dialog, Tabs } from 'bits-ui';
 
   // ── State ─────────────────────────────────────────────────────────────────
   let phases = $state([]);
@@ -138,6 +139,7 @@
     await patchTask(modalTask.id, fields);
   }
 
+  // ── Map ───────────────────────────────────────────────────────────────────
   function buildMapElements() {
     const elements = [];
     const targetPhases = phaseFilter === 'all' ? phases : phases.filter(ph => String(ph.id) === phaseFilter);
@@ -145,7 +147,7 @@
     for (const ph of targetPhases) {
       if (!expandedPhases.has(ph.id)) {
         elements.push({
-          data: { id: `ph-${ph.id}`, label: `Phase ${ph.id}\n${ph.title}`, type: 'phase', phaseId: ph.id }
+          data: { id: `ph-${ph.id}`, label: `Phase ${ph.id}\n${ph.title}`, type: 'phase', phaseId: ph.id, archived: ph.status === 'archived' }
         });
       } else {
         for (const t of (ph.tasks || [])) {
@@ -158,18 +160,26 @@
       }
     }
 
+    const allT = allTasks();
     for (const ph of targetPhases) {
       if (expandedPhases.has(ph.id)) {
         for (const t of (ph.tasks || [])) {
           for (const dep of (t.depends || [])) {
-            const depTask = allTasks().find(x => x.id === dep);
+            const depTask = allT.find(x => x.id === dep);
             if (!depTask) continue;
             const depPhaseExpanded = expandedPhases.has(depTask._phase?.id);
             const srcId = `task-${t.id}`;
             const tgtId = depPhaseExpanded ? `task-${dep}` : `ph-${depTask._phase?.id}`;
-            if (elements.find(e => e.data.id === tgtId)) {
-              elements.push({ data: { id: `edge-${t.id}-${dep}`, source: srcId, target: tgtId, dashed: !depPhaseExpanded ? 'dashed' : 'solid' } });
-            }
+            if (!elements.find(e => e.data.id === tgtId)) continue;
+            const crossPhase = ph.id !== depTask._phase?.id;
+            const edgeData = {
+              id: `edge-${t.id}-${dep}`,
+              source: srcId,
+              target: tgtId,
+              dashed: !depPhaseExpanded ? 'dashed' : 'solid',
+            };
+            if (crossPhase) edgeData.crossPhase = true;
+            elements.push({ data: edgeData });
           }
         }
       }
@@ -180,6 +190,9 @@
 
   function initMap() {
     if (!mapContainer || cy) return;
+    const targetPhases = phaseFilter === 'all' ? phases : phases.filter(ph => String(ph.id) === phaseFilter);
+    // Active phases expand by default; archived phases start collapsed
+    expandedPhases = new Set(targetPhases.filter(ph => ph.status !== 'archived').map(ph => ph.id));
     try {
       cy = cytoscape({
         container: mapContainer,
@@ -193,6 +206,9 @@
             'font-size': '11px', 'text-wrap': 'wrap', 'text-max-width': '140px',
             'border-width': 2, 'border-color': '#374151', 'cursor': 'pointer',
           }},
+          { selector: 'node[archived]', style: {
+            'background-color': '#6b7280', 'border-color': '#9ca3af', 'opacity': 0.65,
+          }},
           { selector: 'node[type="task"]', style: {
             'shape': 'ellipse', 'width': 80, 'height': 80,
             'background-color': 'data(color)', 'color': '#fff',
@@ -204,6 +220,10 @@
             'curve-style': 'bezier', 'target-arrow-shape': 'triangle',
             'arrow-scale': 1.2, 'line-color': '#9ca3af', 'target-arrow-color': '#9ca3af',
             'line-style': 'data(dashed)',
+          }},
+          // Cross-phase dependencies rendered in indigo to distinguish them
+          { selector: 'edge[crossPhase]', style: {
+            'line-color': '#6366f1', 'target-arrow-color': '#6366f1',
           }},
         ],
       });
@@ -217,7 +237,7 @@
       const phaseId = evt.target.data('phaseId');
       expandedPhases = new Set([...expandedPhases, phaseId]);
       cy.destroy(); cy = null;
-      initMap();
+      setTimeout(initMap, 0);
     });
 
     cy.on('tap', 'node[type="task"]', evt => {
@@ -246,7 +266,7 @@
 
   $effect(() => {
     const _view = view;
-    const _filter = phaseFilter; // track both — rebuild map when either changes
+    const _filter = phaseFilter;
     if (_view === 'map') {
       const timer = setTimeout(initMap, 0);
       return () => { clearTimeout(timer); destroyMap(); };
@@ -294,11 +314,11 @@
     <div class="flex-1 flex items-center justify-center text-gray-400 text-sm">Loading…</div>
 
   {:else if view === 'board'}
-    <!-- Kanban board -->
-    <div class="flex gap-4 p-4 overflow-hidden" style="height: calc(100vh - 57px);">
+    <!-- Kanban board — fixed-width columns, horizontal scroll -->
+    <div class="flex gap-4 p-4 overflow-x-auto" style="height: calc(100vh - 57px);">
 
       <!-- TODO -->
-      <div class="flex flex-col flex-1 min-w-[200px] bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div class="flex flex-col w-72 shrink-0 bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div class="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
           <span class="text-sm font-semibold text-gray-700">TODO</span>
           <span class="text-xs text-gray-400">{todoTasks.length}</span>
@@ -322,7 +342,7 @@
       </div>
 
       <!-- In Progress -->
-      <div class="flex flex-col flex-1 min-w-[200px] bg-white rounded-lg border border-blue-200 overflow-hidden">
+      <div class="flex flex-col w-72 shrink-0 bg-white rounded-lg border border-blue-200 overflow-hidden">
         <div class="px-3 py-2 border-b border-blue-200 flex items-center justify-between bg-blue-50">
           <span class="text-sm font-semibold text-blue-700">In Progress</span>
           <span class="text-xs text-blue-400">{wipTasks.length}</span>
@@ -348,7 +368,7 @@
       </div>
 
       <!-- Done -->
-      <div class="flex flex-col flex-1 min-w-[200px] bg-white rounded-lg border border-green-200 overflow-hidden">
+      <div class="flex flex-col w-72 shrink-0 bg-white rounded-lg border border-green-200 overflow-hidden">
         <div class="px-3 py-2 border-b border-green-200 flex items-center justify-between bg-green-50">
           <span class="text-sm font-semibold text-green-700">Done</span>
           <span class="text-xs text-green-400">{doneTasks.length}</span>
@@ -373,7 +393,7 @@
 
       <!-- Archive (all-phases view only) -->
       {#if showArchiveColumn}
-        <div class="flex flex-col flex-1 min-w-[200px] bg-gray-50 rounded-lg border border-gray-200 overflow-hidden opacity-75">
+        <div class="flex flex-col w-72 shrink-0 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden opacity-75">
           <div class="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
             <span class="text-sm font-semibold text-gray-400">Archive</span>
             <span class="text-xs text-gray-400">{archiveTasks.length}</span>
@@ -396,160 +416,177 @@
     </div>
 
   {:else}
-    <!-- Map view container — wired in Task 4 -->
+    <!-- Map view -->
     <div bind:this={mapContainer} class="flex-1 bg-white" style="height: calc(100vh - 57px);"></div>
   {/if}
 
-  <!-- Modal overlay -->
-  {#if modalTask}
-    <div class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
-         onclick={closeModal}
-         role="dialog" aria-modal="true">
-      <div class="bg-white rounded-xl shadow-2xl w-[600px] max-h-[80vh] flex flex-col overflow-hidden"
-           onclick={(e) => e.stopPropagation()}>
+  <!-- Task detail modal — bits-ui Dialog for proper a11y -->
+  <Dialog.Root
+    open={!!modalTask}
+    onOpenChange={(open) => { if (!open) closeModal(); }}
+  >
+    <Dialog.Portal>
+      <Dialog.Overlay class="fixed inset-0 bg-black/40 z-50" />
+      <Dialog.Content
+        class="fixed left-[50%] top-[50%] -translate-x-1/2 -translate-y-1/2 z-50
+               bg-white rounded-xl shadow-2xl w-[600px] max-h-[80vh] flex flex-col overflow-hidden"
+      >
+        {#if modalTask}
+          <!-- Modal header -->
+          <div class="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
+            <span class="text-[11px] font-mono text-gray-400 shrink-0">#{modalTask.id}</span>
+            <Dialog.Title class="text-base font-semibold text-gray-900 flex-1 leading-snug">
+              {modalTask.name}
+            </Dialog.Title>
+            <Dialog.Close
+              class="text-gray-400 hover:text-gray-700 text-lg leading-none ml-2"
+              aria-label="Close">✕</Dialog.Close>
+          </div>
 
-        <!-- Modal header -->
-        <div class="flex items-center gap-2 px-5 py-4 border-b border-gray-100">
-          <span class="text-[11px] font-mono text-gray-400 shrink-0">#{modalTask.id}</span>
-          <h2 class="text-base font-semibold text-gray-900 flex-1 leading-snug">{modalTask.name}</h2>
-          <button onclick={closeModal} class="text-gray-400 hover:text-gray-700 text-lg leading-none ml-2">✕</button>
-        </div>
-
-        <!-- Tabs -->
-        <div class="flex border-b border-gray-100 px-5">
-          {#each ['details', 'edit', 'comments'] as tab}
-            <button class="px-3 py-2 text-sm capitalize mr-1
-                           {modalTab === tab
-                             ? 'border-b-2 border-gray-900 font-medium text-gray-900'
-                             : 'text-gray-400 hover:text-gray-600'}"
-                    onclick={() => modalTab = tab}>{tab}</button>
-          {/each}
-          {#if (modalTask.comments || []).length > 0 && modalTab !== 'comments'}
-            <span class="self-center text-xs text-gray-400 ml-1">{(modalTask.comments || []).length}</span>
-          {/if}
-        </div>
-
-        <!-- Tab body -->
-        <div class="flex-1 overflow-y-auto px-5 py-4">
-
-          {#if modalTab === 'details'}
-            <div class="flex flex-col gap-4">
-              {#if modalTask._phase}
-                <p class="text-xs text-gray-400">Phase {modalTask._phase.id} — {modalTask._phase.title}</p>
+          <!-- Tabs — bits-ui -->
+          <Tabs.Root
+            value={modalTab}
+            onValueChange={(v) => modalTab = v}
+            class="flex flex-col flex-1 overflow-hidden"
+          >
+            <Tabs.List class="flex border-b border-gray-100 px-5 shrink-0">
+              {#each ['details', 'edit', 'comments'] as tab}
+                <Tabs.Trigger
+                  value={tab}
+                  class="px-3 py-2 text-sm capitalize mr-1
+                         data-[state=active]:border-b-2 data-[state=active]:border-gray-900
+                         data-[state=active]:font-medium data-[state=active]:text-gray-900
+                         data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-gray-600"
+                >{tab}</Tabs.Trigger>
+              {/each}
+              {#if (modalTask.comments || []).length > 0 && modalTab !== 'comments'}
+                <span class="self-center text-xs text-gray-400 ml-1">{(modalTask.comments || []).length}</span>
               {/if}
-              <div class="flex flex-wrap gap-2">
-                <span class="text-xs px-2 py-0.5 rounded-full {statusColor(modalTask.status)}">{modalTask.status}</span>
-                <span class="text-xs text-gray-400">urgency: {modalTask.urgency}</span>
-                <span class="text-xs text-gray-400">importance: {modalTask.importance}</span>
-              </div>
-              {#if modalTask.description}
-                <div>
-                  <p class="text-xs font-semibold text-gray-500 mb-1">Description</p>
-                  <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{modalTask.description}</p>
+            </Tabs.List>
+
+            <!-- Details -->
+            <Tabs.Content value="details" class="flex-1 overflow-y-auto px-5 py-4">
+              <div class="flex flex-col gap-4">
+                {#if modalTask._phase}
+                  <p class="text-xs text-gray-400">Phase {modalTask._phase.id} — {modalTask._phase.title}</p>
+                {/if}
+                <div class="flex flex-wrap gap-2">
+                  <span class="text-xs px-2 py-0.5 rounded-full {statusColor(modalTask.status)}">{modalTask.status}</span>
+                  <span class="text-xs text-gray-400">urgency: {modalTask.urgency}</span>
+                  <span class="text-xs text-gray-400">importance: {modalTask.importance}</span>
                 </div>
-              {/if}
-              {#if modalTask.dod}
-                <div class="bg-green-50 border border-green-200 rounded-lg p-3">
-                  <p class="text-xs font-semibold text-green-700 mb-1">Definition of Done</p>
-                  <p class="text-sm text-green-800 leading-relaxed">{modalTask.dod}</p>
-                </div>
-              {/if}
-              {#if (modalTask.depends || []).length}
-                <div>
-                  <p class="text-xs font-semibold text-gray-500 mb-1">Depends on</p>
-                  <div class="flex flex-wrap gap-1">
-                    {#each modalTask.depends as d}
-                      <button class="text-xs bg-gray-100 rounded px-2 py-0.5 hover:bg-gray-200 font-mono"
-                              onclick={() => { const t = allTasks().find(x => x.id === d); if (t) openTask(t); }}>{d}</button>
-                    {/each}
+                {#if modalTask.description}
+                  <div>
+                    <p class="text-xs font-semibold text-gray-500 mb-1">Description</p>
+                    <p class="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{modalTask.description}</p>
                   </div>
-                </div>
-              {/if}
-              {#if (modalTask.qualityMarkers || []).length}
-                <div>
-                  <p class="text-xs font-semibold text-gray-500 mb-1">Quality markers</p>
-                  <div class="flex flex-wrap gap-1">
-                    {#each modalTask.qualityMarkers as m}
-                      <span class="text-xs bg-indigo-50 text-indigo-600 rounded px-2 py-0.5">{m}</span>
-                    {/each}
+                {/if}
+                {#if modalTask.dod}
+                  <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p class="text-xs font-semibold text-green-700 mb-1">Definition of Done</p>
+                    <p class="text-sm text-green-800 leading-relaxed">{modalTask.dod}</p>
                   </div>
-                </div>
-              {/if}
-            </div>
-
-          {:else if modalTab === 'edit'}
-            <div class="flex flex-col gap-4">
-              <div>
-                <label class="text-xs font-semibold text-gray-500 block mb-1">Status</label>
-                <select bind:value={editStatus}
-                        class="border border-gray-200 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400">
-                  {#each STATUSES as s}<option value={s}>{s}</option>{/each}
-                </select>
-              </div>
-              {#if editStatus === 'blocked'}
-                <div>
-                  <label class="text-xs font-semibold text-gray-500 block mb-1">Blocked reason</label>
-                  <input bind:value={editBlockedReason}
-                         class="border border-gray-200 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400"
-                         placeholder="What is blocking this task?" />
-                </div>
-              {/if}
-              <div class="flex gap-4">
-                <div class="flex-1">
-                  <label class="text-xs font-semibold text-gray-500 block mb-1">Urgency</label>
-                  <select bind:value={editUrgency}
-                          class="border border-gray-200 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400">
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-                <div class="flex-1">
-                  <label class="text-xs font-semibold text-gray-500 block mb-1">Importance</label>
-                  <select bind:value={editImportance}
-                          class="border border-gray-200 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400">
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </div>
-              </div>
-              <button onclick={saveEdit}
-                      class="bg-gray-900 text-white text-sm rounded-lg px-4 py-2 hover:bg-gray-700 self-start">Save</button>
-            </div>
-
-          {:else}
-            <!-- Comments tab -->
-            <div class="flex flex-col gap-3">
-              <div class="flex flex-col gap-2">
-                {#each [...(modalTask.comments || [])].reverse() as c (c.id)}
-                  <div class="bg-gray-50 rounded-lg p-3">
-                    <div class="flex items-center gap-2 mb-1">
-                      <span class="text-xs font-semibold text-gray-700">{c.authorName || c.author}</span>
-                      <span class="text-xs text-gray-400">{c.at?.slice(0, 10)}</span>
+                {/if}
+                {#if (modalTask.depends || []).length}
+                  <div>
+                    <p class="text-xs font-semibold text-gray-500 mb-1">Depends on</p>
+                    <div class="flex flex-wrap gap-1">
+                      {#each modalTask.depends as d}
+                        <button class="text-xs bg-gray-100 rounded px-2 py-0.5 hover:bg-gray-200 font-mono"
+                                onclick={() => { const t = allTasks().find(x => x.id === d); if (t) openTask(t); }}>{d}</button>
+                      {/each}
                     </div>
-                    <p class="text-sm text-gray-700 whitespace-pre-wrap">{c.text}</p>
                   </div>
-                {/each}
-                {#if !(modalTask.comments || []).length}
-                  <p class="text-sm text-gray-400 py-2">No comments yet.</p>
+                {/if}
+                {#if (modalTask.qualityMarkers || []).length}
+                  <div>
+                    <p class="text-xs font-semibold text-gray-500 mb-1">Quality markers</p>
+                    <div class="flex flex-wrap gap-1">
+                      {#each modalTask.qualityMarkers as m}
+                        <span class="text-xs bg-indigo-50 text-indigo-600 rounded px-2 py-0.5">{m}</span>
+                      {/each}
+                    </div>
+                  </div>
                 {/if}
               </div>
-              <div class="border-t border-gray-100 pt-3 flex gap-2 items-end">
-                <textarea bind:value={commentText}
-                          class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
-                          rows="3"
-                          placeholder="Add a comment… (⌘Enter to post)"
-                          onkeydown={e => { if (e.key === 'Enter' && e.metaKey && commentText.trim()) postComment(modalTask.id); }}></textarea>
-                <button onclick={() => postComment(modalTask.id)}
-                        class="bg-gray-900 text-white text-sm rounded-lg px-3 py-2 hover:bg-gray-700 shrink-0">Post</button>
-              </div>
-            </div>
-          {/if}
+            </Tabs.Content>
 
-        </div>
-      </div>
-    </div>
-  {/if}
+            <!-- Edit -->
+            <Tabs.Content value="edit" class="flex-1 overflow-y-auto px-5 py-4">
+              <div class="flex flex-col gap-4">
+                <div>
+                  <label class="text-xs font-semibold text-gray-500 block mb-1">Status</label>
+                  <select bind:value={editStatus}
+                          class="border border-gray-200 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400">
+                    {#each STATUSES as s}<option value={s}>{s}</option>{/each}
+                  </select>
+                </div>
+                {#if editStatus === 'blocked'}
+                  <div>
+                    <label class="text-xs font-semibold text-gray-500 block mb-1">Blocked reason</label>
+                    <input bind:value={editBlockedReason}
+                           class="border border-gray-200 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400"
+                           placeholder="What is blocking this task?" />
+                  </div>
+                {/if}
+                <div class="flex gap-4">
+                  <div class="flex-1">
+                    <label class="text-xs font-semibold text-gray-500 block mb-1">Urgency</label>
+                    <select bind:value={editUrgency}
+                            class="border border-gray-200 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400">
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
+                  <div class="flex-1">
+                    <label class="text-xs font-semibold text-gray-500 block mb-1">Importance</label>
+                    <select bind:value={editImportance}
+                            class="border border-gray-200 rounded px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-400">
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
+                </div>
+                <button onclick={saveEdit}
+                        class="bg-gray-900 text-white text-sm rounded-lg px-4 py-2 hover:bg-gray-700 self-start">Save</button>
+              </div>
+            </Tabs.Content>
+
+            <!-- Comments -->
+            <Tabs.Content value="comments" class="flex-1 overflow-y-auto px-5 py-4">
+              <div class="flex flex-col gap-3">
+                <div class="flex flex-col gap-2">
+                  {#each [...(modalTask.comments || [])].reverse() as c (c.id)}
+                    <div class="bg-gray-50 rounded-lg p-3">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs font-semibold text-gray-700">{c.authorName || c.author}</span>
+                        <span class="text-xs text-gray-400">{c.at?.slice(0, 10)}</span>
+                      </div>
+                      <p class="text-sm text-gray-700 whitespace-pre-wrap">{c.text}</p>
+                    </div>
+                  {/each}
+                  {#if !(modalTask.comments || []).length}
+                    <p class="text-sm text-gray-400 py-2">No comments yet.</p>
+                  {/if}
+                </div>
+                <div class="border-t border-gray-100 pt-3 flex gap-2 items-end">
+                  <textarea bind:value={commentText}
+                            class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
+                            rows="3"
+                            placeholder="Add a comment… (⌘Enter to post)"
+                            onkeydown={e => { if (e.key === 'Enter' && e.metaKey && commentText.trim()) postComment(modalTask.id); }}></textarea>
+                  <button onclick={() => postComment(modalTask.id)}
+                          class="bg-gray-900 text-white text-sm rounded-lg px-3 py-2 hover:bg-gray-700 shrink-0">Post</button>
+                </div>
+              </div>
+            </Tabs.Content>
+
+          </Tabs.Root>
+        {/if}
+      </Dialog.Content>
+    </Dialog.Portal>
+  </Dialog.Root>
 
 </div>
