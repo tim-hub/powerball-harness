@@ -90,6 +90,12 @@ Change history for claude-code-harness.
 
 **After**: Template uses enforcement language with a `## Phase-bottom Verification` section. `create.md` Step 6.5 has TDD pair completeness and phase-bottom checks (items 4 + 5). `solo-mode.md` has `Dependency check` and `Phase-close check` bullets.
 
+#### 3. Gitignore: stop blanket-ignoring `.claude/` — only ignore volatile runtime files
+
+**Before**: `.gitignore` had orphaned force-track negations (`!.claude/rules/`, `!.claude/memory/`, etc.) left over from a deleted `.claude/*` blanket rule, creating confusion about what was tracked. `harness/templates/gitignore-harness` was missing `.claude/worktrees/` and `session-log.md`. Neither file explicitly protected `.claude/harness/`.
+
+**After**: Project `.gitignore` "Harness managed" section now only ignores true volatile runtime outputs (`sessions/`, `logs/`, `worktrees/`, `state/` volatile files, `session-log.md`). The template follows the same policy and adds `!.claude/harness/` to force-track, ensuring `plans.json` is always committed and available in CI.
+
 ---
 
 ## [6.0.0] - 2026-05-29

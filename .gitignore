@@ -20,17 +20,10 @@ docs/design/
 .env.*
 !.env.example
 
-# Local development
-.claude/*
+# Local development — ignore Claude state inside nested packages (not the root .claude/)
 go/**/.claude/
 harness/.claude/
-!.claude/rules/
-!.claude/output-styles/
-!.claude/settings.json
-!.claude/skills/
-!.claude/memory/
 !local-scripts/
-.claude/memory/session-log.md
 
 .serena/
 .superset/
@@ -288,19 +281,21 @@ go/harness
 {*}
 
 # ---- Harness managed begin ----
-# Claude Code / Harness runtime files
+# Only ignore volatile runtime outputs — everything else in .claude/ is tracked.
+# Do NOT add a blanket .claude/* rule here; track plans.json, rules, skills, memory, etc.
 .claude/sessions/
 .claude/logs/
-.claude/state/agent-trace.jsonl
-.claude/state/pending-fix-proposals.jsonl
-.claude/state/harness-release-wrapper.lock
+.claude/state/
+.claude/agents/
+.claude/memory/session-log.md
 .claude/worktrees/
 logs/
 settings.local.json
 states/
 out/
 
-# Force-track Harness configuration (do not ignore these)
+# Force-track key Harness directories (defense against global gitignore .claude/* rules)
+!.claude/harness/
 !.claude/memory/
 !.claude/output-styles/
 !.claude/rules/
