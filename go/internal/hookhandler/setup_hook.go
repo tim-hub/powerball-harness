@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/tim-hub/powerball-harness/go/internal/plans"
 )
 
 // setupInput is the stdin JSON payload for the Setup hook.
@@ -48,17 +50,6 @@ func runSyncPluginCache(scriptDir string) {
 		cmd := exec.Command("bash", syncScript)
 		_ = cmd.Run() // errors are ignored
 	}
-}
-
-// getPlansFilePath retrieves the Plans.md path from configuration.
-// Native Go implementation using resolvePlansPath() from helpers.go;
-// eliminates the dependency on bash (config-utils.sh).
-func getPlansFilePath(_ string) string {
-	projectRoot := resolveProjectRoot()
-	if path := resolvePlansPath(projectRoot); path != "" {
-		return path
-	}
-	return filepath.Join(projectRoot, "Plans.md")
 }
 
 // runTemplateTracker runs the template tracker script.
@@ -201,18 +192,17 @@ func runSetupInit(out io.Writer, scriptDir string, simpleMode bool) error {
 		}
 	}
 
-	// 5. Generate Plans.md (respecting the plansDirectory config).
-	plansPath := getPlansFilePath(scriptDir)
-	if !fileExists(plansPath) {
-		plansDir := filepath.Dir(plansPath)
-		if plansDir != "." {
-			_ = os.MkdirAll(plansDir, 0o755)
-		}
-		templatePath := filepath.Join(scriptDir, "..", "templates", "Plans.md.template")
-		if _, err := os.Stat(templatePath); err == nil {
-			if err := copyFile(templatePath, plansPath); err == nil {
-				messages = append(messages, "Plans.md generated")
-			}
+	// 5. Ensure plans.json (the task SSOT) exists. If a legacy Plans.md is
+	//    present, leave it for `harness plan-cli migrate`; otherwise write an
+	//    empty plans.json skeleton (respecting the plansDirectory config).
+	projectRoot := resolveProjectRoot()
+	plansDir := readPlansDirectoryFromConfig(projectRoot)
+	plansJSONPath := plans.DefaultPath(projectRoot, plansDir)
+	if !fileExists(plansJSONPath) {
+		if resolvePlansPath(projectRoot) != "" {
+			messages = append(messages, "Legacy Plans.md found — run `harness plan-cli migrate` to convert it to plans.json")
+		} else if err := plans.Save(plansJSONPath, &plans.Plans{Phases: []plans.Phase{}}); err == nil {
+			messages = append(messages, "plans.json initialized")
 		}
 	}
 

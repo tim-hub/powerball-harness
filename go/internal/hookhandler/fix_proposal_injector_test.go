@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/tim-hub/powerball-harness/go/internal/plans"
 )
 
 func makeFixProposalFile(t *testing.T, dir string, proposals []fixProposal) string {
@@ -26,6 +28,22 @@ func makeFixProposalFile(t *testing.T, dir string, proposals []fixProposal) stri
 		t.Fatal(err)
 	}
 	return path
+}
+
+// writeFixPlansJSON writes a plans.json fixture containing a single phase whose
+// task "26" is the fix-proposal source task. path is the full plans.json path.
+func writeFixPlansJSON(t *testing.T, path string) {
+	t.Helper()
+	content := `{"phases":[{"id":26,"title":"P","status":"active","tasks":[` +
+		`{"id":"26","name":"base task","dod":"done","status":"cc:done","depends":[],"qualityMarkers":[]},` +
+		`{"id":"28","name":"another task","dod":"-","status":"cc:TODO","depends":[],"qualityMarkers":[]}` +
+		`]}]}`
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func sampleProposal() fixProposal {
@@ -101,11 +119,8 @@ func TestFixProposalInjector_Approve(t *testing.T) {
 	dir := t.TempDir()
 	makeFixProposalFile(t, dir, []fixProposal{sampleProposal()})
 
-	plansContent := "| Task | Content | DoD | Depends | Status |\n|------|------|-----|---------|--------|\n| 26 | base task | done | - | cc:done |\n"
-	plansPath := filepath.Join(dir, "Plans.md")
-	if err := os.WriteFile(plansPath, []byte(plansContent), 0644); err != nil {
-		t.Fatal(err)
-	}
+	plansPath := filepath.Join(dir, ".claude", "harness", "plans.json")
+	writeFixPlansJSON(t, plansPath)
 
 	h := &FixProposalInjectorHandler{ProjectRoot: dir, PlansPath: plansPath}
 
@@ -129,10 +144,10 @@ func TestFixProposalInjector_Approve(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(plansData), "26.fix") {
-		t.Errorf("expected fix task in Plans.md, got: %s", string(plansData))
+		t.Errorf("expected fix task in plans.json, got: %s", string(plansData))
 	}
 	if !strings.Contains(string(plansData), "cc:TODO") {
-		t.Errorf("expected cc:TODO status in Plans.md, got: %s", string(plansData))
+		t.Errorf("expected cc:TODO status in plans.json, got: %s", string(plansData))
 	}
 
 	proposals, _ := loadPendingFixProposals(filepath.Join(dir, ".claude", "state", pendingFixProposalsFile))
@@ -172,11 +187,8 @@ func TestFixProposalInjector_YesApprove(t *testing.T) {
 	dir := t.TempDir()
 	makeFixProposalFile(t, dir, []fixProposal{sampleProposal()})
 
-	plansContent := "| Task | Content | DoD | Depends | Status |\n|------|------|-----|---------|--------|\n| 26 | base task | done | - | cc:done |\n"
-	plansPath := filepath.Join(dir, "Plans.md")
-	if err := os.WriteFile(plansPath, []byte(plansContent), 0644); err != nil {
-		t.Fatal(err)
-	}
+	plansPath := filepath.Join(dir, ".claude", "harness", "plans.json")
+	writeFixPlansJSON(t, plansPath)
 
 	h := &FixProposalInjectorHandler{ProjectRoot: dir, PlansPath: plansPath}
 
@@ -275,12 +287,8 @@ func TestParseFixProposalAction(t *testing.T) {
 
 func TestApplyFixProposalToPlans(t *testing.T) {
 	dir := t.TempDir()
-	plansPath := filepath.Join(dir, "Plans.md")
-
-	content := "| Task | Content | DoD | Depends | Status |\n|------|------|-----|---------|--------|\n| 26 | base task | done | - | cc:done |\n| 28 | another task | - | - | cc:TODO |\n"
-	if err := os.WriteFile(plansPath, []byte(content), 0644); err != nil {
-		t.Fatal(err)
-	}
+	plansPath := filepath.Join(dir, ".claude", "harness", "plans.json")
+	writeFixPlansJSON(t, plansPath)
 
 	proposal := sampleProposal()
 	result := applyFixProposalToPlans(plansPath, proposal)
@@ -288,28 +296,21 @@ func TestApplyFixProposalToPlans(t *testing.T) {
 		t.Fatalf("expected applied, got %s", result)
 	}
 
-	data, _ := os.ReadFile(plansPath)
-	text := string(data)
-
-	lines := strings.Split(text, "\n")
-	found26 := -1
-	found26fix := -1
-	for i, line := range lines {
-		if strings.Contains(line, "| 26 |") && !strings.Contains(line, "26.fix") {
-			found26 = i
-		}
-		if strings.Contains(line, "| 26.fix |") {
-			found26fix = i
-		}
+	// The fix task is appended to the source task's phase as a cc:TODO.
+	p, err := plans.Load(plansPath)
+	if err != nil || p == nil {
+		t.Fatalf("load plans.json: %v", err)
 	}
-	if found26 < 0 {
-		t.Fatal("original task 26 not found in Plans.md")
+	fixTask, fixPhase := p.FindTask("26.fix")
+	if fixTask == nil {
+		t.Fatal("fix task 26.fix not found in plans.json")
 	}
-	if found26fix < 0 {
-		t.Fatal("fix task 26.fix not found in Plans.md")
+	if fixTask.Status != "cc:TODO" {
+		t.Errorf("expected fix task status cc:TODO, got %s", fixTask.Status)
 	}
-	if found26fix != found26+1 {
-		t.Errorf("expected 26.fix to be right after 26, but 26 is at line %d and 26.fix is at line %d", found26, found26fix)
+	// It must land in the same phase as source task 26.
+	if _, srcPhase := p.FindTask("26"); srcPhase == nil || srcPhase.ID != fixPhase.ID {
+		t.Errorf("fix task placed in phase %d, source task in a different phase", fixPhase.ID)
 	}
 
 	result2 := applyFixProposalToPlans(plansPath, proposal)
@@ -349,15 +350,9 @@ func TestFixProposalInjector_CustomPlansDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	workDir := filepath.Join(dir, "workspace")
-	if err := os.MkdirAll(workDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	plansContent := "| Task | Content | DoD | Depends | Status |\n|------|------|-----|---------|--------|\n| 26 | base task | done | - | cc:done |\n"
-	plansPath := filepath.Join(workDir, "Plans.md")
-	if err := os.WriteFile(plansPath, []byte(plansContent), 0644); err != nil {
-		t.Fatal(err)
-	}
+	// plans.json lives under <plansDirectory>/.claude/harness/plans.json.
+	plansPath := filepath.Join(dir, "workspace", ".claude", "harness", "plans.json")
+	writeFixPlansJSON(t, plansPath)
 
 	h := &FixProposalInjectorHandler{ProjectRoot: dir}
 
@@ -381,6 +376,6 @@ func TestFixProposalInjector_CustomPlansDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(plansData), "26.fix") {
-		t.Errorf("expected fix task in custom-dir Plans.md, got: %s", string(plansData))
+		t.Errorf("expected fix task in custom-dir plans.json, got: %s", string(plansData))
 	}
 }

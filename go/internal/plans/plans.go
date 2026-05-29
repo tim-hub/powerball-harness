@@ -122,6 +122,38 @@ func LoadFrom(projectRoot, plansDir string) (*Plans, error) {
 	return Load(ResolvePath(projectRoot, plansDir))
 }
 
+// DefaultPath returns the canonical plans.json path under projectRoot/plansDir
+// regardless of whether the file exists (unlike ResolvePath, which returns ""
+// when absent). Use this when creating plans.json.
+func DefaultPath(projectRoot, plansDir string) string {
+	base := projectRoot
+	if plansDir != "" && plansDir != "." {
+		base = filepath.Join(projectRoot, plansDir)
+	}
+	return filepath.Join(base, ".claude", "harness", "plans.json")
+}
+
+// Save writes p to path atomically (write to .tmp, then rename) so readers
+// never observe a partial write. It creates the parent directory if needed.
+func Save(path string, p *Plans) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(p, "", "  ")
+	if err != nil {
+		return err
+	}
+	tmp := path + ".tmp"
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	return nil
+}
+
 // AllTasks returns every task across all phases (a flat copy of references).
 func (p *Plans) AllTasks() []Task {
 	if p == nil {

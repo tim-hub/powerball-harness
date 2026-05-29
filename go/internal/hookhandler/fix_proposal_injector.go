@@ -9,17 +9,20 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/tim-hub/powerball-harness/go/internal/plans"
 )
 
 // FixProposalInjectorHandler is the UserPromptSubmit hook handler.
 // It reads pending-fix-proposals.jsonl and notifies the user of unseen proposals.
-// It also interprets "approve fix" / "reject fix" commands and applies them to Plans.md.
+// It also interprets "approve fix" / "reject fix" commands and applies them to plans.json.
 //
 // shell counterpart: scripts/hook-handlers/fix-proposal-injector.sh
 type FixProposalInjectorHandler struct {
 	// ProjectRoot is the project root path. Falls back to cwd when empty.
 	ProjectRoot string
-	// PlansPath is the path to Plans.md. Falls back to ProjectRoot/Plans.md when empty.
+	// PlansPath is the path to plans.json. Falls back to the configured
+	// .claude/harness/plans.json when empty.
 	PlansPath string
 }
 
@@ -68,11 +71,11 @@ func (h *FixProposalInjectorHandler) Handle(r io.Reader, w io.Writer) error {
 		})
 	}
 
-	plansPath := h.resolvePlansPath(projectRoot)
+	plansPath := h.resolvePlansJSONPath(projectRoot)
 	if _, err := os.Stat(plansPath); err == nil {
 		if hasFixSymlinkComponent(plansPath, projectRoot) {
 			return writeFixProposalJSON(w, fixProposalInjectorOutput{
-				SystemMessage: "⚠️ Plans.md path is a symlink — cannot apply fix proposal.",
+				SystemMessage: "⚠️ plans.json path is a symlink — cannot apply fix proposal.",
 			})
 		}
 	}
@@ -123,11 +126,11 @@ func (h *FixProposalInjectorHandler) Handle(r io.Reader, w io.Writer) error {
 			})
 		} else if applyResult == "plans_missing" {
 			return writeFixProposalJSON(w, fixProposalInjectorOutput{
-				SystemMessage: "⚠️ Could not apply fix proposal. Plans.md not found.",
+				SystemMessage: "⚠️ Could not apply fix proposal. plans.json not found.",
 			})
 		} else {
 			return writeFixProposalJSON(w, fixProposalInjectorOutput{
-				SystemMessage: fmt.Sprintf("⚠️ Failed to apply fix proposal. Source task %s not found in Plans.md.", proposal.SourceTaskID),
+				SystemMessage: fmt.Sprintf("⚠️ Failed to apply fix proposal. Source task %s not found in plans.json.", proposal.SourceTaskID),
 			})
 		}
 	}
@@ -154,24 +157,16 @@ func (h *FixProposalInjectorHandler) resolveProjectRoot() string {
 	return wd
 }
 
-// resolvePlansPath resolves the path to Plans.md.
-// Uses PlansPath when explicitly set; otherwise resolves via the config's plansDirectory.
-// Always returns a full path even if Plans.md does not exist
-// (so that apply can return plans_missing).
-func (h *FixProposalInjectorHandler) resolvePlansPath(projectRoot string) string {
+// resolvePlansJSONPath resolves the path to plans.json (the task SSOT).
+// Uses PlansPath when explicitly set; otherwise the configured
+// .claude/harness/plans.json. Always returns a full path even if the file does
+// not exist (so apply can return plans_missing).
+func (h *FixProposalInjectorHandler) resolvePlansJSONPath(projectRoot string) string {
 	if h.PlansPath != "" {
 		return h.PlansPath
 	}
-	// Get the path of an existing Plans.md.
-	if p := resolvePlansPath(projectRoot); p != "" {
-		return p
-	}
-	// Fall back to a default path that respects the configured plansDirectory.
 	plansDir := readPlansDirectoryFromConfig(projectRoot)
-	if plansDir != "" {
-		return filepath.Join(projectRoot, plansDir, "Plans.md")
-	}
-	return filepath.Join(projectRoot, "Plans.md")
+	return plans.DefaultPath(projectRoot, plansDir)
 }
 
 // parseFixProposalAction parses the action and target ID from a prompt line.
@@ -290,53 +285,43 @@ func consumeFixProposal(path, sourceTaskID string) error {
 // applyFixProposalToPlans inserts the proposal into Plans.md immediately after the source_task_id row.
 // Returns: "applied" / "already_present" / "plans_missing" / "source_not_found"
 func applyFixProposalToPlans(plansPath string, proposal fixProposal) string {
-	rawData, err := os.ReadFile(plansPath)
-	if err != nil {
+	p, err := plans.Load(plansPath)
+	if err != nil || p == nil {
 		return "plans_missing"
 	}
 
-	text := string(rawData)
-
-	// Check whether fix_task_id already exists.
-	fixPattern := regexp.MustCompile(`(?m)^\|\s*` + regexp.QuoteMeta(proposal.FixTaskID) + `\s*\|`)
-	if fixPattern.MatchString(text) {
+	// Already applied?
+	if t, _ := p.FindTask(proposal.FixTaskID); t != nil {
 		return "already_present"
 	}
 
-	// Find the source_task_id row and insert immediately after it.
-	sourcePattern := regexp.MustCompile(`(?m)^\|\s*` + regexp.QuoteMeta(proposal.SourceTaskID) + `\s*\|`)
+	// Locate the source task's phase; the fix task is appended there.
+	_, phase := p.FindTask(proposal.SourceTaskID)
+	if phase == nil {
+		return "source_not_found"
+	}
 
-	subject := strings.ReplaceAll(proposal.ProposalSubject, "|", "/")
-	dod := strings.ReplaceAll(proposal.DoD, "|", "/")
-	depends := strings.ReplaceAll(proposal.Depends, "|", "/")
-	newRow := fmt.Sprintf("| %s | %s | %s | %s | cc:TODO |", proposal.FixTaskID, subject, dod, depends)
-
-	lines := strings.Split(text, "\n")
-	inserted := false
-	result := make([]string, 0, len(lines)+1)
-	for _, line := range lines {
-		result = append(result, line)
-		if !inserted && sourcePattern.MatchString(line) {
-			result = append(result, newRow)
-			inserted = true
+	var depends []string
+	for _, d := range strings.Split(proposal.Depends, ",") {
+		d = strings.TrimSpace(d)
+		if d != "" && d != "-" {
+			depends = append(depends, d)
 		}
 	}
 
-	if !inserted {
-		return "source_not_found"
-	}
+	phase.Tasks = append(phase.Tasks, plans.Task{
+		ID:             proposal.FixTaskID,
+		Name:           proposal.ProposalSubject,
+		DoD:            proposal.DoD,
+		Depends:        depends,
+		Status:         "cc:TODO",
+		Urgency:        "medium",
+		Importance:     "medium",
+		QualityMarkers: []string{},
+		Comments:       []plans.Comment{},
+	})
 
-	content := strings.Join(result, "\n")
-	if !strings.HasSuffix(content, "\n") {
-		content += "\n"
-	}
-
-	tmp := plansPath + ".tmp"
-	if err := os.WriteFile(tmp, []byte(content), 0644); err != nil {
-		return "source_not_found"
-	}
-	if err := os.Rename(tmp, plansPath); err != nil {
-		_ = os.Remove(tmp)
+	if err := plans.Save(plansPath, p); err != nil {
 		return "source_not_found"
 	}
 	return "applied"
