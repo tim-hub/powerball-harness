@@ -137,7 +137,7 @@ After `/harness-setup`, your project will have a `.claude/` folder. Some paths a
 
 **Committed** (you should check these in): `agents/`, `harness/plans.json`, `memory/`, `rules/`, `skills/`, `settings.json`
 
-**Git-ignored** (generated): `sessions/`, `logs/`, `state/`, `worktrees/`
+**Git-ignored** (generated): `sessions/`, `logs/`, `state/`, `worktrees/`, `memory/session-log.md`
 
 ---
 

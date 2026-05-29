@@ -44,6 +44,7 @@ These are created at runtime and should not be committed.
 | `.claude/logs/` | Hook and script logs |
 | `.claude/state/` | Runtime state: review results, advisor history, lock files |
 | `.claude/worktrees/` | Temporary git worktrees used by breezing workers |
+| `.claude/memory/session-log.md` | Running session log — grows unboundedly; split monthly with `/harness-plan session-log` |
 
 > The `.gitignore` shipped with this plugin already contains the ignore rules for the volatile paths above.
 > The tracked paths are force-included with `!.claude/harness/`, `!.claude/memory/`, etc. to survive

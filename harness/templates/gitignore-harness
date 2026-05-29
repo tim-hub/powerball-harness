@@ -10,6 +10,7 @@
 .claude/logs/
 .claude/state/
 .claude/worktrees/
+.claude/memory/session-log.md
 .claude/settings.local.json
 .claude/states/
 
