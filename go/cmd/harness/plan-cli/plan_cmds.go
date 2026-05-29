@@ -415,7 +415,7 @@ func runPlanAddTask(args []string) {
 			depends = append(depends, strings.TrimSpace(d))
 		}
 	}
-	var markers []string
+	markers := []string{}
 	if markerStr != "" {
 		for _, m := range strings.Split(markerStr, ",") {
 			markers = append(markers, strings.TrimSpace(m))

@@ -52,6 +52,27 @@ type Task struct {
 	Comments       []Comment   `json:"comments"`
 }
 
+// UnmarshalJSON normalises nil slice fields to empty slices so that
+// json.Marshal always emits [] instead of null, and nil checks are safe.
+func (t *Task) UnmarshalJSON(data []byte) error {
+	type taskAlias Task // break infinite recursion
+	var a taskAlias
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+	*t = Task(a)
+	if t.Depends == nil {
+		t.Depends = []string{}
+	}
+	if t.QualityMarkers == nil {
+		t.QualityMarkers = []string{}
+	}
+	if t.Comments == nil {
+		t.Comments = []Comment{}
+	}
+	return nil
+}
+
 // RalphConfig holds configuration for [ralph] iterative loop tasks.
 type RalphConfig struct {
 	Verify  string `json:"verify"`
@@ -97,7 +118,27 @@ func LoadPlans(path string) (*Plans, error) {
 	if err := json.Unmarshal(data, &p); err != nil {
 		return nil, fmt.Errorf("parse plans.json: %w", err)
 	}
+	normalizePlans(&p)
 	return &p, nil
+}
+
+// normalizePlans ensures that slice fields on every Task are non-nil so that
+// json.Marshal always emits [] instead of null and callers can range safely.
+func normalizePlans(p *Plans) {
+	for i := range p.Phases {
+		for j := range p.Phases[i].Tasks {
+			t := &p.Phases[i].Tasks[j]
+			if t.Depends == nil {
+				t.Depends = []string{}
+			}
+			if t.QualityMarkers == nil {
+				t.QualityMarkers = []string{}
+			}
+			if t.Comments == nil {
+				t.Comments = []Comment{}
+			}
+		}
+	}
 }
 
 // SavePlans writes p to path atomically: it writes to a .tmp file then
