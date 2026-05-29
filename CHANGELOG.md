@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v6.0.0...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v6.0.1...HEAD
+[6.0.1]: https://github.com/tim-hub/powerball-harness/compare/v6.0.0...v6.0.1
 [6.0.0]: https://github.com/tim-hub/powerball-harness/compare/v5.9.2...v6.0.0
 [5.9.2]: https://github.com/tim-hub/powerball-harness/compare/v5.9.1...v5.9.2
 [5.9.1]: https://github.com/tim-hub/powerball-harness/compare/v5.9.0...v5.9.1
@@ -72,6 +73,10 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+---
+
+## [6.0.1] - 2026-05-29
+
 ### Theme: Plans.md → plans.json migration cleanup + TDD enforcement hardening
 
 **Agents and skills no longer reference Plans.md for task state — all status reads/writes now go through `harness plan-cli`.**
@@ -94,7 +99,7 @@ Change history for claude-code-harness.
 
 **Before**: `.gitignore` had orphaned force-track negations (`!.claude/rules/`, `!.claude/memory/`, etc.) left over from a deleted `.claude/*` blanket rule, creating confusion about what was tracked. `harness/templates/gitignore-harness` was missing `.claude/worktrees/` and `session-log.md`. Neither file explicitly protected `.claude/harness/`.
 
-**After**: Project `.gitignore` "Harness managed" section now only ignores true volatile runtime outputs (`sessions/`, `logs/`, `worktrees/`, `state/` volatile files, `session-log.md`). The template follows the same policy and adds `!.claude/harness/` to force-track, ensuring `plans.json` is always committed and available in CI.
+**After**: Project `.gitignore` "Harness managed" section now only ignores true volatile runtime outputs (`sessions/`, `logs/`, `worktrees/`, `state/`, `session-log.md`). The template follows the same policy and adds `!.claude/harness/` to force-track, ensuring `plans.json` is always committed and available in CI.
 
 ---
 
