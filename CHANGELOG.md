@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v6.0.1...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v6.1.0...HEAD
+[6.1.0]: https://github.com/tim-hub/powerball-harness/compare/v6.0.1...v6.1.0
 [6.0.1]: https://github.com/tim-hub/powerball-harness/compare/v6.0.0...v6.0.1
 [6.0.0]: https://github.com/tim-hub/powerball-harness/compare/v5.9.2...v6.0.0
 [5.9.2]: https://github.com/tim-hub/powerball-harness/compare/v5.9.1...v5.9.2
@@ -72,6 +73,30 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+---
+
+## [6.1.0] - 2026-05-30
+
+### Theme: Plans.md retirement + residue scanner speedup
+
+**Skills and agents now use `plans.json` exclusively via `harness plan-cli`; residue scan is 1100x faster.**
+
+---
+
+#### 1. Plans.md → plans.json reference cleanup (Phase 109)
+
+**Before**: Skills and agents (harness-work, harness-setup, harness-schedule-run, harness-ralph-loop, harness-planner) still referenced `Plans.md` for reads and writes even after the JSON migration. `plans-md-rules.md` mixed CLI-owned ordering rules with still-live semantic definitions (status markers, quality markers, DoD/Depends). `cli-reference.md` lived under `harness-plan`'s private references folder and wasn't linked from the planner agent.
+
+**After**: All operational Plans.md references replaced with `plans.json` + `harness plan-cli` equivalents across all skills and agents. `plans-md-rules.md` renamed to `task-fields.md` and slimmed to only live semantics. `cli-reference.md` moved to the new shared `harness/references/` folder — accessible to both skills and agents. `harness-planner` References section now links the shared CLI reference.
+
+#### 2. Residue scanner: batch rg pass (~1100x speedup)
+
+**Before**: `check-residue.py` ran 50 sequential `grep -rln -F` subprocess calls — one full repository scan per deleted concept term. Total wall-clock time: ~9 minutes. Also scanned git-ignored trees (`node_modules/`, `.claude/worktrees/`, `.claude/state/`) on every term, since plain `grep` does not respect `.gitignore`.
+
+**After**: Single `rg -F -e term1 -e term2 ...` pass scans the repository once and returns all matches; results grouped by term in Python. Falls back to sequential grep when `rg` is not installed (`RESIDUE_SCANNER_BACKEND=rg|grep|auto`). rg respects `.gitignore` so ignored trees are skipped automatically. Wall-clock time: ~0.5s. New `bench-residue.sh` script lets you compare both backends side by side.
+
+`validate-plugin.sh` section 10 (migration residue check) now completes in under a second instead of blocking the full release pipeline for 9 minutes.
 
 ---
 
