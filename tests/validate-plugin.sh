@@ -588,6 +588,21 @@ else
 fi
 
 echo ""
+echo "18. Plans JSON migration check"
+echo "----------------------------------------"
+
+PLANS_JSON="$PLUGIN_ROOT/.claude/harness/plans.json"
+PLANS_MD="$PLUGIN_ROOT/Plans.md"
+
+if [ -f "$PLANS_MD" ] && [ ! -f "$PLANS_JSON" ]; then
+    warn_test "Plans.md exists but .claude/harness/plans.json does not — run 'harness plan-cli migrate' to migrate"
+elif [ -f "$PLANS_JSON" ]; then
+    pass_test "Plans JSON: .claude/harness/plans.json present"
+else
+    pass_test "Plans JSON: no Plans.md to migrate (clean slate)"
+fi
+
+echo ""
 echo "=========================================="
 echo "Test Results Summary"
 echo "=========================================="

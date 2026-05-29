@@ -71,6 +71,45 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: JSON Plans System — Replace Plans.md with structured task tracker
+
+**`Plans.md` has been superseded by `.claude/harness/plans.json` — a structured JSON task tracker with a Go CLI and a Svelte web UI, making task management readable for humans and queryable for agents.**
+
+---
+
+#### 1. Structured JSON Task Storage
+
+**Before**: Tasks lived in `Plans.md` — a Markdown table with limited structure. Long descriptions made the file hard to scan, and pipes inside backtick spans could silently corrupt parsers.
+
+**After**: Tasks are stored in `.claude/harness/plans.json` with typed fields (`name`, `description`, `dod`, `depends`, `status`, `urgency`, `importance`, `qualityMarkers`, `comments`). Every write is atomic (tmp-file + rename). Migrate an existing `Plans.md` with:
+```
+harness plan-cli migrate
+```
+
+#### 2. Go CLI for Agent and Human Use
+
+**Before**: Agents edited `Plans.md` with the `Edit` tool — fragile text manipulation that could corrupt the Markdown table if descriptions contained `|` characters.
+
+**After**: All reads and writes go through `harness plan-cli` subcommands (`list`, `get`, `add-phase`, `add-task`, `update`, `archive`, `comment`, `migrate`). The CLI handles JSON serialisation, atomic I/O, and ordering invariants, so agents never touch the file directly.
+
+#### 3. Svelte Web UI (`harness plan-cli serve`)
+
+**Before**: Humans had to read raw Markdown tables to check task status, which became unwieldy for phases with many long-description tasks.
+
+**After**: `harness plan-cli serve --open` launches a local Kanban board at `http://localhost:8080`. Features: Board and Phases views, fuzzy search, filter bar (status/urgency/importance/marker), card detail panel with inline edits, comment threads, and HTML5 drag-and-drop for status changes. The SPA is embedded in the Go binary — no Node.js runtime needed in production.
+
+#### 4. Auto-Bootstrap in `harness-plan` Skill
+
+**Before**: The `harness-plan` skill required `Plans.md` to exist and edited it directly via the `Edit` tool.
+
+**After**: At skill entry, the bootstrap check runs automatically: if `Plans.md` exists but `plans.json` does not, `harness plan-cli migrate` is called. All `add`/`update`/`archive` subcommands now delegate to the CLI. The `harness-planner` agent also routes through the CLI instead of performing direct file edits.
+
+#### 5. Migration Warning in `validate-plugin.sh`
+
+**Before**: No automated check existed to catch projects that had not yet migrated from `Plans.md`.
+
+**After**: Section 18 of `tests/validate-plugin.sh` warns (non-fatal) when `Plans.md` is present but `.claude/harness/plans.json` is absent, prompting the operator to run `harness plan-cli migrate`.
+
 ---
 
 ## [5.9.2] - 2026-05-28

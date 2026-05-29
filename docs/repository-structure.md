@@ -1,3 +1,5 @@
+- `.claude/harness/plans.json` Task tracker SSOT (JSON; managed by `harness plan-cli`, served by `harness plan-cli serve`)
+- `Plans.md` Legacy task tracker (deprecated; migrate with `harness plan-cli migrate`)
 - `.claude-plugin/marketplace.json` Plugin marketplace manifest
 - `harness/` Harness plugin root (source for Claude Code)
   - `harness/agents/` Sub-agents

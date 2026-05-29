@@ -25,10 +25,12 @@
 ## Development Flow
 
 0. **When editing skills/hooks**: run `/reload-plugins` to refresh runtime cache
-1. **Plan**: `/harness-plan` to add tasks to Plans.md
+1. **Plan**: `/harness-plan` to add tasks to `.claude/harness/plans.json` (use `harness plan-cli serve` to open the web UI)
 2. **Implement**: `/harness-work` (single task or parallel workers)
 3. **Review**: `/harness-review` (runs automatically after work; manual trigger available)
 4. **Validate**: `./tests/validate-plugin.sh` and `./.claude/skills/release-this/scripts/check-consistency.sh`
+
+> **Task tracking**: Tasks are stored in `.claude/harness/plans.json`. Use `harness plan-cli list` to query from the CLI, or `harness plan-cli serve --open` to open the Kanban web UI. `Plans.md` is a legacy format — run `harness plan-cli migrate` to convert it.
 
 ## Skills
 
@@ -36,7 +38,7 @@ Before starting work, check if a relevant skill exists and launch it with the Sk
 
 | Skill | Purpose |
 |-------|---------|
-| `harness-plan` | Ideas → Plans.md |
+| `harness-plan` | Ideas → `.claude/harness/plans.json` |
 | `harness-work` | Task implementation with parallel workers |
 | `breezing` | Full auto-run with Agent Teams |
 | `harness-review` | Multi-angle code review |

@@ -40,6 +40,7 @@ deleted_paths:
       - ".claude/state/"
       - "go/"  # Excluded because Go version file paths contain "guardrails"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - "out/"
       - "output/"
       - "docs/social/"  # v3-era social media posts (historical records)
@@ -52,6 +53,7 @@ deleted_paths:
     allowlist:
       - "CHANGELOG.md"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - ".claude/memory/archive/"
       - ".claude/worktrees/"
       - ".claude/state/"
@@ -67,6 +69,7 @@ deleted_paths:
       - ".claude/worktrees/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - "out/"
       - "output/"
       - "docs/social/"
@@ -94,6 +97,7 @@ deleted_concepts:
       - "docs/release-copy-phase21.md"  # Phase 21 release copy
       - ".claude/rules/"  # Rules files (versioning.md contains historical references)
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - "out/"
       - "output/"
 
@@ -118,6 +122,7 @@ deleted_concepts:
       - "out/"
       - "output/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
 
   - term: "# "
     replacement: null
@@ -143,6 +148,7 @@ deleted_concepts:
       - "out/"
       - "output/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - "skills/generate-video/"  # Video generation skill may use Node.js (old path, pre-v4.2.1)
       - ".claude/skills/generate-video/"  # Video generation skill relocated here in v4.2.1
       - ".claude/rules/migration-policy.md"  # Phase 40 historical description (appendix contains old runtime requirements)
@@ -159,6 +165,7 @@ deleted_concepts:
       - "out/"
       - "output/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - "docs/social/"  # v3-era social media posts
       - "docs/CLAUDE-feature-table.md"  # Historical CC compatibility records
       - ".claude/rules/"  # Historical descriptions such as migration-policy
@@ -185,6 +192,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
 
   - term: "skills/generate-slide"
     replacement: ".claude/skills/generate-slide"
@@ -195,6 +203,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
 
   - term: "skills/generate-video"
     replacement: ".claude/skills/generate-video"
@@ -205,6 +214,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - ".claude/skills/generate-video/"  # skill itself contains self-referencing paths (internal docs/scripts)
       - ".claude/agents/video-scene-generator.md"  # uses ../skills/generate-video relative path (resolves correctly)
 
@@ -217,6 +227,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
 
   - term: "skills/routing-rules.md"
     replacement: ".claude/rules/skill-routing-rules.md"
@@ -227,6 +238,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
 
   - term: "skills-codex/"
     replacement: "templates/codex-skills/"
@@ -237,6 +249,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - "templates/codex-skills/"
 
   - term: "sync-skill-mirrors.mjs"
@@ -248,6 +261,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
 
   - term: "build-opencode.mjs"
     replacement: "harness-setup opencode (setup-time copy)"
@@ -258,6 +272,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
 
   - term: "sync-skills.mjs"
     replacement: "(no replacement — PostToolUse auto-sync removed)"
@@ -268,6 +283,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
 
   - term: "validate-opencode.mjs"
     replacement: "template existence checks in compatibility-check.yml"
@@ -278,6 +294,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
 
   - term: "opencode/skills/harness-setup"
     replacement: "skills/harness-setup (harness-setup codex/opencode subcommands)"
@@ -288,6 +305,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
 
   # Note: The root-level codex/ mirror directory was deleted in v4.4.0 (Phase 52).
   # We do NOT add a deleted_concept entry for "codex/.codex/" because many scripts
@@ -303,6 +321,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - "local-scripts/build-binary.sh"  # new location of the same script
 
   - term: "external-aws-credentials-context"
@@ -316,6 +335,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
 
   - term: "external-microsoft-office-365-oauth-context"
     replacement: "disabledExternalRuleIDs in go/internal/piiguard/external.go"
@@ -328,6 +348,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
 
   - term: "external-john-the-ripper"
     replacement: "disabledExternalRuleIDs in go/internal/piiguard/external.go"
@@ -340,6 +361,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
 
   - term: "harness/templates/cursor"
     replacement: "(no replacement — Cursor support dropped)"
@@ -350,6 +372,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - ".claude/rules/deleted-concepts.yaml"  # this file
       - "docs/spikes/plugin-name-cleanup-inventory.md"  # spike inventory lists old template paths
 
@@ -362,6 +385,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - ".claude/rules/deleted-concepts.yaml"  # this file
 
   - term: "harness/agents/error-recovery"
@@ -373,6 +397,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - ".claude/rules/deleted-concepts.yaml"  # this file
 
   - term: "harness/skills/harness-compact"
@@ -384,6 +409,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - ".claude/rules/deleted-concepts.yaml"
       - "docs/spikes/harness-compact-smoke.md"  # spike doc for the compact feature investigation
 
@@ -396,6 +422,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - ".claude/rules/deleted-concepts.yaml"
       - "harness/skills/harness-release/references/writing-changelog.md"
 
@@ -408,6 +435,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - ".claude/rules/deleted-concepts.yaml"
 
   - term: "harness/skills/workflow-guide"
@@ -419,6 +447,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - ".claude/rules/deleted-concepts.yaml"
 
   - term: "harness/skills/harness-brainstorming"
@@ -430,6 +459,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - ".claude/rules/deleted-concepts.yaml"
 
   - term: "harness/skills/harness-sync"
@@ -441,6 +471,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - ".claude/rules/deleted-concepts.yaml"
       - "tests/test-codex-package.sh"  # codex package test verifies skill list, references deleted skill name
 
@@ -453,6 +484,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - ".claude/rules/deleted-concepts.yaml"
 
   - term: "harness/skills/session-init"
@@ -464,6 +496,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/state/"
       - "Plans.md"
+      - ".claude/harness/plans.json"
       - ".claude/rules/deleted-concepts.yaml"
 
   - term: "harness/scripts/hooks/evaluate_subagent_output"
@@ -475,6 +508,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/rules/deleted-concepts.yaml"
       - "Plans.md"  # Phase 102 task description references the deleted path
+      - ".claude/harness/plans.json"  # SSOT successor to Plans.md
 
   - term: "harness/scripts/codex-worker-engine"
     replacement: "bin/harness hook codex (Go binary)"
@@ -541,6 +575,7 @@ deleted_concepts:
       - ".claude/rules/deleted-concepts.yaml"
       - ".claude/rules/hooks-2.1.139-plus.md"
       - "Plans.md"  # Phase 99 task description references the deleted path
+      - ".claude/harness/plans.json"  # SSOT successor to Plans.md
 
   - term: "harness/scripts/posttooluse-clear-pending.sh"
     replacement: "bin/harness hook clear-pending (Go binary)"
@@ -596,6 +631,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/rules/deleted-concepts.yaml"
       - "Plans.md"  # Phase 103 upstream-port note references the deleted script
+      - ".claude/harness/plans.json"  # SSOT successor to Plans.md
 
   - term: "tests/validate-plugin-v3.sh"
     replacement: "tests/validate-plugin.sh"
@@ -606,6 +642,7 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/rules/deleted-concepts.yaml"
       - "Plans.md"  # Phase 102 task description references the deleted file
+      - ".claude/harness/plans.json"  # SSOT successor to Plans.md
       - "tests/README.md"  # test inventory mentions old validator by name
       - "docs/CLAUDE_CODE_COMPATIBILITY.md"  # compatibility doc lists old validators
       - "docs/release-checklist-phase21.md"  # old release checklist from Phase 21
@@ -619,3 +656,4 @@ deleted_concepts:
       - ".claude/memory/archive/"
       - ".claude/rules/deleted-concepts.yaml"
       - "Plans.md"  # Phase 102 task descriptions reference the deleted file
+      - ".claude/harness/plans.json"  # SSOT successor to Plans.md
