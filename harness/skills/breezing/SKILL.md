@@ -5,6 +5,7 @@ when_to_use: "full team run, run all tasks with team, parallel team execution, e
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Task", "WebSearch"]
 argument-hint: "[all|N-M|--codex|--parallel N|--no-commit|--no-discuss|--auto-mode|--advisor|--no-advisor]"
 user-invocable: true
+model: sonnet
 ---
 
 # Breezing — Team Execution Mode

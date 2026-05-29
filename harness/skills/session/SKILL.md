@@ -4,6 +4,7 @@ description: "Manages Claude Code session lifecycle — listing, inbox, and broa
 when_to_use: "list sessions, inbox check, broadcast message, session lifecycle, manage sessions"
 allowed-tools: ["Read", "Bash", "Write", "Edit", "Glob"]
 argument-hint: "[list|inbox|broadcast \"message\"]"
+model: sonnet
 ---
 
 # Session Skill (Unified)

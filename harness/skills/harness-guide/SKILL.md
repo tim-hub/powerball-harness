@@ -4,6 +4,8 @@ description: "Orientation and workflow guidance for the Harness development cycl
 when_to_use: "how does this work, explain workflow, what do I do next, getting started, harness guide, execution modes, harness roles, vibecoder"
 allowed-tools: ["Read"]
 user-invocable: false
+model: opus
+effort: high
 ---
 
 # Harness Guide

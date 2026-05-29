@@ -5,7 +5,7 @@ when_to_use: "record decision, search memory, update patterns, SSOT, promote lea
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "mcp__harness__harness_mem_*"]
 argument-hint: "[ssot|sync|sync-across|migrate|merge|search|record]"
 context: fork
-model: opus
+model: sonnet
 effort: high
 ---
 

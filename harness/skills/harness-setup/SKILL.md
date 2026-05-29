@@ -5,6 +5,7 @@ when_to_use: "initialize project, setup harness, configure CI, setup memory, duo
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash"]
 argument-hint: "[init|codex|opencode|duo|cleanup|gitignore]"
 effort: medium
+model: sonnet
 ---
 
 # Harness Setup

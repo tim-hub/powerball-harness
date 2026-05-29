@@ -5,6 +5,7 @@ when_to_use: "prune logs, clear state, purge cache, clean worktrees, archive tra
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]
 argument-hint: "[--prune-logs|--clear-state|--purge-cache|--clean-worktrees|--archive-traces|--all]"
 user-invocable: true
+model: sonnet
 ---
 
 # Maintenance
