@@ -16,6 +16,7 @@
 //	harness hook session-summary   — Stop: session summary to session-log.md
 //	harness hook ci-status         — PostToolUse: CI status check after push/PR
 //	harness evidence collect       — Collect evidence (test results, build logs)
+//	harness plan-cli <subcommand>  — Manage .claude/harness/plans.json task tracker
 //	harness version                — Print version
 //
 // Usage in hooks.json:
@@ -40,6 +41,7 @@ import (
 	"github.com/tim-hub/powerball-harness/go/internal/session"
 	"github.com/tim-hub/powerball-harness/go/internal/state"
 	"github.com/tim-hub/powerball-harness/go/pkg/hookproto"
+	plancli "github.com/tim-hub/powerball-harness/go/cmd/harness/plan-cli"
 )
 
 // version is set at build time via -ldflags.
@@ -80,6 +82,8 @@ func main() {
 		runDoctor(os.Args[2:])
 	case "mem":
 		runMem(os.Args[2:])
+	case "plan-cli":
+		plancli.RunPlanCLI(os.Args[2:])
 	case "version":
 		fmt.Printf("%s (Hokage)\n", version)
 	case "--version", "-v":
@@ -123,6 +127,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  validate [skills|agents|all] [root]  Validate SKILL.md / agent frontmatter")
 	fmt.Fprintln(os.Stderr, "  doctor [--migration] [root]          Health check; --migration shows hook migration status")
 	fmt.Fprintln(os.Stderr, "  mem health              Check harness-mem installation health (JSON output)")
+	fmt.Fprintln(os.Stderr, "  plan-cli <subcommand>   Manage .claude/harness/plans.json task tracker")
 	fmt.Fprintln(os.Stderr, "  version                 Print version")
 }
 

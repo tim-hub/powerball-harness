@@ -1,4 +1,4 @@
-package main
+package plancli
 
 import (
 	"embed"
@@ -15,7 +15,6 @@ import (
 
 	"github.com/google/uuid"
 )
-
 
 //go:embed plan_web/dist
 var planWebDist embed.FS
@@ -556,4 +555,3 @@ func openURL(url string) {
 	}
 	_ = cmd.Start()
 }
-

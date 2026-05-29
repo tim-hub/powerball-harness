@@ -1,13 +1,13 @@
-package main
+package plancli
 
 import (
 	"fmt"
 	"os"
 )
 
-// runPlanCLI is the entry point for the "harness plan-cli" subcommand.
+// RunPlanCLI is the entry point for the "harness plan-cli" subcommand.
 // Full implementation in this file; called from main.go.
-func runPlanCLI(args []string) {
+func RunPlanCLI(args []string) {
 	if len(args) == 0 {
 		planUsage()
 		os.Exit(1)
@@ -85,9 +85,18 @@ func planUsage() {
 	fmt.Fprintln(os.Stderr, "    --open  open browser on start")
 }
 
+// resolveProjectRoot returns the cwd as the project root.
+func resolveProjectRoot() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("cannot determine working directory: %w", err)
+	}
+	return cwd, nil
+}
+
 // planPath resolves plans.json path relative to cwd.
 func planPath() (string, error) {
-	root, err := resolveProjectRoot(nil)
+	root, err := resolveProjectRoot()
 	if err != nil {
 		return "", err
 	}
