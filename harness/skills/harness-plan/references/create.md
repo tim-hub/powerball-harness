@@ -238,7 +238,7 @@ Files related to these field conventions:
 | `skills/harness-plan/references/sync.md` | Discrepancy detection recognizes `cc:done` with/without hash |
 | `skills/harness-work/SKILL.md` | Hash applied at Solo Step 7, re-ticketing on failure |
 | `skills/harness-sync/SKILL.md` | Snapshot saved with --snapshot |
-| `skills/breezing/SKILL.md` | Progress displayed in Progress Feed |
+| `skills/harness-work/SKILL.md` | Progress displayed in Progress Feed (use `--breezing` flag) |
 
 ## Step 6: Create the Plan via `harness plan-cli`
 

@@ -166,9 +166,7 @@ required_skills=(
   "harness/skills/harness-plan"
   "harness/skills/harness-work"
   "harness/skills/harness-review"
-  "harness/skills/harness-release"
   "harness/skills/harness-setup"
-  "harness/skills/breezing"
 )
 skills_ok=true
 for dir in "${required_skills[@]}"; do

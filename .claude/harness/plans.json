@@ -22,10 +22,12 @@
           "description": "Delete harness/skills/breezing/ — it is only an alias for harness-work --breezing. Update any references (skill catalog, CLAUDE.md, marketplace.json) to point users to '/harness-work --breezing' instead.",
           "dod": "Directory harness/skills/breezing/ removed; no remaining references in marketplace.json, docs/CLAUDE-skill-catalog.md, CLAUDE.md, or other skills; bash tests/validate-plugin.sh passes.",
           "depends": [],
-          "status": "cc:TODO",
+          "status": "cc:done",
           "urgency": "low",
           "importance": "medium",
-          "qualityMarkers": ["no-regression"],
+          "qualityMarkers": [
+            "no-regression"
+          ],
           "comments": []
         },
         {
@@ -34,10 +36,12 @@
           "description": "Move harness/skills/harness-guide/SKILL.md content into harness/references/guide.md (or docs/). Delete the skill directory. Update marketplace.json and skill catalog to drop the entry. Anywhere a skill linked to harness-guide, replace with a doc link.",
           "dod": "harness/skills/harness-guide/ removed; content preserved at harness/references/guide.md; no broken links in docs or skills; validate-plugin.sh passes.",
           "depends": [],
-          "status": "cc:TODO",
+          "status": "cc:done",
           "urgency": "low",
           "importance": "medium",
-          "qualityMarkers": ["preserve-content"],
+          "qualityMarkers": [
+            "preserve-content"
+          ],
           "comments": []
         },
         {
@@ -46,10 +50,12 @@
           "description": "Delete harness/skills/harness-schedule-run/. Claude Code's native /loop handles iterative review-work runs. Update marketplace.json, skill catalog, and any cross-references in harness-work or harness-review.",
           "dod": "harness/skills/harness-schedule-run/ removed; no references remain; CHANGELOG note mentions /loop as the replacement; validate-plugin.sh passes.",
           "depends": [],
-          "status": "cc:TODO",
+          "status": "cc:done",
           "urgency": "low",
           "importance": "medium",
-          "qualityMarkers": ["user-migration-note"],
+          "qualityMarkers": [
+            "user-migration-note"
+          ],
           "comments": []
         },
         {
@@ -58,10 +64,12 @@
           "description": "Move harness/agents/harness-releaser.md content into .claude/agents/releaser.md. Update release-this SKILL.md to invoke 'releaser' (local agent) instead of 'harness-releaser' (plugin agent). Remove from marketplace.json agents list.",
           "dod": ".claude/agents/releaser.md exists with full setup/finalize invocation contract; release-this references the local agent; harness/agents/harness-releaser.md removed; agent dispatches correctly under /release-this --dry-run.",
           "depends": [],
-          "status": "cc:TODO",
+          "status": "cc:done",
           "urgency": "medium",
           "importance": "high",
-          "qualityMarkers": ["agent-dispatch-tested"],
+          "qualityMarkers": [
+            "agent-dispatch-tested"
+          ],
           "comments": []
         },
         {
@@ -69,11 +77,16 @@
           "name": "Merge harness-release skill into .claude/skills/release-this",
           "description": "Inline the generic release-engine content from harness/skills/harness-release/ into .claude/skills/release-this/ (this project's local release skill). Copy supporting scripts (release-preflight.sh, sync-version.sh, validate-release-notes.sh, check-residue.py, bench-residue.sh) under .claude/skills/release-this/scripts/. Update release-this SKILL.md to do all phases directly (preflight, version bump, CHANGELOG, commit, tag, push, GitHub release) instead of delegating. Delete harness/skills/harness-release/.",
           "dod": "harness/skills/harness-release/ removed; .claude/skills/release-this/ self-contained with all scripts and references; /release-this patch --dry-run completes successfully end-to-end; no marketplace.json references to harness-release.",
-          "depends": ["110.4"],
-          "status": "cc:TODO",
+          "depends": [
+            "110.4"
+          ],
+          "status": "cc:done",
           "urgency": "medium",
           "importance": "high",
-          "qualityMarkers": ["preserve-scripts", "end-to-end-tested"],
+          "qualityMarkers": [
+            "preserve-scripts",
+            "end-to-end-tested"
+          ],
           "comments": []
         },
         {
@@ -82,10 +95,13 @@
           "description": "Remove harness-ralph-loop from the user-facing slash palette (drop from marketplace.json skills list and skill catalog). Keep the SKILL.md and ralph-worker.md files intact but mark them internal (user-invocable: false in frontmatter). harness-work continues to dispatch to it for tasks with [ralph] marker, as today.",
           "dod": "harness-ralph-loop no longer in marketplace.json public skills; user-invocable: false set; harness-work dispatch still functional for [ralph] tasks; integration test with a sample [ralph] task verifies dispatch works.",
           "depends": [],
-          "status": "cc:TODO",
+          "status": "cc:done",
           "urgency": "low",
           "importance": "medium",
-          "qualityMarkers": ["internal-only", "dispatch-tested"],
+          "qualityMarkers": [
+            "internal-only",
+            "dispatch-tested"
+          ],
           "comments": []
         },
         {
@@ -94,10 +110,12 @@
           "description": "Merge harness/skills/session/ content into harness/skills/maintenance/ (or whichever survives). Pick the broader name 'maintenance' and absorb session-specific operations as subcommands or references. Update CLAUDE.md, skill catalog, and any cross-skill references.",
           "dod": "Only one of session/ or maintenance/ remains as the unified skill; all subcommands documented in the SKILL.md; no references to the removed skill; validate-plugin.sh passes.",
           "depends": [],
-          "status": "cc:TODO",
+          "status": "cc:done",
           "urgency": "low",
           "importance": "low",
-          "qualityMarkers": ["absorb-not-delete"],
+          "qualityMarkers": [
+            "absorb-not-delete"
+          ],
           "comments": []
         },
         {
@@ -105,11 +123,21 @@
           "name": "Validate plugin and update marketplace.json",
           "description": "After all removals/merges, refresh marketplace.json to reflect the new skill/agent inventory. Run full validation: bash tests/validate-plugin.sh, bash .claude/skills/release-this/scripts/check-consistency.sh, and harness plan-cli serve --open to spot check the kanban. Bump VERSION as a major change in a release PR (separate from this task).",
           "dod": "marketplace.json lists only the surviving skills/agents; validate-plugin.sh passes; check-consistency.sh passes; CHANGELOG [Unreleased] section drafted with removal/merge notes; ready to /release-this major.",
-          "depends": ["110.1", "110.2", "110.3", "110.4", "110.5", "110.6", "110.7"],
-          "status": "cc:TODO",
+          "depends": [
+            "110.1",
+            "110.2",
+            "110.3",
+            "110.4",
+            "110.5",
+            "110.6",
+            "110.7"
+          ],
+          "status": "cc:WIP",
           "urgency": "medium",
           "importance": "high",
-          "qualityMarkers": ["release-gate"],
+          "qualityMarkers": [
+            "release-gate"
+          ],
           "comments": []
         }
       ]

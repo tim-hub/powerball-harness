@@ -30,14 +30,9 @@ harness/skills/
 ├── harness-work/          # Task implementation (Plans.md tasks, parallel workers, breezing)
 ├── harness-plan/          # Plans.md authoring — create/add/sync/brainstorm subcommands
 ├── harness-review/        # Code/plan/scope review — pre-merge quality gate, security, performance
-├── harness-release/       # Generic release engine: version bumps, CHANGELOG, git tags, GitHub Releases (any project)
 ├── harness-setup/         # Project init, CI/Codex/memory config, binary download
-├── harness-schedule-run/  # Autonomous ScheduleWakeup-based scheduled run runtime with sprint-contracts
-├── breezing/              # Full team end-to-end run with parallel Workers (auto-detects task count)
 ├── harness-remember/      # SSOT management — decisions.md, patterns.md, memory search
-├── maintenance/           # Periodic cleanup — session log pruning, stale state, cache purge
-├── session/               # Session lifecycle: list, inbox checks, broadcast, init, resume/fork
-├── harness-guide/         # Workflow orientation and plain-language guidance
+├── maintenance/           # Periodic cleanup and session lifecycle — pruning, state, cache, list/inbox/broadcast
 └── harness-ralph-loop/    # Iterative loop orchestrator for [ralph]-marked tasks
 ```
 
@@ -48,15 +43,10 @@ harness/skills/
 | `harness-work` | Task implementation (auto-scope detection, parallel workers) | "implement", "do it all", "/harness-work" |
 | `harness-plan` | Create/update Plans.md — create, add, sync, brainstorm subcommands | "plan", "add task", "brainstorm", "/harness-plan" |
 | `harness-review` | Code review, quality checks, security audit | "review this", "security", "performance" |
-| `harness-release` | Generic release engine: version bump, CHANGELOG, tag, GitHub Release (usable by any project) | "release", "tag", "publish" |
-| `release-this` | Plugin-specific release: build-all → checks → harness-release (use this to release THIS plugin) | "release this", "release plugin", "publish harness" |
+| `release-this` | Plugin release: build-all → checks → version bump → CHANGELOG → tag → GitHub Release | "release this", "release plugin", "publish harness" |
 | `harness-setup` | Project init, binary download, CI config | "setup", "initialize", "install binary" |
-| `harness-schedule-run` | Autonomous scheduled run runtime with ScheduleWakeup and sprint-contracts (renamed from `harness-loop`) | "scheduled run", "autonomous run", "harness-schedule-run" |
-| `breezing` | Full auto-run with parallel Agent Teams | "run with team", "breezing", "all tasks" |
 | `harness-remember` | SSOT management, decisions.md, patterns.md | "SSOT", "decisions", "memory search" |
-| `maintenance` | Periodic housekeeping — log pruning, stale state, worktrees | "prune logs", "clean state", "/maintenance" |
-| `session` | Session lifecycle: list, inbox, broadcast, init, resume/fork | "/session", "session status" |
-| `harness-guide` | Workflow orientation and plain-language guidance | "how does this work", "explain workflow", "what do I do next", "execution modes" |
+| `maintenance` | Periodic housekeeping and session lifecycle — log pruning, stale state, worktrees, list/inbox/broadcast | "prune logs", "clean state", "/maintenance", "list sessions", "session inbox" |
 
 ## Development Skills (Private)
 

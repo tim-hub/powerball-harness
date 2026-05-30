@@ -261,12 +261,6 @@ else
     fail_test "Claude Code 2.1.80-2.1.86 integration points have gaps"
 fi
 
-if bash "$HARNESS_ROOT/tests/test-harness-release-governance.sh" >/dev/null 2>&1; then
-    pass_test "harness-release bare-invocation governance contract present (P27 AUTO-START)"
-else
-    fail_test "harness-release governance contract missing terms — run: bash harness/tests/test-harness-release-governance.sh"
-fi
-
 echo ""
 echo "6. Script validation"
 echo "----------------------------------------"
@@ -381,10 +375,10 @@ echo ""
 echo "10. Migration residue check"
 echo "----------------------------------------"
 
-if python3 "$PLUGIN_ROOT/harness/skills/harness-release/scripts/check-residue.py" > /dev/null 2>&1; then
-    pass_test "No migration residue detected (harness/skills/harness-release/scripts/check-residue.py clean)"
+if python3 "$PLUGIN_ROOT/.claude/skills/release-this/scripts/check-residue.py" > /dev/null 2>&1; then
+    pass_test "No migration residue detected (.claude/skills/release-this/scripts/check-residue.py clean)"
 else
-    fail_test "Migration residue found — run 'python3 harness/skills/harness-release/scripts/check-residue.py' to see details"
+    fail_test "Migration residue found — run 'python3 .claude/skills/release-this/scripts/check-residue.py' to see details"
 fi
 
 echo ""
@@ -447,7 +441,7 @@ echo "----------------------------------------"
 # Allowlist:
 #   - Go source: intentionally parses both legacy prefixes for backward compat
 #   - .claude/memory/archive/, .claude/plans/: frozen historical artifacts
-#   - harness/skills/harness-release/scripts/check-residue.py: residue scanner has known historical names
+#   - .claude/skills/release-this/scripts/check-residue.py: residue scanner has known historical names
 #   - CHANGELOG.md: historical record of renames + Before/After migration docs; documentation, not runtime code
 #   - .claude/state/skills-decision.json: ephemeral session-state entries
 #   - docs/spikes/plugin-name-cleanup-inventory.md: inventory documentation

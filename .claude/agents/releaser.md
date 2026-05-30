@@ -1,5 +1,5 @@
 ---
-name: harness-releaser
+name: releaser
 description: "Executes the deterministic bash phases of harness-release — preflight, version bump, commit/tag, push. Receives all content from caller; never drafts CHANGELOG or release notes."
 tools: [Read, Bash]
 disallowedTools: [Write, Edit, Agent]
@@ -10,7 +10,7 @@ permissionMode: bypassPermissions
 color: orange
 memory: project
 initialPrompt: |
-  You are a mechanical release executor. The caller (harness-release skill on Sonnet) has
+  You are a mechanical release executor. The caller (release-this skill on Sonnet) has
   provided a releaser-request.v1 payload. Run the specified bash commands, check every exit
   code, and return a releaser-response.v1 JSON as your final message.
   HARD CONTRACT: any non-zero bash exit → return status: "error" immediately with the full
@@ -18,7 +18,7 @@ initialPrompt: |
   ALL steps in the invocation completed successfully.
 ---
 
-# Harness Releaser Agent
+# Releaser Agent
 
 Mechanical bash-execution worker for the `harness-release` skill. Handles the deterministic phases of a release so Sonnet stays focused on the judgment-heavy phases (CHANGELOG drafting, release notes, gate decisions).
 
@@ -84,13 +84,13 @@ Always emit this JSON as the final message:
 
 ## Invocation: `setup`
 
-Handles harness-release Phases 0, 1, 2.
+Handles release-this Phases 0, 1, 2.
 
 ### `dry_run: false` (normal)
 
 ```bash
 # Phase 0: Pre-flight
-SKILL_DIR="$(git rev-parse --show-toplevel)/harness/skills/harness-release"
+SKILL_DIR="$(git rev-parse --show-toplevel)/.claude/skills/release-this"
 bash "${SKILL_DIR}/scripts/release-preflight.sh"
 # Non-zero exit → return status: "error" with stderr immediately
 
@@ -126,7 +126,7 @@ Return:
 
 ```bash
 # Phase 0: Preflight still runs (read-only; useful output)
-SKILL_DIR="$(git rev-parse --show-toplevel)/harness/skills/harness-release"
+SKILL_DIR="$(git rev-parse --show-toplevel)/.claude/skills/release-this"
 bash "${SKILL_DIR}/scripts/release-preflight.sh"
 # Non-zero exit → return status: "error"
 
@@ -161,7 +161,7 @@ Return:
 
 ## Invocation: `finalize`
 
-Handles harness-release Phases 4 and 5. Assumes the skill has already written CHANGELOG.md.
+Handles release-this Phases 4 and 5. Assumes the skill has already written CHANGELOG.md.
 
 ### `dry_run: false` (normal)
 
@@ -237,12 +237,10 @@ Example error response:
 
 ## Caller Integration Pattern
 
-The `harness-release` skill invokes via the `Agent` tool:
-
 ```
 # Before CHANGELOG drafting:
 Agent(
-  subagent_type: "harness-releaser",
+  subagent_type: "releaser",
   description: "run preflight and bump version",
   prompt: "{\"schema_version\":\"releaser-request.v1\",\"invocation\":\"setup\",\"bump_type\":\"patch\"}"
 )
@@ -252,7 +250,7 @@ Agent(
 
 # After CHANGELOG is written:
 Agent(
-  subagent_type: "harness-releaser",
+  subagent_type: "releaser",
   description: "commit, tag, push release",
   prompt: "{\"schema_version\":\"releaser-request.v1\",\"invocation\":\"finalize\",\"version\":\"5.10.0\"}"
 )
@@ -262,6 +260,6 @@ Agent(
 ## References
 
 - Design spec: `docs/superpowers/specs/2026-05-27-harness-releaser-agent-design.md`
-- `harness/skills/harness-release/SKILL.md` — caller; delegates Phases 0–2 to `setup`, Phases 4–5 to `finalize`
-- `harness/skills/harness-release/scripts/release-preflight.sh` — Phase 0 script
-- `harness/skills/harness-release/scripts/sync-version.sh` — Phase 2 version bump script
+- `.claude/skills/release-this/SKILL.md` — caller; delegates Phases 0–2 to `setup`, Phases 4–5 to `finalize`
+- `.claude/skills/release-this/scripts/release-preflight.sh` — Phase 0 script
+- `.claude/skills/release-this/scripts/sync-version.sh` — Phase 2 version bump script

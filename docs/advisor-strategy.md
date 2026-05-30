@@ -62,7 +62,7 @@ Lead (harness-work --breezing)
         Final APPROVE / REQUEST_CHANGES verdict
 ```
 
-The Advisor sits laterally to the Worker — it is not spawned by Lead and is not in the Lead → Worker chain of command. Lead is unaware of individual Advisor consultations; it only sees the Worker's eventual result or escalation. This matches the diagram in [team-composition.md](../harness/skills/breezing/references/team-composition.md).
+The Advisor sits laterally to the Worker — it is not spawned by Lead and is not in the Lead → Worker chain of command. Lead is unaware of individual Advisor consultations; it only sees the Worker's eventual result or escalation. This matches the team structure described in [breezing-mode.md](../harness/skills/harness-work/references/breezing-mode.md).
 
 ## harness-schedule-run Integration
 

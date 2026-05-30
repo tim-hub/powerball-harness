@@ -424,7 +424,7 @@ deleted_concepts:
       - "Plans.md"
       - ".claude/harness/plans.json"
       - ".claude/rules/deleted-concepts.yaml"
-      - "harness/skills/harness-release/references/writing-changelog.md"
+      - ".claude/skills/release-this/references/writing-changelog.md"  # new location of writing-changelog.md
 
   - term: "harness/skills/vibecoder-guide"
     replacement: "harness/skills/harness-guide (merged with workflow-guide)"
@@ -657,3 +657,78 @@ deleted_concepts:
       - ".claude/rules/deleted-concepts.yaml"
       - "Plans.md"  # Phase 102 task descriptions reference the deleted file
       - ".claude/harness/plans.json"  # SSOT successor to Plans.md
+
+  # ─── Phase 110: Plugin Simplification (v7.0.0) ─────────────────────────────
+
+  - term: "harness/skills/breezing"
+    replacement: "harness-work --breezing flag"
+    deleted_in: "v7.0.0"
+    reason: "Phase 110: breezing/ was a pure alias for harness-work --breezing. Redundant skill removed; users invoke the flag directly."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/harness/plans.json"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/skills/harness-guide"
+    replacement: "harness/references/guide.md"
+    deleted_in: "v7.0.0"
+    reason: "Phase 110: harness-guide skill removed. Content preserved as harness/references/guide.md (reference doc, no skill overhead)."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/harness/plans.json"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/skills/harness-schedule-run"
+    replacement: "Claude Code native /loop command"
+    deleted_in: "v7.0.0"
+    reason: "Phase 110: harness-schedule-run removed. CC built-in /loop command covers the same ScheduleWakeup use case natively."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/harness/plans.json"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/agents/harness-releaser"
+    replacement: ".claude/agents/releaser"
+    deleted_in: "v7.0.0"
+    reason: "Phase 110: harness-releaser agent renamed to 'releaser' and relocated to .claude/agents/ (project-local, git-tracked)."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/harness/plans.json"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/skills/harness-release"
+    replacement: ".claude/skills/release-this"
+    deleted_in: "v7.0.0"
+    reason: "Phase 110: harness-release generic engine skill removed. Scripts (release-preflight.sh, sync-version.sh, etc.) merged into .claude/skills/release-this/scripts/. release-this is now the single release entry point."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/harness/plans.json"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/skills/session"
+    replacement: "harness/skills/maintenance (session lifecycle merged into maintenance)"
+    deleted_in: "v7.0.0"
+    reason: "Phase 110: session skill merged into maintenance. Five reference files moved to maintenance/references/. One skill for all housekeeping."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/harness/plans.json"
+      - ".claude/rules/deleted-concepts.yaml"
+      - "harness/skills/harness-work/references/breezing-mode.md"  # breezing-mode references session broadcast

@@ -1,8 +1,8 @@
 ---
 name: release-this
-description: "Orchestrates the full powerball-harness plugin release with build, validation, and version checks. Use when releasing this plugin."
+description: "Orchestrates the full powerball-harness plugin release with build, validation, version bump, CHANGELOG, tag, and GitHub Release. Use when releasing this plugin."
 when_to_use: "release this plugin, release harness, cut a release, publish harness, ship harness, release-this"
-allowed-tools: ["Read", "Write", "Edit", "Bash", "Skill"]
+allowed-tools: ["Read", "Write", "Edit", "Bash", "Agent"]
 argument-hint: "[patch|minor|major|--dry-run|--complete]"
 model: sonnet
 effort: low
@@ -11,7 +11,7 @@ effort: low
 # Release This Plugin
 
 Project-specific release orchestrator for the claude-code-harness plugin.
-Runs all plugin-specific checks (build, consistency, validation, Codex templates, version sync) **before** delegating to the generic `harness-release` skill for the actual release (version bump, CHANGELOG, tag, GitHub Release).
+Runs all plugin-specific checks (build, consistency, validation, Codex templates, version sync), then handles the full release: version bump, CHANGELOG update, commit/tag/push, and GitHub Release creation.
 
 ## Quick Reference
 
@@ -77,12 +77,12 @@ Confirm each subdirectory (`breezing`, `harness-schedule-run`, `harness-work`) c
 Verify that `harness/VERSION` and `harness/harness.toml` agree before proceeding.
 
 ```bash
-HARNESS_RELEASE_EXTRA_VERSION_FILES="harness/harness.toml" bash harness/skills/harness-release/scripts/sync-version.sh check
+HARNESS_RELEASE_EXTRA_VERSION_FILES="harness/harness.toml" bash "${CLAUDE_SKILL_DIR}/scripts/sync-version.sh" check
 ```
 
 If there is a mismatch, stop and ask the user to run:
 ```bash
-HARNESS_RELEASE_EXTRA_VERSION_FILES="harness/harness.toml" bash harness/skills/harness-release/scripts/sync-version.sh sync
+HARNESS_RELEASE_EXTRA_VERSION_FILES="harness/harness.toml" bash "${CLAUDE_SKILL_DIR}/scripts/sync-version.sh" sync
 ```
 or manually reconcile the files before proceeding.
 
@@ -92,33 +92,63 @@ or manually reconcile the files before proceeding.
 
 ---
 
-### Step 6: Invoke harness-release
+### Step 6: Release phases (preflight → CHANGELOG → commit/tag/push → GitHub Release)
 
-Create the wrapper lock so `release-preflight.sh` knows it was invoked through `release-this`:
+Create the wrapper lock:
 
 ```bash
 mkdir -p .claude/state && touch .claude/state/harness-release-wrapper.lock
 ```
 
-Delegate to the generic release skill using the same argument provided by the user (patch / minor / major).
+**Phase 0–2 (preflight + version bump)**: Delegate to `releaser` agent via `setup` invocation:
 
 ```
-/harness-release <patch|minor|major>
+Agent(
+  subagent_type: "releaser",
+  description: "run preflight and bump version",
+  prompt: "{\"schema_version\":\"releaser-request.v1\",\"invocation\":\"setup\",\"bump_type\":\"<patch|minor|major>\"}"
+)
 ```
 
-The `harness-release` skill handles:
-- Phase 0: Pre-flight checks (`release-preflight.sh`)
-- Phase 1–2: Version display and bump
-- Phase 3: CHANGELOG update (`[Unreleased]` → versioned entry)
-- Phase 4: Commit and tag (`chore: release vX.Y.Z`)
-- Phase 5: Push branch and tags
-- Phase 6: GitHub Release creation
+Parse `new_version` from the `releaser-response.v1` response. If `status` is `"error"`, surface the `error` field and abort.
 
-Wait for `harness-release` to complete successfully before proceeding to step 7.
+**Phase 3 (CHANGELOG)**: Move `[Unreleased]` content into `## [X.Y.Z] - YYYY-MM-DD`. Keep empty `## [Unreleased]` above it. Format rules: [`references/writing-changelog.md`](${CLAUDE_SKILL_DIR}/references/writing-changelog.md).
+
+**Phase 3.5 (Validate release notes)**: Validate CHANGELOG and release notes:
+
+```bash
+bash "${CLAUDE_SKILL_DIR}/scripts/validate-release-notes.sh"
+```
+
+**Phase 4–5 (commit/tag/push)**: Delegate to `releaser` agent via `finalize` invocation:
+
+```
+Agent(
+  subagent_type: "releaser",
+  description: "commit, tag, push release v<new_version>",
+  prompt: "{\"schema_version\":\"releaser-request.v1\",\"invocation\":\"finalize\",\"version\":\"<new_version>\"}"
+)
+```
+
+Parse `git_hash` from the response. If `status` is `"error"`, surface the `error` and `changes` fields.
+
+**Phase 6 (GitHub Release)**: Create the GitHub Release:
+
+```bash
+gh release create "v${NEW_VERSION}" \
+  --title "v${NEW_VERSION} - <one-line summary>" \
+  --notes "$(cat <<'EOF'
+## What's Changed
+...
+EOF
+)"
+```
+
+Wait for GitHub Release creation to succeed before proceeding to step 7.
 
 ### Step 7: Completion marking commit
 
-After `harness-release` finishes, create an empty commit to mark the release as fully complete, then push it. Remove the wrapper lock when done.
+After step 6 finishes, create an empty commit to mark the release as fully complete, then push it. Remove the wrapper lock when done.
 
 ```bash
 NEW_VERSION=$(cat harness/VERSION)
@@ -127,13 +157,13 @@ git push origin "$(git rev-parse --abbrev-ref HEAD)"
 rm -f .claude/state/harness-release-wrapper.lock
 ```
 
-This empty commit is the explicit record that "all release work is done." It is separate from the `chore: release vX.Y.Z` commit created by `harness-release`.
+This empty commit is the explicit record that "all release work is done." It is separate from the `chore: release vX.Y.Z` commit created by the releaser agent.
 
 ---
 
 ## `--complete` Mode
 
-When called with `--complete`, execute only step 7 (the completion marking commit). Use this if `harness-release` already finished but the completion commit was not created.
+When called with `--complete`, execute only step 7 (the completion marking commit). Use this if step 6 already finished but the completion commit was not created.
 
 ```bash
 NEW_VERSION=$(cat harness/VERSION)
@@ -145,14 +175,13 @@ git push origin "$(git rev-parse --abbrev-ref HEAD)"
 
 ## Related Skills
 
-- `harness-release` — Generic release engine (delegated at step 6)
 - `harness-review` — Run before release to catch issues early
 - `harness-plan` — Plan the next release tasks
 - `harness-work` — Work on tasks
-- `harness-schedule-run` — Run review-work iterations on release tasks (formerly `harness-loop`)
 
-## Related Rules
+## Related Rules and References
 
 - `harness/rules/versioning.md` — SemVer classification criteria and batch release policy
 - `harness/rules/github-release.md` — GitHub Release Notes format
-- `harness/skills/harness-release/SKILL.md` — Generic release skill (delegated in step 6)
+- [`references/versioning-rules.md`](${CLAUDE_SKILL_DIR}/references/versioning-rules.md) — Detailed versioning rules
+- [`references/writing-changelog.md`](${CLAUDE_SKILL_DIR}/references/writing-changelog.md) — CHANGELOG format guide

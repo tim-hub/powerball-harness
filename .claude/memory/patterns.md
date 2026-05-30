@@ -494,4 +494,4 @@ PreToolUse  → pre-tool-batch  → [goroutine: guardrail] [goroutine: browser-g
 
 - D1: 5-verb skills + 7-agent consolidation (architectural precedent for rejecting redundant agents)
 - Explore subagent pattern (Haiku-powered, generic read-only exploration)
-- `harness/skills/breezing/references/team-composition.md` — single source for which agents exist and why
+- `harness/skills/harness-work/references/breezing-mode.md` — team structure and agent roles for breezing execution

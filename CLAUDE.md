@@ -6,7 +6,7 @@
 ## Development Rules
 
 - **Commits**: Follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:` / `fix:` / `docs:` / `refactor:` / `test:` / `chore:`)
-- **Versioning**: Keep `harness/VERSION` and `.claude-plugin/marketplace.json` in sync. Leave both unchanged in normal PRs; use `./harness/skills/harness-release/scripts/sync-version.sh bump` only when cutting a release; use `/release-this` (not `/harness-release`) to release this plugin
+- **Versioning**: Keep `harness/VERSION` and `.claude-plugin/marketplace.json` in sync. Leave both unchanged in normal PRs; use `./.claude/skills/release-this/scripts/sync-version.sh bump` only when cutting a release; use `/release-this` to release this plugin
 - **CHANGELOG**: Record changes under `[Unreleased]` in Before/After format. Details: [.claude/rules/changelog.md](.claude/rules/changelog.md)
 - **Code style**: Clear names, comments for complex logic, single-responsibility skills/agents
 - **Test tampering**: Absolutely prohibited. Details: [.claude/rules/test-quality.md](.claude/rules/test-quality.md)
@@ -39,11 +39,9 @@ Before starting work, check if a relevant skill exists and launch it with the Sk
 | Skill | Purpose |
 |-------|---------|
 | `harness-plan` | Ideas → `.claude/harness/plans.json` |
-| `harness-work` | Task implementation with parallel workers |
-| `breezing` | Full auto-run with Agent Teams |
+| `harness-work` | Task implementation with parallel workers (`--breezing` for full Agent Teams) |
 | `harness-review` | Multi-angle code review |
-| `harness-release` | Generic CHANGELOG, tag, GitHub Release engine (any project) |
-| `release-this` | Full plugin release: build + checks → harness-release |
+| `release-this` | Full plugin release: build + checks + version bump + CHANGELOG + tag + GitHub Release |
 | `harness-setup` | Project initialization |
 | `harness-remember` | SSOT management (decisions.md, patterns.md) |
 | `update-changelog` | Generate CHANGELOG entries after version bump |

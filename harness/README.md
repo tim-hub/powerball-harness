@@ -90,7 +90,7 @@ flowchart LR
     %% ── RELEASE ─────────────────────────────────────────────
     subgraph RELEASE["⑤ Release"]
         direction TB
-        REL["skill: harness-release\n/harness-release patch|minor|major"]
+        REL["skill: release-this\n/release-this patch|minor|major"]
         STEPS["preflight → VERSION bump\n→ CHANGELOG finalize\n→ git tag → GitHub Release\n→ optional --announce"]
         REL --> STEPS
     end
@@ -98,7 +98,7 @@ flowchart LR
     %% ── SESSION LAYER (always-on) ───────────────────────────
     subgraph SESSION["Session Layer  (always-on)"]
         direction LR
-        SESS["skill: session\n(init, resume/fork, broadcast)"]
+        SESS["skill: maintenance\n(cleanup, session list/inbox/broadcast)"]
     end
 
     %% ── DOMAIN SKILLS (on-demand) ───────────────────────────
@@ -198,7 +198,7 @@ flowchart LR
         DB["~/.harness-mem/harness-mem.db\nshared: Claude + Codex + OpenCode"]
     end
 
-    AT -->|promoted by session skill| L1
+    AT -->|promoted at session end| L1
     TT -->|archived after 30d by /maintenance| TT
     L1 -->|sync via /harness-remember sync-across| L2
     L2 -->|recalled via /harness-remember search| L1
@@ -223,11 +223,9 @@ flowchart LR
 | **Implementation** | `deploy` | shipping to Vercel / Netlify |
 | **CI Recovery** | `ci` | red build or "diagnose CI" |
 | **Review** | `harness-review` | `/harness-review code\|plan\|scope` |
-| **Release** | `harness-release` | `/harness-release patch\|minor\|major` |
+| **Release** | `release-this` | `/release-this patch\|minor\|major` |
 | **Memory** | `harness-remember` | `/harness-remember ssot\|sync\|search\|record` |
-| **Automation** | `harness-schedule-run` | `/harness-schedule-run all` — scheduled cadence run over Plans.md tasks (renamed from `harness-loop`) |
-| **Session** | `session` | auto — init, resume/fork, broadcast |
-| **Guidance** | `harness-guide` | "how does this work?", "what do I do next?" |
+| **Maintenance** | `maintenance` | `/maintenance --all`, session list/inbox/broadcast |
 
 ---
 

@@ -1,9 +1,9 @@
 ---
 name: maintenance
-description: "Performs periodic cleanup — session log pruning, stale state files, orphaned worktrees, cache purge, trace archival. Use when performing routine housekeeping."
-when_to_use: "prune logs, clear state, purge cache, clean worktrees, archive traces, housekeeping, maintenance, cleanup"
+description: "Periodic housekeeping and session lifecycle management. Use when performing cleanup, pruning, or session commands."
+when_to_use: "prune logs, clear state, purge cache, clean worktrees, archive traces, housekeeping, maintenance, cleanup, list sessions, inbox check, broadcast message, session lifecycle"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"]
-argument-hint: "[--prune-logs|--clear-state|--purge-cache|--clean-worktrees|--archive-traces|--all]"
+argument-hint: "[--prune-logs|--clear-state|--purge-cache|--clean-worktrees|--archive-traces|--all|session list|session inbox|session broadcast]"
 user-invocable: true
 model: sonnet
 ---
@@ -103,6 +103,55 @@ Safe: uses `git worktree remove --force` only on worktrees confirmed to have no 
 
 See [`${CLAUDE_SKILL_DIR}/references/cleanup.md`](${CLAUDE_SKILL_DIR}/references/cleanup.md)
 for step-by-step execution procedures for each subcommand.
+
+---
+
+## Session Lifecycle
+
+Consolidates session-related subcommands: listing, inbox checks, and broadcasting.
+
+| User Input | Behavior |
+|------------|----------|
+| `session list` | Show all active Claude Code sessions in the current project |
+| `session inbox` | Check for incoming messages from other sessions |
+| `session broadcast "message"` | Send a message to all active sessions |
+
+### `session list`
+
+Shows all active Claude Code sessions in the current project.
+
+```
+Active Sessions
+
+| Session ID | Status | Last Activity |
+|------------|--------|---------------|
+| abc123     | active | 2 min ago     |
+| def456     | idle   | 15 min ago    |
+```
+
+### `session inbox`
+
+Checks for incoming messages from other sessions.
+
+```
+Session Inbox
+
+| From   | Time    | Message            |
+|--------|---------|---------------------|
+| abc123 | 5m ago  | "Ready for review"  |
+```
+
+### `session broadcast "message"`
+
+Sends a message to all active sessions.
+
+For memory optimization, session lifecycle details, and state transitions, see:
+- [`references/memory.md`](${CLAUDE_SKILL_DIR}/references/memory.md)
+- [`references/session-control.md`](${CLAUDE_SKILL_DIR}/references/session-control.md)
+- [`references/memory-optimization.md`](${CLAUDE_SKILL_DIR}/references/memory-optimization.md)
+- [`references/execution-flow.md`](${CLAUDE_SKILL_DIR}/references/execution-flow.md)
+
+---
 
 ## Related Skills
 

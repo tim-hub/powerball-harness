@@ -75,6 +75,36 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Plugin Simplification — Less is More (Phase 110)
+
+**Removed redundant skills and relocated release tooling to reduce plugin surface area.**
+
+---
+
+#### removed: breezing skill (alias for harness-work --breezing)
+
+**Before**: `harness/skills/breezing/` existed as a separate skill, but it was purely an alias for `harness-work --breezing`. Users had two entry points for the same functionality.
+
+**After**: `harness/skills/breezing/` removed. Use `/harness-work --breezing` directly. All references updated to point to `harness-work`.
+
+---
+
+#### removed: harness-guide skill (converted to reference doc)
+
+**Before**: `harness/skills/harness-guide/` was a skill with auto-loading overhead that contained orientation and workflow guidance.
+
+**After**: Content preserved at `harness/references/guide.md`. No functionality lost; reference doc is always available when needed without skill routing overhead.
+
+---
+
+#### removed: harness-schedule-run skill (use /loop instead)
+
+**Before**: `harness/skills/harness-schedule-run/` provided ScheduleWakeup-based autonomous run loops. Claude Code's built-in `/loop` command covers the same use case natively.
+
+**After**: `harness/skills/harness-schedule-run/` removed. Use Claude Code's native `/loop` command for iterative work cycles. Codex/OpenCode templates preserved at `harness/templates/`.
+
+---
+
 #### chore: track .claude/agents/ and full .claude/memory/ in git
 
 **Before**: `.claude/agents/` was gitignored; `memory/session-log.md` was individually excluded while the rest of `memory/` was tracked. This caused local agent definitions to be lost and required per-file gitignore reasoning for memory.
@@ -88,6 +118,38 @@ Change history for claude-code-harness.
 **Before**: Credits and arXiv references were embedded inline in README. The `.claude/` folder layout (which paths to commit vs. ignore) was not documented anywhere for plugin users.
 
 **After**: `docs/credits-and-references.md` consolidates credits, academic references, and the full `.claude/` committed-vs-gitignored layout. README links to it from the Contributing section and a new `.claude/ Folder` section.
+
+---
+
+#### removed: harness-releaser agent (renamed and relocated to .claude/agents/releaser)
+
+**Before**: The release executor agent lived at `harness/agents/harness-releaser.md` inside the plugin bundle. The agent name was `harness-releaser`, tying it to the plugin namespace and making project-local customization awkward.
+
+**After**: Renamed to `releaser` and relocated to `.claude/agents/releaser.md` (project-local, tracked in git). The `release-this` skill delegates preflight+version-bump (`setup`) and commit/tag/push (`finalize`) to this agent by subagent name. The agent is now part of the project rather than the distributed plugin.
+
+---
+
+#### removed: harness-release skill (merged into .claude/skills/release-this/)
+
+**Before**: `harness/skills/harness-release/` was a generic release engine skill in the plugin bundle. `release-this` called it as a sub-skill, meaning two skill entries existed and scripts lived inside the plugin at plugin-relative paths.
+
+**After**: `harness-release` deleted. Its scripts (`release-preflight.sh`, `sync-version.sh`, `validate-release-notes.sh`, `check-residue.py`) moved to `.claude/skills/release-this/scripts/`. `release-this` is now self-contained with one entry point. All path references updated to `${CLAUDE_SKILL_DIR}/scripts/`.
+
+---
+
+#### internalized: harness-ralph-loop (user-invocable: false)
+
+**Before**: `harness-ralph-loop` appeared in the user-facing skill palette even though users never invoke it directly — only `harness-work` dispatches to it for `[ralph]`-marked tasks.
+
+**After**: `user-invocable: false` set in frontmatter. The skill remains fully functional for `[ralph]` task dispatch but no longer appears in the slash palette.
+
+---
+
+#### merged: session skill into maintenance
+
+**Before**: `harness/skills/session/` was a standalone skill covering session lifecycle (list, inbox, broadcast). `harness/skills/maintenance/` covered cleanup and pruning only. Two separate skills for overlapping housekeeping concerns.
+
+**After**: `session` SKILL.md deleted. Its five reference files (`memory.md`, `memory-optimization.md`, `session-control.md`, `state-transition.md`, `execution-flow.md`) moved to `harness/skills/maintenance/references/`. Maintenance SKILL.md updated to cover both periodic housekeeping and session lifecycle under one entry: `/harness:maintenance`.
 
 ---
 

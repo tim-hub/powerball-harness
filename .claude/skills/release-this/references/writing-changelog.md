@@ -99,6 +99,6 @@ Full format rules: `harness/rules/github-release.md`
 
 ## Related
 
-- `harness-release` skill — Full release workflow (uses this guide at Phase 3)
+- `release-this` skill — Full release workflow (uses this guide at Phase 3)
 - `harness/rules/github-release.md` — Detailed GitHub Release format + CC integration pattern
 - `harness/rules/versioning.md` — Deciding patch / minor / major
