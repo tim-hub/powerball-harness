@@ -15,7 +15,7 @@ Machine-readable CLI reference for `harness plan-cli`. All subcommands exit 0 on
 
 ## `list`
 
-List active phases and their tasks.
+List phases and their tasks. With no flags, shows every phase regardless of status (active and archived); narrow with `--status`.
 
 ```
 harness plan-cli list [--json] [--phase <phaseID>] [--status <status>]
@@ -31,7 +31,7 @@ harness plan-cli list [--json] [--phase <phaseID>] [--status <status>]
 
 **Agent examples:**
 ```bash
-# List all active tasks as JSON
+# List all tasks as JSON (every phase, any status)
 harness plan-cli list --json
 
 # List tasks in phase 108

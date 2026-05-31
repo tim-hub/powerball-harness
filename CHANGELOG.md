@@ -153,6 +153,14 @@ Change history for claude-code-harness.
 
 ---
 
+#### fixed: `plan-cli list` with no flags returned `{"phases": null}` for plans whose phases were not literally `active`
+
+**Before**: A bare `harness plan-cli list` defaulted to `--status active`, which kept a phase only when its status was exactly `"active"` or empty. Plans whose phases carried any other status (e.g. `archived`, or a legacy/unexpected value) had every phase filtered out, so the command returned `{"phases": null}` — indistinguishable from "no plan exists". Because nearly every harness skill and agent reads SSOT via bare `list` and treats empty output as "no plan found", those plans silently looked empty in other projects.
+
+**After**: A bare `list` now defaults to `--status all`, showing every phase regardless of status. This matches the documented default in `cli-reference.md` and makes an empty result unambiguous: `{"phases": null}` now means the plan genuinely has no phases. Narrow the view with `--status active` / `--status archived` / `--status cc:TODO` as before.
+
+---
+
 ## [6.1.1] - 2026-05-30
 
 ### Theme: plans-json-location rule

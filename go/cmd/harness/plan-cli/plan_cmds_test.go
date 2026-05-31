@@ -1,8 +1,11 @@
 package plancli
 
 import (
+	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -361,4 +364,119 @@ func TestRunPlanList_FilterByStatus(t *testing.T) {
 	runPlanList([]string{"--status", "active"})
 	runPlanList([]string{"--status", "archived"})
 	runPlanList([]string{"--status", "all"})
+}
+
+func TestRunPlanList_DefaultShowsAllStatuses(t *testing.T) {
+	plans := &Plans{
+		Project: "test",
+		Phases: []Phase{
+			{ID: 1, Title: "Active", Status: "active", Comments: []Comment{}, Tasks: []Task{}},
+			{ID: 2, Title: "Archived", Status: "archived", Comments: []Comment{}, Tasks: []Task{}},
+		},
+	}
+	_ = setupPlanDir(t, plans)
+
+	out := captureStdout(t, func() { runPlanList(nil) })
+
+	var got struct {
+		Phases []Phase `json:"phases"`
+	}
+	if err := json.Unmarshal([]byte(out), &got); err != nil {
+		t.Fatalf("unmarshal list output: %v\noutput: %s", err, out)
+	}
+	if len(got.Phases) != 2 {
+		t.Fatalf("bare list should show all phases regardless of status; got %d, want 2\noutput: %s", len(got.Phases), out)
+	}
+}
+
+// TestRunPlanList_FilterMatrix exercises runPlanList end-to-end for every
+// filter flag, the no-flag default, and a combination, asserting exactly which
+// phases and tasks survive. The map values are phaseID -> surviving task IDs;
+// a phase kept with no matching tasks maps to an empty slice.
+func TestRunPlanList_FilterMatrix(t *testing.T) {
+	plans := &Plans{
+		Project: "test",
+		Phases: []Phase{
+			{
+				ID: 1, Title: "Active", Status: "active",
+				Urgency: "high", Importance: "high", Comments: []Comment{},
+				Tasks: []Task{
+					{ID: "1.1", Status: "cc:TODO", Urgency: "high", Importance: "high",
+						QualityMarkers: []string{"feature:security"}, Depends: []string{}, Comments: []Comment{}},
+					{ID: "1.2", Status: "cc:done", Urgency: "low", Importance: "low",
+						QualityMarkers: []string{}, Depends: []string{}, Comments: []Comment{}},
+				},
+			},
+			{
+				ID: 2, Title: "Archived", Status: "archived",
+				Urgency: "low", Importance: "low", Comments: []Comment{},
+				Tasks: []Task{
+					{ID: "2.1", Status: "cc:WIP", Urgency: "low", Importance: "low",
+						QualityMarkers: []string{"ralph"}, Depends: []string{}, Comments: []Comment{}},
+				},
+			},
+		},
+	}
+	_ = setupPlanDir(t, plans)
+
+	cases := []struct {
+		name string
+		args []string
+		want map[int][]string
+	}{
+		{"no flags (default all)", nil, map[int][]string{1: {"1.1", "1.2"}, 2: {"2.1"}}},
+		{"status active", []string{"--status", "active"}, map[int][]string{1: {"1.1", "1.2"}}},
+		{"status archived", []string{"--status", "archived"}, map[int][]string{2: {}}},
+		{"status all", []string{"--status", "all"}, map[int][]string{1: {"1.1", "1.2"}, 2: {"2.1"}}},
+		{"status cc:TODO", []string{"--status", "cc:TODO"}, map[int][]string{1: {"1.1"}, 2: {}}},
+		{"status cc:done", []string{"--status", "cc:done"}, map[int][]string{1: {"1.2"}, 2: {}}},
+		{"phase 1", []string{"--phase", "1"}, map[int][]string{1: {"1.1", "1.2"}}},
+		{"phase 2", []string{"--phase", "2"}, map[int][]string{2: {"2.1"}}},
+		{"urgency high", []string{"--urgency", "high"}, map[int][]string{1: {"1.1"}}},
+		{"importance high", []string{"--importance", "high"}, map[int][]string{1: {"1.1"}}},
+		{"marker ralph", []string{"--marker", "ralph"}, map[int][]string{1: {}, 2: {"2.1"}}},
+		{"status cc:WIP + marker ralph", []string{"--status", "cc:WIP", "--marker", "ralph"}, map[int][]string{1: {}, 2: {"2.1"}}},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out := captureStdout(t, func() { runPlanList(c.args) })
+			var got struct {
+				Phases []Phase `json:"phases"`
+			}
+			if err := json.Unmarshal([]byte(out), &got); err != nil {
+				t.Fatalf("unmarshal: %v\noutput: %s", err, out)
+			}
+			result := map[int][]string{}
+			for _, ph := range got.Phases {
+				ids := []string{}
+				for _, tk := range ph.Tasks {
+					ids = append(ids, tk.ID)
+				}
+				result[ph.ID] = ids
+			}
+			if !reflect.DeepEqual(result, c.want) {
+				t.Errorf("filter %q\n got = %v\nwant = %v\noutput: %s", c.args, result, c.want, out)
+			}
+		})
+	}
+}
+
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+	orig := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe: %v", err)
+	}
+	os.Stdout = w
+	defer func() { os.Stdout = orig }()
+
+	fn()
+	_ = w.Close()
+	data, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("read captured stdout: %v", err)
+	}
+	return string(data)
 }

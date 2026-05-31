@@ -25,7 +25,10 @@ func runPlanList(args []string) {
 		filterPhase      int
 		pretty           bool
 	)
-	filterStatus = "active"
+	// Default to "all" so a bare `list` shows every phase regardless of status.
+	// This keeps an empty result unambiguous: {"phases": null} means no plan
+	// exists, never "all phases were filtered out by the default status".
+	filterStatus = "all"
 	filterPhase = -1
 
 	for i := 0; i < len(args); i++ {
