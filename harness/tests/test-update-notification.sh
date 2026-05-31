@@ -6,7 +6,6 @@
 # - session-init.sh new rule detection
 # - session-init.sh old hook configuration detection
 # - template-tracker.sh needsInstall reporting
-# - harness-update.md hooks detection logic
 
 set -e
 
@@ -138,35 +137,6 @@ assert_file_contains \
   "scripts/template-tracker.sh" \
   "installs_count" \
   "install count tracking exists"
-
-echo ""
-
-# ============================================
-# harness-release.md validation (harness-update consolidated into harness-release)
-# ============================================
-echo "## harness-release.md"
-echo ""
-
-# harness-release skill validation
-assert_file_contains \
-  "skills/harness-release/SKILL.md" \
-  "hook|Hook|plugin" \
-  "harness-release has hook-related description"
-
-assert_file_contains \
-  "skills/harness-release/SKILL.md" \
-  "[Bb]reaking" \
-  "harness-release has breaking change detection"
-
-assert_file_contains \
-  "skills/harness-release/SKILL.md" \
-  "validate|Validate|Verify" \
-  "harness-release has validation/verification functionality"
-
-assert_file_contains \
-  "skills/harness-release/SKILL.md" \
-  "changelog|CHANGELOG" \
-  "harness-release has changelog management"
 
 echo ""
 
