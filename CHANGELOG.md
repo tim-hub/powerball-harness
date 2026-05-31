@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v6.1.1...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v6.1.2...HEAD
+[6.1.2]: https://github.com/tim-hub/powerball-harness/compare/v6.1.1...v6.1.2
 [6.1.1]: https://github.com/tim-hub/powerball-harness/compare/v6.1.0...v6.1.1
 [6.1.0]: https://github.com/tim-hub/powerball-harness/compare/v6.0.1...v6.1.0
 [6.0.1]: https://github.com/tim-hub/powerball-harness/compare/v6.0.0...v6.0.1
@@ -74,6 +75,8 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+## [6.1.2] - 2026-05-31
 
 ### Theme: Plugin Simplification — Less is More (Phase 110)
 
