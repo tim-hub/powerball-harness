@@ -106,17 +106,6 @@ Harness can delegate implementation and review tasks to [OpenAI Codex CLI](https
 ## Other Core Features
 
 
-### Advisor
-
-A read-only Opus consultation agent that Workers consult on high-risk preflight, repeated failures, or restart plateaus. Returns one of three structured decisions:
-
-- **`PLAN`** — replan using the suggested approach
-- **`CORRECTION`** — apply the provided local fix
-- **`STOP`** — escalate to Reviewer; human decision required
-
-Full configuration: [docs/advisor-strategy.md](docs/advisor-strategy.md).
-
-
 ### Academic Foundations
 
 Two papers directly shaped this project's design — see [docs/credits-and-references.md](docs/credits-and-references.md) for summaries and links.
@@ -140,7 +129,6 @@ After `/harness-setup`, your project will have a `.claude/` folder. Some paths a
 - [Credits & References](docs/credits-and-references.md)
 - [Claude Code Compatibility](docs/CLAUDE_CODE_COMPATIBILITY.md)
 - [Guardrail Rules](docs/hardening-parity.md)
-- [Advisor Strategy](docs/advisor-strategy.md)
 - [harness-work all examples](docs/evidence/work-all.md)
 - [Harness Plugin Workflow Diagrams · Skill Catalog · Hooks](harness/README.md)
 
