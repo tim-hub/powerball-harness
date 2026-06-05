@@ -27,11 +27,11 @@ METADATA_FILES=(harness/VERSION .claude-plugin/marketplace.json)
 CHANGED_METADATA="$(git diff --cached --name-only -- "${METADATA_FILES[@]}" 2>/dev/null | grep -v '^$' || true)"
 
 if [ -n "$CHANGED_METADATA" ]; then
-  if [ -f "./harness/skills/harness-release/scripts/sync-version.sh" ]; then
-    if ! bash ./harness/skills/harness-release/scripts/sync-version.sh check >/dev/null 2>&1; then
+  if [ -f "./.claude/skills/release-this/scripts/sync-version.sh" ]; then
+    if ! bash ./.claude/skills/release-this/scripts/sync-version.sh check >/dev/null 2>&1; then
       echo "[pre-commit] Release metadata mismatch detected."
       echo "             harness/VERSION is the source of truth; syncing marketplace.json to match."
-      bash ./harness/skills/harness-release/scripts/sync-version.sh sync
+      bash ./.claude/skills/release-this/scripts/sync-version.sh sync
       git add harness/VERSION .claude-plugin/marketplace.json 2>/dev/null || true
       SYNCED_VERSION="$(tr -d '[:space:]' < harness/VERSION)"
       echo "[pre-commit] Version metadata synced to $SYNCED_VERSION"

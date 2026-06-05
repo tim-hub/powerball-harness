@@ -2,9 +2,9 @@
 # sync-version.sh - Sync VERSION to all release metadata files
 #
 # Usage:
-#   ./harness/skills/harness-release/scripts/sync-version.sh check    # Check for mismatches
-#   ./harness/skills/harness-release/scripts/sync-version.sh sync     # Sync all files to VERSION
-#   ./harness/skills/harness-release/scripts/sync-version.sh bump     # Bump patch version for release
+#   ./.claude/skills/release-this/scripts/sync-version.sh check    # Check for mismatches
+#   ./.claude/skills/release-this/scripts/sync-version.sh sync     # Sync all files to VERSION
+#   ./.claude/skills/release-this/scripts/sync-version.sh bump     # Bump patch version for release
 #
 # Version sources (must stay in sync):
 #   harness/VERSION      — canonical source of truth

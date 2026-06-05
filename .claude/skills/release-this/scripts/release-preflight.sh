@@ -235,7 +235,7 @@ check_runtime_residuals() {
 
   while IFS= read -r -d '' file; do
     # Skip this script itself to avoid self-matching on residual pattern examples
-    if [ "$file" = "harness/skills/harness-release/scripts/release-preflight.sh" ]; then
+    if [ "$file" = ".claude/skills/release-this/scripts/release-preflight.sh" ]; then
       continue
     fi
     # Apply directory filter if SCAN_DIRS is not "."

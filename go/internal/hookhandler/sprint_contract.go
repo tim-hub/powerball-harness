@@ -604,7 +604,7 @@ func pickRuntimeCommands(root string) []sprintValidation {
 			Command string
 		}{
 			{Path: "tests/validate-plugin.sh", Label: "validate-plugin", Command: "./tests/validate-plugin.sh"},
-			{Path: "harness/skills/harness-release/scripts/check-consistency.sh", Label: "check-consistency", Command: "./harness/skills/harness-release/scripts/check-consistency.sh"},
+			{Path: ".claude/skills/release-this/scripts/check-consistency.sh", Label: "check-consistency", Command: "./.claude/skills/release-this/scripts/check-consistency.sh"},
 		}
 		for _, fallback := range shellFallbacks {
 			if _, err := os.Stat(filepath.Join(root, fallback.Path)); err == nil {

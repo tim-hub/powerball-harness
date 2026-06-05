@@ -4,7 +4,7 @@
 - `harness/` Harness plugin root (source for Claude Code)
   - `harness/agents/` Sub-agents
   - `harness/skills/` Skills
-    - `harness/skills/harness-release/scripts/` Release-related scripts (check-residue.py, validate-release-notes.sh, release-preflight.sh, sync-version.sh)
+- `.claude/skills/release-this/scripts/` Release-related scripts (check-residue.py, validate-release-notes.sh, release-preflight.sh, sync-version.sh)
 - `.claude/skills/release-this/scripts/check-consistency.sh` Plugin consistency check (13 checks)
   - `harness/hooks/` Hooks
   - `harness/scripts/` Shell scripts

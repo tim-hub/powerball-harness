@@ -3,7 +3,7 @@
 # Compares batched rg (new default) vs sequential grep (legacy).
 #
 # Usage:
-#   bash harness/skills/harness-release/scripts/bench-residue.sh
+#   bash .claude/skills/release-this/scripts/bench-residue.sh
 #
 # Set RESIDUE_SCANNER_BACKEND=rg|grep|auto to override the tested backends.
 

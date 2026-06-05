@@ -7,8 +7,7 @@
 #   Exits 0 if none found, exits 1 if one or more are found.
 #
 # Usage:
-#   python3 harness/skills/harness-release/scripts/check-residue.py
-#   bash harness/skills/harness-release/scripts/check-residue.sh   # thin wrapper
+#   python3 .claude/skills/release-this/scripts/check-residue.py
 
 import subprocess
 import sys
@@ -18,7 +17,7 @@ import re
 import pathlib
 
 # ─── Resolve repository root ──────────────────────────────────────────────────
-# Script lives at: harness/skills/harness-release/scripts/check-residue.py
+# Script lives at: .claude/skills/release-this/scripts/check-residue.py
 # Repo root is 4 levels up.
 REPO_ROOT = str((pathlib.Path(__file__).parent / "../../../../").resolve())
 
@@ -178,6 +177,14 @@ def _batch_scan_rg(terms: list, repo_root: str) -> dict:
     """One rg pass for all terms. Returns {term: [(filepath, linenum, content)]}."""
     args = [
         "rg", "-F", "-n", "--no-heading", "--with-filename",
+        # --no-ignore: scan ALL files regardless of .gitignore / global excludes.
+        # Without it, rg silently skips tracked files matched by a broad global
+        # gitignore (core.excludesfile), making the residue scan a false-clean no-op.
+        # --hidden: also scan dotfiles/dot-dirs (.claude/, .githooks/, .github/).
+        # Without it, rg skips the entire .claude/ tree — where skills/rules/agents
+        # live — so re-introduced references there would go undetected.
+        "--no-ignore",
+        "--hidden",
         "--glob", "!.git",
         "--glob", "!node_modules",
         "--glob", "!.claude/worktrees",
@@ -272,8 +279,10 @@ _PATH_DEFAULT_ALLOWLIST = [
     "benchmarks/",
     "tests/validate-plugin-v3.sh",
     ".claude/rules/deleted-concepts.yaml",
-    "harness/skills/harness-release/scripts/check-residue.sh",
-    "harness/skills/harness-release/scripts/check-residue.py",
+    ".claude/skills/release-this/scripts/check-residue.py",
+    "go/.claude/",  # Go-module-local state/fixtures (changed-files.jsonl etc.) — ephemeral, like .claude/state/
+    "go/cmd/harness/plan-cli/.claude/",
+    "docs/spikes/plugin-name-cleanup-inventory.md",  # historical spike inventory: intentionally lists old paths/skills
 ]
 _CONCEPT_DEFAULT_ALLOWLIST = [
     "CHANGELOG.md",
@@ -284,8 +293,10 @@ _CONCEPT_DEFAULT_ALLOWLIST = [
     "output/",
     "benchmarks/",
     ".claude/rules/deleted-concepts.yaml",
-    "harness/skills/harness-release/scripts/check-residue.sh",
-    "harness/skills/harness-release/scripts/check-residue.py",
+    ".claude/skills/release-this/scripts/check-residue.py",
+    "go/.claude/",  # Go-module-local state/fixtures (changed-files.jsonl etc.) — ephemeral, like .claude/state/
+    "go/cmd/harness/plan-cli/.claude/",
+    "docs/spikes/plugin-name-cleanup-inventory.md",  # historical spike inventory: intentionally lists old paths/skills
     "tests/validate-plugin-v3.sh",
 ]
 
@@ -371,8 +382,7 @@ h1_allowlist = [
     "output/",
     "benchmarks/",
     ".claude/rules/",
-    "harness/skills/harness-release/scripts/check-residue.sh",
-    "harness/skills/harness-release/scripts/check-residue.py",
+    ".claude/skills/release-this/scripts/check-residue.py",
     ".claude/rules/deleted-concepts.yaml",
     "tests/validate-plugin-v3.sh",
 ]
