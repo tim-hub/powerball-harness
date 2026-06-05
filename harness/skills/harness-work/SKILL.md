@@ -3,7 +3,7 @@ name: harness-work
 description: "Executes plans.json tasks — solo, parallel, or breezing team mode. Use when implementing tasks or running the work loop."
 when_to_use: "implement task, run task, execute plans, work on task, run all tasks, parallel workers, breezing"
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob", "Bash", "Task"]
-argument-hint: "[all|task-number|range|--codex|--opencode|--parallel N|--commit|--resume id|--breezing|--auto-mode|--advisor|--no-advisor]"
+argument-hint: "[all|task-number|range|--codex|--opencode|--parallel N|--commit|--resume id|--breezing|--auto-mode]"
 effort: high
 model: sonnet
 ---
@@ -69,8 +69,6 @@ the optimal mode is automatically selected based on the number of target tasks:
 | `--no-tdd` | Skip TDD phase | false |
 | `--no-simplify` | Skip Auto-Refinement | false |
 | `--auto-mode` | Explicitly enable Auto Mode rollout. Only considered when the parent session's permission mode is compatible | false |
-| `--advisor` | Enable advisor consultation (overrides config) | from config |
-| `--no-advisor` | Disable advisor consultation | false |
 
 > **Token Optimization (v2.1.69+)**: For lightweight tasks that don't involve git operations,
 > enable `includeGitInstructions: false` in plugin settings to

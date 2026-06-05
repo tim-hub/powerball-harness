@@ -76,24 +76,6 @@
       "tracked": true,
       "condition": "claude_mem.enabled"
     },
-    "memory/decisions.md.template": {
-      "output": ".claude/memory/decisions.md",
-      "templateVersion": "4.5.2",
-      "description": "Decision records",
-      "tracked": true
-    },
-    "memory/patterns.md.template": {
-      "output": ".claude/memory/patterns.md",
-      "templateVersion": "4.5.2",
-      "description": "Reusable patterns",
-      "tracked": true
-    },
-    "memory/session-log.md.template": {
-      "output": ".claude/memory/session-log.md",
-      "templateVersion": "4.5.2",
-      "description": "Session log",
-      "tracked": false
-    },
     "claude/settings.local.json.template": {
       "output": ".claude/settings.local.json",
       "templateVersion": "4.5.2",

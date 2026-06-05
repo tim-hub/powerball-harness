@@ -36,7 +36,7 @@ project/
 └── .claude/
     ├── settings.json    # Claude Code permissions/sandbox/env
     ├── harness/plans.json  # Task tracking (auto-created by harness plan-cli)
-    ├── memory/          # Harness SSOT (decisions.md + patterns.md)
+    ├── memory/          # Trace archive + schemas (archive/, schemas/)
     ├── output-styles/   # Custom output styles (if any)
     ├── rules/           # Custom rules (if any)
     ├── scripts/         # Custom scripts (if any)

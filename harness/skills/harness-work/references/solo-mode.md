@@ -1,6 +1,6 @@
 # Solo Mode
 
-Full 12-step single-task implementation flow with drift check, advisor preflight, TDD, sprint-contract generation, review, and completion report.
+Full single-task implementation flow with drift check, TDD, sprint-contract generation, review, and completion report.
 
 ---
 
@@ -31,11 +31,6 @@ This check is intentionally lightweight — it only inspects commit messages, no
    - Use `git grep` / `Glob` to infer and display the **impact scope** (files/modules affected by changes)
    - If confident in the inference: proceed directly to implementation (no flow delay)
    - If not confident: ask the user one question only ("Is this understanding correct?")
-1.6. **Advisor Preflight** (when `advisor.enabled` or `--advisor`):
-   - If task has `<!-- advisor:required -->` marker: consult `harness:advisor` with `reason_code: high_risk_preflight`
-   - On `PLAN`: proceed with suggested approach
-   - On `CORRECTION`: apply correction before starting
-   - On `STOP`: escalate to user immediately
 2. **`[ralph]` marker pre-dispatch check**: If the task description contains `[ralph]`, delegate to
    `harness-ralph-loop` instead of the standard solo flow:
    ```

@@ -12,21 +12,19 @@ import (
 
 // AutoCleanupHandler is the PostToolUse hook handler (automatic size check).
 // It checks the line count of files written by the Write/Edit tool and emits
-// a systemMessage warning when Plans.md / session-log.md / CLAUDE.md exceed the threshold.
+// a systemMessage warning when Plans.md / CLAUDE.md exceed the threshold.
 type AutoCleanupHandler struct {
 	// ProjectRoot is the project root path. Falls back to cwd when empty.
 	ProjectRoot string
 
 	// Thresholds (use default values when 0).
-	PlansMaxLines      int
-	SessionLogMaxLines int
-	ClaudeMdMaxLines   int
+	PlansMaxLines    int
+	ClaudeMdMaxLines int
 }
 
 const (
-	defaultPlansMaxLines      = 200
-	defaultSessionLogMaxLines = 500
-	defaultClaudeMdMaxLines   = 100
+	defaultPlansMaxLines    = 200
+	defaultClaudeMdMaxLines = 100
 )
 
 // autoCleanupInput is the stdin JSON for the PostToolUse hook.
@@ -84,10 +82,6 @@ func (h *AutoCleanupHandler) Handle(r io.Reader, w io.Writer) error {
 	if plansMax == 0 {
 		plansMax = h.envInt("PLANS_MAX_LINES", defaultPlansMaxLines)
 	}
-	sessionMax := h.SessionLogMaxLines
-	if sessionMax == 0 {
-		sessionMax = h.envInt("SESSION_LOG_MAX_LINES", defaultSessionLogMaxLines)
-	}
 	claudeMax := h.ClaudeMdMaxLines
 	if claudeMax == 0 {
 		claudeMax = h.envInt("CLAUDE_MD_MAX_LINES", defaultClaudeMdMaxLines)
@@ -99,7 +93,7 @@ func (h *AutoCleanupHandler) Handle(r io.Reader, w io.Writer) error {
 		absPath = filepath.Join(cwd, filePath)
 	}
 
-	feedback := h.checkFile(filePath, absPath, plansMax, sessionMax, claudeMax, cwd)
+	feedback := h.checkFile(filePath, absPath, plansMax, claudeMax)
 	if feedback == "" {
 		return nil
 	}
@@ -108,15 +102,13 @@ func (h *AutoCleanupHandler) Handle(r io.Reader, w io.Writer) error {
 }
 
 // checkFile identifies the file and performs a size check, returning a feedback string.
-func (h *AutoCleanupHandler) checkFile(relPath, absPath string, plansMax, sessionMax, claudeMax int, cwd string) string {
+func (h *AutoCleanupHandler) checkFile(relPath, absPath string, plansMax, claudeMax int) string {
 	lower := strings.ToLower(relPath)
 	var feedback string
 
 	switch {
 	case strings.Contains(lower, "plans.md"):
-		feedback = h.checkPlans(absPath, plansMax, cwd)
-	case strings.Contains(lower, "session-log.md"):
-		feedback = h.checkSessionLog(absPath, sessionMax)
+		feedback = h.checkPlans(absPath, plansMax)
 	case strings.Contains(lower, "claude.md"):
 		feedback = h.checkClaudeMd(absPath, claudeMax)
 	}
@@ -124,8 +116,8 @@ func (h *AutoCleanupHandler) checkFile(relPath, absPath string, plansMax, sessio
 	return feedback
 }
 
-// checkPlans checks the line count of Plans.md and also detects archive sections.
-func (h *AutoCleanupHandler) checkPlans(absPath string, maxLines int, cwd string) string {
+// checkPlans checks the line count of Plans.md.
+func (h *AutoCleanupHandler) checkPlans(absPath string, maxLines int) string {
 	lines, err := countLines(absPath)
 	if err != nil {
 		return ""
@@ -136,39 +128,7 @@ func (h *AutoCleanupHandler) checkPlans(absPath string, maxLines int, cwd string
 		feedback = fmt.Sprintf("⚠️ Plans.md has %d lines (limit: %d). It is recommended to archive old tasks with /harness-plan archive.", lines, maxLines)
 	}
 
-	// Detect archive section + check SSOT flag.
-	if containsArchiveSection(absPath) {
-		// Use the stateDir under the repository root.
-		repoRoot := cwd
-		if root, err := gitRepoRoot(cwd); err == nil {
-			repoRoot = root
-		}
-		stateDir := filepath.Join(repoRoot, ".claude", "state")
-		ssotFlag := filepath.Join(stateDir, ".ssot-synced-this-session")
-
-		if !fileExists(ssotFlag) {
-			ssotWarning := "**Run /harness-remember sync before cleaning up Plans.md** — important decisions and learnings may not yet be reflected in the SSOT (decisions.md/patterns.md)."
-			if feedback != "" {
-				feedback = feedback + " | ⚠️ " + ssotWarning
-			} else {
-				feedback = "⚠️ " + ssotWarning
-			}
-		}
-	}
-
 	return feedback
-}
-
-// checkSessionLog checks the line count of session-log.md.
-func (h *AutoCleanupHandler) checkSessionLog(absPath string, maxLines int) string {
-	lines, err := countLines(absPath)
-	if err != nil {
-		return ""
-	}
-	if lines > maxLines {
-		return fmt.Sprintf("⚠️ session-log.md has %d lines (limit: %d). It is recommended to split it by month with /maintenance.", lines, maxLines)
-	}
-	return ""
 }
 
 // checkClaudeMd checks the line count of CLAUDE.md.
@@ -197,26 +157,6 @@ func countLines(path string) (int, error) {
 		count++
 	}
 	return count, sc.Err()
-}
-
-// containsArchiveSection reports whether the file contains an archive section.
-func containsArchiveSection(path string) bool {
-	f, err := os.Open(path)
-	if err != nil {
-		return false
-	}
-	defer f.Close()
-
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		line := sc.Text()
-		if strings.Contains(line, "📦 Archive") ||
-			strings.Contains(line, "## Archive") ||
-			strings.Contains(line, "Archive") {
-			return true
-		}
-	}
-	return false
 }
 
 // envInt reads an environment variable as an integer, returning defaultVal when unset or unparseable.

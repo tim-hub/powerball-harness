@@ -43,13 +43,6 @@ Before starting work, check if a relevant skill exists and launch it with the Sk
 | `harness-review` | Multi-angle code review |
 | `release-this` | Full plugin release: build + checks + version bump + CHANGELOG + tag + GitHub Release |
 | `harness-setup` | Project initialization |
-| `harness-remember` | SSOT management (decisions.md, patterns.md) |
 | `update-changelog` | Generate CHANGELOG entries after version bump |
 
 Full catalog: [docs/CLAUDE-skill-catalog.md](docs/CLAUDE-skill-catalog.md)
-
-## SSOT (Single Source of Truth)
-
-- `.claude/memory/decisions.md` - Decisions (Why)
-- `.claude/memory/patterns.md` - Reusable patterns (How)
-- `.claude/memory/session-log.md` - Session log (What + context)

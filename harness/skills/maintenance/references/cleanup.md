@@ -4,57 +4,6 @@ Detailed step-by-step procedures for each `/maintenance` subcommand.
 
 ---
 
-## --prune-logs: Session Log Pruning
-
-**Target file**: `.claude/memory/session-log.md`
-
-**Trigger**: File exceeds 500 lines (the auto-cleanup hook warns when this threshold is crossed).
-
-### Execution Steps
-
-1. **Read the current session log**:
-   ```bash
-   wc -l .claude/memory/session-log.md
-   ```
-
-2. **Identify sections older than 90 days**:
-   - Session log is organized into monthly H2 sections: `## YYYY-MM`
-   - Calculate the cutoff date: today minus 90 days
-   - Sections with a date before the cutoff are candidates for removal
-   - Always preserve the current month and the previous month (safety buffer)
-
-3. **Dry-run output** (print before making changes):
-   ```
-   Sections to remove:
-     ## 2025-10 (47 lines)
-     ## 2025-11 (63 lines)
-   Sections to keep:
-     ## 2026-01 (current month)
-     ## 2025-12 (previous month)
-   Total: remove 110 lines, keep 240 lines
-   ```
-
-4. **Confirm with user** before proceeding:
-   ```
-   Proceed with pruning? (y/N)
-   ```
-
-5. **Remove old sections** using Edit tool: delete each identified H2 section and its content.
-
-6. **Verify result**:
-   ```bash
-   wc -l .claude/memory/session-log.md
-   ```
-
-### What Is Never Touched
-
-- `.claude/memory/decisions.md`
-- `.claude/memory/patterns.md`
-- Any file in `.claude/memory/archive/`
-- Plans.md
-
----
-
 ## --clear-state: Stale State File Removal
 
 **Target directory**: `.claude/state/`
@@ -237,10 +186,9 @@ branches that have been merged and deleted.
 
 Executes the above operations in the following order:
 
-1. `--prune-logs`
-2. `--clear-state`
-3. `--clean-worktrees`
-4. `--purge-cache` (last, because it requires the most explicit confirmation)
+1. `--clear-state`
+2. `--clean-worktrees`
+3. `--purge-cache` (last, because it requires the most explicit confirmation)
 
 Each operation presents its dry-run summary and confirmation prompt independently.
 If the user declines a step, that step is skipped and the next proceeds.
@@ -251,7 +199,6 @@ After all steps complete, print a summary:
 
 ```
 Maintenance complete:
-  session-log.md: removed 110 lines (2 months pruned)
   .claude/state/: removed 3 stale files
   git worktrees: removed 2 orphaned entries
   plugin cache: skipped (user declined)

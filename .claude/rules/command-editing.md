@@ -35,7 +35,7 @@ description-en: English brief description
 **Optional Commands** (`commands/optional/`):
 - **Harness integration**: `harness-` prefix (e.g., `harness-mem.md`, `harness-update.md`)
 - **Feature setup**: `{feature}-setup` pattern (e.g., `ci-setup.md`, `lsp-setup.md`)
-- **Operations**: `{action}-{target}` pattern (e.g., `sync-status.md`, `sync-ssot-from-memory.md`)
+- **Operations**: `{action}-{target}` pattern (e.g., `sync-status.md`)
 
 ### 3. Fully Qualified Name Generation
 
@@ -141,5 +141,3 @@ Customize Claude-mem to harness specifications...
 ## Related Documentation
 
 - [CLAUDE.md](../../CLAUDE.md) - Project Development Guide
-- [.claude/memory/decisions.md](../memory/decisions.md) - Architecture Decision Records
-- [.claude/memory/patterns.md](../memory/patterns.md) - Reusable Patterns

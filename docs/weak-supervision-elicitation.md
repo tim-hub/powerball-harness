@@ -8,7 +8,7 @@ The elicitation ledger is an append-only JSONL file at:
 .claude/state/elicitation/events.jsonl
 ```
 
-Every `Elicitation` and `ElicitationResult` hook call writes one JSON line to this file. The ledger accumulates observations from the current and past sessions, and the weak-supervision pipeline reads it to produce advisor cues.
+Every `Elicitation` and `ElicitationResult` hook call writes one JSON line to this file. The ledger accumulates observations from the current and past sessions, and the weak-supervision pipeline reads it for review context.
 
 ## Event kinds
 
@@ -53,19 +53,6 @@ Allowed values: `may_train`, `do_not_train`, `synthetic_only`, `legal_hold`.
 Events with unrecognized tags are rejected and not written to the ledger.
 
 ## Using the scripts
-
-### Build advisor cues
-
-When an advisor request matches a qualifying `reason_code`, inject weak-supervision context:
-
-```bash
-bash harness/scripts/build-weak-supervision-cues.sh \
-  --request-file .claude/state/advisor/current-request.json
-```
-
-The script reads the last 5 relevant events from the ledger and prints compact cue lines to stdout. It exits silently when there are no relevant events.
-
-Qualifying `reason_code` values: `retry-threshold`, `pivot-required`, `needs-spike`, `security-sensitive`, `state-migration`, `advisor-required`.
 
 ### Validate a weak-supervision report
 

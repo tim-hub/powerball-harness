@@ -180,51 +180,6 @@ func TestUsageTrackerHandler_UnknownTool_NoFile(t *testing.T) {
 	}
 }
 
-func TestUsageTrackerHandler_SSOTFlag_MemorySkill(t *testing.T) {
-	dir := t.TempDir()
-	h := &UsageTrackerHandler{ProjectRoot: dir}
-
-	input := `{"tool_name":"Skill","tool_input":{"skill":"claude-code-harness:core:harness-remember"}}`
-
-	var out bytes.Buffer
-	_ = h.Handle(strings.NewReader(input), &out)
-
-	ssotFlag := filepath.Join(dir, ".claude", "state", ".ssot-synced-this-session")
-	if _, err := os.Stat(ssotFlag); err != nil {
-		t.Errorf("expected .ssot-synced-this-session to be created: %v", err)
-	}
-}
-
-func TestUsageTrackerHandler_SSOTFlag_SyncSkill(t *testing.T) {
-	dir := t.TempDir()
-	h := &UsageTrackerHandler{ProjectRoot: dir}
-
-	input := `{"tool_name":"Skill","tool_input":{"skill":"sync-ssot-from-memory"}}`
-
-	var out bytes.Buffer
-	_ = h.Handle(strings.NewReader(input), &out)
-
-	ssotFlag := filepath.Join(dir, ".claude", "state", ".ssot-synced-this-session")
-	if _, err := os.Stat(ssotFlag); err != nil {
-		t.Errorf("expected .ssot-synced-this-session to be created: %v", err)
-	}
-}
-
-func TestUsageTrackerHandler_SSOTFlag_MemoryCommand(t *testing.T) {
-	dir := t.TempDir()
-	h := &UsageTrackerHandler{ProjectRoot: dir}
-
-	input := `{"tool_name":"SlashCommand","tool_input":{"command":"/harness-remember"}}`
-
-	var out bytes.Buffer
-	_ = h.Handle(strings.NewReader(input), &out)
-
-	ssotFlag := filepath.Join(dir, ".claude", "state", ".ssot-synced-this-session")
-	if _, err := os.Stat(ssotFlag); err != nil {
-		t.Errorf("expected .ssot-synced-this-session to be created: %v", err)
-	}
-}
-
 func TestUsageTrackerHandler_Rotation(t *testing.T) {
 	dir := t.TempDir()
 	h := &UsageTrackerHandler{ProjectRoot: dir}

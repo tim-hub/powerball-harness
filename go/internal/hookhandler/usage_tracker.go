@@ -93,9 +93,9 @@ func (h *UsageTrackerHandler) track(inp usageTrackerInput, projectRoot string) {
 
 	switch inp.ToolName {
 	case "Skill":
-		entry = h.trackSkill(inp, projectRoot)
+		entry = h.trackSkill(inp)
 	case "SlashCommand":
-		entry = h.trackSlashCommand(inp, projectRoot)
+		entry = h.trackSlashCommand(inp)
 	case "Task":
 		entry = h.trackTask(inp)
 	}
@@ -112,7 +112,7 @@ func (h *UsageTrackerHandler) track(inp usageTrackerInput, projectRoot string) {
 	h.appendEntry(statsFile, entry)
 }
 
-func (h *UsageTrackerHandler) trackSkill(inp usageTrackerInput, projectRoot string) *usageEntry {
+func (h *UsageTrackerHandler) trackSkill(inp usageTrackerInput) *usageEntry {
 	var toolIn skillToolInput
 	if err := json.Unmarshal(inp.ToolInput, &toolIn); err != nil || toolIn.Skill == "" {
 		return nil
@@ -120,12 +120,6 @@ func (h *UsageTrackerHandler) trackSkill(inp usageTrackerInput, projectRoot stri
 
 	// "claude-code-harness:impl" → "impl"
 	baseName := extractBaseName(toolIn.Skill, ":")
-
-	if baseName == "sync-ssot-from-memory" || baseName == "harness-remember" ||
-		strings.Contains(toolIn.Skill, "sync-ssot-from-memory") ||
-		strings.Contains(toolIn.Skill, ":harness-remember") {
-		h.touchSSOTFlag(projectRoot)
-	}
 
 	return &usageEntry{
 		Type:      "skill",
@@ -135,7 +129,7 @@ func (h *UsageTrackerHandler) trackSkill(inp usageTrackerInput, projectRoot stri
 	}
 }
 
-func (h *UsageTrackerHandler) trackSlashCommand(inp usageTrackerInput, projectRoot string) *usageEntry {
+func (h *UsageTrackerHandler) trackSlashCommand(inp usageTrackerInput) *usageEntry {
 	var toolIn slashCommandInput
 	if err := json.Unmarshal(inp.ToolInput, &toolIn); err != nil {
 		return nil
@@ -150,10 +144,6 @@ func (h *UsageTrackerHandler) trackSlashCommand(inp usageTrackerInput, projectRo
 	}
 
 	baseName := strings.TrimPrefix(cmdName, "/")
-
-	if strings.Contains(baseName, "sync-ssot-from-memory") || baseName == "harness-remember" {
-		h.touchSSOTFlag(projectRoot)
-	}
 
 	return &usageEntry{
 		Type:      "command",
@@ -175,13 +165,6 @@ func (h *UsageTrackerHandler) trackTask(inp usageTrackerInput) *usageEntry {
 		Digest:    digest(inp.ToolInput),
 		Timestamp: nowISO(),
 	}
-}
-
-func (h *UsageTrackerHandler) touchSSOTFlag(projectRoot string) {
-	stateDir := filepath.Join(projectRoot, ".claude", "state")
-	_ = os.MkdirAll(stateDir, 0700)
-	flag := filepath.Join(stateDir, ".ssot-synced-this-session")
-	_ = os.WriteFile(flag, []byte(""), 0600)
 }
 
 func (h *UsageTrackerHandler) appendEntry(statsFile string, entry *usageEntry) {

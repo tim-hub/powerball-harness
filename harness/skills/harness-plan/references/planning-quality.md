@@ -78,7 +78,7 @@ Review perspectives:
 
 ## Step 4: Memory Check
 
-When harness-mem, harness-recall, or local memory files are available, check past decisions using relevant keywords.
+When harness-mem, harness-recall, or local agent memory is available, check past decisions using relevant keywords.
 Scope searches to the current project unless the user explicitly requests cross-project search.
 
 Sources to check:

@@ -732,3 +732,119 @@ deleted_concepts:
       - ".claude/harness/plans.json"
       - ".claude/rules/deleted-concepts.yaml"
       - "harness/skills/harness-work/references/breezing-mode.md"  # breezing-mode references session broadcast
+
+  # ─── trace.v1 + advisor + SSOT-memory removal (v6.2.0) ─────────────────────
+  # The per-task trace system fed only the advisor agent, which was dormant.
+  # Both removed along with the .claude/memory/ SSOT layer and harness-remember.
+  # Retained (do NOT add as terms):
+  # agent-trace.jsonl / EmitAgentTrace (independent session stream), harness-mem (native memory).
+
+  - term: "harness/agents/advisor"
+    replacement: "(none — advisor agent removed; Codex loop keeps plain retry/plateau handling)"
+    deleted_in: "v6.1.3"
+    reason: "Advisor agent removed. It was dormant — no production caller populated context_sources; it only fired in the Codex-CLI path. FT-ADVISE-01/02/03 retired in place per the failure-taxonomy ID-stability rule."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/harness/plans.json"
+      - ".claude/rules/deleted-concepts.yaml"
+      - "harness/rules/failure-taxonomy.md"  # FT-ADVISE rows retired in place (reference the removed agent path)
+
+  - term: "run-advisor-consultation"
+    replacement: "(none — advisor consultation flow removed)"
+    deleted_in: "v6.1.3"
+    reason: "Advisor consultation runner script removed with the advisor agent."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/harness/plans.json"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/scripts/advisor-"
+    replacement: "(none — advisor loader + cache-check scripts removed)"
+    deleted_in: "v6.1.3"
+    reason: "advisor-load-context.sh and advisor-check-cache.sh removed with the advisor agent."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/harness/plans.json"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "build-weak-supervision-cues"
+    replacement: "(none — advisor weak-supervision cue builder removed)"
+    deleted_in: "v6.1.3"
+    reason: "Weak-supervision cue builder fed advisor context only; removed with the advisor."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/harness/plans.json"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "go/internal/trace"
+    replacement: "(none — per-task trace Go package removed; agent-trace.jsonl is independent)"
+    deleted_in: "v6.1.3"
+    reason: "Per-task trace package (writer + errsig) removed; its only reader was the advisor. The session-level EmitAgentTrace stream is a separate package and stays."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "go/.claude/"  # go/.claude/state changed-files log (state snapshot, not a residue)
+      - "Plans.md"
+      - ".claude/harness/plans.json"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "trace-posttool"
+    replacement: "(none — PostToolUse trace hook removed)"
+    deleted_in: "v6.1.3"
+    reason: "trace-posttool PostToolUse hook (HandlePostToolUseTrace) removed; no longer wired in hooks.json or main.go."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/harness/plans.json"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "archive-traces"
+    replacement: "(none — trace archival op + script removed)"
+    deleted_in: "v6.1.3"
+    reason: "/maintenance --archive-traces op and archive-traces.sh removed with the trace system."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/harness/plans.json"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/skills/harness-remember"
+    replacement: "Claude Code native auto-memory (harness-mem, memory bridge, .claude/agent-memory/)"
+    deleted_in: "v6.1.3"
+    reason: "harness-remember skill removed. Its record/search/ssot/sync subcommands only managed the .claude/memory/ SSOT files, which nothing read into context automatically."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/harness/plans.json"
+      - ".claude/rules/deleted-concepts.yaml"
+
+  - term: "harness/templates/memory"
+    replacement: "(none — SSOT memory templates removed)"
+    deleted_in: "v6.1.3"
+    reason: "decisions.md/patterns.md/session-log.md templates removed with the SSOT memory layer; unregistered from template-registry.json."
+    allowlist:
+      - "CHANGELOG.md"
+      - ".claude/memory/archive/"
+      - ".claude/state/"
+      - "Plans.md"
+      - ".claude/harness/plans.json"
+      - ".claude/rules/deleted-concepts.yaml"

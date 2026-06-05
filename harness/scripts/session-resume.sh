@@ -409,11 +409,6 @@ fi
 SESSION_SKILLS_USED_FILE="${STATE_DIR}/session-skills-used.json"
 echo '{"used": [], "session_start": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}' > "$SESSION_SKILLS_USED_FILE"
 
-# ===== Clear SSOT sync flag (at new/restored session start) =====
-# This flag is created when /sync-ssot-from-memory runs,
-# and is used to confirm SSOT sync before plans.json cleanup
-rm -f "${STATE_DIR}/.ssot-synced-this-session" 2>/dev/null || true
-
 # Clear ultrawork warning flag (on session restore)
 # This flag is used in userprompt-inject-policy.sh to show a warning only once
 # Clearing it on restore causes the warning to re-display on the first prompt after restore

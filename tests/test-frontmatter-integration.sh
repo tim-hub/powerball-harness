@@ -71,8 +71,6 @@ test_template_frontmatter_exists() {
     "rules/testing.md.template"
     "rules/plans-management.md.template"
     "rules/ui-debugging-agent-browser.md.template"
-    "memory/decisions.md.template"
-    "memory/patterns.md.template"
   )
   
   for template in "${templates[@]}"; do

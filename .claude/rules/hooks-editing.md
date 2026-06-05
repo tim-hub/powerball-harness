@@ -362,5 +362,3 @@ Execute only once per session:
 
 - **D14**: Hook timeout optimization
 - **D15**: Stop hook prompt type official spec compliance (`{ok, reason}` schema)
-
-Details: [.claude/memory/decisions.md](../memory/decisions.md)

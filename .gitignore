@@ -287,7 +287,6 @@ go/harness
 .claude/logs/
 .claude/state/
 .claude/worktrees/
-.claude/memory/session-log.md
 logs/
 settings.local.json
 states/

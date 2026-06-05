@@ -115,38 +115,6 @@ func TestAutoCleanupHandler_PlansmdOverThreshold(t *testing.T) {
 	}
 }
 
-func TestAutoCleanupHandler_SessionLog_OverThreshold(t *testing.T) {
-	dir := t.TempDir()
-	h := &AutoCleanupHandler{ProjectRoot: dir, SessionLogMaxLines: 500}
-
-	fpath := filepath.Join(dir, "session-log.md")
-	content := strings.Repeat("line\n", 600)
-	_ = os.WriteFile(fpath, []byte(content), 0600)
-
-	input := `{"tool_name":"Write","tool_input":{"file_path":"` + fpath + `"},"cwd":"` + dir + `"}`
-
-	var out bytes.Buffer
-	err := h.Handle(strings.NewReader(input), &out)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if out.Len() == 0 {
-		t.Fatalf("expected warning output")
-	}
-
-	var result struct {
-		HookSpecificOutput struct {
-			AdditionalContext string `json:"additionalContext"`
-		} `json:"hookSpecificOutput"`
-	}
-	_ = json.Unmarshal(bytes.TrimRight(out.Bytes(), "\n"), &result)
-	ctx := result.HookSpecificOutput.AdditionalContext
-	if !strings.Contains(ctx, "session-log.md") {
-		t.Errorf("expected session-log.md warning, got %q", ctx)
-	}
-}
-
 func TestAutoCleanupHandler_ClaudeMd_OverThreshold(t *testing.T) {
 	dir := t.TempDir()
 	h := &AutoCleanupHandler{ProjectRoot: dir, ClaudeMdMaxLines: 100}
@@ -176,70 +144,6 @@ func TestAutoCleanupHandler_ClaudeMd_OverThreshold(t *testing.T) {
 	ctx := result.HookSpecificOutput.AdditionalContext
 	if !strings.Contains(ctx, "CLAUDE.md") {
 		t.Errorf("expected CLAUDE.md warning, got %q", ctx)
-	}
-}
-
-func TestAutoCleanupHandler_PlansmdArchive_WithSSOTFlag(t *testing.T) {
-	dir := t.TempDir()
-	h := &AutoCleanupHandler{ProjectRoot: dir, PlansMaxLines: 200}
-
-	stateDir := filepath.Join(dir, ".claude", "state")
-	_ = os.MkdirAll(stateDir, 0700)
-	_ = os.WriteFile(filepath.Join(stateDir, ".ssot-synced-this-session"), []byte(""), 0600)
-
-	fpath := filepath.Join(dir, "Plans.md")
-	content := "## Archive\n" + strings.Repeat("line\n", 10)
-	_ = os.WriteFile(fpath, []byte(content), 0600)
-
-	input := `{"tool_name":"Write","tool_input":{"file_path":"` + fpath + `"},"cwd":"` + dir + `"}`
-
-	var out bytes.Buffer
-	err := h.Handle(strings.NewReader(input), &out)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if out.Len() != 0 {
-		var result struct {
-			HookSpecificOutput struct {
-				AdditionalContext string `json:"additionalContext"`
-			} `json:"hookSpecificOutput"`
-		}
-		_ = json.Unmarshal(bytes.TrimRight(out.Bytes(), "\n"), &result)
-		if strings.Contains(result.HookSpecificOutput.AdditionalContext, "harness-remember sync") {
-			t.Errorf("expected no SSOT warning with flag present, got %q", result.HookSpecificOutput.AdditionalContext)
-		}
-	}
-}
-
-func TestAutoCleanupHandler_PlansmdArchive_NoSSOTFlag(t *testing.T) {
-	dir := t.TempDir()
-	h := &AutoCleanupHandler{ProjectRoot: dir, PlansMaxLines: 200}
-
-	fpath := filepath.Join(dir, "Plans.md")
-	content := "## Archive\n" + strings.Repeat("line\n", 10)
-	_ = os.WriteFile(fpath, []byte(content), 0600)
-
-	input := `{"tool_name":"Write","tool_input":{"file_path":"` + fpath + `"},"cwd":"` + dir + `"}`
-
-	var out bytes.Buffer
-	err := h.Handle(strings.NewReader(input), &out)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if out.Len() == 0 {
-		t.Fatalf("expected SSOT warning output")
-	}
-
-	var result struct {
-		HookSpecificOutput struct {
-			AdditionalContext string `json:"additionalContext"`
-		} `json:"hookSpecificOutput"`
-	}
-	_ = json.Unmarshal(bytes.TrimRight(out.Bytes(), "\n"), &result)
-	ctx := result.HookSpecificOutput.AdditionalContext
-	if !strings.Contains(ctx, "harness-remember sync") {
-		t.Errorf("expected harness-remember sync warning, got %q", ctx)
 	}
 }
 
@@ -290,26 +194,3 @@ func TestCountLines(t *testing.T) {
 	}
 }
 
-func TestContainsArchiveSection(t *testing.T) {
-	dir := t.TempDir()
-	fpath := filepath.Join(dir, "test.md")
-
-	tests := []struct {
-		content string
-		want    bool
-	}{
-		{"# Tasks\n## TODO\n", false},
-		{"## Archive\n", true},
-		{"📦 Archive\n", true},
-		{"## Archive\n", true},
-		{"# Normal\nsome text\n", false},
-	}
-
-	for _, tt := range tests {
-		_ = os.WriteFile(fpath, []byte(tt.content), 0600)
-		got := containsArchiveSection(fpath)
-		if got != tt.want {
-			t.Errorf("containsArchiveSection(%q) = %v, want %v", tt.content, got, tt.want)
-		}
-	}
-}

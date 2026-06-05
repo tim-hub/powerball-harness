@@ -30,9 +30,8 @@ harness/skills/
 ├── harness-work/          # Task implementation (Plans.md tasks, parallel workers, breezing)
 ├── harness-plan/          # Plans.md authoring — create/add/sync/brainstorm subcommands
 ├── harness-review/        # Code/plan/scope review — pre-merge quality gate, security, performance
-├── harness-setup/         # Project init, CI/Codex/memory config, binary download
-├── harness-remember/      # SSOT management — decisions.md, patterns.md, memory search
-├── maintenance/           # Periodic cleanup and session lifecycle — pruning, state, cache, list/inbox/broadcast
+├── harness-setup/         # Project init, CI/Codex config, binary download
+├── maintenance/           # Periodic cleanup and session lifecycle — state, cache, worktrees, list/inbox/broadcast
 └── harness-ralph-loop/    # Iterative loop orchestrator for [ralph]-marked tasks
 ```
 
@@ -45,8 +44,7 @@ harness/skills/
 | `harness-review` | Code review, quality checks, security audit | "review this", "security", "performance" |
 | `release-this` | Plugin release: build-all → checks → version bump → CHANGELOG → tag → GitHub Release | "release this", "release plugin", "publish harness" |
 | `harness-setup` | Project init, binary download, CI config | "setup", "initialize", "install binary" |
-| `harness-remember` | SSOT management, decisions.md, patterns.md | "SSOT", "decisions", "memory search" |
-| `maintenance` | Periodic housekeeping and session lifecycle — log pruning, stale state, worktrees, list/inbox/broadcast | "prune logs", "clean state", "/maintenance", "list sessions", "session inbox" |
+| `maintenance` | Periodic housekeeping and session lifecycle — stale state, worktrees, cache, list/inbox/broadcast | "clean state", "/maintenance", "list sessions", "session inbox" |
 
 ## Development Skills (Private)
 

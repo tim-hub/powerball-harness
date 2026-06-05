@@ -110,8 +110,6 @@ func (h *InitHandler) Handle(r io.Reader, w io.Writer) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 	_ = writeFileAtomic(skillsUsedFile, []byte(fmt.Sprintf(`{"used":[],"session_start":%q}`, now)+"\n"), 0600)
 
-	// Clear SSOT sync flag
-	_ = os.Remove(filepath.Join(stateDir, ".ssot-synced-this-session"))
 	// Clear work review warning flags
 	_ = os.Remove(filepath.Join(stateDir, ".work-review-warned"))
 	_ = os.Remove(filepath.Join(stateDir, ".ultrawork-review-warned"))

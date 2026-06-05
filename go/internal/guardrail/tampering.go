@@ -89,7 +89,7 @@ func isConfigFile(filePath string) bool {
 
 type tamperingWarning struct {
 	PatternID   string
-	TaxonomyID  string // FT-TAMPER-NN; stable ID for trace events and advisor history
+	TaxonomyID  string // FT-TAMPER-NN; stable failure-taxonomy ID cited in hook output
 	Description string
 	MatchedText string
 }

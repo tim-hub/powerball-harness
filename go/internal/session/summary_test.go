@@ -57,10 +57,9 @@ func TestSummaryHandler_AlreadyLogged(t *testing.T) {
 	}
 }
 
-func TestSummaryHandler_WritesSessionLog(t *testing.T) {
+func TestSummaryHandler_FinalizesSession(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, "state")
-	memoryDir := filepath.Join(dir, "memory")
 	if err := os.MkdirAll(stateDir, 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -90,9 +89,8 @@ func TestSummaryHandler_WritesSessionLog(t *testing.T) {
 	}
 
 	h := &SummaryHandler{
-		StateDir:  stateDir,
-		MemoryDir: memoryDir,
-		now:       func() time.Time { return fixedTime },
+		StateDir: stateDir,
+		now:      func() time.Time { return fixedTime },
 	}
 
 	var out bytes.Buffer
@@ -100,31 +98,7 @@ func TestSummaryHandler_WritesSessionLog(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Verify session-log.md was created
-	logFile := filepath.Join(memoryDir, "session-log.md")
-	logData, err := os.ReadFile(logFile)
-	if err != nil {
-		t.Fatalf("session-log.md not created: %v", err)
-	}
-
-	logContent := string(logData)
-	if !strings.Contains(logContent, "sess-test-001") {
-		t.Errorf("expected session_id in log")
-	}
-	if !strings.Contains(logContent, "test-project") {
-		t.Errorf("expected project name in log")
-	}
-	if !strings.Contains(logContent, "feat/test") {
-		t.Errorf("expected branch in log")
-	}
-	if !strings.Contains(logContent, "src/foo.go") {
-		t.Errorf("expected changed file in log")
-	}
-	if !strings.Contains(logContent, "src/bar.go") {
-		t.Errorf("expected important file in log")
-	}
-
-	// Verify memory_logged=true was set in session.json
+	// Verify session.json was finalized: memory_logged guard + stopped state
 	updatedData, _ := os.ReadFile(sessionFile)
 	var updatedSess map[string]interface{}
 	if err := json.Unmarshal(updatedData, &updatedSess); err != nil {
@@ -136,12 +110,16 @@ func TestSummaryHandler_WritesSessionLog(t *testing.T) {
 	if stringField(updatedSess, "state", "") != "stopped" {
 		t.Errorf("expected state=stopped in session.json")
 	}
+
+	// Verify the terminal summary surfaced the changed files
+	if !strings.Contains(out.String(), "Session Summary") {
+		t.Errorf("expected session summary output, got %q", out.String())
+	}
 }
 
-func TestSummaryHandler_WritesWIPTasks(t *testing.T) {
+func TestSummaryHandler_WIPTasksGateSummary(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, "state")
-	memoryDir := filepath.Join(dir, "memory")
 	if err := os.MkdirAll(stateDir, 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -149,14 +127,14 @@ func TestSummaryHandler_WritesWIPTasks(t *testing.T) {
 	// Create plans.json: 1 WIP, 1 pm:requested, 1 TODO
 	plansFile := writeSessionPlansJSON(t, dir, "cc:WIP", "pm:requested", "cc:TODO")
 
+	// No changed files: the terminal summary should still surface because
+	// WIP/requested tasks remain (the wipTasks gate in Handle).
 	sess := map[string]interface{}{
-		"session_id":   "sess-002",
-		"state":        "running",
-		"started_at":   "2026-04-05T10:00:00Z",
-		"memory_logged": false,
-		"changes_this_session": []interface{}{
-			map[string]interface{}{"file": "test.go", "important": false},
-		},
+		"session_id":           "sess-002",
+		"state":                "running",
+		"started_at":           "2026-04-05T10:00:00Z",
+		"memory_logged":        false,
+		"changes_this_session": []interface{}{},
 	}
 	data, _ := json.MarshalIndent(sess, "", "  ")
 	if err := os.WriteFile(filepath.Join(stateDir, "session.json"), data, 0600); err != nil {
@@ -166,7 +144,6 @@ func TestSummaryHandler_WritesWIPTasks(t *testing.T) {
 	fixedTime := time.Date(2026, 4, 5, 11, 0, 0, 0, time.UTC)
 	h := &SummaryHandler{
 		StateDir:  stateDir,
-		MemoryDir: memoryDir,
 		PlansFile: plansFile,
 		now:       func() time.Time { return fixedTime },
 	}
@@ -176,22 +153,14 @@ func TestSummaryHandler_WritesWIPTasks(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	logFile := filepath.Join(memoryDir, "session-log.md")
-	logData, err := os.ReadFile(logFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Verify WIP tasks are included
-	if !strings.Contains(string(logData), "cc:WIP") {
-		t.Errorf("expected WIP tasks in session log")
+	if !strings.Contains(out.String(), "Session Summary") {
+		t.Errorf("expected summary output gated by WIP tasks, got %q", out.String())
 	}
 }
 
 func TestSummaryHandler_ArchivesSession(t *testing.T) {
 	dir := t.TempDir()
 	stateDir := filepath.Join(dir, "state")
-	memoryDir := filepath.Join(dir, "memory")
 	if err := os.MkdirAll(stateDir, 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -210,9 +179,8 @@ func TestSummaryHandler_ArchivesSession(t *testing.T) {
 
 	fixedTime := time.Date(2026, 4, 5, 11, 0, 0, 0, time.UTC)
 	h := &SummaryHandler{
-		StateDir:  stateDir,
-		MemoryDir: memoryDir,
-		now:       func() time.Time { return fixedTime },
+		StateDir: stateDir,
+		now:      func() time.Time { return fixedTime },
 	}
 
 	var out bytes.Buffer
@@ -247,38 +215,6 @@ func TestSummaryHandler_CalcDurationMinutes(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("calcDurationMinutes(%q) = %d, want %d", tt.startedAt, got, tt.want)
 		}
-	}
-}
-
-func TestSummaryHandler_EnsureSessionLog(t *testing.T) {
-	dir := t.TempDir()
-	logFile := filepath.Join(dir, "sub", "session-log.md")
-
-	h := &SummaryHandler{}
-
-	// Verify file is created
-	if err := h.ensureSessionLog(logFile); err != nil {
-		t.Fatalf("ensureSessionLog failed: %v", err)
-	}
-
-	data, err := os.ReadFile(logFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(data), "Session Log") {
-		t.Errorf("expected Session Log header, got:\n%s", data)
-	}
-
-	// Second call does nothing (does not overwrite)
-	if err := os.WriteFile(logFile, []byte("custom content"), 0644); err != nil {
-		t.Fatal(err)
-	}
-	if err := h.ensureSessionLog(logFile); err != nil {
-		t.Fatalf("ensureSessionLog failed: %v", err)
-	}
-	data2, _ := os.ReadFile(logFile)
-	if string(data2) != "custom content" {
-		t.Errorf("expected existing content preserved, got:\n%s", data2)
 	}
 }
 

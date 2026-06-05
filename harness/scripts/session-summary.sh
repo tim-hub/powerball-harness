@@ -7,8 +7,6 @@
 set +e
 
 STATE_FILE=".claude/state/session.json"
-MEMORY_DIR=".claude/memory"
-SESSION_LOG_FILE="${MEMORY_DIR}/session-log.md"
 EVENT_LOG_FILE=".claude/state/session.events.jsonl"
 ARCHIVE_DIR=".claude/state/sessions"
 CURRENT_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -37,10 +35,7 @@ if [ "$ALREADY_LOGGED" = "true" ]; then
 fi
 
 # Retrieve session information
-SESSION_ID=$(jq -r '.session_id // "unknown"' "$STATE_FILE")
 SESSION_START=$(jq -r '.started_at' "$STATE_FILE")
-PROJECT_NAME=$(jq -r '.project_name // empty' "$STATE_FILE")
-GIT_BRANCH=$(jq -r '.git.branch // empty' "$STATE_FILE")
 CHANGES_COUNT=$(jq '.changes_this_session | length' "$STATE_FILE")
 IMPORTANT_CHANGES=$(jq '[.changes_this_session[] | select(.important == true)] | length' "$STATE_FILE")
 
@@ -121,88 +116,6 @@ if [ "$CHANGES_COUNT" -gt 0 ] || [ "$GIT_COMMITS" -gt 0 ] || [ -n "$RECENT_EDITS
 
   echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   echo ""
-fi
-
-# ================================
-# Auto-append to `.claude/memory/session-log.md` (create if missing)
-# ================================
-
-# Even with no changes, there are cases where we want a record that the session started,
-# so writing the log is fine if session start is available (empty sessions are allowed)
-if [ -n "$SESSION_START" ] && [ "$SESSION_START" != "null" ]; then
-  mkdir -p "$MEMORY_DIR" 2>/dev/null || true
-
-  if [ ! -f "$SESSION_LOG_FILE" ]; then
-    cat > "$SESSION_LOG_FILE" << 'EOF'
-# Session Log
-
-Per-session work log (primarily for local use).
-Promote important decisions to `.claude/memory/decisions.md` and reusable solutions to `.claude/memory/patterns.md`.
-
-## Index
-
-- (add entries as needed)
-
----
-EOF
-  fi
-
-  # Changed file list (deduplicated)
-  CHANGED_FILES=$(jq -r '.changes_this_session[]?.file' "$STATE_FILE" 2>/dev/null | awk 'NF' | awk '!seen[$0]++')
-  IMPORTANT_FILES=$(jq -r '.changes_this_session[]? | select(.important == true) | .file' "$STATE_FILE" 2>/dev/null | awk 'NF' | awk '!seen[$0]++')
-
-  # WIP tasks (extract if present)
-  WIP_TASKS=""
-  if declare -F plans_json_exists >/dev/null 2>&1 && plans_json_exists; then
-    WIP_TASKS=$(plans_wip_names 20 2>/dev/null || true)
-  fi
-
-  {
-    echo ""
-    echo "## Session: ${CURRENT_TIME}"
-    echo ""
-    echo "- session_id: \`${SESSION_ID}\`"
-    [ -n "$PROJECT_NAME" ] && echo "- project: \`${PROJECT_NAME}\`"
-    [ -n "$GIT_BRANCH" ] && echo "- branch: \`${GIT_BRANCH}\`"
-    echo "- started_at: \`${SESSION_START}\`"
-    echo "- ended_at: \`${CURRENT_TIME}\`"
-    [ "$DURATION_MINUTES" -gt 0 ] && echo "- duration_minutes: ${DURATION_MINUTES}"
-    echo "- changes: ${CHANGES_COUNT}"
-    [ "$IMPORTANT_CHANGES" -gt 0 ] && echo "- important_changes: ${IMPORTANT_CHANGES}"
-    [ "$GIT_COMMITS" -gt 0 ] && echo "- commits: ${GIT_COMMITS}"
-    echo ""
-    echo "### Changed Files"
-    if [ -n "$CHANGED_FILES" ]; then
-      echo "$CHANGED_FILES" | while read -r f; do
-        [ -n "$f" ] && echo "- \`$f\`"
-      done
-    else
-      echo "- (none)"
-    fi
-    echo ""
-    echo "### Important Changes (important=true)"
-    if [ -n "$IMPORTANT_FILES" ]; then
-      echo "$IMPORTANT_FILES" | while read -r f; do
-        [ -n "$f" ] && echo "- \`$f\`"
-      done
-    else
-      echo "- (none)"
-    fi
-    echo ""
-    echo "### Handoff Notes (optional)"
-    if [ -n "$WIP_TASKS" ]; then
-      echo ""
-      echo "**plans.json WIP/In-Progress (excerpt)**:"
-      echo ""
-      echo '```'
-      echo "$WIP_TASKS"
-      echo '```'
-    else
-      echo "- (add entries as needed)"
-    fi
-    echo ""
-    echo "---"
-  } >> "$SESSION_LOG_FILE" 2>/dev/null || true
 fi
 
 # Record session end time and logged flag in state file

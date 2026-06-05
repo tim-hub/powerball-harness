@@ -24,7 +24,7 @@ Workers must not create, clone, or leave an embedded `.git` directory inside the
 
 ## NG-3: No Nested Teammate Spawning
 
-Workers must not spawn Reviewer, Advisor, or other Worker agents. Team member spawning is exclusively the Lead's responsibility.
+Workers must not spawn Reviewer or other Worker agents. Team member spawning is exclusively the Lead's responsibility.
 
 **Why**: Claude Code v2.1.69+ prohibits nested teammate spawning at the platform level. Attempting it causes unpredictable behavior (silent drop or error). Even where technically possible, nested spawning creates untracked review loops that bypass the Lead's quality gate.
 

@@ -25,9 +25,6 @@ cleanup:
   plans:
     archive_after_days: 7
     max_lines: 200
-  session_log:
-    archive_after_days: 30
-    max_lines: 500
   claude_md:
     max_lines: 100
 
@@ -38,18 +35,3 @@ monitor:
     wip_threshold: 5
     # Emit a warning when Plans.md has not been modified for >= this many hours
     stale_hours: 24
-
-# Orchestration settings
-orchestration:
-  # TTL in seconds before an unanswered advisor/reviewer request is flagged as drift
-  advisor_ttl_seconds: 600
-
-# Advisor settings (Opus consultation strategy)
-advisor:
-  enabled: true
-  mode: on-demand
-  max_consults_per_task: 3
-  retry_threshold: 2
-  consult_before_user_escalation: true
-  model_defaults:
-    claude: opus

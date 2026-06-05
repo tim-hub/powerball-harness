@@ -282,7 +282,7 @@ func TestPostToolUseLogToolName_SkillTrackingMultiple(t *testing.T) {
 
 	h := &PostToolUseLogToolNameHandler{ProjectRoot: dir}
 
-	skills := []string{"harness-review", "harness-work", "harness-remember"}
+	skills := []string{"harness-review", "harness-work", "harness-plan"}
 	for _, s := range skills {
 		input, _ := json.Marshal(map[string]interface{}{
 			"tool_name":  "Skill",

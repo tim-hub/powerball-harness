@@ -1,6 +1,6 @@
 ---
 name: harness-planner
-description: "Mechanically applies plans mutations — mark task done/WIP/blocked/TODO, add task or phase, archive completed phases, split session-log by month. Receives content from caller; never generates content."
+description: "Mechanically applies plans mutations — mark task done/WIP/blocked/TODO, add task or phase, archive completed phases. Receives content from caller; never generates content."
 tools: [Read, Write, Edit, Bash, Grep, Glob]
 disallowedTools: [Agent]
 model: haiku
@@ -20,7 +20,7 @@ initialPrompt: |
 
 Mechanical worker for plans mutations. Sits behind the `harness-plan` skill and other Harness skills/agents that need to apply a structured change to `.claude/harness/plans.json` without burning Opus/Sonnet tokens on a deterministic file edit.
 
-All mutations go through the `harness plan-cli` binary — **never edit `plans.json` or `Plans.md` directly**. The CLI handles atomic I/O, JSON serialisation, and ordering invariants.
+All mutations go through the `harness plan-cli` binary — **never edit `plans.json` directly**. The CLI handles atomic I/O, JSON serialisation, and ordering invariants.
 
 ## Purpose
 
@@ -46,14 +46,13 @@ If the caller needs any of the above, route to the `harness-plan` skill directly
 | `update` | `task_id`, `marker` (one of `WIP`/`done`/`blocked`/`TODO`), `reason` (required when marker=blocked), `commit_hash` (optional when marker=done) |
 | `add` | `task_name`, `description`, `dod`, `depends`, optional `phase` |
 | `archive` | (no content fields needed) |
-| `session-log` | (no content fields needed) |
 
 ## Input Schema (planner-request.v1)
 
 ```json
 {
   "schema_version": "planner-request.v1",
-  "operation": "update | add | archive | session-log",
+  "operation": "update | add | archive",
 
   "task_id":     "string  — required for update (e.g. \"2.3\")",
   "marker":      "WIP | done | blocked | TODO — required for update",
@@ -77,9 +76,9 @@ Always emit this JSON as the final message:
 ```json
 {
   "schema_version": "planner-response.v1",
-  "operation": "update | add | archive | session-log",
+  "operation": "update | add | archive",
   "status":    "applied | skipped | error",
-  "file_path": ".claude/harness/plans.json | .claude/memory/session-log-YYYY-MM.md",
+  "file_path": ".claude/harness/plans.json",
   "changes":   ["one-line description per change"],
   "error":     "string — present only when status=error"
 }
@@ -88,7 +87,7 @@ Always emit this JSON as the final message:
 | status | Meaning |
 |--------|---------|
 | `applied` | Edit completed successfully |
-| `skipped` | No-op (e.g. archive when no phases eligible; session-log when nothing older than current month) |
+| `skipped` | No-op (e.g. archive when no phases eligible) |
 | `error` | Required field missing, task not found, or file-format violation detected |
 
 ## Operation: `update`
@@ -152,17 +151,6 @@ Mirrors `harness-plan archive`. Uses `harness plan-cli archive` — no direct fi
 5. Return `status: "applied"`, `changes: ["archived Phase <N> (status=archived)"]`.
 
 Note: The JSON archive format sets `status: "archived"` in-place. Separate archive markdown files are no longer created (the JSON is the SSOT).
-
-## Operation: `session-log`
-
-Mirrors `harness-plan session-log`. See `harness/skills/harness-plan/references/session-log.md`.
-
-1. Read `.claude/memory/session-log.md`.
-2. Group sessions by `YYYY-MM`. Identify months **older than the current month**.
-3. If none → return `status: "skipped"`, `changes: ["session-log.md is already current"]`.
-4. For each older month: write its session blocks to `.claude/memory/session-log-YYYY-MM.md`.
-5. Rewrite `session-log.md` keeping the header, the current month's sessions, and an updated `## Index` with links to each archive file.
-6. Return `status: "applied"`, `changes: ["archived sessions from YYYY-MM to <path>", ...]`.
 
 ## Rules — what must always hold
 
@@ -269,4 +257,3 @@ The planner returns the `planner-response.v1` JSON as its final message. The cal
 - `harness/skills/harness-plan/references/update.md` — full `update` flow semantics
 - `harness/skills/harness-plan/references/add.md` — full `add` flow semantics
 - `harness/skills/harness-plan/references/archive.md` — full `archive` retention rule
-- `harness/skills/harness-plan/references/session-log.md` — monthly split flow

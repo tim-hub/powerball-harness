@@ -80,7 +80,6 @@ User / New Project
 | **Worker** | TDD, implementation, self-check, git commit | Read / Write / Edit / Bash |
 | **Reviewer** | Independent verdict against sprint-contract | Read / Grep / Glob (read-only) |
 | **Scaffolder** | Project init, tech-stack detection, CLAUDE.md/Plans.md | Read / Write / Edit |
-| **Advisor** | Consults on high-risk preflight or repeated failures | Read-only, returns PLAN/CORRECTION/STOP |
 | **CI-CD-Fixer** | CI failure diagnosis and fix (3-strike escalation) | Read / Write / Edit / Bash |
 
 ### Breezing Fix Loop
@@ -102,7 +101,6 @@ Lead reviews with Reviewer (diff + sprint-contract)
 | `harness-work` | Implement tasks (all modes) |
 | `harness-review` | Multi-angle code review |
 | `harness-release` | Version bump + CHANGELOG + GitHub Release |
-| `harness-remember` | SSOT — decisions.md, patterns.md, session log |
 
 Full catalog: `docs/CLAUDE-skill-catalog.md`
 

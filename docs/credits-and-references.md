@@ -12,7 +12,7 @@
 
 | Paper | Relevance |
 |-------|-----------|
-| [Meta-Harness: End-to-End Optimization of Model Harnesses](https://arxiv.org/abs/2603.28052) | Drives the per-task `.claude/state/traces/` JSONL system and the `harness-review` eval loop — compressed feedback loses causal signal, so agents keep raw execution history rather than summaries |
+| [Meta-Harness: End-to-End Optimization of Model Harnesses](https://arxiv.org/abs/2603.28052) | Drives the `harness-review` eval loop — compressed feedback loses causal signal, so agents work from concrete review findings rather than summaries |
 | [Natural-Language Agent Harnesses](https://arxiv.org/abs/2603.25723) | Named failure modes drive recovery strategies — the Failure Taxonomy (`FT-*` IDs) in [`harness/rules/failure-taxonomy.md`](../harness/rules/failure-taxonomy.md) is a direct implementation |
 
 ---
@@ -42,9 +42,8 @@ These are created at runtime and should not be committed.
 |------|---------|
 | `.claude/sessions/` | Claude Code session transcripts |
 | `.claude/logs/` | Hook and script logs |
-| `.claude/state/` | Runtime state: review results, advisor history, lock files |
+| `.claude/state/` | Runtime state: review results, lock files |
 | `.claude/worktrees/` | Temporary git worktrees used by breezing workers |
-| `.claude/memory/session-log.md` | Running session log — grows unboundedly; split monthly with `/harness-plan session-log` |
 
 > The `.gitignore` shipped with this plugin already contains the ignore rules for the volatile paths above.
 > The tracked paths are force-included with `!.claude/harness/`, `!.claude/memory/`, etc. to survive

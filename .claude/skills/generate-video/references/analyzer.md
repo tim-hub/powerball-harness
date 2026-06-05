@@ -74,7 +74,6 @@ find . -path "*/components/*" -name "*.tsx" 2>/dev/null | wc -l
 | `README.md` | Project overview, tagline |
 | `Plans.md` | Completed tasks (for release notes) |
 | `CHANGELOG.md` | Changes (for release notes) |
-| `.claude/memory/decisions.md` | Technical decisions (for architecture explanation) |
 
 **Execution Commands**:
 ```bash

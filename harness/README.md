@@ -26,8 +26,6 @@ flowchart LR
     subgraph PLAN["② Planning"]
         direction TB
         HP["skill: harness-plan\n/harness-plan create|add|sync|brainstorm"]
-        MEM["skill: harness-remember\n(decisions.md, patterns.md)"]
-        HP --> MEM
     end
 
     %% ── WORK MODE SELECTION ─────────────────────────────────
@@ -185,28 +183,18 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    subgraph L0["Layer 0 · Execution Traces (auto)"]
+    subgraph L0["Layer 0 · Execution Trace (auto)"]
         AT[".claude/state/agent-trace.jsonl\nsession-level tool calls"]
-        TT[".claude/state/traces/&lt;task&gt;.jsonl\nper-task causal history (trace.v1)"]
     end
-    subgraph L1["Layer 1 · Project SSOT (skill: harness-remember)"]
-        DEC2["decisions.md\n(why decisions were made)"]
-        PAT["patterns.md\n(reusable implementation patterns)"]
-        SL["session-log.md\n(per-session notes)"]
-    end
-    subgraph L2["Layer 2 · Unified DB (MCP: harness-mem)"]
+    subgraph L1["Layer 1 · Unified DB (MCP: harness-mem)"]
         DB["~/.harness-mem/harness-mem.db\nshared: Claude + Codex + OpenCode"]
     end
 
-    AT -->|promoted at session end| L1
-    TT -->|archived after 30d by /maintenance| TT
-    L1 -->|sync via /harness-remember sync-across| L2
-    L2 -->|recalled via /harness-remember search| L1
+    BR[".claude/state/memory-bridge-events.jsonl\n(auto-memory bridge)"] --> DB
 ```
 
-**L0 has two trace streams**:
+**L0 trace stream**:
 - `agent-trace.jsonl` aggregates all tool calls in a session (session-scoped; see `go/internal/hookhandler/emit_agent_trace.go`)
-- `traces/<task_id>.jsonl` records causal history for one Plans.md task (task-scoped; schema defined at `.claude/memory/schemas/trace.v1.md`). Consumers: Phase 73 advisor, Phase 74 code-space proposer.
 
 ---
 
@@ -224,7 +212,6 @@ flowchart LR
 | **CI Recovery** | `ci` | red build or "diagnose CI" |
 | **Review** | `harness-review` | `/harness-review code\|plan\|scope` |
 | **Release** | `release-this` | `/release-this patch\|minor\|major` |
-| **Memory** | `harness-remember` | `/harness-remember ssot\|sync\|search\|record` |
 | **Maintenance** | `maintenance` | `/maintenance --all`, session list/inbox/broadcast |
 
 ---

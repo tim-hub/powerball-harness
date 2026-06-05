@@ -76,6 +76,48 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Removed the per-task trace (`trace.v1`) system and the `advisor` agent
+
+**The per-task execution trace system fed exactly one consumer — the `advisor` agent — and that advisor was dormant (no production caller ever populated its `context_sources`; it only fired in the Codex-CLI path). Both are removed, eliminating a feedback system that recorded data nothing acted on. The independent session-level `agent-trace.jsonl` stream is unaffected.**
+
+---
+
+#### 1. Removed the task-trace (`trace.v1`) system
+
+**Before**: A PostToolUse hook (`trace-posttool`) wrote per-task `tool_call` events to `.claude/state/traces/<task_id>.jsonl` via a dedicated Go package (`go/internal/trace/`), with a schema doc and a `/maintenance --archive-traces` op to age files out. The only reader was the advisor.
+
+**After**: The trace package, the `trace-posttool` hook, the schema doc, and the `--archive-traces` maintenance op are all removed. The session-level `agent-trace.jsonl` (written by `EmitAgentTrace`) is independent and stays.
+
+#### 2. Removed the `advisor` agent
+
+**Before**: The advisor (`harness/agents/advisor.md`) was consulted at three trigger points in the Codex loop — high-risk preflight, repeated-failure, and plateau-before-escalation — via `run-advisor-consultation.sh` + a scoped context loader, with config in `.claude-code-harness.config.yaml` and drift monitoring in the Go session monitor.
+
+**After**: The agent, its scripts (loader, cache-check, consultation runner, weak-supervision cue builder), the Codex-loop consultation logic, the Go sprint-contract advisor triggers + `<!-- advisor:required -->` marker, the advisor-drift monitor, the config block, and the `--advisor`/`--no-advisor` flags are all removed. The Codex loop keeps its retry/plateau handling (now driven by a plain `CODEX_LOOP_RETRY_THRESHOLD`, default 2). The `FT-ADVISE-01/02/03` taxonomy IDs are **retired in place** (marked `(retired)`, not deleted) per the failure-taxonomy ID-stability rule.
+
+---
+
+### Theme: Removed the `.claude/memory/` SSOT layer and `harness-remember` skill
+
+**The decisions.md / patterns.md / session-log.md "SSOT memory" layer earned its keep only on paper — nothing in the runtime read it automatically, and the one consumer wired to it (the advisor's `context_sources`) was dormant. Removed the whole layer so there is one fewer parallel memory system to maintain alongside Claude Code's native auto-memory.**
+
+#### 1. Removed the three SSOT files and their generator
+
+**Before**: Every session end appended a entry to `.claude/memory/session-log.md` (Go `SummaryHandler` + `session-summary.sh`), and `/harness-remember record` curated `decisions.md` / `patterns.md`. None of these were ever loaded into context automatically.
+
+**After**: The Stop hook still finalizes and archives `session.json` (session lifecycle is unchanged) but no longer writes a session log. `decisions.md`, `patterns.md`, `session-log.md`, and the `trace.v1` schema doc are gone. `.claude/memory/archive/` (frozen phase history) is retained.
+
+#### 2. Removed the `harness-remember` skill
+
+**Before**: `/harness-remember` offered `record` / `search` / `ssot` / `sync` subcommands whose sole purpose was managing the SSOT files.
+
+**After**: The skill and its references are deleted, along with its registration in CLAUDE.md, README, the skill catalog, and the Go/shell usage trackers. Claude Code's native auto-memory (`harness-mem`, the memory bridge, `.claude/agent-memory/`) is unaffected.
+
+#### 3. Pruned the readers that pointed at the SSOT
+
+**Before**: `harness-plan` ran a "Memory Conflict Check" against decisions/patterns; the advisor's scoped loader supported `session_log` and `patterns` sources; `maintenance` had a `--prune-logs` op and a `harness-plan session-log` monthly-split subcommand; the auto-cleanup hook nudged "run /harness-remember sync".
+
+**After**: All of these are removed. The advisor loader now serves only `trace` and `git_diff` (the sources that read live state and git, not the deleted files). Setup no longer scaffolds the SSOT files.
+
 ## [6.1.2] - 2026-05-31
 
 ### Theme: Plugin Simplification — Less is More (Phase 110)

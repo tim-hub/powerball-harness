@@ -18,18 +18,6 @@ monitor:
     stale_hours: 24     # hours without Plans.md modification before warning
 ```
 
-## Advisor/Reviewer Drift
-
-**Warning**: `⚠️ advisor drift: request_id={id}, waiting {elapsed}s`
-
-Emitted when an `advisor-request.v1` event in `.claude/state/session.events.jsonl` has no matching `advisor-response.v1` within the TTL.
-
-**Tune** in `harness/.claude-code-harness.config.yaml`:
-```yaml
-orchestration:
-  advisor_ttl_seconds: 600    # seconds before an unanswered advisor request triggers warning
-```
-
 ## harness-mem Health
 
 **Warning**: `⚠️ harness-mem unhealthy: {reason}`

@@ -40,32 +40,7 @@ If there is no user input, ask:
 >
 > A rough idea is fine!
 
-## Step 1.5: Memory Conflict Check
-
-Before creating the plan, read `.claude/memory/decisions.md` and `.claude/memory/patterns.md`.
-
-Scan the proposed approach against recorded decisions and patterns:
-
-- **If a conflict is found** (e.g., the plan uses a pattern previously rejected, or contradicts a decision): present it clearly and ask the user to choose:
-  1. **Update memory** — the new approach supersedes the old decision; run `harness-remember` to record it first, then continue planning
-  2. **Adjust the plan** — keep the existing decision in place and revise the proposed approach to align with it
-
-- **If no conflict is found**: proceed silently. Do not mention this step to the user.
-
-> **Silent-pass rule**: this step must not slow down planning when there is no conflict. Surface only genuine conflicts.
-
-## Step 1.6: New Decision Capture
-
-If planning surfaces a new architectural decision not yet recorded in `.claude/memory/decisions.md`, prompt the user once before creating the plan:
-
-> "I noticed a new decision: **[decision summary]**. Would you like to record it in memory before we write the plan? (yes / skip)"
-
-- If yes → invoke `harness-remember` to capture it, then continue.
-- If skip → continue without recording.
-
-> This step only fires when a genuinely new decision is surfaced. Do not prompt for known patterns.
-
-## Step 1.7: Planning Quality Gate
+## Step 1.5: Planning Quality Gate
 
 For `create` (new plan) and `add` (high-impact task addition), run the planning quality contract before creating the plan.
 
@@ -77,7 +52,7 @@ See [`${CLAUDE_SKILL_DIR}/references/planning-quality.md`](${CLAUDE_SKILL_DIR}/r
 | 1 | Input Decomposition | Break user input into subject, intent, facts, evidence |
 | 2 | Latest-information Fetch | WebSearch for external facts |
 | 3 | Local-source-of-truth Check | Reconcile against the plan (`harness plan-cli list`/`get`), specs, docs |
-| 4 | Memory Check | Check harness-mem / local memory |
+| 4 | Memory Check | Check harness-mem / local agent memory |
 | 5 | Subagent Debate | 3–4 independent perspectives (Product, Arch, QA, Skeptic) |
 | 6 | Neutral Scoring Review | 5-point rubric across 6 axes |
 | 7 | Quality Contract Output | Decision-ready summary |

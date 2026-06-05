@@ -357,11 +357,6 @@ sync_handoff_session_metadata() {
     ' "$session_file" > "$tmp_file" && mv "$tmp_file" "$session_file"
 }
 
-# Clear SSOT sync flag (on new session start)
-# This flag is created when /sync-ssot-from-memory runs,
-# and is used to confirm SSOT sync before plans.json cleanup
-rm -f "${STATE_DIR}/.ssot-synced-this-session" 2>/dev/null || true
-
 # Clear work warning flag (on new session start)
 # This flag is used by userprompt-inject-policy.sh to warn only once
 # Backward compatibility: clear both flag names

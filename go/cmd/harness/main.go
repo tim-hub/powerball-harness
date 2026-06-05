@@ -13,7 +13,7 @@
 //	harness hook session-init      — SessionStart: session initialization + Plans.md summary
 //	harness hook session-cleanup   — SessionEnd: temp file cleanup
 //	harness hook session-monitor   — SessionStart: project state collection + session.json
-//	harness hook session-summary   — Stop: session summary to session-log.md
+//	harness hook session-summary   — Stop: finalize + archive session.json
 //	harness hook ci-status         — PostToolUse: CI status check after push/PR
 //	harness evidence collect       — Collect evidence (test results, build logs)
 //	harness plan-cli <subcommand>  — Manage .claude/harness/plans.json task tracker
@@ -112,7 +112,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  hook session-init       SessionStart: session initialization + Plans.md summary")
 	fmt.Fprintln(os.Stderr, "  hook session-cleanup    SessionEnd: temp file cleanup")
 	fmt.Fprintln(os.Stderr, "  hook session-monitor    SessionStart: project state collection + session.json")
-	fmt.Fprintln(os.Stderr, "  hook session-summary    Stop: session summary to session-log.md")
+	fmt.Fprintln(os.Stderr, "  hook session-summary    Stop: finalize + archive session.json")
 	fmt.Fprintln(os.Stderr, "  hook ci-status          PostToolUse: CI status check after push/PR")
 	fmt.Fprintln(os.Stderr, "  hook subagent-start     SubagentStart: track agent lifecycle start")
 	fmt.Fprintln(os.Stderr, "  hook subagent-stop      SubagentStop: track agent lifecycle stop")
@@ -349,10 +349,6 @@ func runHook(hookType string) {
 	case "plans-watcher":
 		if err := hookhandler.HandlePlansWatcher(os.Stdin, os.Stdout); err != nil {
 			fmt.Fprintf(os.Stderr, "plans-watcher handler error: %v\n", err)
-		}
-	case "trace-posttool":
-		if err := hookhandler.HandlePostToolUseTrace(os.Stdin, os.Stdout); err != nil {
-			fmt.Fprintf(os.Stderr, "trace-posttool handler error: %v\n", err)
 		}
 	case "tdd-check":
 		if err := hookhandler.HandleTDDOrderCheck(os.Stdin, os.Stdout); err != nil {

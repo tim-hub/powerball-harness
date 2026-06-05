@@ -94,22 +94,6 @@ steps:
         - Plans.md
     mode: required
 
-  # Step 4.5: Initialize memory (SSOT)
-  # Handled by harness-remember skill
-  - id: init-memory-ssot
-    skill: harness-remember
-    input:
-      templates:
-        - templates/memory/decisions.md.template
-        - templates/memory/patterns.md.template
-        - templates/memory/session-log.md.template
-    output:
-      create_files:
-        - .claude/memory/decisions.md
-        - .claude/memory/patterns.md
-        - .claude/memory/session-log.md
-    mode: optional
-
   # Step 5: Review the plan (optional)
   # Handled by planning skill
   - id: review-plan

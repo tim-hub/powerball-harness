@@ -11,14 +11,13 @@ import (
 )
 
 // SummaryHandler is the Stop hook handler (session end summary).
-// Appends to session-log.md and records end info in session.json when the session ends.
+// Records end info in session.json, logs the stop event, and archives session
+// files when the session ends.
 //
 // shell version: scripts/session-summary.sh
 type SummaryHandler struct {
 	// StateDir is the path to the state directory. Inferred from cwd if empty.
 	StateDir string
-	// MemoryDir is the path to .claude/memory. Defaults to projectRoot/.claude/memory if empty.
-	MemoryDir string
 	// PlansFile is the path to plans.json. Defaults to the canonical
 	// projectRoot/.claude/harness/plans.json if empty.
 	PlansFile string
@@ -47,7 +46,8 @@ type summarySessionData struct {
 	raw map[string]interface{}
 }
 
-// Handle reads the Stop payload from stdin and writes the session end summary to session-log.md.
+// Handle reads the Stop payload from stdin and finalizes the session: it logs
+// the stop event, records end info in session.json, and archives session files.
 func (h *SummaryHandler) Handle(r io.Reader, w io.Writer) error {
 	data, _ := io.ReadAll(r)
 
@@ -63,13 +63,7 @@ func (h *SummaryHandler) Handle(r io.Reader, w io.Writer) error {
 		stateDir = filepath.Join(projectRoot, ".claude", "state")
 	}
 
-	memoryDir := h.MemoryDir
-	if memoryDir == "" {
-		memoryDir = filepath.Join(projectRoot, ".claude", "memory")
-	}
-
 	sessionFile := filepath.Join(stateDir, "session.json")
-	sessionLogFile := filepath.Join(memoryDir, "session-log.md")
 	eventLogFile := filepath.Join(stateDir, "session.events.jsonl")
 	archiveDir := filepath.Join(stateDir, "sessions")
 
@@ -92,31 +86,11 @@ func (h *SummaryHandler) Handle(r io.Reader, w io.Writer) error {
 	// Calculate session duration
 	durationMinutes := h.calcDurationMinutes(sessData.StartedAt, now)
 
-	// Get WIP tasks from plans.json
+	// Get WIP tasks from plans.json (used to gate the terminal summary)
 	wipTasks := h.readWIPTasks(h.PlansFile, projectRoot)
 
 	// Get changed file information
-	changedFiles, importantFiles := h.readChangedFiles(sessData.raw)
-
-	// Create session-log.md if it doesn't exist
-	if err := h.ensureSessionLog(sessionLogFile); err != nil {
-		_ = err // ignore error and continue
-	}
-
-	// Append to session-log.md
-	if sessData.StartedAt != "" && sessData.StartedAt != "null" {
-		_ = h.appendSessionLog(sessionLogFile, sessionLogEntry{
-			SessionID:      sessData.SessionID,
-			ProjectName:    sessData.ProjectName,
-			GitBranch:      h.readGitBranchFromSession(sessData.raw),
-			StartedAt:      sessData.StartedAt,
-			EndedAt:        nowStr,
-			DurationMinutes: durationMinutes,
-			ChangedFiles:   changedFiles,
-			ImportantFiles: importantFiles,
-			WIPTasks:       wipTasks,
-		})
-	}
+	changedFiles, _ := h.readChangedFiles(sessData.raw)
 
 	// Log session.stop event
 	h.appendEvent(eventLogFile, sessionFile, "session.stop", "stopped", nowStr)
@@ -134,19 +108,6 @@ func (h *SummaryHandler) Handle(r io.Reader, w io.Writer) error {
 
 	_ = w
 	return nil
-}
-
-// sessionLogEntry is the entry written to session-log.md.
-type sessionLogEntry struct {
-	SessionID       string
-	ProjectName     string
-	GitBranch       string
-	StartedAt       string
-	EndedAt         string
-	DurationMinutes int
-	ChangedFiles    []string
-	ImportantFiles  []string
-	WIPTasks        []string
 }
 
 // readSessionData reads the necessary information from session.json.
@@ -175,14 +136,6 @@ func (h *SummaryHandler) readSessionData(sessionFile string) summarySessionData 
 	}
 
 	return sess
-}
-
-// readGitBranchFromSession reads git.branch from session.json.
-func (h *SummaryHandler) readGitBranchFromSession(raw map[string]interface{}) string {
-	if git, ok := raw["git"].(map[string]interface{}); ok {
-		return stringField(git, "branch", "")
-	}
-	return ""
 }
 
 // readChangedFiles reads the list of changed files from session.json.
@@ -233,90 +186,6 @@ func (h *SummaryHandler) readWIPTasks(plansFile, projectRoot string) []string {
 		}
 	}
 	return tasks
-}
-
-// ensureSessionLog creates session-log.md if it does not exist.
-func (h *SummaryHandler) ensureSessionLog(logFile string) error {
-	if _, err := os.Stat(logFile); err == nil {
-		return nil // already exists
-	}
-
-	if err := os.MkdirAll(filepath.Dir(logFile), 0700); err != nil {
-		return err
-	}
-
-	header := `# Session Log
-
-Per-session work log (primarily for local use).
-Promote important decisions to ` + "`.claude/memory/decisions.md`" + ` and reusable solutions to ` + "`.claude/memory/patterns.md`" + `.
-
-## Index
-
-- (add entries as needed)
-
----
-`
-	return os.WriteFile(logFile, []byte(header), 0644)
-}
-
-// appendSessionLog appends session information to session-log.md.
-func (h *SummaryHandler) appendSessionLog(logFile string, entry sessionLogEntry) error {
-	if isSymlink(logFile) {
-		return fmt.Errorf("security: symlinked session log: %s", logFile)
-	}
-
-	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	fmt.Fprintf(f, "\n## Session: %s\n\n", entry.EndedAt)
-	fmt.Fprintf(f, "- session_id: `%s`\n", entry.SessionID)
-	if entry.ProjectName != "" {
-		fmt.Fprintf(f, "- project: `%s`\n", entry.ProjectName)
-	}
-	if entry.GitBranch != "" {
-		fmt.Fprintf(f, "- branch: `%s`\n", entry.GitBranch)
-	}
-	fmt.Fprintf(f, "- started_at: `%s`\n", entry.StartedAt)
-	fmt.Fprintf(f, "- ended_at: `%s`\n", entry.EndedAt)
-	if entry.DurationMinutes > 0 {
-		fmt.Fprintf(f, "- duration_minutes: %d\n", entry.DurationMinutes)
-	}
-	fmt.Fprintf(f, "- changes: %d\n", len(entry.ChangedFiles))
-
-	fmt.Fprintf(f, "\n### Changed Files\n")
-	if len(entry.ChangedFiles) > 0 {
-		for _, file := range entry.ChangedFiles {
-			fmt.Fprintf(f, "- `%s`\n", file)
-		}
-	} else {
-		fmt.Fprintln(f, "- (none)")
-	}
-
-	fmt.Fprintf(f, "\n### Important Changes (important=true)\n")
-	if len(entry.ImportantFiles) > 0 {
-		for _, file := range entry.ImportantFiles {
-			fmt.Fprintf(f, "- `%s`\n", file)
-		}
-	} else {
-		fmt.Fprintln(f, "- (none)")
-	}
-
-	fmt.Fprintf(f, "\n### Handoff Notes (optional)\n")
-	if len(entry.WIPTasks) > 0 {
-		fmt.Fprintf(f, "\n**plans.json WIP/in-progress (excerpt)**:\n\n```\n")
-		for _, task := range entry.WIPTasks {
-			fmt.Fprintln(f, task)
-		}
-		fmt.Fprintf(f, "```\n")
-	} else {
-		fmt.Fprintln(f, "- (add entries as needed)")
-	}
-
-	fmt.Fprintln(f, "\n---")
-	return nil
 }
 
 // appendEvent appends one entry to the event log and updates EventSeq in session.json.

@@ -68,9 +68,6 @@ timestamp_utc() {
 ensure_dirs() {
   mkdir -p "${LOOP_STATE_DIR}" "${LOCKS_DIR}" "${PROMPTS_DIR}" "${RESULTS_DIR}"
   mkdir -p "${TASK_JOBS_DIR}"
-  if declare -F ensure_advisor_state_files >/dev/null 2>&1; then
-    ensure_advisor_state_files
-  fi
 }
 
 log_line() {
@@ -782,252 +779,15 @@ run_checkpoint() {
   (cd "${PROJECT_ROOT}" && "${CHECKPOINT_SCRIPT}" "$1" "$2" "$3" "$4")
 }
 
-advisor_script_path() {
-  printf '%s\n' "${CODEX_LOOP_ADVISOR_SCRIPT:-${SCRIPT_DIR}/run-advisor-consultation.sh}"
-}
-
-advisor_enabled_globally() {
-  if [ ! -f "${CONFIG_UTILS}" ]; then
-    printf 'true\n'
-    return 0
-  fi
-  # shellcheck disable=SC1090
-  PROJECT_ROOT="${PROJECT_ROOT}" CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml" source "${CONFIG_UTILS}"
-  get_advisor_enabled
-}
-
-advisor_retry_threshold() {
-  if [ ! -f "${CONFIG_UTILS}" ]; then
-    printf '2\n'
-    return 0
-  fi
-  # shellcheck disable=SC1090
-  PROJECT_ROOT="${PROJECT_ROOT}" CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml" source "${CONFIG_UTILS}"
-  get_advisor_retry_threshold
-}
-
-advisor_max_consults_per_task() {
-  if [ ! -f "${CONFIG_UTILS}" ]; then
-    printf '3\n'
-    return 0
-  fi
-  # shellcheck disable=SC1090
-  PROJECT_ROOT="${PROJECT_ROOT}" CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml" source "${CONFIG_UTILS}"
-  get_advisor_max_consults_per_task
-}
-
-advisor_consult_before_user_escalation() {
-  if [ ! -f "${CONFIG_UTILS}" ]; then
-    printf 'true\n'
-    return 0
-  fi
-  # shellcheck disable=SC1090
-  PROJECT_ROOT="${PROJECT_ROOT}" CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml" source "${CONFIG_UTILS}"
-  get_advisor_consult_before_user_escalation
-}
-
-advisor_model_name() {
-  if [ ! -f "${CONFIG_UTILS}" ]; then
-    printf 'gpt-5.4\n'
-    return 0
-  fi
-  # shellcheck disable=SC1090
-  PROJECT_ROOT="${PROJECT_ROOT}" CONFIG_FILE="${PROJECT_ROOT}/.claude-code-harness.config.yaml" source "${CONFIG_UTILS}"
-  get_advisor_codex_model
-}
-
-contract_advisor_enabled() {
-  local contract_path="$1"
-  local global_enabled
-  global_enabled="$(advisor_enabled_globally)"
-  if [ "${global_enabled}" != "true" ]; then
-    printf 'false\n'
-    return 0
-  fi
-  json_get_file "${contract_path}" "advisor.enabled" "false"
-}
-
-contract_high_risk_summary() {
-  local contract_path="$1"
-  python_json "${contract_path}" <<'PY'
-import json
-import sys
-
-with open(sys.argv[1], "r", encoding="utf-8") as fh:
-    data = json.load(fh)
-
-triggers = data.get("advisor", {}).get("triggers", []) or []
-high_risk = [value for value in triggers if value in {"needs-spike", "security-sensitive", "state-migration"}]
-print(",".join(high_risk))
-PY
-}
-
-normalize_error_signature() {
-  local text="$1"
-  python_json "${text}" <<'PY'
-import re
-import sys
-
-normalized = re.sub(r"[^a-z0-9]+", "-", sys.argv[1].lower()).strip("-")
-print(normalized[:80] or "none")
-PY
-}
-
-advisor_trigger_seen() {
-  local trigger_hash="$1"
-  python_json "${RUN_JSON}" "${trigger_hash}" <<'PY'
-import json
-import os
-import sys
-
-path = sys.argv[1]
-target = sys.argv[2]
-if not os.path.exists(path):
-    raise SystemExit(1)
-
-with open(path, "r", encoding="utf-8") as fh:
-    data = json.load(fh)
-
-hashes = data.get("consulted_trigger_hashes", []) or []
-raise SystemExit(0 if target in hashes else 1)
-PY
-}
-
-advisor_task_consult_count() {
-  local task_id="$1"
-  python_json "${RUN_JSON}" "${task_id}" <<'PY'
-import json
-import os
-import sys
-
-path = sys.argv[1]
-task_id = sys.argv[2]
-if not os.path.exists(path):
-    print(0)
-    raise SystemExit(0)
-
-with open(path, "r", encoding="utf-8") as fh:
-    data = json.load(fh)
-
-counts = data.get("task_consultations", {}) or {}
-print(counts.get(task_id, 0))
-PY
-}
-
-record_advisor_consultation() {
-  local task_id="$1"
-  local trigger_hash="$2"
-  local decision="$3"
-  local model="$4"
-  python_json "${RUN_JSON}" "${task_id}" "${trigger_hash}" "${decision}" "${model}" <<'PY'
-import json
-import os
-import sys
-
-path, task_id, trigger_hash, decision, model = sys.argv[1:6]
-data = {}
-if os.path.exists(path):
-    with open(path, "r", encoding="utf-8") as fh:
-        data = json.load(fh)
-
-data["consultations"] = int(data.get("consultations", 0)) + 1
-data["last_decision"] = decision
-data["last_trigger"] = trigger_hash
-data["last_model"] = model
-
-hashes = data.setdefault("consulted_trigger_hashes", [])
-if trigger_hash not in hashes:
-    hashes.append(trigger_hash)
-
-task_counts = data.setdefault("task_consultations", {})
-task_counts[task_id] = int(task_counts.get(task_id, 0)) + 1
-
-with open(path, "w", encoding="utf-8") as fh:
-    json.dump(data, fh, ensure_ascii=False, indent=2)
-    fh.write("\n")
-PY
-}
-
-render_advisor_guidance() {
-  local response_file="$1"
-  python_json "${response_file}" <<'PY'
-import json
-import sys
-
-with open(sys.argv[1], "r", encoding="utf-8") as fh:
-    payload = json.load(fh)
-
-lines = []
-summary = payload.get("summary")
-if summary:
-    lines.append(f"Advisor summary: {summary}")
-for item in payload.get("executor_instructions", []) or []:
-    lines.append(f"- {item}")
-
-print("\n".join(lines))
-PY
-}
-
-consult_advisor() {
-  local task_id="$1"
-  local reason_code="$2"
-  local trigger_hash="$3"
-  local question="$4"
-  local attempt="$5"
-  local last_error="$6"
-  local context_summary="$7"
-
-  local request_file response_file model
-  model="$(advisor_model_name)"
-  request_file="${RESULTS_DIR}/${task_id}.${reason_code}.advisor-request.json"
-  response_file="${RESULTS_DIR}/${task_id}.${reason_code}.advisor-response.json"
-
-  python_json "${request_file}" "${task_id}" "${reason_code}" "${trigger_hash}" "${question}" "${attempt}" "${last_error}" "${context_summary}" <<'PY'
-import json
-import pathlib
-import sys
-
-path = pathlib.Path(sys.argv[1])
-task_id, reason_code, trigger_hash, question, attempt, last_error, context_summary = sys.argv[2:9]
-context_items = [item for item in context_summary.split("||") if item]
-payload = {
-    "schema_version": "advisor-request.v1",
-    "task_id": task_id,
-    "reason_code": reason_code,
-    "trigger_hash": trigger_hash,
-    "question": question,
-    "attempt": int(attempt),
-    "last_error": last_error,
-    "context_summary": context_items,
-}
-path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-PY
-
-  bash "$(advisor_script_path)" \
-    --request-file "${request_file}" \
-    --response-file "${response_file}" \
-    --model "${model}" >> "${RUNNER_LOG}" 2>&1
-
-  local decision
-  decision="$(json_get_file "${response_file}" "decision" "")"
-  record_advisor_consultation "${task_id}" "${trigger_hash}" "${decision}" "${model}"
-  printf '%s\n' "${response_file}"
-}
-
 create_cycle_prompt() {
   local task_id="$1"
   local contract_path="$2"
   local result_file="$3"
-  local advisor_guidance="${4:-}"
   cat > "${result_file}" <<EOF
 You are running one Codex loop cycle inside ${PROJECT_ROOT}.
 
 Target task: ${task_id}
 Sprint contract: ${contract_path}
-
-${advisor_guidance:+Advisor guidance for this attempt:
-${advisor_guidance}
-}
 
 Do exactly one task cycle.
 1. Read the task with \`harness plan-cli get ${task_id}\` and the sprint contract.
@@ -1144,38 +904,17 @@ perform_cycle() {
   review_input_file="${RESULTS_DIR}/${run_id}-cycle-${cycle_number}.review-input.json"
   review_result_file="${RESULTS_DIR}/${run_id}-cycle-${cycle_number}.review-result.json"
 
-  local advisor_active advisor_guidance high_risk_summary
-  advisor_active="$(contract_advisor_enabled "${contract_path}")"
-  advisor_guidance=""
-  high_risk_summary="$(contract_high_risk_summary "${contract_path}")"
-
-  if [ "${advisor_active}" = "true" ] && [ -n "${high_risk_summary}" ]; then
-    local preflight_hash preflight_response preflight_decision preflight_count
-    preflight_hash="${task_id}:high-risk-preflight:$(normalize_error_signature "${high_risk_summary}")"
-    preflight_count="$(advisor_task_consult_count "${task_id}")"
-    if ! advisor_trigger_seen "${preflight_hash}" && [ "${preflight_count}" -lt "$(advisor_max_consults_per_task)" ]; then
-      preflight_response="$(consult_advisor "${task_id}" "high-risk-preflight" "${preflight_hash}" "Pre-execution for a high-risk task. Which aspects should be locked down first?" 1 "${high_risk_summary}" "task=${task_id}||risk_triggers=${high_risk_summary}||cycle=${cycle_number}")" || return 21
-      preflight_decision="$(json_get_file "${preflight_response}" "decision" "")"
-      advisor_guidance="$(render_advisor_guidance "${preflight_response}")"
-      if [ "${preflight_decision}" = "STOP" ]; then
-        log_line "advisor stop before execution for ${task_id}"
-        return 21
-      fi
-    fi
-  fi
-
-  local retry_threshold max_consults attempt_limit
-  retry_threshold="$(advisor_retry_threshold)"
-  max_consults="$(advisor_max_consults_per_task)"
+  local retry_threshold attempt_limit
+  retry_threshold="${CODEX_LOOP_RETRY_THRESHOLD:-2}"
   attempt_limit=$((retry_threshold + 1))
 
-  local task_attempt=1 failure_count=0 failure_signature=""
+  local task_attempt=1
   local job_id="" job_log="" job_status="" job_phase="" summary=""
   local post_head="" static_verdict="REQUEST_CHANGES" runtime_verdict="REQUEST_CHANGES" final_verdict="REQUEST_CHANGES"
   local checkpoint_status="skipped" plateau_exit=1
 
   while [ "${task_attempt}" -le "${attempt_limit}" ]; do
-    create_cycle_prompt "${task_id}" "${contract_path}" "${prompt_file}" "${advisor_guidance}"
+    create_cycle_prompt "${task_id}" "${contract_path}" "${prompt_file}"
 
     local pre_head=""
     pre_head="$(cd "${PROJECT_ROOT}" && git rev-parse --short HEAD 2>/dev/null || true)"
@@ -1323,37 +1062,9 @@ PY
       break
     fi
 
-    local current_signature
-    current_signature="$(normalize_error_signature "${summary}")"
-    if [ "${current_signature}" = "${failure_signature}" ]; then
-      failure_count=$((failure_count + 1))
-    else
-      failure_signature="${current_signature}"
-      failure_count=1
-    fi
-
-    if [ "${task_attempt}" -lt "${retry_threshold}" ]; then
+    if [ "${task_attempt}" -lt "${attempt_limit}" ]; then
       task_attempt=$((task_attempt + 1))
-      advisor_guidance=""
       continue
-    fi
-
-    if [ "${advisor_active}" = "true" ] && [ "${failure_count}" -ge "${retry_threshold}" ]; then
-      local retry_hash retry_response retry_decision retry_count
-      retry_hash="${task_id}:retry-threshold:${failure_signature}"
-      retry_count="$(advisor_task_consult_count "${task_id}")"
-      if ! advisor_trigger_seen "${retry_hash}" && [ "${retry_count}" -lt "${max_consults}" ]; then
-        retry_response="$(consult_advisor "${task_id}" "retry-threshold" "${retry_hash}" "The same failure has been repeated. What should be changed on the next attempt?" "${task_attempt}" "${summary}" "task=${task_id}||attempt=${task_attempt}||signature=${failure_signature}")" || return 21
-        retry_decision="$(json_get_file "${retry_response}" "decision" "")"
-        advisor_guidance="$(render_advisor_guidance "${retry_response}")"
-        if [ "${retry_decision}" = "STOP" ]; then
-          break
-        fi
-        if [ "${task_attempt}" -lt "${attempt_limit}" ]; then
-          task_attempt=$((task_attempt + 1))
-          continue
-        fi
-      fi
     fi
     break
   done
@@ -1370,19 +1081,6 @@ PY
     plateau_exit=0
   else
     plateau_exit=$?
-  fi
-
-  if [ "${plateau_exit}" -eq 2 ] && [ "${advisor_active}" = "true" ] && [ "$(advisor_consult_before_user_escalation)" = "true" ]; then
-    local plateau_hash plateau_response plateau_decision plateau_count
-    plateau_hash="${task_id}:plateau-pre-escalation:$(normalize_error_signature "${summary}")"
-    plateau_count="$(advisor_task_consult_count "${task_id}")"
-    if ! advisor_trigger_seen "${plateau_hash}" && [ "${plateau_count}" -lt "${max_consults}" ]; then
-      plateau_response="$(consult_advisor "${task_id}" "plateau-pre-escalation" "${plateau_hash}" "Plateau detected — candidate for stopping. Should we continue or stop?" "${task_attempt}" "${summary}" "task=${task_id}||phase=plateau||verdict=${final_verdict}")" || return 22
-      plateau_decision="$(json_get_file "${plateau_response}" "decision" "")"
-      if [ "${plateau_decision}" != "STOP" ]; then
-        plateau_exit=0
-      fi
-    fi
   fi
 
   append_jsonl "${CYCLES_JSONL}" "$(cat <<EOF

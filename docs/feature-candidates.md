@@ -11,7 +11,6 @@ Ideas explored but not yet planned. Kept here for future reference only.
 **Core idea**: After each plan→work→review cycle, capture reusable insights back into the system so future cycles improve automatically. The article frames it as a fourth step: *capture → make findable → update system → verify learning*.
 
 **Where the harness is already strong (~70%):**
-- SSOT memory (`decisions.md`, `patterns.md`, `session-log.md`) — knowledge extraction exists
 - Worker/Reviewer/Scaffolder agents have full environment access
 - Plans-driven flow with hook enforcement
 
@@ -27,8 +26,6 @@ Ideas explored but not yet planned. Kept here for future reference only.
 | Insight type | Right target |
 |---|---|
 | "Don't do X" — enforceable | `settings.json` deny or Go guardrail rule |
-| "Prefer Y pattern" | `patterns.md` |
-| "We decided Z because..." | `decisions.md` |
 | "Next time, check W first" | relevant `SKILL.md` |
 
 A single file becomes a dumping ground. Automating the routing adds complexity without clear ROI at current scale. Soft markdown rules also don't satisfy the article's test: *"Would the system catch this automatically next time?"* — only enforced rules (Go engine, deny rules) truly do.

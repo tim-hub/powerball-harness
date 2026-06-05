@@ -8,9 +8,7 @@ Inspired by the "Failure Taxonomy" element in *Natural-Language Agent Harnesses*
 Give agents a shared vocabulary for detection, recovery, and escalation.
 `FT-*` IDs are cited in:
 - Go hook output and error messages (`go/internal/guardrail/`)
-- Phase 72 trace events (`taxonomy_id` field in `.claude/state/traces/<task_id>.jsonl`)
-- Advisor history records (`taxonomy_id` field in `.claude/state/advisor/history.jsonl`)
-- Agent files (`harness/agents/advisor.md`, `harness/agents/worker.md`)
+- Agent files (`harness/agents/worker.md`)
 
 ## ID Stability Rule
 
@@ -38,20 +36,22 @@ Detected by `go/internal/guardrail/tampering.go` during PostToolUse on test/CI f
 | FT-TAMPER-08 | TAMPER | Lint rule silenced via `eslint-disable` directive | PostToolUse regex on all files | Remove directive; fix the underlying lint issue; use targeted disable only if intentional | Reviewer REQUEST_CHANGES on blanket disables | `go/internal/guardrail/tampering.go` T08 |
 | FT-TAMPER-09 | TAMPER | CI failure hidden via `continue-on-error: true` | PostToolUse regex on CI config files | Remove `continue-on-error`; fix the failing step | Reviewer REQUEST_CHANGES | `go/internal/guardrail/tampering.go` T09 |
 | FT-TAMPER-10 | TAMPER | CI step forced unconditional via `if: always()` | PostToolUse regex on CI config files | Remove `always()` unless genuinely needed (e.g. cleanup step); document if intentional | Reviewer REQUEST_CHANGES | `go/internal/guardrail/tampering.go` T10 |
-| FT-TAMPER-11 | TAMPER | Hardcoded answer dictionary (test expected values returned directly) | PostToolUse regex on test files | Replace with a real implementation; run tests with novel inputs to confirm generality | Reviewer REQUEST_CHANGES; Advisor `PLAN` if recurring across retries | `go/internal/guardrail/tampering.go` T11 |
+| FT-TAMPER-11 | TAMPER | Hardcoded answer dictionary (test expected values returned directly) | PostToolUse regex on test files | Replace with a real implementation; run tests with novel inputs to confirm generality | Reviewer REQUEST_CHANGES | `go/internal/guardrail/tampering.go` T11 |
 | FT-TAMPER-12 | TAMPER | Implementation returns hardcoded test case values inline | PostToolUse regex on test files | Implement general logic; verify with inputs outside the test suite | Reviewer REQUEST_CHANGES | `go/internal/guardrail/tampering.go` T12 |
 
 ---
 
-### FT-ADVISE — Advisor Decision Triggers
+### FT-ADVISE — Advisor Decision Triggers (retired)
 
-Handled by `harness/agents/advisor.md` and the Worker retry loop in `harness/skills/harness-work/SKILL.md`.
+> **Retired**: the advisor agent was removed. These IDs are preserved per the ID Stability Rule
+> (never reuse or delete an `FT-*` ID) so historical records that reference them stay meaningful.
+> The modes below no longer have an active detector or handler.
 
 | ID | category | mode | detector | recovery | escalation | source |
 |----|----------|------|----------|----------|------------|--------|
-| FT-ADVISE-01 | ADVISE | Repeated failure — same error signature after ≥2 retries | Worker retry loop increments `retry_count`; advisor triggered on `reason_code: repeated_failure`; duplicate-suppression skips re-consultation on identical `(task_id, reason_code, error_signature)` | Advisor returns `CORRECTION` (local fix) or `PLAN` (abandon current approach); Worker applies the suggestion | Advisor returns `STOP` when no known fix pattern; Worker escalates to Reviewer and surfaces rationale to user | `harness/agents/advisor.md` |
-| FT-ADVISE-02 | ADVISE | High-risk preflight — destructive or irreversible operation detected before execution | `<!-- advisor:required -->` marker on task, or Worker detects destructive op (rm -rf, migration, force-push) in its plan; `reason_code: high_risk_preflight` | Advisor returns `PLAN` with a safer alternative approach, or `CORRECTION` with a targeted guard | Advisor returns `STOP` if `git_diff` shows a destructive op with no known-safe pattern in `patterns.md`; Worker surfaces to user before proceeding | `harness/agents/advisor.md` |
-| FT-ADVISE-03 | ADVISE | Plateau before escalation — task stalled across multiple sessions without progress | Worker detects ≥3 CI failures from the same root cause across sessions, or has exhausted the review fix loop; `reason_code: plateau_before_escalation` | Advisor loads `session_log` + `trace` sources; returns `PLAN` with fresh approach incorporating cross-session context | Advisor returns `STOP` when all loaded sources are empty or no convergence path is evident; Worker generates re-ticket proposal and escalates | `harness/agents/advisor.md` |
+| FT-ADVISE-01 | ADVISE | Repeated failure — same error signature after ≥2 retries (retired) | — | — | — | (removed) |
+| FT-ADVISE-02 | ADVISE | High-risk preflight — destructive or irreversible operation detected before execution (retired) | — | — | — | (removed) |
+| FT-ADVISE-03 | ADVISE | Plateau before escalation — task stalled across multiple sessions without progress (retired) | — | — | — | (removed) |
 
 ---
 
@@ -98,7 +98,7 @@ Handled by `harness-ralph-loop` orchestrator in `harness/skills/harness-ralph-lo
 | Source system | File | IDs |
 |---------------|------|-----|
 | Go tampering patterns | `go/internal/guardrail/tampering.go` | FT-TAMPER-01 – FT-TAMPER-12 |
-| Advisor error signatures | `harness/agents/advisor.md` | FT-ADVISE-01 – FT-ADVISE-03 |
+| Advisor error signatures (retired) | (removed) | FT-ADVISE-01 – FT-ADVISE-03 |
 | Worker retry patterns | `harness/skills/harness-work/SKILL.md` | FT-RETRY-01 – FT-RETRY-03 |
 | CI fixer rules | `harness/agents/ci-cd-fixer.md` | FT-CI-01 – FT-CI-05 |
 | Ralph loop patterns | `harness/skills/harness-ralph-loop/references/loop-flow.md` | FT-RALPH-01 – FT-RALPH-03 |

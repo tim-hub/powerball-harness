@@ -3,7 +3,7 @@ name: harness-plan
 description: "Plans and tracks tasks in .claude/harness/plans.json. Use when creating plans, adding tasks, updating markers, checking progress, or brainstorming an idea into tasks."
 when_to_use: "create a plan, add a task, mark task done, where am I, check progress, sync plans, archive phases, brainstorm idea, rough idea, design spec"
 allowed-tools: ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebSearch", "Task"]
-argument-hint: "[create|add|update|sync|archive|session-log|brainstorm|sync --no-retro|sync --snapshot|--ci]"
+argument-hint: "[create|add|update|sync|archive|brainstorm|sync --no-retro|sync --snapshot|--ci]"
 effort: xhigh
 model: opus
 ---
@@ -34,7 +34,6 @@ This check is performed silently. Inform the user only if migration was triggere
 | `harness-plan sync --snapshot` | `sync --snapshot` | Save point-in-time progress snapshot |
 | "rough idea" / "brainstorm" / `harness-plan brainstorm` | `brainstorm` | Shape idea → design spec → tasks via `harness plan-cli add-phase`/`add-task` |
 | "archive old phases" / `harness-plan archive` | `archive` | Archive phases via `harness plan-cli archive <phase-id>` (sets `status: archived` in plans.json) |
-| "session log too big" / `harness-plan session-log` | `session-log` | Split session-log.md by month; move older months to `.claude/memory/session-log-YYYY-MM.md` |
 
 ## Subcommand Details
 
@@ -48,7 +47,6 @@ Each subcommand has its own reference file. Open the matching file when invoking
 | `sync` | [references/sync.md](${CLAUDE_SKILL_DIR}/references/sync.md) — discrepancy detection, retrospective, --snapshot |
 | `brainstorm` | [references/brainstorm.md](${CLAUDE_SKILL_DIR}/references/brainstorm.md) — two-stage idea → spec → plan flow |
 | `archive` | [references/archive.md](${CLAUDE_SKILL_DIR}/references/archive.md) — phase archival, retention, naming |
-| `session-log` | [references/session-log.md](${CLAUDE_SKILL_DIR}/references/session-log.md) — monthly split of session-log.md |
 | _(CLI reference)_ | [cli-reference.md](${CLAUDE_SKILL_DIR}/../../references/cli-reference.md) — all subcommands, flags, exit codes, agent examples |
 | _(quality gate)_ | [references/planning-quality.md](${CLAUDE_SKILL_DIR}/references/planning-quality.md) — 8-step planning quality contract for `create` and high-impact `add` |
 
@@ -95,7 +93,7 @@ Reference:
 
 ## Delegation to `harness-planner` Agent
 
-For mechanical plans mutations (mark task status, add a row, archive completed phases, split session-log), skills and agents may delegate to the **`harness-planner` agent** (Haiku, low effort) instead of running the edit inline.
+For mechanical plans mutations (mark task status, add a row, archive completed phases), skills and agents may delegate to the **`harness-planner` agent** (Haiku, low effort) instead of running the edit inline.
 
 The planner agent now calls the `harness plan-cli` binary — it **does not edit Plans.md or `plans.json` directly**. All writes go through the CLI so atomic I/O guarantees are preserved.
 
@@ -104,7 +102,6 @@ The planner agent now calls the `harness plan-cli` binary — it **does not edit
 | `update` | `harness plan-cli update <task_id> --status <status>` |
 | `add` | `harness plan-cli add-phase` or `harness plan-cli add-task <phaseID>` |
 | `archive` | `harness plan-cli archive <phaseID>` |
-| `session-log` | No CLI equivalent; still edits session-log.md directly |
 
 > The same CLI calls apply when this skill performs the edit **inline** (without delegating): the SSOT is `.claude/harness/plans.json`, and every read goes through `harness plan-cli list`/`get`, every write through a `harness plan-cli` subcommand.
 

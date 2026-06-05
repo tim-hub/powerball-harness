@@ -37,7 +37,6 @@ type sprintContractDoc struct {
 	Source        sprintContractSource  `json:"source"`
 	Task          sprintContractTask    `json:"task"`
 	Contract      sprintContractBody    `json:"contract"`
-	Advisor       sprintContractAdvisor `json:"advisor"`
 	Review        sprintContractReview  `json:"review"`
 }
 
@@ -64,21 +63,6 @@ type sprintContractBody struct {
 	TestFramework     string             `json:"test_framework,omitempty"`
 	TestTodoList      []string           `json:"test_todo_list,omitempty"`
 	SkipTDDReason     *string            `json:"skip_tdd_reason,omitempty"`
-}
-
-type sprintContractAdvisor struct {
-	Enabled              bool                     `json:"enabled"`
-	Mode                 string                   `json:"mode"`
-	MaxConsults          int                      `json:"max_consults"`
-	RetryThreshold       int                      `json:"retry_threshold"`
-	PreEscalationConsult bool                     `json:"pre_escalation_consult"`
-	Triggers             []string                 `json:"triggers"`
-	ModelPolicy          sprintAdvisorModelPolicy `json:"model_policy"`
-}
-
-type sprintAdvisorModelPolicy struct {
-	ClaudeDefault string `json:"claude_default"`
-	CodexDefault  string `json:"codex_default"`
 }
 
 type sprintCheck struct {
@@ -142,8 +126,6 @@ var (
 	stateMigrationRe = regexp.MustCompile(`(?i)migration|schema|state|resume|session|artifact`)
 	// uxRegressionRe detects tasks with UI/browser regression risk.
 	uxRegressionRe = regexp.MustCompile(`(?i)browser|ui|layout|responsive|playwright|chrome|screen`)
-	// advisorRequiredRe matches the explicit advisor:required HTML comment marker.
-	advisorRequiredRe = regexp.MustCompile(`(?is)<!--\s*advisor:required\s*-->`)
 	// tddRequiredTagRe matches the [tdd:required] task tag.
 	tddRequiredTagRe = regexp.MustCompile(`(?i)\[tdd:required\]`)
 	// tddSkipTagRe matches the [tdd:skip:<reason>] task tag and captures the reason.
@@ -162,18 +144,6 @@ var defaultUIRubricTarget = &uiRubricTarget{
 	Originality:   6,
 	Craft:         6,
 	Functionality: 6,
-}
-
-var defaultSprintAdvisor = sprintContractAdvisor{
-	Enabled:              true,
-	Mode:                 "on-demand",
-	MaxConsults:          3,
-	RetryThreshold:       2,
-	PreEscalationConsult: true,
-	ModelPolicy: sprintAdvisorModelPolicy{
-		ClaudeDefault: "opus",
-		CodexDefault:  "gpt-5.4",
-	},
 }
 
 // sprintTDDContract holds the TDD configuration inferred for a task.
@@ -286,7 +256,6 @@ func (g *SprintContractGenerator) Generate(taskID string) (*sprintContractDoc, e
 	maxIterations := detectSprintMaxIterations(reviewerProfile, row)
 	runtimeValidation := pickRuntimeCommands(projectRoot)
 	riskFlags := detectSprintRiskFlags(row)
-	advisor := buildSprintAdvisor(row, riskFlags)
 	tddContract := detectSprintTDD(projectRoot, row)
 
 	var browserMode *string
@@ -361,7 +330,6 @@ func (g *SprintContractGenerator) Generate(taskID string) (*sprintContractDoc, e
 			TestTodoList:      tddContract.TestTodoList,
 			SkipTDDReason:     tddContract.SkipReason,
 		},
-		Advisor: advisor,
 		Review: sprintContractReview{
 			Status:          "draft",
 			ReviewerProfile: reviewerProfile,
@@ -526,33 +494,6 @@ func detectSprintRiskFlags(task *sprintTaskRow) []string {
 		unique = append(unique, flag)
 	}
 	return unique
-}
-
-func buildSprintAdvisor(task *sprintTaskRow, riskFlags []string) sprintContractAdvisor {
-	advisor := defaultSprintAdvisor
-	advisor.Triggers = detectSprintAdvisorTriggers(task, riskFlags)
-	return advisor
-}
-
-func detectSprintAdvisorTriggers(task *sprintTaskRow, riskFlags []string) []string {
-	riskSet := make(map[string]struct{}, len(riskFlags))
-	for _, flag := range riskFlags {
-		riskSet[flag] = struct{}{}
-	}
-
-	orderedTriggers := []string{}
-	for _, candidate := range []string{"needs-spike", "security-sensitive", "state-migration"} {
-		if _, ok := riskSet[candidate]; ok {
-			orderedTriggers = append(orderedTriggers, candidate)
-		}
-	}
-
-	text := fmt.Sprintf("%s\n%s", task.Title, task.DoD)
-	if advisorRequiredRe.MatchString(text) {
-		orderedTriggers = append(orderedTriggers, "<!-- advisor:required -->")
-	}
-
-	return orderedTriggers
 }
 
 func detectSprintBrowserRoute(task *sprintTaskRow, root, browserMode string) *string {

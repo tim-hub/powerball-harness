@@ -445,7 +445,7 @@ echo "----------------------------------------"
 #   - CHANGELOG.md: historical record of renames + Before/After migration docs; documentation, not runtime code
 #   - .claude/state/skills-decision.json: ephemeral session-state entries
 #   - docs/spikes/plugin-name-cleanup-inventory.md: inventory documentation
-PREFIX_PATTERN='(claude-code-harness|powerball-harness):(worker|reviewer|advisor|scaffolder|ralph-worker)'
+PREFIX_PATTERN='(claude-code-harness|powerball-harness):(worker|reviewer|scaffolder|ralph-worker)'
 PREFIX_VIOLATIONS=$(grep -rn -E "$PREFIX_PATTERN" \
     --include="*.md" --include="*.json" --include="*.toml" --include="*.yaml" \
     "$HARNESS_ROOT/.." 2>/dev/null \

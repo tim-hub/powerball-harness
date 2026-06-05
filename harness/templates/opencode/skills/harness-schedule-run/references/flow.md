@@ -138,8 +138,6 @@ Step 4. harness-mem resume-pack reload:
 After wake-up with fresh context, the previous cycle's memory is lost.
 Re-inject the following via `harness-mem resume-pack`:
 
-- `decisions.md` — architecture decisions
-- `patterns.md` — reusable patterns
 - `session-state` — previous work state
 - Most recent cycle's `checkpoint` — what was completed
 
@@ -388,19 +386,6 @@ PLATEAU_EXIT=$?
 | `1` | `INSUFFICIENT_DATA` | Continue (insufficient data) |
 | `2` | `PIVOT_REQUIRED` | **Stop loop** + escalation |
 
-**Advisor consultation on PIVOT_REQUIRED** (when `--advisor` is enabled):
-
-Before escalating to the user, call the advisor:
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-advisor-consultation.sh" \
-  --reason-code plateau_before_escalation \
-  --task-id "${current_task_id}"
-```
-
-If advisor returns `PLAN`, retry with the suggested approach.
-If advisor returns `STOP`, proceed to user escalation.
-
 **User escalation message on PIVOT_REQUIRED**:
 
 ```
@@ -415,16 +400,6 @@ Suggested actions:
   3. Skip the problem task and restart /harness-schedule-run
 
 Please review the current Plans.md state.
-```
-
-**Pre-escalation advisor check** (when `--advisor` is enabled):
-
-Before presenting any STOP/failure to the user, call:
-
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-advisor-consultation.sh" \
-  --reason-code pre_user_escalation \
-  --task-id "${current_task_id}"
 ```
 
 ### Step 7: Cycle Count Check

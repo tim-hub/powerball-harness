@@ -2,7 +2,7 @@
 name: harness-schedule-run
 description: "Use when running Plans.md tasks on a scheduled cadence (fresh context per wake-up, sprint-contract flow, plateau detection, flock guard). Do NOT load for: single-task work (harness-work), planning, review, release."
 allowed-tools: ["Read", "Edit", "Bash", "Task", "ScheduleWakeup", "mcp__harness__harness_mem_resume_pack", "mcp__harness__harness_mem_record_checkpoint"]
-argument-hint: "[all|N-M] [--max-cycles N] [--pacing worker|ci|plateau|night] [--advisor|--no-advisor]"
+argument-hint: "[all|N-M] [--max-cycles N] [--pacing worker|ci|plateau|night]"
 ---
 
 # Harness Schedule Run
@@ -19,7 +19,6 @@ Each wake-up calls `harness-work --breezing` via the Agent tool, forming a re-en
 | `/harness-schedule-run all --max-cycles 3` | Stop after 3 cycles |
 | `/harness-schedule-run 41.1-41.3 --pacing ci` | Execute task range with CI pacing |
 | `/harness-schedule-run all --pacing night` | Overnight batch (3600s interval) |
-| `/harness-schedule-run --no-advisor` | Disable advisor consultation at all trigger points |
 
 ## Options
 
@@ -29,8 +28,6 @@ Each wake-up calls `harness-work --breezing` via the Agent tool, forming a re-en
 | `N-M` | Task number range | - |
 | `--max-cycles N` | Maximum cycle count | `8` |
 | `--pacing <mode>` | Wake-up interval mode | `worker` (270s) |
-| `--advisor` | Enable advisor consultation (default) | enabled |
-| `--no-advisor` | Disable advisor consultation at all trigger points | - |
 
 ### Pacing Values
 
@@ -107,7 +104,7 @@ wake-up
 [Step 6] Plateau detection
   bash "${CLAUDE_PLUGIN_ROOT}/scripts/detect-review-plateau.sh" ${current_task_id}
   │
-  ├── PIVOT_REQUIRED (exit 2)   → loop stop + user escalation (advisor called if enabled)
+  ├── PIVOT_REQUIRED (exit 2)   → loop stop + user escalation
   ├── INSUFFICIENT_DATA (exit 1) → continue
   └── PIVOT_NOT_REQUIRED (exit 0) → continue
   │
@@ -162,55 +159,6 @@ Reload via `harness-mem resume-pack` is required (Step 4).
   "content": "1-line summary of cycle_result + commit hash"
 }
 ```
-
-## Advisor Integration
-
-When advisor consultation is enabled (default: on, disable with `--no-advisor`), the loop pauses and calls `run-advisor-consultation.sh` at three trigger points. On a `STOP` response the loop exits immediately with a summary.
-
-### Trigger Point 1: Pre-task Risk Check
-
-**Trigger**: Before starting any task annotated with `<!-- advisor:required -->` in Plans.md.
-
-**Reason code**: `high_risk_preflight`
-
-**Script call**:
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-advisor-consultation.sh" \
-  --reason-code high_risk_preflight \
-  --task-id "${task_id}"
-```
-
-**Behavior**: The Advisor reviews the task description, DoD, and current repo state. Returns `PLAN` to proceed or `STOP` to exit with explanation.
-
-### Trigger Point 2: Post-plateau (PIVOT_REQUIRED)
-
-**Trigger**: When `detect-review-plateau.sh` returns exit 2 (`PIVOT_REQUIRED`).
-
-**Reason code**: `plateau_before_escalation`
-
-**Script call**:
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-advisor-consultation.sh" \
-  --reason-code plateau_before_escalation \
-  --task-id "${task_id}"
-```
-
-**Behavior**: The Advisor receives plateau details. Returns `PLAN` (retry with different approach) or `STOP` (escalate to user).
-
-### Trigger Point 3: Pre-escalation
-
-**Trigger**: Before surfacing any STOP/failure condition to the user.
-
-**Reason code**: `pre_user_escalation`
-
-**Script call**:
-```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/run-advisor-consultation.sh" \
-  --reason-code pre_user_escalation \
-  --task-id "${task_id}"
-```
-
-**Behavior**: Final check before user involvement. Advisor may provide a resolution path or confirm escalation is necessary.
 
 ## Related Skills
 

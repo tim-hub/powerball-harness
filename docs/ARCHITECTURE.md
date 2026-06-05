@@ -14,7 +14,7 @@ Harness is a Claude Code plugin for autonomous **Plan → Work → Review** work
 │  Description-based auto-loading; each skill is a standalone unit     │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Agent Layer   (harness/agents/ — 7 agent definitions)              │
-│  worker · reviewer · scaffolder · advisor · ci-cd-fixer · ...       │
+│  worker · reviewer · scaffolder · ci-cd-fixer · ...       │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Hook/Guardrail Layer  (harness/hooks/ + go/internal/)              │
 │  27 event types → Go binary (CGO_ENABLED=0 static binary)           │
@@ -22,7 +22,7 @@ Harness is a Claude Code plugin for autonomous **Plan → Work → Review** work
 ```
 
 - **Skills Layer**: 27 standalone `SKILL.md` files, each with `description` (trigger matching), `allowed-tools`, and optional `references/` subdirectory. Auto-loaded by Claude Code based on task shape.
-- **Agent Layer**: Markdown agent definitions spawned by skills via the Task tool. Roles: Worker (implement), Reviewer (approve/deny), Scaffolder (state), Advisor (read-only guidance, Opus model), CI-CD-Fixer, Error-Recovery.
+- **Agent Layer**: Markdown agent definitions spawned by skills via the Task tool. Roles: Worker (implement), Reviewer (approve/deny), Scaffolder (state), CI-CD-Fixer, Error-Recovery.
 - **Hook/Guardrail Layer**: `hooks.json` maps 27 CC event types to thin bash shims. Shims call `bin/harness hook <name>` which dispatches to the Go binary. Concurrent fan-out (`post-tool-batch`, `pre-tool-batch`) parallelizes independent hooks.
 
 ## 3. Directory Structure
@@ -68,4 +68,4 @@ Rule actions: **Deny** (block), **Ask** (require confirmation), **Approve + Warn
 
 ### 4.4. Agents and Breezing
 
-`harness-work --parallel` spawns Worker agents via Task tool to implement Plans.md tasks concurrently. `harness-work --breezing` runs the full team (Worker + Reviewer + Advisor) end-to-end with worktree isolation.
+`harness-work --parallel` spawns Worker agents via Task tool to implement Plans.md tasks concurrently. `harness-work --breezing` runs the full team (Worker + Reviewer) end-to-end with worktree isolation.
