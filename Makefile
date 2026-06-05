@@ -81,8 +81,8 @@ check:
 
 # Lint: migration residue scan + skill description format audit
 lint:
-	@echo "▶ Running check-residue.sh…"
-	bash ./harness/skills/harness-release/scripts/check-residue.sh
+	@echo "▶ Running check-residue.py…"
+	python3 ./.claude/skills/release-this/scripts/check-residue.py
 	@echo ""
 	@echo "▶ Running audit-skill-descriptions.sh…"
 	bash ./local-scripts/audit-skill-descriptions.sh
@@ -107,12 +107,12 @@ bench:
 # Check VERSION / all metadata files are in sync
 check-version:
 	@echo "▶ Checking version sync…"
-	bash ./harness/skills/harness-release/scripts/sync-version.sh check
+	bash ./.claude/skills/release-this/scripts/sync-version.sh check
 
 # Sync all metadata files to VERSION (harness.toml, template-registry.json, *.md.template)
 sync-version:
 	@echo "▶ Syncing metadata files to VERSION…"
-	bash ./harness/skills/harness-release/scripts/sync-version.sh sync
+	bash ./.claude/skills/release-this/scripts/sync-version.sh sync
 
 # Release metadata policy check (runs in CI on every PR; use locally before release)
 check-version-bump:
