@@ -77,6 +77,40 @@ Change history for claude-code-harness.
 
 ## [Unreleased]
 
+### Theme: Fix CI check failures and make the migration residue scanner genuinely effective
+
+**Three groups of fixes surfaced during the v6.1.3 release cycle: stale script paths that broke CI on every release since the Phase 110 migration, test failures from the trace/advisor removal, and a residue scanner that silently no-opped and never caught any of the 61 guards it was supposed to enforce.**
+
+---
+
+#### 1. Stale harness-release script paths (CI broken since Phase 110)
+
+**Before**: `Makefile` and `local-scripts/check-version-bump.sh` still referenced `harness/skills/harness-release/scripts/sync-version.sh` and `check-residue.sh` — paths that stopped existing when the release skill moved to `.claude/skills/release-this/` in Phase 110. Every release triggered a false "harness.toml does not match VERSION" CI failure.
+
+**After**: All four `sync-version.sh` calls in `check-version-bump.sh` and the three Makefile targets (`check-version`, `sync-version`, `lint`) point to the correct paths. `check-residue.sh` → `python3 check-residue.py` (the wrapper no longer exists).
+
+#### 2. Test failures from trace/advisor removal
+
+**Before**: `test-harness-loop-flow.sh` failed because `codex-loop.sh` lost its executable bit during the advisor-removal edit. `test-harness-plan-quality.sh` asserted the stale literal "Step 1.7" (renumbered to "Step 1.5" after removing the two SSOT-memory steps that preceded it).
+
+**After**: Exec bit restored; plan-quality test updated to assert "Step 1.5". All 33 test scripts pass.
+
+#### 3. Migration residue scanner was a silent no-op
+
+**Before**: `check-residue.py` used `rg` without `--no-ignore` or `--hidden`. On any system where a broad `core.excludesfile` or global `.gitignore` applies, `rg` silently skipped the entire repo. The green CI residue check was completing in 0.1s and reporting "clean" while real residue was present. All 61 guards were cosmetic. Hidden dirs (`.claude/`, `.githooks/`) were never scanned — meaning re-introduced skills or rules would go undetected.
+
+**After**: Scanner adds `--no-ignore` (respects no ignore files) and `--hidden` (scans dot-dirs). Scanner's own stale self-allowlist updated from the old `harness/skills/harness-release/scripts/check-residue.py` to its actual path. All real residue cleaned before flipping the scanner on:
+- `go/internal/hookhandler/sprint_contract.go` — stale `os.Stat` path silently dropped check-consistency from sprint validation (functional fix; binaries rebuilt)
+- `.githooks/pre-commit` — stale `[ -f ]` path made version-sync block dead
+- `docs/release-preflight.md`, `docs/repository-structure.md`, `harness/rules/versioning.md`, four `release-this` script comments
+
+Effective scan proves itself: injecting a deleted term into `.claude/` is now caught; removing it returns to 0.
+
+#### 4. README updated for Plans.md retirement and SSOT removal
+
+**Before**: README described `Plans.md` as the task tracker, listed `/harness-release` and `/harness-remember` as core skills (neither exists in `harness/skills/`), and claimed "Memory persists — decisions, patterns, and per-task execution traces."
+
+**After**: `.claude/harness/plans.json` throughout; skills table reflects the actual six skills; third pillar updated to "Rerunnable validation" matching the current hero image.
 
 ## [6.1.3] - 2026-06-05
 
