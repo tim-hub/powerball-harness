@@ -26,8 +26,8 @@ assert_file "$quality_ref"
 # --- SKILL.md has planning-quality pointer ---
 assert_contains "$skill" "planning-quality.md"
 
-# --- create.md has Step 1.7 Planning Quality Gate ---
-assert_contains "$create_ref" "Step 1.7"
+# --- create.md has Planning Quality Gate step ---
+assert_contains "$create_ref" "Step 1.5"
 assert_contains "$create_ref" "Planning Quality Gate"
 assert_contains "$create_ref" "planning-quality.md"
 assert_contains "$create_ref" "Applicability"
