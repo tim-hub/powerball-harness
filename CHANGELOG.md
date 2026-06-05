@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v6.1.2...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v6.1.3...HEAD
+[6.1.3]: https://github.com/tim-hub/powerball-harness/compare/v6.1.2...v6.1.3
 [6.1.2]: https://github.com/tim-hub/powerball-harness/compare/v6.1.1...v6.1.2
 [6.1.1]: https://github.com/tim-hub/powerball-harness/compare/v6.1.0...v6.1.1
 [6.1.0]: https://github.com/tim-hub/powerball-harness/compare/v6.0.1...v6.1.0
@@ -75,6 +76,9 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+
+## [6.1.3] - 2026-06-05
 
 ### Theme: Removed the per-task trace (`trace.v1`) system and the `advisor` agent
 
