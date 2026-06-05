@@ -5,7 +5,8 @@ Change history for claude-code-harness.
 > **Writing Guidelines**: Focus on user-facing changes. Keep internal fixes brief.
 
 <!-- compare links -->
-[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v6.1.3...HEAD
+[Unreleased]: https://github.com/tim-hub/powerball-harness/compare/v6.1.4...HEAD
+[6.1.4]: https://github.com/tim-hub/powerball-harness/compare/v6.1.3...v6.1.4
 [6.1.3]: https://github.com/tim-hub/powerball-harness/compare/v6.1.2...v6.1.3
 [6.1.2]: https://github.com/tim-hub/powerball-harness/compare/v6.1.1...v6.1.2
 [6.1.1]: https://github.com/tim-hub/powerball-harness/compare/v6.1.0...v6.1.1
@@ -76,6 +77,9 @@ Change history for claude-code-harness.
 [4.6.0]: https://github.com/tim-hub/powerball-harness/compare/v4.5.2...v4.6.0
 
 ## [Unreleased]
+
+
+## [6.1.4] - 2026-06-05
 
 ### Theme: Fix CI check failures and make the migration residue scanner genuinely effective
 
