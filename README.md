@@ -14,9 +14,9 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, back
   <img src="docs/assets/readme-visuals-en/generated/why-harness-pillars.svg" alt="What changes with Claude Harness: shared plan, runtime guardrails, and rerunnable validation" width="860">
 </p>
 
-- **`Plans.md` drives the work** — every task has acceptance criteria; agents follow the plan instead of improvising
+- **A shared plan drives the work** — every task in `.claude/harness/plans.json` has acceptance criteria; agents follow the plan instead of improvising
 - **Two Go-native guardrails** — operation guard (`R01–R13`) blocks dangerous tool calls; content guard (PII Guard) blocks credential leaks
-- **Memory persists** — decisions, patterns, and per-task execution traces survive across sessions
+- **Rerunnable validation** — consistency checks, plugin validation, and migration-residue scans gate every change
 
 ---
 
@@ -30,7 +30,7 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, back
 /plugin install harness@powerball-harness-marketplace
 ```
 
-> First-time setup only: run `/harness-setup` to create `CLAUDE.md`, `Plans.md`, `.claude/memory`. Existing projects with these files can skip it.
+> First-time setup only: run `/harness-setup` to create `CLAUDE.md`, `.claude/harness/plans.json`, and `settings.json`. Existing projects with these files can skip it.
 
 ---
 
@@ -38,12 +38,11 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, back
 
 | Command | What it does |
 |---------|-------------|
-| `/harness-setup` | Project initialization (creates `CLAUDE.md` and `Plans.md`) |
-| `/harness-plan` | Ideas → `Plans.md` with acceptance criteria |
+| `/harness-setup` | Project initialization (creates `CLAUDE.md` and `.claude/harness/plans.json`) |
+| `/harness-plan` | Ideas → `.claude/harness/plans.json` with acceptance criteria |
 | `/harness-work` | Implementation — auto-selects solo (1 task) / parallel (2–3) / breezing (4+) |
 | `/harness-review` | 4-perspective code review (security, performance, quality, a11y) |
-| `/harness-release` | CHANGELOG, tag, and GitHub Release |
-| `/harness-remember` | SSOT — decisions, patterns, session logs |
+| `/maintenance` | Housekeeping — log pruning, stale-state cleanup, orphaned worktrees |
 
 Run everything after plan approval:
 
@@ -131,7 +130,7 @@ After `/harness-setup`, your project will have a `.claude/` folder. Some paths a
 
 **Committed** (you should check these in): `agents/`, `harness/plans.json`, `memory/`, `rules/`, `skills/`, `settings.json`
 
-**Git-ignored** (generated): `sessions/`, `logs/`, `state/`, `worktrees/`, `memory/session-log.md`
+**Git-ignored** (generated): `sessions/`, `logs/`, `state/`, `worktrees/`
 
 ---
 
@@ -159,7 +158,7 @@ After `/harness-setup`, your project will have a `.claude/` folder. Some paths a
 /plugin uninstall powerball-harness
 ```
 
-Project files (`Plans.md`, `CLAUDE.md`, SSOT files) remain unchanged.
+Project files (`.claude/harness/plans.json`, `CLAUDE.md`) remain unchanged.
 
 ---
 
