@@ -20,6 +20,8 @@ A Claude Code plugin for autonomous **Plan → Work → Review** workflows, back
 
 ---
 
+> If you found that you don't need that much skills any more especially after opus 5, check this [superpowers-slim](https://github.com/tim-hub/superpowers-slim)
+
 ## Installation
 
 **Requirements**: Claude Code v2.1+ · Go 1.22+ runtime
